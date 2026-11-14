@@ -1,0 +1,352 @@
+{
+  "author": "/root/release_sdk",
+  "createdUtc": "2026-10-16T21:44:21.464686+00:00",
+  "status": "passed-with-scope-limits",
+  "scope": "Read/hash and existing JSON/metafile/log inspection only. No build/test/runtime or active root-gates directory reads.",
+  "archiveCopies": [
+    {
+      "path": "/workspace/milkup-mermaid-engine-evidence/diagrams-gate07/standalone/plugin/dist/milkup.diagrams-1.1.0.milkup-plugin",
+      "bytes": 5726838,
+      "sha256": "9889f1796f9080ff230a1c51147522e83e065bc191a258035208f69403a327df"
+    },
+    {
+      "path": "/workspace/milkup/plugins/diagrams/dist/milkup.diagrams-1.1.0.milkup-plugin",
+      "bytes": 5726838,
+      "sha256": "9889f1796f9080ff230a1c51147522e83e065bc191a258035208f69403a327df"
+    },
+    {
+      "path": "/workspace/milkup/apps/desktop/src/bundled-plugins/milkup.diagrams-1.1.0.milkup-plugin",
+      "bytes": 5726838,
+      "sha256": "9889f1796f9080ff230a1c51147522e83e065bc191a258035208f69403a327df"
+    }
+  ],
+  "archiveFormat": {
+    "format": "milkup-plugin",
+    "version": 1,
+    "manifest": {
+      "id": "milkup.diagrams",
+      "name": "Milkup Diagrams",
+      "version": "1.1.0",
+      "description": "使用完整官方 Mermaid 引擎离线呈现图表；无法安全呈现的内容保留完整源码。",
+      "host": "dom",
+      "main": "./dist/plugin.js",
+      "engines": {
+        "milkup": "^2.0.0-0",
+        "pluginSdk": ">=0.3.4 <0.4.0"
+      },
+      "permissions": [
+        "document:read"
+      ],
+      "contributes": {
+        "documentRenderers": [
+          {
+            "id": "diagrams.mermaid",
+            "contexts": [
+              "fence"
+            ],
+            "fenceLanguages": [
+              "mermaid"
+            ]
+          }
+        ]
+      },
+      "resources": [
+        "THIRD-PARTY-NOTICES.txt",
+        "dependency-provenance.json"
+      ]
+    }
+  },
+  "manifestMatchesCurrentAndStandalone": true,
+  "archiveFiles": [
+    {
+      "path": "dist/plugin.js",
+      "encoding": "utf8",
+      "bytes": 5313950,
+      "sha256": "edc3f541a2a0d0d5a8cda9d00fcf7599b7fa823de2c7e88cd76866b723a81762",
+      "matchesStandaloneFile": true
+    },
+    {
+      "path": "THIRD-PARTY-NOTICES.txt",
+      "encoding": "base64",
+      "bytes": 166585,
+      "sha256": "4afc4a6bf7a01a621abaada6cda0ec9d1775a755b73f5954d951537d8ed24cb0",
+      "matchesStandaloneFile": true
+    },
+    {
+      "path": "dependency-provenance.json",
+      "encoding": "base64",
+      "bytes": 33515,
+      "sha256": "8c67ddb87697887acfd18c934015138b21dbc158c1c57465764d95096d1d3fb3",
+      "matchesStandaloneFile": true
+    }
+  ],
+  "copiedInputChecks": {
+    "count": 24,
+    "method": "Every copied-input manifest path hashed against its declared hash/bytes and compared byte-for-byte with current repository plugin source/config/build resources.",
+    "files": [
+      {
+        "path": "build-dependencies.json",
+        "bytes": 356156,
+        "sha256": "286fc4ff7359ecca44941bad046b88e2b185150ae8cb01280c94b67830e10c10"
+      },
+      {
+        "path": "dependency-provenance.json",
+        "bytes": 33515,
+        "sha256": "8c67ddb87697887acfd18c934015138b21dbc158c1c57465764d95096d1d3fb3"
+      },
+      {
+        "path": "package.json",
+        "bytes": 617,
+        "sha256": "1a0c223574cbecfe715123990f122db4a38466c5a9227e69c2a7f043e3ce2da8"
+      },
+      {
+        "path": "plugin.json",
+        "bytes": 617,
+        "sha256": "08c61140c81d91ae7d67ea4be33ef035afcfab262d827cfedfc0f0fd1aeace4b"
+      },
+      {
+        "path": "pnpm-lock.yaml",
+        "bytes": 67954,
+        "sha256": "eece5b86a0955df5204de2dc0cd69b1907a31a83de7d6fad39fa442c11ca7f01"
+      },
+      {
+        "path": "pnpm-workspace.yaml",
+        "bytes": 207,
+        "sha256": "2019a4dd5493fdd155e040b2a6d40e1a73c43f9877f80be1138b3f170e3f0804"
+      },
+      {
+        "path": "scripts/build-support.mjs",
+        "bytes": 4608,
+        "sha256": "5e7896d996145ba63188a2f8b0b9d56d5d1151e7ae7cff9dcdd03a79d5741192"
+      },
+      {
+        "path": "scripts/build.mjs",
+        "bytes": 2344,
+        "sha256": "d6d32d581d940be2f718a34cea47528bef076245de461ba9a527b219d5710e90"
+      },
+      {
+        "path": "scripts/review-dependencies.mjs",
+        "bytes": 6103,
+        "sha256": "d93641ee4a8b873337f6407683b7ec54f9f0c34dd5ea0c39a2b8e37ed2b2f1e5"
+      },
+      {
+        "path": "scripts/verify-external.mjs",
+        "bytes": 5401,
+        "sha256": "cfb44524cc0afd345adb414c97683b2f0349d398f3d0512c3f7bba6a11d0f66b"
+      },
+      {
+        "path": "src/bounded-opacity.test.ts",
+        "bytes": 4452,
+        "sha256": "1f26b9bf4db50e6fa56c8c95c6168afeebcae332f7cfcb68b2be7ccc5996b2d6"
+      },
+      {
+        "path": "src/bounded-opacity.ts",
+        "bytes": 4355,
+        "sha256": "1137cf88cf4da169f82929df18f09b64c9c86076f504033c53ea934046e4a679"
+      },
+      {
+        "path": "src/paint-envelope.test.ts",
+        "bytes": 13756,
+        "sha256": "549affa33a8245529970f2978d012e8540d0b66d3544273768ed3c27d01c633d"
+      },
+      {
+        "path": "src/paint-envelope.ts",
+        "bytes": 25588,
+        "sha256": "541ac7c29e9485cf1f814ef4c5ffe63cbfb55dba2a4b3890fc8b05664950ec82"
+      },
+      {
+        "path": "src/plugin.ts",
+        "bytes": 274,
+        "sha256": "613c8b5702e4cbcdce4c2a75d09b1b010d330d83344d2ac2ca3dc3ed99d942f1"
+      },
+      {
+        "path": "src/renderer.test.ts",
+        "bytes": 10889,
+        "sha256": "4fa9190222cfad26b998957fa8ceb8bca65dad49c143e5abaff6cad78d61de22"
+      },
+      {
+        "path": "src/renderer.ts",
+        "bytes": 7375,
+        "sha256": "d1573b69618f0cb0aa0ab3a5fad57c494d9da203de2d5c86c4abdff852f6c3df"
+      },
+      {
+        "path": "src/svg-converter.ts",
+        "bytes": 61388,
+        "sha256": "581897015ab7c91d06cdb3ebed9b83c1b659c3104deb48b96fe6d277090af924"
+      },
+      {
+        "path": "src/svg-primitives.test.ts",
+        "bytes": 3105,
+        "sha256": "0e3b8f64b3ec8a1fdb49ea4ad48ede991932a6dec28711550d0e0c4a5a1a5eca"
+      },
+      {
+        "path": "src/svg-primitives.ts",
+        "bytes": 9392,
+        "sha256": "e6489c3fe5b3e5dffd4b37edad4f9a9cd138ab54ea2997fdf05b0dc54f3b67af"
+      },
+      {
+        "path": "src/svg-text.test.ts",
+        "bytes": 1055,
+        "sha256": "5f3fd43652c46a19a3fe2c1f41a21196bfb4209f56172e940ba55d03407186be"
+      },
+      {
+        "path": "THIRD-PARTY-NOTICES.txt",
+        "bytes": 166585,
+        "sha256": "4afc4a6bf7a01a621abaada6cda0ec9d1775a755b73f5954d951537d8ed24cb0"
+      },
+      {
+        "path": "tsconfig.json",
+        "bytes": 431,
+        "sha256": "7509d5f1e9ac62144a36076097c4afcba9b1371a2381af310ac3b722a837b1e9"
+      },
+      {
+        "path": "vitest.config.ts",
+        "bytes": 119,
+        "sha256": "ac04393f55d8fc13727ae90c6e253812904678a35d14e2c460360dbde68fed8f"
+      }
+    ]
+  },
+  "sdk": {
+    "path": "/workspace/milkup-mermaid-engine-evidence/diagrams-gate07/standalone/plugin/vendor/plugin-sdk.tgz",
+    "bytes": 22524,
+    "sha256": "1717c0114aa165fa3e48a1bfa7687ffd0d9b2e5392d33e99d8b2dc59a1f3ad4f"
+  },
+  "entry": {
+    "path": "/workspace/milkup-mermaid-engine-evidence/diagrams-gate07/standalone/plugin/dist/plugin.js",
+    "bytes": 5313950,
+    "sha256": "edc3f541a2a0d0d5a8cda9d00fcf7599b7fa823de2c7e88cd76866b723a81762"
+  },
+  "runtimeImports": {
+    "metafile": {
+      "path": "/workspace/milkup-mermaid-engine-evidence/diagrams-gate07/standalone/plugin/dist/build-meta.json",
+      "bytes": 1758708,
+      "sha256": "71ebf0b02ada5272c53441b571a155efd1d1b6fde1d87deaf0360cbc6b4e2a73"
+    },
+    "singleOutput": [
+      "dist/plugin.js"
+    ],
+    "imports": [],
+    "qualification": "Independent read of actual esbuild output imports metadata and dist proof; no new build or module evaluation. This does not claim the absence of every possible network API."
+  },
+  "compiledSeedReview": {
+    "seedOccurrenceCount": 1,
+    "secureSuffixOccurrenceCount": 1,
+    "rawMinifiedExcerpt": "lize({startOnLoad:!1,securityLevel:\"strict\",htmlLabels:!1,suppressErrorRendering:!0,maxTextSize:5e4,maxEdges:500,deterministicIds:!0,deterministicIDSeed:\"milkup-offline\",handDrawnSeed:1,arrowMarkerAbsolute:!1,fontFamily:\"Arial, sans-serif\",legacyMathML:!1,forceLegacyMathML:!1,theme:t.theme===\"dark\"?\"dark\":\"default\",darkMode:t.theme===\"dark\",secure:[\"secure\",\"securityLevel\",\"startOnLoad\",\"maxTextSize\",\"maxEdges\",\"suppressErrorRendering\",\"htmlLabels\",\"fontFamily\",\"themeCSS\",\"legacyMathML\",\"forceLegacyMathML\",\"look\",\"textPlacement\",\"theme\",\"darkMode\",\"dompurifyConfig\",\"arrowMarkerAbsolute\",\"deterministicIds\",\"deterministicIDSeed\",\"handDrawnSeed\"]}),Gut=(Gut+1)%4294967296;let v=await Iut.render(`milkup_graph_${Gut}`,d,s);Cae",
+    "excerptByteOffset": 5310642,
+    "noReformatting": true,
+    "reverseChangeMatchesPriorEntryWholeBytes": true,
+    "reverseProcedure": "Remove exactly one ASCII handDrawnSeed:1, and replace exactly one ASCII \"deterministicIDSeed\",\"handDrawnSeed\" with \"deterministicIDSeed\". Result is byte-for-byte equal to retained local-dist-before/plugin.js.",
+    "entryByteDelta": 32,
+    "priorEntry": {
+      "path": "/workspace/milkup-mermaid-engine-evidence/diagrams-gate07/local-dist-before/plugin.js",
+      "bytes": 5313918,
+      "sha256": "2ff5896a4d3812fae132b9f172d051fdcbd95daeb5ec1c8c46e02008f11eb746"
+    },
+    "interpretation": "Actual new entry includes both initialization seed1 and secure handDrawnSeed. Entire remaining minified entry equals old after these two removals; this is not a source-only claim."
+  },
+  "otherNineStaged": [
+    {
+      "path": "/workspace/milkup/apps/desktop/src/bundled-plugins/milkup.footnotes-1.0.0.milkup-plugin",
+      "bytes": 15830,
+      "sha256": "25e7290ca347f95ad9553959db5a4f667c484c60aba2684b8e99ce65157b248d"
+    },
+    {
+      "path": "/workspace/milkup/apps/desktop/src/bundled-plugins/milkup.formatting-1.0.0.milkup-plugin",
+      "bytes": 44244,
+      "sha256": "03a3702da24b159dc6e4705b8b01690d47abe5a888ee3edf789f92498e180f6c"
+    },
+    {
+      "path": "/workspace/milkup/apps/desktop/src/bundled-plugins/milkup.images-1.0.0.milkup-plugin",
+      "bytes": 19748,
+      "sha256": "2ebaa029f6513b61375106b746ccd89af3e19f040f13bab0d84a24281446046a"
+    },
+    {
+      "path": "/workspace/milkup/apps/desktop/src/bundled-plugins/milkup.math-1.0.0.milkup-plugin",
+      "bytes": 548207,
+      "sha256": "5a139c67f23e38aee18f112a11b1afc0fe7072f306ccdca3f30360b845524ad6"
+    },
+    {
+      "path": "/workspace/milkup/apps/desktop/src/bundled-plugins/milkup.outline-1.3.1.milkup-plugin",
+      "bytes": 40624,
+      "sha256": "77ee29ce64aaba56f2085190f4a9da3b27e1949677d152b9795140419d8837fb"
+    },
+    {
+      "path": "/workspace/milkup/apps/desktop/src/bundled-plugins/milkup.preferences-1.0.0.milkup-plugin",
+      "bytes": 18811,
+      "sha256": "aea46e0217cfe881ce6523218a14fb310a66c4ce329af9e026eeaaab2de4759d"
+    },
+    {
+      "path": "/workspace/milkup/apps/desktop/src/bundled-plugins/milkup.shortcuts-1.0.0.milkup-plugin",
+      "bytes": 10553,
+      "sha256": "bac5225dff0842c71699c007359831cddbf1b9e504427609833dfc5d8a63c254"
+    },
+    {
+      "path": "/workspace/milkup/apps/desktop/src/bundled-plugins/milkup.updates-1.0.0.milkup-plugin",
+      "bytes": 13125,
+      "sha256": "54787d509ff204a295476f29c7376017f739b0512d8291366cf000c0a0e8b010"
+    },
+    {
+      "path": "/workspace/milkup/apps/desktop/src/bundled-plugins/milkup.workspace-1.0.0.milkup-plugin",
+      "bytes": 20342,
+      "sha256": "f96d3530e0661cf1bea0c15f43461a05afe1e97cb93518a040159f41be619f07"
+    }
+  ],
+  "existingGateEvidence": [
+    {
+      "path": "/workspace/milkup-mermaid-engine-evidence/diagrams-gate07/standalone/build.log",
+      "bytes": 120,
+      "sha256": "c2edcf014026e409bceff63598ac9a1e96768b40c5a8c4c24aa2dd35d6ace074"
+    },
+    {
+      "path": "/workspace/milkup-mermaid-engine-evidence/diagrams-gate07/standalone/test.log",
+      "bytes": 543,
+      "sha256": "ccd4a6e0166d0d5b1e1e6e5af2dac7ab7e6d8c9c2a752105a619aecc8478c7d0"
+    },
+    {
+      "path": "/workspace/milkup-mermaid-engine-evidence/diagrams-gate07/standalone/verification.json",
+      "bytes": 742,
+      "sha256": "cd44de6196af3c0e7e21637718926185e18ab8d606a6a58a3f2624ab0897d1c5"
+    },
+    {
+      "path": "/workspace/milkup-mermaid-engine-evidence/diagrams-gate07/standalone/execution.json",
+      "bytes": 1684,
+      "sha256": "d81869d9bd82f58ac845057143dfdf54260062743103aa968a372da06d02b448"
+    },
+    {
+      "path": "/workspace/milkup-mermaid-engine-evidence/diagrams-gate07/trusted-staging-execution.json",
+      "bytes": 838,
+      "sha256": "5561c165bbd1a887a508765be1be1d8e98e542bdd001579c09aaa6b3ba1aa721"
+    },
+    {
+      "path": "/workspace/milkup-mermaid-engine-evidence/diagrams-gate07/trusted-staging.log",
+      "bytes": 4258,
+      "sha256": "bf10299f454465f4f35895f436ede36361923b9cf2366dd0daa89e0eb4c9abef"
+    },
+    {
+      "path": "/workspace/milkup-mermaid-engine-evidence/diagrams-gate07/standalone/copied-inputs.json",
+      "bytes": 3495,
+      "sha256": "df15f5c04cd95b62715d1c60960ba5d4a20b7452375e967ebde36ac78f8e9780"
+    },
+    {
+      "path": "/workspace/milkup-mermaid-engine-evidence/diagrams-gate07/external-artifact-review.json",
+      "bytes": 682,
+      "sha256": "1b95ecd6b713cf2cd1335b0bc988fb9c7c7bd7b7f5c9f586d2112602ddecdd78"
+    },
+    {
+      "path": "/workspace/milkup-mermaid-engine-evidence/diagrams-gate07/staging-and-copy-proof.json",
+      "bytes": 2455,
+      "sha256": "67d53b6b0156220771ce8a131ca93110652e51830d2660ca3e8680cf775d6025"
+    }
+  ],
+  "existingResults": {
+    "external": "build.log records tsc --noEmit && node scripts/build.mjs; verification status passed. test.log records89 passed in5 files. Not rerun here.",
+    "staging": "trusted-staging-execution exitCode0; its log hash verified below.",
+    "localDist": "Copied authoritative external output, not separately rebuilt."
+  },
+  "limitations": [
+    "No production07 binary/frontend or native lifecycle/UI acceptance examined. The review establishes new staged archive identity, not downstream capture completion.",
+    "Did not re-resolve dependencies, rerun trusted build, or reexecute Mermaid. Frozen closure proof is read as existing evidence.",
+    "No whole-repository16356-source rehash performed; verified the24 plugin copied inputs and9other staged archives directly.",
+    "Seed runtime/pixel/scroll regressions remain separately recorded; no GREEN inferred solely from bundle text."
+  ]
+}

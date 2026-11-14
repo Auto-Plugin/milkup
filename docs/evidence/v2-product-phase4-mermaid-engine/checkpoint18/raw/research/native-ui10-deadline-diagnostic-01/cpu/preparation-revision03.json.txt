@@ -1,0 +1,121 @@
+{
+  "atUtc": "2026-10-16T23:16:42.019107+00:00",
+  "root": "/workspace/milkup-mermaid-engine-evidence/research/native-ui10-deadline-diagnostic-01/cpu",
+  "status": "STATIC_AND_FINITE_SYNTHETIC_ONLY_NO_LIVE_MAIN_LOOP",
+  "revision": 3,
+  "samplerCodeUnchangedFromRevision02": true,
+  "samplerSha256": "e05a926602213ba187408d85e57e161b1f9a77f66f2667b3c49d70385d470415",
+  "files": [
+    {
+      "path": "PLAN.md",
+      "bytes": 7236,
+      "sha256": "db8caa342dc54c64bac18daf3fb8a4189ce2345fc9eb0e3b87760a2dc06c0911"
+    },
+    {
+      "path": "app_cpu_ring.py",
+      "bytes": 23865,
+      "sha256": "e05a926602213ba187408d85e57e161b1f9a77f66f2667b3c49d70385d470415"
+    },
+    {
+      "path": "from-revision01.diff",
+      "bytes": 5435,
+      "sha256": "1757b23d8bd419e813909b3b04b7bd3e02c4b0f53759db8c41b337129fb391e8"
+    },
+    {
+      "path": "preparation-revision02.json",
+      "bytes": 2653,
+      "sha256": "092bab90715fbaccc59348a50f184a05832023df3cb8d45c696c663916161c45"
+    },
+    {
+      "path": "revision01/app_cpu_ring.py",
+      "bytes": 23022,
+      "sha256": "574d6e8604458344a1f305e365eb5d16bcd623ada6e515768f16b68abafd81aa"
+    },
+    {
+      "path": "revision01/synthetic-first-execution.json",
+      "bytes": 450,
+      "sha256": "0949e70efec96d747004a0a433b7e2063ac1ae09c5861565004012b175078856"
+    },
+    {
+      "path": "revision01/synthetic-first.log",
+      "bytes": 3291,
+      "sha256": "349cb53da75ee1f60f84e3a0546c30dd306a75fd8966abcc6842cf4fe1014e2d"
+    },
+    {
+      "path": "revision01/test_app_cpu_ring.py",
+      "bytes": 12465,
+      "sha256": "98cf2a757cb8461ac13b808f8913de6f2a7fb1cb41f16fa93005a397fa43c9e3"
+    },
+    {
+      "path": "revision02/test_app_cpu_ring.py",
+      "bytes": 13439,
+      "sha256": "3e04dc490fc825ef4b0fb03b3665e3270aa35b6f58d00bb1ff94d8613b151e85"
+    },
+    {
+      "path": "synthetic-first-execution.json",
+      "bytes": 450,
+      "sha256": "0949e70efec96d747004a0a433b7e2063ac1ae09c5861565004012b175078856"
+    },
+    {
+      "path": "synthetic-first.log",
+      "bytes": 3291,
+      "sha256": "349cb53da75ee1f60f84e3a0546c30dd306a75fd8966abcc6842cf4fe1014e2d"
+    },
+    {
+      "path": "synthetic-revision02-execution.json",
+      "bytes": 458,
+      "sha256": "4cc98818642a9a1c789d3b8d32b29d4cf0963804bbdff82de836bea6b6a78dc0"
+    },
+    {
+      "path": "synthetic-revision02.log",
+      "bytes": 3641,
+      "sha256": "bd6f0aad03dfe055d2cce32940579ba7544e02f38739adf3bd8a0d2f721bde15"
+    },
+    {
+      "path": "synthetic-ui10-line-execution.json",
+      "bytes": 510,
+      "sha256": "b50d73882a93297e3ae68427879429f8cbc7d1d16a3c6c48428621c611aa571f"
+    },
+    {
+      "path": "synthetic-ui10-line.log",
+      "bytes": 3745,
+      "sha256": "c4cfe719173059da001f87c29cf32b84ad875eb56087a869d8c114e8d9eaccf0"
+    },
+    {
+      "path": "test_app_cpu_ring.py",
+      "bytes": 14678,
+      "sha256": "723c29bd2208a61da67ae8f54f93a4091d27ced2507980305c76c6be79eb0059"
+    },
+    {
+      "path": "ui10-deadline-line.json",
+      "bytes": 1151,
+      "sha256": "531eca71b7e3efe40a412d17fc8f682166e6d86645356af8905666d5e26b4aac"
+    }
+  ],
+  "finiteCases": {
+    "revision01": 34,
+    "revision02": 37,
+    "revision03": 38
+  },
+  "actualLogFixture": {
+    "path": "ui10-deadline-line.json",
+    "qualification": "One exact frozen UI10 raw log line and identity; CPU/proc/cgroup/clock are simulated, not recovered actual UI10 metrics"
+  },
+  "historicalReferenceMapping": [
+    {
+      "originalManifest": "preparation-revision02.json",
+      "originalPath": "test_app_cpu_ring.py",
+      "snapshot": "revision02/test_app_cpu_ring.py",
+      "sha256": "3e04dc490fc825ef4b0fb03b3665e3270aa35b6f58d00bb1ff94d8613b151e85"
+    }
+  ],
+  "cli": [
+    "python3",
+    "/workspace/milkup-mermaid-engine-evidence/research/native-ui10-deadline-diagnostic-01/cpu/app_cpu_ring.py",
+    "--output",
+    "<new run/cpu-observer>",
+    "--app-log",
+    "<exact native driver log>"
+  ],
+  "scope": "No product edits, process table discovery, live process/cgroup reads, native runtime or sampler main loop execution. Pending independent harness integration review."
+}

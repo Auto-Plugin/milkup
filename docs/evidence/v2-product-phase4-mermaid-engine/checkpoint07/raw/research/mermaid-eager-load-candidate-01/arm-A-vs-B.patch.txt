@@ -1,0 +1,10 @@
+--- A/src/renderer.ts
++++ B/src/renderer.ts
+@@ -50,6 +50,7 @@
+ // independent native host owns activation and execution deadlines.
+ export async function prepareRenderer(): Promise<void> {
+   await document.fonts.ready
++  await mermaid.registerExternalDiagrams([], { lazyLoad: false })
+ }
+ 
+ const messages = {

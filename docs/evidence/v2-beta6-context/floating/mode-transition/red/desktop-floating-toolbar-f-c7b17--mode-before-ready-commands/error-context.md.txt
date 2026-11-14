@@ -1,0 +1,287 @@
+# Instructions
+
+- Following Playwright test failed.
+- Explain why, be concise, respect Playwright best practices.
+- Provide a snippet of code with the fix, if possible.
+
+# Test info
+
+- Name: desktop-floating-toolbar.spec.ts >> floating toolbar ordinary source to live retires the previous mode before ready commands
+- Location: tests/e2e/desktop-floating-toolbar.spec.ts:385:3
+
+# Error details
+
+```
+Error: expect(received).toBe(expected) // Object.is equality
+
+Expected: 0
+Received: 8
+```
+
+# Page snapshot
+
+```yaml
+- main [ref=e3]:
+  - generic [ref=e4]:
+    - button "菜单" [ref=e5] [cursor=pointer]:
+      - img [ref=e6]
+    - generic [ref=e7]:
+      - heading "sample" [level=1] [ref=e8]
+      - paragraph [ref=e9]: D:/notes
+    - generic "窗口控制" [ref=e10]:
+      - button "最小化" [ref=e11] [cursor=pointer]
+      - button "最大化" [ref=e13] [cursor=pointer]
+      - button "关闭窗口" [ref=e15] [cursor=pointer]
+  - generic [ref=e20]:
+    - textbox [ref=e21]:
+      - generic [ref=e23]: 正文 1 中文😀
+      - generic [ref=e25]: 正文 2 中文😀
+      - generic [ref=e27]: 正文 3 中文😀
+      - generic [ref=e29]: 正文 4 中文😀
+      - generic [ref=e31]: 正文 5 中文😀
+      - generic [ref=e33]: 正文 6 中文😀
+      - generic [ref=e35]: 正文 7 中文😀
+      - generic [ref=e37]: 正文 8 中文😀
+      - generic [ref=e38]:
+        - generic [ref=e40]: A
+        - generic [ref=e42]: B
+      - generic [ref=e43]:
+        - generic [ref=e45]: x
+        - generic [ref=e47]: "y"
+      - generic [ref=e50]: 尾部正文
+      - generic [ref=e52]: padding text padding text padding text padding text padding text padding text padding text padding text
+      - generic [ref=e54]: padding text padding text padding text padding text padding text padding text padding text padding text
+      - generic [ref=e56]: padding text padding text padding text padding text padding text padding text padding text padding text
+      - generic [ref=e58]: padding text padding text padding text padding text padding text padding text padding text padding text
+      - generic [ref=e60]: padding text padding text padding text padding text padding text padding text padding text padding text
+      - generic [ref=e62]: padding text padding text padding text padding text padding text padding text padding text padding text
+      - generic [ref=e64]: padding text padding text padding text padding text padding text padding text padding text padding text
+      - generic [ref=e66]: padding text padding text padding text padding text padding text padding text padding text padding text
+      - generic [ref=e68]: padding text padding text padding text padding text padding text padding text padding text padding text
+      - generic [ref=e70]: padding text padding text padding text padding text padding text padding text padding text padding text
+      - generic [ref=e72]: padding text padding text padding text padding text padding text padding text padding text padding text
+      - generic [ref=e74]: padding text padding text padding text padding text padding text padding text padding text padding text
+      - generic [ref=e76]: padding text padding text padding text padding text padding text padding text padding text padding text
+      - generic [ref=e78]: padding text padding text padding text padding text padding text padding text padding text padding text
+      - generic [ref=e80]: padding text padding text padding text padding text padding text padding text padding text padding text
+      - generic [ref=e82]: padding text padding text padding text padding text padding text padding text padding text padding text
+      - generic [ref=e84]: padding text padding text padding text padding text padding text padding text padding text padding text
+      - generic [ref=e86]: padding text padding text padding text padding text padding text padding text padding text padding text
+      - generic [ref=e88]: padding text padding text padding text padding text padding text padding text padding text padding text
+      - generic [ref=e90]: padding text padding text padding text padding text padding text padding text padding text padding text
+      - generic [ref=e92]: padding text padding text padding text padding text padding text padding text padding text padding text
+      - generic [ref=e94]: padding text padding text padding text padding text padding text padding text padding text padding text
+      - generic [ref=e96]: padding text padding text padding text padding text padding text padding text padding text padding text
+      - generic [ref=e98]: padding text padding text padding text padding text padding text padding text padding text padding text
+      - generic [ref=e100]: padding text padding text padding text padding text padding text padding text padding text padding text
+      - generic [ref=e102]: padding text padding text padding text padding text padding text padding text padding text padding text
+      - generic [ref=e104]: padding text padding text padding text padding text padding text padding text padding text padding text
+      - generic [ref=e106]: padding text padding text padding text padding text padding text padding text padding text padding text
+      - generic [ref=e108]: padding text padding text padding text padding text padding text padding text padding text padding text
+      - generic [ref=e110]: padding text padding text padding text padding text padding text padding text padding text padding text
+      - generic [ref=e112]: padding text padding text padding text padding text padding text padding text padding text padding text
+      - generic [ref=e114]: padding text padding text padding text padding text padding text padding text padding text padding text
+      - generic [ref=e116]: padding text padding text padding text padding text padding text padding text padding text padding text
+      - generic [ref=e118]: padding text padding text padding text padding text padding text padding text padding text padding text
+      - generic [ref=e120]: padding text padding text padding text padding text padding text padding text padding text padding text
+      - generic [ref=e122]: padding text padding text padding text padding text padding text padding text padding text padding text
+      - generic [ref=e124]: padding text padding text padding text padding text padding text padding text padding text padding text
+      - generic [ref=e126]: padding text padding text padding text padding text padding text padding text padding text padding text
+      - generic [ref=e128]: padding text padding text padding text padding text padding text padding text padding text padding text
+      - generic [ref=e130]: padding text padding text padding text padding text padding text padding text padding text padding text
+      - generic [ref=e132]: padding text padding text padding text padding text padding text padding text padding text padding text
+      - generic [ref=e134]: padding text padding text padding text padding text padding text padding text padding text padding text
+      - generic [ref=e136]: padding text padding text padding text padding text padding text padding text padding text padding text
+      - generic [ref=e138]: padding text padding text padding text padding text padding text padding text padding text padding text
+      - generic [ref=e140]: padding text padding text padding text padding text padding text padding text padding text padding text
+      - generic [ref=e142]: padding text padding text padding text padding text padding text padding text padding text padding text
+      - generic [ref=e144]: padding text padding text padding text padding text padding text padding text padding text padding text
+      - generic [ref=e146]: padding text padding text padding text padding text padding text padding text padding text padding text
+      - generic [ref=e148]: padding text padding text padding text padding text padding text padding text padding text padding text
+      - generic [ref=e150]: padding text padding text padding text padding text padding text padding text padding text padding text
+      - generic [ref=e152]: padding text padding text padding text padding text padding text padding text padding text padding text
+      - generic [ref=e154]: padding text padding text padding text padding text padding text padding text padding text padding text
+      - generic [ref=e156]: padding text padding text padding text padding text padding text padding text padding text padding text
+      - generic [ref=e158]: padding text padding text padding text padding text padding text padding text padding text padding text
+      - generic [ref=e160]: padding text padding text padding text padding text padding text padding text padding text padding text
+      - generic [ref=e162]: padding text padding text padding text padding text padding text padding text padding text padding text
+      - generic [ref=e164]: padding text padding text padding text padding text padding text padding text padding text padding text
+      - generic [ref=e166]: padding text padding text padding text padding text padding text padding text padding text padding text
+      - generic [ref=e168]: padding text padding text padding text padding text padding text padding text padding text padding text
+      - generic [ref=e170]: padding text padding text padding text padding text padding text padding text padding text padding text
+      - generic [ref=e172]: padding text padding text padding text padding text padding text padding text padding text padding text
+      - generic [ref=e174]: padding text padding text padding text padding text padding text padding text padding text padding text
+      - generic [ref=e176]: padding text padding text padding text padding text padding text padding text padding text padding text
+      - generic [ref=e178]: padding text padding text padding text padding text padding text padding text padding text padding text
+      - generic [ref=e180]: padding text padding text padding text padding text padding text padding text padding text padding text
+      - generic [ref=e182]: padding text padding text padding text padding text padding text padding text padding text padding text
+      - generic [ref=e184]: padding text padding text padding text padding text padding text padding text padding text padding text
+      - generic [ref=e186]: padding text padding text padding text padding text padding text padding text padding text padding text
+      - generic [ref=e188]: padding text padding text padding text padding text padding text padding text padding text padding text
+      - generic [ref=e190]: padding text padding text padding text padding text padding text padding text padding text padding text
+      - generic [ref=e192]: padding text padding text padding text padding text padding text padding text padding text padding text
+      - generic [ref=e194]: padding text padding text padding text padding text padding text padding text padding text padding text
+      - generic [ref=e196]: padding text padding text padding text padding text padding text padding text padding text padding text
+      - generic [ref=e198]: padding text padding text padding text padding text padding text padding text padding text padding text
+      - generic [ref=e200]: padding text padding text padding text padding text padding text padding text padding text padding text
+      - generic [ref=e202]: padding text padding text padding text padding text padding text padding text padding text padding text
+      - generic [ref=e204]: padding text padding text padding text padding text padding text padding text padding text padding text
+      - generic [ref=e206]: padding text padding text padding text padding text padding text padding text padding text padding text
+      - generic [ref=e208]: padding text padding text padding text padding text padding text padding text padding text padding text
+      - generic [ref=e210]: padding text padding text padding text padding text padding text padding text padding text padding text
+    - textbox "Markdown 编辑器" [active]
+  - toolbar "文档上下文操作" [ref=e212]:
+    - generic "格式" [ref=e213]:
+      - generic [ref=e214]:
+        - button "格式" [ref=e215] [cursor=pointer]
+        - button "粗体" [ref=e216] [cursor=pointer]
+        - button "斜体" [ref=e217] [cursor=pointer]
+        - button "下方加行" [ref=e218] [cursor=pointer]
+        - button "删除行" [ref=e219] [cursor=pointer]
+        - button "右侧加列" [ref=e220] [cursor=pointer]
+        - button "删除列" [disabled] [ref=e221]
+        - button "退出表格" [ref=e222] [cursor=pointer]
+  - generic [ref=e223]:
+    - generic [ref=e224]:
+      - button "侧栏" [ref=e225] [cursor=pointer]:
+        - img [ref=e226]
+      - button "实时" [ref=e228] [cursor=pointer]:
+        - img [ref=e229]
+    - generic [ref=e232]:
+      - generic [ref=e233]: Markdown
+      - generic [ref=e234]: 8613 字符
+      - generic [ref=e237]: 已保存
+```
+
+# Test source
+
+```ts
+  394 |       const sourceButtons = Array.from(slot.querySelectorAll<HTMLElement>('[data-plugin-command]'))
+  395 |       const visible = (element: HTMLElement) =>
+  396 |         element.isConnected &&
+  397 |         !element.closest('[hidden], [inert]') &&
+  398 |         element.getClientRects().length > 0 &&
+  399 |         getComputedStyle(element).visibility !== 'hidden'
+  400 |       const samples: {
+  401 |         at: number
+  402 |         reason: string
+  403 |         mode?: string
+  404 |         renderMode?: string
+  405 |         version: string | null
+  406 |         cursorPosition?: string
+  407 |         toolbarVisible: boolean
+  408 |         commandCount: number
+  409 |         sourceCommandsVisible: number
+  410 |         state?: string
+  411 |       }[] = []
+  412 |       const sample = (reason: string) => {
+  413 |         if (samples.length >= 250) return
+  414 |         samples.push({
+  415 |           at: performance.now(),
+  416 |           reason,
+  417 |           mode: editor.dataset.mode,
+  418 |           renderMode: editor.querySelector<HTMLElement>('[data-render-mode]')?.dataset.renderMode,
+  419 |           version: document.querySelector('[data-stat="version"]')?.textContent ?? null,
+  420 |           cursorPosition: editor.querySelector<HTMLElement>('.milkup-cursor')?.dataset.position,
+  421 |           toolbarVisible: visible(slot),
+  422 |           commandCount: slot.querySelectorAll('[data-plugin-command]').length,
+  423 |           sourceCommandsVisible: sourceButtons.filter(visible).length,
+  424 |           state: slot.querySelector<HTMLElement>('[data-ui-state]')?.dataset.uiState,
+  425 |         })
+  426 |       }
+  427 |       const observer = new MutationObserver((records) =>
+  428 |         sample(
+  429 |           records.some(
+  430 |             (record) =>
+  431 |               record.target === editor &&
+  432 |               record.attributeName === 'data-mode' &&
+  433 |               record.oldValue === 'source',
+  434 |           )
+  435 |             ? 'source-to-live mutation'
+  436 |             : 'mutation',
+  437 |         ),
+  438 |       )
+  439 |       observer.observe(editor, {
+  440 |         subtree: true,
+  441 |         childList: true,
+  442 |         attributes: true,
+  443 |         attributeOldValue: true,
+  444 |         attributeFilter: ['data-mode', 'data-render-mode', 'data-position'],
+  445 |       })
+  446 |       observer.observe(slot, {
+  447 |         subtree: true,
+  448 |         childList: true,
+  449 |         attributes: true,
+  450 |         attributeOldValue: true,
+  451 |         attributeFilter: ['hidden', 'data-ui-state'],
+  452 |       })
+  453 |       let frame = 0
+  454 |       const nextFrame = () => {
+  455 |         sample('frame')
+  456 |         frame = requestAnimationFrame(nextFrame)
+  457 |       }
+  458 |       sample('before')
+  459 |       frame = requestAnimationFrame(nextFrame)
+  460 |       Reflect.set(window, '__floatingModeTrace', {
+  461 |         samples,
+  462 |         stop() {
+  463 |           observer.disconnect()
+  464 |           cancelAnimationFrame(frame)
+  465 |           sample('finished')
+  466 |           return samples
+  467 |         },
+  468 |       })
+  469 |     })
+  470 |     try {
+  471 |       if (windowed) await page.keyboard.press('Control+2')
+  472 |       else await page.locator('[data-mode-toggle]').click()
+  473 |       const transition = await page.evaluate(() => {
+  474 |         const { samples } = Reflect.get(window, '__floatingModeTrace')
+  475 |         return {
+  476 |           before: samples[0] as { version: string; cursorPosition: string },
+  477 |           changed: samples.find(
+  478 |             (sample: { reason: string }) => sample.reason === 'source-to-live mutation',
+  479 |           ) as {
+  480 |             mode: string
+  481 |             version: string
+  482 |             cursorPosition: string
+  483 |             sourceCommandsVisible: number
+  484 |           },
+  485 |         }
+  486 |       })
+  487 |       expect(transition.changed).toBeDefined()
+  488 |       expect(transition.changed.mode).toBe('live')
+  489 |       expect(transition.changed.version).toBe(transition.before.version)
+  490 |       expect(transition.changed.cursorPosition).toBe(transition.before.cursorPosition)
+  491 |       // A mode attribute mutation runs before any new Worker response task.
+  492 |       // Old source commands must already be retired at this boundary, without
+  493 |       // a sleep, extra selection change, or synthetic render completion.
+> 494 |       expect(transition.changed.sourceCommandsVisible).toBe(0)
+      |                                                        ^ Error: expect(received).toBe(expected) // Object.is equality
+  495 |       const cell = page.locator(`.milkup-line[data-line="${tableRow}"] .milkup-table-cell`).first()
+  496 |       await expect(cell).toHaveText('x')
+  497 |       await expect(toolbar(page).locator('[data-ui-state="ready"]')).toBeVisible()
+  498 |       const addRow = toolbar(page).getByRole('button', { name: '下方加行', exact: true })
+  499 |       await expect(addRow).toBeEnabled()
+  500 |       await addRow.click()
+  501 |       const newCells = page.locator(`.milkup-line[data-line="${tableRow + 1}"] .milkup-table-cell`)
+  502 |       await expect(newCells).toHaveCount(2)
+  503 |       await expect(input(page)).toBeFocused()
+  504 |       await page.keyboard.insertText('模式切换😀')
+  505 |       await expect(newCells.first()).toHaveText('模式切换😀')
+  506 |       await page.keyboard.press('Control+z')
+  507 |       await page.keyboard.press('Control+z')
+  508 |       await expect(newCells).toHaveCount(0)
+  509 |       await expect(cell).toHaveText('x')
+  510 |     } finally {
+  511 |       const samples = await page.evaluate(() => Reflect.get(window, '__floatingModeTrace').stop())
+  512 |       const body = JSON.stringify(samples, null, 2)
+  513 |       await writeFile(info.outputPath('source-to-live-toolbar-timeline.json'), body)
+  514 |       await info.attach('source-to-live-toolbar-timeline', {
+  515 |         body,
+  516 |         contentType: 'application/json',
+  517 |       })
+  518 |     }
+  519 |   })
+  520 | 
+```

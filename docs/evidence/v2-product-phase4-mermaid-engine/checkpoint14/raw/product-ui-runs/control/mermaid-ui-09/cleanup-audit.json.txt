@@ -1,0 +1,102 @@
+{
+  "atUtc": "2026-10-16T21:29:36.378605+00:00",
+  "identities": [
+    {
+      "pid": 403197,
+      "absent": true
+    },
+    {
+      "pid": 403213,
+      "absent": true
+    },
+    {
+      "pid": 403229,
+      "absent": true
+    },
+    {
+      "pid": 403255,
+      "absent": true
+    },
+    {
+      "pid": 403392,
+      "absent": true
+    },
+    {
+      "pid": 403553,
+      "absent": true
+    }
+  ],
+  "ports": [
+    {
+      "port": 4626,
+      "connectErrno": 111
+    },
+    {
+      "port": 4627,
+      "connectErrno": 111
+    }
+  ],
+  "traceCleanupEvents": [
+    {
+      "instanceId": "2d0b48f39116e745d4c4d1755e264fd0073ebd986ad6f193",
+      "monotonicNs": 72223459114265,
+      "phase": "kill-start",
+      "pid": 403392,
+      "requestId": null
+    },
+    {
+      "instanceId": "2d0b48f39116e745d4c4d1755e264fd0073ebd986ad6f193",
+      "monotonicNs": 72223521256328,
+      "phase": "cleanup-complete",
+      "pid": 403392,
+      "requestId": null
+    },
+    {
+      "instanceId": "2d0b48f39116e745d4c4d1755e264fd0073ebd986ad6f193",
+      "monotonicNs": 72223532190392,
+      "phase": "cleanup-confirmed",
+      "pid": 403255,
+      "requestId": null
+    },
+    {
+      "instanceId": "2d0b48f39116e745d4c4d1755e264fd0073ebd986ad6f193",
+      "monotonicNs": 72223532618468,
+      "phase": "cleanup-confirmed",
+      "pid": 403255,
+      "requestId": null
+    },
+    {
+      "instanceId": "d6733c2ce5bd6446baf65f3246be87ae69efe15c16a93e24",
+      "monotonicNs": 73678917723845,
+      "phase": "kill-start",
+      "pid": 403553,
+      "requestId": null
+    },
+    {
+      "instanceId": "d6733c2ce5bd6446baf65f3246be87ae69efe15c16a93e24",
+      "monotonicNs": 73680083008250,
+      "phase": "cleanup-complete",
+      "pid": 403553,
+      "requestId": null
+    },
+    {
+      "instanceId": "d6733c2ce5bd6446baf65f3246be87ae69efe15c16a93e24",
+      "monotonicNs": 73680147444177,
+      "phase": "cleanup-confirmed",
+      "pid": 403255,
+      "requestId": null
+    }
+  ],
+  "sequence": [
+    "Exact UI09 Node pidfd SIGINT after ROOT visual stop",
+    "Exact App PID/birth/argv and owned visible window checked; WM_DELETE_WINDOW",
+    "App absent verified before exact driver pidfd SIGTERM",
+    "Launcher exited0; ports empty; shared Xvfb untouched"
+  ],
+  "limitations": [
+    "No full descendant census was added to UI09. PID1 zombies, if present, are reported as terminated, not absent.",
+    "App finally was interrupted by SIGINT. Driver still reported a session after App exit; no claim of successful WebDriver DELETE.",
+    "Initial cleanup command lacked normal PATH and failed on xdotool ENOENT before any X11 action. Only cleanup was repeated with standard env.sh; no test retry."
+  ],
+  "cpuUiReleased": true
+}

@@ -1,0 +1,70 @@
+
+ RUN  v3.2.6 /workspace/milkup/packages/view-dom
+
+stdout | src/__tests__/document-presentation-pointer.test.ts > keeps a settled response waiting when a new primary gesture replaces the released lease
+pointer-handoff {"originalConnected":false,"sameButton":false,"activeLease":false,"provided":2,"navigationCalls":0}
+
+ ❯ src/__tests__/document-presentation-pointer.test.ts (23 tests | 1 failed | 22 skipped) 73ms
+   ↓ releases a reference layout wait on up
+   ↓ releases a reference layout wait on cancel
+   ↓ releases a reference layout wait on blur
+   ↓ releases a reference layout wait on hidden
+   ↓ releases a reference layout wait on no-buttons
+   ↓ releases a reference layout wait on escape
+   ↓ releases a reference layout wait on input
+   ↓ releases a reference layout wait on source
+   ↓ releases a reference layout wait on version
+   ↓ releases a reference layout wait on document-version
+   ↓ releases a reference layout wait on selection
+   ↓ releases a reference layout wait on mode
+   ↓ releases a reference layout wait on config
+   ↓ releases a reference layout wait on destroy
+   ↓ does not hold secondary or non-primary pointer gestures
+   ↓ an aborted provider releases its own waiter without ending a valid pointer gesture
+   ↓ provider-settled pointer waiting does not consume the host preparation deadline
+   ↓ ignores a second pointer without ending or activating the primary gesture
+   ↓ coalesces Source windows and settles every waiter after up
+   ↓ coalesces Source windows and settles every waiter after source-change
+   ↓ coalesces Source windows and settles every waiter after destroy
+   ↓ keeps legacy unguarded missing-line navigation compatible
+   × keeps a settled response waiting when a new primary gesture replaces the released lease 71ms
+     → expected <button type="button" …(1)></button> to be <button type="button" …(1)></button> // Object.is equality
+
+If it should pass with deep equality, replace "toBe" with "toStrictEqual"
+
+Expected: <button type="button" …(1)></button>
+Received: serializes to the same string
+
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/__tests__/document-presentation-pointer.test.ts > keeps a settled response waiting when a new primary gesture replaces the released lease
+AssertionError: expected <button type="button" …(1)></button> to be <button type="button" …(1)></button> // Object.is equality
+
+If it should pass with deep equality, replace "toBe" with "toStrictEqual"
+
+Expected: <button type="button" …(1)></button>
+Received: serializes to the same string
+
+
+Compared values have no visual difference.
+
+ ❯ src/__tests__/document-presentation-pointer.test.ts:302:45
+    300|     navigationCalls: f.navigate.mock.calls.length,
+    301|   }))
+    302|   expect(f.content.querySelector('button')).toBe(f.button)
+       |                                             ^
+    303|   expect(f.manager.hasReferencePointer()).toBe(true)
+    304|   expect(f.navigate).not.toHaveBeenCalled()
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 22 skipped (23)
+   Start at  05:16:49
+   Duration  2.54s (transform 960ms, setup 0ms, collect 1.22s, tests 73ms, environment 759ms, prepare 90ms)
+
+undefined
+/workspace/milkup/packages/view-dom:
+[ERR_PNPM_RECURSIVE_EXEC_FIRST_FAIL] Command failed with exit code 1: vitest run src/__tests__/document-presentation-pointer.test.ts -t 'new primary gesture'

@@ -1,0 +1,47 @@
+2026-10-23T02:30:49.120Z NATIVE_STARTUP_WINDOW 23584ms
+PASS 01-frozen-candidate-and-all-plugins-disabled
+PASS 02-ordinary-host-menu-without-plugins
+PASS 03-ordinary-keyboard-nested-insert-history-and-exact-save
+PASS 04-ordinary-select-all-without-scrolling-or-document-write
+PASS 05-ordinary-real-system-copy
+PASS 06-ordinary-real-system-cut
+PASS 07-ordinary-real-system-paste
+PASS 08-windowed-host-menu-without-plugins
+PASS 09-windowed-keyboard-nested-insert-history-and-exact-save
+PASS 10-windowed-select-all-without-scrolling-or-document-write
+PASS 11-windowed-real-system-copy
+PASS 12-windowed-real-system-cut
+PASS 13-windowed-real-system-paste
+PASS 14-ordinary-live-enable-preserves-selection-and-editor-geometry
+PASS 15-ordinary-live-cell-floating-command-save-and-undo
+PASS 16-ordinary-live-geometry-1280-100
+PASS 17-ordinary-live-geometry-760-125
+PASS 18-ordinary-live-geometry-1280-150
+PASS 19-ordinary-live-geometry-760-200
+PASS 20-ordinary-disable-removes-floating-content-without-edit
+PASS 21-windowed-live-cell-floating-command-save-and-undo
+PASS 22-windowed-live-geometry-760-100
+PASS 23-windowed-live-geometry-1280-125
+PASS 24-windowed-live-geometry-760-150
+PASS 25-windowed-live-geometry-1280-200
+PASS 26-windowed-disable-removes-floating-content-without-edit
+FAIL 27-uninstall-formatting-clears-floating-and-retains-host-menu
+node:internal/modules/run_main:107
+    triggerUncaughtException(
+    ^
+
+AssertionError [ERR_ASSERTION]: Native wheel could not reveal [data-plugin-action="remove"][data-plugin-id="milkup.formatting"]
+    at pointer (file:///tmp/milkup-windows-manual-candidate/tests/helpers/native-beta5-fixture.mjs:87:12)
+    at async file:///tmp/milkup-windows-manual-candidate/tests/native/tauri-beta6-context.mjs:682:7
+    at async step (file:///tmp/milkup-windows-manual-candidate/tests/native/tauri-beta6-context.mjs:217:7)
+    at async main (file:///tmp/milkup-windows-manual-candidate/tests/native/tauri-beta6-context.mjs:678:5)
+    at async file:///tmp/milkup-windows-manual-candidate/tests/native/tauri-beta6-context.mjs:735:1 {
+  generatedMessage: false,
+  code: 'ERR_ASSERTION',
+  actual: undefined,
+  expected: undefined,
+  operator: 'fail',
+  diff: 'simple'
+}
+
+Node.js v24.19.0

@@ -1,0 +1,47 @@
+{
+  "at": "2026-10-16T17:39:25.661312+00:00",
+  "runtimeExecuted": false,
+  "when": "Immediately before each approved case, and again against actual App/driver after startup",
+  "binaryClassification": "Independent diagnostic stage candidate8041, never production04",
+  "driver": "Same narrow bwrap + readonly WebKit/xdg-dbus-proxy mappings as completed native-phase01; no proot/runner",
+  "forbiddenEnvironment": [
+    "LD_PRELOAD",
+    "WEBKIT_DISABLE_SANDBOX_THIS_IS_DANGEROUS",
+    "MILKUP_GTK_THREAD_TRACE",
+    "PROOT_NO_SECCOMP",
+    "CARGO_TARGET_X86_64_UNKNOWN_LINUX_GNU_RUNNER"
+  ],
+  "environmentCheck": "After sourcing env.sh, record each named variable as unset/empty or reject before any driver; do not dump unrelated environment.",
+  "xvfb": {
+    "display": ":126",
+    "pid": 288383,
+    "birth": "4366483",
+    "argv": [
+      "Xvfb",
+      ":126",
+      "-screen",
+      "0",
+      "1600x1100x24",
+      "-nolisten",
+      "tcp"
+    ],
+    "check": "Exact /proc/PID/stat birth and cmdline; reject mismatch without creating/replacing Xvfb."
+  },
+  "ports": {
+    "host": "127.0.0.1",
+    "ports": [
+      4626,
+      4627
+    ],
+    "beforeDriver": "Both connect probes fail; record ss -ltn output.",
+    "afterDriver": "Only approved exact driver ancestry owns listeners; /status ready with no sessions before harness.",
+    "afterCase": "Exact pidfd driver cleanup and empty ports before any next case."
+  },
+  "processIdentity": "Record exact driver PID/birth/argv; actual App uses existing ownedApplication exact binary/document argv, birth and XDG environment checks. No generic process-name ownership.",
+  "historicalComparison": {
+    "originalFormalUI04": "Use completed phase01 historical-after.json baseline148 paths; read/hash before batch and after cleanup; do not clone, open, alter or enable historical profiles.",
+    "originalPrefix01": "summary.json SHA9398d67701c8d68d58fa3759bfd80bb7dc4223a4272a2b8ed95f075e5c8caf01 remains immutable; compare source catalog/helper25 inputs and raw generated ordinary.md hash, not its old runtime path.",
+    "ordinarySourceSha256": "a7267df165778c560a8fba59bfbff7065ae63365741e3eb87078783bc865fd4b",
+    "profile": "All3 cases own new mermaid-ui-cold-cpu-01-N profiles; no source/profile reuse."
+  }
+}

@@ -1,0 +1,56 @@
+{
+  "scope": "Development checks, not final frozen dependency build or native canonical acceptance",
+  "types": {
+    "log": "types05.log",
+    "exitCode": 0,
+    "sdk": "Current public SDK source via external paths config; dev installed package was older"
+  },
+  "tests": {
+    "firstCommand": "pnpm test",
+    "firstLog": "unit05.log",
+    "firstResult": "pnpm automatic dependency reconciliation stopped before running tests: ERR_PNPM_ABORTED_REMOVE_MODULES_DIR_NO_TTY. No forced reinstall or lock change.",
+    "actualCommand": "node_modules/.bin/vitest run --config vitest.config.ts",
+    "actualLog": "unit05-direct.log",
+    "files": 5,
+    "tests": 89,
+    "passed": 89
+  },
+  "format": {
+    "log": "format05.log",
+    "exitCode": 0
+  },
+  "sources": [
+    {
+      "path": "/workspace/milkup/plugins/diagrams/src/svg-converter.ts",
+      "sha256": "581897015ab7c91d06cdb3ebed9b83c1b659c3104deb48b96fe6d277090af924"
+    },
+    {
+      "path": "/workspace/milkup/plugins/diagrams/src/svg-primitives.ts",
+      "sha256": "e6489c3fe5b3e5dffd4b37edad4f9a9cd138ab54ea2997fdf05b0dc54f3b67af"
+    },
+    {
+      "path": "/workspace/milkup/plugins/diagrams/src/bounded-opacity.ts",
+      "sha256": "1137cf88cf4da169f82929df18f09b64c9c86076f504033c53ea934046e4a679"
+    },
+    {
+      "path": "/workspace/milkup/plugins/diagrams/src/bounded-opacity.test.ts",
+      "sha256": "1f26b9bf4db50e6fa56c8c95c6168afeebcae332f7cfcb68b2be7ccc5996b2d6"
+    },
+    {
+      "path": "/workspace/milkup/plugins/diagrams/src/paint-envelope.ts",
+      "sha256": "541ac7c29e9485cf1f814ef4c5ffe63cbfb55dba2a4b3890fc8b05664950ec82"
+    },
+    {
+      "path": "/workspace/milkup/plugins/diagrams/src/renderer.ts",
+      "sha256": "d50faff2f803ac2f0a174f8d5b24933d22fd0527e314935e1feebbd6bac9774c"
+    },
+    {
+      "path": "/workspace/milkup/plugins/diagrams/src/plugin.ts",
+      "sha256": "613c8b5702e4cbcdce4c2a75d09b1b010d330d83344d2ac2ca3dc3ed99d942f1"
+    },
+    {
+      "path": "/workspace/milkup/plugins/diagrams/src/renderer.test.ts",
+      "sha256": "d963a20681bde0aad07bfb03d098fc33f07abf1aea827cab9a13b862d3edc72f"
+    }
+  ]
+}

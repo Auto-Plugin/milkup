@@ -1,0 +1,27 @@
+{
+  "name": "@milkup/plugin-sdk",
+  "version": "0.3.4",
+  "private": true,
+  "type": "module",
+  "files": [
+    "src/index.js",
+    "src/index.d.ts",
+    "README.md"
+  ],
+  "exports": {
+    ".": {
+      "types": "./src/index.d.ts",
+      "import": "./src/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "test": "vitest run",
+    "typecheck": "tsc -p tsconfig.json --noEmit && tsc -p tsconfig.contract.json"
+  },
+  "devDependencies": {
+    "@milkup/core": "workspace:*",
+    "typescript": "^5.8.3",
+    "vitest": "^3.2.4"
+  }
+}

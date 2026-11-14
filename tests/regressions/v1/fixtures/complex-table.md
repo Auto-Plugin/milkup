@@ -1,0 +1,3 @@
+| Name  | Status |
+| ----- | ------ |
+| paste | ok     |

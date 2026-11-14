@@ -1,0 +1,55 @@
+{
+  "frozenAtUtc": "2026-10-17T01:22:51.797247+00:00",
+  "state": "STATIC_REVIEW_ONLY_NOT_BUILT_NOT_NATIVE_RUN",
+  "files": [
+    {
+      "path": "/workspace/milkup-mermaid-engine-evidence/research/cold-start-request-review-01/candidate/apps/desktop/src-tauri/src/plugin_dom.rs",
+      "sha256": "17d2d10ee4a7e49947d33957c980e9a04ee2bb2f2e92c8646f828b9025cd0395",
+      "bytes": 27566,
+      "baseline": "/workspace/milkup/apps/desktop/src-tauri/src/plugin_dom.rs",
+      "baselineSha256": "195cfffdd1a69456b66ea2f860a3b195b9e5bc94152e93aa31a46c022eca097a"
+    },
+    {
+      "path": "/workspace/milkup-mermaid-engine-evidence/research/cold-start-request-review-01/candidate/apps/desktop/src-tauri/src/plugin_dom_process.rs",
+      "sha256": "5891edeb50c354e79ad2f10dd0c492aa21ebe6cac7854f1b6b45b3471f3b1dcf",
+      "bytes": 47506,
+      "baseline": "/workspace/milkup/apps/desktop/src-tauri/src/plugin_dom_process.rs",
+      "baselineSha256": "c6540ffc4d11e61050379d68bad0342c0cfaf8ec4a6fe60075b18ddecd851702"
+    },
+    {
+      "path": "/workspace/milkup-mermaid-engine-evidence/research/cold-start-request-review-01/candidate/apps/desktop/src-tauri/src/plugin_dom_request_diagnostic.rs",
+      "sha256": "a6487c0b061358abff4f626525a1fbd72b4ad8fe527a55f7590e4ccea61597e4",
+      "bytes": 20361,
+      "baseline": null,
+      "baselineSha256": null
+    }
+  ],
+  "diff": {
+    "path": "/workspace/milkup-mermaid-engine-evidence/research/cold-start-request-review-01/candidate-v02.patch",
+    "sha256": "b739f4c5fbae5c0dae7bdb4cb3a1b17907abba14541aa7ee2ead3744d33a6f72"
+  },
+  "staticChecks": {
+    "plugin_dom.rsBaselineLinesPreservedInOrder": true,
+    "plugin_dom_process.rsBaselineLinesPreservedInOrder": true,
+    "const INIT_DEADLINE: Duration = Duration::from_secs(10);": true,
+    "const RENDER_DEADLINE: Duration = Duration::from_secs(2);": true,
+    "                    control.active = Some((id, Instant::now() + RENDER_DEADLINE));": true,
+    "                init_deadline: start + INIT_DEADLINE,": true,
+    "NativeTraceFunctionAndRestUnchanged": true,
+    "ProductionReceiveWatchFinishCleanupUnchanged": true
+  },
+  "formatCheck": "rustfmt --edition 2021 --config skip_children=true --check: exit0 for all3 files",
+  "logicTests": {
+    "manifest": "/workspace/milkup-mermaid-engine-evidence/research/cold-start-request-review-01/logic-tests/Cargo.toml",
+    "count": 7,
+    "executed": true,
+    "result": "Parent reports first execution 7 passed in5.28s; logic module unchanged in v02; not rerun."
+  },
+  "revision": "v02",
+  "revision01": {
+    "manifest": "/workspace/milkup-mermaid-engine-evidence/research/cold-start-request-review-01/candidate-manifest.json",
+    "patch": "/workspace/milkup-mermaid-engine-evidence/research/cold-start-request-review-01/candidate.patch",
+    "sourceSnapshot": "/workspace/milkup-mermaid-engine-evidence/research/cold-start-request-review-01/revision01"
+  },
+  "changeFromV01": "Only diagnostic: None added to existing cfg(test) Instance fixture initializer; production recorder unchanged."
+}

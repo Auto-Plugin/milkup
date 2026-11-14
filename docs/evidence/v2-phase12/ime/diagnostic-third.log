@@ -1,0 +1,22 @@
++ export IBUS_ADDRESS=unix:path=/tmp/milkup-v2-phase12/ime/ibus-third.sock
++ IBUS_ADDRESS=unix:path=/tmp/milkup-v2-phase12/ime/ibus-third.sock
++ daemon=21896
++ config=0
++ trap 'kill "$daemon" 2>/dev/null || true; if [ "$config" != 0 ]; then kill "$config" 2>/dev/null || true; fi; wait || true' EXIT
++ for attempt in {1..30}
++ ibus list-engine
++ ibus-daemon --address=unix:path=/tmp/milkup-v2-phase12/ime/ibus-third.sock --single --verbose
++ sleep 0.1
+dbus-daemon[21894]: [session uid=1000 pid=21894 pidfd=5] Activating service name='org.freedesktop.portal.IBus' requested by ':1.0' (uid=1000 pid=21896 comm="ibus-daemon --address=unix:path=/tmp/milkup-v2-pha" label="kernel")
+dbus-daemon[21894]: [session uid=1000 pid=21894 pidfd=5] Activated service 'org.freedesktop.portal.IBus' failed: Failed to execute program org.freedesktop.portal.IBus: No such file or directory
++ for attempt in {1..30}
++ ibus list-engine
++ break
++ config=21912
++ sleep 0.3
++ /workspace/.cache/milkup-ime-phase11/usr/libexec/ibus-memconf
++ timeout 12 ibus engine libpinyin
++ kill 21896
++ '[' 21912 '!=' 0 ']'
++ kill 21912
++ wait

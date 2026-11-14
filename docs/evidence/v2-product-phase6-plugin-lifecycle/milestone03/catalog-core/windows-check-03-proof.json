@@ -1,0 +1,39 @@
+{
+  "head": "eef31bc4a7208d909426e181ba1cd7cbaf9760e9",
+  "scope": "CI03 candidate Windows-only atomic rename fix; compile checks, not Windows runtime acceptance",
+  "target": "x86_64-pc-windows-msvc",
+  "checks": [
+    {
+      "flags": "--tests",
+      "exitCode": 0,
+      "log": "windows-check-03-tests.log"
+    },
+    {
+      "flags": "--lib --bins",
+      "exitCode": 0,
+      "log": "windows-check-03-production.log"
+    }
+  ],
+  "inputs": [
+    {
+      "path": "apps/desktop/src-tauri/src/plugin_catalog.rs",
+      "sha256": "04ecc4f926d4060a6123eade65c207cef32b060744ecefbfb108d16c6fcba273"
+    },
+    {
+      "path": "apps/desktop/src-tauri/src/plugin_catalog_windows.rs",
+      "sha256": "7ae1b70cbe638d2495c6dde68ba9de23b167834968136ad281972f48e6ad0ce5"
+    },
+    {
+      "path": "apps/desktop/src-tauri/src/plugin_catalog_tests.rs",
+      "sha256": "487249b6d0a783d694af190c664ac2d5e8d9ed931e8529f526a7f1731e2911af"
+    },
+    {
+      "path": "tests/native/catalog-core/src/lib.rs",
+      "sha256": "b14b4a017fe650036b580cd4dac3ae7d8a1fd11e7a1839cdc7e19b1007546a26"
+    },
+    {
+      "path": "tests/native/catalog-core/Cargo.lock",
+      "sha256": "d91eec98f523984849f402801842e643da05823512ecca0e985aefd0b4e260bd"
+    }
+  ]
+}

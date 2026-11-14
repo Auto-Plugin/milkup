@@ -1,0 +1,63 @@
+{
+  "id": "milkup.shortcuts",
+  "name": "Milkup Shortcuts",
+  "version": "1.0.0",
+  "description": "查看完整命令与快捷键帮助，检查冲突并保存或恢复自定义快捷键。",
+  "host": "worker",
+  "main": "./dist/plugin.js",
+  "engines": {
+    "milkup": "^2.0.0-0",
+    "pluginSdk": ">=0.3.1 <0.4.0"
+  },
+  "permissions": ["app:keymap"],
+  "contributes": {
+    "commands": [
+      {
+        "id": "shortcuts.field",
+        "title": "编辑快捷键草稿",
+        "action": "shortcuts.field",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "field": {
+              "type": "string",
+              "required": true
+            },
+            "value": {
+              "type": "string",
+              "required": true
+            }
+          }
+        }
+      },
+      {
+        "id": "shortcuts.save",
+        "title": "保存快捷键",
+        "action": "shortcuts.save"
+      },
+      {
+        "id": "shortcuts.cancel",
+        "title": "取消快捷键修改",
+        "action": "shortcuts.cancel"
+      },
+      {
+        "id": "shortcuts.reset",
+        "title": "恢复默认快捷键",
+        "action": "shortcuts.reset"
+      },
+      {
+        "id": "shortcuts.reload",
+        "title": "重新读取快捷键",
+        "action": "shortcuts.reload"
+      }
+    ],
+    "ui": [
+      {
+        "id": "shortcuts-modal",
+        "slot": "modal",
+        "title": "快捷键",
+        "scope": "app"
+      }
+    ]
+  }
+}

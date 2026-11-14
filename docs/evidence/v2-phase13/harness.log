@@ -1,0 +1,27 @@
+COMMAND ["pnpm", "test:native:harness"]
+CARGO_TARGET_X86_64_UNKNOWN_LINUX_GNU_RUNNER unset
+$ vitest run tests/helpers/native-startup.test.ts
+
+ RUN  v3.2.6 /workspace/milkup
+
+stdout | tests/helpers/native-startup.test.ts > only cleans a new process with the same executable and birth time
+2026-10-13T16:55:55.356Z NATIVE_STARTUP_WINDOW 2ms
+
+stdout | tests/helpers/native-startup.test.ts > only cleans a new process with the same executable and birth time
+2026-10-13T16:55:55.357Z NATIVE_APPLICATION_CLEANUP 200
+
+stdout | tests/helpers/native-startup.test.ts > never kills automatically on a shared display
+2026-10-13T16:55:55.358Z NATIVE_STARTUP_WINDOW 1ms
+
+stdout | tests/helpers/native-startup.test.ts > does not signal a reused PID or an unexpected executable
+2026-10-13T16:55:55.360Z NATIVE_STARTUP_WINDOW 1ms
+
+ ✓ tests/helpers/native-startup.test.ts (4 tests) 8ms
+
+ Test Files  1 passed (1)
+      Tests  4 passed (4)
+   Start at  16:55:55
+   Duration  229ms (transform 44ms, setup 0ms, collect 42ms, tests 8ms, environment 0ms, prepare 55ms)
+
+
+ACTUAL_EXIT_CODE 0

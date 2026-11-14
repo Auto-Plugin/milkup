@@ -1,0 +1,136 @@
+diff --git a/plugins/footnotes/src/controller.test.ts b/plugins/footnotes/src/controller.test.ts
+index e797f079..3c9c4eef 100644
+--- a/plugins/footnotes/src/controller.test.ts
++++ b/plugins/footnotes/src/controller.test.ts
+@@ -56,6 +56,7 @@ it('returns immediately then indexes bounded pages and invalidates its own prese
+   expect(controller.render(request, { signal: new AbortController().signal })).toEqual({
+     fragments: [],
+     complete: false,
++    pending: true,
+   })
+   expect(api.readWindow).not.toHaveBeenCalled()
+   await vi.runAllTimersAsync()
+@@ -240,3 +241,102 @@ it('keeps a failed notification dirty and retries only within the notification r
+   expect(controller.render(request, { signal: new AbortController().signal }).complete).toBe(true)
+   controller.dispose()
+ })
++
++it.each(['screen', 'export'] as const)(
++  'marks only an unfinished index pending for %s, including documents without footnotes',
++  async (target) => {
++    vi.useFakeTimers()
++    const { api } = pagedHost(['plain 中文🙂', 'last paragraph'])
++    const controller = createFootnoteController(api)
++    const input = { ...request, target }
++    const signal = new AbortController().signal
++    expect(controller.render(input, { signal })).toEqual({
++      fragments: [],
++      complete: false,
++      pending: true,
++    })
++    expect(api.readWindow).not.toHaveBeenCalled()
++    await vi.advanceTimersByTimeAsync(80)
++    expect(controller.render(input, { signal })).toMatchObject({ complete: false, pending: true })
++    await vi.runAllTimersAsync()
++    expect(controller.render(input, { signal })).toEqual({ fragments: [], complete: true })
++    expect(api.invalidatePresentation).toHaveBeenCalledTimes(1)
++    controller.dispose()
++  },
++)
++
++it('starts new-version readiness without reusing an old complete index', async () => {
++  vi.useFakeTimers()
++  const api = host()
++  const controller = createFootnoteController(api)
++  const signal = new AbortController().signal
++  controller.render(request, { signal })
++  await vi.runAllTimersAsync()
++  expect(controller.render(request, { signal })).toMatchObject({ complete: true })
++  const read = vi.mocked(api.readWindow).getMockImplementation()!
++  vi.mocked(api.readWindow).mockImplementation(async (...args) => ({
++    ...(await read(...args)),
++    version: 2,
++  }))
++  const next = { ...request, version: 2, target: 'export' as const }
++  expect(controller.render(next, { signal })).toEqual({
++    fragments: [],
++    complete: false,
++    pending: true,
++  })
++  await vi.runAllTimersAsync()
++  const result = controller.render(next, { signal })
++  expect(result).toMatchObject({ complete: true })
++  expect(result).not.toHaveProperty('pending')
++  expect(JSON.stringify(result.fragments)).toContain('"version":2')
++  controller.dispose()
++})
++
++it.each(['scan-limit', 'read-failure', 'nested-context'] as const)(
++  'does not advertise terminal %s as preparation pending',
++  async (failure) => {
++    vi.useFakeTimers()
++    const api = failure === 'nested-context' ? pagedHost(['A[^missing]', '> ```']).api : host()
++    if (failure === 'read-failure')
++      vi.mocked(api.readWindow).mockRejectedValue({ code: 'unavailable' })
++    const controller = createFootnoteController(
++      api,
++      failure === 'scan-limit' ? { maxChars: 1 } : {},
++    )
++    const signal = new AbortController().signal
++    expect(controller.render(request, { signal })).toMatchObject({ pending: true, complete: false })
++    await vi.runAllTimersAsync()
++    const result = controller.render(request, { signal })
++    expect(result.complete).toBe(false)
++    expect(result).not.toHaveProperty('pending')
++    if (failure === 'scan-limit') expect(api.readWindow).not.toHaveBeenCalled()
++    const reads = vi.mocked(api.readWindow).mock.calls.length
++    await vi.runAllTimersAsync()
++    expect(api.readWindow).toHaveBeenCalledTimes(reads)
++    controller.dispose()
++  },
++)
++
++it('never marks unknown context, aborted calls or disposed controllers pending', async () => {
++  vi.useFakeTimers()
++  const api = host()
++  const controller = createFootnoteController(api)
++  const signal = new AbortController().signal
++  expect(controller.render({ ...request, contextKnown: false }, { signal })).toEqual({
++    fragments: [],
++    complete: false,
++  })
++  expect(controller.render(request, { signal })).toMatchObject({ pending: true })
++  const aborted = new AbortController()
++  aborted.abort()
++  expect(controller.render(request, { signal: aborted.signal })).toEqual({
++    fragments: [],
++    complete: false,
++  })
++  // A cancelled render call must not poison a shared document index used by another consumer.
++  expect(controller.render(request, { signal })).toMatchObject({ pending: true })
++  controller.dispose()
++  await vi.runAllTimersAsync()
++  expect(api.readWindow).not.toHaveBeenCalled()
++  expect(controller.render(request, { signal })).toEqual({ fragments: [], complete: false })
++})
+diff --git a/plugins/footnotes/src/controller.ts b/plugins/footnotes/src/controller.ts
+index cc67d622..8c803625 100644
+--- a/plugins/footnotes/src/controller.ts
++++ b/plugins/footnotes/src/controller.ts
+@@ -130,7 +130,15 @@ export function createFootnoteController(
+           void scan(job, epoch)
+         }, limits.delayMs ?? 80)
+       }
+-      return present(request, current.index)
++      const result = present(request, current.index)
++      // Activation is not document readiness. Only a live background index may
++      // ask the host to wait; terminal partial results retain ordinary fallback.
++      return request.contextKnown &&
++        !current.abort.signal.aborted &&
++        !current.index.complete &&
++        !current.index.partialReason
++        ? { ...result, pending: true }
++        : result
+     },
+     dispose() {
+       if (!active) return

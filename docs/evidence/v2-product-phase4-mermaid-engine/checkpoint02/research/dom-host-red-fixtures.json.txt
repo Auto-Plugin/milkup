@@ -1,0 +1,298 @@
+{
+  "status": "design-only; no product/test changes or DOM execution",
+  "validManifest": {
+    "id": "example.presentation",
+    "name": "Independent presentation",
+    "version": "1.0.0",
+    "host": "dom",
+    "main": "dist/plugin.js",
+    "permissions": [
+      "document:read"
+    ],
+    "contributes": {
+      "documentRenderers": [
+        {
+          "id": "example.graph",
+          "contexts": [
+            "fence"
+          ],
+          "fenceLanguages": [
+            "example-graph"
+          ]
+        }
+      ]
+    }
+  },
+  "validPackage": {
+    "format": "milkup-plugin",
+    "version": 1,
+    "manifest": {
+      "id": "example.presentation",
+      "name": "Independent presentation",
+      "version": "1.0.0",
+      "host": "dom",
+      "main": "dist/plugin.js",
+      "permissions": [
+        "document:read"
+      ],
+      "contributes": {
+        "documentRenderers": [
+          {
+            "id": "example.graph",
+            "contexts": [
+              "fence"
+            ],
+            "fenceLanguages": [
+              "example-graph"
+            ]
+          }
+        ]
+      }
+    },
+    "files": [
+      {
+        "path": "dist/plugin.js",
+        "encoding": "utf8",
+        "content": "export default { documentRenderers: { \"example.graph\": () => ({ fragments: [], complete: true }) } };\n"
+      }
+    ]
+  },
+  "manifestCases": [
+    {
+      "id": "dom-minimal-positive",
+      "patch": {},
+      "future": "accept with host dom retained",
+      "today": "unknown host; required positive red"
+    },
+    {
+      "id": "dom-missing-read",
+      "patch": {
+        "permissions": []
+      },
+      "future": "reject missing document:read"
+    },
+    {
+      "id": "dom-extra-write",
+      "patch": {
+        "permissions": [
+          "document:read",
+          "document:write"
+        ]
+      },
+      "future": "reject DOM profile permission"
+    },
+    {
+      "id": "dom-extra-network",
+      "patch": {
+        "permissions": [
+          "document:read",
+          "network:access"
+        ],
+        "networkOrigins": [
+          "https://example.invalid"
+        ]
+      },
+      "future": "reject DOM profile permission/origin"
+    },
+    {
+      "id": "dom-command",
+      "contributesAdd": {
+        "commands": [
+          {
+            "id": "example.action",
+            "title": "Action",
+            "action": "example.action"
+          }
+        ]
+      },
+      "future": "reject commands, not silently omit"
+    },
+    {
+      "id": "dom-ui",
+      "contributesAdd": {
+        "ui": [
+          {
+            "id": "example.panel",
+            "slot": "sidebar-panel",
+            "title": "Panel"
+          }
+        ]
+      },
+      "future": "reject UI"
+    },
+    {
+      "id": "dom-unknown-contribution",
+      "contributesAdd": {
+        "unknownExecutable": {
+          "entry": "dist/other.js"
+        }
+      },
+      "future": "reject before parser drops unknown key"
+    },
+    {
+      "id": "dom-renderer-entry",
+      "rendererAdd": {
+        "runtime": "dom",
+        "entry": "dist/other.js"
+      },
+      "future": "reject alternate undeclared routing schema"
+    },
+    {
+      "id": "dom-no-renderers",
+      "patch": {
+        "contributes": {
+          "documentRenderers": []
+        }
+      },
+      "future": "reject no owned presentation"
+    },
+    {
+      "id": "dom-remote-entry",
+      "patch": {
+        "main": "https://example.invalid/plugin.js"
+      },
+      "future": "reject URL"
+    },
+    {
+      "id": "dom-host-created-url-is-not-package-entry",
+      "patch": {
+        "main": "blob:https://example.invalid/token"
+      },
+      "future": "reject nonpackage main"
+    },
+    {
+      "id": "dom-absolute",
+      "patch": {
+        "main": "/tmp/plugin.js"
+      },
+      "future": "reject absolute"
+    },
+    {
+      "id": "dom-traversal",
+      "patch": {
+        "main": "../plugin.js"
+      },
+      "future": "reject traversal"
+    }
+  ],
+  "packageCases": [
+    {
+      "id": "dom-utf8-positive",
+      "change": null,
+      "future": "accept validPackage; no Worker host default"
+    },
+    {
+      "id": "dom-missing-main",
+      "change": {
+        "files": []
+      },
+      "future": "reject missing declared entry"
+    },
+    {
+      "id": "dom-base64-main",
+      "change": {
+        "files": [
+          {
+            "path": "dist/plugin.js",
+            "encoding": "base64",
+            "content": "ZXhwb3J0IGRlZmF1bHQge307"
+          }
+        ]
+      },
+      "future": "reject nonUTF8 DOM entry"
+    },
+    {
+      "id": "dom-missing-resource",
+      "manifestAdd": {
+        "resources": [
+          "fonts/font.woff2"
+        ]
+      },
+      "future": "reject missing resource"
+    },
+    {
+      "id": "worker-compatibility",
+      "manifestChange": {
+        "host": "worker"
+      },
+      "future": "retain existing package behavior"
+    },
+    {
+      "id": "sidecar-compatibility",
+      "note": "Use existing sidecar fixture without changing executable semantics; DOM restrictions must not silently apply globally",
+      "future": "existing tests unchanged"
+    }
+  ],
+  "managerCases": [
+    {
+      "id": "direct-loader-only",
+      "arrange": "Inject loadDomModule spy returning isolated module and dispose; loadModule/createWorker trap throws; approve dom host; then enable",
+      "assert": [
+        "DOM loader called once with owned manifest entry",
+        "Worker and sidecar never created",
+        "owned renderer published only after activation",
+        "no broker UI/storage/file/network capability forwarded into DOM"
+      ]
+    },
+    {
+      "id": "deferred-start-disable",
+      "arrange": "hold DOM ready promise; request disable while enable pending; resolve start",
+      "assert": [
+        "lifecycle serialization follows existing manager contract",
+        "any resulting instance ultimately disposed",
+        "no renderer remains enabled after disable resolves",
+        "no abandoned prepared resources"
+      ]
+    },
+    {
+      "id": "epoch-old-error",
+      "arrange": "enable instance A; disable; enable B; invoke captured timeout/error callback A",
+      "assert": [
+        "B remains current",
+        "old instance stop cannot target B",
+        "only matching epoch may mark failed"
+      ]
+    },
+    {
+      "id": "timeout-retry",
+      "arrange": "native owner callback timeout on active epoch, then manually enable",
+      "assert": [
+        "synchronous capability revocation and failed registry",
+        "cleanup serialized before next instance",
+        "runtime timeout diagnosis clears on explicit retry",
+        "manifest compatibility error remains blocking"
+      ]
+    },
+    {
+      "id": "host-approval-upgrade",
+      "arrange": "approved worker same ID then reinstall manifest host dom",
+      "assert": [
+        "old worker approval does not approve dom",
+        "explicit host approval required before native start"
+      ]
+    },
+    {
+      "id": "backend-missing",
+      "arrange": "browser manager has no DOM loader/backend; approved valid metadata then enable",
+      "assert": [
+        "clear unavailable/unsupported host failure",
+        "never Worker or main-thread iframe fallback",
+        "base editing unaffected and source fallback remains"
+      ]
+    },
+    {
+      "id": "queued-cancel",
+      "arrange": "DOM endpoint client one active, two queued, abort queued and active separately",
+      "assert": [
+        "queued removal does not dispatch",
+        "active cancellation does not clear native deadline or release execution early",
+        "transport queue/startup timing needs separate adapter/native tests, not only manager mocks"
+      ]
+    }
+  ],
+  "limitations": [
+    "Negative dom inputs are already rejected by unknown-host today; that alone does not validate the new restriction. Enable positive dom first, then assert each independent invalid field.",
+    "Fixture hooks use neutral plugin IDs and independent renderer IDs; no Mermaid special cases.",
+    "Standalone DOM prototype not yet accepted; this data does not authorize implementation or claim native deadline/network isolation."
+  ]
+}

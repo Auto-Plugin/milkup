@@ -1,0 +1,31 @@
+# Required raster bounds: proposed implementation contract
+
+Status: core/SDK implementation completed after the recorded 6-failure/1-pass baseline. Focused 60 tests, strict core/SDK/contract and formatting passed; see summary.json. Native converter and production edge reachability remain pending. Existing 19-AST product acceptance remains historical evidence for the preceding schema; no captured AST will be silently patched to claim acceptance under this schema.
+
+## Coordinates and validation
+
+Add required `rasterBounds: DocumentSvgBox`, namely `[x, y, width, height]` in the original root viewport's CSS pixels. These are not SVG viewBox user units and the last two entries are not right/bottom coordinates. Even intentionally hidden roots explicitly supply `[0, 0, image.width, image.height]`.
+
+Reject absent bounds. This image profile and SDK 0.3.4 have not been published, so an implicit compatibility default would create an avoidable silent clipping path. Other existing presentation node contracts remain unchanged.
+
+Use the existing finite coordinate range (x/y within ±8192), positive region dimensions at most 8192, and require x <= 0, y <= 0, x + width >= image.width, y + height >= image.height. Compute L=floor(x), T=floor(y), R=ceil(x+width), B=ceil(y+height). Require positive integer W=R-L and H=B-T, each <=8192 and W*H <=16,777,216. Integer rounding can turn an otherwise legal floating region into a rejected oversized surface; it must not be clamped or cropped.
+
+## Canonical output and layout
+
+The trusted outer SVG has width=W, height=H, viewBox=`L T W H`, and preserveAspectRatio=none. Preserve the complete precise inner SVG, including its original width/height/viewBox/aspect/root overflow. There is no additional inner transform and no second wrapping by the view.
+
+The image owner retains an exact image.width × image.height layout slot, and positions an integer W × H image at left=L, top=T. The outer viewBox translation and image placement cancel, preserving inner screen coordinates and subsequent layout position. A negative image offset inside the real presentation ancestor's overflow:auto is a separate reachability concern: standalone paired-image fidelity does not prove that the editor can scroll to negative overflow. The view owner is handling this explicitly; do not report whole-product edge reachability before it is verified.
+
+## Independent budget boundary
+
+Geometry charges W*H once instead of the former ceil(root.width)*ceil(root.height). The original viewport transform and independent shape/effect/marker/compositing traversal continue to use original root dimensions; claimed raster bounds never reduce their cost or disable envelope checks. The aggregate render-work ceiling remains 268,435,456. Multiple images share that counter. The existing outer/inner/defs node charge remains unchanged, and the actual serialized wrapper bytes count toward the existing shared 256 KiB budget.
+
+The field is an explicit producer fidelity declaration, not a trusted certificate of complete ink. The host can independently enforce finite/dimension/area limits and preservation of the original viewport. Existing conservative shape envelopes are safety bounds, not exact visual extent measurements, and text extents depend on the rendering environment. The converter must account for actual text, stroke, markers, filters and original clips; unsupported or unprovable converter cases must fail the whole image. Native edge/pixel comparisons verify fidelity. Do not claim arbitrary under-reported ink can be detected from this rectangle alone.
+
+## Required regressions
+
+Public validator tests: missing field rejection; negative fractional origin serialization; precise original layout dimensions with right/bottom overflow; intentional inner clipping retained; all four viewport containment edges; nonfinite/zero/rounded oversize/surface-area rejection; aggregate work of many tiny roots with large expanded rasters.
+
+Existing synthetic fixtures must explicitly provide bounds matching their root or declared overflow. This is a synthetic fixture migration, not evidence that existing real converter results satisfy the new contract. Fresh converter outputs must be captured and revalidated.
+
+View tests: correct left/top and integer dimensions without footer movement; lifecycle/decode/source/history behavior retained; negative-edge and marker/shadow overflow actually reachable through the editor's real scroll ancestors. Native standalone and production-view cases must remain separate claims.

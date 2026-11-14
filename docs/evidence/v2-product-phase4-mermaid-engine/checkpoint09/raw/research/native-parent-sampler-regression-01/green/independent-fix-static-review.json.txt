@@ -1,0 +1,28 @@
+{
+  "decision": "No blocking finding",
+  "scope": "Static review only; no checks, builds, native run or tests executed by reviewer",
+  "baselineSourceSha256": "6871359e09ac17912fe5ef6c8f8351c1777647e51156bde4426148b52f3714c3",
+  "fixedSourceSha256": "c6540ffc4d11e61050379d68bad0342c0cfaf8ec4a6fe60075b18ddecd851702",
+  "fixOnlyPatchSha256": "f744a9c77caeb8c2517c7d3c4cef80b7671c694543b8739ab9f6a0b31cd6df71",
+  "sourceManifestSha256": "716782beb016ea5414286027f0057cf8904c5cecfe8160231e40b2ae3a7abebe",
+  "changedSourceInputs": [
+    "apps/desktop/src-tauri/src/plugin_dom_process.rs"
+  ],
+  "exactDeltaVerified": "Only remove launch periodic sampler thread, replace it with rationale, and update stale watchdog comment. Baseline counter, independent role/birth cleanup assertions and all other source text unchanged.",
+  "unchanged": [
+    "Dedicated guardian implementation and on-demand process table discovery",
+    "FD4 control/EOF handling, exact pidfd signals, subreaper adoption, ECHILD confirmation",
+    "2s render deadline,10s initialization deadline,watchdog scheduling",
+    "Public command/protocol/bootstrap/guards",
+    "Private-directory cleanup and error behavior",
+    "Standalone test fallback sampler and ownership tests"
+  ],
+  "recommendedOwnerChecks": [
+    "Owned Rust rustfmt --check (owner reports completed); no unrelated formatting.",
+    "Same release/locked/offline features no-run compilation as baseline (also checks test instrumentation and constructor types).",
+    "Same genuine WebKit fixture GREEN with frozen production04 helper, original assertions and independent descendant cleanup before sample_owned_calls==0.",
+    "All plugin_dom:: nonignored safety tests including guardian_adopts_unsampled_escaped_descendant_on_control_eof.",
+    "Production non-test cargo check/build under the same locked offline configuration when root schedules final product gates; do not substitute test-only build for packaged product validation."
+  ],
+  "qualification": "Reviewed baseline log confirms125calls sole final failure after original assertions and9observed identities cleared. GREEN result pending at review time; no historical deadline/performance conclusion."
+}

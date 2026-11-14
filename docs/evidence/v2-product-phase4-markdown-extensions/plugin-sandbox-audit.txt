@@ -1,0 +1,19 @@
+Read-only architecture audit, 2026-10-15
+
+Scope: document content must be parsed as data and returned only through the bounded safe presentation AST. This phase does not claim arbitrary third-party plugin JavaScript is a hardened sandbox.
+
+Observed existing limits:
+- isolation-worker.ts replaces selected network/code-loading globals. Those properties are writable/configurable; dynamic import syntax is not intercepted. The plugin module loader accepts http/data/blob entry specifiers. No Worker-specific CSP was found in the inspected desktop configuration. These checks are defense in depth, not proof against malicious plugin code.
+- Existing markdownSyntax patterns execute in the main-thread parser. The current heuristic regular-expression blacklist does not establish linear complexity. Do not extend this route for new document parsing.
+- Existing renderer RPC timeout rejects the waiting promise but does not itself stop execution. New presentation execution requires a host-side termination/revocation deadline, stale-generation rejection and bounded scheduling.
+- Existing UI VDOM is not the document presentation contract. New document results must not introduce raw HTML/XML, arbitrary style, URLs, event attributes or UI commands.
+
+This task adds bounded document windows and versioned navigation only. readWindow returns at most 4096 complete logical lines and 131072 UTF-16 text units. Its text excludes the final selected line separator; lines[{number,from,to,text}] preserves exact absolute offsets and interior CRLF. completeStart/completeEnd mean true document start/end. Navigation requires host-side version/range verification and lifecycle assertion immediately before the selection/scroll effect. Neither API exposes file paths.
+
+Official references checked:
+https://developer.mozilla.org/en-US/docs/Web/API/Web_Workers_API/Using_web_workers#content_security_policy
+https://katex.org/docs/security
+https://katex.org/docs/options
+https://raw.githubusercontent.com/mermaid-js/mermaid/develop/packages/mermaid/src/mermaidAPI.ts
+
+A passing first-party parser/renderer test is not evidence that malicious plugin JavaScript cannot escape the present Worker guards. Complete sandbox redesign is outside this phase.

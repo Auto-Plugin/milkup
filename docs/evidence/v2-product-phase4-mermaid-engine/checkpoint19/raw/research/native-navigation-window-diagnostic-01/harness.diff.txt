@@ -1,0 +1,217 @@
+--- frozen-full-deadline-workflow.mjs
++++ navigation-prefix.mjs
+@@ -7,7 +7,7 @@
+ import { createHash } from 'node:crypto'
+ import { mkdir, readFile, writeFile, realpath, appendFile } from 'node:fs/promises'
+ import path from 'node:path'
+-import { startProduction } from '../helpers/native-production.mjs'
++import { startProduction, createNavigationRing } from '../helpers/native-production.mjs'
+ import { ownedApplication } from '../helpers/native-owned-process.mjs'
+ import { ownNativeClipboard } from '../helpers/native-clipboard.mjs'
+ import { action, nativeFixture, x } from '../helpers/native-updates-fixture.mjs'
+@@ -345,6 +345,20 @@
+ }
+ // END DIAGNOSTIC INSERT.
+ 
++// NAVIGATION DIAGNOSTIC INSERT: bounded existing-probe observations only.
++const navigationRing = createNavigationRing()
++let navigationLast,
++  navigationFinished = false
++async function finishNavigationDiagnostic(reason) {
++  if (navigationFinished) return
++  navigationFinished = true
++  navigationRing.record(reason + '-last-observed-probe', navigationLast, true)
++  const text = JSON.stringify(navigationRing.state) + '\n'
++  assert(Buffer.byteLength(text) <= 262144, 'Navigation diagnostic export cap')
++  await writeFile(path.join(output, 'navigation-probes.json'), text)
++}
++// END NAVIGATION DIAGNOSTIC INSERT.
++
+ let app, nativeWindow, activeFile
+ const ui = nativeFixture(() => app),
+   results = []
+@@ -743,42 +757,74 @@
+   }, 'native full UI zoom geometry')
+ }
+ async function seek(sample, mode) {
+-  await closeUI()
+-  await app.focus('.milkup-input-proxy')
+-  await app.key(mode === 'source' ? 'ctrl+1' : 'ctrl+2')
+-  await app.until(async () => (await app.probe()).mode === mode, 'mode ' + mode)
+-  await app.key('ctrl+f')
+-  await ui.ready('[data-search-input]')
+-  await app.focus('[data-search-input]')
+-  await app.key('ctrl+a')
+-  await app.text(sample.marker)
+-  await app.until(
+-    async () => {
+-      const p = await app.probe()
+-      return p.query === sample.marker && !p.searching && /1/.test(p.count || '')
+-    },
+-    'unique sample search',
+-    30_000,
+-  )
+-  await app.key('Escape')
+-  await app.focus('.milkup-input-proxy')
+-  // Search results can arrive before windowed navigation finishes. These are
+-  // mounted selection projections, so first require the complete unique marker.
++  const enabled =
++    path.basename(activeFile) === 'windowed.md' &&
++    sample.id === 'sequenceDiagram-000-first-official-example'
+   const markerTo = sample.from - 2
+   const markerFrom = markerTo - sample.marker.length
+-  await app.until(
+-    async () => {
+-      const p = await app.probe()
+-      return (
+-        p.cursor === markerTo &&
+-        p.selection.length > 0 &&
+-        p.selection.every((range) => range.from === markerFrom && range.to === markerTo)
+-      )
+-    },
+-    'complete sample marker selection after native search navigation',
+-    30_000,
+-  )
+-  await positionSample(sample)
++  const navigation = enabled
++    ? { markerFrom, markerTo, markerLine: source.slice(0, markerFrom).split('\n').length }
++    : undefined
++  let readySeen = false,
++    modeSeen = false
++  const probe = async (phase, key = false) => {
++    const value = await app.probe(navigation)
++    if (navigation) {
++      navigationLast = value.navigation
++      if (phase === 'seek-first-existing-mode-probe') {
++        key = !modeSeen
++        modeSeen = true
++      }
++      navigationRing.record(phase, navigationLast, key)
++      delete value.navigation
++    }
++    return value
++  }
++  try {
++    await closeUI()
++    await app.focus('.milkup-input-proxy')
++    await app.key(mode === 'source' ? 'ctrl+1' : 'ctrl+2')
++    await app.until(
++      async () => (await probe('seek-first-existing-mode-probe', true)).mode === mode,
++      'mode ' + mode,
++    )
++    await app.key('ctrl+f')
++    await ui.ready('[data-search-input]')
++    await app.focus('[data-search-input]')
++    await app.key('ctrl+a')
++    await app.text(sample.marker)
++    await app.until(
++      async () => {
++        const p = await probe('search-poll')
++        return p.query === sample.marker && !p.searching && /1/.test(p.count || '')
++      },
++      'unique sample search',
++      30_000,
++    )
++    if (navigation) navigationRing.record('search-ready', navigationLast, true)
++    await app.key('Escape')
++    await app.focus('.milkup-input-proxy')
++    // Search results can arrive before windowed navigation finishes. These are
++    // mounted selection projections, so first require the complete unique marker.
++    await app.until(
++      async () => {
++        const p = await probe(readySeen ? 'ready-poll' : 'escape-first-ready-probe', !readySeen)
++        readySeen = true
++        return (
++          p.cursor === markerTo &&
++          p.selection.length > 0 &&
++          p.selection.every((range) => range.from === markerFrom && range.to === markerTo)
++        )
++      },
++      'complete sample marker selection after native search navigation',
++      30_000,
++    )
++    if (navigation) navigationRing.record('ready-success', navigationLast, true)
++    await positionSample(sample)
++  } catch (error) {
++    if (navigation) navigationRing.record('seek-failure-last-observed-probe', navigationLast, true)
++    throw error
++  }
+ }
+ async function sampleSelectionProjection(sample, phase) {
+   const markerTo = sample.from - 2
+@@ -1576,7 +1622,7 @@
+   await install()
+   await installDeadlineDiagnostic()
+   for (const sample of isolatedFallbacks) await isolatedFallback(sample)
+-  for (const name of ['ordinary', 'windowed']) {
++  coveragePrefix: for (const name of ['ordinary', 'windowed']) {
+     await openDocument(name)
+     await appearance('light', 1)
+     for (const sample of samples) {
+@@ -1585,6 +1631,8 @@
+         sample: sample.id,
+         ...(await assertSample(sample, 'live')),
+       })
++      if (name === 'windowed' && sample.id === 'sequenceDiagram-000-first-official-example')
++        break coveragePrefix
+     }
+     await sourceSelection(
+       name,
+@@ -1592,39 +1640,19 @@
+     )
+     for (const mode of ['source', 'live']) await history(name, mode)
+   }
+-  for (const combination of matrix) {
+-    const { view, mode, theme, zoom, narrow, key } = combination
+-    await openDocument(view)
+-    x('windowsize', nativeWindow, narrow ? '760' : '1100', narrow ? '520' : '760')
+-    await appearance(theme, zoom)
+-    const before = await app.probe()
+-    for (const sample of matrixSamples) {
+-      await seek(sample, mode)
+-      await shot(`matrix-${key}-${sample.id}`, {
+-        combination,
+-        sample: sample.id,
+-        ...(await assertSample(sample, mode)),
+-      })
+-      if (mode === 'live' && zoom === 2 && narrow && sample.expected === 'ready')
+-        await scrollEdges(sample, key)
+-    }
+-    assert.equal((await app.probe()).version, before.version)
+-    assert.deepEqual(await readFile(activeFile), Buffer.from(contents.get(view)))
+-    assert.deepEqual((await observe()).diagnostics.errors, [])
+-    await record('matrix-complete-' + key, {
+-      combination,
+-      exactFileSha256: sha256(await readFile(activeFile)),
+-    })
+-  }
+   assert.equal(sha256(await readFile(binary)), process.env.MILKUP_MERMAID_BINARY_SHA256)
+   assert.equal(sha256(await readFile(archivePath)), process.env.MILKUP_MERMAID_ARCHIVE_SHA256)
+-  await record('PASS', {
+-    combinations: matrix.length,
+-    samplesPerCombination: matrixSamples.length,
+-    pixelReview: 'required-separately',
++  await finishNavigationDiagnostic('diagnostic-prefix-end')
++  await record('DIAGNOSTIC-END', {
++    scope:
++      'Original complete prefix through windowed sequence000 seek/assert only; no matrix attempted',
++    fullAcceptance: false,
+     nativeIsolation: 'not-established-by-this-harness',
+   })
+ } catch (error) {
++  await finishNavigationDiagnostic('harness-first-failure').catch((error) =>
++    console.error('Navigation diagnostic persistence:', String(error).slice(0, 512)),
++  )
+   await finishDeadlineDiagnostic('harness-first-failure', error).catch(() => {})
+   await writeFile(
+     path.join(output, 'failure.json'),
+@@ -1633,6 +1661,9 @@
+   if (app) await shot('FAIL', { error: String(error) }).catch(() => {})
+   throw error
+ } finally {
++  await finishNavigationDiagnostic('harness-final').catch((error) =>
++    console.error('Navigation diagnostic persistence:', String(error).slice(0, 512)),
++  )
+   await finishDeadlineDiagnostic('harness-final').catch(() => {})
+   if (app) await app.close()
+ }

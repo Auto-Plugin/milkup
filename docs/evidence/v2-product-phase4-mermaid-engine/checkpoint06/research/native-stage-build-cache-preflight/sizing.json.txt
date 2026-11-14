@@ -1,0 +1,30 @@
+{
+  "recordedAtUtc": "2026-10-16T17:05:49.476315+00:00",
+  "commands": [
+    "du -sh /workspace/milkup/apps/desktop/src-tauri/target",
+    "du -sh /workspace/milkup/apps/desktop/src-tauri/target/release /workspace/milkup/apps/desktop/src-tauri/target/debug",
+    "du -sh /workspace/milkup/apps/desktop/src-tauri/target/release/{deps,build,incremental,.fingerprint}",
+    "df -h /workspace"
+  ],
+  "observedHumanReadable": {
+    "target": "15G",
+    "release": "2.0G",
+    "debug": "13G",
+    "releaseDeps": "1.8G",
+    "releaseBuild": "179M",
+    "releaseFingerprint": "12M",
+    "releaseIncremental": "4.0K",
+    "filesystemTotal": "32G",
+    "filesystemUsed": "28G",
+    "filesystemAvailable": "2.2G"
+  },
+  "cowProbe": "result.json: reflink=always exit1, Operation not supported",
+  "safeRecommendation": "Do not copy2G then compile with0.2G headroom. Root to explicitly approve exact disposable cache reclamation, then ordinary-copy release cache into independent CARGO_TARGET_DIR; never hardlink or share writable target. Alternatively cold target costs approximately final release footprint plus temporary files and unmeasured additional compilation time.",
+  "cliPath": "/workspace/milkup/apps/desktop/node_modules/.bin/tauri",
+  "actionsNotPerformed": [
+    "No cache deletion",
+    "No large copy",
+    "No candidate source mutation",
+    "No cargo/build/runtime"
+  ]
+}

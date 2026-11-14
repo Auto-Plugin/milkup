@@ -1,0 +1,85 @@
+"""PREPARED ONLY. Root must freeze build-inputs.json and root-build-go.json first.
+No frontend build, deb, download, deletion of historical evidence, or sandbox change.
+"""
+import contextlib,datetime,fcntl,hashlib,json,os,shutil,signal,subprocess,sys
+from pathlib import Path
+BASE=Path(__file__).resolve().parent
+REPO=Path('/workspace/milkup')
+PROD=Path('/workspace/milkup-mermaid-engine-evidence/linux-production-08')
+def sha(p):return hashlib.sha256(Path(p).read_bytes()).hexdigest()
+def dump(p,x):p.write_text(json.dumps(x,indent=2)+'\n')
+def utc():return datetime.datetime.now(datetime.timezone.utc).isoformat()
+assert sys.argv[1:]==['--execute-root-reviewed-build'], 'Static candidate: explicit root build GO required'
+manifest=BASE/'build-inputs.json';go=json.loads((BASE/'root-build-go.json').read_text())
+assert go['buildInputsSha256']==sha(manifest) and go['authorized'] is True
+inputs=json.loads(manifest.read_text()); assert inputs['status']=='ROOT_REVIEWED_BUILD_INPUTS'
+assert inputs['pending']==[] and inputs['nativeCandidateFinalManifest'], 'Native candidate freeze is required'
+head=subprocess.check_output(['git','rev-parse','HEAD'],cwd=REPO,text=True).strip()
+assert inputs['head']==head, 'Root-reviewed HEAD changed; regenerate input review'
+lock=(BASE/'build-exclusive.lock').open('a');fcntl.flock(lock,fcntl.LOCK_EX|fcntl.LOCK_NB)
+# This cooperative lock does not authorize simultaneous unrelated builds; root must
+# establish exclusive use of the shared Cargo target before issuing GO.
+assert go['exclusiveRepositoryAndCargoTarget'] is True
+attempt=BASE/'build-attempt-01';attempt.mkdir()
+provenance=json.loads((PROD/'provenance.json').read_text())
+assert sha(provenance['binary']['path'])==provenance['binary']['sha256']
+assert len(provenance['frontend'])==12
+expected_front={}
+for row in provenance['frontend']:
+ rel=Path(row['path']).relative_to(PROD/'frontend'); expected_front[str(rel)]=row['sha256']
+def verify_frontend():
+ actual={str(p.relative_to(REPO/'apps/desktop/dist')):sha(p) for p in (REPO/'apps/desktop/dist').rglob('*') if p.is_file()}
+ assert actual==expected_front, 'All 12 production08 frontend files must be identical'
+ return actual
+verify_frontend()
+for row in inputs['files']: assert sha(row['path'])==row['sha256'],row['path']
+for row in json.loads((PROD/'source-before.json').read_text())['files']:
+ assert sha(REPO/row['path'])==row['sha256'], 'Source drift from production08: '+row['path']
+assert shutil.disk_usage(BASE).free>=800*1024*1024, 'Require >=800MiB free before shared-cache relink; never auto-delete history'
+backups={}; child=None;record={'head':head,'startedUtc':utc(),'classification':'DIAGNOSTIC_ONLY_NOT_PRODUCTION_ACCEPTANCE','frontendBefore':expected_front,'sourceDelta':inputs['overlays']}
+def interrupted(signum,frame):raise InterruptedError('Build interrupted by signal '+str(signum))
+for sig in (signal.SIGINT,signal.SIGTERM):signal.signal(sig,interrupted)
+try:
+ for overlay in inputs['overlays']:
+  target=REPO/overlay['repositoryPath'];candidate=Path(overlay['candidatePath'])
+  assert target.is_relative_to(REPO/'apps/desktop/src-tauri/src')
+  assert target.name in {'plugin_dom.rs','plugin_dom_process.rs','plugin_dom_request_diagnostic.rs'}
+  assert sha(candidate)==overlay['candidateSha256']
+  backups[target]=target.read_bytes() if target.exists() else None
+  if backups[target] is not None:
+   assert hashlib.sha256(backups[target]).hexdigest()==overlay['originalSha256']
+   backup=attempt/'restore'/overlay['repositoryPath'];backup.parent.mkdir(parents=True,exist_ok=True);backup.write_bytes(backups[target])
+  else:assert overlay['originalSha256'] is None
+  target.write_bytes(candidate.read_bytes())
+ record['command']=['bash','-lc','source /workspace/.cloud/milkup-v2/env.sh\nunset CARGO_TARGET_X86_64_UNKNOWN_LINUX_GNU_RUNNER PROOT_NO_SECCOMP\nexec cargo build --manifest-path apps/desktop/src-tauri/Cargo.toml --release --locked --offline --features tauri/custom-protocol --bin milkup-desktop']
+ dump(attempt/'build-command.json',record)
+ with (attempt/'build.log').open('x') as log:
+  child=subprocess.Popen(record['command'],cwd=REPO,stdout=log,stderr=subprocess.STDOUT,start_new_session=True)
+  record['exitCode']=child.wait()
+ assert record['exitCode']==0,'Diagnostic build failed'
+ record['frontendAfter']=verify_frontend()
+ assert sha(provenance['binary']['path'])==provenance['binary']['sha256']
+ destination=attempt/'diagnostic-only-milkup-desktop'
+ shutil.copy2(REPO/'apps/desktop/src-tauri/target/release/milkup-desktop',destination)
+ record['binary']={'path':str(destination),'sha256':sha(destination),'bytes':destination.stat().st_size}
+ record['scope']='Same frontend/plugin/deadlines; native capture delta only. Cargo binary UNK bundle marker; not production08 DEB or production acceptance.'
+except BaseException as error:
+ record['error']=repr(error)
+ raise
+finally:
+ # Block second interrupt until the child has stopped and all source restoration
+ # has completed; SIGKILL/power loss require manual restoration from restore/.
+ for sig in (signal.SIGINT,signal.SIGTERM):signal.signal(sig,signal.SIG_IGN)
+ if child is not None and child.poll() is None:
+  os.killpg(child.pid,signal.SIGTERM)
+  try:child.wait(timeout=15)
+  except subprocess.TimeoutExpired:os.killpg(child.pid,signal.SIGKILL);child.wait()
+ restored=[]
+ for target,data in backups.items():
+  if data is None:
+   target.unlink(missing_ok=True);assert not target.exists()
+  else:
+   target.write_bytes(data);assert target.read_bytes()==data
+  restored.append(str(target))
+ record.update(restoredSources=restored,finishedUtc=utc(),frontendRestored=verify_frontend(),productionBinaryUnchanged=sha(provenance['binary']['path'])==provenance['binary']['sha256'])
+ dump(attempt/'build-result.json',record)

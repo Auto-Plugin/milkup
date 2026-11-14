@@ -1,0 +1,12 @@
+import assert from 'node:assert/strict'
+import { readFileSync } from 'node:fs'
+const source = '/workspace/milkup-mermaid-engine-evidence/product-ui-runs/runs/mermaid-ui-class-scroll-diagnostic-02/results.json'
+const record = JSON.parse(readFileSync(source, 'utf8')).find(row => row.name === 'DIAGNOSTIC-BOTTOM-RIGHT')
+const dom = record.dom
+const preview = dom.previews.find(row => row.from === record.after.from && row.to === record.after.to)
+const viewport = { top: Math.max(0,dom.editor.top), bottom: Math.min(dom.height,dom.editor.bottom), left:Math.max(0,dom.editor.left),right:Math.min(dom.width,dom.editor.right) }
+console.log(JSON.stringify({source,name:record.name,viewport,preview:preview.rect,scroll:{left:preview.left,top:preview.top},bottomOutside:preview.rect.bottom-viewport.bottom,rightOutside:Math.max(0,preview.rect.right-viewport.right)}))
+assert.equal(preview.left,record.after.left,'Existing reached horizontal offset remains stable')
+assert.equal(preview.top,record.after.top,'Existing reached vertical offset remains stable')
+assert(preview.rect.right<=viewport.right && preview.rect.right>viewport.left,'bottom-right horizontal boundary visible')
+assert(preview.rect.bottom<=viewport.bottom && preview.rect.bottom>viewport.top,'bottom-right vertical boundary visible')

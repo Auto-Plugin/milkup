@@ -1,0 +1,56 @@
+--- /workspace/milkup-mermaid-engine-evidence/research/native-webprocess-pidfd-candidate-01/build-diagnostic.py
++++ /workspace/milkup-mermaid-engine-evidence/research/native-cold-stage-build-01/build-diagnostic.py
+@@ -13,8 +13,8 @@
+ manifest=BASE/'build-inputs.json';go=json.loads((BASE/'root-build-go.json').read_text())
+ assert go['buildInputsSha256']==sha(manifest) and go['authorized'] is True
+ inputs=json.loads(manifest.read_text()); assert inputs['status']=='ROOT_REVIEWED_BUILD_INPUTS'
+-assert inputs['pending']==[] and inputs['nativeCandidateFinalManifest'] and inputs['webProcessCandidateFinalManifest'], 'Both native candidate freezes required'
+-assert len(inputs['overlays']) == 6
++assert inputs['pending']==[] and inputs['nativeCandidateFinalManifest'] and inputs['webProcessCandidateFinalManifest'] and inputs['stageCandidateFinalManifest'], 'All native candidate freezes required'
++assert len(inputs['overlays']) == 8, 'Expected composition; change only after final candidate review'
+ assert subprocess.check_output(['git','status','--porcelain'],cwd=REPO,text=True) == ''
+ head=subprocess.check_output(['git','rev-parse','HEAD'],cwd=REPO,text=True).strip()
+ assert inputs['head']==head, 'Root-reviewed HEAD changed; regenerate input review'
+@@ -42,20 +42,25 @@
+ def interrupted(signum,frame):raise InterruptedError('Build interrupted by signal '+str(signum))
+ for sig in (signal.SIGINT,signal.SIGTERM):signal.signal(sig,interrupted)
+ try:
+- # Preserve existing shared-target binary and every existing same-name C guard
+- # before cargo may overwrite them. Historical evidence is never deleted.
++ # Verify current shared-target artifacts against already frozen run05 bytes.
++ # This preserves before-state by exact immutable references, without another
++ # 22 MB copy. A mismatch stops; no deletion, relink, rebaseline or retry.
+  target_root=REPO/'apps/desktop/src-tauri/target/release'
+  prior=[target_root/'milkup-desktop', *sorted(target_root.glob('build/milkup-desktop-*/out/libmilkup_dom_guard.so'))]
++ references=inputs['priorTargetReferences']
++ assert {str(p) for p in prior}=={r['currentPath'] for r in references}, 'Unreviewed shared-target artifact set'
+  record['priorTargetArtifacts']=[]
+- for source in prior:
+-  if source.is_file():
+-   saved=attempt/'target-before'/source.relative_to(target_root)
+-   saved.parent.mkdir(parents=True,exist_ok=True);shutil.copy2(source,saved)
+-   record['priorTargetArtifacts'].append({'path':str(source),'saved':str(saved),'bytes':source.stat().st_size,'sha256':sha(source)})
++ for reference in references:
++  current=Path(reference['currentPath']);frozen=Path(reference['frozenPath'])
++  assert frozen.is_relative_to(Path('/workspace/milkup-mermaid-engine-evidence/research/native-webprocess-pidfd-candidate-01/build-attempt-01/diagnostic-binary'))
++  assert current.stat().st_size==frozen.stat().st_size==reference['bytes']
++  assert sha(current)==sha(frozen)==reference['sha256']
++  record['priorTargetArtifacts'].append({'path':str(current),'saved':str(frozen),'bytes':reference['bytes'],'sha256':reference['sha256'],'preservation':'existing immutable run05 artifact; no new copy'})
++ dump(attempt/'target-before-references.json',record['priorTargetArtifacts'])
+  for overlay in inputs['overlays']:
+   target=REPO/overlay['repositoryPath'];candidate=Path(overlay['candidatePath'])
+   assert target.is_relative_to(REPO/'apps/desktop/src-tauri/src')
+-  assert target.name in {'plugin_dom.rs','plugin_dom_process.rs','plugin_dom_request_diagnostic.rs','plugin_dom_helper.rs','plugin_dom_guard.c','plugin_dom_webprocess_identity.rs'}
++  assert target.name in {'plugin_dom.rs','plugin_dom_process.rs','plugin_dom_request_diagnostic.rs','plugin_dom_helper.rs','plugin_dom_guard.c','plugin_dom_webprocess_identity.rs','plugin_dom_stage.rs','plugin_dom_bootstrap.js'}
+   assert sha(candidate)==overlay['candidateSha256']
+   backups[target]=target.read_bytes() if target.exists() else None
+   if backups[target] is not None:
+@@ -95,7 +100,7 @@
+  actual_so,blob,offset=matches[0]
+  preserved_so=attempt/'diagnostic-binary/libmilkup_dom_guard.so';preserved_so.write_bytes(blob)
+  record['extension']={'buildScriptOutDir':str(actual_so.parent),'compiledPath':str(actual_so),'path':str(preserved_so),'bytes':len(blob),'sha256':sha(preserved_so),'embeddedOffset':offset,'embeddedOccurrences':1}
+- record['scope']='Same frontend/plugin/2s10s; accepted-wire recorder plus private native self-pidfd observation. Diagnostic binary only, not production08 DEB or production acceptance.'
++ record['scope']='Same frontend/plugin/2s10s; accepted-wire recorder plus private native self-pidfd and bounded stage observation. Diagnostic binary only, not production08 DEB or production acceptance.'
+ except BaseException as error:
+  record['error']=repr(error)
+  raise

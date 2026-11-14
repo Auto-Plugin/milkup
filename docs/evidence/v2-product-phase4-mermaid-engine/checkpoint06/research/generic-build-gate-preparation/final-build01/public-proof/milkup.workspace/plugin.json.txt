@@ -1,0 +1,107 @@
+{
+  "id": "milkup.workspace",
+  "name": "Milkup Workspace",
+  "version": "1.0.0",
+  "description": "按需浏览所选文件夹，打开 Markdown 与最近文件；文件保存和恢复由宿主管理。",
+  "host": "worker",
+  "main": "./dist/plugin.js",
+  "engines": {
+    "milkup": "^2.0.0-0",
+    "pluginSdk": "^0.3.0"
+  },
+  "permissions": ["workspace:read"],
+  "icon": "assets/workspace.png",
+  "resources": ["assets/workspace.png"],
+  "contributes": {
+    "commands": [
+      {
+        "id": "workspace.choose",
+        "title": "选择工作区",
+        "action": "workspace.choose"
+      },
+      {
+        "id": "workspace.refresh",
+        "title": "刷新工作区",
+        "action": "workspace.refresh"
+      },
+      {
+        "id": "workspace.toggle",
+        "title": "展开或折叠目录",
+        "action": "workspace.toggle",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string"
+            },
+            "path": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      {
+        "id": "workspace.more",
+        "title": "加载更多文件",
+        "action": "workspace.more",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string"
+            },
+            "path": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      {
+        "id": "workspace.open",
+        "title": "打开文件",
+        "action": "workspace.open",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string"
+            },
+            "path": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      {
+        "id": "workspace.recent",
+        "title": "打开最近文件",
+        "action": "workspace.recent",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string"
+            },
+            "path": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      {
+        "id": "workspace.cancel",
+        "title": "取消工作区操作",
+        "action": "workspace.cancel"
+      }
+    ],
+    "ui": [
+      {
+        "id": "workspace-panel",
+        "slot": "sidebar-panel",
+        "title": "工作区",
+        "scope": "app",
+        "viewportUpdates": false
+      }
+    ]
+  }
+}

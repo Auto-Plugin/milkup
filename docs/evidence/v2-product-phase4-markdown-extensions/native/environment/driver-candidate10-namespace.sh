@@ -1,0 +1,3 @@
+export MILKUP_RUN="$1"
+source /workspace/milkup-markdown-extensions-phase4-evidence/native/environment/run-env-candidate10-namespace.sh
+bwrap --unshare-user --ro-bind / / --bind /workspace /workspace --bind /tmp /tmp --dev-bind /dev /dev --proc /proc --overlay-src /usr/lib/x86_64-linux-gnu --tmp-overlay /usr/lib/x86_64-linux-gnu --ro-bind /workspace/.cloud/milkup-v2/sysroot/usr/lib/x86_64-linux-gnu/webkit2gtk-4.1 /usr/lib/x86_64-linux-gnu/webkit2gtk-4.1 --remount-ro /usr/lib/x86_64-linux-gnu -- dbus-run-session -- /workspace/.cargo/bin/tauri-driver --port 4618 --native-port 4619 --native-driver /workspace/.cloud/milkup-v2/sysroot/usr/bin/WebKitWebDriver > "/workspace/milkup-markdown-extensions-phase4-evidence/native/driver-${MILKUP_RUN}.log" 2>&1

@@ -1,0 +1,11 @@
+--- a/Source/WebCore/platform/graphics/ComplexTextController.cpp
++++ b/Source/WebCore/platform/graphics/ComplexTextController.cpp
+@@ -645,7 +645,7 @@
+                     setHeight(paintAdvance, height(paintAdvance) - glyphOrigin(glyphIndexIntoComplexTextController + 1).y() + m_complexTextRuns[currentRunIndex + 1]->initialAdvance().height());
+                 }
+                 setHeight(paintAdvance, -height(paintAdvance)); // Increasing y points down
+-                glyphBuffer->add(m_adjustedGlyphs[glyphIndexIntoComplexTextController], complexTextRun.protectedFont(), paintAdvance, complexTextRun.indexAt(m_glyphInCurrentRun) + complexTextRun.stringLocation(), FloatPoint(textAutoSpaceSpacing, 0));
++                glyphBuffer->add(m_adjustedGlyphs[glyphIndexIntoComplexTextController], complexTextRun.protectedFont(), paintAdvance, complexTextRun.indexAt(glyphIndexIntoCurrentRun) + complexTextRun.stringLocation(), FloatPoint(textAutoSpaceSpacing, 0));
+             }
+ 
+             unsigned oldCharacterInCurrentGlyph = m_characterInCurrentGlyph;

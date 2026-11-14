@@ -1,0 +1,101 @@
+
+[WebServer] (node:319313) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+[WebServer] $ vite --host 127.0.0.1
+
+[WebServer] (node:319326) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+[WebServer] (node:319351) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+[WebServer] $ vite --host 127.0.0.1
+
+[WebServer] (node:319374) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 34 tests using 1 worker
+
+
+(node:319416) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+[1/34] [desktop-msedge] › tests/e2e/desktop-markdown-extensions.spec.ts:45:1 › real math and footnotes plus controlled image Worker preserve source/history
+[2/34] [desktop-msedge] › tests/e2e/desktop-markdown-extensions.spec.ts:86:1 › opaque code and controlled provider errors stay literal without executable content
+[3/34] [desktop-msedge] › tests/e2e/desktop-markdown-extensions.spec.ts:119:1 › footnote navigation reveals editable original and remains read only
+[4/34] [desktop-msedge] › tests/e2e/desktop-markdown-extensions.spec.ts:141:1 › disabled renderers disappear and leave Unicode editing and save available
+[5/34] [desktop-msedge] › tests/e2e/desktop-markdown-extensions.spec.ts:173:1 › search keeps the selected marker visible while asynchronous block previews settle
+  1) [desktop-msedge] › tests/e2e/desktop-markdown-extensions.spec.ts:173:1 › search keeps the selected marker visible while asynchronous block previews settle 
+
+    Test timeout of 60000ms exceeded.
+
+    Error: locator.focus: Test timeout of 60000ms exceeded.
+    Call log:
+      - waiting for locator('.milkup-document-presentation[tabindex="0"]').filter({ has: locator('svg') }).first()
+
+
+      245 |     .locator('.milkup-document-presentation[tabindex="0"]')
+      246 |     .filter({ has: page.locator('svg') })
+    > 247 |   await graphs.nth(0).focus()
+          |                       ^
+      248 |   await page.waitForTimeout(300)
+      249 |   await expect(graphs.nth(0)).toBeFocused()
+      250 |   await page.keyboard.press('Tab')
+        at /workspace/milkup/tests/e2e/desktop-markdown-extensions.spec.ts:247:23
+
+    attachment #3: page-state (text/plain) ─────────────────────────────────────────────────────────
+    - main:
+      - button "菜单"
+      - heading "未命名" [level=1]
+      - paragraph: 未保存
+      - button "最小化"
+      - button "最大化"
+      - button "关闭窗口"
+      - textbox:
+        - group "$\\int_0^\\infty x\\,dx$":
+          - math: ∫ 0 ∞ x d x
+        - 'group "$$ \\begin{pmatrix}a&b\\\\c&d\\end{pmatrix} $$"':
+          - math: ( a b c d )
+        - gr...
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ../milkup-mermaid-engine-evidence/research/production-ui-window/view/20-browser-after-fix/artifacts/desktop-markdown-extension-f2bb0-onous-block-previews-settle-desktop-msedge/error-context.md
+
+
+
+(node:319841) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+[6/34] [desktop-msedge] › tests/e2e/desktop-markdown-extensions.spec.ts:268:3 › background preview refresh preserves layout (false)
+[7/34] [desktop-msedge] › tests/e2e/desktop-markdown-extensions.spec.ts:268:3 › background preview refresh preserves layout (true)
+[8/34] [desktop-msedge] › tests/e2e/desktop-markdown-extensions.spec.ts:668:3 › last preview reference supports native Tab round trip (false)
+[9/34] [desktop-msedge] › tests/e2e/desktop-markdown-extensions.spec.ts:698:3 › ordinary proxy focus retains Tab indentation (false)
+[10/34] [desktop-msedge] › tests/e2e/desktop-markdown-extensions.spec.ts:668:3 › last preview reference supports native Tab round trip (true)
+[11/34] [desktop-msedge] › tests/e2e/desktop-markdown-extensions.spec.ts:698:3 › ordinary proxy focus retains Tab indentation (true)
+[12/34] [desktop-msedge] › tests/e2e/desktop-markdown-extensions.spec.ts:717:5 › preview proxy navigation ends after arrow (false)
+[13/34] [desktop-msedge] › tests/e2e/desktop-markdown-extensions.spec.ts:717:5 › preview proxy navigation ends after text (false)
+[14/34] [desktop-msedge] › tests/e2e/desktop-markdown-extensions.spec.ts:717:5 › preview proxy navigation ends after pointer (false)
+[15/34] [desktop-msedge] › tests/e2e/desktop-markdown-extensions.spec.ts:717:5 › preview proxy navigation ends after external-focus (false)
+[16/34] [desktop-msedge] › tests/e2e/desktop-markdown-extensions.spec.ts:717:5 › preview proxy navigation ends after replacement (false)
+[17/34] [desktop-msedge] › tests/e2e/desktop-markdown-extensions.spec.ts:717:5 › preview proxy navigation ends after arrow (true)
+[18/34] [desktop-msedge] › tests/e2e/desktop-markdown-extensions.spec.ts:717:5 › preview proxy navigation ends after text (true)
+[19/34] [desktop-msedge] › tests/e2e/desktop-markdown-extensions.spec.ts:717:5 › preview proxy navigation ends after pointer (true)
+[20/34] [desktop-msedge] › tests/e2e/desktop-markdown-extensions.spec.ts:717:5 › preview proxy navigation ends after external-focus (true)
+[21/34] [desktop-msedge] › tests/e2e/desktop-markdown-extensions.spec.ts:717:5 › preview proxy navigation ends after replacement (true)
+[22/34] [desktop-msedge] › tests/e2e/desktop-markdown-extensions.spec.ts:752:5 › timed-out preparation preserves the uncached near-end reading position (false, auto)
+[23/34] [desktop-msedge] › tests/e2e/desktop-markdown-extensions.spec.ts:752:5 › timed-out preparation preserves the uncached near-end reading position (true, auto)
+[24/34] [desktop-msedge] › tests/e2e/desktop-markdown-extensions.spec.ts:752:5 › timed-out preparation preserves the uncached near-end reading position (false, none)
+[25/34] [desktop-msedge] › tests/e2e/desktop-markdown-extensions.spec.ts:752:5 › timed-out preparation preserves the uncached near-end reading position (true, none)
+[26/34] [desktop-msedge] › tests/e2e/desktop-markdown-extensions.spec.ts:940:3 › uncached source replacement retains the visible reading anchor (auto)
+[27/34] [desktop-msedge] › tests/e2e/desktop-markdown-extensions.spec.ts:940:3 › uncached source replacement retains the visible reading anchor (none)
+[28/34] [desktop-msedge] › tests/e2e/desktop-markdown-extensions.spec.ts:1095:3 › reference pointer activation survives ordinary-provider replacement between down and up
+[29/34] [desktop-msedge] › tests/e2e/desktop-markdown-extensions.spec.ts:1095:3 › reference pointer activation survives windowed-provider replacement between down and up
+[30/34] [desktop-msedge] › tests/e2e/desktop-markdown-extensions.spec.ts:1095:3 › reference pointer activation survives windowed-source replacement between down and up
+[31/34] [desktop-msedge] › tests/e2e/desktop-markdown-extensions.spec.ts:1095:3 › reference pointer activation survives windowed-outside replacement between down and up
+[32/34] [desktop-msedge] › tests/e2e/desktop-markdown-extensions.spec.ts:1318:3 › superseded source navigation cannot silently resolve without selecting its target
+[33/34] [desktop-msedge] › tests/e2e/desktop-markdown-extensions.spec.ts:1318:3 › superseded live navigation cannot silently resolve without selecting its target
+[34/34] [desktop-msedge] › tests/e2e/desktop-markdown-extensions.spec.ts:1417:1 › official Mermaid DOM host is explicitly unavailable in the browser and keeps source
+  1 failed
+    [desktop-msedge] › tests/e2e/desktop-markdown-extensions.spec.ts:173:1 › search keeps the selected marker visible while asynchronous block previews settle 
+  33 passed (5.5m)

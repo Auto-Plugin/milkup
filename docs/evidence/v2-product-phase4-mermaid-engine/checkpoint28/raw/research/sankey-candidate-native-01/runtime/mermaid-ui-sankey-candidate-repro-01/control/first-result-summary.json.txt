@@ -1,0 +1,71 @@
+{
+  "classification": "FIRST_CANDIDATE_DIAGNOSTIC_SHORT_SEQUENCE_UI_PASS_CAPTURE_PENDING_INDEPENDENT_AUDIT",
+  "harnessExitCode": 0,
+  "startedUtc": "2026-10-17T06:36:17.285425+00:00",
+  "finishedUtc": "2026-10-17T06:36:48.698028+00:00",
+  "records": 7,
+  "names": [
+    "bundled-removed-before-independent-install",
+    "installed-official-engine",
+    "matrix-windowed-live-dark-200-narrow-sankey-000-first-official-example",
+    "edges-windowed-live-dark-200-narrow-sankey-000-first-official-example-bottom-right",
+    "edges-windowed-live-dark-200-narrow-sankey-000-first-official-example-top-left",
+    "matrix-complete-windowed-live-dark-200-narrow",
+    "PASS"
+  ],
+  "pngFiles": 8,
+  "nativeRows": 118,
+  "nativeKinds": {
+    "guardian-spawn": 2,
+    "owner-pipe-complete": 32,
+    "owner-frame-read": 26,
+    "render-accepted": 25,
+    "render-settled": 24,
+    "render-cancel": 7,
+    "render-stop": 2
+  },
+  "frontendEvents": 270,
+  "frontendExportComplete": true,
+  "frontendDropped": 0,
+  "frontendErrors": 0,
+  "drain": {
+    "budgetMs": 5000,
+    "intervalMs": 100,
+    "idleObserved": true,
+    "clock": "controller hrtime; never subtracted from frontend/native clocks",
+    "elapsedMs": 122.097333,
+    "timedOut": false,
+    "transportOverrun": false
+  },
+  "nativeFinal": {
+    "attempted": 118,
+    "capped": 0,
+    "captureMaxNs": 120228,
+    "captureTotalNs": 1419929,
+    "diagnosticClosed": true,
+    "disconnected": 0,
+    "enqueued": 118,
+    "final": true,
+    "inFlight": 0,
+    "incompleteTiming": 0,
+    "ioErrors": 0,
+    "limits": {
+      "events": 256,
+      "queue": 8,
+      "totalWireBytes": 16777216,
+      "wireBytes": 1048576
+    },
+    "monotonicNs": 106621073457982,
+    "oversize": 0,
+    "ownerBirth": 10659049,
+    "ownerPid": 516073,
+    "qualification": "Final only after external finish.request closes observation and drains queue. Future product requests continue unobserved. Missing final or identity or any drops/errors means incomplete.",
+    "queueFull": 0,
+    "reservedWireBytes": 35939,
+    "schema": "milkup.cold-accepted-wire-status.v1",
+    "writerCpuScope": "App-owned background writer thread through last status checkpoint, excludes final status/complete serialization; included in App own CPU",
+    "writerThreadCpuNs": 139556168,
+    "written": 118
+  },
+  "qualification": "No direct engine CPU/cache-hit attribution; cross-run payload comparison and capture closure await independent audit."
+}

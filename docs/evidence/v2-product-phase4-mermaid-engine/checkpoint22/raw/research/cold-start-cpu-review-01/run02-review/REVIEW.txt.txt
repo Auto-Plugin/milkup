@@ -1,0 +1,56 @@
+mermaid-ui-cold-diag-02 独立 CPU / identity / overhead 审查
+范围：root授权在02完成freeze后，只读实际运行证据；未运行03、未修改采样代码/budget、未读live进程或清理。
+
+结论
+02仍是 DIAGNOSTIC_SETUP_FAILURE_NOT_PRODUCT_RED，harness exit1，coldGateExecuted=false。CPU observer exit0/controller-stop、failure=null 只证明当前采样器正常落盘，绝不表示cold PASS。确有App+guardian各9个有效样本；没有renderer/helper/WebKit子进程身份或CPU，CPU归因缺口尚在。
+
+冻结完整性
+run02-frozen-manifest.json SHA256 4a7ebb1062272036b2365f3aab966feb8bac14fe117a729062d4943e7fc982aa；172个文件实际bytes/SHA256全匹配。manifest-verification.json保存逐项结果。offline-audit.json一致性issues=[]不等于产品gate通过；运行分类及覆盖缺口独立保留。
+
+原firstFAIL
+failure.json: EACCES: permission denied, open '/proc/468107/environ'，堆栈cold-prefix.mjs:1430，发生在原App profile核验，冷断言尚未开始。results.json仅1条FAIL（不是空数组）；截图元数据和DOM状态不能取代未执行的cold gate。本轮binary已恢复basename milkup-desktop，故不再是01的WM_CLASS识别问题。旧01失败未回写。
+
+身份绑定与可证明范围
+App PID468107/birth8843827（parent468070），argv为02冻结diagnostic-binary/milkup-desktop +本run ordinary.md；guardian PID468234/birth8844239，native ownerPid/ownerBirth精确一致，instanceId=998dcdc23765fdbd58a4214ae17f312649c6b5872adbd35c。
+guardian-spawn原生记录与sampler binding对应，sampler保存nativeCreationProof path/device27/inode706500；代码双stat、current PPID和精确argv校验通过。额外environment检查得到PermissionError errno13，明确记录instanceEnvironmentMatched=null、instanceEnvironmentCheck=unavailable、environmentUnavailableBindings=1；绝不是匹配成功。instance来自native创建记录，没有猜测。
+sourceMonoNs=88442395131186，binding observedMonoNs=88442410372978，身份观测延迟15.241792ms。
+App boundNs=88442410256602，约在App birth后4140.256602ms（birth为10ms tick粒度）。因此没有覆盖App启动最早约4.14s；预置sampler不代表从进程出生瞬间就采到CPU。
+
+后代发现：实际不完整，原因未证实
+discoveryCount=4、discoveryTasks=7、discoveryIncomplete=0、errors=[]；knownIdentities始终只有App和guardian。没有任何renderer-leader、renderer-descendant、webkit-web或webkit-network身份/样本。
+这证明观测未捕获renderer树，不证明树不存在或没有CPU使用。driver.log含(milkup-desktop:468239)警告，但它只有PID/名称，没有birth/父边；不能补作已绑定renderer CPU身份。
+当前sampler不保存每轮children原始内容、候选PID数量或拒绝原因。仅凭discoveryIncomplete=0无法分辨目录可见性、空children、时序遗漏或候选未通过；不能断言单一原因是namespace。03统一执行context是新对照准备，不能提前算作解决后代覆盖。
+
+CPU：直接复算原始9行、18个status=sample成员（100 ticks/s）
+App：首readStartNs88442410518612（end88442410567829）→末start88444410678173（end88444411143254）；按读起点间隔2.000159561s。user +12、system +10 ticks =自身0.22CPU s；约10.999122%单核。该进程包含自身线程，不包含子进程。
+guardian：首readStartNs88442410570823（end88442410603731）→末start88444411148788（end88444411246694）；间隔2.000577965s。user +6、system +3 ticks =自身0.09CPU s；约4.498700%单核。guardian是监督进程，不能将0.09s算renderer。
+上述是完整“观测端点之间”的区间，跨startup及关闭前阶段，不能赋给单次render_1请求。不同进程读端点也并非完全同时。renderer CPU=null（未测），shared cgroup CPU=null（此候选不采cgroup）；不作shared-minus-App推算。
+详见full-observed-intervals.json，保留读前后括号与原始ticks。
+
+schedstat严格口径
+/proc/PID/schedstat只对应thread-group leader。App首末delta：runtimeNs160409854、runqueueWaitNs67185361、timeslices475；即主线程运行160.409854ms、排队等待67.185361ms。
+guardian：runtimeNs87555375、runqueueWaitNs3643445、timeslices31；即主线程运行87.555375ms、等待3.643445ms。
+非零数值表明这些已记录leader counters有增长；不代表进程所有线程的等待总量，不能据此推断renderer调度或deadline原因。
+
+时间轴与请求关联边界
+observer startedMonoNs88437706801814→finished88444472813482，6.766011668s（含hash和绑定等待）。
+原native只记录render_1 dispatch：mono88444154045536；sampler观察时间88444160687515，记录observedDelayNs6642084（6.642084ms）。两次clock调用使observedMonoNs-source与独立delay字段相差很小，不将其误归为产品时延。
+原driver随后guardian kill-start mono88444436469294，比dispatch晚282.423758ms；该次由原session关闭流程清理，不是deadline-observed。日志没有deadline阶段，因此offline request deadline intervals为空。不能拿kill-start当2s deadline或以缺deadline宣称渲染成功。
+本轮native-capture实际2行=1 guardian-spawn+1 render-accepted；status与complete相等且final/closed=true；attempted=enqueued=written=2、无drop/error/oversize/cap/inFlight；wire UTF8 950bytes/hash/requestId通过核对。捕获最终完整与coldgate未执行可以同时成立。
+
+开销与质量
+sampleCount=retainedSamples=9；sampleIncomplete=evictedRows=skippedSlots=eventDrops=0；maxLateNs8880474（8.880474ms），与原始行复算一致。没有丢槽不表示没有延迟。
+83次proc读取，总1.686432ms、最大0.181284ms；9次sample总2.196269ms、最大0.622579ms；4次discovery总0.857985ms、最大0.294540ms。sample总和、最大值均从NDJSON独立复算一致。
+observerOwnCpuNs42828916（42.828916ms）；prelaunchHashCpuNs18766340（18.766340ms）；afterReadyCpuNs24064660（24.064660ms）。它们读时刻略不同，后两值不是与总值精确同刻分割；不能把三者累加。afterReady包含等待、日志解析、绑定、发现、采样等，不是仅2s采样CPU。
+identityLogReadNs8871195（8.871195ms）；driver log read890642ns；这些函数耗时包含/重叠部分proc成本，不与sample/read/discovery时间简单相加。
+原native writerThreadCpuNs7596874（7.596874ms），包含在App自身CPU中；同步captureTotalNs21444（0.021444ms）、captureMaxNs15486（0.015486ms）是wall duration，不是可相加CPU项。此轮没有renderer观测，不能声称“完整renderer采样已证明低开销”。
+
+执行上下文证据
+control/execution-context-after-exit-default.json记录事后自查的use_default工具进程user:[4026532920]，uid_map/gid_map为1000→0、长度1；escalated.json记录另一次require_escalated工具进程user:[4026531837]，映射0→0、长度4294967295。两者均scope明确“当前只读工具进程，非退出harness/driver重建”。实际launch记录是driver require_escalated、harness/CPU use_default。
+这些事实证实不同执行模式的事后自查namespace不同，且实际运行使用混合模式；它们支持统一context的新对照准备，但不能反向补出已退出driver/harness当时的全部权限判定，更不能把尚未执行03当成功。原App environ profile断言保持有效、未绕过。
+
+历史清理
+只读control/driver-stop.json：/status No sessions后，exact PID/birth/PGID核验才对原owned group TERM；after identity=null，port连接拒绝。run-summary列15个knownOwnedPids absent、ports空、ancestorReaps11。本审查未重新全局扫描、未发信号；未知renderer身份不能借此追认其CPU已测。
+
+未完成门槛
+cold gate图像断言、deadline复测、renderer精确身份/CPU/调度覆盖仍未完成。03仅统一driver+harness/CPU执行context、保持binary/harness/sampler/budget原字节是独立新对照；必须等实际新证据后评价。CPU observer0只作为采样器完成状态保留。

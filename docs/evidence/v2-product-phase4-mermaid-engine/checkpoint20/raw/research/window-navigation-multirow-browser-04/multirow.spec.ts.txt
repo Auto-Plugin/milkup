@@ -1,0 +1,223 @@
+import { readFile, writeFile } from 'node:fs/promises'
+import { expect, test } from '/workspace/milkup/node_modules/@playwright/test/index.mjs'
+
+const directory = '/workspace/milkup-mermaid-engine-evidence/research/window-navigation-multirow-browser-04'
+
+test('public navigation across a 77-line collapsed fence retains target projection while new selection provider waits', async ({ page }, info) => {
+  const errors: string[] = []
+  page.on('pageerror', error => errors.push(String(error)))
+  await page.addInitScript(() => localStorage.setItem('milkup.desktop.plugins.registry.v1', JSON.stringify({ version: 1, records: [], auditRecords: [] })))
+  await page.goto('/')
+  await page.locator('.milkup-input-proxy').waitFor()
+  try {
+    const result = await page.evaluate(async ({ text }) => {
+      const { SourceDocumentView } = await import('/@fs/workspace/milkup/packages/view-dom/src/index.ts')
+      const { MemoryDocumentSource, Selection } = await import('/@fs/workspace/milkup/packages/core/src/index.ts')
+      const store = new MemoryDocumentSource({ documentId: 'multirow-selection-study', text })
+      const first = (await store.readLineWindow(318, 318)).lines[0]
+      const last = (await store.readLineWindow(394, 394)).lines[0]
+      const initial = (await store.readLineWindow(316, 316)).lines[0]
+      const marker = (await store.readLineWindow(398, 398)).lines[0]
+      if (first.from !== 5742 || last.to !== 8060 || marker.from !== 8103 || marker.to !== 8160)
+        throw Error('Fixture source range mismatch')
+      let view: InstanceType<typeof SourceDocumentView>
+      const reads: unknown[] = [], events: unknown[] = [], phases: unknown[] = []
+      const drops = { reads: 0, events: 0, phases: 0 }
+      const put = (kind: 'reads' | 'events' | 'phases', value: unknown) => {
+        const list = { reads, events, phases }[kind]
+        if (list.length < 256) list.push(value)
+        else drops[kind]++
+      }
+      const rect = (node: Element | null) => {
+        if (!node) return null
+        const r = node.getBoundingClientRect()
+        return { top: r.top, bottom: r.bottom, left: r.left, right: r.right, width: r.width, height: r.height }
+      }
+      let navigationState = 'not-started', armed = false, pending = false, gateReleased = false
+      let releaseGate: (() => void) | undefined, gateTimer: ReturnType<typeof setTimeout> | undefined
+      let observer: MutationObserver | undefined
+      let sourceGated = false, sourceGateReleased = false, sourceGateFrames = 0
+      let releaseSourceRead: (() => void) | undefined
+      let sourceGateTimer: ReturnType<typeof setTimeout> | undefined
+      let sourceGateRaf: number | undefined
+      const releaseSource = (reason: string) => {
+        if (!sourceGated || sourceGateReleased) return
+        sourceGateReleased = true
+        if (sourceGateTimer) clearTimeout(sourceGateTimer)
+        if (sourceGateRaf !== undefined) cancelAnimationFrame(sourceGateRaf)
+        put('events', { type: 'source-gate-release', reason, frames: sourceGateFrames, at: performance.now() })
+        releaseSourceRead?.()
+      }
+      const gate = new Promise<void>(resolve => { releaseGate = resolve })
+      const release = (reason: string) => {
+        if (gateReleased) return
+        gateReleased = true
+        if (gateTimer) clearTimeout(gateTimer)
+        put('events', { type: 'provider-gate-release', reason, at: performance.now() })
+        releaseGate!()
+      }
+      const snapshot = (phase: string) => {
+        const rows = [...view.contentDOM.querySelectorAll<HTMLElement>('.milkup-line')]
+        const fence = rows.filter(row => Number(row.dataset.line) >= 318 && Number(row.dataset.line) <= 394)
+        const visibleRows = rows.filter(row => row.dataset.presentationCollapsed !== 'true' && row.getBoundingClientRect().height > 0)
+        const rowData = (row: HTMLElement | undefined) => row ? { ...row.dataset, rect: rect(row) } : null
+        const value = {
+          phase, at: performance.now(), navigationState, pending, gateReleased, sourceGated, sourceGateReleased, sourceGateFrames,
+          sourceVersion: store.version, selection: { ...view.selection.main },
+          editor: rect(view.dom), scrollTop: view.dom.scrollTop, scrollLeft: view.dom.scrollLeft,
+          scrollHeight: view.dom.scrollHeight, clientHeight: view.dom.clientHeight,
+          window: { ...view.contentDOM.dataset }, content: rect(view.contentDOM),
+          marker: rowData(rows.find(row => Number(row.dataset.line) === 398)),
+          firstNoncollapsed: rowData(visibleRows[0]), lastNoncollapsed: rowData(visibleRows.at(-1)),
+          fence: { mounted: fence.length, collapsed: fence.filter(row => row.dataset.presentationCollapsed === 'true').length,
+            literalHeight: fence.filter(row => row.dataset.presentationCollapsed !== 'true').reduce((sum, row) => sum + row.getBoundingClientRect().height, 0) },
+          spacers: [...view.contentDOM.querySelectorAll<HTMLElement>('[data-spacer]')].map(node => ({ side: node.dataset.spacer, height: node.style.height, rect: rect(node) })),
+          overlays: [...view.dom.querySelectorAll<HTMLElement>('.milkup-selection')].map(node => ({ ...node.dataset, rect: rect(node) })),
+          cursors: [...view.dom.querySelectorAll<HTMLElement>('.milkup-cursor')].map(node => ({ ...node.dataset, rect: rect(node) })),
+          images: [...view.contentDOM.querySelectorAll('img')].map(node => ({ complete: node.complete, naturalWidth: node.naturalWidth, naturalHeight: node.naturalHeight, src: node.src, rect: rect(node) })),
+        }
+        put('phases', value)
+        return value
+      }
+      const source = {
+        documentId: store.documentId,
+        get version() { return store.version }, get lineCount() { return store.lineCount }, get length() { return store.length },
+        lineAtPosition: (position: number) => store.lineAtPosition(position),
+        positionAtLineOffset: (line: number, offset: number) => store.positionAtLineOffset(line, offset),
+        snapshot: () => store.snapshot(),
+        readLineWindow: async (...args: Parameters<typeof store.readLineWindow>) => {
+          const entry = { at: performance.now(), args, selection: view ? { ...view.selection.main } : null, stack: new Error('public read observation').stack }
+          put('reads', entry)
+          if (armed && view.selection.main.anchor === marker.from && view.selection.main.head === marker.to)
+            snapshot('public-source-read-after-target-selection')
+          if (
+            armed && !sourceGated &&
+            view.selection.main.anchor === marker.from && view.selection.main.head === marker.to &&
+            entry.stack?.includes('renderSingleLiveLine') &&
+            entry.stack.includes('renderRenderedLine') &&
+            entry.stack.includes('renderLiveSyntaxAroundPositions') &&
+            entry.stack.includes('revealSelection')
+          ) {
+            const atGate = snapshot('source-gate-eligibility')
+            if (
+              !atGate.marker?.rect || !atGate.editor ||
+              atGate.marker.rect.bottom <= atGate.editor.top || atGate.marker.rect.top >= atGate.editor.bottom ||
+              atGate.fence.mounted !== 77 || atGate.fence.collapsed < 76
+            ) throw Error('Invalid source-gate setup: target must be visible with77mounted/76collapsed')
+            sourceGated = true
+            put('events', { type: 'source-gate-enter', at: performance.now(), args, stack: entry.stack, selection: { ...view.selection.main } })
+            await new Promise<void>(resolve => {
+              releaseSourceRead = resolve
+              sourceGateTimer = setTimeout(() => releaseSource('500ms-safety-bound'), 500)
+              sourceGateRaf = requestAnimationFrame(() => {
+                if (sourceGateReleased) return
+                sourceGateFrames++
+                snapshot('source-gate-frame-1')
+                sourceGateRaf = requestAnimationFrame(() => {
+                  if (sourceGateReleased) return
+                  sourceGateFrames++
+                  snapshot('source-gate-frame-2')
+                  releaseSource('two-real-animation-frames')
+                })
+              })
+            })
+            snapshot('source-gate-resumed-before-original-read')
+          }
+          const value = await store.readLineWindow(...args)
+          put('events', { type: 'read-resolved', at: performance.now(), args, fromLine: value.fromLine, toLine: value.toLine })
+          return value
+        },
+      }
+      const mount = document.createElement('main')
+      Object.assign(mount.style, { position: 'fixed', inset: '37px 0 30px', zIndex: '10000', background: 'white' })
+      document.body.append(mount)
+      const provide = async (input: Record<string, any>, { signal }: { signal: AbortSignal }) => {
+        const { sourceIdentity: _i, sourceVersion: _v, documentVersion: _dv, visibleFrom: _vf, visibleTo: _vt, ...window } = input
+        const targetSelection = window.selection.anchor === marker.from && window.selection.head === marker.to
+        put('events', { type: 'provide-start', at: performance.now(), from: window.from, to: window.to, selection: window.selection, targetSelection })
+        if (armed && targetSelection && !gateReleased) {
+          if (!pending) {
+            pending = true
+            gateTimer = setTimeout(() => release('750ms-safety-bound'), 750)
+            snapshot('new-selection-provider-pending')
+          }
+          await gate
+        }
+        signal.throwIfAborted()
+        const blocks = first.from >= window.from && last.to <= window.to
+          ? [{ kind: 'fence', complete: true, info: 'mermaid', from: first.from, to: last.to, contentRanges: [{ from: first.to, to: last.from }] }]
+          : []
+        put('events', { type: 'provide-result', at: performance.now(), from: window.from, to: window.to, fragments: blocks.map(block => [block.from, block.to]) })
+        return {
+          declarations: [{ id: 'test.multirow-image', contexts: ['fence'], fenceLanguages: ['mermaid'] }],
+          request: { ...window, documentId: store.documentId, version: store.version, contextKnown: true, protectedRanges: [], blocks, theme: 'light', target: 'screen' },
+          result: { complete: true, fragments: blocks.map(block => ({
+            from: block.from, to: block.to, layout: 'block', status: 'ready', accessibleText: 'Controlled rectangle with captured Sankey dimensions; not a Mermaid render',
+            content: { type: 'svg-image', profile: 'bounded-svg-v1', motion: 'static', width: 600, height: 406.90625,
+              viewBox: [0, 0, 600, 406.90625], rasterBounds: [0, 0, 600, 406.90625], aspect: { align: 'xMidYMid', fit: 'meet' },
+              styles: [{ fill: { kind: 'color', rgba: [40, 120, 210, 1] } }], definitions: [],
+              children: [{ kind: 'rect', style: 0, x: 0, y: 0, width: 600, height: 406.90625 }] },
+          })) },
+        }
+      }
+      view = new SourceDocumentView({ parent: mount, source, mode: 'live', editable: true,
+        virtualViewport: { viewportHeight: 693, overscanLines: 12 }, documentPresentation: { provide } })
+      view.dom.addEventListener('scroll', event => {
+        put('events', { type: 'natural-scroll', trusted: event.isTrusted, at: performance.now(), top: view.dom.scrollTop, left: view.dom.scrollLeft })
+        if (armed) snapshot('scroll')
+      })
+      Object.assign(window, { multirowStudy: { view, store, reads, events, phases, drops, snapshot, release, cleanup: () => { observer?.disconnect(); releaseSource('cleanup'); release('cleanup'); view.destroy() } } })
+      const wait = async (predicate: () => boolean, label: string) => {
+        const deadline = performance.now() + 5000
+        while (!predicate()) {
+          if (performance.now() >= deadline) throw Error(`Fixture phase not reached: ${label}`)
+          await new Promise(resolve => setTimeout(resolve, 10))
+        }
+      }
+      const frame = () => new Promise<void>(resolve => requestAnimationFrame(() => resolve()))
+      await view.revealSelection(316, Selection.range(initial.from, initial.to))
+      await wait(() => [...view.contentDOM.querySelectorAll('img')].some(image => image.complete && image.naturalWidth === 600 && image.naturalHeight > 0), 'initial image decoded')
+      await frame(); await frame()
+      const initialState = snapshot('initial-navigation-settled-and-decoded')
+      if (initialState.fence.mounted !== 77 || initialState.fence.collapsed < 76)
+        throw Error('Invalid fixture: the full 77-row collapsed fence is not mounted')
+      observer = new MutationObserver(() => { if (armed) snapshot('mutation') })
+      observer.observe(view.contentDOM, { childList: true, subtree: true, attributes: true, attributeFilter: ['style', 'data-presentation-collapsed'] })
+      armed = true; navigationState = 'pending'
+      const navigation = view.revealSelection(398, Selection.range(marker.from, marker.to)).then(() => {
+        navigationState = 'resolved'; snapshot('navigation-resolved')
+      }, error => { navigationState = 'rejected'; throw error })
+      await wait(() => pending, 'new selection provider gate')
+      if (!sourceGated) throw Error('Fixture phase not reached: qualified target syntax source gate')
+      for (let i = 0; i < 8; i++) { await frame(); snapshot(`provider-held-frame-${i}`) }
+      release('eight-observed-frames')
+      await navigation
+      for (let i = 0; i < 16; i++) { await frame(); snapshot(`settled-frame-${i}`) }
+      observer.disconnect()
+      return { reads, events, phases, drops, initialState, final: snapshot('final'), from: marker.from, to: marker.to,
+        unchanged: (await store.readLineWindow(1, store.lineCount)).text === text, version: store.version }
+    }, { text: await readFile(`${directory}/fixture.md`, 'utf8') })
+    await writeFile(info.outputPath('result.json'), JSON.stringify({ ...result, errors }, null, 2))
+    await page.screenshot({ path: info.outputPath('result.png') })
+    expect(errors).toEqual([])
+    expect(result.unchanged).toBe(true)
+    expect(result.version).toBe(0)
+    expect(result.final.selection).toMatchObject({ anchor: result.from, head: result.to })
+    expect(result.final.marker).not.toBeNull()
+    const viewport = result.final.editor!
+    expect(result.final.marker!.rect!.bottom).toBeGreaterThan(viewport.top)
+    expect(result.final.marker!.rect!.top).toBeLessThan(viewport.bottom)
+    const projections = result.final.overlays.filter((node: any) => Number(node.from) === result.from && Number(node.to) === result.to)
+    expect(projections.length).toBeGreaterThan(0)
+    expect(projections.some((node: any) => node.rect.bottom > viewport.top && node.rect.top < viewport.bottom)).toBe(true)
+    expect(result.final.cursors.some((node: any) => Number(node.position) === result.to && Number(node.line) === 398 && node.rect.bottom > viewport.top && node.rect.top < viewport.bottom)).toBe(true)
+  } finally {
+    const trace = await page.evaluate(() => {
+      const p = (window as any).multirowStudy
+      return p ? { reads: p.reads, events: p.events, phases: p.phases, drops: p.drops, final: p.snapshot('finally') } : null
+    })
+    await writeFile(info.outputPath('trace.json'), JSON.stringify({ ...trace, errors }, null, 2))
+    await page.screenshot({ path: info.outputPath('final.png') })
+    await page.evaluate(() => (window as any).multirowStudy?.cleanup())
+  }
+})

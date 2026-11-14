@@ -1,0 +1,129 @@
+{
+  "recordedAt": "2026-10-16T14:45:31.943215+00:00",
+  "scope": "Public-view controlled browser diagnostics, not official Mermaid/native acceptance. No timeout relaxation. Both controlled cases were ordinary EditorView; shared manager and ordinary/windowed decode ownership additionally covered by unit tests.",
+  "before": "../18-image-feedback/before-summary.json (1200 saved events each; extra208/348 dropped, counts not whole-run totals)",
+  "after": [
+    {
+      "lines": 18,
+      "counts": {
+        "mutation": 5,
+        "provide": 1,
+        "create": 1,
+        "decode-start": 1,
+        "decode-resolved": 1,
+        "revoke": 1
+      },
+      "baseWindows": [
+        [
+          0,
+          188
+        ]
+      ],
+      "visibleWindows": [
+        [
+          0,
+          133
+        ]
+      ],
+      "samples": 30,
+      "emptySamples": 0,
+      "imageIds": [
+        1
+      ],
+      "everySampleDecoded": true,
+      "lastSampleMs": 1525,
+      "revokeAtMs": [
+        1525.8999999985099
+      ],
+      "revokeAfterSamplesOnly": true,
+      "dropped": 0,
+      "observerCostMs": 0.9000000134110451,
+      "maxObserverCostMs": 0.4000000059604645,
+      "sourceUnchanged": true,
+      "selection": {
+        "anchor": 0,
+        "head": 0,
+        "affinity": 1
+      }
+    },
+    {
+      "lines": 63,
+      "counts": {
+        "mutation": 6,
+        "provide": 2,
+        "create": 1,
+        "decode-start": 1,
+        "decode-resolved": 1,
+        "revoke": 1
+      },
+      "baseWindows": [
+        [
+          0,
+          342
+        ],
+        [
+          0,
+          441
+        ]
+      ],
+      "visibleWindows": [
+        [
+          0,
+          49
+        ],
+        [
+          0,
+          133
+        ]
+      ],
+      "samples": 30,
+      "emptySamples": 0,
+      "imageIds": [
+        1
+      ],
+      "everySampleDecoded": true,
+      "lastSampleMs": 1604,
+      "revokeAtMs": [
+        1604.7999999970198
+      ],
+      "revokeAfterSamplesOnly": true,
+      "dropped": 0,
+      "observerCostMs": 7.5,
+      "maxObserverCostMs": 4,
+      "sourceUnchanged": true,
+      "selection": {
+        "anchor": 0,
+        "head": 0,
+        "affinity": 1
+      }
+    }
+  ],
+  "mechanism": "Complete responses no longer re-request merely because visible priority changed. Independently validated equivalent decoded fragments transfer current owner/URL across source-window response changes; current request navigation is rebuilt. Pending owners do not transfer.",
+  "guards": "Exact range/layout/whole validated fragment, source identity/version/documentVersion/config/selection/imageGeneration plus request documentId/version/theme/width/target/declarations. Hard invalidation still revokes. Dynamic fragment/response callback binding preserves late error fallback after transfer. Cache hit aborts superseded window job.",
+  "tests": {
+    "firstCommand": "../18-image-feedback/unit-before.log: no tests found due cwd; startup error, not RED",
+    "realRed": "../18-image-feedback/unit-before-corrected.log:3FAIL42PASS",
+    "firstGreen": "../18-image-feedback/unit-after-corrected.log:45PASS; unit-after.log prior executable path error is not test result",
+    "guards": "../18-image-feedback/unit-guards.log:167PASS",
+    "supersededRed": "superseded-before.log:1FAIL5PASS, obsolete signal stayed un-aborted",
+    "guardFixtureCorrection": "focused-final.log/ focused-final-corrected.log:167PASS1FAIL at final extra scroll50 expectation; 99-line overscan legitimately changes at50. Same cached-window late-response assertion corrected to scroll40. A failed relative-path edit left second run unchanged; retained as execution error, not new product failure.",
+    "final": "focused-final-2.log:168PASS5files",
+    "types": "types-final.log:strict view tsc exit0",
+    "browser": "../20-browser-after-fix:33PASS1oldSVGselectorFAIL;../22-browser-selector-after:affected1PASS,composite34distinct. See ../23-feedback-final-summary.json."
+  },
+  "snapshots": [
+    {
+      "path": "packages/view-dom/src/document-presentation.ts",
+      "sha256": "77ca976c31736df2ce84c10c0ef9da887c2f366609e7badf42b3f5a7ad876a8c"
+    },
+    {
+      "path": "packages/view-dom/src/__tests__/document-svg-image.test.ts",
+      "sha256": "6eba023cd32d517e2165571ab7a3e8f00c6f0eecb0c6e131821286845a5ac4a9"
+    },
+    {
+      "path": "packages/view-dom/src/__tests__/document-presentation-viewport.test.ts",
+      "sha256": "156c07dbf357f5106458cbde5e56e699c931d084e1c6ac995039c578380e83da"
+    }
+  ],
+  "limits": "Before product snapshot captured after diagnostics before product edit, not claimed as execution-before snapshot. Exact old new-test sources were not frozen at first RED; original logs and final tests retained. Observer timing is diagnostic overhead, not a performance benchmark. Native production02 failures remain valid evidence; new production rebuild/native verification still required."
+}

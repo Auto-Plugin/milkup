@@ -1,0 +1,18 @@
+[package]
+name = "milkup-catalog-core-tests"
+version = "0.0.0"
+edition = "2021"
+publish = false
+
+[workspace]
+
+[dependencies]
+serde = { version = "=1.0.228", features = ["derive"] }
+serde_json = "=1.0.150"
+sha2 = "=0.10.9"
+fs2 = "=0.4.3"
+semver = "=1.0.28"
+url = "=2.5.8"
+
+[target.'cfg(unix)'.dependencies]
+libc = "=0.2.186"

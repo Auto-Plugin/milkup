@@ -1,0 +1,29 @@
+{
+  "status": "static-candidate-not-built-not-run-not-pixel-validated",
+  "originalCanonical": "/workspace/milkup-mermaid-engine-evidence/research/svg-converter-prototype/native-runner/host-validation-round05/scan_036-result-canonical.svg",
+  "originalSha256": "57ecb510fc6cda31e9e8501929e6084ec44464b438851a00c27d477dcded3f62",
+  "candidateSha256": "715d7556d2433ae31bb01194f708e40a73fdc477ec55e10b8e041a7216c8f36a",
+  "originalBytes": 224570,
+  "candidateBytes": 224702,
+  "within256KiB": true,
+  "innerCanonicalBytesUnchanged": true,
+  "outer": {
+    "width": "600",
+    "height": "406.90625",
+    "viewBox": [
+      0,
+      0,
+      600.0,
+      406.90625
+    ],
+    "preserveAspectRatio": "none"
+  },
+  "intent": "Test whether exact outer viewport with nonuniform mapping compensates WebKit fractional image raster dimensions while preserving the original inner viewBox/PAR and all original nodes/styles. No padding, recoloring, node deletion, source edit, or budget increase.",
+  "notYetProven": [
+    "Visual equivalence must be tested against original inline PNG at exact CSS width/height.",
+    "Additional nesting/clipping/reference-coordinate effects and other root PAR/width/height samples require explicit guards before a general serializer contract.",
+    "Image intrinsic integer natural dimensions must not become the host layout aspect ratio.",
+    "Canonical budget and additional wrapper cost need independent host accounting before product use."
+  ],
+  "executionPlan": "On next CPU/UI GO only: compile fixed candidate resource using same paired diagnostic helper, preserve original/canonical-inline/image screenshots and states, independently compare and actually view PNGs. Original canonical file and original Mermaid source stay unchanged."
+}

@@ -1,0 +1,154 @@
+{
+  "config": {
+    "argv": [
+      "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+      "/workspace/milkup/node_modules/@playwright/test/cli.js",
+      "test",
+      "--config=/workspace/milkup-mermaid-engine-evidence/research/window-navigation-multirow-browser-01/playwright.config.ts",
+      "--project=desktop-msedge",
+      "--workers=1",
+      "--retries=0",
+      "--reporter=line,json"
+    ],
+    "configFile": "/workspace/milkup-mermaid-engine-evidence/research/window-navigation-multirow-browser-01/playwright.config.ts",
+    "rootDir": "/workspace/milkup-mermaid-engine-evidence/research/window-navigation-multirow-browser-01",
+    "failOnFlakyTests": false,
+    "forbidOnly": false,
+    "fullyParallel": false,
+    "globalSetup": null,
+    "globalTeardown": null,
+    "globalTimeout": 0,
+    "grep": {},
+    "grepInvert": null,
+    "maxFailures": 0,
+    "metadata": {
+      "actualWorkers": 1
+    },
+    "preserveOutput": "always",
+    "projects": [
+      {
+        "outputDir": "/workspace/milkup-mermaid-engine-evidence/research/window-navigation-multirow-browser-01/artifacts",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "desktop-msedge",
+        "name": "desktop-msedge",
+        "testDir": "/workspace/milkup-mermaid-engine-evidence/research/window-navigation-multirow-browser-01",
+        "testIgnore": [],
+        "testMatch": [
+          "/multirow\\.spec\\.ts/"
+        ],
+        "timeout": 60000
+      }
+    ],
+    "quiet": false,
+    "reporter": [
+      [
+        "line"
+      ],
+      [
+        "json"
+      ]
+    ],
+    "reportSlowTests": {
+      "max": 5,
+      "threshold": 300000
+    },
+    "shard": null,
+    "tags": [],
+    "updateSnapshots": "missing",
+    "updateSourceMethod": "patch",
+    "version": "1.61.1",
+    "workers": 1,
+    "webServer": null
+  },
+  "suites": [
+    {
+      "title": "multirow.spec.ts",
+      "file": "multirow.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "public navigation across a 77-line collapsed fence retains target projection while new selection provider waits",
+          "ok": false,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "desktop-msedge",
+              "projectName": "desktop-msedge",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "failed",
+                  "duration": 13459,
+                  "error": {
+                    "message": "Error: page.evaluate: Error: Fixture phase not reached: initial image decoded\n    at wait (eval at evaluate (:303:30), <anonymous>:319:52)\n    at async eval (eval at evaluate (:303:30), <anonymous>:325:7)\n    at async <anonymous>:329:30",
+                    "stack": "Error: page.evaluate: Error: Fixture phase not reached: initial image decoded\n    at wait (eval at evaluate (:303:30), <anonymous>:319:52)\n    at async eval (eval at evaluate (:303:30), <anonymous>:325:7)\n    at async <anonymous>:329:30\n    at wait (eval at evaluate (:303:30), <anonymous>:319:52)\n    at async eval (eval at evaluate (:303:30), <anonymous>:325:7)\n    at async <anonymous>:329:30\n    at /workspace/milkup-mermaid-engine-evidence/research/window-navigation-multirow-browser-01/multirow.spec.ts:13:31",
+                    "location": {
+                      "file": "eval at evaluate (:303:30), <anonymous>",
+                      "column": 52,
+                      "line": 319
+                    }
+                  },
+                  "errors": [
+                    {
+                      "location": {
+                        "file": "eval at evaluate (:303:30), <anonymous>",
+                        "column": 52,
+                        "line": 319
+                      },
+                      "message": "Error: page.evaluate: Error: Fixture phase not reached: initial image decoded\n    at wait (eval at evaluate (:303:30), <anonymous>:319:52)\n    at async eval (eval at evaluate (:303:30), <anonymous>:325:7)\n    at async <anonymous>:329:30\n    at wait (eval at evaluate (:303:30), <anonymous>:319:52)\n    at async eval (eval at evaluate (:303:30), <anonymous>:325:7)\n    at async <anonymous>:329:30\n    at /workspace/milkup-mermaid-engine-evidence/research/window-navigation-multirow-browser-01/multirow.spec.ts:13:31"
+                    }
+                  ],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-16T23:55:06.472Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "error-context",
+                      "contentType": "text/markdown",
+                      "path": "/workspace/milkup-mermaid-engine-evidence/research/window-navigation-multirow-browser-01/artifacts/multirow-public-navigation-39a98-ew-selection-provider-waits-desktop-msedge/error-context.md"
+                    },
+                    {
+                      "name": "trace",
+                      "contentType": "application/zip",
+                      "path": "/workspace/milkup-mermaid-engine-evidence/research/window-navigation-multirow-browser-01/artifacts/multirow-public-navigation-39a98-ew-selection-provider-waits-desktop-msedge/trace.zip"
+                    }
+                  ],
+                  "errorLocation": {
+                    "file": "eval at evaluate (:303:30), <anonymous>",
+                    "column": 52,
+                    "line": 319
+                  }
+                }
+              ],
+              "status": "unexpected"
+            }
+          ],
+          "id": "fdb45cc1a0ed7578123e-4f46c79ffbb36f2eef81",
+          "file": "multirow.spec.ts",
+          "line": 6,
+          "column": 5
+        }
+      ]
+    }
+  ],
+  "errors": [],
+  "stats": {
+    "startTime": "2026-10-16T23:54:58.594Z",
+    "duration": 22504.198,
+    "expected": 0,
+    "skipped": 0,
+    "unexpected": 1,
+    "flaky": 0
+  }
+}

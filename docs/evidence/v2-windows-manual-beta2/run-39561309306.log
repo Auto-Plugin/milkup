@@ -1,0 +1,1457 @@
+package	Set up job	﻿2026-10-21T07:20:43.7173717Z Current runner version: '2.337.0'
+package	Set up job	2026-10-21T07:20:43.7274865Z ##[group]Runner Image Provisioner
+package	Set up job	2026-10-21T07:20:43.7275778Z Hosted Compute Agent
+package	Set up job	2026-10-21T07:20:43.7276330Z Version: 20261015.610
+package	Set up job	2026-10-21T07:20:43.7276935Z Commit: 267fdb4e8bbec4ab5ea31367f3a00d5c480c7656
+package	Set up job	2026-10-21T07:20:43.7277676Z Build Date: 2026-10-14T17:06:54Z
+package	Set up job	2026-10-21T07:20:43.7278404Z Worker ID: {f49c0a8f-2ecf-4262-88c4-941b409bfd10}
+package	Set up job	2026-10-21T07:20:43.7279136Z Region: eastus
+package	Set up job	2026-10-21T07:20:43.7279767Z Cloud: Azure
+package	Set up job	2026-10-21T07:20:43.7280322Z ##[endgroup]
+package	Set up job	2026-10-21T07:20:43.7281864Z ##[group]Operating System
+package	Set up job	2026-10-21T07:20:43.7282575Z Microsoft Windows Server 2025
+package	Set up job	2026-10-21T07:20:43.7283186Z 10.0.26100
+package	Set up job	2026-10-21T07:20:43.7283670Z Datacenter
+package	Set up job	2026-10-21T07:20:43.7284148Z ##[endgroup]
+package	Set up job	2026-10-21T07:20:43.7284674Z ##[group]Runner Image
+package	Set up job	2026-10-21T07:20:43.7285702Z Image: windows-2025-vs2026
+package	Set up job	2026-10-21T07:20:43.7286378Z Version: 20261018.275.1
+package	Set up job	2026-10-21T07:20:43.7287488Z Included Software: https://github.com/actions/runner-images/blob/win25-vs2026/20261018.275/images/windows/Windows2025-VS2026-Readme.md
+package	Set up job	2026-10-21T07:20:43.7289419Z Image Release: https://github.com/actions/runner-images/releases/tag/win25-vs2026%2F20261018.275
+package	Set up job	2026-10-21T07:20:43.7290361Z ##[endgroup]
+package	Set up job	2026-10-21T07:20:43.7291428Z ##[group]GITHUB_TOKEN Permissions
+package	Set up job	2026-10-21T07:20:43.7293304Z Contents: read
+package	Set up job	2026-10-21T07:20:43.7293937Z Metadata: read
+package	Set up job	2026-10-21T07:20:43.7294464Z ##[endgroup]
+package	Set up job	2026-10-21T07:20:43.7296744Z Secret source: Actions
+package	Set up job	2026-10-21T07:20:43.7297728Z Cache mode: write
+package	Set up job	2026-10-21T07:20:43.7298417Z Prepare workflow directory
+package	Set up job	2026-10-21T07:20:43.7708981Z Prepare all required actions
+package	Set up job	2026-10-21T07:20:43.7778465Z Getting action download info
+package	Set up job	2026-10-21T07:20:43.9420017Z Download action repository 'actions/checkout@11d5960a326750d5838078e36cf38b85af677262' (SHA:11d5960a326750d5838078e36cf38b85af677262)
+package	Set up job	2026-10-21T07:20:44.0870045Z Download action repository 'actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020' (SHA:49933ea5288caeca8642d1e84afbd3f7d6820020)
+package	Set up job	2026-10-21T07:20:44.2653481Z Download action repository 'actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02' (SHA:ea165f8d65b6e75b540449e92b4886f43607fa02)
+package	Set up job	2026-10-21T07:20:44.6298557Z Complete job name: package
+package	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	﻿2026-10-21T07:20:44.8254709Z ##[group]Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+package	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-21T07:20:44.8257265Z with:
+package	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-21T07:20:44.8257880Z   ref: 8fc8b27ad1c007b9864d5d42d09358c7fa573a09
+package	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-21T07:20:44.8258600Z   fetch-depth: 0
+package	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-21T07:20:44.8259065Z   persist-credentials: false
+package	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-21T07:20:44.8259587Z   repository: Auto-Plugin/milkup
+package	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-21T07:20:44.8263991Z   token: ***
+package	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-21T07:20:44.8264432Z   ssh-strict: true
+package	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-21T07:20:44.8264860Z   ssh-user: git
+package	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-21T07:20:44.8265271Z   clean: true
+package	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-21T07:20:44.8265702Z   sparse-checkout-cone-mode: true
+package	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-21T07:20:44.8266233Z   fetch-tags: false
+package	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-21T07:20:44.8266683Z   show-progress: true
+package	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-21T07:20:44.8267178Z   lfs: false
+package	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-21T07:20:44.8267621Z   submodules: false
+package	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-21T07:20:44.8268063Z   set-safe-directory: true
+package	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-21T07:20:44.8268579Z   allow-unsafe-pr-checkout: false
+package	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-21T07:20:44.8269370Z env:
+package	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-21T07:20:44.8269792Z   CARGO_BUILD_JOBS: 2
+package	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-21T07:20:44.8270299Z   CARGO_INCREMENTAL: 0
+package	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-21T07:20:44.8270759Z   CARGO_PROFILE_DEV_DEBUG: 0
+package	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-21T07:20:44.8271256Z   CARGO_PROFILE_RELEASE_DEBUG: 0
+package	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-21T07:20:44.8271751Z   CARGO_TERM_COLOR: never
+package	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-21T07:20:44.8272227Z   PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: 1
+package	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-21T07:20:44.8272771Z   GIT_CONFIG_COUNT: 1
+package	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-21T07:20:44.8273214Z   GIT_CONFIG_KEY_0: core.longpaths
+package	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-21T07:20:44.8274163Z   GIT_CONFIG_VALUE_0: true
+package	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-21T07:20:44.8274652Z ##[endgroup]
+package	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-21T07:20:44.9855856Z Syncing repository: Auto-Plugin/milkup
+package	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-21T07:20:44.9858055Z ##[group]Getting Git version info
+package	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-21T07:20:44.9858727Z Working directory is 'D:\a\milkup\milkup'
+package	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-21T07:20:45.0908126Z [command]"C:\Program Files\Git\bin\git.exe" version
+package	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-21T07:20:45.4346712Z git version 2.56.0.windows.2
+package	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-21T07:20:45.4406506Z ##[endgroup]
+package	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-21T07:20:45.4429648Z Temporarily overriding HOME='D:\a\_temp\14cccaef-3a06-4fc4-88af-12aeccf7a033' before making global git config changes
+package	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-21T07:20:45.4432082Z Adding repository directory to the temporary git global config as a safe directory
+package	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-21T07:20:45.4442456Z [command]"C:\Program Files\Git\bin\git.exe" config --global --add safe.directory D:\a\milkup\milkup
+package	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-21T07:20:45.5209409Z Deleting the contents of 'D:\a\milkup\milkup'
+package	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-21T07:20:45.5217542Z ##[group]Initializing the repository
+package	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-21T07:20:45.5226420Z [command]"C:\Program Files\Git\bin\git.exe" init D:\a\milkup\milkup
+package	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-21T07:20:45.6507307Z Initialized empty Git repository in D:/a/milkup/milkup/.git/
+package	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-21T07:20:45.6559709Z [command]"C:\Program Files\Git\bin\git.exe" remote add origin https://github.com/Auto-Plugin/milkup
+package	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-21T07:20:45.7300430Z ##[endgroup]
+package	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-21T07:20:45.7302993Z ##[group]Disabling automatic garbage collection
+package	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-21T07:20:45.7309719Z [command]"C:\Program Files\Git\bin\git.exe" config --local gc.auto 0
+package	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-21T07:20:45.7729562Z ##[endgroup]
+package	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-21T07:20:45.7732056Z ##[group]Setting up auth
+package	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-21T07:20:45.7744092Z [command]"C:\Program Files\Git\bin\git.exe" config --local --name-only --get-regexp core\.sshCommand
+package	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-21T07:20:45.8346961Z [command]"C:\Program Files\Git\bin\git.exe" submodule foreach --recursive "sh -c \"git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :\""
+package	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-21T07:20:47.4096222Z [command]"C:\Program Files\Git\bin\git.exe" config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+package	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-21T07:20:47.4528872Z [command]"C:\Program Files\Git\bin\git.exe" submodule foreach --recursive "sh -c \"git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :\""
+package	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-21T07:20:48.1519511Z [command]"C:\Program Files\Git\bin\git.exe" config --local --name-only --get-regexp ^includeIf\.gitdir:
+package	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-21T07:20:48.1952615Z [command]"C:\Program Files\Git\bin\git.exe" submodule foreach --recursive "git config --local --show-origin --name-only --get-regexp remote.origin.url"
+package	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-21T07:20:48.8169590Z [command]"C:\Program Files\Git\bin\git.exe" config --local http.https://github.com/.extraheader "AUTHORIZATION: basic ***"
+package	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-21T07:20:48.8601842Z ##[endgroup]
+package	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-21T07:20:48.8602799Z ##[group]Fetching the repository
+package	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-21T07:20:48.8616717Z [command]"C:\Program Files\Git\bin\git.exe" -c protocol.version=2 fetch --prune --no-recurse-submodules origin +refs/heads/*:refs/remotes/origin/* +refs/tags/*:refs/tags/*
+package	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-21T07:20:59.5727206Z From https://github.com/Auto-Plugin/milkup
+package	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-21T07:20:59.5731791Z  * [new branch]        charles-lee/refactor  -> origin/charles-lee/refactor
+package	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-21T07:20:59.5733855Z  * [new branch]        dot/milkup-v2-debug-handoff-probe -> origin/dot/milkup-v2-debug-handoff-probe
+package	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-21T07:20:59.5741217Z  * [new branch]        dot/milkup-v2-p5-webkit-checkpoint -> origin/dot/milkup-v2-p5-webkit-checkpoint
+package	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-21T07:20:59.5742808Z  * [new branch]        dot/milkup-v2-p7-fold-tail -> origin/dot/milkup-v2-p7-fold-tail
+package	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-21T07:20:59.5748320Z  * [new branch]        dot/milkup-v2-p7-input-search-checkpoint -> origin/dot/milkup-v2-p7-input-search-checkpoint
+package	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-21T07:20:59.5754510Z  * [new branch]        dot/milkup-v2-p7-tail-attribution -> origin/dot/milkup-v2-p7-tail-attribution
+package	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-21T07:20:59.5760326Z  * [new branch]        dot/milkup-v2-plugin-system -> origin/dot/milkup-v2-plugin-system
+package	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-21T07:20:59.5761910Z  * [new branch]        dot/milkup-v2-product-completion-phase1 -> origin/dot/milkup-v2-product-completion-phase1
+package	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-21T07:20:59.5763674Z  * [new branch]        dot/milkup-v2-product-phase2-workspace -> origin/dot/milkup-v2-product-phase2-workspace
+package	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-21T07:20:59.5766555Z  * [new branch]        dot/milkup-v2-product-phase3-preferences -> origin/dot/milkup-v2-product-phase3-preferences
+package	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-21T07:20:59.5768286Z  * [new branch]        dot/milkup-v2-product-phase4-editing-resources -> origin/dot/milkup-v2-product-phase4-editing-resources
+package	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-21T07:20:59.5770950Z  * [new branch]        dot/milkup-v2-product-phase4-markdown-extensions -> origin/dot/milkup-v2-product-phase4-markdown-extensions
+package	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-21T07:20:59.5772821Z  * [new branch]        dot/milkup-v2-product-phase4-mermaid-engine -> origin/dot/milkup-v2-product-phase4-mermaid-engine
+package	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-21T07:20:59.5774491Z  * [new branch]        dot/milkup-v2-product-phase5-export-print -> origin/dot/milkup-v2-product-phase5-export-print
+package	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-21T07:20:59.5776373Z  * [new branch]        dot/milkup-v2-product-phase6-plugin-lifecycle -> origin/dot/milkup-v2-product-phase6-plugin-lifecycle
+package	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-21T07:20:59.5779717Z  * [new branch]        dot/milkup-v2-product-phase7-quality -> origin/dot/milkup-v2-product-phase7-quality
+package	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-21T07:20:59.5782901Z  * [new branch]        dot/milkup-v2-product-phase8-readiness -> origin/dot/milkup-v2-product-phase8-readiness
+package	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-21T07:20:59.5784224Z  * [new branch]        dot/milkup-v2-quality -> origin/dot/milkup-v2-quality
+package	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-21T07:20:59.5785979Z  * [new branch]        dot/milkup-v2-release-readiness-summary -> origin/dot/milkup-v2-release-readiness-summary
+package	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-21T07:20:59.5789640Z  * [new branch]        dot/milkup-v2-search-attribution -> origin/dot/milkup-v2-search-attribution
+package	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-21T07:20:59.5792414Z  * [new branch]        dot/milkup-v2-update-checkpoint -> origin/dot/milkup-v2-update-checkpoint
+package	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-21T07:20:59.5803555Z  * [new branch]        dot/milkup-v2-update-health-contract -> origin/dot/milkup-v2-update-health-contract
+package	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-21T07:20:59.5805265Z  * [new branch]        dot/milkup-v2-update-trust-recovery -> origin/dot/milkup-v2-update-trust-recovery
+package	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-21T07:20:59.5806824Z  * [new branch]        dot/milkup-v2-update-version-gates -> origin/dot/milkup-v2-update-version-gates
+package	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-21T07:20:59.5808409Z  * [new branch]        dot/milkup-v2-visual-fixes -> origin/dot/milkup-v2-visual-fixes
+package	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-21T07:20:59.5809714Z  * [new branch]        dot/milkup-v2-windows-backends -> origin/dot/milkup-v2-windows-backends
+package	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-21T07:20:59.5812505Z  * [new branch]        dot/milkup-v2-windows-delivery -> origin/dot/milkup-v2-windows-delivery
+package	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-21T07:20:59.5814376Z  * [new branch]        dot/milkup-v2-windows-manual-candidate -> origin/dot/milkup-v2-windows-manual-candidate
+package	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-21T07:20:59.5815909Z  * [new branch]        feat-ai               -> origin/feat-ai
+package	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-21T07:20:59.5817234Z  * [new branch]        feat-ir               -> origin/feat-ir
+package	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-21T07:20:59.5818214Z  * [new branch]        feat-mi               -> origin/feat-mi
+package	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-21T07:20:59.5819165Z  * [new branch]        feat-milkupcore       -> origin/feat-milkupcore
+package	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-21T07:20:59.5820146Z  * [new branch]        feat-vs               -> origin/feat-vs
+package	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-21T07:20:59.5820985Z  * [new branch]        feat-vs-v2            -> origin/feat-vs-v2
+package	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-21T07:20:59.5821739Z  * [new branch]        main                  -> origin/main
+package	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-21T07:20:59.5822686Z  * [new branch]        oco                   -> origin/oco
+package	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-21T07:20:59.5823638Z  * [new branch]        rookie-orange-patch-1 -> origin/rookie-orange-patch-1
+package	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-21T07:20:59.5824341Z  * [new branch]        v2                    -> origin/v2
+package	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-21T07:20:59.5824889Z  * [new tag]           Beta-v0.0.1           -> Beta-v0.0.1
+package	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-21T07:20:59.5825446Z  * [new tag]           Beta-v0.0.2           -> Beta-v0.0.2
+package	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-21T07:20:59.5826074Z  * [new tag]           Beta-v0.0.3           -> Beta-v0.0.3
+package	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-21T07:20:59.5826616Z  * [new tag]           Beta-v0.0.4           -> Beta-v0.0.4
+package	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-21T07:20:59.5827136Z  * [new tag]           Beta-v0.0.5           -> Beta-v0.0.5
+package	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-21T07:20:59.5828029Z  * [new tag]           Beta-v0.0.6           -> Beta-v0.0.6
+package	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-21T07:20:59.5922023Z  * [new tag]           Beta-v0.1.0           -> Beta-v0.1.0
+package	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-21T07:20:59.5924899Z  * [new tag]           Beta-v0.1.1           -> Beta-v0.1.1
+package	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-21T07:20:59.5925496Z  * [new tag]           Beta-v0.2.0           -> Beta-v0.2.0
+package	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-21T07:20:59.5926119Z  * [new tag]           Beta-v0.2.1           -> Beta-v0.2.1
+package	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-21T07:20:59.5926618Z  * [new tag]           Beta-v0.2.2           -> Beta-v0.2.2
+package	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-21T07:20:59.5927162Z  * [new tag]           Beta-v0.3.0           -> Beta-v0.3.0
+package	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-21T07:20:59.5927672Z  * [new tag]           Beta-v0.4.0           -> Beta-v0.4.0
+package	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-21T07:20:59.5928218Z  * [new tag]           Beta-v0.4.1           -> Beta-v0.4.1
+package	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-21T07:20:59.5928770Z  * [new tag]           Beta-v0.4.10          -> Beta-v0.4.10
+package	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-21T07:20:59.5929350Z  * [new tag]           Beta-v0.4.11          -> Beta-v0.4.11
+package	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-21T07:20:59.5929957Z  * [new tag]           Beta-v0.4.12          -> Beta-v0.4.12
+package	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-21T07:20:59.5930587Z  * [new tag]           Beta-v0.4.2           -> Beta-v0.4.2
+package	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-21T07:20:59.5931202Z  * [new tag]           Beta-v0.4.3           -> Beta-v0.4.3
+package	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-21T07:20:59.5931797Z  * [new tag]           Beta-v0.4.4           -> Beta-v0.4.4
+package	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-21T07:20:59.5932456Z  * [new tag]           Beta-v0.4.5           -> Beta-v0.4.5
+package	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-21T07:20:59.5933306Z  * [new tag]           Beta-v0.4.6           -> Beta-v0.4.6
+package	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-21T07:20:59.5933951Z  * [new tag]           Beta-v0.4.7           -> Beta-v0.4.7
+package	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-21T07:20:59.5934502Z  * [new tag]           Beta-v0.4.8           -> Beta-v0.4.8
+package	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-21T07:20:59.5935138Z  * [new tag]           Beta-v0.4.9           -> Beta-v0.4.9
+package	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-21T07:20:59.5935726Z  * [new tag]           v1.0.0                -> v1.0.0
+package	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-21T07:20:59.5936287Z  * [new tag]           v1.0.1                -> v1.0.1
+package	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-21T07:20:59.5936837Z  * [new tag]           v1.0.10               -> v1.0.10
+package	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-21T07:20:59.5937384Z  * [new tag]           v1.0.11               -> v1.0.11
+package	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-21T07:20:59.5937900Z  * [new tag]           v1.0.12               -> v1.0.12
+package	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-21T07:20:59.5938401Z  * [new tag]           v1.0.13               -> v1.0.13
+package	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-21T07:20:59.5938888Z  * [new tag]           v1.0.14               -> v1.0.14
+package	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-21T07:20:59.5939902Z  * [new tag]           v1.0.15               -> v1.0.15
+package	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-21T07:20:59.5940412Z  * [new tag]           v1.0.16               -> v1.0.16
+package	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-21T07:20:59.5940887Z  * [new tag]           v1.0.17               -> v1.0.17
+package	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-21T07:20:59.5941370Z  * [new tag]           v1.0.18               -> v1.0.18
+package	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-21T07:20:59.5941848Z  * [new tag]           v1.0.2                -> v1.0.2
+package	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-21T07:20:59.5942331Z  * [new tag]           v1.0.3                -> v1.0.3
+package	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-21T07:20:59.5943012Z  * [new tag]           v1.0.4                -> v1.0.4
+package	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-21T07:20:59.5943418Z  * [new tag]           v1.0.5                -> v1.0.5
+package	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-21T07:20:59.5943751Z  * [new tag]           v1.0.6                -> v1.0.6
+package	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-21T07:20:59.5944037Z  * [new tag]           v1.0.7                -> v1.0.7
+package	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-21T07:20:59.5944317Z  * [new tag]           v1.0.8                -> v1.0.8
+package	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-21T07:20:59.5944595Z  * [new tag]           v1.0.9                -> v1.0.9
+package	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-21T07:20:59.5945780Z [command]"C:\Program Files\Git\bin\git.exe" rev-parse --verify --quiet 8fc8b27ad1c007b9864d5d42d09358c7fa573a09^{object}
+package	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-21T07:20:59.9953221Z 8fc8b27ad1c007b9864d5d42d09358c7fa573a09
+package	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-21T07:20:59.9997824Z ##[endgroup]
+package	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-21T07:20:59.9998795Z ##[group]Determining the checkout info
+package	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-21T07:21:00.0000094Z ##[endgroup]
+package	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-21T07:21:00.0128135Z [command]"C:\Program Files\Git\bin\git.exe" sparse-checkout disable
+package	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-21T07:21:00.1578769Z [command]"C:\Program Files\Git\bin\git.exe" config --local --unset-all extensions.worktreeConfig
+package	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-21T07:21:00.2017200Z ##[group]Checking out the ref
+package	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-21T07:21:00.2028206Z [command]"C:\Program Files\Git\bin\git.exe" checkout --progress --force 8fc8b27ad1c007b9864d5d42d09358c7fa573a09
+package	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-21T07:21:01.3740115Z Updating files:   8% (2253/26678)
+package	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-21T07:21:01.4757630Z Updating files:   9% (2402/26678)
+package	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-21T07:21:01.5621462Z Updating files:  10% (2668/26678)
+package	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-21T07:21:01.6480819Z Updating files:  11% (2935/26678)
+package	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-21T07:21:01.7345837Z Updating files:  12% (3202/26678)
+package	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-21T07:21:01.9725675Z Updating files:  13% (3469/26678)
+package	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-21T07:21:02.0755735Z Updating files:  14% (3735/26678)
+package	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-21T07:21:02.1657439Z Updating files:  15% (4002/26678)
+package	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-21T07:21:02.3162182Z Updating files:  16% (4269/26678)
+package	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-21T07:21:02.3230599Z Updating files:  17% (4536/26678)
+package	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-21T07:21:02.4773977Z Updating files:  17% (4541/26678)
+package	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-21T07:21:02.5820952Z Updating files:  18% (4803/26678)
+package	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-21T07:21:02.6874480Z Updating files:  19% (5069/26678)
+package	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-21T07:21:02.7787643Z Updating files:  20% (5336/26678)
+package	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-21T07:21:02.9285785Z Updating files:  21% (5603/26678)
+package	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-21T07:21:03.0879121Z Updating files:  22% (5870/26678)
+package	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-21T07:21:03.3239157Z Updating files:  23% (6136/26678)
+package	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-21T07:21:03.3591092Z Updating files:  23% (6346/26678)
+package	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-21T07:21:03.5550468Z Updating files:  24% (6403/26678)
+package	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-21T07:21:03.7324892Z Updating files:  25% (6670/26678)
+package	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-21T07:21:03.9092903Z Updating files:  26% (6937/26678)
+package	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-21T07:21:04.1328718Z Updating files:  27% (7204/26678)
+package	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-21T07:21:04.2869415Z Updating files:  28% (7470/26678)
+package	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-21T07:21:04.3246192Z Updating files:  29% (7737/26678)
+package	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-21T07:21:04.4582045Z Updating files:  29% (7800/26678)
+package	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-21T07:21:04.7211255Z Updating files:  30% (8004/26678)
+package	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-21T07:21:04.9061625Z Updating files:  31% (8271/26678)
+package	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-21T07:21:05.0107609Z Updating files:  32% (8537/26678)
+package	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-21T07:21:05.1266245Z Updating files:  33% (8804/26678)
+package	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-21T07:21:05.2613122Z Updating files:  34% (9071/26678)
+package	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-21T07:21:05.3253595Z Updating files:  35% (9338/26678)
+package	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-21T07:21:05.4295322Z Updating files:  35% (9416/26678)
+package	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-21T07:21:05.5364191Z Updating files:  36% (9605/26678)
+package	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-21T07:21:05.7021519Z Updating files:  37% (9871/26678)
+package	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-21T07:21:05.8236914Z Updating files:  38% (10138/26678)
+package	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-21T07:21:06.0539288Z Updating files:  39% (10405/26678)
+package	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-21T07:21:06.1994036Z Updating files:  40% (10672/26678)
+package	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-21T07:21:06.3247668Z Updating files:  41% (10938/26678)
+package	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-21T07:21:06.3343978Z Updating files:  41% (11180/26678)
+package	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-21T07:21:06.4708902Z Updating files:  42% (11205/26678)
+package	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-21T07:21:06.6136608Z Updating files:  43% (11472/26678)
+package	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-21T07:21:06.7502886Z Updating files:  44% (11739/26678)
+package	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-21T07:21:06.8724204Z Updating files:  45% (12006/26678)
+package	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-21T07:21:07.0360088Z Updating files:  46% (12272/26678)
+package	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-21T07:21:07.1694744Z Updating files:  47% (12539/26678)
+package	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-21T07:21:07.3394209Z Updating files:  48% (12806/26678)
+package	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-21T07:21:07.4853516Z Updating files:  48% (12934/26678)
+package	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-21T07:21:07.6035198Z Updating files:  49% (13073/26678)
+package	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-21T07:21:07.7177153Z Updating files:  50% (13339/26678)
+package	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-21T07:21:07.8591880Z Updating files:  51% (13606/26678)
+package	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-21T07:21:07.9834022Z Updating files:  52% (13873/26678)
+package	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-21T07:21:08.1308918Z Updating files:  53% (14140/26678)
+package	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-21T07:21:08.3061671Z Updating files:  54% (14407/26678)
+package	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-21T07:21:08.3395927Z Updating files:  55% (14673/26678)
+package	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-21T07:21:08.4626522Z Updating files:  55% (14712/26678)
+package	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-21T07:21:08.6124035Z Updating files:  56% (14940/26678)
+package	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-21T07:21:08.8796404Z Updating files:  57% (15207/26678)
+package	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-21T07:21:09.0343166Z Updating files:  58% (15474/26678)
+package	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-21T07:21:09.1572686Z Updating files:  59% (15741/26678)
+package	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-21T07:21:09.2682034Z Updating files:  60% (16007/26678)
+package	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-21T07:21:09.3409344Z Updating files:  61% (16274/26678)
+package	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-21T07:21:09.4494367Z Updating files:  61% (16383/26678)
+package	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-21T07:21:09.6376612Z Updating files:  62% (16541/26678)
+package	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-21T07:21:09.7950955Z Updating files:  63% (16808/26678)
+package	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-21T07:21:09.9433979Z Updating files:  64% (17074/26678)
+package	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-21T07:21:10.1917139Z Updating files:  65% (17341/26678)
+package	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-21T07:21:10.2733791Z Updating files:  66% (17608/26678)
+package	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-21T07:21:10.3530221Z Updating files:  67% (17875/26678)
+package	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-21T07:21:10.3606923Z Updating files:  67% (18128/26678)
+package	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-21T07:21:10.5124494Z Updating files:  68% (18142/26678)
+package	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-21T07:21:10.5995833Z Updating files:  69% (18408/26678)
+package	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-21T07:21:10.6840964Z Updating files:  70% (18675/26678)
+package	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-21T07:21:10.8148018Z Updating files:  71% (18942/26678)
+package	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-21T07:21:10.9677439Z Updating files:  72% (19209/26678)
+package	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-21T07:21:11.0701729Z Updating files:  73% (19475/26678)
+package	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-21T07:21:11.1999833Z Updating files:  74% (19742/26678)
+package	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-21T07:21:11.3549015Z Updating files:  75% (20009/26678)
+package	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-21T07:21:11.5105078Z Updating files:  75% (20173/26678)
+package	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-21T07:21:11.6080245Z Updating files:  76% (20276/26678)
+package	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-21T07:21:11.7114524Z Updating files:  77% (20543/26678)
+package	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-21T07:21:11.8414768Z Updating files:  78% (20809/26678)
+package	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-21T07:21:11.9266098Z Updating files:  79% (21076/26678)
+package	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-21T07:21:12.0687542Z Updating files:  80% (21343/26678)
+package	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-21T07:21:12.1932863Z Updating files:  81% (21610/26678)
+package	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-21T07:21:12.2615400Z Updating files:  82% (21876/26678)
+package	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-21T07:21:12.3374803Z Updating files:  83% (22143/26678)
+package	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-21T07:21:12.3685374Z Updating files:  84% (22410/26678)
+package	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-21T07:21:12.4867413Z Updating files:  84% (22475/26678)
+package	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-21T07:21:12.6233074Z Updating files:  85% (22677/26678)
+package	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-21T07:21:12.6963126Z Updating files:  86% (22944/26678)
+package	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-21T07:21:12.7776597Z Updating files:  87% (23210/26678)
+package	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-21T07:21:13.0665126Z Updating files:  88% (23477/26678)
+package	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-21T07:21:13.2578762Z Updating files:  89% (23744/26678)
+package	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-21T07:21:13.3692956Z Updating files:  90% (24011/26678)
+package	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-21T07:21:13.4129256Z Updating files:  90% (24176/26678)
+package	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-21T07:21:13.5115161Z Updating files:  91% (24277/26678)
+package	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-21T07:21:13.6012963Z Updating files:  92% (24544/26678)
+package	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-21T07:21:13.6891893Z Updating files:  93% (24811/26678)
+package	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-21T07:21:13.7705786Z Updating files:  94% (25078/26678)
+package	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-21T07:21:13.8656179Z Updating files:  95% (25345/26678)
+package	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-21T07:21:14.0501553Z Updating files:  96% (25611/26678)
+package	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-21T07:21:14.1276043Z Updating files:  97% (25878/26678)
+package	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-21T07:21:14.3464526Z Updating files:  98% (26145/26678)
+package	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-21T07:21:14.3701369Z Updating files:  99% (26412/26678)
+package	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-21T07:21:14.4288156Z Updating files:  99% (26491/26678)
+package	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-21T07:21:14.4288775Z Updating files: 100% (26678/26678)
+package	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-21T07:21:14.4289235Z Updating files: 100% (26678/26678), done.
+package	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-21T07:21:14.4846013Z Note: switching to '8fc8b27ad1c007b9864d5d42d09358c7fa573a09'.
+package	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-21T07:21:14.4846651Z 
+package	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-21T07:21:14.4847064Z You are in 'detached HEAD' state. You can look around, make experimental
+package	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-21T07:21:14.4847940Z changes and commit them, and you can discard any commits you make in this
+package	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-21T07:21:14.4848785Z state without impacting any branches by switching back to a branch.
+package	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-21T07:21:14.4849308Z 
+package	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-21T07:21:14.4849637Z If you want to create a new branch to retain commits you create, you may
+package	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-21T07:21:14.4850414Z do so (now or later) by using -c with the switch command. Example:
+package	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-21T07:21:14.4850883Z 
+package	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-21T07:21:14.4851076Z   git switch -c <new-branch-name>
+package	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-21T07:21:14.4851386Z 
+package	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-21T07:21:14.4851546Z Or undo this operation with:
+package	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-21T07:21:14.4851813Z 
+package	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-21T07:21:14.4851952Z   git switch -
+package	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-21T07:21:14.4852146Z 
+package	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-21T07:21:14.4852886Z Turn off this advice by setting config variable advice.detachedHead to false
+package	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-21T07:21:14.4853444Z 
+package	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-21T07:21:14.4853942Z HEAD is now at 8fc8b27a test: await completed cross-range outline slices [windows-manual-beta2]
+package	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-21T07:21:14.5452764Z ##[endgroup]
+package	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-21T07:21:14.5911053Z [command]"C:\Program Files\Git\bin\git.exe" log -1 --format=%H
+package	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-21T07:21:14.6308489Z 8fc8b27ad1c007b9864d5d42d09358c7fa573a09
+package	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-21T07:21:14.6365186Z ##[group]Removing auth
+package	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-21T07:21:14.6376568Z [command]"C:\Program Files\Git\bin\git.exe" config --local --name-only --get-regexp core\.sshCommand
+package	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-21T07:21:14.6814954Z [command]"C:\Program Files\Git\bin\git.exe" submodule foreach --recursive "sh -c \"git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :\""
+package	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-21T07:21:15.3861520Z [command]"C:\Program Files\Git\bin\git.exe" config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+package	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-21T07:21:15.4263235Z http.https://github.com/.extraheader
+package	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-21T07:21:15.4325984Z [command]"C:\Program Files\Git\bin\git.exe" config --local --unset-all http.https://github.com/.extraheader
+package	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-21T07:21:15.4776265Z [command]"C:\Program Files\Git\bin\git.exe" submodule foreach --recursive "sh -c \"git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :\""
+package	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-21T07:21:16.1910524Z [command]"C:\Program Files\Git\bin\git.exe" config --local --name-only --get-regexp ^includeIf\.gitdir:
+package	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-21T07:21:16.2349962Z [command]"C:\Program Files\Git\bin\git.exe" submodule foreach --recursive "git config --local --show-origin --name-only --get-regexp remote.origin.url"
+package	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-21T07:21:16.8828105Z ##[endgroup]
+package	Verify exact candidate and unchanged product boundary	﻿2026-10-21T07:21:16.9248544Z ##[group]Run $ErrorActionPreference = 'Stop'
+package	Verify exact candidate and unchanged product boundary	2026-10-21T07:21:16.9249050Z [36;1m$ErrorActionPreference = 'Stop'[0m
+package	Verify exact candidate and unchanged product boundary	2026-10-21T07:21:16.9249563Z [36;1mif ((git rev-parse HEAD).Trim() -cne $env:GITHUB_SHA) { throw 'Source SHA mismatch' }[0m
+package	Verify exact candidate and unchanged product boundary	2026-10-21T07:21:16.9250235Z [36;1mgit merge-base --is-ancestor 40e53428e64a4effef2378ea6cbcab8f3be3b11a HEAD[0m
+package	Verify exact candidate and unchanged product boundary	2026-10-21T07:21:16.9251076Z [36;1mif ($LASTEXITCODE -ne 0) { throw 'Wrong validated baseline' }[0m
+package	Verify exact candidate and unchanged product boundary	2026-10-21T07:21:16.9251797Z [36;1mforeach ($file in @('update_handoff.rs','update_identity.rs','update_transaction.rs','update_health_contract.rs')) {[0m
+package	Verify exact candidate and unchanged product boundary	2026-10-21T07:21:16.9252674Z [36;1m  if (Test-Path "apps/desktop/src-tauri/src/$file") { throw 'Unaccepted experiment in product candidate' }[0m
+package	Verify exact candidate and unchanged product boundary	2026-10-21T07:21:16.9253229Z [36;1m}[0m
+package	Verify exact candidate and unchanged product boundary	2026-10-21T07:21:16.9253922Z [36;1mif (Test-Path tests/native/windows-debug-handoff) { throw 'Debug prototype must not enter candidate' }[0m
+package	Verify exact candidate and unchanged product boundary	2026-10-21T07:21:16.9254583Z [36;1mif (git status --porcelain) { throw 'Dirty candidate' }[0m
+package	Verify exact candidate and unchanged product boundary	2026-10-21T07:21:16.9255162Z [36;1mnode scripts/check-versions.mjs[0m
+package	Verify exact candidate and unchanged product boundary	2026-10-21T07:21:16.9255683Z [36;1mif ($LASTEXITCODE -ne 0) { throw 'Version mismatch' }[0m
+package	Verify exact candidate and unchanged product boundary	2026-10-21T07:21:16.9256335Z [36;1mif ((Get-Content package.json -Raw | ConvertFrom-Json).version -cne '2.0.0-beta.2') { throw 'Wrong beta' }[0m
+package	Verify exact candidate and unchanged product boundary	2026-10-21T07:21:16.9748373Z shell: C:\Program Files\PowerShell\7\pwsh.EXE -command ". '{0}'"
+package	Verify exact candidate and unchanged product boundary	2026-10-21T07:21:16.9749037Z env:
+package	Verify exact candidate and unchanged product boundary	2026-10-21T07:21:16.9749343Z   CARGO_BUILD_JOBS: 2
+package	Verify exact candidate and unchanged product boundary	2026-10-21T07:21:16.9749694Z   CARGO_INCREMENTAL: 0
+package	Verify exact candidate and unchanged product boundary	2026-10-21T07:21:16.9750055Z   CARGO_PROFILE_DEV_DEBUG: 0
+package	Verify exact candidate and unchanged product boundary	2026-10-21T07:21:16.9750476Z   CARGO_PROFILE_RELEASE_DEBUG: 0
+package	Verify exact candidate and unchanged product boundary	2026-10-21T07:21:16.9750894Z   CARGO_TERM_COLOR: never
+package	Verify exact candidate and unchanged product boundary	2026-10-21T07:21:16.9751263Z   PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: 1
+package	Verify exact candidate and unchanged product boundary	2026-10-21T07:21:16.9751660Z   GIT_CONFIG_COUNT: 1
+package	Verify exact candidate and unchanged product boundary	2026-10-21T07:21:16.9752005Z   GIT_CONFIG_KEY_0: core.longpaths
+package	Verify exact candidate and unchanged product boundary	2026-10-21T07:21:16.9752392Z   GIT_CONFIG_VALUE_0: true
+package	Verify exact candidate and unchanged product boundary	2026-10-21T07:21:16.9752744Z ##[endgroup]
+package	Verify exact candidate and unchanged product boundary	2026-10-21T07:21:20.5460664Z Application 2.0.0-beta.2; SDK 0.3.7; outline 1.3.3
+package	Run actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020	﻿2026-10-21T07:21:20.6974263Z ##[group]Run actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+package	Run actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020	2026-10-21T07:21:20.6974732Z with:
+package	Run actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020	2026-10-21T07:21:20.6974922Z   node-version: 24.19.0
+package	Run actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020	2026-10-21T07:21:20.6975387Z   always-auth: false
+package	Run actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020	2026-10-21T07:21:20.6975593Z   check-latest: false
+package	Run actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020	2026-10-21T07:21:20.6978289Z   token: ***
+package	Run actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020	2026-10-21T07:21:20.6978469Z env:
+package	Run actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020	2026-10-21T07:21:20.6978630Z   CARGO_BUILD_JOBS: 2
+package	Run actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020	2026-10-21T07:21:20.6978829Z   CARGO_INCREMENTAL: 0
+package	Run actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020	2026-10-21T07:21:20.6979053Z   CARGO_PROFILE_DEV_DEBUG: 0
+package	Run actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020	2026-10-21T07:21:20.6979279Z   CARGO_PROFILE_RELEASE_DEBUG: 0
+package	Run actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020	2026-10-21T07:21:20.6979507Z   CARGO_TERM_COLOR: never
+package	Run actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020	2026-10-21T07:21:20.6979732Z   PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: 1
+package	Run actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020	2026-10-21T07:21:20.6979981Z   GIT_CONFIG_COUNT: 1
+package	Run actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020	2026-10-21T07:21:20.6980195Z   GIT_CONFIG_KEY_0: core.longpaths
+package	Run actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020	2026-10-21T07:21:20.6980444Z   GIT_CONFIG_VALUE_0: true
+package	Run actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020	2026-10-21T07:21:20.6980649Z ##[endgroup]
+package	Run actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020	2026-10-21T07:21:20.8803467Z Attempting to download 24.19.0...
+package	Run actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020	2026-10-21T07:21:20.9014426Z (node:4276) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+package	Run actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020	2026-10-21T07:21:20.9016166Z (Use `node --trace-deprecation ...` to show where the warning was created)
+package	Run actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020	2026-10-21T07:21:21.4483072Z Acquiring 24.19.0 - x64 from https://github.com/actions/node-versions/releases/download/24.19.0-30872449280/node-24.19.0-win32-x64.7z
+package	Run actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020	2026-10-21T07:21:21.7692713Z Extracting ...
+package	Run actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020	2026-10-21T07:21:24.2720280Z Adding to the cache ...
+package	Run actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020	2026-10-21T07:21:29.8239748Z ##[group]Environment details
+package	Run actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020	2026-10-21T07:21:32.1707000Z node: v24.19.0
+package	Run actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020	2026-10-21T07:21:32.1707440Z npm: 11.17.0
+package	Run actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020	2026-10-21T07:21:32.1707705Z yarn: 1.22.22
+package	Run actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020	2026-10-21T07:21:32.1708397Z ##[endgroup]
+package	Prepare the previously validated pinned build tools	﻿2026-10-21T07:21:32.2033830Z ##[group]Run $ErrorActionPreference = 'Stop'
+package	Prepare the previously validated pinned build tools	2026-10-21T07:21:32.2034297Z [36;1m$ErrorActionPreference = 'Stop'[0m
+package	Prepare the previously validated pinned build tools	2026-10-21T07:21:32.2034693Z [36;1m$compiler = @(rustup run stable rustc --version --verbose)[0m
+package	Prepare the previously validated pinned build tools	2026-10-21T07:21:32.2035070Z [36;1m$compiler | Write-Host[0m
+package	Prepare the previously validated pinned build tools	2026-10-21T07:21:32.2056038Z [36;1mrustup toolchain install 1.99.0 --profile minimal[0m
+package	Prepare the previously validated pinned build tools	2026-10-21T07:21:32.2056623Z [36;1mif ($LASTEXITCODE -ne 0) { throw 'Pinned Rust compiler setup failed' }[0m
+package	Prepare the previously validated pinned build tools	2026-10-21T07:21:32.2057134Z [36;1mrustup run 1.99.0 rustc --version --verbose[0m
+package	Prepare the previously validated pinned build tools	2026-10-21T07:21:32.2057601Z [36;1mif ($LASTEXITCODE -ne 0) { throw 'Pinned compiler unavailable' }[0m
+package	Prepare the previously validated pinned build tools	2026-10-21T07:21:32.2058074Z [36;1m'RUSTUP_TOOLCHAIN=1.99.0' >> $env:GITHUB_ENV[0m
+package	Prepare the previously validated pinned build tools	2026-10-21T07:21:32.2058471Z [36;1mnpm install --global pnpm@11.7.0 --ignore-scripts[0m
+package	Prepare the previously validated pinned build tools	2026-10-21T07:21:32.2058905Z [36;1mif ($LASTEXITCODE -ne 0) { throw 'pnpm setup failed' }[0m
+package	Prepare the previously validated pinned build tools	2026-10-21T07:21:32.2136339Z shell: C:\Program Files\PowerShell\7\pwsh.EXE -command ". '{0}'"
+package	Prepare the previously validated pinned build tools	2026-10-21T07:21:32.2136815Z env:
+package	Prepare the previously validated pinned build tools	2026-10-21T07:21:32.2137018Z   CARGO_BUILD_JOBS: 2
+package	Prepare the previously validated pinned build tools	2026-10-21T07:21:32.2137246Z   CARGO_INCREMENTAL: 0
+package	Prepare the previously validated pinned build tools	2026-10-21T07:21:32.2137475Z   CARGO_PROFILE_DEV_DEBUG: 0
+package	Prepare the previously validated pinned build tools	2026-10-21T07:21:32.2137725Z   CARGO_PROFILE_RELEASE_DEBUG: 0
+package	Prepare the previously validated pinned build tools	2026-10-21T07:21:32.2137978Z   CARGO_TERM_COLOR: never
+package	Prepare the previously validated pinned build tools	2026-10-21T07:21:32.2138225Z   PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: 1
+package	Prepare the previously validated pinned build tools	2026-10-21T07:21:32.2138508Z   GIT_CONFIG_COUNT: 1
+package	Prepare the previously validated pinned build tools	2026-10-21T07:21:32.2138747Z   GIT_CONFIG_KEY_0: core.longpaths
+package	Prepare the previously validated pinned build tools	2026-10-21T07:21:32.2139018Z   GIT_CONFIG_VALUE_0: true
+package	Prepare the previously validated pinned build tools	2026-10-21T07:21:32.2139245Z ##[endgroup]
+package	Prepare the previously validated pinned build tools	2026-10-21T07:21:36.6936484Z rustc 1.99.1 (58cf8f9c3 2026-10-13)
+package	Prepare the previously validated pinned build tools	2026-10-21T07:21:36.6937147Z binary: rustc
+package	Prepare the previously validated pinned build tools	2026-10-21T07:21:36.6940547Z commit-hash: 58cf8f9c35b355199727627d07ae34a4e2846d67
+package	Prepare the previously validated pinned build tools	2026-10-21T07:21:36.6944946Z commit-date: 2026-10-13
+package	Prepare the previously validated pinned build tools	2026-10-21T07:21:36.6949345Z host: x86_64-pc-windows-msvc
+package	Prepare the previously validated pinned build tools	2026-10-21T07:21:36.6955096Z release: 1.99.1
+package	Prepare the previously validated pinned build tools	2026-10-21T07:21:36.6958778Z LLVM version: 23.1.1
+package	Prepare the previously validated pinned build tools	2026-10-21T07:21:36.7775171Z info: syncing channel updates for 1.99.0-x86_64-pc-windows-msvc
+package	Prepare the previously validated pinned build tools	2026-10-21T07:21:37.3784982Z info: latest update on 2026-10-01 for version 1.99.0 (b940084d7 2026-09-28)
+package	Prepare the previously validated pinned build tools	2026-10-21T07:21:37.3888167Z info: downloading 3 components
+package	Prepare the previously validated pinned build tools	2026-10-21T07:21:50.9854154Z 
+package	Prepare the previously validated pinned build tools	2026-10-21T07:21:51.0178393Z   1.99.0-x86_64-pc-windows-msvc installed - rustc 1.99.0 (b940084d7 2026-09-28)
+package	Prepare the previously validated pinned build tools	2026-10-21T07:21:51.0178805Z 
+package	Prepare the previously validated pinned build tools	2026-10-21T07:21:51.0673018Z rustc 1.99.0 (b940084d7 2026-09-28)
+package	Prepare the previously validated pinned build tools	2026-10-21T07:21:51.0674707Z binary: rustc
+package	Prepare the previously validated pinned build tools	2026-10-21T07:21:51.0675189Z commit-hash: b940084d7eb6a299eb4bfeb8e34901bc051e7ac4
+package	Prepare the previously validated pinned build tools	2026-10-21T07:21:51.0675723Z commit-date: 2026-09-28
+package	Prepare the previously validated pinned build tools	2026-10-21T07:21:51.0676115Z host: x86_64-pc-windows-msvc
+package	Prepare the previously validated pinned build tools	2026-10-21T07:21:51.0676504Z release: 1.99.0
+package	Prepare the previously validated pinned build tools	2026-10-21T07:21:51.0678377Z LLVM version: 23.1.1
+package	Prepare the previously validated pinned build tools	2026-10-21T07:22:05.6659565Z 
+package	Prepare the previously validated pinned build tools	2026-10-21T07:22:05.6663530Z added 1 package in 14s
+package	Prepare the previously validated pinned build tools	2026-10-21T07:22:05.6663898Z 
+package	Prepare the previously validated pinned build tools	2026-10-21T07:22:05.6664524Z 1 package is looking for funding
+package	Prepare the previously validated pinned build tools	2026-10-21T07:22:05.6665485Z   run `npm fund` for details
+package	Full Windows source and independent plugin checks	﻿2026-10-21T07:22:11.0671574Z ##[group]Run ./scripts/ci/check-windows-desktop-source.ps1 -EvidenceDirectory "$env:RUNNER_TEMP/manual-beta2-source"
+package	Full Windows source and independent plugin checks	2026-10-21T07:22:11.0672544Z [36;1m./scripts/ci/check-windows-desktop-source.ps1 -EvidenceDirectory "$env:RUNNER_TEMP/manual-beta2-source"[0m
+package	Full Windows source and independent plugin checks	2026-10-21T07:22:11.0745498Z shell: C:\Program Files\PowerShell\7\pwsh.EXE -command ". '{0}'"
+package	Full Windows source and independent plugin checks	2026-10-21T07:22:11.0745866Z env:
+package	Full Windows source and independent plugin checks	2026-10-21T07:22:11.0746058Z   CARGO_BUILD_JOBS: 2
+package	Full Windows source and independent plugin checks	2026-10-21T07:22:11.0746262Z   CARGO_INCREMENTAL: 0
+package	Full Windows source and independent plugin checks	2026-10-21T07:22:11.0746469Z   CARGO_PROFILE_DEV_DEBUG: 0
+package	Full Windows source and independent plugin checks	2026-10-21T07:22:11.0746693Z   CARGO_PROFILE_RELEASE_DEBUG: 0
+package	Full Windows source and independent plugin checks	2026-10-21T07:22:11.0746918Z   CARGO_TERM_COLOR: never
+package	Full Windows source and independent plugin checks	2026-10-21T07:22:11.0747149Z   PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: 1
+package	Full Windows source and independent plugin checks	2026-10-21T07:22:11.0747395Z   GIT_CONFIG_COUNT: 1
+package	Full Windows source and independent plugin checks	2026-10-21T07:22:11.0747596Z   GIT_CONFIG_KEY_0: core.longpaths
+package	Full Windows source and independent plugin checks	2026-10-21T07:22:11.0747836Z   GIT_CONFIG_VALUE_0: true
+package	Full Windows source and independent plugin checks	2026-10-21T07:22:11.0748056Z   RUSTUP_TOOLCHAIN: 1.99.0
+package	Full Windows source and independent plugin checks	2026-10-21T07:22:11.0748256Z ##[endgroup]
+package	Full Windows source and independent plugin checks	2026-10-21T07:22:13.5750093Z ##[group]locked-workspace-restore
+package	Full Windows source and independent plugin checks	2026-10-21T07:22:14.1627913Z Scope: all 15 workspace projects
+package	Full Windows source and independent plugin checks	2026-10-21T07:22:14.2361249Z ? Verifying lockfile against supply-chain policies (195 entries)...
+package	Full Windows source and independent plugin checks	2026-10-21T07:22:14.2477853Z Lockfile is up to date, resolution step is skipped
+package	Full Windows source and independent plugin checks	2026-10-21T07:22:14.3558746Z Progress: resolved 1, reused 0, downloaded 0, added 0
+package	Full Windows source and independent plugin checks	2026-10-21T07:22:14.3828557Z Packages: +110
+package	Full Windows source and independent plugin checks	2026-10-21T07:22:14.3831849Z ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+package	Full Windows source and independent plugin checks	2026-10-21T07:22:15.3722587Z Progress: resolved 110, reused 0, downloaded 29, added 0
+package	Full Windows source and independent plugin checks	2026-10-21T07:22:16.4194741Z Progress: resolved 110, reused 0, downloaded 107, added 4
+package	Full Windows source and independent plugin checks	2026-10-21T07:22:17.4787860Z ✓ Lockfile passes supply-chain policies (195 entries in 3.2s)
+package	Full Windows source and independent plugin checks	2026-10-21T07:22:17.4797911Z Progress: resolved 110, reused 0, downloaded 109, added 109
+package	Full Windows source and independent plugin checks	2026-10-21T07:22:18.4641022Z Progress: resolved 110, reused 0, downloaded 110, added 109
+package	Full Windows source and independent plugin checks	2026-10-21T07:22:18.4907436Z Progress: resolved 110, reused 0, downloaded 110, added 110, done
+package	Full Windows source and independent plugin checks	2026-10-21T07:22:18.6659013Z .../esbuild@0.25.12/node_modules/esbuild postinstall$ node install.js
+package	Full Windows source and independent plugin checks	2026-10-21T07:22:18.6683244Z .../esbuild@0.28.1/node_modules/esbuild postinstall$ node install.js
+package	Full Windows source and independent plugin checks	2026-10-21T07:22:18.8759094Z .../esbuild@0.25.12/node_modules/esbuild postinstall: Done
+package	Full Windows source and independent plugin checks	2026-10-21T07:22:18.8872848Z .../esbuild@0.28.1/node_modules/esbuild postinstall: Done
+package	Full Windows source and independent plugin checks	2026-10-21T07:22:18.9589443Z [WARN] Failed to create bin at D:\a\milkup\milkup\packages\plugin\node_modules\.bin\milkup-mcp. ENOENT: no such file or directory, stat 'D:\a\milkup\milkup\packages\mcp\dist\bin\milkup-mcp.js.EXE'
+package	Full Windows source and independent plugin checks	2026-10-21T07:22:19.0242036Z 
+package	Full Windows source and independent plugin checks	2026-10-21T07:22:19.0253717Z devDependencies:
+package	Full Windows source and independent plugin checks	2026-10-21T07:22:19.0255412Z + @playwright/test 1.61.1
+package	Full Windows source and independent plugin checks	2026-10-21T07:22:19.0256075Z + @types/node 24.13.2
+package	Full Windows source and independent plugin checks	2026-10-21T07:22:19.0258179Z + esbuild 0.25.12
+package	Full Windows source and independent plugin checks	2026-10-21T07:22:19.0258823Z + fake-indexeddb 6.2.5
+package	Full Windows source and independent plugin checks	2026-10-21T07:22:19.0259415Z + prettier 3.9.4
+package	Full Windows source and independent plugin checks	2026-10-21T07:22:19.0260947Z + typescript 5.9.3
+package	Full Windows source and independent plugin checks	2026-10-21T07:22:19.0261884Z + vite 7.3.6
+package	Full Windows source and independent plugin checks	2026-10-21T07:22:19.0262469Z + vitest 3.2.6
+package	Full Windows source and independent plugin checks	2026-10-21T07:22:19.0263520Z 
+package	Full Windows source and independent plugin checks	2026-10-21T07:22:19.1145962Z [WARN] Failed to create bin at D:\a\milkup\milkup\packages\plugin\node_modules\.bin\milkup-mcp. ENOENT: no such file or directory, stat 'D:\a\milkup\milkup\packages\plugin\node_modules\@milkup\mcp\dist\bin\milkup-mcp.js.EXE'
+package	Full Windows source and independent plugin checks	2026-10-21T07:22:19.1919969Z Done in 5.5s using pnpm v11.7.0
+package	Full Windows source and independent plugin checks	2026-10-21T07:22:19.2544455Z {"name":"locked-workspace-restore","startedAt":"2026-10-21T07:22:13.5722029Z","status":"passed","endedAt":"2026-10-21T07:22:19.2461893Z","commands":[{"executable":"node","arguments":["C:\\npm\\prefix\\node_modules\\pnpm\\bin\\pnpm.cjs","install","--frozen-lockfile","--config.manage-package-manager-versions=false"],"exitCode":0,"startedAt":"2026-10-21T07:22:13.5759279Z","endedAt":"2026-10-21T07:22:19.2425154Z"}]}
+package	Full Windows source and independent plugin checks	2026-10-21T07:22:19.2548693Z ##[endgroup]
+package	Full Windows source and independent plugin checks	2026-10-21T07:22:19.2558431Z ##[group]updater-vendor-provenance
+package	Full Windows source and independent plugin checks	2026-10-21T07:22:19.3387584Z Reviewed local updater 2.10.1: 31 file hashes verified
+package	Full Windows source and independent plugin checks	2026-10-21T07:22:19.3499986Z {"name":"updater-vendor-provenance","startedAt":"2026-10-21T07:22:19.2552331Z","status":"passed","endedAt":"2026-10-21T07:22:19.3475234Z","commands":[{"executable":"node","arguments":["scripts/check-updater-vendor.mjs"],"exitCode":0,"startedAt":"2026-10-21T07:22:19.2566834Z","endedAt":"2026-10-21T07:22:19.3473406Z"}]}
+package	Full Windows source and independent plugin checks	2026-10-21T07:22:19.3504170Z ##[endgroup]
+package	Full Windows source and independent plugin checks	2026-10-21T07:22:19.3513047Z ##[group]source-check-contracts
+package	Full Windows source and independent plugin checks	2026-10-21T07:22:19.5550295Z ✔ reviewed updater source, licenses and unchanged dependency closure pass (33.8909ms)
+package	Full Windows source and independent plugin checks	2026-10-21T07:22:19.8651643Z ✔ updater provenance gate rejects source, license, extra file and lock drift (304.7645ms)
+package	Full Windows source and independent plugin checks	2026-10-21T07:22:20.1348717Z ✔ version gate rejects drift and synchronizes derived application versions only (615.1607ms)
+package	Full Windows source and independent plugin checks	2026-10-21T07:22:20.6050892Z ✔ version gate rejects noncanonical application versions before writing (475.6905ms)
+package	Full Windows source and independent plugin checks	2026-10-21T07:22:21.0342173Z ✔ version sync updates only the unique local Cargo package and the check detects lock drift (428.9318ms)
+package	Full Windows source and independent plugin checks	2026-10-21T07:22:21.3207274Z ✔ version sync refuses missing, duplicate or nonlocal application lock entries (286.67ms)
+package	Full Windows source and independent plugin checks	2026-10-21T07:22:26.2016126Z ✔ version sync supports canonical beta and stable versions without rewriting SDK or plugins (4880.8095ms)
+package	Full Windows source and independent plugin checks	2026-10-21T07:22:26.3776733Z ✔ version sync preserves Cargo.lock CRLF and unrelated bytes (175.9053ms)
+package	Full Windows source and independent plugin checks	2026-10-21T07:22:26.7169490Z ✔ version sync refuses missing or duplicate package versions without rewriting dependency tables (339.3907ms)
+package	Full Windows source and independent plugin checks	2026-10-21T07:22:26.7299652Z ✔ win32: nested source input remains permitted (3.5517ms)
+package	Full Windows source and independent plugin checks	2026-10-21T07:22:26.7302434Z ✔ win32: ancestor escape is rejected (2.0327ms)
+package	Full Windows source and independent plugin checks	2026-10-21T07:22:26.7303361Z ✔ win32: same-prefix sibling is rejected (1.7114ms)
+package	Full Windows source and independent plugin checks	2026-10-21T07:22:26.7306507Z ✔ win32: root itself is not a contained file (1.0785ms)
+package	Full Windows source and independent plugin checks	2026-10-21T07:22:26.7308116Z ✔ posix: nested source input remains permitted (1.1098ms)
+package	Full Windows source and independent plugin checks	2026-10-21T07:22:26.7310240Z ✔ posix: ancestor escape is rejected (0.9896ms)
+package	Full Windows source and independent plugin checks	2026-10-21T07:22:26.7311412Z ✔ posix: same-prefix sibling is rejected (1.1436ms)
+package	Full Windows source and independent plugin checks	2026-10-21T07:22:26.7312201Z ✔ posix: root itself is not a contained file (0.9985ms)
+package	Full Windows source and independent plugin checks	2026-10-21T07:22:26.7315008Z ✔ win32: cross-drive and different UNC-share inputs are rejected (1.9637ms)
+package	Full Windows source and independent plugin checks	2026-10-21T07:22:26.7319779Z ✔ derives the current public SDK version and current local inventory without widening delivery approval (116.8973ms)
+package	Full Windows source and independent plugin checks	2026-10-21T07:22:26.7322592Z ✔ rejects unsafe or partial SDK versions before constructing the tarball path (201.8835ms)
+package	Full Windows source and independent plugin checks	2026-10-21T07:22:26.7324111Z ✔ rejects directory escape, duplicate inventory and undeclared permission drift (55.3764ms)
+package	Full Windows source and independent plugin checks	2026-10-21T07:22:26.7325804Z ✔ includes declared resources for external builds and rejects traversal (38.2416ms)
+package	Full Windows source and independent plugin checks	2026-10-21T07:22:26.7327392Z ✔ DOM distribution requires explicit host and a pinned closure; Worker remains explicitly legacy (108.4233ms)
+package	Full Windows source and independent plugin checks	2026-10-21T07:22:26.7330382Z ✔ DOM capability restrictions cannot be bypassed by distribution permission approval (112.5202ms)
+package	Full Windows source and independent plugin checks	2026-10-21T07:22:26.7333485Z ✔ closure verifies exact inputs and notices, not arbitrary node_modules or package version alone (150.4264ms)
+package	Full Windows source and independent plugin checks	2026-10-21T07:22:26.7336158Z ✔ closure rejects lock drift, source symlink escapes, missing reviewed inputs and runtime imports (115.3788ms)
+package	Full Windows source and independent plugin checks	2026-10-21T07:22:26.7338250Z ✔ frozen copy list preserves lock, notices and helpers and SDK tarball bytes are checked (42.1096ms)
+package	Full Windows source and independent plugin checks	2026-10-21T07:22:26.7339963Z ✔ package identity and notice originals are verified even if all input paths match (122.7744ms)
+package	Full Windows source and independent plugin checks	2026-10-21T07:22:26.7342272Z ✔ the fixed SDK declaration cannot hide a private host dependency or floating tool (78.267ms)
+package	Full Windows source and independent plugin checks	2026-10-21T07:22:26.7343698Z ✔ profile and resource symlinks cannot admit checkout files outside the plugin (38.6857ms)
+package	Full Windows source and independent plugin checks	2026-10-21T07:22:26.7345332Z ✔ document renderer bounds follow the public manifest grammar, not action IDs (74.3923ms)
+package	Full Windows source and independent plugin checks	2026-10-21T07:22:26.7348766Z ✔ copied-source proof rejects additions, removals and changes in sources, manifest and tsconfig (195.029ms)
+package	Full Windows source and independent plugin checks	2026-10-21T07:22:26.7350576Z ✔ copied-source proof excludes only explicit generated locations, not arbitrary vendor or new config (74.3975ms)
+package	Full Windows source and independent plugin checks	2026-10-21T07:22:26.7354383Z ✔ minification is an explicit profile choice and the existing DOM entry limit stays fixed (98.1601ms)
+package	Full Windows source and independent plugin checks	2026-10-21T07:22:26.7356098Z ✔ frozen SDK is bound to its reviewed tar, independently of host SDK/source (90.7354ms)
+package	Full Windows source and independent plugin checks	2026-10-21T07:22:26.7357662Z ✔ filesystem aliases preserve canonical SDK identity and exact archive/content guards (48.8503ms)
+package	Full Windows source and independent plugin checks	2026-10-21T07:22:26.7359699Z ✔ installed package metadata, JavaScript, types and documentation must match archive bytes (52.7113ms)
+package	Full Windows source and independent plugin checks	2026-10-21T07:22:26.7361215Z ✔ reviewed tar hash, local installation and required artifact remain authoritative (24.9551ms)
+package	Full Windows source and independent plugin checks	2026-10-21T07:22:26.7362468Z ✔ rejects unsafe or incomplete reviewed archive shapes without extraction (189.6724ms)
+package	Full Windows source and independent plugin checks	2026-10-21T07:22:26.7363686Z ✔ archive metadata cannot change the SDK name, version grammar or fixed exports (19.2736ms)
+package	Full Windows source and independent plugin checks	2026-10-21T07:22:26.7364848Z ✔ different frozen SDK artifacts resolve separately without changing either tar (45.7926ms)
+package	Full Windows source and independent plugin checks	2026-10-21T07:22:26.7366097Z ✔ external verification copies reviewed vendor bytes rather than the current host SDK (64.3595ms)
+package	Full Windows source and independent plugin checks	2026-10-21T07:22:26.7367365Z ▶ autocrlf checkout preserves every reviewed diagrams hash without normalizing validation
+package	Full Windows source and independent plugin checks	2026-10-21T07:22:26.7368318Z   ✔ exact bytes survive checkout: pnpm-lock.yaml (2.2302ms)
+package	Full Windows source and independent plugin checks	2026-10-21T07:22:26.7369128Z   ✔ exact bytes survive checkout: build-dependencies.json (2.1471ms)
+package	Full Windows source and independent plugin checks	2026-10-21T07:22:26.7370005Z   ✔ exact bytes survive checkout: vendor/plugin-sdk.tgz (1.3545ms)
+package	Full Windows source and independent plugin checks	2026-10-21T07:22:26.7370850Z   ✔ exact bytes survive checkout: THIRD-PARTY-NOTICES.txt (1.3042ms)
+package	Full Windows source and independent plugin checks	2026-10-21T07:22:26.7371821Z   ✔ the real frozen-closure validator accepts the checked-out package (119.8211ms)
+package	Full Windows source and independent plugin checks	2026-10-21T07:22:26.7373136Z ✔ autocrlf checkout preserves every reviewed diagrams hash without normalizing validation (5414.3583ms)
+package	Full Windows source and independent plugin checks	2026-10-21T07:22:26.7374175Z ✔ stages only exact verified bytes (54.2009ms)
+package	Full Windows source and independent plugin checks	2026-10-21T07:22:26.7374839Z ✔ rejects tampered bytes before staging (12.0713ms)
+package	Full Windows source and independent plugin checks	2026-10-21T07:22:26.7375575Z ✔ rejects duplicate inventory before staging (21.6386ms)
+package	Full Windows source and independent plugin checks	2026-10-21T07:22:26.7376283Z ✔ rejects permission drift before staging (13.1947ms)
+package	Full Windows source and independent plugin checks	2026-10-21T07:22:26.7377689Z ✔ rejects failed proof before staging (13.0017ms)
+package	Full Windows source and independent plugin checks	2026-10-21T07:22:26.7379838Z ✔ rejects failed plugin build before staging (4205.9581ms)
+package	Full Windows source and independent plugin checks	2026-10-21T07:22:26.7380677Z ✔ rejects failed plugin tests before staging (14.3798ms)
+package	Full Windows source and independent plugin checks	2026-10-21T07:22:26.7381707Z ✔ rejects archive manifest drift even with matching byte proof before staging (17.0949ms)
+package	Full Windows source and independent plugin checks	2026-10-21T07:22:26.7382932Z ✔ validates the complete inventory before writing any earlier valid archive (14.529ms)
+package	Full Windows source and independent plugin checks	2026-10-21T07:22:26.7384142Z ✔ rejects archive names that collide on Windows before any staging write (15.0762ms)
+package	Full Windows source and independent plugin checks	2026-10-21T07:22:26.7385126Z ✔ never overwrites an existing staged version (26.2429ms)
+package	Full Windows source and independent plugin checks	2026-10-21T07:22:26.7386189Z ✔ P8 source job has independent public branch/marker gates and no delivery actions (9.011ms)
+package	Full Windows source and independent plugin checks	2026-10-21T07:22:26.7387486Z ✔ Windows backend milestone is isolated to its accepted baseline and explicit marker (2.723ms)
+package	Full Windows source and independent plugin checks	2026-10-21T07:22:26.7388751Z ✔ update checkpoint runs source checks without restarting W0 or delivery actions (3.2822ms)
+package	Full Windows source and independent plugin checks	2026-10-21T07:22:26.7391210Z ✔ the same LF and CRLF workflow preserves every P8 job gate (3.2479ms)
+package	Full Windows source and independent plugin checks	2026-10-21T07:22:26.7393410Z ✔ source script checks, tests and links actual production app without bundler (1.4605ms)
+package	Full Windows source and independent plugin checks	2026-10-21T07:22:26.7394267Z ✔ Windows updater dependency regressions cannot pass with an empty filter (2.679ms)
+package	Full Windows source and independent plugin checks	2026-10-21T07:22:26.7395034Z ✔ W0 has a separate explicit experiment gate and preserves production source checks (4.6019ms)
+package	Full Windows source and independent plugin checks	2026-10-21T07:22:26.7395805Z ✔ W0 matrix keeps its accepted baseline, private permissions and product boundary (2.7668ms)
+package	Full Windows source and independent plugin checks	2026-10-21T07:22:26.7396809Z ✔ W0 UDP diagnosis compares held sockets without changing platform policy (3.1829ms)
+package	Full Windows source and independent plugin checks	2026-10-21T07:22:26.7397517Z ✔ version-gates candidate reuses the bounded source job on its isolated branch (2.0425ms)
+package	Full Windows source and independent plugin checks	2026-10-21T07:22:26.7397961Z ℹ tests 69
+package	Full Windows source and independent plugin checks	2026-10-21T07:22:26.7398152Z ℹ suites 0
+package	Full Windows source and independent plugin checks	2026-10-21T07:22:26.7398349Z ℹ pass 69
+package	Full Windows source and independent plugin checks	2026-10-21T07:22:26.7399016Z ℹ fail 0
+package	Full Windows source and independent plugin checks	2026-10-21T07:22:26.7399245Z ℹ cancelled 0
+package	Full Windows source and independent plugin checks	2026-10-21T07:22:26.7399454Z ℹ skipped 0
+package	Full Windows source and independent plugin checks	2026-10-21T07:22:26.7399642Z ℹ todo 0
+package	Full Windows source and independent plugin checks	2026-10-21T07:22:26.7399863Z ℹ duration_ms 7323.8575
+package	Full Windows source and independent plugin checks	2026-10-21T07:22:26.7489354Z {"name":"source-check-contracts","startedAt":"2026-10-21T07:22:19.3506222Z","status":"passed","endedAt":"2026-10-21T07:22:26.7463445Z","commands":[{"executable":"node","arguments":["--test","scripts/check-versions.test.mjs","scripts/check-updater-vendor.test.mjs","tests/ci/windows-desktop-source-check.test.mjs","tests/ci/stage-public-plugin-check.test.mjs","tests/ci/public-plugin-windows-checkout.test.mjs","tests/ci/diagrams-build-paths.test.mjs","tests/ci/public-plugin-build-contract.test.mjs","tests/ci/public-plugin-dom-build.test.mjs","tests/ci/public-plugin-sdk-artifact.test.mjs"],"exitCode":0,"startedAt":"2026-10-21T07:22:19.3519430Z","endedAt":"2026-10-21T07:22:26.7461628Z"}]}
+package	Full Windows source and independent plugin checks	2026-10-21T07:22:26.7492799Z ##[endgroup]
+package	Full Windows source and independent plugin checks	2026-10-21T07:22:26.7501307Z ##[group]public-sdk-build
+package	Full Windows source and independent plugin checks	2026-10-21T07:22:27.3424095Z $ tsc -p tsconfig.json
+package	Full Windows source and independent plugin checks	2026-10-21T07:22:28.3077010Z {"name":"public-sdk-build","startedAt":"2026-10-21T07:22:26.7496314Z","status":"passed","endedAt":"2026-10-21T07:22:28.3051741Z","commands":[{"executable":"node","arguments":["C:\\npm\\prefix\\node_modules\\pnpm\\bin\\pnpm.cjs","--filter","@milkup/plugin-sdk","build"],"exitCode":0,"startedAt":"2026-10-21T07:22:26.7511444Z","endedAt":"2026-10-21T07:22:28.3050587Z"}]}
+package	Full Windows source and independent plugin checks	2026-10-21T07:22:28.3081261Z ##[endgroup]
+package	Full Windows source and independent plugin checks	2026-10-21T07:22:28.3094089Z ##[group]eleven-independent-public-plugins
+package	Full Windows source and independent plugin checks	2026-10-21T07:22:29.0517580Z package: @milkup/plugin-sdk@0.3.7
+package	Full Windows source and independent plugin checks	2026-10-21T07:22:29.0518165Z Tarball Contents
+package	Full Windows source and independent plugin checks	2026-10-21T07:22:29.0521199Z package.json
+package	Full Windows source and independent plugin checks	2026-10-21T07:22:29.0521583Z README.md
+package	Full Windows source and independent plugin checks	2026-10-21T07:22:29.0522054Z src/index.d.ts
+package	Full Windows source and independent plugin checks	2026-10-21T07:22:29.0522440Z src/index.js
+package	Full Windows source and independent plugin checks	2026-10-21T07:22:29.0522730Z Tarball Details
+package	Full Windows source and independent plugin checks	2026-10-21T07:22:29.0523384Z D:\a\_temp\manual-beta2-source\public-plugins\sdk\milkup-plugin-sdk-0.3.7.tgz
+package	Full Windows source and independent plugin checks	2026-10-21T07:22:29.6892279Z 11.7.0
+package	Full Windows source and independent plugin checks	2026-10-21T07:22:34.7265755Z ? Verifying lockfile against supply-chain policies (248 entries)...
+package	Full Windows source and independent plugin checks	2026-10-21T07:22:34.7267453Z Lockfile is up to date, resolution step is skipped
+package	Full Windows source and independent plugin checks	2026-10-21T07:22:34.7269193Z Progress: resolved 1, reused 0, downloaded 0, added 0
+package	Full Windows source and independent plugin checks	2026-10-21T07:22:34.7269847Z Packages: +173
+package	Full Windows source and independent plugin checks	2026-10-21T07:22:34.7270745Z ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+package	Full Windows source and independent plugin checks	2026-10-21T07:22:34.7271999Z Progress: resolved 173, reused 42, downloaded 28, added 0
+package	Full Windows source and independent plugin checks	2026-10-21T07:22:34.7273803Z ✓ Lockfile passes supply-chain policies (248 entries in 1.5s)
+package	Full Windows source and independent plugin checks	2026-10-21T07:22:34.7274959Z Progress: resolved 173, reused 42, downloaded 98, added 4
+package	Full Windows source and independent plugin checks	2026-10-21T07:22:34.7275787Z Progress: resolved 173, reused 42, downloaded 130, added 145
+package	Full Windows source and independent plugin checks	2026-10-21T07:22:34.7276807Z Progress: resolved 173, reused 42, downloaded 131, added 173, done
+package	Full Windows source and independent plugin checks	2026-10-21T07:22:34.7277448Z 
+package	Full Windows source and independent plugin checks	2026-10-21T07:22:34.7277601Z dependencies:
+package	Full Windows source and independent plugin checks	2026-10-21T07:22:34.7277914Z + mermaid 12.2.0
+package	Full Windows source and independent plugin checks	2026-10-21T07:22:34.7278480Z 
+package	Full Windows source and independent plugin checks	2026-10-21T07:22:34.7278640Z devDependencies:
+package	Full Windows source and independent plugin checks	2026-10-21T07:22:34.7279003Z + @milkup/plugin-sdk 0.3.4
+package	Full Windows source and independent plugin checks	2026-10-21T07:22:34.7279366Z + esbuild 0.25.12
+package	Full Windows source and independent plugin checks	2026-10-21T07:22:34.7279674Z + typescript 5.9.3
+package	Full Windows source and independent plugin checks	2026-10-21T07:22:34.7279975Z + vitest 3.2.6
+package	Full Windows source and independent plugin checks	2026-10-21T07:22:34.7280141Z 
+package	Full Windows source and independent plugin checks	2026-10-21T07:22:34.7280324Z Done in 4.9s using pnpm v11.7.0
+package	Full Windows source and independent plugin checks	2026-10-21T07:22:40.2300108Z $ tsc --noEmit && node scripts/build.mjs
+package	Full Windows source and independent plugin checks	2026-10-21T07:22:40.2303855Z Built milkup.diagrams-1.1.1.milkup-plugin (5729700 bytes; entry 5315382 bytes)
+package	Full Windows source and independent plugin checks	2026-10-21T07:22:42.5810548Z 
+package	Full Windows source and independent plugin checks	2026-10-21T07:22:42.5812834Z [1m[46m RUN [49m[22m [36mv3.2.6 [39m[90mD:/a/_temp/manual-beta2-source/public-plugins/milkup.diagrams[39m
+package	Full Windows source and independent plugin checks	2026-10-21T07:22:42.5813997Z 
+package	Full Windows source and independent plugin checks	2026-10-21T07:22:42.5816861Z  [32m✓[39m src/bounded-opacity.test.ts [2m([22m[2m11 tests[22m[2m)[22m[32m 10[2mms[22m[39m
+package	Full Windows source and independent plugin checks	2026-10-21T07:22:42.5841424Z  [32m✓[39m src/paint-envelope.test.ts [2m([22m[2m25 tests[22m[2m)[22m[32m 25[2mms[22m[39m
+package	Full Windows source and independent plugin checks	2026-10-21T07:22:42.5843758Z  [32m✓[39m src/renderer.test.ts [2m([22m[2m53 tests[22m[2m)[22m[32m 81[2mms[22m[39m
+package	Full Windows source and independent plugin checks	2026-10-21T07:22:42.5844954Z  [32m✓[39m src/svg-text.test.ts [2m([22m[2m12 tests[22m[2m)[22m[32m 6[2mms[22m[39m
+package	Full Windows source and independent plugin checks	2026-10-21T07:22:42.5846166Z  [32m✓[39m src/svg-primitives.test.ts [2m([22m[2m26 tests[22m[2m)[22m[32m 13[2mms[22m[39m
+package	Full Windows source and independent plugin checks	2026-10-21T07:22:42.5846809Z 
+package	Full Windows source and independent plugin checks	2026-10-21T07:22:42.5847267Z [2m Test Files [22m [1m[32m5 passed[39m[22m[90m (5)[39m
+package	Full Windows source and independent plugin checks	2026-10-21T07:22:42.5848124Z [2m      Tests [22m [1m[32m127 passed[39m[22m[90m (127)[39m
+package	Full Windows source and independent plugin checks	2026-10-21T07:22:42.5848791Z [2m   Start at [22m 07:22:41
+package	Full Windows source and independent plugin checks	2026-10-21T07:22:42.5850005Z [2m   Duration [22m 1.01s[2m (transform 423ms, setup 0ms, collect 637ms, tests 134ms, environment 1ms, prepare 754ms)[22m
+package	Full Windows source and independent plugin checks	2026-10-21T07:22:42.5850782Z 
+package	Full Windows source and independent plugin checks	2026-10-21T07:22:49.7936923Z Progress: resolved 1, reused 0, downloaded 0, added 0
+package	Full Windows source and independent plugin checks	2026-10-21T07:22:49.7939142Z Progress: resolved 52, reused 26, downloaded 1, added 0
+package	Full Windows source and independent plugin checks	2026-10-21T07:22:49.7941017Z Progress: resolved 53, reused 26, downloaded 1, added 0
+package	Full Windows source and independent plugin checks	2026-10-21T07:22:49.7941677Z Packages: +56
+package	Full Windows source and independent plugin checks	2026-10-21T07:22:49.7942600Z ++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+package	Full Windows source and independent plugin checks	2026-10-21T07:22:49.7944110Z Progress: resolved 131, reused 51, downloaded 5, added 56, done
+package	Full Windows source and independent plugin checks	2026-10-21T07:22:49.7945293Z .../esbuild@0.28.2/node_modules/esbuild postinstall$ node install.js
+package	Full Windows source and independent plugin checks	2026-10-21T07:22:49.7946550Z .../esbuild@0.25.12/node_modules/esbuild postinstall$ node install.js
+package	Full Windows source and independent plugin checks	2026-10-21T07:22:49.7977005Z .../esbuild@0.25.12/node_modules/esbuild postinstall: Done
+package	Full Windows source and independent plugin checks	2026-10-21T07:22:49.7978491Z .../esbuild@0.28.2/node_modules/esbuild postinstall: Done
+package	Full Windows source and independent plugin checks	2026-10-21T07:22:49.7978963Z 
+package	Full Windows source and independent plugin checks	2026-10-21T07:22:49.7979127Z devDependencies:
+package	Full Windows source and independent plugin checks	2026-10-21T07:22:49.7979689Z + @milkup/plugin-sdk 0.3.7
+package	Full Windows source and independent plugin checks	2026-10-21T07:22:49.7980141Z + esbuild 0.25.12 (0.28.2 is available)
+package	Full Windows source and independent plugin checks	2026-10-21T07:22:49.7980619Z + typescript 5.9.3 (7.0.2 is available)
+package	Full Windows source and independent plugin checks	2026-10-21T07:22:49.7981327Z + vitest 3.2.6 (5.0.5 is available)
+package	Full Windows source and independent plugin checks	2026-10-21T07:22:49.7981644Z 
+package	Full Windows source and independent plugin checks	2026-10-21T07:22:49.7981852Z Done in 3.6s using pnpm v11.7.0
+package	Full Windows source and independent plugin checks	2026-10-21T07:22:51.2637988Z $ tsc --noEmit && node scripts/build.mjs
+package	Full Windows source and independent plugin checks	2026-10-21T07:22:51.2640112Z Built dist/plugin.js and dist/milkup.footnotes-1.0.1.milkup-plugin
+package	Full Windows source and independent plugin checks	2026-10-21T07:22:53.0770513Z 
+package	Full Windows source and independent plugin checks	2026-10-21T07:22:53.0772378Z [1m[46m RUN [49m[22m [36mv3.2.6 [39m[90mD:/a/_temp/manual-beta2-source/public-plugins/milkup.footnotes[39m
+package	Full Windows source and independent plugin checks	2026-10-21T07:22:53.0773785Z 
+package	Full Windows source and independent plugin checks	2026-10-21T07:22:53.0774649Z  [32m✓[39m src/indexer.test.ts [2m([22m[2m9 tests[22m[2m)[22m[32m 12[2mms[22m[39m
+package	Full Windows source and independent plugin checks	2026-10-21T07:22:53.0775929Z  [32m✓[39m src/presentation.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 14[2mms[22m[39m
+package	Full Windows source and independent plugin checks	2026-10-21T07:22:53.0778814Z  [32m✓[39m src/controller.test.ts [2m([22m[2m16 tests[22m[2m)[22m[32m 41[2mms[22m[39m
+package	Full Windows source and independent plugin checks	2026-10-21T07:22:53.0779444Z 
+package	Full Windows source and independent plugin checks	2026-10-21T07:22:53.0779963Z [2m Test Files [22m [1m[32m3 passed[39m[22m[90m (3)[39m
+package	Full Windows source and independent plugin checks	2026-10-21T07:22:53.0780721Z [2m      Tests [22m [1m[32m29 passed[39m[22m[90m (29)[39m
+package	Full Windows source and independent plugin checks	2026-10-21T07:22:53.0781464Z [2m   Start at [22m 07:22:52
+package	Full Windows source and independent plugin checks	2026-10-21T07:22:53.0782146Z [2m   Duration [22m 552ms[2m (transform 198ms, setup 0ms, collect 364ms, tests 67ms, environment 1ms, prepare 433ms)[22m
+package	Full Windows source and independent plugin checks	2026-10-21T07:22:53.0782697Z 
+package	Full Windows source and independent plugin checks	2026-10-21T07:22:54.9833051Z Progress: resolved 1, reused 0, downloaded 0, added 0
+package	Full Windows source and independent plugin checks	2026-10-21T07:22:54.9833738Z Packages: +56
+package	Full Windows source and independent plugin checks	2026-10-21T07:22:54.9834815Z ++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+package	Full Windows source and independent plugin checks	2026-10-21T07:22:54.9835625Z Progress: resolved 131, reused 56, downloaded 0, added 56, done
+package	Full Windows source and independent plugin checks	2026-10-21T07:22:54.9836937Z .../esbuild@0.28.2/node_modules/esbuild postinstall$ node install.js
+package	Full Windows source and independent plugin checks	2026-10-21T07:22:54.9840237Z .../esbuild@0.28.2/node_modules/esbuild postinstall: Done
+package	Full Windows source and independent plugin checks	2026-10-21T07:22:54.9840711Z 
+package	Full Windows source and independent plugin checks	2026-10-21T07:22:54.9840853Z devDependencies:
+package	Full Windows source and independent plugin checks	2026-10-21T07:22:54.9841235Z + @milkup/plugin-sdk 0.3.7
+package	Full Windows source and independent plugin checks	2026-10-21T07:22:54.9841695Z + esbuild 0.25.12 (0.28.2 is available)
+package	Full Windows source and independent plugin checks	2026-10-21T07:22:54.9842183Z + typescript 5.9.3 (7.0.2 is available)
+package	Full Windows source and independent plugin checks	2026-10-21T07:22:54.9842670Z + vitest 3.2.6 (5.0.5 is available)
+package	Full Windows source and independent plugin checks	2026-10-21T07:22:54.9842953Z 
+package	Full Windows source and independent plugin checks	2026-10-21T07:22:54.9843141Z Done in 1.8s using pnpm v11.7.0
+package	Full Windows source and independent plugin checks	2026-10-21T07:22:56.4311617Z $ tsc --noEmit && node scripts/build.mjs
+package	Full Windows source and independent plugin checks	2026-10-21T07:22:56.4313149Z Built dist/plugin.js and dist/milkup.formatting-1.0.0.milkup-plugin
+package	Full Windows source and independent plugin checks	2026-10-21T07:22:58.3678411Z 
+package	Full Windows source and independent plugin checks	2026-10-21T07:22:58.3680045Z [1m[46m RUN [49m[22m [36mv3.2.6 [39m[90mD:/a/_temp/manual-beta2-source/public-plugins/milkup.formatting[39m
+package	Full Windows source and independent plugin checks	2026-10-21T07:22:58.3681265Z 
+package	Full Windows source and independent plugin checks	2026-10-21T07:22:58.3682413Z  [32m✓[39m src/transforms.test.ts [2m([22m[2m24 tests[22m[2m)[22m[32m 21[2mms[22m[39m
+package	Full Windows source and independent plugin checks	2026-10-21T07:22:58.3684717Z  [32m✓[39m src/controller.test.ts [2m([22m[2m13 tests[22m[2m)[22m[32m 78[2mms[22m[39m
+package	Full Windows source and independent plugin checks	2026-10-21T07:22:58.3715794Z  [32m✓[39m src/ui.test.ts [2m([22m[2m7 tests[22m[2m)[22m[32m 175[2mms[22m[39m
+package	Full Windows source and independent plugin checks	2026-10-21T07:22:58.3716647Z 
+package	Full Windows source and independent plugin checks	2026-10-21T07:22:58.3717209Z [2m Test Files [22m [1m[32m3 passed[39m[22m[90m (3)[39m
+package	Full Windows source and independent plugin checks	2026-10-21T07:22:58.3718103Z [2m      Tests [22m [1m[32m44 passed[39m[22m[90m (44)[39m
+package	Full Windows source and independent plugin checks	2026-10-21T07:22:58.3718768Z [2m   Start at [22m 07:22:57
+package	Full Windows source and independent plugin checks	2026-10-21T07:22:58.3719883Z [2m   Duration [22m 711ms[2m (transform 255ms, setup 0ms, collect 430ms, tests 274ms, environment 1ms, prepare 432ms)[22m
+package	Full Windows source and independent plugin checks	2026-10-21T07:22:58.3720739Z 
+package	Full Windows source and independent plugin checks	2026-10-21T07:23:00.0805493Z Progress: resolved 1, reused 0, downloaded 0, added 0
+package	Full Windows source and independent plugin checks	2026-10-21T07:23:00.0806559Z Packages: +56
+package	Full Windows source and independent plugin checks	2026-10-21T07:23:00.0807516Z ++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+package	Full Windows source and independent plugin checks	2026-10-21T07:23:00.0808503Z Progress: resolved 131, reused 56, downloaded 0, added 56, done
+package	Full Windows source and independent plugin checks	2026-10-21T07:23:00.0809343Z 
+package	Full Windows source and independent plugin checks	2026-10-21T07:23:00.0841300Z devDependencies:
+package	Full Windows source and independent plugin checks	2026-10-21T07:23:00.0843022Z + @milkup/plugin-sdk 0.3.7
+package	Full Windows source and independent plugin checks	2026-10-21T07:23:00.0844354Z + esbuild 0.25.12 (0.28.2 is available)
+package	Full Windows source and independent plugin checks	2026-10-21T07:23:00.0845197Z + typescript 5.9.3 (7.0.2 is available)
+package	Full Windows source and independent plugin checks	2026-10-21T07:23:00.0845789Z + vitest 3.2.6 (5.0.5 is available)
+package	Full Windows source and independent plugin checks	2026-10-21T07:23:00.0846169Z 
+package	Full Windows source and independent plugin checks	2026-10-21T07:23:00.0846573Z Done in 1.6s using pnpm v11.7.0
+package	Full Windows source and independent plugin checks	2026-10-21T07:23:01.4515872Z $ tsc --noEmit && node scripts/build.mjs
+package	Full Windows source and independent plugin checks	2026-10-21T07:23:01.4517123Z Built dist/plugin.js and dist/milkup.images-1.0.0.milkup-plugin
+package	Full Windows source and independent plugin checks	2026-10-21T07:23:03.4845199Z 
+package	Full Windows source and independent plugin checks	2026-10-21T07:23:03.4847878Z [1m[46m RUN [49m[22m [36mv3.2.6 [39m[90mD:/a/_temp/manual-beta2-source/public-plugins/milkup.images[39m
+package	Full Windows source and independent plugin checks	2026-10-21T07:23:03.4849564Z 
+package	Full Windows source and independent plugin checks	2026-10-21T07:23:03.4850706Z  [32m✓[39m src/format.test.ts [2m([22m[2m14 tests[22m[2m)[22m[32m 9[2mms[22m[39m
+package	Full Windows source and independent plugin checks	2026-10-21T07:23:03.4852036Z  [32m✓[39m src/plugin.test.ts [2m([22m[2m6 tests[22m[2m)[22m[32m 11[2mms[22m[39m
+package	Full Windows source and independent plugin checks	2026-10-21T07:23:03.4853876Z  [32m✓[39m src/controller.test.ts [2m([22m[2m29 tests[22m[2m)[22m[33m 307[2mms[22m[39m
+package	Full Windows source and independent plugin checks	2026-10-21T07:23:03.4854769Z 
+package	Full Windows source and independent plugin checks	2026-10-21T07:23:03.4855345Z [2m Test Files [22m [1m[32m3 passed[39m[22m[90m (3)[39m
+package	Full Windows source and independent plugin checks	2026-10-21T07:23:03.4856155Z [2m      Tests [22m [1m[32m49 passed[39m[22m[90m (49)[39m
+package	Full Windows source and independent plugin checks	2026-10-21T07:23:03.4857242Z [2m   Start at [22m 07:23:02
+package	Full Windows source and independent plugin checks	2026-10-21T07:23:03.4858381Z [2m   Duration [22m 799ms[2m (transform 180ms, setup 0ms, collect 310ms, tests 327ms, environment 1ms, prepare 449ms)[22m
+package	Full Windows source and independent plugin checks	2026-10-21T07:23:03.4859621Z 
+package	Full Windows source and independent plugin checks	2026-10-21T07:23:05.1904500Z Progress: resolved 1, reused 0, downloaded 0, added 0
+package	Full Windows source and independent plugin checks	2026-10-21T07:23:05.1905300Z Packages: +56
+package	Full Windows source and independent plugin checks	2026-10-21T07:23:05.1905864Z ++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+package	Full Windows source and independent plugin checks	2026-10-21T07:23:05.1906650Z Progress: resolved 131, reused 56, downloaded 0, added 56, done
+package	Full Windows source and independent plugin checks	2026-10-21T07:23:05.1907543Z 
+package	Full Windows source and independent plugin checks	2026-10-21T07:23:05.1907726Z devDependencies:
+package	Full Windows source and independent plugin checks	2026-10-21T07:23:05.1908550Z + @milkup/plugin-sdk 0.3.7
+package	Full Windows source and independent plugin checks	2026-10-21T07:23:05.1909226Z + esbuild 0.25.12 (0.28.2 is available)
+package	Full Windows source and independent plugin checks	2026-10-21T07:23:05.1909759Z + typescript 5.9.3 (7.0.2 is available)
+package	Full Windows source and independent plugin checks	2026-10-21T07:23:05.1910274Z + vitest 3.2.6 (5.0.5 is available)
+package	Full Windows source and independent plugin checks	2026-10-21T07:23:05.1910614Z 
+package	Full Windows source and independent plugin checks	2026-10-21T07:23:05.1911394Z Done in 1.6s using pnpm v11.7.0
+package	Full Windows source and independent plugin checks	2026-10-21T07:23:06.5172955Z $ tsc --noEmit && node scripts/build.mjs
+package	Full Windows source and independent plugin checks	2026-10-21T07:23:06.5175231Z Built dist/plugin.js and dist/milkup.management-1.0.0.milkup-plugin
+package	Full Windows source and independent plugin checks	2026-10-21T07:23:08.1562555Z 
+package	Full Windows source and independent plugin checks	2026-10-21T07:23:08.1564405Z [1m[46m RUN [49m[22m [36mv3.2.6 [39m[90mD:/a/_temp/manual-beta2-source/public-plugins/milkup.management[39m
+package	Full Windows source and independent plugin checks	2026-10-21T07:23:08.1565477Z 
+package	Full Windows source and independent plugin checks	2026-10-21T07:23:08.1566481Z  [32m✓[39m src/controller.test.ts [2m([22m[2m10 tests[22m[2m)[22m[32m 14[2mms[22m[39m
+package	Full Windows source and independent plugin checks	2026-10-21T07:23:08.1567376Z 
+package	Full Windows source and independent plugin checks	2026-10-21T07:23:08.1568148Z [2m Test Files [22m [1m[32m1 passed[39m[22m[90m (1)[39m
+package	Full Windows source and independent plugin checks	2026-10-21T07:23:08.1569351Z [2m      Tests [22m [1m[32m10 passed[39m[22m[90m (10)[39m
+package	Full Windows source and independent plugin checks	2026-10-21T07:23:08.1569997Z [2m   Start at [22m 07:23:07
+package	Full Windows source and independent plugin checks	2026-10-21T07:23:08.1570893Z [2m   Duration [22m 424ms[2m (transform 63ms, setup 0ms, collect 84ms, tests 14ms, environment 0ms, prepare 113ms)[22m
+package	Full Windows source and independent plugin checks	2026-10-21T07:23:08.1571387Z 
+package	Full Windows source and independent plugin checks	2026-10-21T07:23:10.0413191Z Progress: resolved 1, reused 0, downloaded 0, added 0
+package	Full Windows source and independent plugin checks	2026-10-21T07:23:10.0415241Z Packages: +58
+package	Full Windows source and independent plugin checks	2026-10-21T07:23:10.0415884Z ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+package	Full Windows source and independent plugin checks	2026-10-21T07:23:10.0417428Z Progress: resolved 133, reused 57, downloaded 1, added 45
+package	Full Windows source and independent plugin checks	2026-10-21T07:23:10.0418230Z Progress: resolved 133, reused 57, downloaded 1, added 58, done
+package	Full Windows source and independent plugin checks	2026-10-21T07:23:10.0418782Z 
+package	Full Windows source and independent plugin checks	2026-10-21T07:23:10.0419325Z dependencies:
+package	Full Windows source and independent plugin checks	2026-10-21T07:23:10.0420487Z + katex 0.19.0
+package	Full Windows source and independent plugin checks	2026-10-21T07:23:10.0420993Z 
+package	Full Windows source and independent plugin checks	2026-10-21T07:23:10.0421937Z devDependencies:
+package	Full Windows source and independent plugin checks	2026-10-21T07:23:10.0422882Z + @milkup/plugin-sdk 0.3.7
+package	Full Windows source and independent plugin checks	2026-10-21T07:23:10.0423836Z + esbuild 0.25.12 (0.28.2 is available)
+package	Full Windows source and independent plugin checks	2026-10-21T07:23:10.0424552Z + typescript 5.9.3 (7.0.2 is available)
+package	Full Windows source and independent plugin checks	2026-10-21T07:23:10.0425134Z + vitest 3.2.6 (5.0.5 is available)
+package	Full Windows source and independent plugin checks	2026-10-21T07:23:10.0425492Z 
+package	Full Windows source and independent plugin checks	2026-10-21T07:23:10.0425923Z Done in 1.7s using pnpm v11.7.0
+package	Full Windows source and independent plugin checks	2026-10-21T07:23:11.4770794Z $ tsc --noEmit && node scripts/build.mjs
+package	Full Windows source and independent plugin checks	2026-10-21T07:23:11.4772911Z Built milkup.math-1.0.0.milkup-plugin (547964 bytes)
+package	Full Windows source and independent plugin checks	2026-10-21T07:23:13.2407719Z 
+package	Full Windows source and independent plugin checks	2026-10-21T07:23:13.2411968Z [1m[46m RUN [49m[22m [36mv3.2.6 [39m[90mD:/a/_temp/manual-beta2-source/public-plugins/milkup.math[39m
+package	Full Windows source and independent plugin checks	2026-10-21T07:23:13.2412887Z 
+package	Full Windows source and independent plugin checks	2026-10-21T07:23:13.2414284Z  [32m✓[39m src/renderer.test.ts [2m([22m[2m18 tests[22m[2m)[22m[32m 48[2mms[22m[39m
+package	Full Windows source and independent plugin checks	2026-10-21T07:23:13.2417258Z  [32m✓[39m src/math.test.ts [2m([22m[2m38 tests[22m[2m)[22m[32m 50[2mms[22m[39m
+package	Full Windows source and independent plugin checks	2026-10-21T07:23:13.2418149Z 
+package	Full Windows source and independent plugin checks	2026-10-21T07:23:13.2418590Z [2m Test Files [22m [1m[32m2 passed[39m[22m[90m (2)[39m
+package	Full Windows source and independent plugin checks	2026-10-21T07:23:13.2419243Z [2m      Tests [22m [1m[32m56 passed[39m[22m[90m (56)[39m
+package	Full Windows source and independent plugin checks	2026-10-21T07:23:13.2419704Z [2m   Start at [22m 07:23:12
+package	Full Windows source and independent plugin checks	2026-10-21T07:23:13.2420439Z [2m   Duration [22m 526ms[2m (transform 131ms, setup 0ms, collect 248ms, tests 97ms, environment 0ms, prepare 247ms)[22m
+package	Full Windows source and independent plugin checks	2026-10-21T07:23:13.2420935Z 
+package	Full Windows source and independent plugin checks	2026-10-21T07:23:14.9274531Z Progress: resolved 1, reused 0, downloaded 0, added 0
+package	Full Windows source and independent plugin checks	2026-10-21T07:23:14.9277925Z Packages: +56
+package	Full Windows source and independent plugin checks	2026-10-21T07:23:14.9278595Z ++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+package	Full Windows source and independent plugin checks	2026-10-21T07:23:14.9280617Z Progress: resolved 131, reused 56, downloaded 0, added 56, done
+package	Full Windows source and independent plugin checks	2026-10-21T07:23:14.9281479Z 
+package	Full Windows source and independent plugin checks	2026-10-21T07:23:14.9281771Z devDependencies:
+package	Full Windows source and independent plugin checks	2026-10-21T07:23:14.9283024Z + @milkup/plugin-sdk 0.3.7
+package	Full Windows source and independent plugin checks	2026-10-21T07:23:14.9284195Z + esbuild 0.25.12 (0.28.2 is available)
+package	Full Windows source and independent plugin checks	2026-10-21T07:23:14.9284902Z + typescript 5.9.3 (7.0.2 is available)
+package	Full Windows source and independent plugin checks	2026-10-21T07:23:14.9285536Z + vitest 3.2.6 (5.0.5 is available)
+package	Full Windows source and independent plugin checks	2026-10-21T07:23:14.9285844Z 
+package	Full Windows source and independent plugin checks	2026-10-21T07:23:14.9286408Z Done in 1.5s using pnpm v11.7.0
+package	Full Windows source and independent plugin checks	2026-10-21T07:23:16.4122645Z $ tsc --noEmit && node scripts/build.mjs
+package	Full Windows source and independent plugin checks	2026-10-21T07:23:16.4123926Z Built dist/plugin.js and dist/milkup.outline-1.3.3.milkup-plugin
+package	Full Windows source and independent plugin checks	2026-10-21T07:23:25.1216237Z 
+package	Full Windows source and independent plugin checks	2026-10-21T07:23:25.1218360Z [1m[46m RUN [49m[22m [36mv3.2.6 [39m[90mD:/a/_temp/manual-beta2-source/public-plugins/milkup.outline[39m
+package	Full Windows source and independent plugin checks	2026-10-21T07:23:25.1219223Z 
+package	Full Windows source and independent plugin checks	2026-10-21T07:23:25.1220243Z  [32m✓[39m src/outline-index.test.ts [2m([22m[2m8 tests[22m[2m)[22m[33m 2165[2mms[22m[39m
+package	Full Windows source and independent plugin checks	2026-10-21T07:23:25.1223750Z    [33m[2m✓[22m[39m batches visibility leaf reads when collapsed roots are scattered through a complete index [33m 360[2mms[22m[39m
+package	Full Windows source and independent plugin checks	2026-10-21T07:23:25.1225790Z    [33m[2m✓[22m[39m matches an independent hierarchy oracle for 8775 headings and sparse/global folds [33m 382[2mms[22m[39m
+package	Full Windows source and independent plugin checks	2026-10-21T07:23:25.1230368Z    [33m[2m✓[22m[39m matches an independent hierarchy oracle for 18000 headings and sparse/global folds [33m 494[2mms[22m[39m
+package	Full Windows source and independent plugin checks	2026-10-21T07:23:25.1232182Z  [32m✓[39m src/plugin.test.ts [2m([22m[2m32 tests[22m[2m)[22m[33m 6959[2mms[22m[39m
+package	Full Windows source and independent plugin checks	2026-10-21T07:23:25.1234329Z    [33m[2m✓[22m[39m complete paged outline index[2m > [22mignores delayed echoes of the last returned slice rather than oscillating between old and prepared ranges [33m 386[2mms[22m[39m
+package	Full Windows source and independent plugin checks	2026-10-21T07:23:25.1237716Z    [33m[2m✓[22m[39m complete paged outline index[2m > [22mstops following the old active heading immediately and keeps the newest scroll request during storage reads [33m 342[2mms[22m[39m
+package	Full Windows source and independent plugin checks	2026-10-21T07:23:25.1240724Z    [33m[2m✓[22m[39m complete paged outline index[2m > [22mignores host slice echoes and settles without a render feedback loop [33m 376[2mms[22m[39m
+package	Full Windows source and independent plugin checks	2026-10-21T07:23:25.1244307Z    [33m[2m✓[22m[39m complete paged outline index[2m > [22mindexes every contiguous range, preserves the full hierarchy and does not rescan when navigating [33m 330[2mms[22m[39m
+package	Full Windows source and independent plugin checks	2026-10-21T07:23:25.1247533Z    [33m[2m✓[22m[39m complete paged outline index[2m > [22mfolds subtrees across scan boundaries, highlights ancestors and restores a navigated child [33m 377[2mms[22m[39m
+package	Full Windows source and independent plugin checks	2026-10-21T07:23:25.1250243Z    [33m[2m✓[22m[39m complete paged outline index[2m > [22muses source identity for duplicate titles and rejects stale version actions immediately [33m 313[2mms[22m[39m
+package	Full Windows source and independent plugin checks	2026-10-21T07:23:25.1252864Z    [33m[2m✓[22m[39m complete paged outline index[2m > [22mdiscards old scans after quick document changes and disposes each temporary index [33m 332[2mms[22m[39m
+package	Full Windows source and independent plugin checks	2026-10-21T07:23:25.1255422Z    [33m[2m✓[22m[39m complete paged outline index[2m > [22minvalidates cached visible ancestors when a later range adds their first child [33m 354[2mms[22m[39m
+package	Full Windows source and independent plugin checks	2026-10-21T07:23:25.1258194Z    [33m[2m✓[22m[39m complete paged outline index[2m > [22mshows a partial index honestly, supports cancellation/retry and does not reuse cancelled identities [33m 356[2mms[22m[39m
+package	Full Windows source and independent plugin checks	2026-10-21T07:23:25.1259823Z    [33m[2m✓[22m[39m complete paged outline index[2m > [22msupports empty documents and reports storage capability or quota failures explicitly [33m 323[2mms[22m[39m
+package	Full Windows source and independent plugin checks	2026-10-21T07:23:25.1261623Z    [33m[2m✓[22m[39m complete paged outline index[2m > [22mdoes not silently complete after invalidated, truncated or interrupted scans [33m 517[2mms[22m[39m
+package	Full Windows source and independent plugin checks	2026-10-21T07:23:25.1264274Z    [33m[2m✓[22m[39m complete paged outline index[2m > [22mkeeps every indexed title available beyond 16384 lines while rendering no more than 500 rows [33m 580[2mms[22m[39m
+package	Full Windows source and independent plugin checks	2026-10-21T07:23:25.1266376Z    [33m[2m✓[22m[39m complete paged outline index[2m > [22mbounds persisted pages for worst-case escaped labels while preserving folds [33m 339[2mms[22m[39m
+package	Full Windows source and independent plugin checks	2026-10-21T07:23:25.1269031Z    [33m[2m✓[22m[39m complete paged outline index[2m > [22mdoes not accept a delayed old-document navigation as current selection [33m 383[2mms[22m[39m
+package	Full Windows source and independent plugin checks	2026-10-21T07:23:25.1271031Z    [33m[2m✓[22m[39m debounces rapid edits/undo-redo and waits for old temporary-store disposal before indexing the newest version [33m 412[2mms[22m[39m
+package	Full Windows source and independent plugin checks	2026-10-21T07:23:25.1272182Z    [33m[2m✓[22m[39m cancels a debounced startup before allocating a store and can retry normally [33m 317[2mms[22m[39m
+package	Full Windows source and independent plugin checks	2026-10-21T07:23:25.1272641Z 
+package	Full Windows source and independent plugin checks	2026-10-21T07:23:25.1272974Z [2m Test Files [22m [1m[32m2 passed[39m[22m[90m (2)[39m
+package	Full Windows source and independent plugin checks	2026-10-21T07:23:25.1273531Z [2m      Tests [22m [1m[32m40 passed[39m[22m[90m (40)[39m
+package	Full Windows source and independent plugin checks	2026-10-21T07:23:25.1273979Z [2m   Start at [22m 07:23:17
+package	Full Windows source and independent plugin checks	2026-10-21T07:23:25.1274746Z [2m   Duration [22m 7.47s[2m (transform 211ms, setup 0ms, collect 316ms, tests 9.12s, environment 0ms, prepare 244ms)[22m
+package	Full Windows source and independent plugin checks	2026-10-21T07:23:25.1275209Z 
+package	Full Windows source and independent plugin checks	2026-10-21T07:23:26.8388314Z Progress: resolved 1, reused 0, downloaded 0, added 0
+package	Full Windows source and independent plugin checks	2026-10-21T07:23:26.8389557Z Packages: +56
+package	Full Windows source and independent plugin checks	2026-10-21T07:23:26.8390244Z ++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+package	Full Windows source and independent plugin checks	2026-10-21T07:23:26.8392306Z Progress: resolved 131, reused 56, downloaded 0, added 56, done
+package	Full Windows source and independent plugin checks	2026-10-21T07:23:26.8393389Z 
+package	Full Windows source and independent plugin checks	2026-10-21T07:23:26.8393676Z devDependencies:
+package	Full Windows source and independent plugin checks	2026-10-21T07:23:26.8394622Z + @milkup/plugin-sdk 0.3.7
+package	Full Windows source and independent plugin checks	2026-10-21T07:23:26.8395318Z + esbuild 0.25.12 (0.28.2 is available)
+package	Full Windows source and independent plugin checks	2026-10-21T07:23:26.8396356Z + typescript 5.9.3 (7.0.2 is available)
+package	Full Windows source and independent plugin checks	2026-10-21T07:23:26.8396974Z + vitest 3.2.6 (5.0.5 is available)
+package	Full Windows source and independent plugin checks	2026-10-21T07:23:26.8397334Z 
+package	Full Windows source and independent plugin checks	2026-10-21T07:23:26.8397587Z Done in 1.6s using pnpm v11.7.0
+package	Full Windows source and independent plugin checks	2026-10-21T07:23:28.2205190Z $ tsc --noEmit && node scripts/build.mjs
+package	Full Windows source and independent plugin checks	2026-10-21T07:23:28.2206680Z Built dist/plugin.js and dist/milkup.preferences-1.0.0.milkup-plugin
+package	Full Windows source and independent plugin checks	2026-10-21T07:23:30.0259930Z 
+package	Full Windows source and independent plugin checks	2026-10-21T07:23:30.0261550Z [1m[46m RUN [49m[22m [36mv3.2.6 [39m[90mD:/a/_temp/manual-beta2-source/public-plugins/milkup.preferences[39m
+package	Full Windows source and independent plugin checks	2026-10-21T07:23:30.0263070Z 
+package	Full Windows source and independent plugin checks	2026-10-21T07:23:30.0264440Z  [32m✓[39m src/plugin.test.ts [2m([22m[2m28 tests[22m[2m)[22m[32m 142[2mms[22m[39m
+package	Full Windows source and independent plugin checks	2026-10-21T07:23:30.0265206Z 
+package	Full Windows source and independent plugin checks	2026-10-21T07:23:30.0266340Z [2m Test Files [22m [1m[32m1 passed[39m[22m[90m (1)[39m
+package	Full Windows source and independent plugin checks	2026-10-21T07:23:30.0268610Z [2m      Tests [22m [1m[32m28 passed[39m[22m[90m (28)[39m
+package	Full Windows source and independent plugin checks	2026-10-21T07:23:30.0269706Z [2m   Start at [22m 07:23:29
+package	Full Windows source and independent plugin checks	2026-10-21T07:23:30.0271380Z [2m   Duration [22m 590ms[2m (transform 82ms, setup 0ms, collect 107ms, tests 142ms, environment 0ms, prepare 123ms)[22m
+package	Full Windows source and independent plugin checks	2026-10-21T07:23:30.0272557Z 
+package	Full Windows source and independent plugin checks	2026-10-21T07:23:31.7617758Z Progress: resolved 1, reused 0, downloaded 0, added 0
+package	Full Windows source and independent plugin checks	2026-10-21T07:23:31.7619530Z Packages: +56
+package	Full Windows source and independent plugin checks	2026-10-21T07:23:31.7620089Z ++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+package	Full Windows source and independent plugin checks	2026-10-21T07:23:31.7621334Z Progress: resolved 131, reused 56, downloaded 0, added 56, done
+package	Full Windows source and independent plugin checks	2026-10-21T07:23:31.7621894Z 
+package	Full Windows source and independent plugin checks	2026-10-21T07:23:31.7622171Z devDependencies:
+package	Full Windows source and independent plugin checks	2026-10-21T07:23:31.7623598Z + @milkup/plugin-sdk 0.3.7
+package	Full Windows source and independent plugin checks	2026-10-21T07:23:31.7624983Z + esbuild 0.25.12 (0.28.2 is available)
+package	Full Windows source and independent plugin checks	2026-10-21T07:23:31.7626910Z + typescript 5.9.3 (7.0.2 is available)
+package	Full Windows source and independent plugin checks	2026-10-21T07:23:31.7627488Z + vitest 3.2.6 (5.0.5 is available)
+package	Full Windows source and independent plugin checks	2026-10-21T07:23:31.7627731Z 
+package	Full Windows source and independent plugin checks	2026-10-21T07:23:31.7627890Z Done in 1.6s using pnpm v11.7.0
+package	Full Windows source and independent plugin checks	2026-10-21T07:23:33.0935686Z $ tsc --noEmit && node scripts/build.mjs
+package	Full Windows source and independent plugin checks	2026-10-21T07:23:33.0938036Z Built dist/plugin.js and dist/milkup.shortcuts-1.0.0.milkup-plugin
+package	Full Windows source and independent plugin checks	2026-10-21T07:23:34.7575479Z 
+package	Full Windows source and independent plugin checks	2026-10-21T07:23:34.7580021Z [1m[46m RUN [49m[22m [36mv3.2.6 [39m[90mD:/a/_temp/manual-beta2-source/public-plugins/milkup.shortcuts[39m
+package	Full Windows source and independent plugin checks	2026-10-21T07:23:34.7581199Z 
+package	Full Windows source and independent plugin checks	2026-10-21T07:23:34.7582531Z  [32m✓[39m src/plugin.test.ts [2m([22m[2m8 tests[22m[2m)[22m[32m 15[2mms[22m[39m
+package	Full Windows source and independent plugin checks	2026-10-21T07:23:34.7583235Z 
+package	Full Windows source and independent plugin checks	2026-10-21T07:23:34.7584181Z [2m Test Files [22m [1m[32m1 passed[39m[22m[90m (1)[39m
+package	Full Windows source and independent plugin checks	2026-10-21T07:23:34.7585328Z [2m      Tests [22m [1m[32m8 passed[39m[22m[90m (8)[39m
+package	Full Windows source and independent plugin checks	2026-10-21T07:23:34.7587170Z [2m   Start at [22m 07:23:34
+package	Full Windows source and independent plugin checks	2026-10-21T07:23:34.7588866Z [2m   Duration [22m 432ms[2m (transform 64ms, setup 0ms, collect 78ms, tests 15ms, environment 0ms, prepare 111ms)[22m
+package	Full Windows source and independent plugin checks	2026-10-21T07:23:34.7591211Z 
+package	Full Windows source and independent plugin checks	2026-10-21T07:23:36.5977065Z Progress: resolved 1, reused 0, downloaded 0, added 0
+package	Full Windows source and independent plugin checks	2026-10-21T07:23:36.5978054Z Packages: +56
+package	Full Windows source and independent plugin checks	2026-10-21T07:23:36.5978926Z ++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+package	Full Windows source and independent plugin checks	2026-10-21T07:23:36.5980647Z Progress: resolved 131, reused 56, downloaded 0, added 27
+package	Full Windows source and independent plugin checks	2026-10-21T07:23:36.5982553Z Progress: resolved 131, reused 56, downloaded 0, added 56, done
+package	Full Windows source and independent plugin checks	2026-10-21T07:23:36.5984094Z 
+package	Full Windows source and independent plugin checks	2026-10-21T07:23:36.5984645Z devDependencies:
+package	Full Windows source and independent plugin checks	2026-10-21T07:23:36.5985312Z + @milkup/plugin-sdk 0.3.7
+package	Full Windows source and independent plugin checks	2026-10-21T07:23:36.5985991Z + esbuild 0.25.12 (0.28.2 is available)
+package	Full Windows source and independent plugin checks	2026-10-21T07:23:36.5986631Z + typescript 5.9.3 (7.0.2 is available)
+package	Full Windows source and independent plugin checks	2026-10-21T07:23:36.5987236Z + vitest 3.2.6 (5.0.5 is available)
+package	Full Windows source and independent plugin checks	2026-10-21T07:23:36.5987600Z 
+package	Full Windows source and independent plugin checks	2026-10-21T07:23:36.5987859Z Done in 1.7s using pnpm v11.7.0
+package	Full Windows source and independent plugin checks	2026-10-21T07:23:37.9245015Z $ tsc --noEmit && node scripts/build.mjs
+package	Full Windows source and independent plugin checks	2026-10-21T07:23:37.9260955Z Built dist/plugin.js and dist/milkup.updates-1.0.1.milkup-plugin
+package	Full Windows source and independent plugin checks	2026-10-21T07:23:39.6427788Z 
+package	Full Windows source and independent plugin checks	2026-10-21T07:23:39.6429727Z [1m[46m RUN [49m[22m [36mv3.2.6 [39m[90mD:/a/_temp/manual-beta2-source/public-plugins/milkup.updates[39m
+package	Full Windows source and independent plugin checks	2026-10-21T07:23:39.6431043Z 
+package	Full Windows source and independent plugin checks	2026-10-21T07:23:39.6432451Z  [32m✓[39m src/plugin.test.ts [2m([22m[2m19 tests[22m[2m)[22m[32m 28[2mms[22m[39m
+package	Full Windows source and independent plugin checks	2026-10-21T07:23:39.6433300Z 
+package	Full Windows source and independent plugin checks	2026-10-21T07:23:39.6433828Z [2m Test Files [22m [1m[32m1 passed[39m[22m[90m (1)[39m
+package	Full Windows source and independent plugin checks	2026-10-21T07:23:39.6434950Z [2m      Tests [22m [1m[32m19 passed[39m[22m[90m (19)[39m
+package	Full Windows source and independent plugin checks	2026-10-21T07:23:39.6435590Z [2m   Start at [22m 07:23:38
+package	Full Windows source and independent plugin checks	2026-10-21T07:23:39.6436380Z [2m   Duration [22m 494ms[2m (transform 82ms, setup 0ms, collect 114ms, tests 28ms, environment 0ms, prepare 111ms)[22m
+package	Full Windows source and independent plugin checks	2026-10-21T07:23:39.6436882Z 
+package	Full Windows source and independent plugin checks	2026-10-21T07:23:41.5156873Z Progress: resolved 1, reused 0, downloaded 0, added 0
+package	Full Windows source and independent plugin checks	2026-10-21T07:23:41.5157636Z Packages: +56
+package	Full Windows source and independent plugin checks	2026-10-21T07:23:41.5158854Z ++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+package	Full Windows source and independent plugin checks	2026-10-21T07:23:41.5159644Z Progress: resolved 131, reused 56, downloaded 0, added 28
+package	Full Windows source and independent plugin checks	2026-10-21T07:23:41.5162273Z Progress: resolved 131, reused 56, downloaded 0, added 56, done
+package	Full Windows source and independent plugin checks	2026-10-21T07:23:41.5163127Z 
+package	Full Windows source and independent plugin checks	2026-10-21T07:23:41.5164993Z devDependencies:
+package	Full Windows source and independent plugin checks	2026-10-21T07:23:41.5165970Z + @milkup/plugin-sdk 0.3.7
+package	Full Windows source and independent plugin checks	2026-10-21T07:23:41.5166492Z + esbuild 0.25.12 (0.28.2 is available)
+package	Full Windows source and independent plugin checks	2026-10-21T07:23:41.5166993Z + typescript 5.9.3 (7.0.2 is available)
+package	Full Windows source and independent plugin checks	2026-10-21T07:23:41.5167940Z + vitest 3.2.6 (5.0.5 is available)
+package	Full Windows source and independent plugin checks	2026-10-21T07:23:41.5168446Z 
+package	Full Windows source and independent plugin checks	2026-10-21T07:23:41.5168702Z Done in 1.7s using pnpm v11.7.0
+package	Full Windows source and independent plugin checks	2026-10-21T07:23:42.8769027Z $ tsc --noEmit && node scripts/build.mjs
+package	Full Windows source and independent plugin checks	2026-10-21T07:23:42.8770375Z Built dist/plugin.js and dist/milkup.workspace-1.0.0.milkup-plugin
+package	Full Windows source and independent plugin checks	2026-10-21T07:23:44.6454758Z 
+package	Full Windows source and independent plugin checks	2026-10-21T07:23:44.6457218Z [1m[46m RUN [49m[22m [36mv3.2.6 [39m[90mD:/a/_temp/manual-beta2-source/public-plugins/milkup.workspace[39m
+package	Full Windows source and independent plugin checks	2026-10-21T07:23:44.6458034Z 
+package	Full Windows source and independent plugin checks	2026-10-21T07:23:44.6459032Z  [32m✓[39m src/plugin.test.ts [2m([22m[2m24 tests[22m[2m)[22m[32m 89[2mms[22m[39m
+package	Full Windows source and independent plugin checks	2026-10-21T07:23:44.6459635Z 
+package	Full Windows source and independent plugin checks	2026-10-21T07:23:44.6460134Z [2m Test Files [22m [1m[32m1 passed[39m[22m[90m (1)[39m
+package	Full Windows source and independent plugin checks	2026-10-21T07:23:44.6461282Z [2m      Tests [22m [1m[32m24 passed[39m[22m[90m (24)[39m
+package	Full Windows source and independent plugin checks	2026-10-21T07:23:44.6462650Z [2m   Start at [22m 07:23:43
+package	Full Windows source and independent plugin checks	2026-10-21T07:23:44.6463852Z [2m   Duration [22m 549ms[2m (transform 96ms, setup 0ms, collect 131ms, tests 89ms, environment 0ms, prepare 110ms)[22m
+package	Full Windows source and independent plugin checks	2026-10-21T07:23:44.6464576Z 
+package	Build and inspect unsigned NSIS without installation	﻿2026-10-21T07:40:31.6750797Z ##[group]Run ./scripts/ci/build-windows-manual-candidate.ps1 -EvidenceDirectory "$env:RUNNER_TEMP/manual-beta2-source" -OutputDirectory "$env:RUNNER_TEMP/manual-beta2-deliverable"
+package	Build and inspect unsigned NSIS without installation	2026-10-21T07:40:31.6752253Z [36;1m./scripts/ci/build-windows-manual-candidate.ps1 -EvidenceDirectory "$env:RUNNER_TEMP/manual-beta2-source" -OutputDirectory "$env:RUNNER_TEMP/manual-beta2-deliverable"[0m
+package	Build and inspect unsigned NSIS without installation	2026-10-21T07:40:31.6834664Z shell: C:\Program Files\PowerShell\7\pwsh.EXE -command ". '{0}'"
+package	Build and inspect unsigned NSIS without installation	2026-10-21T07:40:31.6835031Z env:
+package	Build and inspect unsigned NSIS without installation	2026-10-21T07:40:31.6835205Z   CARGO_BUILD_JOBS: 2
+package	Build and inspect unsigned NSIS without installation	2026-10-21T07:40:31.6835405Z   CARGO_INCREMENTAL: 0
+package	Build and inspect unsigned NSIS without installation	2026-10-21T07:40:31.6835601Z   CARGO_PROFILE_DEV_DEBUG: 0
+package	Build and inspect unsigned NSIS without installation	2026-10-21T07:40:31.6835815Z   CARGO_PROFILE_RELEASE_DEBUG: 0
+package	Build and inspect unsigned NSIS without installation	2026-10-21T07:40:31.6836033Z   CARGO_TERM_COLOR: never
+package	Build and inspect unsigned NSIS without installation	2026-10-21T07:40:31.6836263Z   PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: 1
+package	Build and inspect unsigned NSIS without installation	2026-10-21T07:40:31.6836511Z   GIT_CONFIG_COUNT: 1
+package	Build and inspect unsigned NSIS without installation	2026-10-21T07:40:31.6836710Z   GIT_CONFIG_KEY_0: core.longpaths
+package	Build and inspect unsigned NSIS without installation	2026-10-21T07:40:31.6836944Z   GIT_CONFIG_VALUE_0: true
+package	Build and inspect unsigned NSIS without installation	2026-10-21T07:40:31.6837215Z   RUSTUP_TOOLCHAIN: 1.99.0
+package	Build and inspect unsigned NSIS without installation	2026-10-21T07:40:31.6837416Z ##[endgroup]
+package	Build and inspect unsigned NSIS without installation	2026-10-21T07:40:32.3812957Z [31;1mException: [0mD:\a\milkup\milkup\scripts\ci\build-windows-manual-candidate.ps1:20[0m
+package	Build and inspect unsigned NSIS without installation	2026-10-21T07:40:32.3813670Z [31;1m[0m[36;1mLine |[0m
+package	Build and inspect unsigned NSIS without installation	2026-10-21T07:40:32.3814413Z [31;1m[0m[36;1m[36;1m  20 | [0m … SHA -or (git status --porcelain)) { [36;1mthrow 'Unexpected source state'[0m }[0m
+package	Build and inspect unsigned NSIS without installation	2026-10-21T07:40:32.3815239Z [31;1m[0m[36;1m[36;1m[0m[36;1m[0m[36;1m     | [31;1m                                       ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~[0m
+package	Build and inspect unsigned NSIS without installation	2026-10-21T07:40:32.3815990Z [31;1m[0m[36;1m[36;1m[0m[36;1m[0m[36;1m[31;1m[31;1m[36;1m     | [31;1mUnexpected source state[0m
+package	Build and inspect unsigned NSIS without installation	2026-10-21T07:40:32.4408562Z ##[error]Process completed with exit code 1.
+package	Record source checks and delivery boundary	﻿2026-10-21T07:40:32.4591058Z ##[group]Run foreach ($path in @('manual-beta2-source/phases.json','manual-beta2-source/rust-test-result.json','manual-beta2-deliverable/manifest.json','manual-beta2-deliverable/plugins.json','manual-beta2-deliverable/SHA256SUMS.txt')) {
+package	Record source checks and delivery boundary	2026-10-21T07:40:32.4593311Z [36;1mforeach ($path in @('manual-beta2-source/phases.json','manual-beta2-source/rust-test-result.json','manual-beta2-deliverable/manifest.json','manual-beta2-deliverable/plugins.json','manual-beta2-deliverable/SHA256SUMS.txt')) {[0m
+package	Record source checks and delivery boundary	2026-10-21T07:40:32.4594505Z [36;1m  $file = Join-Path $env:RUNNER_TEMP $path[0m
+package	Record source checks and delivery boundary	2026-10-21T07:40:32.4595043Z [36;1m  if (Test-Path $file) { Write-Host "::group::$path"; Get-Content $file | Write-Host; Write-Host '::endgroup::' }[0m
+package	Record source checks and delivery boundary	2026-10-21T07:40:32.4595564Z [36;1m}[0m
+package	Record source checks and delivery boundary	2026-10-21T07:40:32.4596363Z [36;1m'Unsigned Windows manual trial only. No installer execution, GUI/IME, actual upgrade or rollback acceptance. Windows DOM/PDF remain disabled. Default small package; no full Runtime bundle.' >> $env:GITHUB_STEP_SUMMARY[0m
+package	Record source checks and delivery boundary	2026-10-21T07:40:32.4668742Z shell: C:\Program Files\PowerShell\7\pwsh.EXE -command ". '{0}'"
+package	Record source checks and delivery boundary	2026-10-21T07:40:32.4669089Z env:
+package	Record source checks and delivery boundary	2026-10-21T07:40:32.4669268Z   CARGO_BUILD_JOBS: 2
+package	Record source checks and delivery boundary	2026-10-21T07:40:32.4669481Z   CARGO_INCREMENTAL: 0
+package	Record source checks and delivery boundary	2026-10-21T07:40:32.4669691Z   CARGO_PROFILE_DEV_DEBUG: 0
+package	Record source checks and delivery boundary	2026-10-21T07:40:32.4669917Z   CARGO_PROFILE_RELEASE_DEBUG: 0
+package	Record source checks and delivery boundary	2026-10-21T07:40:32.4670143Z   CARGO_TERM_COLOR: never
+package	Record source checks and delivery boundary	2026-10-21T07:40:32.4670371Z   PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: 1
+package	Record source checks and delivery boundary	2026-10-21T07:40:32.4670614Z   GIT_CONFIG_COUNT: 1
+package	Record source checks and delivery boundary	2026-10-21T07:40:32.4670820Z   GIT_CONFIG_KEY_0: core.longpaths
+package	Record source checks and delivery boundary	2026-10-21T07:40:32.4671061Z   GIT_CONFIG_VALUE_0: true
+package	Record source checks and delivery boundary	2026-10-21T07:40:32.4671266Z   RUSTUP_TOOLCHAIN: 1.99.0
+package	Record source checks and delivery boundary	2026-10-21T07:40:32.4671463Z ##[endgroup]
+package	Record source checks and delivery boundary	2026-10-21T07:40:32.8475783Z ##[group]manual-beta2-source/phases.json
+package	Record source checks and delivery boundary	2026-10-21T07:40:32.8531658Z [
+package	Record source checks and delivery boundary	2026-10-21T07:40:32.8538049Z   {
+package	Record source checks and delivery boundary	2026-10-21T07:40:32.8542844Z     "name": "locked-workspace-restore",
+package	Record source checks and delivery boundary	2026-10-21T07:40:32.8547616Z     "startedAt": "2026-10-21T07:22:13.5722029Z",
+package	Record source checks and delivery boundary	2026-10-21T07:40:32.8552470Z     "status": "passed",
+package	Record source checks and delivery boundary	2026-10-21T07:40:32.8557063Z     "endedAt": "2026-10-21T07:22:19.2461893Z",
+package	Record source checks and delivery boundary	2026-10-21T07:40:32.8562148Z     "commands": [
+package	Record source checks and delivery boundary	2026-10-21T07:40:32.8567170Z       {
+package	Record source checks and delivery boundary	2026-10-21T07:40:32.8571544Z         "executable": "node",
+package	Record source checks and delivery boundary	2026-10-21T07:40:32.8576108Z         "arguments": [
+package	Record source checks and delivery boundary	2026-10-21T07:40:32.8580575Z           "C:\\npm\\prefix\\node_modules\\pnpm\\bin\\pnpm.cjs",
+package	Record source checks and delivery boundary	2026-10-21T07:40:32.8584983Z           "install",
+package	Record source checks and delivery boundary	2026-10-21T07:40:32.8589589Z           "--frozen-lockfile",
+package	Record source checks and delivery boundary	2026-10-21T07:40:32.8593971Z           "--config.manage-package-manager-versions=false"
+package	Record source checks and delivery boundary	2026-10-21T07:40:32.8598339Z         ],
+package	Record source checks and delivery boundary	2026-10-21T07:40:32.8602622Z         "exitCode": 0,
+package	Record source checks and delivery boundary	2026-10-21T07:40:32.8607444Z         "startedAt": "2026-10-21T07:22:13.5759279Z",
+package	Record source checks and delivery boundary	2026-10-21T07:40:32.8611651Z         "endedAt": "2026-10-21T07:22:19.2425154Z"
+package	Record source checks and delivery boundary	2026-10-21T07:40:32.8616706Z       }
+package	Record source checks and delivery boundary	2026-10-21T07:40:32.8622154Z     ]
+package	Record source checks and delivery boundary	2026-10-21T07:40:32.8628573Z   },
+package	Record source checks and delivery boundary	2026-10-21T07:40:32.8634324Z   {
+package	Record source checks and delivery boundary	2026-10-21T07:40:32.8639750Z     "name": "updater-vendor-provenance",
+package	Record source checks and delivery boundary	2026-10-21T07:40:32.8645506Z     "startedAt": "2026-10-21T07:22:19.2552331Z",
+package	Record source checks and delivery boundary	2026-10-21T07:40:32.8652227Z     "status": "passed",
+package	Record source checks and delivery boundary	2026-10-21T07:40:32.8657925Z     "endedAt": "2026-10-21T07:22:19.3475234Z",
+package	Record source checks and delivery boundary	2026-10-21T07:40:32.8663511Z     "commands": [
+package	Record source checks and delivery boundary	2026-10-21T07:40:32.8669727Z       {
+package	Record source checks and delivery boundary	2026-10-21T07:40:32.8675439Z         "executable": "node",
+package	Record source checks and delivery boundary	2026-10-21T07:40:32.8681319Z         "arguments": [
+package	Record source checks and delivery boundary	2026-10-21T07:40:32.8687131Z           "scripts/check-updater-vendor.mjs"
+package	Record source checks and delivery boundary	2026-10-21T07:40:32.8692890Z         ],
+package	Record source checks and delivery boundary	2026-10-21T07:40:32.8698877Z         "exitCode": 0,
+package	Record source checks and delivery boundary	2026-10-21T07:40:32.8705470Z         "startedAt": "2026-10-21T07:22:19.2566834Z",
+package	Record source checks and delivery boundary	2026-10-21T07:40:32.8711300Z         "endedAt": "2026-10-21T07:22:19.3473406Z"
+package	Record source checks and delivery boundary	2026-10-21T07:40:32.8717257Z       }
+package	Record source checks and delivery boundary	2026-10-21T07:40:32.8723245Z     ]
+package	Record source checks and delivery boundary	2026-10-21T07:40:32.8729645Z   },
+package	Record source checks and delivery boundary	2026-10-21T07:40:32.8735867Z   {
+package	Record source checks and delivery boundary	2026-10-21T07:40:32.8741679Z     "name": "source-check-contracts",
+package	Record source checks and delivery boundary	2026-10-21T07:40:32.8748070Z     "startedAt": "2026-10-21T07:22:19.3506222Z",
+package	Record source checks and delivery boundary	2026-10-21T07:40:32.8753429Z     "status": "passed",
+package	Record source checks and delivery boundary	2026-10-21T07:40:32.8759414Z     "endedAt": "2026-10-21T07:22:26.7463445Z",
+package	Record source checks and delivery boundary	2026-10-21T07:40:32.8765351Z     "commands": [
+package	Record source checks and delivery boundary	2026-10-21T07:40:32.8772092Z       {
+package	Record source checks and delivery boundary	2026-10-21T07:40:32.8777699Z         "executable": "node",
+package	Record source checks and delivery boundary	2026-10-21T07:40:32.8784039Z         "arguments": [
+package	Record source checks and delivery boundary	2026-10-21T07:40:32.8790000Z           "--test",
+package	Record source checks and delivery boundary	2026-10-21T07:40:32.8796430Z           "scripts/check-versions.test.mjs",
+package	Record source checks and delivery boundary	2026-10-21T07:40:32.8801999Z           "scripts/check-updater-vendor.test.mjs",
+package	Record source checks and delivery boundary	2026-10-21T07:40:32.8808502Z           "tests/ci/windows-desktop-source-check.test.mjs",
+package	Record source checks and delivery boundary	2026-10-21T07:40:32.8815043Z           "tests/ci/stage-public-plugin-check.test.mjs",
+package	Record source checks and delivery boundary	2026-10-21T07:40:32.8820658Z           "tests/ci/public-plugin-windows-checkout.test.mjs",
+package	Record source checks and delivery boundary	2026-10-21T07:40:32.8827095Z           "tests/ci/diagrams-build-paths.test.mjs",
+package	Record source checks and delivery boundary	2026-10-21T07:40:32.8832857Z           "tests/ci/public-plugin-build-contract.test.mjs",
+package	Record source checks and delivery boundary	2026-10-21T07:40:32.8838777Z           "tests/ci/public-plugin-dom-build.test.mjs",
+package	Record source checks and delivery boundary	2026-10-21T07:40:32.8845223Z           "tests/ci/public-plugin-sdk-artifact.test.mjs"
+package	Record source checks and delivery boundary	2026-10-21T07:40:32.8851140Z         ],
+package	Record source checks and delivery boundary	2026-10-21T07:40:32.8857487Z         "exitCode": 0,
+package	Record source checks and delivery boundary	2026-10-21T07:40:32.8863238Z         "startedAt": "2026-10-21T07:22:19.3519430Z",
+package	Record source checks and delivery boundary	2026-10-21T07:40:32.8869369Z         "endedAt": "2026-10-21T07:22:26.7461628Z"
+package	Record source checks and delivery boundary	2026-10-21T07:40:32.8875318Z       }
+package	Record source checks and delivery boundary	2026-10-21T07:40:32.8881304Z     ]
+package	Record source checks and delivery boundary	2026-10-21T07:40:32.8887805Z   },
+package	Record source checks and delivery boundary	2026-10-21T07:40:32.8893668Z   {
+package	Record source checks and delivery boundary	2026-10-21T07:40:32.8899574Z     "name": "public-sdk-build",
+package	Record source checks and delivery boundary	2026-10-21T07:40:32.8906092Z     "startedAt": "2026-10-21T07:22:26.7496314Z",
+package	Record source checks and delivery boundary	2026-10-21T07:40:32.8912300Z     "status": "passed",
+package	Record source checks and delivery boundary	2026-10-21T07:40:32.8917928Z     "endedAt": "2026-10-21T07:22:28.3051741Z",
+package	Record source checks and delivery boundary	2026-10-21T07:40:32.8923276Z     "commands": [
+package	Record source checks and delivery boundary	2026-10-21T07:40:32.8929513Z       {
+package	Record source checks and delivery boundary	2026-10-21T07:40:32.8935015Z         "executable": "node",
+package	Record source checks and delivery boundary	2026-10-21T07:40:32.8941232Z         "arguments": [
+package	Record source checks and delivery boundary	2026-10-21T07:40:32.8947197Z           "C:\\npm\\prefix\\node_modules\\pnpm\\bin\\pnpm.cjs",
+package	Record source checks and delivery boundary	2026-10-21T07:40:32.8953022Z           "--filter",
+package	Record source checks and delivery boundary	2026-10-21T07:40:32.8959309Z           "@milkup/plugin-sdk",
+package	Record source checks and delivery boundary	2026-10-21T07:40:32.8964868Z           "build"
+package	Record source checks and delivery boundary	2026-10-21T07:40:32.8970697Z         ],
+package	Record source checks and delivery boundary	2026-10-21T07:40:32.8976733Z         "exitCode": 0,
+package	Record source checks and delivery boundary	2026-10-21T07:40:32.8982374Z         "startedAt": "2026-10-21T07:22:26.7511444Z",
+package	Record source checks and delivery boundary	2026-10-21T07:40:32.8988462Z         "endedAt": "2026-10-21T07:22:28.3050587Z"
+package	Record source checks and delivery boundary	2026-10-21T07:40:32.8993673Z       }
+package	Record source checks and delivery boundary	2026-10-21T07:40:32.8999723Z     ]
+package	Record source checks and delivery boundary	2026-10-21T07:40:32.9005755Z   },
+package	Record source checks and delivery boundary	2026-10-21T07:40:32.9011779Z   {
+package	Record source checks and delivery boundary	2026-10-21T07:40:32.9017449Z     "name": "eleven-independent-public-plugins",
+package	Record source checks and delivery boundary	2026-10-21T07:40:32.9023419Z     "startedAt": "2026-10-21T07:22:28.3089192Z",
+package	Record source checks and delivery boundary	2026-10-21T07:40:32.9029564Z     "status": "passed",
+package	Record source checks and delivery boundary	2026-10-21T07:40:32.9035405Z     "endedAt": "2026-10-21T07:23:44.6671149Z",
+package	Record source checks and delivery boundary	2026-10-21T07:40:32.9040881Z     "commands": [
+package	Record source checks and delivery boundary	2026-10-21T07:40:32.9046836Z       {
+package	Record source checks and delivery boundary	2026-10-21T07:40:32.9052383Z         "executable": "node",
+package	Record source checks and delivery boundary	2026-10-21T07:40:32.9058392Z         "arguments": [
+package	Record source checks and delivery boundary	2026-10-21T07:40:32.9064157Z           "scripts/ci/verify-public-plugin-builds.mjs",
+package	Record source checks and delivery boundary	2026-10-21T07:40:32.9070799Z           "D:\\a\\_temp\\manual-beta2-source\\public-plugins",
+package	Record source checks and delivery boundary	2026-10-21T07:40:32.9076095Z           "C:\\npm\\prefix\\node_modules\\pnpm\\bin\\pnpm.cjs"
+package	Record source checks and delivery boundary	2026-10-21T07:40:32.9082270Z         ],
+package	Record source checks and delivery boundary	2026-10-21T07:40:32.9088361Z         "exitCode": 0,
+package	Record source checks and delivery boundary	2026-10-21T07:40:32.9094691Z         "startedAt": "2026-10-21T07:22:28.3101589Z",
+package	Record source checks and delivery boundary	2026-10-21T07:40:32.9100500Z         "endedAt": "2026-10-21T07:23:44.6669830Z"
+package	Record source checks and delivery boundary	2026-10-21T07:40:32.9106182Z       }
+package	Record source checks and delivery boundary	2026-10-21T07:40:32.9112357Z     ]
+package	Record source checks and delivery boundary	2026-10-21T07:40:32.9118027Z   },
+package	Record source checks and delivery boundary	2026-10-21T07:40:32.9123517Z   {
+package	Record source checks and delivery boundary	2026-10-21T07:40:32.9129349Z     "name": "eleven-independent-plugin-types",
+package	Record source checks and delivery boundary	2026-10-21T07:40:32.9135181Z     "startedAt": "2026-10-21T07:23:44.6699815Z",
+package	Record source checks and delivery boundary	2026-10-21T07:40:32.9141209Z     "status": "passed",
+package	Record source checks and delivery boundary	2026-10-21T07:40:32.9147301Z     "endedAt": "2026-10-21T07:23:58.3687268Z",
+package	Record source checks and delivery boundary	2026-10-21T07:40:32.9153423Z     "commands": [
+package	Record source checks and delivery boundary	2026-10-21T07:40:32.9159141Z       {
+package	Record source checks and delivery boundary	2026-10-21T07:40:32.9165365Z         "executable": "node",
+package	Record source checks and delivery boundary	2026-10-21T07:40:32.9171039Z         "arguments": [
+package	Record source checks and delivery boundary	2026-10-21T07:40:32.9176670Z           "C:\\npm\\prefix\\node_modules\\pnpm\\bin\\pnpm.cjs",
+package	Record source checks and delivery boundary	2026-10-21T07:40:32.9182831Z           "--dir",
+package	Record source checks and delivery boundary	2026-10-21T07:40:32.9188713Z           "D:\\a\\_temp\\manual-beta2-source\\public-plugins\\milkup.diagrams",
+package	Record source checks and delivery boundary	2026-10-21T07:40:32.9194370Z           "exec",
+package	Record source checks and delivery boundary	2026-10-21T07:40:32.9199950Z           "tsc",
+package	Record source checks and delivery boundary	2026-10-21T07:40:32.9206082Z           "--noEmit",
+package	Record source checks and delivery boundary	2026-10-21T07:40:32.9211775Z           "-p",
+package	Record source checks and delivery boundary	2026-10-21T07:40:32.9217341Z           "tsconfig.json"
+package	Record source checks and delivery boundary	2026-10-21T07:40:32.9223201Z         ],
+package	Record source checks and delivery boundary	2026-10-21T07:40:32.9228678Z         "exitCode": 0,
+package	Record source checks and delivery boundary	2026-10-21T07:40:32.9234590Z         "startedAt": "2026-10-21T07:23:44.6904525Z",
+package	Record source checks and delivery boundary	2026-10-21T07:40:32.9239768Z         "endedAt": "2026-10-21T07:23:46.7250119Z"
+package	Record source checks and delivery boundary	2026-10-21T07:40:32.9246206Z       },
+package	Record source checks and delivery boundary	2026-10-21T07:40:32.9251553Z       {
+package	Record source checks and delivery boundary	2026-10-21T07:40:32.9257561Z         "executable": "node",
+package	Record source checks and delivery boundary	2026-10-21T07:40:32.9263520Z         "arguments": [
+package	Record source checks and delivery boundary	2026-10-21T07:40:32.9268972Z           "C:\\npm\\prefix\\node_modules\\pnpm\\bin\\pnpm.cjs",
+package	Record source checks and delivery boundary	2026-10-21T07:40:32.9274152Z           "--dir",
+package	Record source checks and delivery boundary	2026-10-21T07:40:32.9280499Z           "D:\\a\\_temp\\manual-beta2-source\\public-plugins\\milkup.footnotes",
+package	Record source checks and delivery boundary	2026-10-21T07:40:32.9286291Z           "exec",
+package	Record source checks and delivery boundary	2026-10-21T07:40:32.9291999Z           "tsc",
+package	Record source checks and delivery boundary	2026-10-21T07:40:32.9297613Z           "--noEmit",
+package	Record source checks and delivery boundary	2026-10-21T07:40:32.9303885Z           "-p",
+package	Record source checks and delivery boundary	2026-10-21T07:40:32.9309556Z           "tsconfig.json"
+package	Record source checks and delivery boundary	2026-10-21T07:40:32.9315777Z         ],
+package	Record source checks and delivery boundary	2026-10-21T07:40:32.9321389Z         "exitCode": 0,
+package	Record source checks and delivery boundary	2026-10-21T07:40:32.9327428Z         "startedAt": "2026-10-21T07:23:46.7254485Z",
+package	Record source checks and delivery boundary	2026-10-21T07:40:32.9332755Z         "endedAt": "2026-10-21T07:23:47.8874920Z"
+package	Record source checks and delivery boundary	2026-10-21T07:40:32.9338436Z       },
+package	Record source checks and delivery boundary	2026-10-21T07:40:32.9344677Z       {
+package	Record source checks and delivery boundary	2026-10-21T07:40:32.9350693Z         "executable": "node",
+package	Record source checks and delivery boundary	2026-10-21T07:40:32.9356303Z         "arguments": [
+package	Record source checks and delivery boundary	2026-10-21T07:40:32.9362796Z           "C:\\npm\\prefix\\node_modules\\pnpm\\bin\\pnpm.cjs",
+package	Record source checks and delivery boundary	2026-10-21T07:40:32.9368261Z           "--dir",
+package	Record source checks and delivery boundary	2026-10-21T07:40:32.9373738Z           "D:\\a\\_temp\\manual-beta2-source\\public-plugins\\milkup.formatting",
+package	Record source checks and delivery boundary	2026-10-21T07:40:32.9379710Z           "exec",
+package	Record source checks and delivery boundary	2026-10-21T07:40:32.9385737Z           "tsc",
+package	Record source checks and delivery boundary	2026-10-21T07:40:32.9391746Z           "--noEmit",
+package	Record source checks and delivery boundary	2026-10-21T07:40:32.9397585Z           "-p",
+package	Record source checks and delivery boundary	2026-10-21T07:40:32.9403284Z           "tsconfig.json"
+package	Record source checks and delivery boundary	2026-10-21T07:40:32.9408439Z         ],
+package	Record source checks and delivery boundary	2026-10-21T07:40:32.9414342Z         "exitCode": 0,
+package	Record source checks and delivery boundary	2026-10-21T07:40:32.9419920Z         "startedAt": "2026-10-21T07:23:47.8878324Z",
+package	Record source checks and delivery boundary	2026-10-21T07:40:32.9425716Z         "endedAt": "2026-10-21T07:23:49.1073199Z"
+package	Record source checks and delivery boundary	2026-10-21T07:40:32.9431282Z       },
+package	Record source checks and delivery boundary	2026-10-21T07:40:32.9437242Z       {
+package	Record source checks and delivery boundary	2026-10-21T07:40:32.9443170Z         "executable": "node",
+package	Record source checks and delivery boundary	2026-10-21T07:40:32.9449657Z         "arguments": [
+package	Record source checks and delivery boundary	2026-10-21T07:40:32.9455330Z           "C:\\npm\\prefix\\node_modules\\pnpm\\bin\\pnpm.cjs",
+package	Record source checks and delivery boundary	2026-10-21T07:40:32.9460770Z           "--dir",
+package	Record source checks and delivery boundary	2026-10-21T07:40:32.9466555Z           "D:\\a\\_temp\\manual-beta2-source\\public-plugins\\milkup.images",
+package	Record source checks and delivery boundary	2026-10-21T07:40:32.9472461Z           "exec",
+package	Record source checks and delivery boundary	2026-10-21T07:40:32.9477762Z           "tsc",
+package	Record source checks and delivery boundary	2026-10-21T07:40:32.9484137Z           "--noEmit",
+package	Record source checks and delivery boundary	2026-10-21T07:40:32.9489756Z           "-p",
+package	Record source checks and delivery boundary	2026-10-21T07:40:32.9495215Z           "tsconfig.json"
+package	Record source checks and delivery boundary	2026-10-21T07:40:32.9501031Z         ],
+package	Record source checks and delivery boundary	2026-10-21T07:40:32.9506916Z         "exitCode": 0,
+package	Record source checks and delivery boundary	2026-10-21T07:40:32.9512603Z         "startedAt": "2026-10-21T07:23:49.1076434Z",
+package	Record source checks and delivery boundary	2026-10-21T07:40:32.9518290Z         "endedAt": "2026-10-21T07:23:50.2737122Z"
+package	Record source checks and delivery boundary	2026-10-21T07:40:32.9524752Z       },
+package	Record source checks and delivery boundary	2026-10-21T07:40:32.9530057Z       {
+package	Record source checks and delivery boundary	2026-10-21T07:40:32.9536161Z         "executable": "node",
+package	Record source checks and delivery boundary	2026-10-21T07:40:32.9541876Z         "arguments": [
+package	Record source checks and delivery boundary	2026-10-21T07:40:32.9547896Z           "C:\\npm\\prefix\\node_modules\\pnpm\\bin\\pnpm.cjs",
+package	Record source checks and delivery boundary	2026-10-21T07:40:32.9553601Z           "--dir",
+package	Record source checks and delivery boundary	2026-10-21T07:40:32.9559765Z           "D:\\a\\_temp\\manual-beta2-source\\public-plugins\\milkup.management",
+package	Record source checks and delivery boundary	2026-10-21T07:40:32.9565136Z           "exec",
+package	Record source checks and delivery boundary	2026-10-21T07:40:32.9570239Z           "tsc",
+package	Record source checks and delivery boundary	2026-10-21T07:40:32.9574488Z           "--noEmit",
+package	Record source checks and delivery boundary	2026-10-21T07:40:32.9578668Z           "-p",
+package	Record source checks and delivery boundary	2026-10-21T07:40:32.9583323Z           "tsconfig.json"
+package	Record source checks and delivery boundary	2026-10-21T07:40:32.9587467Z         ],
+package	Record source checks and delivery boundary	2026-10-21T07:40:32.9592074Z         "exitCode": 0,
+package	Record source checks and delivery boundary	2026-10-21T07:40:32.9596358Z         "startedAt": "2026-10-21T07:23:50.2741829Z",
+package	Record source checks and delivery boundary	2026-10-21T07:40:32.9601062Z         "endedAt": "2026-10-21T07:23:51.4109951Z"
+package	Record source checks and delivery boundary	2026-10-21T07:40:32.9605309Z       },
+package	Record source checks and delivery boundary	2026-10-21T07:40:32.9609806Z       {
+package	Record source checks and delivery boundary	2026-10-21T07:40:32.9614053Z         "executable": "node",
+package	Record source checks and delivery boundary	2026-10-21T07:40:32.9618515Z         "arguments": [
+package	Record source checks and delivery boundary	2026-10-21T07:40:32.9623120Z           "C:\\npm\\prefix\\node_modules\\pnpm\\bin\\pnpm.cjs",
+package	Record source checks and delivery boundary	2026-10-21T07:40:32.9627487Z           "--dir",
+package	Record source checks and delivery boundary	2026-10-21T07:40:32.9631887Z           "D:\\a\\_temp\\manual-beta2-source\\public-plugins\\milkup.math",
+package	Record source checks and delivery boundary	2026-10-21T07:40:32.9636206Z           "exec",
+package	Record source checks and delivery boundary	2026-10-21T07:40:32.9640908Z           "tsc",
+package	Record source checks and delivery boundary	2026-10-21T07:40:32.9645254Z           "--noEmit",
+package	Record source checks and delivery boundary	2026-10-21T07:40:32.9649389Z           "-p",
+package	Record source checks and delivery boundary	2026-10-21T07:40:32.9653783Z           "tsconfig.json"
+package	Record source checks and delivery boundary	2026-10-21T07:40:32.9658091Z         ],
+package	Record source checks and delivery boundary	2026-10-21T07:40:32.9663615Z         "exitCode": 0,
+package	Record source checks and delivery boundary	2026-10-21T07:40:32.9668787Z         "startedAt": "2026-10-21T07:23:51.4118084Z",
+package	Record source checks and delivery boundary	2026-10-21T07:40:32.9673703Z         "endedAt": "2026-10-21T07:23:52.5792411Z"
+package	Record source checks and delivery boundary	2026-10-21T07:40:32.9678091Z       },
+package	Record source checks and delivery boundary	2026-10-21T07:40:32.9683166Z       {
+package	Record source checks and delivery boundary	2026-10-21T07:40:32.9687412Z         "executable": "node",
+package	Record source checks and delivery boundary	2026-10-21T07:40:32.9691689Z         "arguments": [
+package	Record source checks and delivery boundary	2026-10-21T07:40:32.9695978Z           "C:\\npm\\prefix\\node_modules\\pnpm\\bin\\pnpm.cjs",
+package	Record source checks and delivery boundary	2026-10-21T07:40:32.9700689Z           "--dir",
+package	Record source checks and delivery boundary	2026-10-21T07:40:32.9705286Z           "D:\\a\\_temp\\manual-beta2-source\\public-plugins\\milkup.outline",
+package	Record source checks and delivery boundary	2026-10-21T07:40:32.9709621Z           "exec",
+package	Record source checks and delivery boundary	2026-10-21T07:40:32.9713810Z           "tsc",
+package	Record source checks and delivery boundary	2026-10-21T07:40:32.9718082Z           "--noEmit",
+package	Record source checks and delivery boundary	2026-10-21T07:40:32.9722729Z           "-p",
+package	Record source checks and delivery boundary	2026-10-21T07:40:32.9727187Z           "tsconfig.json"
+package	Record source checks and delivery boundary	2026-10-21T07:40:32.9731434Z         ],
+package	Record source checks and delivery boundary	2026-10-21T07:40:32.9735613Z         "exitCode": 0,
+package	Record source checks and delivery boundary	2026-10-21T07:40:32.9740269Z         "startedAt": "2026-10-21T07:23:52.5795639Z",
+package	Record source checks and delivery boundary	2026-10-21T07:40:32.9744550Z         "endedAt": "2026-10-21T07:23:53.8530204Z"
+package	Record source checks and delivery boundary	2026-10-21T07:40:32.9749094Z       },
+package	Record source checks and delivery boundary	2026-10-21T07:40:32.9753369Z       {
+package	Record source checks and delivery boundary	2026-10-21T07:40:32.9757590Z         "executable": "node",
+package	Record source checks and delivery boundary	2026-10-21T07:40:32.9762179Z         "arguments": [
+package	Record source checks and delivery boundary	2026-10-21T07:40:32.9766718Z           "C:\\npm\\prefix\\node_modules\\pnpm\\bin\\pnpm.cjs",
+package	Record source checks and delivery boundary	2026-10-21T07:40:32.9771165Z           "--dir",
+package	Record source checks and delivery boundary	2026-10-21T07:40:32.9776101Z           "D:\\a\\_temp\\manual-beta2-source\\public-plugins\\milkup.preferences",
+package	Record source checks and delivery boundary	2026-10-21T07:40:32.9780659Z           "exec",
+package	Record source checks and delivery boundary	2026-10-21T07:40:32.9784943Z           "tsc",
+package	Record source checks and delivery boundary	2026-10-21T07:40:32.9789283Z           "--noEmit",
+package	Record source checks and delivery boundary	2026-10-21T07:40:32.9793456Z           "-p",
+package	Record source checks and delivery boundary	2026-10-21T07:40:32.9798023Z           "tsconfig.json"
+package	Record source checks and delivery boundary	2026-10-21T07:40:32.9802442Z         ],
+package	Record source checks and delivery boundary	2026-10-21T07:40:32.9806630Z         "exitCode": 0,
+package	Record source checks and delivery boundary	2026-10-21T07:40:32.9811203Z         "startedAt": "2026-10-21T07:23:53.8533482Z",
+package	Record source checks and delivery boundary	2026-10-21T07:40:32.9815959Z         "endedAt": "2026-10-21T07:23:55.0027533Z"
+package	Record source checks and delivery boundary	2026-10-21T07:40:32.9820456Z       },
+package	Record source checks and delivery boundary	2026-10-21T07:40:32.9824625Z       {
+package	Record source checks and delivery boundary	2026-10-21T07:40:32.9829030Z         "executable": "node",
+package	Record source checks and delivery boundary	2026-10-21T07:40:32.9833457Z         "arguments": [
+package	Record source checks and delivery boundary	2026-10-21T07:40:32.9838156Z           "C:\\npm\\prefix\\node_modules\\pnpm\\bin\\pnpm.cjs",
+package	Record source checks and delivery boundary	2026-10-21T07:40:32.9842288Z           "--dir",
+package	Record source checks and delivery boundary	2026-10-21T07:40:32.9847013Z           "D:\\a\\_temp\\manual-beta2-source\\public-plugins\\milkup.shortcuts",
+package	Record source checks and delivery boundary	2026-10-21T07:40:32.9851477Z           "exec",
+package	Record source checks and delivery boundary	2026-10-21T07:40:32.9855603Z           "tsc",
+package	Record source checks and delivery boundary	2026-10-21T07:40:32.9860602Z           "--noEmit",
+package	Record source checks and delivery boundary	2026-10-21T07:40:32.9864988Z           "-p",
+package	Record source checks and delivery boundary	2026-10-21T07:40:32.9869462Z           "tsconfig.json"
+package	Record source checks and delivery boundary	2026-10-21T07:40:32.9873648Z         ],
+package	Record source checks and delivery boundary	2026-10-21T07:40:32.9878250Z         "exitCode": 0,
+package	Record source checks and delivery boundary	2026-10-21T07:40:32.9882587Z         "startedAt": "2026-10-21T07:23:55.0030842Z",
+package	Record source checks and delivery boundary	2026-10-21T07:40:32.9886836Z         "endedAt": "2026-10-21T07:23:56.1153207Z"
+package	Record source checks and delivery boundary	2026-10-21T07:40:32.9890981Z       },
+package	Record source checks and delivery boundary	2026-10-21T07:40:32.9895133Z       {
+package	Record source checks and delivery boundary	2026-10-21T07:40:32.9900020Z         "executable": "node",
+package	Record source checks and delivery boundary	2026-10-21T07:40:32.9904458Z         "arguments": [
+package	Record source checks and delivery boundary	2026-10-21T07:40:32.9908868Z           "C:\\npm\\prefix\\node_modules\\pnpm\\bin\\pnpm.cjs",
+package	Record source checks and delivery boundary	2026-10-21T07:40:32.9913085Z           "--dir",
+package	Record source checks and delivery boundary	2026-10-21T07:40:32.9917931Z           "D:\\a\\_temp\\manual-beta2-source\\public-plugins\\milkup.updates",
+package	Record source checks and delivery boundary	2026-10-21T07:40:32.9922668Z           "exec",
+package	Record source checks and delivery boundary	2026-10-21T07:40:32.9926848Z           "tsc",
+package	Record source checks and delivery boundary	2026-10-21T07:40:32.9931118Z           "--noEmit",
+package	Record source checks and delivery boundary	2026-10-21T07:40:32.9935758Z           "-p",
+package	Record source checks and delivery boundary	2026-10-21T07:40:32.9940314Z           "tsconfig.json"
+package	Record source checks and delivery boundary	2026-10-21T07:40:32.9944663Z         ],
+package	Record source checks and delivery boundary	2026-10-21T07:40:32.9948879Z         "exitCode": 0,
+package	Record source checks and delivery boundary	2026-10-21T07:40:32.9953151Z         "startedAt": "2026-10-21T07:23:56.1155992Z",
+package	Record source checks and delivery boundary	2026-10-21T07:40:32.9958193Z         "endedAt": "2026-10-21T07:23:57.2111659Z"
+package	Record source checks and delivery boundary	2026-10-21T07:40:32.9962443Z       },
+package	Record source checks and delivery boundary	2026-10-21T07:40:32.9966795Z       {
+package	Record source checks and delivery boundary	2026-10-21T07:40:32.9971110Z         "executable": "node",
+package	Record source checks and delivery boundary	2026-10-21T07:40:32.9975388Z         "arguments": [
+package	Record source checks and delivery boundary	2026-10-21T07:40:32.9980279Z           "C:\\npm\\prefix\\node_modules\\pnpm\\bin\\pnpm.cjs",
+package	Record source checks and delivery boundary	2026-10-21T07:40:32.9984574Z           "--dir",
+package	Record source checks and delivery boundary	2026-10-21T07:40:32.9988922Z           "D:\\a\\_temp\\manual-beta2-source\\public-plugins\\milkup.workspace",
+package	Record source checks and delivery boundary	2026-10-21T07:40:32.9993278Z           "exec",
+package	Record source checks and delivery boundary	2026-10-21T07:40:32.9998216Z           "tsc",
+package	Record source checks and delivery boundary	2026-10-21T07:40:33.0002459Z           "--noEmit",
+package	Record source checks and delivery boundary	2026-10-21T07:40:33.0006744Z           "-p",
+package	Record source checks and delivery boundary	2026-10-21T07:40:33.0010976Z           "tsconfig.json"
+package	Record source checks and delivery boundary	2026-10-21T07:40:33.0015333Z         ],
+package	Record source checks and delivery boundary	2026-10-21T07:40:33.0020071Z         "exitCode": 0,
+package	Record source checks and delivery boundary	2026-10-21T07:40:33.0024380Z         "startedAt": "2026-10-21T07:23:57.2115225Z",
+package	Record source checks and delivery boundary	2026-10-21T07:40:33.0028699Z         "endedAt": "2026-10-21T07:23:58.3686462Z"
+package	Record source checks and delivery boundary	2026-10-21T07:40:33.0032898Z       }
+package	Record source checks and delivery boundary	2026-10-21T07:40:33.0037963Z     ]
+package	Record source checks and delivery boundary	2026-10-21T07:40:33.0042382Z   },
+package	Record source checks and delivery boundary	2026-10-21T07:40:33.0046548Z   {
+package	Record source checks and delivery boundary	2026-10-21T07:40:33.0050817Z     "name": "verified-bundle-staging",
+package	Record source checks and delivery boundary	2026-10-21T07:40:33.0055267Z     "startedAt": "2026-10-21T07:23:58.3719840Z",
+package	Record source checks and delivery boundary	2026-10-21T07:40:33.0059633Z     "status": "passed",
+package	Record source checks and delivery boundary	2026-10-21T07:40:33.0063919Z     "endedAt": "2026-10-21T07:23:58.6176857Z",
+package	Record source checks and delivery boundary	2026-10-21T07:40:33.0068050Z     "commands": [
+package	Record source checks and delivery boundary	2026-10-21T07:40:33.0072195Z       {
+package	Record source checks and delivery boundary	2026-10-21T07:40:33.0076646Z         "executable": "node",
+package	Record source checks and delivery boundary	2026-10-21T07:40:33.0081411Z         "arguments": [
+package	Record source checks and delivery boundary	2026-10-21T07:40:33.0085669Z           "scripts/ci/stage-public-plugin-check.mjs",
+package	Record source checks and delivery boundary	2026-10-21T07:40:33.0090091Z           "D:\\a\\_temp\\manual-beta2-source\\public-plugins"
+package	Record source checks and delivery boundary	2026-10-21T07:40:33.0096036Z         ],
+package	Record source checks and delivery boundary	2026-10-21T07:40:33.0100239Z         "exitCode": 0,
+package	Record source checks and delivery boundary	2026-10-21T07:40:33.0104571Z         "startedAt": "2026-10-21T07:23:58.3732635Z",
+package	Record source checks and delivery boundary	2026-10-21T07:40:33.0109080Z         "endedAt": "2026-10-21T07:23:58.6175825Z"
+package	Record source checks and delivery boundary	2026-10-21T07:40:33.0113482Z       }
+package	Record source checks and delivery boundary	2026-10-21T07:40:33.0117795Z     ]
+package	Record source checks and delivery boundary	2026-10-21T07:40:33.0122353Z   },
+package	Record source checks and delivery boundary	2026-10-21T07:40:33.0126755Z   {
+package	Record source checks and delivery boundary	2026-10-21T07:40:33.0130978Z     "name": "workspace-tests",
+package	Record source checks and delivery boundary	2026-10-21T07:40:33.0135489Z     "startedAt": "2026-10-21T07:23:58.6203647Z",
+package	Record source checks and delivery boundary	2026-10-21T07:40:33.0139918Z     "status": "passed",
+package	Record source checks and delivery boundary	2026-10-21T07:40:33.0144439Z     "endedAt": "2026-10-21T07:25:26.2649029Z",
+package	Record source checks and delivery boundary	2026-10-21T07:40:33.0148693Z     "commands": [
+package	Record source checks and delivery boundary	2026-10-21T07:40:33.0153487Z       {
+package	Record source checks and delivery boundary	2026-10-21T07:40:33.0158026Z         "executable": "node",
+package	Record source checks and delivery boundary	2026-10-21T07:40:33.0162537Z         "arguments": [
+package	Record source checks and delivery boundary	2026-10-21T07:40:33.0167226Z           "C:\\npm\\prefix\\node_modules\\pnpm\\bin\\pnpm.cjs",
+package	Record source checks and delivery boundary	2026-10-21T07:40:33.0171532Z           "test"
+package	Record source checks and delivery boundary	2026-10-21T07:40:33.0176173Z         ],
+package	Record source checks and delivery boundary	2026-10-21T07:40:33.0180421Z         "exitCode": 0,
+package	Record source checks and delivery boundary	2026-10-21T07:40:33.0185173Z         "startedAt": "2026-10-21T07:23:58.6214731Z",
+package	Record source checks and delivery boundary	2026-10-21T07:40:33.0189477Z         "endedAt": "2026-10-21T07:25:26.2647065Z"
+package	Record source checks and delivery boundary	2026-10-21T07:40:33.0193651Z       }
+package	Record source checks and delivery boundary	2026-10-21T07:40:33.0197977Z     ]
+package	Record source checks and delivery boundary	2026-10-21T07:40:33.0202594Z   },
+package	Record source checks and delivery boundary	2026-10-21T07:40:33.0206913Z   {
+package	Record source checks and delivery boundary	2026-10-21T07:40:33.0211098Z     "name": "workspace-types",
+package	Record source checks and delivery boundary	2026-10-21T07:40:33.0215613Z     "startedAt": "2026-10-21T07:25:26.2681861Z",
+package	Record source checks and delivery boundary	2026-10-21T07:40:33.0219770Z     "status": "passed",
+package	Record source checks and delivery boundary	2026-10-21T07:40:33.0224319Z     "endedAt": "2026-10-21T07:25:58.7402684Z",
+package	Record source checks and delivery boundary	2026-10-21T07:40:33.0228481Z     "commands": [
+package	Record source checks and delivery boundary	2026-10-21T07:40:33.0232634Z       {
+package	Record source checks and delivery boundary	2026-10-21T07:40:33.0237415Z         "executable": "node",
+package	Record source checks and delivery boundary	2026-10-21T07:40:33.0241937Z         "arguments": [
+package	Record source checks and delivery boundary	2026-10-21T07:40:33.0246194Z           "C:\\npm\\prefix\\node_modules\\pnpm\\bin\\pnpm.cjs",
+package	Record source checks and delivery boundary	2026-10-21T07:40:33.0251145Z           "typecheck"
+package	Record source checks and delivery boundary	2026-10-21T07:40:33.0255602Z         ],
+package	Record source checks and delivery boundary	2026-10-21T07:40:33.0259805Z         "exitCode": 0,
+package	Record source checks and delivery boundary	2026-10-21T07:40:33.0264163Z         "startedAt": "2026-10-21T07:25:26.2691959Z",
+package	Record source checks and delivery boundary	2026-10-21T07:40:33.0268423Z         "endedAt": "2026-10-21T07:25:58.7401507Z"
+package	Record source checks and delivery boundary	2026-10-21T07:40:33.0273586Z       }
+package	Record source checks and delivery boundary	2026-10-21T07:40:33.0326780Z     ]
+package	Record source checks and delivery boundary	2026-10-21T07:40:33.0333435Z   },
+package	Record source checks and delivery boundary	2026-10-21T07:40:33.0340109Z   {
+package	Record source checks and delivery boundary	2026-10-21T07:40:33.0346716Z     "name": "workspace-build",
+package	Record source checks and delivery boundary	2026-10-21T07:40:33.0353737Z     "startedAt": "2026-10-21T07:25:58.7434238Z",
+package	Record source checks and delivery boundary	2026-10-21T07:40:33.0360094Z     "status": "passed",
+package	Record source checks and delivery boundary	2026-10-21T07:40:33.0366306Z     "endedAt": "2026-10-21T07:26:32.5500755Z",
+package	Record source checks and delivery boundary	2026-10-21T07:40:33.0372535Z     "commands": [
+package	Record source checks and delivery boundary	2026-10-21T07:40:33.0378115Z       {
+package	Record source checks and delivery boundary	2026-10-21T07:40:33.0384251Z         "executable": "node",
+package	Record source checks and delivery boundary	2026-10-21T07:40:33.0390469Z         "arguments": [
+package	Record source checks and delivery boundary	2026-10-21T07:40:33.0396477Z           "C:\\npm\\prefix\\node_modules\\pnpm\\bin\\pnpm.cjs",
+package	Record source checks and delivery boundary	2026-10-21T07:40:33.0402450Z           "build"
+package	Record source checks and delivery boundary	2026-10-21T07:40:33.0408481Z         ],
+package	Record source checks and delivery boundary	2026-10-21T07:40:33.0416019Z         "exitCode": 0,
+package	Record source checks and delivery boundary	2026-10-21T07:40:33.0421984Z         "startedAt": "2026-10-21T07:25:58.7444297Z",
+package	Record source checks and delivery boundary	2026-10-21T07:40:33.0429335Z         "endedAt": "2026-10-21T07:26:32.5499709Z"
+package	Record source checks and delivery boundary	2026-10-21T07:40:33.0435288Z       }
+package	Record source checks and delivery boundary	2026-10-21T07:40:33.0441145Z     ]
+package	Record source checks and delivery boundary	2026-10-21T07:40:33.0446691Z   },
+package	Record source checks and delivery boundary	2026-10-21T07:40:33.0452902Z   {
+package	Record source checks and delivery boundary	2026-10-21T07:40:33.0459113Z     "name": "desktop-check-all-targets",
+package	Record source checks and delivery boundary	2026-10-21T07:40:33.0464798Z     "startedAt": "2026-10-21T07:26:32.5529858Z",
+package	Record source checks and delivery boundary	2026-10-21T07:40:33.0470683Z     "status": "passed",
+package	Record source checks and delivery boundary	2026-10-21T07:40:33.0476704Z     "endedAt": "2026-10-21T07:30:11.4099566Z",
+package	Record source checks and delivery boundary	2026-10-21T07:40:33.0482953Z     "commands": [
+package	Record source checks and delivery boundary	2026-10-21T07:40:33.0488716Z       {
+package	Record source checks and delivery boundary	2026-10-21T07:40:33.0494596Z         "executable": "cargo",
+package	Record source checks and delivery boundary	2026-10-21T07:40:33.0499130Z         "arguments": [
+package	Record source checks and delivery boundary	2026-10-21T07:40:33.0504089Z           "check",
+package	Record source checks and delivery boundary	2026-10-21T07:40:33.0508685Z           "--locked",
+package	Record source checks and delivery boundary	2026-10-21T07:40:33.0513624Z           "--manifest-path",
+package	Record source checks and delivery boundary	2026-10-21T07:40:33.0518019Z           "apps/desktop/src-tauri/Cargo.toml",
+package	Record source checks and delivery boundary	2026-10-21T07:40:33.0522300Z           "--all-targets"
+package	Record source checks and delivery boundary	2026-10-21T07:40:33.0526576Z         ],
+package	Record source checks and delivery boundary	2026-10-21T07:40:33.0531462Z         "exitCode": 0,
+package	Record source checks and delivery boundary	2026-10-21T07:40:33.0536324Z         "startedAt": "2026-10-21T07:26:32.5542834Z",
+package	Record source checks and delivery boundary	2026-10-21T07:40:33.0540897Z         "endedAt": "2026-10-21T07:30:11.4097357Z"
+package	Record source checks and delivery boundary	2026-10-21T07:40:33.0545727Z       }
+package	Record source checks and delivery boundary	2026-10-21T07:40:33.0550344Z     ]
+package	Record source checks and delivery boundary	2026-10-21T07:40:33.0555353Z   },
+package	Record source checks and delivery boundary	2026-10-21T07:40:33.0559953Z   {
+package	Record source checks and delivery boundary	2026-10-21T07:40:33.0564669Z     "name": "windows-updater-launch-tests",
+package	Record source checks and delivery boundary	2026-10-21T07:40:33.0569519Z     "startedAt": "2026-10-21T07:30:11.4134099Z",
+package	Record source checks and delivery boundary	2026-10-21T07:40:33.0573748Z     "status": "passed",
+package	Record source checks and delivery boundary	2026-10-21T07:40:33.0578098Z     "endedAt": "2026-10-21T07:31:44.6727393Z",
+package	Record source checks and delivery boundary	2026-10-21T07:40:33.0582940Z     "commands": [
+package	Record source checks and delivery boundary	2026-10-21T07:40:33.0587271Z       {
+package	Record source checks and delivery boundary	2026-10-21T07:40:33.0592524Z         "executable": "cargo",
+package	Record source checks and delivery boundary	2026-10-21T07:40:33.0596951Z         "arguments": [
+package	Record source checks and delivery boundary	2026-10-21T07:40:33.0601342Z           "test",
+package	Record source checks and delivery boundary	2026-10-21T07:40:33.0605916Z           "--locked",
+package	Record source checks and delivery boundary	2026-10-21T07:40:33.0610921Z           "--manifest-path",
+package	Record source checks and delivery boundary	2026-10-21T07:40:33.0615286Z           "apps/desktop/src-tauri/Cargo.toml",
+package	Record source checks and delivery boundary	2026-10-21T07:40:33.0619607Z           "-p",
+package	Record source checks and delivery boundary	2026-10-21T07:40:33.0624342Z           "tauri-plugin-updater",
+package	Record source checks and delivery boundary	2026-10-21T07:40:33.0628845Z           "--lib",
+package	Record source checks and delivery boundary	2026-10-21T07:40:33.0633971Z           "windows_install::tests::",
+package	Record source checks and delivery boundary	2026-10-21T07:40:33.0638275Z           "--",
+package	Record source checks and delivery boundary	2026-10-21T07:40:33.0642588Z           "--list"
+package	Record source checks and delivery boundary	2026-10-21T07:40:33.0647165Z         ],
+package	Record source checks and delivery boundary	2026-10-21T07:40:33.0652271Z         "exitCode": 0,
+package	Record source checks and delivery boundary	2026-10-21T07:40:33.0656717Z         "startedAt": "2026-10-21T07:30:11.4199118Z",
+package	Record source checks and delivery boundary	2026-10-21T07:40:33.0661133Z         "endedAt": "2026-10-21T07:31:43.9421291Z"
+package	Record source checks and delivery boundary	2026-10-21T07:40:33.0665443Z       },
+package	Record source checks and delivery boundary	2026-10-21T07:40:33.0669966Z       {
+package	Record source checks and delivery boundary	2026-10-21T07:40:33.0674511Z         "executable": "cargo",
+package	Record source checks and delivery boundary	2026-10-21T07:40:33.0678785Z         "arguments": [
+package	Record source checks and delivery boundary	2026-10-21T07:40:33.0683213Z           "test",
+package	Record source checks and delivery boundary	2026-10-21T07:40:33.0687508Z           "--locked",
+package	Record source checks and delivery boundary	2026-10-21T07:40:33.0692178Z           "--manifest-path",
+package	Record source checks and delivery boundary	2026-10-21T07:40:33.0696638Z           "apps/desktop/src-tauri/Cargo.toml",
+package	Record source checks and delivery boundary	2026-10-21T07:40:33.0701113Z           "-p",
+package	Record source checks and delivery boundary	2026-10-21T07:40:33.0705509Z           "tauri-plugin-updater",
+package	Record source checks and delivery boundary	2026-10-21T07:40:33.0709953Z           "--lib",
+package	Record source checks and delivery boundary	2026-10-21T07:40:33.0716410Z           "windows_install::tests::",
+package	Record source checks and delivery boundary	2026-10-21T07:40:33.0722073Z           "--",
+package	Record source checks and delivery boundary	2026-10-21T07:40:33.0727907Z           "--nocapture",
+package	Record source checks and delivery boundary	2026-10-21T07:40:33.0733915Z           "--test-threads=1"
+package	Record source checks and delivery boundary	2026-10-21T07:40:33.0739605Z         ],
+package	Record source checks and delivery boundary	2026-10-21T07:40:33.0745727Z         "exitCode": 0,
+package	Record source checks and delivery boundary	2026-10-21T07:40:33.0751613Z         "startedAt": "2026-10-21T07:31:43.9471021Z",
+package	Record source checks and delivery boundary	2026-10-21T07:40:33.0757232Z         "endedAt": "2026-10-21T07:31:44.6726378Z"
+package	Record source checks and delivery boundary	2026-10-21T07:40:33.0762969Z       }
+package	Record source checks and delivery boundary	2026-10-21T07:40:33.0768565Z     ]
+package	Record source checks and delivery boundary	2026-10-21T07:40:33.0774263Z   },
+package	Record source checks and delivery boundary	2026-10-21T07:40:33.0779928Z   {
+package	Record source checks and delivery boundary	2026-10-21T07:40:33.0786279Z     "name": "desktop-full-library-tests",
+package	Record source checks and delivery boundary	2026-10-21T07:40:33.0791917Z     "startedAt": "2026-10-21T07:31:44.6755513Z",
+package	Record source checks and delivery boundary	2026-10-21T07:40:33.0797476Z     "status": "passed",
+package	Record source checks and delivery boundary	2026-10-21T07:40:33.0803472Z     "endedAt": "2026-10-21T07:32:40.4452252Z",
+package	Record source checks and delivery boundary	2026-10-21T07:40:33.0808878Z     "commands": [
+package	Record source checks and delivery boundary	2026-10-21T07:40:33.0814431Z       {
+package	Record source checks and delivery boundary	2026-10-21T07:40:33.0820098Z         "executable": "cargo",
+package	Record source checks and delivery boundary	2026-10-21T07:40:33.0825899Z         "arguments": [
+package	Record source checks and delivery boundary	2026-10-21T07:40:33.0831675Z           "test",
+package	Record source checks and delivery boundary	2026-10-21T07:40:33.0837333Z           "--locked",
+package	Record source checks and delivery boundary	2026-10-21T07:40:33.0843114Z           "--manifest-path",
+package	Record source checks and delivery boundary	2026-10-21T07:40:33.0848776Z           "apps/desktop/src-tauri/Cargo.toml",
+package	Record source checks and delivery boundary	2026-10-21T07:40:33.0854217Z           "--lib",
+package	Record source checks and delivery boundary	2026-10-21T07:40:33.0859845Z           "--message-format=json"
+package	Record source checks and delivery boundary	2026-10-21T07:40:33.0865820Z         ],
+package	Record source checks and delivery boundary	2026-10-21T07:40:33.0871473Z         "exitCode": 0,
+package	Record source checks and delivery boundary	2026-10-21T07:40:33.0877036Z         "evidence": "rust-test-result.json"
+package	Record source checks and delivery boundary	2026-10-21T07:40:33.0882793Z       }
+package	Record source checks and delivery boundary	2026-10-21T07:40:33.0888510Z     ]
+package	Record source checks and delivery boundary	2026-10-21T07:40:33.0894086Z   },
+package	Record source checks and delivery boundary	2026-10-21T07:40:33.0900034Z   {
+package	Record source checks and delivery boundary	2026-10-21T07:40:33.0905880Z     "name": "desktop-production-compile-link",
+package	Record source checks and delivery boundary	2026-10-21T07:40:33.0911642Z     "startedAt": "2026-10-21T07:32:40.4478942Z",
+package	Record source checks and delivery boundary	2026-10-21T07:40:33.0916835Z     "status": "passed",
+package	Record source checks and delivery boundary	2026-10-21T07:40:33.0922898Z     "endedAt": "2026-10-21T07:40:31.3728058Z",
+package	Record source checks and delivery boundary	2026-10-21T07:40:33.0928521Z     "commands": [
+package	Record source checks and delivery boundary	2026-10-21T07:40:33.0934184Z       {
+package	Record source checks and delivery boundary	2026-10-21T07:40:33.0940081Z         "executable": "cargo",
+package	Record source checks and delivery boundary	2026-10-21T07:40:33.0945688Z         "arguments": [
+package	Record source checks and delivery boundary	2026-10-21T07:40:33.0951481Z           "build",
+package	Record source checks and delivery boundary	2026-10-21T07:40:33.0957353Z           "--locked",
+package	Record source checks and delivery boundary	2026-10-21T07:40:33.0963449Z           "--manifest-path",
+package	Record source checks and delivery boundary	2026-10-21T07:40:33.0969114Z           "apps/desktop/src-tauri/Cargo.toml",
+package	Record source checks and delivery boundary	2026-10-21T07:40:33.0974686Z           "--release",
+package	Record source checks and delivery boundary	2026-10-21T07:40:33.0980577Z           "--bin",
+package	Record source checks and delivery boundary	2026-10-21T07:40:33.0986282Z           "milkup-desktop",
+package	Record source checks and delivery boundary	2026-10-21T07:40:33.0991485Z           "--features",
+package	Record source checks and delivery boundary	2026-10-21T07:40:33.0997218Z           "tauri/custom-protocol"
+package	Record source checks and delivery boundary	2026-10-21T07:40:33.1002937Z         ],
+package	Record source checks and delivery boundary	2026-10-21T07:40:33.1008687Z         "exitCode": 0,
+package	Record source checks and delivery boundary	2026-10-21T07:40:33.1014440Z         "startedAt": "2026-10-21T07:32:40.4494527Z",
+package	Record source checks and delivery boundary	2026-10-21T07:40:33.1019949Z         "endedAt": "2026-10-21T07:40:31.2422205Z"
+package	Record source checks and delivery boundary	2026-10-21T07:40:33.1026285Z       }
+package	Record source checks and delivery boundary	2026-10-21T07:40:33.1031968Z     ]
+package	Record source checks and delivery boundary	2026-10-21T07:40:33.1037734Z   },
+package	Record source checks and delivery boundary	2026-10-21T07:40:33.1043860Z   {
+package	Record source checks and delivery boundary	2026-10-21T07:40:33.1049728Z     "name": "tracked-source-unchanged",
+package	Record source checks and delivery boundary	2026-10-21T07:40:33.1055460Z     "startedAt": "2026-10-21T07:40:31.3750197Z",
+package	Record source checks and delivery boundary	2026-10-21T07:40:33.1061206Z     "status": "passed",
+package	Record source checks and delivery boundary	2026-10-21T07:40:33.1066967Z     "endedAt": "2026-10-21T07:40:31.6179146Z",
+package	Record source checks and delivery boundary	2026-10-21T07:40:33.1072506Z     "commands": [
+package	Record source checks and delivery boundary	2026-10-21T07:40:33.1078059Z       {
+package	Record source checks and delivery boundary	2026-10-21T07:40:33.1084155Z         "executable": "git",
+package	Record source checks and delivery boundary	2026-10-21T07:40:33.1090509Z         "arguments": [
+package	Record source checks and delivery boundary	2026-10-21T07:40:33.1095220Z           "diff",
+package	Record source checks and delivery boundary	2026-10-21T07:40:33.1100444Z           "--exit-code"
+package	Record source checks and delivery boundary	2026-10-21T07:40:33.1104847Z         ],
+package	Record source checks and delivery boundary	2026-10-21T07:40:33.1109199Z         "exitCode": 0,
+package	Record source checks and delivery boundary	2026-10-21T07:40:33.1113905Z         "startedAt": "2026-10-21T07:40:31.3762898Z",
+package	Record source checks and delivery boundary	2026-10-21T07:40:33.1118493Z         "endedAt": "2026-10-21T07:40:31.5694893Z"
+package	Record source checks and delivery boundary	2026-10-21T07:40:33.1123272Z       },
+package	Record source checks and delivery boundary	2026-10-21T07:40:33.1127663Z       {
+package	Record source checks and delivery boundary	2026-10-21T07:40:33.1132011Z         "executable": "git",
+package	Record source checks and delivery boundary	2026-10-21T07:40:33.1136472Z         "arguments": [
+package	Record source checks and delivery boundary	2026-10-21T07:40:33.1141276Z           "diff",
+package	Record source checks and delivery boundary	2026-10-21T07:40:33.1145655Z           "--cached",
+package	Record source checks and delivery boundary	2026-10-21T07:40:33.1150079Z           "--exit-code"
+package	Record source checks and delivery boundary	2026-10-21T07:40:33.1154430Z         ],
+package	Record source checks and delivery boundary	2026-10-21T07:40:33.1159323Z         "exitCode": 0,
+package	Record source checks and delivery boundary	2026-10-21T07:40:33.1163977Z         "startedAt": "2026-10-21T07:40:31.5696070Z",
+package	Record source checks and delivery boundary	2026-10-21T07:40:33.1168375Z         "endedAt": "2026-10-21T07:40:31.6178531Z"
+package	Record source checks and delivery boundary	2026-10-21T07:40:33.1172791Z       }
+package	Record source checks and delivery boundary	2026-10-21T07:40:33.1177221Z     ]
+package	Record source checks and delivery boundary	2026-10-21T07:40:33.1182176Z   }
+package	Record source checks and delivery boundary	2026-10-21T07:40:33.1186857Z ]
+package	Record source checks and delivery boundary	2026-10-21T07:40:33.1197530Z ##[endgroup]
+package	Record source checks and delivery boundary	2026-10-21T07:40:33.1213322Z ##[group]manual-beta2-source/rust-test-result.json
+package	Record source checks and delivery boundary	2026-10-21T07:40:33.1225366Z {
+package	Record source checks and delivery boundary	2026-10-21T07:40:33.1229890Z   "cargoExitCode": 0,
+package	Record source checks and delivery boundary	2026-10-21T07:40:33.1234262Z   "testExecutables": [
+package	Record source checks and delivery boundary	2026-10-21T07:40:33.1240056Z     "D:\\a\\_temp\\manual-beta2-source\\cargo-target\\x86_64-pc-windows-msvc\\debug\\deps\\milkup_desktop_lib-b238b4aa09637497.exe"
+package	Record source checks and delivery boundary	2026-10-21T07:40:33.1244609Z   ],
+package	Record source checks and delivery boundary	2026-10-21T07:40:33.1249074Z   "status": "passed",
+package	Record source checks and delivery boundary	2026-10-21T07:40:33.1253423Z   "diagnosticOnly": false,
+package	Record source checks and delivery boundary	2026-10-21T07:40:33.1258315Z   "manifestEvidence": "rust-harness-manifest.json"
+package	Record source checks and delivery boundary	2026-10-21T07:40:33.1262984Z }
+package	Record source checks and delivery boundary	2026-10-21T07:40:33.1269960Z ##[endgroup]
+package	Post Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	﻿2026-10-21T07:40:33.2243156Z Post job cleanup.
+package	Post Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-21T07:40:33.4322448Z [command]"C:\Program Files\Git\bin\git.exe" version
+package	Post Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-21T07:40:33.4767652Z git version 2.56.0.windows.2
+package	Post Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-21T07:40:33.4850724Z Temporarily overriding HOME='D:\a\_temp\55f51ae7-dffc-4bc5-a619-27b48090183d' before making global git config changes
+package	Post Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-21T07:40:33.4852150Z Adding repository directory to the temporary git global config as a safe directory
+package	Post Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-21T07:40:33.4866519Z [command]"C:\Program Files\Git\bin\git.exe" config --global --add safe.directory D:\a\milkup\milkup
+package	Post Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-21T07:40:33.5300261Z [command]"C:\Program Files\Git\bin\git.exe" config --local --name-only --get-regexp core\.sshCommand
+package	Post Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-21T07:40:33.5731469Z [command]"C:\Program Files\Git\bin\git.exe" submodule foreach --recursive "sh -c \"git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :\""
+package	Post Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-21T07:40:34.1791838Z [command]"C:\Program Files\Git\bin\git.exe" config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+package	Post Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-21T07:40:34.2211300Z [command]"C:\Program Files\Git\bin\git.exe" submodule foreach --recursive "sh -c \"git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :\""
+package	Post Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-21T07:40:34.7967824Z [command]"C:\Program Files\Git\bin\git.exe" config --local --name-only --get-regexp ^includeIf\.gitdir:
+package	Post Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-21T07:40:34.8355172Z [command]"C:\Program Files\Git\bin\git.exe" submodule foreach --recursive "git config --local --show-origin --name-only --get-regexp remote.origin.url"
+package	Complete job	﻿2026-10-21T07:40:35.4357419Z Cleaning up orphan processes
+package	Complete job	2026-10-21T07:40:35.4505631Z Terminate orphan process: pid (3808) (vctip)
+package	Complete job	2026-10-21T07:40:35.4723193Z ##[warning]Node.js 20 is deprecated. The following actions target Node.js 20 but are being forced to run on Node.js 24: actions/checkout@11d5960a326750d5838078e36cf38b85af677262, actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/

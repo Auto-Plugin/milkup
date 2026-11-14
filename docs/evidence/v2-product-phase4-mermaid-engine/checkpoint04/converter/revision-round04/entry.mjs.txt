@@ -1,0 +1,55 @@
+// Unexecuted red/green specifications. All fixtures run only in the isolated DOM helper.
+const svg=body=>`<svg xmlns="http://www.w3.org/2000/svg" width="200" height="120" viewBox="0 0 200 120" style="font-family:Arial,sans-serif;font-size:16px">${body}</svg>`;
+const fixtures=[
+ {id:'group-inapplicable-xy',expected:'ready',svg:svg('<g x="999" y="888" transform="translate(50,20)"><rect x="1" y="2" width="40" height="30"/></g>'),assertion:'g x/y do not move viewport; original CTM50/20, canonical local translation50/20 only'},
+ {id:'path-inapplicable-viewbox',expected:'ready',svg:svg('<path viewBox="0 0 2 2" d="M10 10 L50 10 L50 40 Z"/>'),assertion:'path viewBox creates no viewport; original bbox10,10,40,30, canonical same unscaled coordinates'},
+ {id:'group-opacity-overlap',expected:'ready',svg:svg('<g opacity=".5"><rect x="10" y="10" width="50" height="50" fill="#f00"/><rect x="30" y="30" width="50" height="50" fill="#00f"/></g>'),assertion:'one parent opacity .5; children remain opacity1; original group retained'},
+ {id:'css-rx-over-attribute',expected:'ready',svg:svg('<style>.rounded{rx:8px;ry:10px}</style><rect class="rounded" x="10" y="10" width="40" height="40" rx="0"/>'),assertion:'rect effective rx8/ry10, not attribute0'},
+ {id:'local-transform-once',expected:'ready',svg:svg('<g transform="translate(50)"><rect style="transform:translateX(20px)" transform="translate(10)" width="40" height="40"/></g>'),assertion:'parent local50 + child local20, not30 or70'},
+ {id:'text-transform',expected:'ready',svg:svg('<text x="10" y="30" style="text-transform:uppercase">Mixed case</text>'),assertion:'typed textTransform uppercase; original mixed-case text retained'},
+ {id:'unknown-writing-mode',expected:'unsupported-feature',svg:svg('<text x="10" y="30" style="writing-mode:vertical-rl">Mixed case</text>')},
+ {id:'external-anchor',expected:'unsafe-output',svg:svg('<a href="https://example.invalid/not-clicked"><rect width="30" height="30"/></a>')},
+ {id:'effective-animation',expected:'unsupported-animation',svg:svg('<style>@keyframes move{to{stroke-dashoffset:0}}.moving{animation:move 20s linear infinite;stroke-dashoffset:900}</style><path class="moving" d="M0 0 L80 80" stroke="red"/>')},
+ {id:'unused-animation-rule',expected:'ready',svg:svg('<style>@keyframes move{to{stroke-dashoffset:0}}.unused{animation:move 20s linear infinite}</style><path d="M0 0 L80 80" stroke="red"/>')},
+ {id:'arc-packed-flags',expected:'ready',svg:svg('<path d="M0 0 A10 10 0 0110 20"/>'),assertion:'full arc flags0/1 and endpoint10/20'},
+ {id:'css-shadow',expected:'ready',svg:svg('<rect width="40" height="40" style="filter:drop-shadow(1px 2px 2px rgb(185,185,185))"/>'),assertion:'typed CSS drop-shadow; do not relabel blur as SVG stdDeviation'},
+ {id:'gradient-multiply',expected:'ready',svg:svg('<defs><linearGradient id="grad"><stop offset="0" stop-color="red"/><stop offset="1" stop-color="blue"/></linearGradient></defs><g style="mix-blend-mode:multiply"><rect width="60" height="60" fill="url(#grad)"/></g>'),assertion:'typed local gradient; group multiply retained'},
+ {id:'clip-cycle',expected:'invalid-output',svg:svg('<defs><clipPath id="clip"><rect width="40" height="40" clip-path="url(#clip)"/></clipPath></defs><rect width="80" height="80" clip-path="url(#clip)"/>')},
+];
+
+// External one-case research entry. Native owner alone enforces deadline/network/transport limits.
+import mermaid from './mermaid-full-12.2.0.mjs';
+import {convertSvgElement} from './converter.mjs';
+const base={startOnLoad:false,securityLevel:'strict',htmlLabels:false,suppressErrorRendering:true,maxTextSize:50000,maxEdges:500,deterministicIds:true,deterministicIDSeed:'offline-audit',fontFamily:'Arial, sans-serif',legacyMathML:false,forceLegacyMathML:false,secure:['secure','securityLevel','startOnLoad','maxTextSize','maxEdges','suppressErrorRendering','htmlLabels','fontFamily','themeCSS','legacyMathML','forceLegacyMathML','look','textPlacement','theme','darkMode']};
+let preparation={status:'idle'},preparing,busy=false,sequence=0,task,host;
+const encoder=new TextEncoder();
+const textError=e=>String(e instanceof Error?e.message:e).slice(0,4096);
+function ready(){if(preparing)return preparing;preparation={status:'pending'};return preparing=Promise.resolve(document.fonts?.ready).then(()=>{preparation={status:'ready',engine:'mermaid@12.2.0',converter:'external-prototype-only'};return preparation;},e=>{preparation={status:'error',error:textError(e)};throw e;});}
+function readiness(){return preparation;}
+function validate(r){if(!r||typeof r!=='object'||Array.isArray(r)||Object.keys(r).some(k=>!['id','source','profile','theme'].includes(k)))throw Error('invalid request');if(typeof r.id!=='string'||!/^[A-Za-z0-9_-]{1,96}$/.test(r.id)||typeof r.source!=='string'||r.source.length>50000||!['baseline','classic-tspan'].includes(r.profile)||!['light','dark'].includes(r.theme))throw Error('invalid request values');}
+// Compact ledger only changes research encoding; the independent validator never trusts it.
+function packCoverage(c){const strings=[],ids=new Map(),intern=s=>{s=String(s??'');let id=ids.get(s);if(id===undefined){id=strings.length;ids.set(s,id);strings.push(s);}return id;};return {strings,
+ declarationColumns:['path','property','declared','computed','source','disposition','localReferences'],
+ declarations:c.declarations.map(r=>[intern(r.path),intern(r.property),intern(r.declared),intern(r.computed),intern(r.source),intern(r.disposition),(r.localReferences??[]).map(intern)]),
+ attributes:c.attributes.map(r=>[intern(r.path),intern(r.name),intern(r.disposition)]),
+ rules:c.rules.map(r=>intern(JSON.stringify(r))),normalizations:c.normalizations.map(r=>intern(JSON.stringify(r))),errors:c.errors};}
+function attachBytes(value){value.serializedBytes=0;value.over256KiB=false;for(let i=0;i<8;i++){const n=encoder.encode(JSON.stringify(value)).length,over=n>262144;if(n===value.serializedBytes&&over===value.over256KiB)break;value.serializedBytes=n;value.over256KiB=over;}return value;}
+async function run(request){validate(request);if(preparation.status!=='ready')throw Error('prepare first');if(busy)throw Error('busy');busy=true;const started=performance.now();try{
+ host?.remove();host=document.createElement('div');host.id='svg-converter-prototype-host';host.style.width='1000px';document.body.append(host);
+ mermaid.initialize({...base,...(request.theme==='dark'?{theme:'dark',darkMode:true}:{}),...(request.profile==='classic-tspan'?{look:'classic',journey:{textPlacement:'tspan'}}:{})});
+ let svg,diagramType;
+ if(request.id.startsWith('fixture_')){
+   const fixture=fixtures.find(x=>x.id===request.source);
+   if(!fixture)throw Error('Unknown fixed contract fixture');
+   svg=fixture.svg;diagramType='fixed-contract-fixture';
+ }else ({svg,diagramType}=await mermaid.render('convert_'+request.id,request.source,host));
+ const renderMs=performance.now()-started;host.innerHTML=svg;
+ const result=convertSvgElement(host.querySelector('svg'));
+ return attachBytes({...result,coverage:packCoverage(result.coverage),id:request.id,profile:request.profile,theme:request.theme,diagramType,originalSvgBytes:encoder.encode(svg).length,renderMs,elapsedMs:performance.now()-started,
+ originalFixtureGeometry:request.id.startsWith('fixture_')?Array.from(host.querySelectorAll('svg,svg *')).slice(0,64).filter(n=>typeof n.getCTM==='function').map(n=>{const m=n.getCTM(),b=n.getBBox();return {tag:n.localName,ctm:m?[m.a,m.b,m.c,m.d,m.e,m.f]:null,bbox:[b.x,b.y,b.width,b.height]};}):undefined,evidenceBoundary:'No independent validator or round-trip pixels run by this entry. Original live SVG remains in helper for separately authorized observation.'});
+ }catch(e){return attachBytes({ok:false,id:request.id,error:{code:'invalid-output',reason:textError(e)},elapsedMs:performance.now()-started});}finally{busy=false;}}
+function start(request){validate(request);if(preparation.status!=='ready')throw Error('prepare first');if(busy||task?.status==='pending')throw Error('busy');const taskId='conversion_'+(++sequence);task={taskId,status:'pending'};Promise.resolve().then(()=>run(request)).then(result=>{task={taskId,status:'complete',result};},e=>{task={taskId,status:'error',error:textError(e)};});return {taskId,status:'pending'};}
+function poll(taskId){return task?.taskId===taskId?task:{status:'unknown'};}
+function clear(){if(busy||task?.status==='pending')throw Error('pending: native termination required');task=undefined;host?.remove();host=undefined;}
+window.__milkupSvgConverterProbe=Object.freeze({ready,readiness,run,start,poll,clear});
+export {ready,readiness,run,start,poll,clear};

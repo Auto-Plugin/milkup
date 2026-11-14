@@ -1,0 +1,31 @@
+
+ RUN  v3.2.6 /tmp/milkup-windows-manual-candidate/apps/desktop
+
+
+⎯⎯⎯⎯⎯⎯ Failed Suites 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/editor-floating-toolbar-geometry.test.ts [ src/editor-floating-toolbar-geometry.test.ts ]
+Error: Failed to resolve import "./editor-floating-toolbar-geometry" from "src/editor-floating-toolbar-geometry.test.ts". Does the file exist?
+  Plugin: vite:import-analysis
+  File: /tmp/milkup-windows-manual-candidate/apps/desktop/src/editor-floating-toolbar-geometry.test.ts:4:50
+  1  |  import { describe, expect, it, vi } from "vitest";
+  2  |  import { readEditorFloatingToolbarGeometry } from "./editor-floating-toolbar-geometry";
+     |                                                     ^
+  3  |  function fixture() {
+  4  |    document.body.innerHTML = '<main><div class="editor"><div class="cursors"><div class="milkup-cursor" data-position=...
+ ❯ TransformPluginContext._formatLog ../../../../workspace/milkup/node_modules/.pnpm/vite@7.3.6_@types+node@24.13.2/node_modules/vite/dist/node/chunks/config.js:29079:43
+ ❯ TransformPluginContext.error ../../../../workspace/milkup/node_modules/.pnpm/vite@7.3.6_@types+node@24.13.2/node_modules/vite/dist/node/chunks/config.js:29076:14
+ ❯ normalizeUrl ../../../../workspace/milkup/node_modules/.pnpm/vite@7.3.6_@types+node@24.13.2/node_modules/vite/dist/node/chunks/config.js:27199:18
+ ❯ ../../../../workspace/milkup/node_modules/.pnpm/vite@7.3.6_@types+node@24.13.2/node_modules/vite/dist/node/chunks/config.js:27257:32
+ ❯ TransformPluginContext.transform ../../../../workspace/milkup/node_modules/.pnpm/vite@7.3.6_@types+node@24.13.2/node_modules/vite/dist/node/chunks/config.js:27225:4
+ ❯ EnvironmentPluginContainer.transform ../../../../workspace/milkup/node_modules/.pnpm/vite@7.3.6_@types+node@24.13.2/node_modules/vite/dist/node/chunks/config.js:28877:14
+ ❯ loadAndTransform ../../../../workspace/milkup/node_modules/.pnpm/vite@7.3.6_@types+node@24.13.2/node_modules/vite/dist/node/chunks/config.js:22746:26
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  no tests
+   Start at  01:28:52
+   Duration  1.54s (transform 37ms, setup 0ms, collect 0ms, tests 0ms, environment 925ms, prepare 107ms)
+

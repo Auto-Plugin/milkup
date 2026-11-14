@@ -1,0 +1,122 @@
+{
+  "schemaVersion": 1,
+  "purpose": "Engine-independent source fixtures. Each source is converted normally; native boundary harness may insert only exterior section/page-start and the stated filler height. This controlled experiment is distinct from actual GUI export acceptance.",
+  "pageSize": "letter",
+  "landscape": true,
+  "fillerUnit": "CSS px",
+  "cases": [
+    {
+      "id": "TABLE-550",
+      "type": "table",
+      "height": 550,
+      "short": false,
+      "count": 60,
+      "firstMarker": "TABLE-550-ROW-001",
+      "lastMarker": "TABLE-550-ROW-060",
+      "sourceFile": "pagination/table-550.md",
+      "sourceSHA256": "b2798b34f88db20848219e887b68f47fb7785fadcd410a83d8624ac7d63f49ba"
+    },
+    {
+      "id": "CODE-550",
+      "type": "code",
+      "height": 550,
+      "short": false,
+      "count": 80,
+      "firstMarker": "CODE-550-LINE-001",
+      "lastMarker": "CODE-550-LINE-080",
+      "sourceFile": "pagination/code-550.md",
+      "sourceSHA256": "69a2e796ab87a41c0f9f2a28a1cf0bde82964dfb4494e3c75bd1b1543a544c19"
+    },
+    {
+      "id": "LIST-550",
+      "type": "list",
+      "height": 550,
+      "short": false,
+      "count": 80,
+      "firstMarker": "LIST-550-ITEM-001",
+      "lastMarker": "LIST-550-ITEM-080",
+      "sourceFile": "pagination/list-550.md",
+      "sourceSHA256": "83f3469eef732a4acf026c7bf5f05e6d7305c16c3144a7bee170f9d2635856c6"
+    },
+    {
+      "id": "TABLE-575",
+      "type": "table",
+      "height": 575,
+      "short": false,
+      "count": 60,
+      "firstMarker": "TABLE-575-ROW-001",
+      "lastMarker": "TABLE-575-ROW-060",
+      "sourceFile": "pagination/table-575.md",
+      "sourceSHA256": "2fcf1f42013c224756aa5759bf274841268d52febb6975536f63edb17a4ade2e"
+    },
+    {
+      "id": "CODE-575",
+      "type": "code",
+      "height": 575,
+      "short": false,
+      "count": 80,
+      "firstMarker": "CODE-575-LINE-001",
+      "lastMarker": "CODE-575-LINE-080",
+      "sourceFile": "pagination/code-575.md",
+      "sourceSHA256": "66c5f32c704a48c8249640786adc9acf394bd35d96558b9927ccbbec186e2acb"
+    },
+    {
+      "id": "LIST-575",
+      "type": "list",
+      "height": 575,
+      "short": false,
+      "count": 80,
+      "firstMarker": "LIST-575-ITEM-001",
+      "lastMarker": "LIST-575-ITEM-080",
+      "sourceFile": "pagination/list-575.md",
+      "sourceSHA256": "2bec780f2570ae36cfa688a50fe08c7459c1dc62fb96095138c717d945e568b2"
+    },
+    {
+      "id": "TABLE-575-SHORT",
+      "type": "table",
+      "height": 575,
+      "short": true,
+      "count": 2,
+      "firstMarker": "TABLE-575-SHORT-ROW-001",
+      "lastMarker": "TABLE-575-SHORT-ROW-002",
+      "sourceFile": "pagination/table-575-short.md",
+      "sourceSHA256": "98e945f1f9cc4ecb01e47ae6499f6d1562edefd06674e18872d3964c4804f388"
+    },
+    {
+      "id": "CODE-575-SHORT",
+      "type": "code",
+      "height": 575,
+      "short": true,
+      "count": 3,
+      "firstMarker": "CODE-575-SHORT-LINE-001",
+      "lastMarker": "CODE-575-SHORT-LINE-003",
+      "sourceFile": "pagination/code-575-short.md",
+      "sourceSHA256": "f38ec927aa989b1befc122b23678760302fefd9f6f8b9e59960a4616f0e55e70"
+    },
+    {
+      "id": "LIST-575-SHORT",
+      "type": "list",
+      "height": 575,
+      "short": true,
+      "count": 3,
+      "firstMarker": "LIST-575-SHORT-ITEM-001",
+      "lastMarker": "LIST-575-SHORT-ITEM-003",
+      "sourceFile": "pagination/list-575-short.md",
+      "sourceSHA256": "d4acf4b70aa232ed67896f58d1e4ddc66398a827fc542c7fd91cfc80fe223eca"
+    }
+  ],
+  "requiredAssertions": [
+    "Every source file matches its frozen hash.",
+    "Each heading, first/last content marker, every numbered row/line/item and end marker appears exactly once.",
+    "Heading and first real content marker share a page.",
+    "All text pages contain content; no blank PDF page.",
+    "Actual pixels independently show intact heading/first-piece and natural continuation; text marker assertions alone cannot prove no clipping."
+  ],
+  "prohibitedWorkarounds": [
+    "remove or truncate source",
+    "split by character count",
+    "duplicate heading",
+    "replace source Unicode by normalized aliases",
+    "assert only a known page number or expected engine metadata"
+  ]
+}

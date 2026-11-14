@@ -1,0 +1,132 @@
+
+ RUN  v3.2.6 /tmp/milkup-windows-manual-candidate
+
+ ❯ apps/desktop/src/desktop-plugin-ui.test.ts (93 tests | 2 failed | 91 skipped) 74ms
+   ↓ context menu output ownership > rejects pending output and existing actions after documentVersion changes without another refresh
+   ↓ context menu output ownership > rejects pending output and existing actions after selectionRevision changes without another refresh
+   ↓ context menu output ownership > rejects pending output and existing actions after saveLocationGeneration changes without another refresh
+   ↓ context menu output ownership > keeps a newer same-selection opening when a previous opening resolves late
+   × context menu output ownership > renders each menu view once per opening and never while the slot is hidden 64ms
+     → expected "spy" to be called 2 times, but got 1 times
+   × context menu output ownership > finishes one captured hide lifecycle before rendering an immediately reopened selection 9ms
+     → expected "spy" to be called 1 times, but got 0 times
+   ↓ context menu output ownership > defers a same-context refresh until a held menu button dispatches its click
+   ↓ context menu output ownership > retires app-scoped output synchronously on document change and rejects its late render
+   ↓ context menu output ownership > never exposes a slow plugin previous selection when a fast plugin completes a reopened menu
+   ↓ plugin UI lifecycle races > does not resume mounting views after disable interrupts sync
+   ↓ plugin UI lifecycle races > does not resume mounting views after dispose interrupts sync
+   ↓ plugin UI lifecycle races > removes every retired view synchronously while disable cleanup is pending
+   ↓ plugin UI lifecycle races > removes every retired view synchronously while dispose cleanup is pending
+   ↓ plugin UI lifecycle races > removes every retired view synchronously while document cleanup is pending
+   ↓ plugin UI lifecycle races > keeps only the newest document when a prior sync resumes after pending cleanup
+   ↓ plugin UI lifecycle races > waits for retiring view cleanup only when replacing within the same execution generation
+   ↓ plugin UI lifecycle races > waits for retiring view cleanup only when replacing within the new execution generation
+   ↓ plugin UI lifecycle races > does not mount remaining views from a revoked sync snapshot before the next sync
+   ↓ plugin UI lifecycle races > refreshes app-scoped views for a new document while an old mount is pending
+   ↓ plugin UI lifecycle races > does not cancel an in-flight sync when its document and contributions are unchanged
+   ↓ plugin UI lifecycle races > remounts unchanged contributions for a new execution generation without disposing the new instance
+   ↓ plugin UI lifecycle races > does not dispatch focus or controlled commands from a retired execution generation
+   ↓ plugin UI lifecycle races > drops late render output and invalidation once its execution generation is revoked
+   ↓ plugin UI lifecycle races > drops late render error and invalidation once its execution generation is revoked
+   ↓ generic contextual document toolbar > collapses empty contributions and the entire empty slot, restoring either when content returns
+   ↓ contextual toolbar invalidation > removes empty controlled trees and whitespace without leaving a blank toolbar
+   ↓ contextual toolbar invalidation > retires empty output immediately even while a pointer is held
+   ↓ contextual toolbar invalidation > hides old context synchronously and rejects output for an earlier selection
+   ↓ contextual toolbar invalidation > retires commands before the host debounce without starting another Worker render
+   ↓ contextual toolbar invalidation > cannot resurrect a floating toolbar after disable
+   ↓ contextual toolbar invalidation > cannot resurrect a floating toolbar after dispose
+   ↓ contextual toolbar invalidation > keeps toolbar fields focused and restores editor focus before commands or empty output
+   ↓ generic virtual scroll scheduling > publishes a near-edge range within one frame window during sustained scrolling
+   ↓ generic virtual scroll scheduling > keeps a requested buffer across old-slice echoes without suppressing a newer distant range
+   ↓ generic virtual scroll scheduling > allows only one scroll render in flight and retains only the latest pending range
+   ↓ generic virtual scroll scheduling > drops a scheduled scroll demand after its document changes
+   ↓ generic virtual scroll scheduling > drops a scheduled scroll demand after its version changes
+   ↓ generic virtual scroll scheduling > drops a scheduled scroll demand after its dispose changes
+   ↓ generic virtual scroll scheduling > lets a new version schedule its own range without inheriting an old timer
+   ↓ generic virtual scroll scheduling > lets same-document selection navigation supersede an old echoed scroll buffer
+   ↓ generic virtual scroll scheduling > lets same-document follow-active navigation supersede an old echoed scroll buffer
+   ↓ generic virtual scroll scheduling > requests the same position again after a version change with an old echo
+   ↓ generic virtual scroll scheduling > requests the same position again after a version change with an old in-flight
+   ↓ generic virtual scroll scheduling > lets local keyboard Home cancel even an already in-flight scroll range
+   ↓ generic virtual scroll scheduling > does not reclaim departed focus or replay pending scroll over keyboard Home
+   ↓ DesktopPluginUiController > restores a virtual keyboard target named by text without requiring aria-label
+   ↓ DesktopPluginUiController > requests bounded virtual tree ranges for End, Home and arrow boundary focus
+   ↓ DesktopPluginUiController > does not let late virtual keyboard ranges steal focus after Tab or document change
+   ↓ DesktopPluginUiController > discards a rejected keyboard range after the request document changes
+   ↓ DesktopPluginUiController > discards a rejected keyboard range after the request version changes
+   ↓ DesktopPluginUiController > discards a rejected keyboard range after the request mount changes
+   ↓ DesktopPluginUiController > discards a pending End range when focus moves to another row of the same tree
+   ↓ DesktopPluginUiController > keeps the latest virtual keyboard intent and discards ranges after teardown
+   ↓ DesktopPluginUiController > uses visible ranks rather than source ordinals after folding a virtual tree
+   ↓ DesktopPluginUiController > holds modal focus while a controlled save action is temporarily disabled
+   ↓ DesktopPluginUiController > combines embedding slot visibility with panel collapse without affecting other slots
+   ↓ DesktopPluginUiController > traps modal Tab using only the current tree tab stop
+   ↓ DesktopPluginUiController > does not treat scripted clicks or forged action details as trusted user gestures
+   ↓ DesktopPluginUiController > keeps a pressed controlled button until click and coalesces progress renders
+   ↓ DesktopPluginUiController > mounts controlled slots and recreates document-scoped views on document changes
+   ↓ DesktopPluginUiController > opens and closes modal views repeatedly and bridges declared commands
+   ↓ DesktopPluginUiController > takes modal focus before pending mount output, so immediate Escape closes and restores the opener
+   ↓ DesktopPluginUiController > does not take focus back from a host confirmation when asynchronous opening completes
+   ↓ DesktopPluginUiController > restores an available card when unloading removes the opener and ignores late output
+   ↓ DesktopPluginUiController > resumes focus after a pending output removes controls, with final Action A
+   ↓ DesktopPluginUiController > resumes focus after a pending output removes controls, with final Action B
+   ↓ DesktopPluginUiController > does not resume a removed action after the user focuses close
+   ↓ DesktopPluginUiController > does not resume a removed action after the user focuses confirmation
+   ↓ DesktopPluginUiController > traps native WebKit Shift+Tab with Unidentified key and Tab code at the close button
+   ↓ DesktopPluginUiController > rerenders only the requested plugin view when invalidated
+   ↓ DesktopPluginUiController > passes fresh viewport state when an editor scroll update rerenders mounted UI
+   ↓ DesktopPluginUiController > skips editor viewport updates for views that opt out
+   ↓ DesktopPluginUiController > collapses sidebar panels to the bottom and exposes resizers only between expanded panels
+   ↓ DesktopPluginUiController > reports actual visibility on collapse and expand, independent of focus lifecycle
+   ↓ DesktopPluginUiController > resizes adjacent expanded sidebar panels as a bounded pair
+   ↓ DesktopPluginUiController > ends a sidebar pointer drag on pointercancel without responding to later moves
+   ↓ DesktopPluginUiController > ends a sidebar pointer drag on lostpointercapture without responding to later moves
+   ↓ DesktopPluginUiController > ends a sidebar pointer drag on dispose without responding to later moves
+   ↓ DesktopPluginUiController > ends a sidebar pointer drag on collapse without responding to later moves
+   ↓ DesktopPluginUiController > ends a sidebar pointer drag on hide without responding to later moves
+   ↓ DesktopPluginUiController > ends a sidebar pointer drag on resize without responding to later moves
+   ↓ DesktopPluginUiController > ends a sidebar pointer drag on blur without responding to later moves
+   ↓ DesktopPluginUiController > keeps identical controlled output mounted and preserves internal scroll on changes
+   ↓ DesktopPluginUiController > decorates a controlled host icon without relying on plugin-specific classes
+   ↓ DesktopPluginUiController > projects a virtual outline slice into the full scroll height and follows its active item
+   ↓ DesktopPluginUiController > requests a new buffered range when the outline is scrolled outside its rendered slice
+   ↓ DesktopPluginUiController > does not rerender while outline scrolling remains inside the current overscan buffer
+   ↓ DesktopPluginUiController > keeps the virtual outline viewport stable while background scanning extends the total
+   ↓ DesktopPluginUiController > requests one adjacent buffer only after a real user wheel gesture reaches an edge
+   ↓ DesktopPluginUiController > requests the previous buffer only when the list reaches the exact top edge
+   ↓ DesktopPluginUiController > does not request an adjacent buffer for a small scroll far from the cache edge
+   ↓ DesktopPluginUiController > compensates scroll position once when headings are prepended
+   ↓ DesktopPluginUiController > coalesces viewport updates without running concurrent plugin renders
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  apps/desktop/src/desktop-plugin-ui.test.ts > context menu output ownership > renders each menu view once per opening and never while the slot is hidden
+AssertionError: expected "spy" to be called 2 times, but got 1 times
+ ❯ apps/desktop/src/desktop-plugin-ui.test.ts:123:22
+    121|     expect(f.render.mock.calls[0]?.[2]).toBe('mount')
+    122|     f.controller.setSlotVisible('context-menu', false)
+    123|     expect(f.render).toHaveBeenCalledTimes(2)
+       |                      ^
+    124|     expect(f.render.mock.calls[1]?.[2]).toBe('blur')
+    125|     expect(f.render.mock.calls[1]?.[3]?.visible).toBe(false)
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯
+
+ FAIL  apps/desktop/src/desktop-plugin-ui.test.ts > context menu output ownership > finishes one captured hide lifecycle before rendering an immediately reopened selection
+AssertionError: expected "spy" to be called 1 times, but got 0 times
+ ❯ apps/desktop/src/desktop-plugin-ui.test.ts:141:22
+    139|     f.controller.setSlotVisible('context-menu', false)
+    140|     f.controller.setSlotVisible('context-menu', false)
+    141|     expect(f.render).toHaveBeenCalledTimes(1)
+       |                      ^
+    142|     expect(f.render.mock.calls[0]?.[2]).toBe('blur')
+    143|     expect(f.render.mock.calls[0]?.[3]).toMatchObject({ visible: false…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/2]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  2 failed | 91 skipped (93)
+   Start at  02:02:11
+   Duration  1.88s (transform 738ms, setup 0ms, collect 997ms, tests 74ms, environment 517ms, prepare 97ms)
+

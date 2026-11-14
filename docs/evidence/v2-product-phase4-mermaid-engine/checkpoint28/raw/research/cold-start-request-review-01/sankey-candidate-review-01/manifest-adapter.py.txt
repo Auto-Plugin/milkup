@@ -1,0 +1,37 @@
+"""Explicit relative-manifest adapter; original auditor and first failure remain unchanged."""
+import hashlib, importlib.util, json, sys
+from pathlib import Path
+B=Path('/workspace/milkup-mermaid-engine-evidence/research/sankey-candidate-native-01').resolve()
+R=B/'runtime/mermaid-ui-sankey-candidate-repro-01'
+OUT=Path(__file__).parent
+SCRIPT=Path('/workspace/milkup-mermaid-engine-evidence/research/native-short-sequence-request-candidate-01/mixedstream-audit/audit-mixedstream.py')
+sha=lambda b:hashlib.sha256(b).hexdigest()
+assert sha(SCRIPT.read_bytes())=='fb605cbd46b13ce2bc952453d6423b656cf7c6789f85943f53462ddff87d02b0'
+mb=(B/'completed-manifest.json').read_bytes()
+assert sha(mb)=='3aba4592bdba5476baa883519e87cf8b6b1d99fd9476c446c019f5296b32e926'
+m=json.loads(mb)
+assert Path(m['root']).resolve()==B and m['run']==R.name
+assert (B/'runtime'/m['run']).resolve()==R and R.is_relative_to(B)
+index={}
+for item in m['files']:
+    relative=Path(item['path']);assert not relative.is_absolute()
+    path=(B/relative).resolve(strict=True)
+    assert path.is_relative_to(B) and path.is_file() and path not in index
+    index[path]=item
+def raw(path):
+    path=path.resolve(strict=True);assert path in index and path.is_relative_to(B)
+    value=path.read_bytes();item=index[path]
+    assert len(value)==item['bytes'] and sha(value)==item['sha256'],str(path)
+    return value
+for path in index:raw(path)
+def obj(path,optional=False):
+    if optional and path.resolve() not in index:return None
+    return json.loads(raw(path))
+spec=importlib.util.spec_from_file_location('frozen_mixed_auditor',SCRIPT)
+module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module)
+N=R/'native-capture';E=R/'evidence'
+result=module.analyze([json.loads(x) for x in raw(N/'events.jsonl').splitlines()],obj(N/'complete.json',True),obj(N/'status.json',True),obj(E/'frontend-queue-trace.json',True),raw(R/'driver.log').decode())
+result.update(manifestSha256=sha(mb),frozenFilesChecked=len(index),frozenBytesChecked=sum(x['bytes'] for x in index.values()),productRecordsTail=[x.get('name') for x in obj(E/'results.json')[-4:]],entryQualification='Original auditor first exit1 manifest-schema mismatch retained; this explicit root/relative-path adapter calls unchanged analyze function')
+with (OUT/'adapted-audit.json').open('x') as f:json.dump(result,f,ensure_ascii=False,indent=2);f.write('\n')
+print(json.dumps({k:result[k] for k in ['classification','issues','frozenFilesChecked','acceptedCount','actualDeadlineCount','nativeFailCount','nativeUnclosedOrAmbiguous','frontendOpen']},indent=2))
+sys.exit(0 if not result['issues'] else 1)

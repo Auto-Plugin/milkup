@@ -1,0 +1,51 @@
+{
+  "scope": "Bounded synthetic IME event/focus follow-up; no GUI, native system IME, Windows, CI or full build run",
+  "addedTests": 8,
+  "axes": [
+    "ordinary/windowed",
+    "blur before/after compositionend",
+    "commit/cancel"
+  ],
+  "checks": [
+    "late and duplicate final input notification after proxy cleared",
+    "preedit never mutates source/history",
+    "cancel preserves original Unicode selection",
+    "exactly one commit",
+    "external focus retained",
+    "same-character next composition accepted",
+    "undo/redo exact text"
+  ],
+  "failureEvidence": {
+    "unit.log": "Initial test authoring error: newly declared tests accidentally inside setup; corrected before behavioral evaluation. 12 existing IME tests failed collection during runtime; 6 adjacent boundary tests passed.",
+    "unit-final.log": "Real regression: windowed commit after blur steals focus in both orders. 24 passed/2 failed. Text and history assertions passed."
+  },
+  "fix": "Only composition commit passes focusInput=false through private SourceDocumentView.applyTextInput/applyVisibleEdit; input identity is stable, so current native focus is retained without explicit focus. Other editing call sites preserve previous default.",
+  "verification": {
+    "unit-fixed.log": {
+      "files": 3,
+      "passed": 39,
+      "failed": 0
+    },
+    "typecheck.log": {
+      "exitCode": 0
+    },
+    "formatAndDiffCheck": "Passed"
+  },
+  "limitations": [
+    "Synthetic CompositionEvent/InputEvent with actual jsdom focus changes; not real operating-system IME or candidate window validation.",
+    "A late input notification describes the committed DOM mutation and does not artificially refill the cleared input; browser-specific new DOM mutation after compositionend is not proven here.",
+    "No new browser matrix run; prior 16-case Chromium CDP evidence remains separately frozen."
+  ],
+  "sources": {
+    "packages/view-dom/src/editor-view.ts": "220c7424a012273f29e648e874879ba533d8a32943111babc6f6fb4041f066c2",
+    "packages/view-dom/src/source-document-view.ts": "313ad24a0f73bb889b1248ac89ce583f3d79f4f065d57c4038b08c52e2519aa6",
+    "packages/view-dom/src/composition-overlay.ts": "8bbcf3d46e53bb03b9048b98569ca7dbef4c4c15cdabd7adb0e80709b97439d7",
+    "packages/view-dom/src/__tests__/ime-preedit.test.ts": "9e63e0989a6e021d3f914956101366e92dac8ca2440209c2716ce7f518904c43"
+  },
+  "logs": {
+    "typecheck.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "unit-fixed.log": "50f126556661aba33a173e32e2efd72a6f96f82c172040dddf331cce5b961fc5",
+    "unit-final.log": "bdb9e9e116b6d4b096f95ce484acd96938efe49a9e892a065427ed3e6ba24448",
+    "unit.log": "572399c2ebb1978a74e18ae9bd424341f5fcb7b37f47170fada8cbed1c54993f"
+  }
+}

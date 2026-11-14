@@ -1,0 +1,370 @@
+
+ RUN  v3.2.6 /workspace/milkup
+
+ ❯ apps/desktop/src/desktop-plugin-manager.test.ts (30 tests | 21 failed) 81ms
+   × DesktopPluginManager > exposes a stable read-only renderer generation that changes across disable and re-enable 16ms
+     → Plugin cleanup did not fully complete
+   ✓ DesktopPluginManager > rejects a temporary-store plugin on SDK 0.1.0 before executing its module 6ms
+   × DesktopPluginManager > rejects incompatible upgrade {"pluginSdk":"^9.0.0"} before writing or changing the enabled installation 5ms
+     → Cannot read properties of undefined (reading 'setItem')
+   × DesktopPluginManager > rejects incompatible upgrade {"milkup":"^9.0.0"} before writing or changing the enabled installation 1ms
+     → Cannot read properties of undefined (reading 'setItem')
+   ✓ DesktopPluginManager > does not create files, directories or registry records for a new incompatible archive 2ms
+   ✓ DesktopPluginManager > does not create files, directories or registry records for a new incompatible manifest 1ms
+   × DesktopPluginManager > cleans temporary stores on disable and close, and permits a fresh activation after close fails 1ms
+     → Plugin cleanup did not fully complete
+   × DesktopPluginManager > loads a relative entry from the plugin root and cleans runtime resources on disable 5ms
+     → expected [] to deeply equal [ 'D:/plugins/example/dist/plugin.js' ]
+   × DesktopPluginManager > reports error Worker startup failure and releases the Worker 6ms
+     → expected 'Plugin cleanup did not fully complete…' to contain 'failed to import'
+   × DesktopPluginManager > reports silent Worker startup failure and releases the Worker 2ms
+     → expected 'Plugin cleanup did not fully complete…' to contain 'initialization timed out'
+   × DesktopPluginManager > reports transport Worker startup failure and releases the Worker 2ms
+     → expected 'Plugin cleanup did not fully complete…' to contain 'transport closed'
+   × DesktopPluginManager > reactivates persisted enabled plugins during startup 13ms
+     → expected { manifest: { …(6) }, …(12) } to match object { enabled: true, state: 'enabled' }
+(19 matching properties omitted from actual)
+   ✓ DesktopPluginManager > exports a validated local development package with its entry and resources 2ms
+   ✓ DesktopPluginManager > exports installed PNG icons as base64 and preserves them when reinstalling the archive 3ms
+   ✓ DesktopPluginManager > keeps invalid manifests visible as install failures without damaging installed records 1ms
+   × DesktopPluginManager > honors keymap when contexts and exposes conflicts in manager markup 1ms
+     → expected undefined to be 'example.insert' // Object.is equality
+   × DesktopPluginManager > runs ChatGPT-style importers and returns generated Markdown without a source file identity 1ms
+     → expected undefined to match object { kind: 'generated-markdown', …(3) }
+   × DesktopPluginManager > requires explicit approval for file capabilities and revokes enabled resources 1ms
+     → expected 'Plugin cleanup did not fully complete' to contain 'require approval'
+   × DesktopPluginManager > gates workspace scope creation on explicit approval and revokes captured brokers before unload 2ms
+     → expected "spy" to be called 1 times, but got 0 times
+   × DesktopPluginManager > keeps sidecar plugins disabled until their host is explicitly approved 1ms
+     → expected 'Plugin cleanup did not fully complete' to contain 'host:sidecar'
+   × DesktopPluginManager > provides document scan capabilities to plugins with document read permission 1ms
+     → Cannot read properties of undefined (reading 'start')
+   × DesktopPluginManager > permits explicit retry after a render timeout while keeping the old broker revoked 1ms
+     → Cannot read properties of undefined (reading 'onDocumentRenderTimeout')
+   × DesktopPluginManager > ignores a retired worker timeout callback after a new activation 1ms
+     → Plugin cleanup did not fully complete
+   × DesktopPluginManager > records a host failure distinctly and permits explicit retry without reviving its old callbacks 1ms
+     → Cannot read properties of undefined (reading 'onIsolationError')
+   × DesktopPluginManager > preserves host failure provenance across restart for explicit retry 1ms
+     → Cannot read properties of undefined (reading 'onIsolationError')
+   × DesktopPluginManager > waits for timed-out activation cleanup before publishing a replacement 1ms
+     → Cannot read properties of undefined (reading 'onDocumentRenderTimeout')
+   ✓ resolvePluginEntryPath > resolves package entries and rejects paths outside the package 0ms
+   × P6 lifecycle failure boundaries > attempts every cleanup after an independent service rejects and revokes the old epoch 2ms
+     → expected [ 'output', 'editing', 'resources' ] to deeply equal ArrayContaining{…}
+   ✓ P6 lifecycle failure boundaries > keeps a usable in-memory result when mirror quota fails 1ms
+   ✓ P6 lifecycle failure boundaries > retains corrupt legacy bytes for native migration diagnostics rather than deleting evidence 0ms
+
+⎯⎯⎯⎯⎯⎯ Failed Tests 21 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  apps/desktop/src/desktop-plugin-manager.test.ts > DesktopPluginManager > exposes a stable read-only renderer generation that changes across disable and re-enable
+ FAIL  apps/desktop/src/desktop-plugin-manager.test.ts > DesktopPluginManager > cleans temporary stores on disable and close, and permits a fresh activation after close fails
+AggregateError: Plugin cleanup did not fully complete
+ ❯ DesktopPluginManager.unloadRuntimePlugin apps/desktop/src/desktop-plugin-manager.ts:1605:21
+    1603|     this.executingRecords.delete(pluginId)
+    1604|     if(errors.length) {
+    1605|       const failure=new AggregateError(errors,'Plugin cleanup did not …
+       |                     ^
+    1606|       this.managerDiagnostics.push(failure.message+': '+errors.map(Str…
+    1607|       if(this.registry.get(pluginId))this.registry.markFailed(pluginId…
+ ❯ apps/desktop/src/desktop-plugin-manager.ts:832:13
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/21]⎯
+
+ FAIL  apps/desktop/src/desktop-plugin-manager.test.ts > DesktopPluginManager > rejects incompatible upgrade {"pluginSdk":"^9.0.0"} before writing or changing the enabled installation
+ FAIL  apps/desktop/src/desktop-plugin-manager.test.ts > DesktopPluginManager > rejects incompatible upgrade {"milkup":"^9.0.0"} before writing or changing the enabled installation
+TypeError: Cannot read properties of undefined (reading 'setItem')
+ ❯ apps/desktop/src/desktop-plugin-manager.test.ts:128:28
+    126|       await manager.installManifestPath('/candidate.milkup-plugin')
+    127|       await manager.enable(oldManifest.id)
+    128|       await pluginStorage!.setItem('settings', '{"compact":true}')
+       |                            ^
+    129|       const before = manager.state()
+    130|       const savedRegistry = storage.getItem('milkup.desktop.plugins.re…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/21]⎯
+
+ FAIL  apps/desktop/src/desktop-plugin-manager.test.ts > DesktopPluginManager > loads a relative entry from the plugin root and cleans runtime resources on disable
+AssertionError: expected [] to deeply equal [ 'D:/plugins/example/dist/plugin.js' ]
+
+- Expected
++ Received
+
+- [
+-   "D:/plugins/example/dist/plugin.js",
+- ]
++ []
+
+ ❯ apps/desktop/src/desktop-plugin-manager.test.ts:267:30
+    265|     await manager.enable('example-tools')
+    266| 
+    267|     expect(loadedSpecifiers).toEqual(['D:/plugins/example/dist/plugin.…
+       |                              ^
+    268|     expect(registry.get('example.insert')).toBeDefined()
+    269|     expect(manager.state().contributions.commands.map((command) => com…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/21]⎯
+
+ FAIL  apps/desktop/src/desktop-plugin-manager.test.ts > DesktopPluginManager > reports error Worker startup failure and releases the Worker
+AssertionError: expected 'Plugin cleanup did not fully complete…' to contain 'failed to import'
+
+Expected: "failed to import"
+Received: "Plugin cleanup did not fully complete Plugin cleanup did not fully complete Plugin cleanup did not fully complete"
+
+ ❯ apps/desktop/src/desktop-plugin-manager.test.ts:336:62
+    334|               : 'transport closed'
+    335|         expect(manager.state().records[0]).toMatchObject({ state: 'fai…
+    336|         expect(manager.state().records[0]?.errors.join(' ')).toContain…
+       |                                                              ^
+    337|         expect(terminate).toHaveBeenCalledTimes(1)
+    338|         expect(listeners.size).toBe(0)
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/21]⎯
+
+ FAIL  apps/desktop/src/desktop-plugin-manager.test.ts > DesktopPluginManager > reports silent Worker startup failure and releases the Worker
+AssertionError: expected 'Plugin cleanup did not fully complete…' to contain 'initialization timed out'
+
+Expected: "initialization timed out"
+Received: "Plugin cleanup did not fully complete Plugin cleanup did not fully complete Plugin cleanup did not fully complete"
+
+ ❯ apps/desktop/src/desktop-plugin-manager.test.ts:336:62
+    334|               : 'transport closed'
+    335|         expect(manager.state().records[0]).toMatchObject({ state: 'fai…
+    336|         expect(manager.state().records[0]?.errors.join(' ')).toContain…
+       |                                                              ^
+    337|         expect(terminate).toHaveBeenCalledTimes(1)
+    338|         expect(listeners.size).toBe(0)
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/21]⎯
+
+ FAIL  apps/desktop/src/desktop-plugin-manager.test.ts > DesktopPluginManager > reports transport Worker startup failure and releases the Worker
+AssertionError: expected 'Plugin cleanup did not fully complete…' to contain 'transport closed'
+
+Expected: "transport closed"
+Received: "Plugin cleanup did not fully complete Plugin cleanup did not fully complete Plugin cleanup did not fully complete"
+
+ ❯ apps/desktop/src/desktop-plugin-manager.test.ts:336:62
+    334|               : 'transport closed'
+    335|         expect(manager.state().records[0]).toMatchObject({ state: 'fai…
+    336|         expect(manager.state().records[0]?.errors.join(' ')).toContain…
+       |                                                              ^
+    337|         expect(terminate).toHaveBeenCalledTimes(1)
+    338|         expect(listeners.size).toBe(0)
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/21]⎯
+
+ FAIL  apps/desktop/src/desktop-plugin-manager.test.ts > DesktopPluginManager > reactivates persisted enabled plugins during startup
+AssertionError: expected { manifest: { …(6) }, …(12) } to match object { enabled: true, state: 'enabled' }
+(19 matching properties omitted from actual)
+
+- Expected
++ Received
+
+  {
+-   "enabled": true,
+-   "state": "enabled",
++   "enabled": false,
++   "state": "failed",
+  }
+
+ ❯ apps/desktop/src/desktop-plugin-manager.test.ts:360:41
+    358|     await restored.ready
+    359| 
+    360|     expect(restored.state().records[0]).toMatchObject({ enabled: true,…
+       |                                         ^
+    361|     expect(restoredRegistry.get('example.insert')).toBeDefined()
+    362|   })
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[7/21]⎯
+
+ FAIL  apps/desktop/src/desktop-plugin-manager.test.ts > DesktopPluginManager > honors keymap when contexts and exposes conflicts in manager markup
+AssertionError: expected undefined to be 'example.insert' // Object.is equality
+
+- Expected: 
+"example.insert"
+
++ Received: 
+undefined
+
+ ❯ apps/desktop/src/desktop-plugin-manager.test.ts:520:7
+    518|         liveMode: true,
+    519|       }),
+    520|     ).toBe('example.insert')
+       |       ^
+    521|     expect(
+    522|       renderDesktopPluginManager(manager.state(), { selectedPluginId: …
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[8/21]⎯
+
+ FAIL  apps/desktop/src/desktop-plugin-manager.test.ts > DesktopPluginManager > runs ChatGPT-style importers and returns generated Markdown without a source file identity
+AssertionError: expected undefined to match object { kind: 'generated-markdown', …(3) }
+
+- Expected: 
+{
+  "kind": "generated-markdown",
+  "markdown": "# Example
+",
+  "pluginId": "chatgpt-importer",
+  "sourcePath": "D:/exports/conversation.json",
+}
+
++ Received: 
+undefined
+
+ ❯ apps/desktop/src/desktop-plugin-manager.test.ts:573:5
+    571|     await manager.enable('chatgpt-importer')
+    572| 
+    573|     await expect(
+       |     ^
+    574|       manager.openPluginDocument('D:/exports/conversation.json', '{"ti…
+    575|     ).resolves.toMatchObject({
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[9/21]⎯
+
+ FAIL  apps/desktop/src/desktop-plugin-manager.test.ts > DesktopPluginManager > requires explicit approval for file capabilities and revokes enabled resources
+AssertionError: expected 'Plugin cleanup did not fully complete' to contain 'require approval'
+
+Expected: "require approval"
+Received: "Plugin cleanup did not fully complete"
+
+ ❯ apps/desktop/src/desktop-plugin-manager.test.ts:620:51
+    618|     await manager.enable('example-tools')
+    619|     expect(manager.state().records[0]).toMatchObject({ state: 'failed'…
+    620|     expect(manager.state().records[0]?.errors[0]).toContain('require a…
+       |                                                   ^
+    621| 
+    622|     manager.approve('example-tools')
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[10/21]⎯
+
+ FAIL  apps/desktop/src/desktop-plugin-manager.test.ts > DesktopPluginManager > gates workspace scope creation on explicit approval and revokes captured brokers before unload
+AssertionError: expected "spy" to be called 1 times, but got 0 times
+ ❯ apps/desktop/src/desktop-plugin-manager.test.ts:674:21
+    672|     manager.approve('example-tools')
+    673|     await manager.enable('example-tools')
+    674|     expect(factory).toHaveBeenCalledTimes(1)
+       |                     ^
+    675|     await manager.disable('example-tools')
+    676|     expect(disposed).toHaveBeenCalledTimes(1)
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[11/21]⎯
+
+ FAIL  apps/desktop/src/desktop-plugin-manager.test.ts > DesktopPluginManager > keeps sidecar plugins disabled until their host is explicitly approved
+AssertionError: expected 'Plugin cleanup did not fully complete' to contain 'host:sidecar'
+
+Expected: "host:sidecar"
+Received: "Plugin cleanup did not fully complete"
+
+ ❯ apps/desktop/src/desktop-plugin-manager.test.ts:717:51
+    715|     await manager.enable('native-tools')
+    716|     expect(loaded).toEqual([])
+    717|     expect(manager.state().records[0]?.errors[0]).toContain('host:side…
+       |                                                   ^
+    718| 
+    719|     manager.approve('native-tools')
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[12/21]⎯
+
+ FAIL  apps/desktop/src/desktop-plugin-manager.test.ts > DesktopPluginManager > provides document scan capabilities to plugins with document read permission
+TypeError: Cannot read properties of undefined (reading 'start')
+ ❯ apps/desktop/src/desktop-plugin-manager.test.ts:754:43
+    752|     await manager.enable(manifest.id)
+    753| 
+    754|     const started = await documentBroker!.start({ query: { kind: 'mark…
+       |                                           ^
+    755|     await expect(documentBroker!.next(started.scanId)).resolves.toMatc…
+    756|       type: 'batch',
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[13/21]⎯
+
+ FAIL  apps/desktop/src/desktop-plugin-manager.test.ts > DesktopPluginManager > permits explicit retry after a render timeout while keeping the old broker revoked
+TypeError: Cannot read properties of undefined (reading 'onDocumentRenderTimeout')
+ ❯ apps/desktop/src/desktop-plugin-manager.test.ts:771:9
+    769|     await fixture.manager.enable('renderer-lifecycle')
+    770|     const old = fixture.capabilities[0]!
+    771|     old.onDocumentRenderTimeout!()
+       |         ^
+    772|     expect(fixture.manager.state().records[0]?.state).toBe('failed')
+    773|     await expect(
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[14/21]⎯
+
+ FAIL  apps/desktop/src/desktop-plugin-manager.test.ts > DesktopPluginManager > ignores a retired worker timeout callback after a new activation
+AggregateError: Plugin cleanup did not fully complete
+ ❯ DesktopPluginManager.unloadRuntimePlugin apps/desktop/src/desktop-plugin-manager.ts:1605:21
+    1603|     this.executingRecords.delete(pluginId)
+    1604|     if(errors.length) {
+    1605|       const failure=new AggregateError(errors,'Plugin cleanup did not …
+       |                     ^
+    1606|       this.managerDiagnostics.push(failure.message+': '+errors.map(Str…
+    1607|       if(this.registry.get(pluginId))this.registry.markFailed(pluginId…
+ ❯ apps/desktop/src/desktop-plugin-manager.ts:832:13
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[15/21]⎯
+
+ FAIL  apps/desktop/src/desktop-plugin-manager.test.ts > DesktopPluginManager > records a host failure distinctly and permits explicit retry without reviving its old callbacks
+TypeError: Cannot read properties of undefined (reading 'onIsolationError')
+ ❯ apps/desktop/src/desktop-plugin-manager.test.ts:820:13
+    818|     await fixture.manager.enable('renderer-lifecycle')
+    819|     const retired = fixture.capabilities[0]!
+    820|     retired.onIsolationError!(new Error('child loading failed'))
+       |             ^
+    821|     expect(fixture.manager.state().records[0]).toMatchObject({
+    822|       state: 'failed',
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[16/21]⎯
+
+ FAIL  apps/desktop/src/desktop-plugin-manager.test.ts > DesktopPluginManager > preserves host failure provenance across restart for explicit retry
+TypeError: Cannot read properties of undefined (reading 'onIsolationError')
+ ❯ apps/desktop/src/desktop-plugin-manager.test.ts:840:30
+    838|     await fixture.manager.installManifestPath('/plugins/renderer/plugi…
+    839|     await fixture.manager.enable('renderer-lifecycle')
+    840|     fixture.capabilities[0]!.onIsolationError!(new Error('child failed…
+       |                              ^
+    841|     const restored = rendererLifecycleFixture(undefined, storage)
+    842|     await restored.manager.ready
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[17/21]⎯
+
+ FAIL  apps/desktop/src/desktop-plugin-manager.test.ts > DesktopPluginManager > waits for timed-out activation cleanup before publishing a replacement
+TypeError: Cannot read properties of undefined (reading 'onDocumentRenderTimeout')
+ ❯ apps/desktop/src/desktop-plugin-manager.test.ts:862:30
+    860|     await fixture.manager.installManifestPath('/plugins/renderer/plugi…
+    861|     await fixture.manager.enable('renderer-lifecycle')
+    862|     fixture.capabilities[0]!.onDocumentRenderTimeout!()
+       |                              ^
+    863|     await vi.waitFor(() => expect(deactivating).toHaveBeenCalled())
+    864|     const replacement = fixture.manager.enable('renderer-lifecycle')
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[18/21]⎯
+
+ FAIL  apps/desktop/src/desktop-plugin-manager.test.ts > P6 lifecycle failure boundaries > attempts every cleanup after an independent service rejects and revokes the old epoch
+AssertionError: expected [ 'output', 'editing', 'resources' ] to deeply equal ArrayContaining{…}
+
+- Expected
++ Received
+
+- ArrayContaining [
++ [
+    "output",
+    "editing",
+    "resources",
+-   "module",
+  ]
+
+ ❯ apps/desktop/src/desktop-plugin-manager.test.ts:1033:20
+    1031|     internals.resourcesServices.set('example-tools',{dispose:async()=>…
+    1032|     await expect(manager.disable('example-tools')).rejects.toThrow('cl…
+    1033|     expect(events).toEqual(expect.arrayContaining(['output','editing',…
+       |                    ^
+    1034|     expect(manager.documentRendererGeneration('example-tools')).toBeGr…
+    1035|     expect(manager.state().records[0]?.enabled).toBe(false)
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[19/21]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  21 failed | 9 passed (30)
+   Start at  08:36:38
+   Duration  1.78s (transform 711ms, setup 0ms, collect 986ms, tests 81ms, environment 0ms, prepare 98ms)
+

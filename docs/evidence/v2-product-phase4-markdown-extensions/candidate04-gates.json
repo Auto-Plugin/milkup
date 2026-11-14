@@ -1,0 +1,65 @@
+{
+  "candidate": "04",
+  "baseline": "2184526ddfaeef6ae1e80008f0ee90e41be9fdec",
+  "unit": {
+    "passed": 1657,
+    "files": 144,
+    "log": "full-unit-candidate04.log"
+  },
+  "typecheck": {
+    "status": "passed",
+    "log": "full-types-candidate04.log"
+  },
+  "format": {
+    "status": "passed",
+    "log": "full-format-candidate04.log"
+  },
+  "build": {
+    "status": "passed",
+    "log": "full-build-candidate04.log"
+  },
+  "browser": {
+    "status": "passed",
+    "passed": 166,
+    "retries": 0,
+    "durationMinutes": 4.6,
+    "platform": "Linux Chromium",
+    "log": "browser-full-candidate04.log"
+  },
+  "rust": {
+    "passed": 118,
+    "ignored": 1,
+    "sourceChangedSinceDirectRun": false,
+    "log": "rust-tests-direct.log",
+    "prootFailurePreserved": "rust-tests.log"
+  },
+  "externalPlugins": {
+    "plugins": 10,
+    "passed": 319,
+    "verification": "external-compat/verification.json"
+  },
+  "linuxProductionBuild": {
+    "status": "passed",
+    "log": "linux-production-candidate04.log",
+    "provenance": "native/candidate04-provenance.json"
+  },
+  "nativeAcceptance": {
+    "status": "failed; diagnosis in progress",
+    "run": "candidate04-run02",
+    "matrixCompleted": false,
+    "priorRun": "run01 completed ordinary semantics and source/live byte-exact history; interrupted on windowed stable-sampling helper null dereference before any pointer was sent.",
+    "harnessRevision": "candidate04-harness-revision.json",
+    "matrixCompletedCount": 0,
+    "blockers": [
+      "math render_57 terminated after a 2289 ms main-thread stall; Worker internal completion for this failing request is unknown",
+      "windowed renderer requests oscillate between 38/18/37 blocks; layout/cache feedback under diagnosis"
+    ],
+    "evidence": "native/deadline-diagnosis-candidate04.json",
+    "ordinaryResults": "Both runs passed ordinary source reveal, graph keyboard focus, footnote navigation, and byte-exact source/live history; run02 registry records math failure at live-saved. These do not constitute complete native acceptance."
+  },
+  "windows": "not tested",
+  "runtimePackaging": "not performed",
+  "artifactUpload": "not performed",
+  "sourceManifest": "candidate04-source-manifest.json",
+  "checkpoint": "Unaccepted work checkpoint requested after repeated executor disconnects; no release or upload."
+}

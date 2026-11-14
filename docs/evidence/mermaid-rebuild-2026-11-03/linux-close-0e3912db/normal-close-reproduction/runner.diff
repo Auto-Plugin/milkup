@@ -1,0 +1,57 @@
+--- original/run-product-native.py
++++ derived/run-normal-close.py
+@@ -8,8 +8,8 @@
+ args=parser.parse_args()
+ archive=pathlib.Path(args.archive)
+ if archive.exists():raise RuntimeError('Evidence archive already exists')
+-root=pathlib.Path(tempfile.mkdtemp(prefix='milkup-mermaid-product-',dir='/tmp'))
+-for name in ['config','cache','data','runtime','evidence','binary']:(root/name).mkdir(mode=0o700)
++root=pathlib.Path(tempfile.mkdtemp(prefix='milkup-mermaid-normal-close-',dir='/tmp'))
++for name in ['config','cache','data','runtime','evidence','binary','native-tmp']:(root/name).mkdir(mode=0o700)
+ source=pathlib.Path(args.binary)
+ body=source.read_bytes()
+ if hashlib.sha256(body).hexdigest()!=args.sha256:raise RuntimeError('Candidate binary SHA mismatch')
+@@ -20,6 +20,10 @@
+ del body
+ env=dict(os.environ)
+ values={'DISPLAY':':144','TAURI_DRIVER_URL':'http://127.0.0.1:4450','MILKUP_NATIVE_EXCLUSIVE_DISPLAY':'1','MILKUP_NATIVE_MERMAID_PRIVATE_RUN':'1','MILKUP_NATIVE_PROFILE_ROOT':str(root),'MILKUP_NATIVE_DRIVER_ENV_RECORD':str(root/'driver-env.json'),'MILKUP_NATIVE_EVIDENCE_DIR':str(root/'evidence'),'XDG_CONFIG_HOME':str(root/'config'),'XDG_CACHE_HOME':str(root/'cache'),'XDG_DATA_HOME':str(root/'data'),'XDG_RUNTIME_DIR':str(root/'runtime'),'TAURI_APP_PATH':str(binary),'MILKUP_NATIVE_EXPECTED_BINARY_SHA256':args.sha256}
++launcher=root/'binary/observe-launch.py'
++shutil.copy2('/workspace/mermaid-rebuild-evidence/linux-close-0e3912db/normal-close-reproduction/observe-launch.py',launcher)
++launcher.chmod(0o700)
++values.update({'TAURI_APP_PATH':str(launcher),'MILKUP_NORMAL_CLOSE_RUN':'1','MILKUP_OBSERVED_BINARY':str(binary),'MILKUP_OBSERVED_SHA256':args.sha256,'MILKUP_OBSERVED_START_RECORD':str(root/'evidence/launcher-start.json'),'MILKUP_OBSERVED_EXIT_RECORD':str(root/'evidence/launcher-exit.json'),'MILKUP_OBSERVED_APP_LOG':str(root/'evidence/application.log'),'MILKUP_NATIVE_TEMP_ROOT':str(root/'native-tmp'),'TMPDIR':str(root/'native-tmp'),'MILKUP_MERMAID_DIAGNOSTICS':'1','MILKUP_DOM_DIAGNOSTICS':'1'})
+ env.update(values)
+ record={'environment':{k:values[k] for k in ['DISPLAY','XDG_CONFIG_HOME','XDG_CACHE_HOME','XDG_DATA_HOME','XDG_RUNTIME_DIR']},'driverPort':4450,'nativePort':4451,'createdAt':time.time(),'mountWrapper':'/workspace/mermaid-rebuild-evidence/run-native-mounted.sh','pidNamespace':'display,driver,harness,application share outer test namespace; WebKit retains its own sandbox'}
+ (root/'driver-env.json').write_text(json.dumps(record,indent=2)+'\n')
+@@ -44,6 +48,14 @@
+         if ready:break
+         time.sleep(.05)
+     if not ready:raise RuntimeError('Display readiness timeout')
++    xfconf=launch(['/usr/host/lib/x86_64-linux-gnu/xfce4/xfconf/xfconfd'],'xfconfd.log')
++    wm=launch(['/usr/bin/xfwm4','--compositor=off','--sm-client-disable'],'xfwm4.log')
++    for attempt in range(100):
++        if wm.poll() is not None:raise RuntimeError('Owned window manager exited')
++        observed=subprocess.run(['xprop','-root','_NET_SUPPORTING_WM_CHECK'],env=env,stdout=subprocess.PIPE,stderr=subprocess.PIPE,text=True)
++        if 'window id # 0x' in observed.stdout:break
++        time.sleep(.05)
++    else:raise RuntimeError('Window manager readiness timeout')
+     driver=launch(['tauri-driver','--port','4450','--native-port','4451','--native-host','127.0.0.1','--native-driver','/workspace/.cloud/milkup-v2/sysroot/usr/bin/WebKitWebDriver'],'driver.log')
+     for attempt in range(100):
+         if driver.poll() is not None:raise RuntimeError('Owned driver exited')
+@@ -55,7 +67,7 @@
+     record.update({'root':str(root),'state':'ready','owned':[{'pid':c['pid'],'birth':c['birth'],'argv':c['argv']} for c in children],'status':status})
+     (root/'session.json').write_text(json.dumps(record,indent=2)+'\n')
+     print(json.dumps({'state':'ready','root':str(root),'ownedPids':[c['pid'] for c in children],'binarySha256':args.sha256}),flush=True)
+-    run=subprocess.run(['node','tests/native/tauri-mermaid-private.mjs'],env=env,cwd='/workspace/milkup-mermaid-rebuild',stdout=subprocess.PIPE,stderr=subprocess.STDOUT,text=True,timeout=600)
++    run=subprocess.run(['node','/workspace/mermaid-rebuild-evidence/linux-close-0e3912db/normal-close-reproduction/normal-close.mjs'],env=env,cwd='/workspace/milkup-mermaid-rebuild',stdout=subprocess.PIPE,stderr=subprocess.STDOUT,text=True,timeout=180)
+     (root/'harness.log').write_text(run.stdout)
+     print(run.stdout,flush=True)
+     exitcode=run.returncode
+@@ -78,7 +90,7 @@
+         item['exitCode']=p.poll();results.append(item);c['output'].close()
+     (root/'session-cleanup.json').write_text(json.dumps(results,indent=2)+'\n')
+     archive.mkdir(parents=True,exist_ok=False)
+-    for name in ['driver-env.json','session.json','session-cleanup.json','binary.json','driver.log','xvfb.log','harness.log','orchestration-error.json']:
++    for name in ['driver-env.json','session.json','session-cleanup.json','binary.json','driver.log','xvfb.log','xfwm4.log','xfconfd.log','harness.log','orchestration-error.json']:
+         if (root/name).exists():shutil.copy2(root/name,archive/name)
+     shutil.copytree(root/'evidence',archive/'evidence')
+     (archive/'run.json').write_text(json.dumps({'root':str(root),'exitCode':exitcode,'binarySha256':args.sha256,'archivedBinary':False,'cleanup':results},indent=2)+'\n')

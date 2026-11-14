@@ -1,0 +1,606 @@
+[
+  {
+    "sample": {
+      "id": "block-000-first-official-example",
+      "family": "block",
+      "source": "block\ncolumns 1\n  db((\"DB\"))\n  blockArrowId6<[\"&nbsp;&nbsp;&nbsp;\"]>(down)\n  block:ID\n    A\n    B[\"A wide one in the middle\"]\n    C\n  end\n  space\n  D\n  ID --> D\n  C --> D\n  style B fill:#969,stroke:#333,stroke-width:4px\n",
+      "sourceSha256": "78e30a8aaf7fb9a0a374414e1984d2882815549cfce0428d71601302ed4998d2",
+      "officialSource": "https://github.com/mermaid-js/mermaid/blob/mermaid%4012.2.0/packages/mermaid/src/docs/syntax/block.md",
+      "line": 10,
+      "unmodifiedOfficialBlock": true
+    },
+    "request": {
+      "id": "scan_000",
+      "source": "block\ncolumns 1\n  db((\"DB\"))\n  blockArrowId6<[\"&nbsp;&nbsp;&nbsp;\"]>(down)\n  block:ID\n    A\n    B[\"A wide one in the middle\"]\n    C\n  end\n  space\n  D\n  ID --> D\n  C --> D\n  style B fill:#969,stroke:#333,stroke-width:4px\n",
+      "profile": "baseline",
+      "theme": "light"
+    },
+    "converterResearch": {
+      "originalCatalogIndex": 0,
+      "sourceUnchanged": true
+    },
+    "expected": "ready",
+    "baseline37Index": 0
+  },
+  {
+    "sample": {
+      "id": "gantt-000-first-official-example",
+      "family": "gantt",
+      "source": "gantt\n    title A Gantt Diagram\n    dateFormat YYYY-MM-DD\n    section Section\n        A task          :a1, 2014-01-01, 30d\n        Another task    :after a1, 20d\n    section Another\n        Task in Another :2014-01-12, 12d\n        another task    :24d\n",
+      "sourceSha256": "9994b276372df6ec8dece5afd5a93326bf86e01f4e6574ed3e6c1fb052805144",
+      "officialSource": "https://github.com/mermaid-js/mermaid/blob/mermaid%4012.2.0/packages/mermaid/src/docs/syntax/gantt.md",
+      "line": 19,
+      "unmodifiedOfficialBlock": true
+    },
+    "request": {
+      "id": "scan_022",
+      "source": "gantt\n    title A Gantt Diagram\n    dateFormat YYYY-MM-DD\n    section Section\n        A task          :a1, 2014-01-01, 30d\n        Another task    :after a1, 20d\n    section Another\n        Task in Another :2014-01-12, 12d\n        another task    :24d\n",
+      "profile": "baseline",
+      "theme": "light"
+    },
+    "converterResearch": {
+      "originalCatalogIndex": 22,
+      "sourceUnchanged": true
+    },
+    "expected": "ready",
+    "baseline37Index": 11
+  },
+  {
+    "sample": {
+      "id": "mindmap-000-first-official-example",
+      "family": "mindmap",
+      "source": "mindmap\n  root((mindmap))\n    Origins\n      Long history\n      ::icon(fa fa-book)\n      Popularisation\n        British popular psychology author Tony Buzan\n    Research\n      On effectiveness<br/>and features\n      On Automatic creation\n        Uses\n            Creative techniques\n            Strategic planning\n            Argument mapping\n    Tools\n      Pen and paper\n      Mermaid\n\n",
+      "sourceSha256": "117201a14a668273ea3ae6a8af2ac29bbf490baba7ac66875007482ce765712c",
+      "officialSource": "https://github.com/mermaid-js/mermaid/blob/mermaid%4012.2.0/packages/mermaid/src/docs/syntax/mindmap.md",
+      "line": 9,
+      "unmodifiedOfficialBlock": true
+    },
+    "request": {
+      "id": "scan_026",
+      "source": "mindmap\n  root((mindmap))\n    Origins\n      Long history\n      ::icon(fa fa-book)\n      Popularisation\n        British popular psychology author Tony Buzan\n    Research\n      On effectiveness<br/>and features\n      On Automatic creation\n        Uses\n            Creative techniques\n            Strategic planning\n            Argument mapping\n    Tools\n      Pen and paper\n      Mermaid\n\n",
+      "profile": "baseline",
+      "theme": "light"
+    },
+    "converterResearch": {
+      "originalCatalogIndex": 26,
+      "sourceUnchanged": true
+    },
+    "expected": "ready",
+    "baseline37Index": 13
+  },
+  {
+    "sample": {
+      "id": "mindmap-001-without-icons",
+      "family": "mindmap",
+      "source": "mindmap\nRoot\n    A\n      B\n      C\n",
+      "sourceSha256": "50120b037f07451727a4c261d4a2f601f5ce26c40c061336c710b49d99f33bf7",
+      "officialSource": "https://github.com/mermaid-js/mermaid/blob/mermaid%4012.2.0/packages/mermaid/src/docs/syntax/mindmap.md",
+      "line": 46,
+      "unmodifiedOfficialBlock": true
+    },
+    "request": {
+      "id": "scan_028",
+      "source": "mindmap\nRoot\n    A\n      B\n      C\n",
+      "profile": "baseline",
+      "theme": "light"
+    },
+    "converterResearch": {
+      "originalCatalogIndex": 28,
+      "sourceUnchanged": true
+    },
+    "expected": "ready",
+    "baseline37Index": 14
+  },
+  {
+    "sample": {
+      "id": "sequenceDiagram-001-autonumber",
+      "family": "sequenceDiagram",
+      "source": "sequenceDiagram\n  autonumber\n  actor Customer\n  participant Web as Web app\n  participant API as API gateway\n  participant Bank\n  Customer->>Web: Place order\n  Web->>API: POST /orders\n  activate API\n  API->>Bank: Authorise payment\n  Bank-->>API: Approved\n  API-->>Web: 201 Created\n  deactivate API\n  Web-->>Customer: Order confirmed\n  Note over Customer,Bank: One order, one transaction\n",
+      "sourceSha256": "b46ca8f030ae22c724720f00d238e528d416593c51d52a6e4f22d99b99f93b2d",
+      "officialSource": "https://github.com/mermaid-js/mermaid/blob/mermaid%4012.2.0/packages/mermaid/src/docs/syntax/sequenceDiagram.md",
+      "line": 30,
+      "unmodifiedOfficialBlock": true
+    },
+    "request": {
+      "id": "scan_040",
+      "source": "sequenceDiagram\n  autonumber\n  actor Customer\n  participant Web as Web app\n  participant API as API gateway\n  participant Bank\n  Customer->>Web: Place order\n  Web->>API: POST /orders\n  activate API\n  API->>Bank: Authorise payment\n  Bank-->>API: Approved\n  API-->>Web: 201 Created\n  deactivate API\n  Web-->>Customer: Order confirmed\n  Note over Customer,Bank: One order, one transaction\n",
+      "profile": "baseline",
+      "theme": "light"
+    },
+    "converterResearch": {
+      "originalCatalogIndex": 40,
+      "sourceUnchanged": true
+    },
+    "expected": "ready",
+    "baseline37Index": 20
+  },
+  {
+    "sample": {
+      "id": "sequenceDiagram-016-box-group",
+      "family": "sequenceDiagram",
+      "source": "    sequenceDiagram\n    box Purple Alice & John\n    participant A\n    participant J\n    end\n    box Another Group\n    participant B\n    participant C\n    end\n    A->>J: Hello John, how are you?\n    J->>A: Great!\n    A->>B: Hello Bob, how is Charley?\n    B->>C: Hello Charley, how are you?\n",
+      "sourceSha256": "93d3c0ff3d5d384a0044c0882501febf51d0ba59c26ca2c237eae58d27ad53aa",
+      "officialSource": "https://github.com/mermaid-js/mermaid/blob/mermaid%4012.2.0/packages/mermaid/src/docs/syntax/sequenceDiagram.md",
+      "line": 315,
+      "unmodifiedOfficialBlock": true
+    },
+    "request": {
+      "id": "scan_042",
+      "source": "    sequenceDiagram\n    box Purple Alice & John\n    participant A\n    participant J\n    end\n    box Another Group\n    participant B\n    participant C\n    end\n    A->>J: Hello John, how are you?\n    J->>A: Great!\n    A->>B: Hello Bob, how is Charley?\n    B->>C: Hello Charley, how are you?\n",
+      "profile": "baseline",
+      "theme": "light"
+    },
+    "converterResearch": {
+      "originalCatalogIndex": 42,
+      "sourceUnchanged": true
+    },
+    "expected": "ready",
+    "baseline37Index": 21
+  },
+  {
+    "sample": {
+      "id": "sequenceDiagram-025-loop-group",
+      "family": "sequenceDiagram",
+      "source": "sequenceDiagram\n    Alice->John: Hello John, how are you?\n    loop Every minute\n        John-->Alice: Great!\n    end\n",
+      "sourceSha256": "d042768225fc2a2c6aed87e913d293db64cb8da27b430259f3161a3f684888b3",
+      "officialSource": "https://github.com/mermaid-js/mermaid/blob/mermaid%4012.2.0/packages/mermaid/src/docs/syntax/sequenceDiagram.md",
+      "line": 483,
+      "unmodifiedOfficialBlock": true
+    },
+    "request": {
+      "id": "scan_044",
+      "source": "sequenceDiagram\n    Alice->John: Hello John, how are you?\n    loop Every minute\n        John-->Alice: Great!\n    end\n",
+      "profile": "baseline",
+      "theme": "light"
+    },
+    "converterResearch": {
+      "originalCatalogIndex": 44,
+      "sourceUnchanged": true
+    },
+    "expected": "ready",
+    "baseline37Index": 22
+  },
+  {
+    "sample": {
+      "id": "sequenceDiagram-026-alt-group",
+      "family": "sequenceDiagram",
+      "source": "sequenceDiagram\n    Alice->>Bob: Hello Bob, how are you?\n    alt is sick\n        Bob->>Alice: Not so good :(\n    else is well\n        Bob->>Alice: Feeling fresh like a daisy\n    end\n    opt Extra response\n        Bob->>Alice: Thanks for asking\n    end\n",
+      "sourceSha256": "5ba07f36cdf08b28445a16fd8f24d05afbf5cd349679847aab70f7fddf476084",
+      "officialSource": "https://github.com/mermaid-js/mermaid/blob/mermaid%4012.2.0/packages/mermaid/src/docs/syntax/sequenceDiagram.md",
+      "line": 513,
+      "unmodifiedOfficialBlock": true
+    },
+    "request": {
+      "id": "scan_046",
+      "source": "sequenceDiagram\n    Alice->>Bob: Hello Bob, how are you?\n    alt is sick\n        Bob->>Alice: Not so good :(\n    else is well\n        Bob->>Alice: Feeling fresh like a daisy\n    end\n    opt Extra response\n        Bob->>Alice: Thanks for asking\n    end\n",
+      "profile": "baseline",
+      "theme": "light"
+    },
+    "converterResearch": {
+      "originalCatalogIndex": 46,
+      "sourceUnchanged": true
+    },
+    "expected": "ready",
+    "baseline37Index": 23
+  },
+  {
+    "sample": {
+      "id": "sequenceDiagram-027-par-group",
+      "family": "sequenceDiagram",
+      "source": "sequenceDiagram\n    par Alice to Bob\n        Alice->>Bob: Hello guys!\n    and Alice to John\n        Alice->>John: Hello guys!\n    end\n    Bob-->>Alice: Hi Alice!\n    John-->>Alice: Hi Alice!\n",
+      "sourceSha256": "6c0cb8e242cbf8bdadf2c2cccad5c0b5b6938127e0c76574c3fcadf342055b84",
+      "officialSource": "https://github.com/mermaid-js/mermaid/blob/mermaid%4012.2.0/packages/mermaid/src/docs/syntax/sequenceDiagram.md",
+      "line": 544,
+      "unmodifiedOfficialBlock": true
+    },
+    "request": {
+      "id": "scan_048",
+      "source": "sequenceDiagram\n    par Alice to Bob\n        Alice->>Bob: Hello guys!\n    and Alice to John\n        Alice->>John: Hello guys!\n    end\n    Bob-->>Alice: Hi Alice!\n    John-->>Alice: Hi Alice!\n",
+      "profile": "baseline",
+      "theme": "light"
+    },
+    "converterResearch": {
+      "originalCatalogIndex": 48,
+      "sourceUnchanged": true
+    },
+    "expected": "ready",
+    "baseline37Index": 24
+  },
+  {
+    "sample": {
+      "id": "sequenceDiagram-029-critical-group",
+      "family": "sequenceDiagram",
+      "source": "sequenceDiagram\n    critical Establish a connection to the DB\n        Service-->DB: connect\n    option Network timeout\n        Service-->Service: Log error\n    option Credentials rejected\n        Service-->Service: Log different error\n    end\n",
+      "sourceSha256": "201a0912328e98f240b39c1412adc00d0bf51c483304d8078d4d8552dac24083",
+      "officialSource": "https://github.com/mermaid-js/mermaid/blob/mermaid%4012.2.0/packages/mermaid/src/docs/syntax/sequenceDiagram.md",
+      "line": 589,
+      "unmodifiedOfficialBlock": true
+    },
+    "request": {
+      "id": "scan_050",
+      "source": "sequenceDiagram\n    critical Establish a connection to the DB\n        Service-->DB: connect\n    option Network timeout\n        Service-->Service: Log error\n    option Credentials rejected\n        Service-->Service: Log different error\n    end\n",
+      "profile": "baseline",
+      "theme": "light"
+    },
+    "converterResearch": {
+      "originalCatalogIndex": 50,
+      "sourceUnchanged": true
+    },
+    "expected": "ready",
+    "baseline37Index": 25
+  },
+  {
+    "sample": {
+      "id": "stateDiagram-000-first-official-example",
+      "family": "stateDiagram",
+      "source": "---\ntitle: Simple sample\n---\nstateDiagram-v2\n    [*] --> Still\n    Still --> [*]\n\n    Still --> Moving\n    Moving --> Still\n    Moving --> Crash\n    Crash --> [*]\n",
+      "sourceSha256": "fc35188de9f919aa10f7bb302574c3bcdc2fc74a54434a5bc4ee33c57cff8d64",
+      "officialSource": "https://github.com/mermaid-js/mermaid/blob/mermaid%4012.2.0/packages/mermaid/src/docs/syntax/stateDiagram.md",
+      "line": 10,
+      "unmodifiedOfficialBlock": true
+    },
+    "request": {
+      "id": "scan_052",
+      "source": "---\ntitle: Simple sample\n---\nstateDiagram-v2\n    [*] --> Still\n    Still --> [*]\n\n    Still --> Moving\n    Moving --> Still\n    Moving --> Crash\n    Crash --> [*]\n",
+      "profile": "baseline",
+      "theme": "light"
+    },
+    "converterResearch": {
+      "originalCatalogIndex": 52,
+      "sourceUnchanged": true
+    },
+    "expected": "ready",
+    "baseline37Index": 26
+  },
+  {
+    "expected": "ready",
+    "sample": {
+      "id": "group-inapplicable-xy",
+      "sourceSha256": "f3a5c71a9644a7617ab03700f186d19516e87baec6d924ebc927fcf9ddc20d8b"
+    },
+    "request": {
+      "id": "fixture_product_0",
+      "source": "group-inapplicable-xy",
+      "profile": "baseline",
+      "theme": "light"
+    }
+  },
+  {
+    "expected": "ready",
+    "sample": {
+      "id": "path-inapplicable-viewbox",
+      "sourceSha256": "055ca999a7ef4c3bec40df481bca3ce2b9c71473fdf840c54708bd6ff141932a"
+    },
+    "request": {
+      "id": "fixture_product_1",
+      "source": "path-inapplicable-viewbox",
+      "profile": "baseline",
+      "theme": "light"
+    }
+  },
+  {
+    "expected": "ready",
+    "sample": {
+      "id": "group-opacity-overlap",
+      "sourceSha256": "18e21ec02e3ce935bf15ef688e0985615d93b63efc53f89a48fea7d2df349973"
+    },
+    "request": {
+      "id": "fixture_product_2",
+      "source": "group-opacity-overlap",
+      "profile": "baseline",
+      "theme": "light"
+    }
+  },
+  {
+    "expected": "ready",
+    "sample": {
+      "id": "css-rx-over-attribute",
+      "sourceSha256": "ab3cfa876821ab0bda28207c41ea9227b5a412565532253e8a99aafba36c5c84"
+    },
+    "request": {
+      "id": "fixture_product_3",
+      "source": "css-rx-over-attribute",
+      "profile": "baseline",
+      "theme": "light"
+    }
+  },
+  {
+    "expected": "ready",
+    "sample": {
+      "id": "local-transform-once",
+      "sourceSha256": "42a59bcbdcac06f865b37bb4376368bc56b97f6786453a4c5b3606049935bb69"
+    },
+    "request": {
+      "id": "fixture_product_4",
+      "source": "local-transform-once",
+      "profile": "baseline",
+      "theme": "light"
+    }
+  },
+  {
+    "expected": "ready",
+    "sample": {
+      "id": "text-transform",
+      "sourceSha256": "ad11a1b196d9020bb63e5b29609522f4ef1c4a410baaf8cbe723050275411c27"
+    },
+    "request": {
+      "id": "fixture_product_5",
+      "source": "text-transform",
+      "profile": "baseline",
+      "theme": "light"
+    }
+  },
+  {
+    "expected": "unsupported-feature",
+    "sample": {
+      "id": "unknown-writing-mode",
+      "sourceSha256": "fb8c5d9c74d98a15a9b7371c5f93e555256f42b0b86ad90f58d34fe3bfdd476b"
+    },
+    "request": {
+      "id": "fixture_product_6",
+      "source": "unknown-writing-mode",
+      "profile": "baseline",
+      "theme": "light"
+    }
+  },
+  {
+    "expected": "unsafe-output",
+    "sample": {
+      "id": "external-anchor",
+      "sourceSha256": "199efe7c68b494dc903f19a1862f14e294154f2d8ebd6bdefc3d0b55f8b8a817"
+    },
+    "request": {
+      "id": "fixture_product_7",
+      "source": "external-anchor",
+      "profile": "baseline",
+      "theme": "light"
+    }
+  },
+  {
+    "expected": "unsupported-animation",
+    "sample": {
+      "id": "effective-animation",
+      "sourceSha256": "781dcf25a547a7f1329d4964a5cdd2c8055be0172be272f6b5c6010a202a1132"
+    },
+    "request": {
+      "id": "fixture_product_8",
+      "source": "effective-animation",
+      "profile": "baseline",
+      "theme": "light"
+    }
+  },
+  {
+    "expected": "ready",
+    "sample": {
+      "id": "unused-animation-rule",
+      "sourceSha256": "707ccfb7ee62a7de338e8ccfc7a9130604967f7961aafd96152f5f85e6069490"
+    },
+    "request": {
+      "id": "fixture_product_9",
+      "source": "unused-animation-rule",
+      "profile": "baseline",
+      "theme": "light"
+    }
+  },
+  {
+    "expected": "ready",
+    "sample": {
+      "id": "arc-packed-flags",
+      "sourceSha256": "56f380f4bb9c86cd8cbf45abd2f65c26c3594eac9f670cdf85fc2ad2d23f576b"
+    },
+    "request": {
+      "id": "fixture_product_10",
+      "source": "arc-packed-flags",
+      "profile": "baseline",
+      "theme": "light"
+    }
+  },
+  {
+    "expected": "ready",
+    "sample": {
+      "id": "css-shadow",
+      "sourceSha256": "5513c4bfcdd1c4e2ec81be1e57bfd0e773752675f9079828ae046d9c2255944a"
+    },
+    "request": {
+      "id": "fixture_product_11",
+      "source": "css-shadow",
+      "profile": "baseline",
+      "theme": "light"
+    }
+  },
+  {
+    "expected": "ready",
+    "sample": {
+      "id": "gradient-multiply",
+      "sourceSha256": "60dd5344abe620c42b3a78038382cd06939761ed7f7a8ef62cf8c854c235e1b3"
+    },
+    "request": {
+      "id": "fixture_product_12",
+      "source": "gradient-multiply",
+      "profile": "baseline",
+      "theme": "light"
+    }
+  },
+  {
+    "expected": "invalid-output",
+    "sample": {
+      "id": "clip-cycle",
+      "sourceSha256": "86ac1d7b952ebaf7eabb500fe27495520b26d2d4c5eb7a0a0bdb7d6f1929e582"
+    },
+    "request": {
+      "id": "fixture_product_13",
+      "source": "clip-cycle",
+      "profile": "baseline",
+      "theme": "light"
+    }
+  },
+  {
+    "expected": "ready",
+    "sample": {
+      "id": "css-origin-once",
+      "sourceSha256": "cd9b715d8bd81819c66035b09771c552a1bae23ddd2b10e63c49dadd8cbc7382"
+    },
+    "request": {
+      "id": "fixture_product_14",
+      "source": "css-origin-once",
+      "profile": "baseline",
+      "theme": "light"
+    }
+  },
+  {
+    "expected": "ready",
+    "sample": {
+      "id": "css-none-overrides-attribute",
+      "sourceSha256": "c6d9754ba6b1c7b28c275d40f026fb066da623ed44a6da70d880750d25ca2624"
+    },
+    "request": {
+      "id": "fixture_product_15",
+      "source": "css-none-overrides-attribute",
+      "profile": "baseline",
+      "theme": "light"
+    }
+  },
+  {
+    "expected": "ready",
+    "sample": {
+      "id": "symbol-viewbox-use",
+      "sourceSha256": "9618a3b5ab48563ba1c6518091326a61656cbd3ff56cedce206205bf196802c8"
+    },
+    "request": {
+      "id": "fixture_product_16",
+      "source": "symbol-viewbox-use",
+      "profile": "baseline",
+      "theme": "light"
+    }
+  },
+  {
+    "expected": "ready",
+    "sample": {
+      "id": "marker-viewbox-units",
+      "sourceSha256": "360ec758e6c94491a495ec27c13e479f0704a2642a0edc728bb39a43395b77cb"
+    },
+    "request": {
+      "id": "fixture_product_17",
+      "source": "marker-viewbox-units",
+      "profile": "baseline",
+      "theme": "light"
+    }
+  },
+  {
+    "expected": "ready",
+    "sample": {
+      "id": "circle-inapplicable-size",
+      "sourceSha256": "ef02e6480f6d2756ac22231384f382bc1c51397ef007ef72e25f3760e7f402b3"
+    },
+    "request": {
+      "id": "fixture_product_18",
+      "source": "circle-inapplicable-size",
+      "profile": "baseline",
+      "theme": "light"
+    }
+  },
+  {
+    "expected": "ready",
+    "sample": {
+      "id": "duplicate-ordinary-resolved-css",
+      "sourceSha256": "76a92b0139b8feb97687cd029e3e777cd8503478c637a1d294e98a276a4b6889"
+    },
+    "request": {
+      "id": "fixture_product_19",
+      "source": "duplicate-ordinary-resolved-css",
+      "profile": "baseline",
+      "theme": "light"
+    }
+  },
+  {
+    "expected": "invalid-output",
+    "sample": {
+      "id": "duplicate-ordinary-referenced",
+      "sourceSha256": "56ee6a3256a84591923eee8daf884c6065d84fadec29ad723dfcd832dfc18271"
+    },
+    "request": {
+      "id": "fixture_product_20",
+      "source": "duplicate-ordinary-referenced",
+      "profile": "baseline",
+      "theme": "light"
+    }
+  },
+  {
+    "expected": "invalid-output",
+    "sample": {
+      "id": "duplicate-definition",
+      "sourceSha256": "2e4fafed1fd3477fde4993bddcfecee580b1f127c6c0e3f5fd9a3647d5ff6696"
+    },
+    "request": {
+      "id": "fixture_product_21",
+      "source": "duplicate-definition",
+      "profile": "baseline",
+      "theme": "light"
+    }
+  },
+  {
+    "expected": "invalid-output",
+    "sample": {
+      "id": "duplicate-semantic-reference",
+      "sourceSha256": "c7a69a4585847454618bdfd05d28e8512f3684a219a7e6975d02077cd1f39115"
+    },
+    "request": {
+      "id": "fixture_product_22",
+      "source": "duplicate-semantic-reference",
+      "profile": "baseline",
+      "theme": "light"
+    }
+  },
+  {
+    "expected": "ready",
+    "sample": {
+      "id": "clipped-far-line",
+      "sourceSha256": "eb3e911f013421f6bbbf095c7d00752367c4a545f22dde12abdecc0122238aa1"
+    },
+    "request": {
+      "id": "fixture_product_23",
+      "source": "clipped-far-line",
+      "profile": "baseline",
+      "theme": "light"
+    }
+  },
+  {
+    "expected": "limit-exceeded",
+    "sample": {
+      "id": "crossing-far-line",
+      "sourceSha256": "121c0d284e40ee0258cd0a8f81a35180fc7d73774c3b289fda05b80fac2b9f87"
+    },
+    "request": {
+      "id": "fixture_product_24",
+      "source": "crossing-far-line",
+      "profile": "baseline",
+      "theme": "light"
+    }
+  },
+  {
+    "expected": "limit-exceeded",
+    "sample": {
+      "id": "far-line-with-filter-dependency",
+      "sourceSha256": "8833f3daeb81bc332c2c4ca81e1a6cfde68c4937f238ed3788763f62d47e3630"
+    },
+    "request": {
+      "id": "fixture_product_25",
+      "source": "far-line-with-filter-dependency",
+      "profile": "baseline",
+      "theme": "light"
+    }
+  },
+  {
+    "expected": "limit-exceeded",
+    "sample": {
+      "id": "far-line-with-id",
+      "sourceSha256": "7ea4a2b75393eacfa5ddefad461a2167d8548307db2989171401f5bc8a0b15b0"
+    },
+    "request": {
+      "id": "fixture_product_26",
+      "source": "far-line-with-id",
+      "profile": "baseline",
+      "theme": "light"
+    }
+  }
+]

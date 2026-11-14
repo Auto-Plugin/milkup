@@ -1,0 +1,3 @@
+import {defineConfig} from '/workspace/milkup/node_modules/@playwright/test/index.mjs'
+import base from '/workspace/milkup/playwright.config.ts'
+export default defineConfig({...base,testDir:'.',outputDir:'./artifacts',workers:1,retries:0,projects:[{...base.projects![1],testMatch:/image-feedback\.spec\.ts/}],webServer:(base.webServer as Array<object>).map(server=>({...server,cwd:'/workspace/milkup'}))})

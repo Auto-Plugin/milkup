@@ -1,0 +1,3467 @@
+{
+  "classification": "AUDIT_COMPLETE",
+  "issues": [],
+  "nativeStatus": {
+    "attempted": 126,
+    "capped": 0,
+    "captureMaxNs": 60956,
+    "captureTotalNs": 1259293,
+    "diagnosticClosed": true,
+    "disconnected": 0,
+    "enqueued": 126,
+    "final": true,
+    "inFlight": 0,
+    "incompleteTiming": 0,
+    "ioErrors": 0,
+    "limits": {
+      "events": 256,
+      "queue": 8,
+      "totalWireBytes": 16777216,
+      "wireBytes": 1048576
+    },
+    "monotonicNs": 105829127942955,
+    "oversize": 0,
+    "ownerBirth": 10579541,
+    "ownerPid": 508377,
+    "qualification": "Final only after external finish.request closes observation and drains queue. Future product requests continue unobserved. Missing final or identity or any drops/errors means incomplete.",
+    "queueFull": 0,
+    "reservedWireBytes": 38923,
+    "schema": "milkup.cold-accepted-wire-status.v1",
+    "writerCpuScope": "App-owned background writer thread through last status checkpoint, excludes final status/complete serialization; included in App own CPU",
+    "writerThreadCpuNs": 168373360,
+    "written": 126
+  },
+  "frontendCounters": {
+    "clients": 4,
+    "bytes": 636462,
+    "dropped": 0,
+    "errors": 0
+  },
+  "frontendCaptureMeasuredMs": {
+    "total": 14.000000000001819,
+    "max": 2,
+    "scope": "Recorded trace interval only; no subtraction from native time or claim of complete instrumentation overhead"
+  },
+  "nativePhaseCounts": {
+    "guardian-spawn": 2,
+    "owner-pipe-complete": 34,
+    "owner-frame-read": 27,
+    "render-accepted": 26,
+    "render-settled": 25,
+    "render-cancel": 10,
+    "render-stop": 2
+  },
+  "frontendPhaseCounts": {
+    "queued": 84,
+    "dispatch": 84,
+    "cancel-active": 14,
+    "remote-settled": 83,
+    "dispose": 1
+  },
+  "acceptedCount": 26,
+  "nativeUnclosedOrAmbiguous": [],
+  "frontendOpen": [],
+  "nativeRequests": [
+    {
+      "nativeKey": [
+        508377,
+        10579541,
+        "df59918c2b99843db6dcb56cf7ad671c4e909afbe545efda",
+        "render_1"
+      ],
+      "frontendKeys": [
+        [
+          3,
+          "render_1"
+        ]
+      ],
+      "payloadValueFingerprint": "533d26224098d565645de74331abe0d379c5405bf06ade7c45a5d486f0bad911",
+      "wireBytes": 837,
+      "wireSha256": "740f11754aa42b828d638aa402694dad146be9eda369c539959d9980948b5529",
+      "input": {
+        "pluginId": "milkup.diagrams",
+        "rendererId": "diagrams.mermaid",
+        "documentId": "desktop-large-1792218186252",
+        "version": 0,
+        "from": 108,
+        "to": 342,
+        "fromLine": 5,
+        "toLine": 20,
+        "sourceUtf16": 234,
+        "sourceSha256": "e51cb79094f8db3d5a6afd84b1b3a9dab0a1a8da503e5d39a1e7733985c0244b",
+        "theme": "light",
+        "width": 1100,
+        "target": "screen",
+        "selection": {
+          "anchor": 0,
+          "head": 0
+        },
+        "blocks": [
+          {
+            "kind": "fence",
+            "info": "mermaid",
+            "complete": true,
+            "from": 108,
+            "to": 342,
+            "contentSha256": "78e30a8aaf7fb9a0a374414e1984d2882815549cfce0428d71601302ed4998d2",
+            "firstContentLineAfterFrontmatter": "block"
+          }
+        ],
+        "classificationScope": "Literal source/block metadata only; not proof of which internal block/phase ran"
+      },
+      "terminal": {
+        "kind": "render-settled",
+        "eventOk": true,
+        "eventMonotonicNs": 105801038111578
+      },
+      "cancels": [],
+      "pipeCount": 1,
+      "frameCount": 1,
+      "acceptedToPipeMs": 0.031852,
+      "acceptedToFrameMs": 239.264534,
+      "acceptedToTerminalMs": 239.839895,
+      "frameToStrictSettleMs": 0.575361,
+      "frameMinusPipeMsSigned": 239.232682
+    },
+    {
+      "nativeKey": [
+        508377,
+        10579541,
+        "df59918c2b99843db6dcb56cf7ad671c4e909afbe545efda",
+        "render_2"
+      ],
+      "frontendKeys": [
+        [
+          3,
+          "render_2"
+        ]
+      ],
+      "payloadValueFingerprint": "ba3841d8c968f057fff22db294a2507440cce89bd78b6943c4a71b6160e16a4e",
+      "wireBytes": 2982,
+      "wireSha256": "af32fea8e3dc211d405dbdc99d190696cab873b7628f53074ec03a77d0d185b8",
+      "input": {
+        "pluginId": "milkup.diagrams",
+        "rendererId": "diagrams.mermaid",
+        "documentId": "desktop-large-1792218186252",
+        "version": 0,
+        "from": 434,
+        "to": 2752,
+        "fromLine": 26,
+        "toLine": 102,
+        "sourceUtf16": 2318,
+        "sourceSha256": "b4635cb21c53125f003eb3e97789849810dabefd13a7163efe24a24f9fb44029",
+        "theme": "light",
+        "width": 1100,
+        "target": "screen",
+        "selection": {
+          "anchor": 0,
+          "head": 0
+        },
+        "blocks": [
+          {
+            "kind": "fence",
+            "info": "mermaid",
+            "complete": true,
+            "from": 434,
+            "to": 2752,
+            "contentSha256": "c6739c6a83029fbe481d653c74d1e302c8226bc89edcbebec88062125baa78d3",
+            "firstContentLineAfterFrontmatter": "sankey"
+          }
+        ],
+        "classificationScope": "Literal source/block metadata only; not proof of which internal block/phase ran"
+      },
+      "terminal": {
+        "kind": "render-settled",
+        "eventOk": true,
+        "eventMonotonicNs": 105801646765865
+      },
+      "cancels": [],
+      "pipeCount": 1,
+      "frameCount": 1,
+      "acceptedToPipeMs": 0.041872,
+      "acceptedToFrameMs": 374.180485,
+      "acceptedToTerminalMs": 382.071893,
+      "frameToStrictSettleMs": 7.891408,
+      "frameMinusPipeMsSigned": 374.138613
+    },
+    {
+      "nativeKey": [
+        508377,
+        10579541,
+        "df59918c2b99843db6dcb56cf7ad671c4e909afbe545efda",
+        "render_3"
+      ],
+      "frontendKeys": [
+        [
+          3,
+          "render_3"
+        ]
+      ],
+      "payloadValueFingerprint": "533d26224098d565645de74331abe0d379c5405bf06ade7c45a5d486f0bad911",
+      "wireBytes": 837,
+      "wireSha256": "5cef5136da3c0f6eb736a02d36c512c7411500516243e98bade864a518d43453",
+      "input": {
+        "pluginId": "milkup.diagrams",
+        "rendererId": "diagrams.mermaid",
+        "documentId": "desktop-large-1792218186252",
+        "version": 0,
+        "from": 108,
+        "to": 342,
+        "fromLine": 5,
+        "toLine": 20,
+        "sourceUtf16": 234,
+        "sourceSha256": "e51cb79094f8db3d5a6afd84b1b3a9dab0a1a8da503e5d39a1e7733985c0244b",
+        "theme": "light",
+        "width": 1100,
+        "target": "screen",
+        "selection": {
+          "anchor": 0,
+          "head": 0
+        },
+        "blocks": [
+          {
+            "kind": "fence",
+            "info": "mermaid",
+            "complete": true,
+            "from": 108,
+            "to": 342,
+            "contentSha256": "78e30a8aaf7fb9a0a374414e1984d2882815549cfce0428d71601302ed4998d2",
+            "firstContentLineAfterFrontmatter": "block"
+          }
+        ],
+        "classificationScope": "Literal source/block metadata only; not proof of which internal block/phase ran"
+      },
+      "terminal": {
+        "kind": "render-stop",
+        "eventOk": true,
+        "eventMonotonicNs": 105803042956201
+      },
+      "cancels": [
+        {
+          "matchedActive": true,
+          "at": 105803015578020
+        }
+      ],
+      "pipeCount": 1,
+      "frameCount": 0,
+      "acceptedToPipeMs": 0.023563,
+      "acceptedToFrameMs": null,
+      "acceptedToTerminalMs": 74.023138,
+      "frameToStrictSettleMs": null,
+      "frameMinusPipeMsSigned": null
+    },
+    {
+      "nativeKey": [
+        508377,
+        10579541,
+        "9188ef94fcf904278cc47177a7898740b758ee7cad0c4fc1",
+        "render_1"
+      ],
+      "frontendKeys": [
+        [
+          4,
+          "render_1"
+        ]
+      ],
+      "payloadValueFingerprint": "533d26224098d565645de74331abe0d379c5405bf06ade7c45a5d486f0bad911",
+      "wireBytes": 837,
+      "wireSha256": "740f11754aa42b828d638aa402694dad146be9eda369c539959d9980948b5529",
+      "input": {
+        "pluginId": "milkup.diagrams",
+        "rendererId": "diagrams.mermaid",
+        "documentId": "desktop-large-1792218186252",
+        "version": 0,
+        "from": 108,
+        "to": 342,
+        "fromLine": 5,
+        "toLine": 20,
+        "sourceUtf16": 234,
+        "sourceSha256": "e51cb79094f8db3d5a6afd84b1b3a9dab0a1a8da503e5d39a1e7733985c0244b",
+        "theme": "light",
+        "width": 1100,
+        "target": "screen",
+        "selection": {
+          "anchor": 0,
+          "head": 0
+        },
+        "blocks": [
+          {
+            "kind": "fence",
+            "info": "mermaid",
+            "complete": true,
+            "from": 108,
+            "to": 342,
+            "contentSha256": "78e30a8aaf7fb9a0a374414e1984d2882815549cfce0428d71601302ed4998d2",
+            "firstContentLineAfterFrontmatter": "block"
+          }
+        ],
+        "classificationScope": "Literal source/block metadata only; not proof of which internal block/phase ran"
+      },
+      "terminal": {
+        "kind": "render-settled",
+        "eventOk": true,
+        "eventMonotonicNs": 105812540577550
+      },
+      "cancels": [],
+      "pipeCount": 1,
+      "frameCount": 1,
+      "acceptedToPipeMs": 0.071462,
+      "acceptedToFrameMs": 272.989422,
+      "acceptedToTerminalMs": 273.515172,
+      "frameToStrictSettleMs": 0.52575,
+      "frameMinusPipeMsSigned": 272.91796
+    },
+    {
+      "nativeKey": [
+        508377,
+        10579541,
+        "9188ef94fcf904278cc47177a7898740b758ee7cad0c4fc1",
+        "render_2"
+      ],
+      "frontendKeys": [
+        [
+          4,
+          "render_2"
+        ]
+      ],
+      "payloadValueFingerprint": "ba3841d8c968f057fff22db294a2507440cce89bd78b6943c4a71b6160e16a4e",
+      "wireBytes": 2982,
+      "wireSha256": "af32fea8e3dc211d405dbdc99d190696cab873b7628f53074ec03a77d0d185b8",
+      "input": {
+        "pluginId": "milkup.diagrams",
+        "rendererId": "diagrams.mermaid",
+        "documentId": "desktop-large-1792218186252",
+        "version": 0,
+        "from": 434,
+        "to": 2752,
+        "fromLine": 26,
+        "toLine": 102,
+        "sourceUtf16": 2318,
+        "sourceSha256": "b4635cb21c53125f003eb3e97789849810dabefd13a7163efe24a24f9fb44029",
+        "theme": "light",
+        "width": 1100,
+        "target": "screen",
+        "selection": {
+          "anchor": 0,
+          "head": 0
+        },
+        "blocks": [
+          {
+            "kind": "fence",
+            "info": "mermaid",
+            "complete": true,
+            "from": 434,
+            "to": 2752,
+            "contentSha256": "c6739c6a83029fbe481d653c74d1e302c8226bc89edcbebec88062125baa78d3",
+            "firstContentLineAfterFrontmatter": "sankey"
+          }
+        ],
+        "classificationScope": "Literal source/block metadata only; not proof of which internal block/phase ran"
+      },
+      "terminal": {
+        "kind": "render-settled",
+        "eventOk": true,
+        "eventMonotonicNs": 105812997109992
+      },
+      "cancels": [
+        {
+          "matchedActive": true,
+          "at": 105812974423329
+        }
+      ],
+      "pipeCount": 1,
+      "frameCount": 1,
+      "acceptedToPipeMs": 0.039773,
+      "acceptedToFrameMs": 321.967121,
+      "acceptedToTerminalMs": 325.017531,
+      "frameToStrictSettleMs": 3.05041,
+      "frameMinusPipeMsSigned": 321.927348
+    },
+    {
+      "nativeKey": [
+        508377,
+        10579541,
+        "9188ef94fcf904278cc47177a7898740b758ee7cad0c4fc1",
+        "render_3"
+      ],
+      "frontendKeys": [
+        [
+          4,
+          "render_3"
+        ]
+      ],
+      "payloadValueFingerprint": "533d26224098d565645de74331abe0d379c5405bf06ade7c45a5d486f0bad911",
+      "wireBytes": 837,
+      "wireSha256": "5cef5136da3c0f6eb736a02d36c512c7411500516243e98bade864a518d43453",
+      "input": {
+        "pluginId": "milkup.diagrams",
+        "rendererId": "diagrams.mermaid",
+        "documentId": "desktop-large-1792218186252",
+        "version": 0,
+        "from": 108,
+        "to": 342,
+        "fromLine": 5,
+        "toLine": 20,
+        "sourceUtf16": 234,
+        "sourceSha256": "e51cb79094f8db3d5a6afd84b1b3a9dab0a1a8da503e5d39a1e7733985c0244b",
+        "theme": "light",
+        "width": 1100,
+        "target": "screen",
+        "selection": {
+          "anchor": 0,
+          "head": 0
+        },
+        "blocks": [
+          {
+            "kind": "fence",
+            "info": "mermaid",
+            "complete": true,
+            "from": 108,
+            "to": 342,
+            "contentSha256": "78e30a8aaf7fb9a0a374414e1984d2882815549cfce0428d71601302ed4998d2",
+            "firstContentLineAfterFrontmatter": "block"
+          }
+        ],
+        "classificationScope": "Literal source/block metadata only; not proof of which internal block/phase ran"
+      },
+      "terminal": {
+        "kind": "render-settled",
+        "eventOk": true,
+        "eventMonotonicNs": 105813489617128
+      },
+      "cancels": [
+        {
+          "matchedActive": true,
+          "at": 105813272563920
+        }
+      ],
+      "pipeCount": 1,
+      "frameCount": 1,
+      "acceptedToPipeMs": 0.281361,
+      "acceptedToFrameMs": 420.677455,
+      "acceptedToTerminalMs": 421.208668,
+      "frameToStrictSettleMs": 0.531213,
+      "frameMinusPipeMsSigned": 420.396094
+    },
+    {
+      "nativeKey": [
+        508377,
+        10579541,
+        "9188ef94fcf904278cc47177a7898740b758ee7cad0c4fc1",
+        "render_4"
+      ],
+      "frontendKeys": [
+        [
+          4,
+          "render_4"
+        ]
+      ],
+      "payloadValueFingerprint": "533d26224098d565645de74331abe0d379c5405bf06ade7c45a5d486f0bad911",
+      "wireBytes": 837,
+      "wireSha256": "9462574e980bda4ab6869b5134893ecdf23b047f9632061f347cc2c16cb9e0a9",
+      "input": {
+        "pluginId": "milkup.diagrams",
+        "rendererId": "diagrams.mermaid",
+        "documentId": "desktop-large-1792218186252",
+        "version": 0,
+        "from": 108,
+        "to": 342,
+        "fromLine": 5,
+        "toLine": 20,
+        "sourceUtf16": 234,
+        "sourceSha256": "e51cb79094f8db3d5a6afd84b1b3a9dab0a1a8da503e5d39a1e7733985c0244b",
+        "theme": "light",
+        "width": 1100,
+        "target": "screen",
+        "selection": {
+          "anchor": 0,
+          "head": 0
+        },
+        "blocks": [
+          {
+            "kind": "fence",
+            "info": "mermaid",
+            "complete": true,
+            "from": 108,
+            "to": 342,
+            "contentSha256": "78e30a8aaf7fb9a0a374414e1984d2882815549cfce0428d71601302ed4998d2",
+            "firstContentLineAfterFrontmatter": "block"
+          }
+        ],
+        "classificationScope": "Literal source/block metadata only; not proof of which internal block/phase ran"
+      },
+      "terminal": {
+        "kind": "render-settled",
+        "eventOk": true,
+        "eventMonotonicNs": 105813710287240
+      },
+      "cancels": [],
+      "pipeCount": 1,
+      "frameCount": 1,
+      "acceptedToPipeMs": 0.07322,
+      "acceptedToFrameMs": 194.40403,
+      "acceptedToTerminalMs": 194.87979,
+      "frameToStrictSettleMs": 0.47576,
+      "frameMinusPipeMsSigned": 194.33081
+    },
+    {
+      "nativeKey": [
+        508377,
+        10579541,
+        "9188ef94fcf904278cc47177a7898740b758ee7cad0c4fc1",
+        "render_5"
+      ],
+      "frontendKeys": [
+        [
+          4,
+          "render_5"
+        ]
+      ],
+      "payloadValueFingerprint": "ba3841d8c968f057fff22db294a2507440cce89bd78b6943c4a71b6160e16a4e",
+      "wireBytes": 2982,
+      "wireSha256": "f247085c9dda4b3e44d61e1f1780e0abf4def4d1895698aa1cd42631ab2d9ce2",
+      "input": {
+        "pluginId": "milkup.diagrams",
+        "rendererId": "diagrams.mermaid",
+        "documentId": "desktop-large-1792218186252",
+        "version": 0,
+        "from": 434,
+        "to": 2752,
+        "fromLine": 26,
+        "toLine": 102,
+        "sourceUtf16": 2318,
+        "sourceSha256": "b4635cb21c53125f003eb3e97789849810dabefd13a7163efe24a24f9fb44029",
+        "theme": "light",
+        "width": 1100,
+        "target": "screen",
+        "selection": {
+          "anchor": 0,
+          "head": 0
+        },
+        "blocks": [
+          {
+            "kind": "fence",
+            "info": "mermaid",
+            "complete": true,
+            "from": 434,
+            "to": 2752,
+            "contentSha256": "c6739c6a83029fbe481d653c74d1e302c8226bc89edcbebec88062125baa78d3",
+            "firstContentLineAfterFrontmatter": "sankey"
+          }
+        ],
+        "classificationScope": "Literal source/block metadata only; not proof of which internal block/phase ran"
+      },
+      "terminal": {
+        "kind": "render-settled",
+        "eventOk": true,
+        "eventMonotonicNs": 105813980285989
+      },
+      "cancels": [],
+      "pipeCount": 1,
+      "frameCount": 1,
+      "acceptedToPipeMs": 0.033141,
+      "acceptedToFrameMs": 199.805142,
+      "acceptedToTerminalMs": 201.488764,
+      "frameToStrictSettleMs": 1.683622,
+      "frameMinusPipeMsSigned": 199.772001
+    },
+    {
+      "nativeKey": [
+        508377,
+        10579541,
+        "9188ef94fcf904278cc47177a7898740b758ee7cad0c4fc1",
+        "render_6"
+      ],
+      "frontendKeys": [
+        [
+          4,
+          "render_6"
+        ]
+      ],
+      "payloadValueFingerprint": "533d26224098d565645de74331abe0d379c5405bf06ade7c45a5d486f0bad911",
+      "wireBytes": 837,
+      "wireSha256": "be8e2296ab4f580c3317f5c96d31902a8ca382c7ac258f62d7f57fb99f2511bc",
+      "input": {
+        "pluginId": "milkup.diagrams",
+        "rendererId": "diagrams.mermaid",
+        "documentId": "desktop-large-1792218186252",
+        "version": 0,
+        "from": 108,
+        "to": 342,
+        "fromLine": 5,
+        "toLine": 20,
+        "sourceUtf16": 234,
+        "sourceSha256": "e51cb79094f8db3d5a6afd84b1b3a9dab0a1a8da503e5d39a1e7733985c0244b",
+        "theme": "light",
+        "width": 1100,
+        "target": "screen",
+        "selection": {
+          "anchor": 0,
+          "head": 0
+        },
+        "blocks": [
+          {
+            "kind": "fence",
+            "info": "mermaid",
+            "complete": true,
+            "from": 108,
+            "to": 342,
+            "contentSha256": "78e30a8aaf7fb9a0a374414e1984d2882815549cfce0428d71601302ed4998d2",
+            "firstContentLineAfterFrontmatter": "block"
+          }
+        ],
+        "classificationScope": "Literal source/block metadata only; not proof of which internal block/phase ran"
+      },
+      "terminal": {
+        "kind": "render-settled",
+        "eventOk": true,
+        "eventMonotonicNs": 105814505759806
+      },
+      "cancels": [],
+      "pipeCount": 1,
+      "frameCount": 1,
+      "acceptedToPipeMs": 0.037172,
+      "acceptedToFrameMs": 149.714739,
+      "acceptedToTerminalMs": 150.275513,
+      "frameToStrictSettleMs": 0.560774,
+      "frameMinusPipeMsSigned": 149.677567
+    },
+    {
+      "nativeKey": [
+        508377,
+        10579541,
+        "9188ef94fcf904278cc47177a7898740b758ee7cad0c4fc1",
+        "render_7"
+      ],
+      "frontendKeys": [
+        [
+          4,
+          "render_7"
+        ]
+      ],
+      "payloadValueFingerprint": "ba3841d8c968f057fff22db294a2507440cce89bd78b6943c4a71b6160e16a4e",
+      "wireBytes": 2982,
+      "wireSha256": "affaa8bf1e8364b1866909fe2e090cad96d9599032e66779f051a022ceb0d70b",
+      "input": {
+        "pluginId": "milkup.diagrams",
+        "rendererId": "diagrams.mermaid",
+        "documentId": "desktop-large-1792218186252",
+        "version": 0,
+        "from": 434,
+        "to": 2752,
+        "fromLine": 26,
+        "toLine": 102,
+        "sourceUtf16": 2318,
+        "sourceSha256": "b4635cb21c53125f003eb3e97789849810dabefd13a7163efe24a24f9fb44029",
+        "theme": "light",
+        "width": 1100,
+        "target": "screen",
+        "selection": {
+          "anchor": 0,
+          "head": 0
+        },
+        "blocks": [
+          {
+            "kind": "fence",
+            "info": "mermaid",
+            "complete": true,
+            "from": 434,
+            "to": 2752,
+            "contentSha256": "c6739c6a83029fbe481d653c74d1e302c8226bc89edcbebec88062125baa78d3",
+            "firstContentLineAfterFrontmatter": "sankey"
+          }
+        ],
+        "classificationScope": "Literal source/block metadata only; not proof of which internal block/phase ran"
+      },
+      "terminal": {
+        "kind": "render-settled",
+        "eventOk": true,
+        "eventMonotonicNs": 105814809616043
+      },
+      "cancels": [
+        {
+          "matchedActive": true,
+          "at": 105814679520757
+        }
+      ],
+      "pipeCount": 1,
+      "frameCount": 1,
+      "acceptedToPipeMs": 0.022964,
+      "acceptedToFrameMs": 257.525863,
+      "acceptedToTerminalMs": 259.509346,
+      "frameToStrictSettleMs": 1.983483,
+      "frameMinusPipeMsSigned": 257.502899
+    },
+    {
+      "nativeKey": [
+        508377,
+        10579541,
+        "9188ef94fcf904278cc47177a7898740b758ee7cad0c4fc1",
+        "render_8"
+      ],
+      "frontendKeys": [
+        [
+          4,
+          "render_8"
+        ]
+      ],
+      "payloadValueFingerprint": "5ba05b2acb7c2027542660109cd9923023faeea2b2ed26db300f038545bed1b7",
+      "wireBytes": 836,
+      "wireSha256": "d74daee12caf6f343bfc6fd98c45cfb181e110bfed3551bc2d7ea0840f04716c",
+      "input": {
+        "pluginId": "milkup.diagrams",
+        "rendererId": "diagrams.mermaid",
+        "documentId": "desktop-large-1792218186252",
+        "version": 0,
+        "from": 108,
+        "to": 342,
+        "fromLine": 5,
+        "toLine": 20,
+        "sourceUtf16": 234,
+        "sourceSha256": "e51cb79094f8db3d5a6afd84b1b3a9dab0a1a8da503e5d39a1e7733985c0244b",
+        "theme": "light",
+        "width": 760,
+        "target": "screen",
+        "selection": {
+          "anchor": 0,
+          "head": 0
+        },
+        "blocks": [
+          {
+            "kind": "fence",
+            "info": "mermaid",
+            "complete": true,
+            "from": 108,
+            "to": 342,
+            "contentSha256": "78e30a8aaf7fb9a0a374414e1984d2882815549cfce0428d71601302ed4998d2",
+            "firstContentLineAfterFrontmatter": "block"
+          }
+        ],
+        "classificationScope": "Literal source/block metadata only; not proof of which internal block/phase ran"
+      },
+      "terminal": {
+        "kind": "render-settled",
+        "eventOk": true,
+        "eventMonotonicNs": 105814960802744
+      },
+      "cancels": [],
+      "pipeCount": 1,
+      "frameCount": 1,
+      "acceptedToPipeMs": 0.019096,
+      "acceptedToFrameMs": 127.668969,
+      "acceptedToTerminalMs": 128.223081,
+      "frameToStrictSettleMs": 0.554112,
+      "frameMinusPipeMsSigned": 127.649873
+    },
+    {
+      "nativeKey": [
+        508377,
+        10579541,
+        "9188ef94fcf904278cc47177a7898740b758ee7cad0c4fc1",
+        "render_9"
+      ],
+      "frontendKeys": [
+        [
+          4,
+          "render_9"
+        ]
+      ],
+      "payloadValueFingerprint": "5ba05b2acb7c2027542660109cd9923023faeea2b2ed26db300f038545bed1b7",
+      "wireBytes": 836,
+      "wireSha256": "44cd8de9fdaf6d361dee931e05f0ad1c651d0dc6b5d592d976265e59cd815517",
+      "input": {
+        "pluginId": "milkup.diagrams",
+        "rendererId": "diagrams.mermaid",
+        "documentId": "desktop-large-1792218186252",
+        "version": 0,
+        "from": 108,
+        "to": 342,
+        "fromLine": 5,
+        "toLine": 20,
+        "sourceUtf16": 234,
+        "sourceSha256": "e51cb79094f8db3d5a6afd84b1b3a9dab0a1a8da503e5d39a1e7733985c0244b",
+        "theme": "light",
+        "width": 760,
+        "target": "screen",
+        "selection": {
+          "anchor": 0,
+          "head": 0
+        },
+        "blocks": [
+          {
+            "kind": "fence",
+            "info": "mermaid",
+            "complete": true,
+            "from": 108,
+            "to": 342,
+            "contentSha256": "78e30a8aaf7fb9a0a374414e1984d2882815549cfce0428d71601302ed4998d2",
+            "firstContentLineAfterFrontmatter": "block"
+          }
+        ],
+        "classificationScope": "Literal source/block metadata only; not proof of which internal block/phase ran"
+      },
+      "terminal": {
+        "kind": "render-settled",
+        "eventOk": true,
+        "eventMonotonicNs": 105815317065401
+      },
+      "cancels": [],
+      "pipeCount": 1,
+      "frameCount": 1,
+      "acceptedToPipeMs": 0.028201,
+      "acceptedToFrameMs": 166.982947,
+      "acceptedToTerminalMs": 167.623534,
+      "frameToStrictSettleMs": 0.640587,
+      "frameMinusPipeMsSigned": 166.954746
+    },
+    {
+      "nativeKey": [
+        508377,
+        10579541,
+        "9188ef94fcf904278cc47177a7898740b758ee7cad0c4fc1",
+        "render_10"
+      ],
+      "frontendKeys": [
+        [
+          4,
+          "render_10"
+        ]
+      ],
+      "payloadValueFingerprint": "5ba05b2acb7c2027542660109cd9923023faeea2b2ed26db300f038545bed1b7",
+      "wireBytes": 837,
+      "wireSha256": "91e797320cc8a911a1c90424eb9e5b8654acebd42abe9953d895ea97b7370e7b",
+      "input": {
+        "pluginId": "milkup.diagrams",
+        "rendererId": "diagrams.mermaid",
+        "documentId": "desktop-large-1792218186252",
+        "version": 0,
+        "from": 108,
+        "to": 342,
+        "fromLine": 5,
+        "toLine": 20,
+        "sourceUtf16": 234,
+        "sourceSha256": "e51cb79094f8db3d5a6afd84b1b3a9dab0a1a8da503e5d39a1e7733985c0244b",
+        "theme": "light",
+        "width": 760,
+        "target": "screen",
+        "selection": {
+          "anchor": 0,
+          "head": 0
+        },
+        "blocks": [
+          {
+            "kind": "fence",
+            "info": "mermaid",
+            "complete": true,
+            "from": 108,
+            "to": 342,
+            "contentSha256": "78e30a8aaf7fb9a0a374414e1984d2882815549cfce0428d71601302ed4998d2",
+            "firstContentLineAfterFrontmatter": "block"
+          }
+        ],
+        "classificationScope": "Literal source/block metadata only; not proof of which internal block/phase ran"
+      },
+      "terminal": {
+        "kind": "render-settled",
+        "eventOk": true,
+        "eventMonotonicNs": 105815781108778
+      },
+      "cancels": [
+        {
+          "matchedActive": true,
+          "at": 105815696912666
+        }
+      ],
+      "pipeCount": 1,
+      "frameCount": 1,
+      "acceptedToPipeMs": 0.021956,
+      "acceptedToFrameMs": 110.446251,
+      "acceptedToTerminalMs": 111.103963,
+      "frameToStrictSettleMs": 0.657712,
+      "frameMinusPipeMsSigned": 110.424295
+    },
+    {
+      "nativeKey": [
+        508377,
+        10579541,
+        "9188ef94fcf904278cc47177a7898740b758ee7cad0c4fc1",
+        "render_11"
+      ],
+      "frontendKeys": [
+        [
+          4,
+          "render_11"
+        ]
+      ],
+      "payloadValueFingerprint": "ff351c37c46668e069728ccfff012f1b630f733e960eae527d725732ae757cb4",
+      "wireBytes": 836,
+      "wireSha256": "f8817f5c9af4365bdda06bdcf369e53e08e8c740f11217c9d645466f27bfad48",
+      "input": {
+        "pluginId": "milkup.diagrams",
+        "rendererId": "diagrams.mermaid",
+        "documentId": "desktop-large-1792218186252",
+        "version": 0,
+        "from": 108,
+        "to": 342,
+        "fromLine": 5,
+        "toLine": 20,
+        "sourceUtf16": 234,
+        "sourceSha256": "e51cb79094f8db3d5a6afd84b1b3a9dab0a1a8da503e5d39a1e7733985c0244b",
+        "theme": "dark",
+        "width": 760,
+        "target": "screen",
+        "selection": {
+          "anchor": 0,
+          "head": 0
+        },
+        "blocks": [
+          {
+            "kind": "fence",
+            "info": "mermaid",
+            "complete": true,
+            "from": 108,
+            "to": 342,
+            "contentSha256": "78e30a8aaf7fb9a0a374414e1984d2882815549cfce0428d71601302ed4998d2",
+            "firstContentLineAfterFrontmatter": "block"
+          }
+        ],
+        "classificationScope": "Literal source/block metadata only; not proof of which internal block/phase ran"
+      },
+      "terminal": {
+        "kind": "render-settled",
+        "eventOk": true,
+        "eventMonotonicNs": 105815908350179
+      },
+      "cancels": [
+        {
+          "matchedActive": false,
+          "at": 105816331977256
+        }
+      ],
+      "pipeCount": 1,
+      "frameCount": 1,
+      "acceptedToPipeMs": 0.019961,
+      "acceptedToFrameMs": 114.101453,
+      "acceptedToTerminalMs": 114.808409,
+      "frameToStrictSettleMs": 0.706956,
+      "frameMinusPipeMsSigned": 114.081492
+    },
+    {
+      "nativeKey": [
+        508377,
+        10579541,
+        "9188ef94fcf904278cc47177a7898740b758ee7cad0c4fc1",
+        "render_12"
+      ],
+      "frontendKeys": [
+        [
+          4,
+          "render_12"
+        ]
+      ],
+      "payloadValueFingerprint": "ead1511c9663a3927515c3ef942674ac07e69038c6ad30c47129b1558b71fffe",
+      "wireBytes": 836,
+      "wireSha256": "3c31351280cf199f70ed906fdd91abc79d8252a7d315516809a8092051e6b622",
+      "input": {
+        "pluginId": "milkup.diagrams",
+        "rendererId": "diagrams.mermaid",
+        "documentId": "desktop-large-1792218186252",
+        "version": 0,
+        "from": 108,
+        "to": 342,
+        "fromLine": 5,
+        "toLine": 20,
+        "sourceUtf16": 234,
+        "sourceSha256": "e51cb79094f8db3d5a6afd84b1b3a9dab0a1a8da503e5d39a1e7733985c0244b",
+        "theme": "dark",
+        "width": 608,
+        "target": "screen",
+        "selection": {
+          "anchor": 0,
+          "head": 0
+        },
+        "blocks": [
+          {
+            "kind": "fence",
+            "info": "mermaid",
+            "complete": true,
+            "from": 108,
+            "to": 342,
+            "contentSha256": "78e30a8aaf7fb9a0a374414e1984d2882815549cfce0428d71601302ed4998d2",
+            "firstContentLineAfterFrontmatter": "block"
+          }
+        ],
+        "classificationScope": "Literal source/block metadata only; not proof of which internal block/phase ran"
+      },
+      "terminal": {
+        "kind": "render-settled",
+        "eventOk": true,
+        "eventMonotonicNs": 105816686953802
+      },
+      "cancels": [],
+      "pipeCount": 1,
+      "frameCount": 1,
+      "acceptedToPipeMs": 0.030956,
+      "acceptedToFrameMs": 272.614473,
+      "acceptedToTerminalMs": 273.27062,
+      "frameToStrictSettleMs": 0.656147,
+      "frameMinusPipeMsSigned": 272.583517
+    },
+    {
+      "nativeKey": [
+        508377,
+        10579541,
+        "9188ef94fcf904278cc47177a7898740b758ee7cad0c4fc1",
+        "render_13"
+      ],
+      "frontendKeys": [
+        [
+          4,
+          "render_13"
+        ]
+      ],
+      "payloadValueFingerprint": "6750718bd47ec4e2bdd8ad63f70a4dbfb8d0ea62366dd6b11ee36ef5d44d8a19",
+      "wireBytes": 836,
+      "wireSha256": "2098d38019771bf1a4e8c171d3ca2443a8ba97965e265722d0806c39367b1770",
+      "input": {
+        "pluginId": "milkup.diagrams",
+        "rendererId": "diagrams.mermaid",
+        "documentId": "desktop-large-1792218186252",
+        "version": 0,
+        "from": 108,
+        "to": 342,
+        "fromLine": 5,
+        "toLine": 20,
+        "sourceUtf16": 234,
+        "sourceSha256": "e51cb79094f8db3d5a6afd84b1b3a9dab0a1a8da503e5d39a1e7733985c0244b",
+        "theme": "dark",
+        "width": 507,
+        "target": "screen",
+        "selection": {
+          "anchor": 0,
+          "head": 0
+        },
+        "blocks": [
+          {
+            "kind": "fence",
+            "info": "mermaid",
+            "complete": true,
+            "from": 108,
+            "to": 342,
+            "contentSha256": "78e30a8aaf7fb9a0a374414e1984d2882815549cfce0428d71601302ed4998d2",
+            "firstContentLineAfterFrontmatter": "block"
+          }
+        ],
+        "classificationScope": "Literal source/block metadata only; not proof of which internal block/phase ran"
+      },
+      "terminal": {
+        "kind": "render-settled",
+        "eventOk": true,
+        "eventMonotonicNs": 105817595230400
+      },
+      "cancels": [
+        {
+          "matchedActive": false,
+          "at": 105817837468637
+        }
+      ],
+      "pipeCount": 1,
+      "frameCount": 1,
+      "acceptedToPipeMs": 0.024628,
+      "acceptedToFrameMs": 154.996753,
+      "acceptedToTerminalMs": 155.441657,
+      "frameToStrictSettleMs": 0.444904,
+      "frameMinusPipeMsSigned": 154.972125
+    },
+    {
+      "nativeKey": [
+        508377,
+        10579541,
+        "9188ef94fcf904278cc47177a7898740b758ee7cad0c4fc1",
+        "render_14"
+      ],
+      "frontendKeys": [
+        [
+          4,
+          "render_14"
+        ]
+      ],
+      "payloadValueFingerprint": "bdb95fef20bca246490f6441ad36414bf1097acf518fa93d3690bff105ffba43",
+      "wireBytes": 836,
+      "wireSha256": "926d9c19007c31a014aebf5a5dad0b43dcf7390cc4d74d3d86670e9100e02cf7",
+      "input": {
+        "pluginId": "milkup.diagrams",
+        "rendererId": "diagrams.mermaid",
+        "documentId": "desktop-large-1792218186252",
+        "version": 0,
+        "from": 108,
+        "to": 342,
+        "fromLine": 5,
+        "toLine": 20,
+        "sourceUtf16": 234,
+        "sourceSha256": "e51cb79094f8db3d5a6afd84b1b3a9dab0a1a8da503e5d39a1e7733985c0244b",
+        "theme": "dark",
+        "width": 380,
+        "target": "screen",
+        "selection": {
+          "anchor": 0,
+          "head": 0
+        },
+        "blocks": [
+          {
+            "kind": "fence",
+            "info": "mermaid",
+            "complete": true,
+            "from": 108,
+            "to": 342,
+            "contentSha256": "78e30a8aaf7fb9a0a374414e1984d2882815549cfce0428d71601302ed4998d2",
+            "firstContentLineAfterFrontmatter": "block"
+          }
+        ],
+        "classificationScope": "Literal source/block metadata only; not proof of which internal block/phase ran"
+      },
+      "terminal": {
+        "kind": "render-settled",
+        "eventOk": true,
+        "eventMonotonicNs": 105818175769141
+      },
+      "cancels": [
+        {
+          "matchedActive": true,
+          "at": 105817921972302
+        }
+      ],
+      "pipeCount": 1,
+      "frameCount": 1,
+      "acceptedToPipeMs": 0.030908,
+      "acceptedToFrameMs": 263.591616,
+      "acceptedToTerminalMs": 263.984946,
+      "frameToStrictSettleMs": 0.39333,
+      "frameMinusPipeMsSigned": 263.560708
+    },
+    {
+      "nativeKey": [
+        508377,
+        10579541,
+        "9188ef94fcf904278cc47177a7898740b758ee7cad0c4fc1",
+        "render_15"
+      ],
+      "frontendKeys": [
+        [
+          4,
+          "render_15"
+        ]
+      ],
+      "payloadValueFingerprint": "bdb95fef20bca246490f6441ad36414bf1097acf518fa93d3690bff105ffba43",
+      "wireBytes": 836,
+      "wireSha256": "62a69533354b39e70882054c5f443e84a72a78f1dfc5389c0aefdc1e815e0707",
+      "input": {
+        "pluginId": "milkup.diagrams",
+        "rendererId": "diagrams.mermaid",
+        "documentId": "desktop-large-1792218186252",
+        "version": 0,
+        "from": 108,
+        "to": 342,
+        "fromLine": 5,
+        "toLine": 20,
+        "sourceUtf16": 234,
+        "sourceSha256": "e51cb79094f8db3d5a6afd84b1b3a9dab0a1a8da503e5d39a1e7733985c0244b",
+        "theme": "dark",
+        "width": 380,
+        "target": "screen",
+        "selection": {
+          "anchor": 0,
+          "head": 0
+        },
+        "blocks": [
+          {
+            "kind": "fence",
+            "info": "mermaid",
+            "complete": true,
+            "from": 108,
+            "to": 342,
+            "contentSha256": "78e30a8aaf7fb9a0a374414e1984d2882815549cfce0428d71601302ed4998d2",
+            "firstContentLineAfterFrontmatter": "block"
+          }
+        ],
+        "classificationScope": "Literal source/block metadata only; not proof of which internal block/phase ran"
+      },
+      "terminal": {
+        "kind": "render-settled",
+        "eventOk": true,
+        "eventMonotonicNs": 105818320462797
+      },
+      "cancels": [],
+      "pipeCount": 1,
+      "frameCount": 1,
+      "acceptedToPipeMs": 0.035978,
+      "acceptedToFrameMs": 132.451268,
+      "acceptedToTerminalMs": 132.969899,
+      "frameToStrictSettleMs": 0.518631,
+      "frameMinusPipeMsSigned": 132.41529
+    },
+    {
+      "nativeKey": [
+        508377,
+        10579541,
+        "9188ef94fcf904278cc47177a7898740b758ee7cad0c4fc1",
+        "render_16"
+      ],
+      "frontendKeys": [
+        [
+          4,
+          "render_16"
+        ]
+      ],
+      "payloadValueFingerprint": "bdb95fef20bca246490f6441ad36414bf1097acf518fa93d3690bff105ffba43",
+      "wireBytes": 836,
+      "wireSha256": "8b0258b2d4cd11b2847713f50237ad8f63e78cdb2603a622d07d9fee7d5bca07",
+      "input": {
+        "pluginId": "milkup.diagrams",
+        "rendererId": "diagrams.mermaid",
+        "documentId": "desktop-large-1792218186252",
+        "version": 0,
+        "from": 108,
+        "to": 342,
+        "fromLine": 5,
+        "toLine": 20,
+        "sourceUtf16": 234,
+        "sourceSha256": "e51cb79094f8db3d5a6afd84b1b3a9dab0a1a8da503e5d39a1e7733985c0244b",
+        "theme": "dark",
+        "width": 380,
+        "target": "screen",
+        "selection": {
+          "anchor": 0,
+          "head": 0
+        },
+        "blocks": [
+          {
+            "kind": "fence",
+            "info": "mermaid",
+            "complete": true,
+            "from": 108,
+            "to": 342,
+            "contentSha256": "78e30a8aaf7fb9a0a374414e1984d2882815549cfce0428d71601302ed4998d2",
+            "firstContentLineAfterFrontmatter": "block"
+          }
+        ],
+        "classificationScope": "Literal source/block metadata only; not proof of which internal block/phase ran"
+      },
+      "terminal": {
+        "kind": "render-settled",
+        "eventOk": true,
+        "eventMonotonicNs": 105818719695837
+      },
+      "cancels": [],
+      "pipeCount": 1,
+      "frameCount": 1,
+      "acceptedToPipeMs": 0.04446,
+      "acceptedToFrameMs": 164.724591,
+      "acceptedToTerminalMs": 165.330396,
+      "frameToStrictSettleMs": 0.605805,
+      "frameMinusPipeMsSigned": 164.680131
+    },
+    {
+      "nativeKey": [
+        508377,
+        10579541,
+        "9188ef94fcf904278cc47177a7898740b758ee7cad0c4fc1",
+        "render_17"
+      ],
+      "frontendKeys": [
+        [
+          4,
+          "render_17"
+        ]
+      ],
+      "payloadValueFingerprint": "bdb95fef20bca246490f6441ad36414bf1097acf518fa93d3690bff105ffba43",
+      "wireBytes": 836,
+      "wireSha256": "47c8e1636edbee89a4f8a05a5e608afcd624b4e89adf4922e9a14832abfec43a",
+      "input": {
+        "pluginId": "milkup.diagrams",
+        "rendererId": "diagrams.mermaid",
+        "documentId": "desktop-large-1792218186252",
+        "version": 0,
+        "from": 108,
+        "to": 342,
+        "fromLine": 5,
+        "toLine": 20,
+        "sourceUtf16": 234,
+        "sourceSha256": "e51cb79094f8db3d5a6afd84b1b3a9dab0a1a8da503e5d39a1e7733985c0244b",
+        "theme": "dark",
+        "width": 380,
+        "target": "screen",
+        "selection": {
+          "anchor": 0,
+          "head": 0
+        },
+        "blocks": [
+          {
+            "kind": "fence",
+            "info": "mermaid",
+            "complete": true,
+            "from": 108,
+            "to": 342,
+            "contentSha256": "78e30a8aaf7fb9a0a374414e1984d2882815549cfce0428d71601302ed4998d2",
+            "firstContentLineAfterFrontmatter": "block"
+          }
+        ],
+        "classificationScope": "Literal source/block metadata only; not proof of which internal block/phase ran"
+      },
+      "terminal": {
+        "kind": "render-settled",
+        "eventOk": true,
+        "eventMonotonicNs": 105819017334741
+      },
+      "cancels": [
+        {
+          "matchedActive": false,
+          "at": 105819027014200
+        }
+      ],
+      "pipeCount": 1,
+      "frameCount": 1,
+      "acceptedToPipeMs": 0.033805,
+      "acceptedToFrameMs": 148.258564,
+      "acceptedToTerminalMs": 148.93672,
+      "frameToStrictSettleMs": 0.678156,
+      "frameMinusPipeMsSigned": 148.224759
+    },
+    {
+      "nativeKey": [
+        508377,
+        10579541,
+        "9188ef94fcf904278cc47177a7898740b758ee7cad0c4fc1",
+        "render_18"
+      ],
+      "frontendKeys": [
+        [
+          4,
+          "render_18"
+        ]
+      ],
+      "payloadValueFingerprint": "bdb95fef20bca246490f6441ad36414bf1097acf518fa93d3690bff105ffba43",
+      "wireBytes": 836,
+      "wireSha256": "731679e63166473868ffdf832ffe0344c62b509a8374456bee09568730232a5e",
+      "input": {
+        "pluginId": "milkup.diagrams",
+        "rendererId": "diagrams.mermaid",
+        "documentId": "desktop-large-1792218186252",
+        "version": 0,
+        "from": 108,
+        "to": 342,
+        "fromLine": 5,
+        "toLine": 20,
+        "sourceUtf16": 234,
+        "sourceSha256": "e51cb79094f8db3d5a6afd84b1b3a9dab0a1a8da503e5d39a1e7733985c0244b",
+        "theme": "dark",
+        "width": 380,
+        "target": "screen",
+        "selection": {
+          "anchor": 0,
+          "head": 0
+        },
+        "blocks": [
+          {
+            "kind": "fence",
+            "info": "mermaid",
+            "complete": true,
+            "from": 108,
+            "to": 342,
+            "contentSha256": "78e30a8aaf7fb9a0a374414e1984d2882815549cfce0428d71601302ed4998d2",
+            "firstContentLineAfterFrontmatter": "block"
+          }
+        ],
+        "classificationScope": "Literal source/block metadata only; not proof of which internal block/phase ran"
+      },
+      "terminal": {
+        "kind": "render-settled",
+        "eventOk": true,
+        "eventMonotonicNs": 105819159026462
+      },
+      "cancels": [],
+      "pipeCount": 1,
+      "frameCount": 1,
+      "acceptedToPipeMs": 0.059376,
+      "acceptedToFrameMs": 131.412122,
+      "acceptedToTerminalMs": 131.901782,
+      "frameToStrictSettleMs": 0.48966,
+      "frameMinusPipeMsSigned": 131.352746
+    },
+    {
+      "nativeKey": [
+        508377,
+        10579541,
+        "9188ef94fcf904278cc47177a7898740b758ee7cad0c4fc1",
+        "render_19"
+      ],
+      "frontendKeys": [
+        [
+          4,
+          "render_19"
+        ]
+      ],
+      "payloadValueFingerprint": "bdb95fef20bca246490f6441ad36414bf1097acf518fa93d3690bff105ffba43",
+      "wireBytes": 836,
+      "wireSha256": "73df95dee0babe65e25d649aa4b165815936e922ec0e1f53d4050ea98331c4f6",
+      "input": {
+        "pluginId": "milkup.diagrams",
+        "rendererId": "diagrams.mermaid",
+        "documentId": "desktop-large-1792218186252",
+        "version": 0,
+        "from": 108,
+        "to": 342,
+        "fromLine": 5,
+        "toLine": 20,
+        "sourceUtf16": 234,
+        "sourceSha256": "e51cb79094f8db3d5a6afd84b1b3a9dab0a1a8da503e5d39a1e7733985c0244b",
+        "theme": "dark",
+        "width": 380,
+        "target": "screen",
+        "selection": {
+          "anchor": 0,
+          "head": 0
+        },
+        "blocks": [
+          {
+            "kind": "fence",
+            "info": "mermaid",
+            "complete": true,
+            "from": 108,
+            "to": 342,
+            "contentSha256": "78e30a8aaf7fb9a0a374414e1984d2882815549cfce0428d71601302ed4998d2",
+            "firstContentLineAfterFrontmatter": "block"
+          }
+        ],
+        "classificationScope": "Literal source/block metadata only; not proof of which internal block/phase ran"
+      },
+      "terminal": {
+        "kind": "render-settled",
+        "eventOk": true,
+        "eventMonotonicNs": 105819445907904
+      },
+      "cancels": [],
+      "pipeCount": 1,
+      "frameCount": 1,
+      "acceptedToPipeMs": 0.025816,
+      "acceptedToFrameMs": 132.822792,
+      "acceptedToTerminalMs": 133.206791,
+      "frameToStrictSettleMs": 0.383999,
+      "frameMinusPipeMsSigned": 132.796976
+    },
+    {
+      "nativeKey": [
+        508377,
+        10579541,
+        "9188ef94fcf904278cc47177a7898740b758ee7cad0c4fc1",
+        "render_20"
+      ],
+      "frontendKeys": [
+        [
+          4,
+          "render_20"
+        ]
+      ],
+      "payloadValueFingerprint": "b38e3335eff51817f49b1b55043124fd132aa3b579501c988ca0a1a8dccec504",
+      "wireBytes": 2985,
+      "wireSha256": "d59ad2cd79f246ca31b795979d681bedf4e354ac6cb3d7cae55565f4760a1317",
+      "input": {
+        "pluginId": "milkup.diagrams",
+        "rendererId": "diagrams.mermaid",
+        "documentId": "desktop-large-1792218186252",
+        "version": 0,
+        "from": 434,
+        "to": 2752,
+        "fromLine": 26,
+        "toLine": 102,
+        "sourceUtf16": 2318,
+        "sourceSha256": "b4635cb21c53125f003eb3e97789849810dabefd13a7163efe24a24f9fb44029",
+        "theme": "dark",
+        "width": 380,
+        "target": "screen",
+        "selection": {
+          "anchor": 384,
+          "head": 432
+        },
+        "blocks": [
+          {
+            "kind": "fence",
+            "info": "mermaid",
+            "complete": true,
+            "from": 434,
+            "to": 2752,
+            "contentSha256": "c6739c6a83029fbe481d653c74d1e302c8226bc89edcbebec88062125baa78d3",
+            "firstContentLineAfterFrontmatter": "sankey"
+          }
+        ],
+        "classificationScope": "Literal source/block metadata only; not proof of which internal block/phase ran"
+      },
+      "terminal": {
+        "kind": "render-settled",
+        "eventOk": true,
+        "eventMonotonicNs": 105820928467632
+      },
+      "cancels": [],
+      "pipeCount": 1,
+      "frameCount": 1,
+      "acceptedToPipeMs": 0.077471,
+      "acceptedToFrameMs": 190.219115,
+      "acceptedToTerminalMs": 191.932052,
+      "frameToStrictSettleMs": 1.712937,
+      "frameMinusPipeMsSigned": 190.141644
+    },
+    {
+      "nativeKey": [
+        508377,
+        10579541,
+        "9188ef94fcf904278cc47177a7898740b758ee7cad0c4fc1",
+        "render_21"
+      ],
+      "frontendKeys": [
+        [
+          4,
+          "render_21"
+        ]
+      ],
+      "payloadValueFingerprint": "b38e3335eff51817f49b1b55043124fd132aa3b579501c988ca0a1a8dccec504",
+      "wireBytes": 2985,
+      "wireSha256": "f3f4392fa6d0bf628a3663ffa27d1e00d31379a0c5712b46fe20489e32767f6b",
+      "input": {
+        "pluginId": "milkup.diagrams",
+        "rendererId": "diagrams.mermaid",
+        "documentId": "desktop-large-1792218186252",
+        "version": 0,
+        "from": 434,
+        "to": 2752,
+        "fromLine": 26,
+        "toLine": 102,
+        "sourceUtf16": 2318,
+        "sourceSha256": "b4635cb21c53125f003eb3e97789849810dabefd13a7163efe24a24f9fb44029",
+        "theme": "dark",
+        "width": 380,
+        "target": "screen",
+        "selection": {
+          "anchor": 384,
+          "head": 432
+        },
+        "blocks": [
+          {
+            "kind": "fence",
+            "info": "mermaid",
+            "complete": true,
+            "from": 434,
+            "to": 2752,
+            "contentSha256": "c6739c6a83029fbe481d653c74d1e302c8226bc89edcbebec88062125baa78d3",
+            "firstContentLineAfterFrontmatter": "sankey"
+          }
+        ],
+        "classificationScope": "Literal source/block metadata only; not proof of which internal block/phase ran"
+      },
+      "terminal": {
+        "kind": "render-settled",
+        "eventOk": true,
+        "eventMonotonicNs": 105824716573018
+      },
+      "cancels": [],
+      "pipeCount": 1,
+      "frameCount": 1,
+      "acceptedToPipeMs": 0.118539,
+      "acceptedToFrameMs": 166.807059,
+      "acceptedToTerminalMs": 168.838933,
+      "frameToStrictSettleMs": 2.031874,
+      "frameMinusPipeMsSigned": 166.68852
+    },
+    {
+      "nativeKey": [
+        508377,
+        10579541,
+        "9188ef94fcf904278cc47177a7898740b758ee7cad0c4fc1",
+        "render_22"
+      ],
+      "frontendKeys": [
+        [
+          4,
+          "render_22"
+        ]
+      ],
+      "payloadValueFingerprint": "b38e3335eff51817f49b1b55043124fd132aa3b579501c988ca0a1a8dccec504",
+      "wireBytes": 2985,
+      "wireSha256": "1d39fef7bc8066d1b16a965f9cbaa15198a4a2145a678a142e7e1603a57cd3a1",
+      "input": {
+        "pluginId": "milkup.diagrams",
+        "rendererId": "diagrams.mermaid",
+        "documentId": "desktop-large-1792218186252",
+        "version": 0,
+        "from": 434,
+        "to": 2752,
+        "fromLine": 26,
+        "toLine": 102,
+        "sourceUtf16": 2318,
+        "sourceSha256": "b4635cb21c53125f003eb3e97789849810dabefd13a7163efe24a24f9fb44029",
+        "theme": "dark",
+        "width": 380,
+        "target": "screen",
+        "selection": {
+          "anchor": 384,
+          "head": 432
+        },
+        "blocks": [
+          {
+            "kind": "fence",
+            "info": "mermaid",
+            "complete": true,
+            "from": 434,
+            "to": 2752,
+            "contentSha256": "c6739c6a83029fbe481d653c74d1e302c8226bc89edcbebec88062125baa78d3",
+            "firstContentLineAfterFrontmatter": "sankey"
+          }
+        ],
+        "classificationScope": "Literal source/block metadata only; not proof of which internal block/phase ran"
+      },
+      "terminal": {
+        "kind": "render-settled",
+        "eventOk": true,
+        "eventMonotonicNs": 105826689824946
+      },
+      "cancels": [
+        {
+          "matchedActive": false,
+          "at": 105826738081136
+        }
+      ],
+      "pipeCount": 1,
+      "frameCount": 1,
+      "acceptedToPipeMs": 0.039748,
+      "acceptedToFrameMs": 218.623993,
+      "acceptedToTerminalMs": 220.342534,
+      "frameToStrictSettleMs": 1.718541,
+      "frameMinusPipeMsSigned": 218.584245
+    },
+    {
+      "nativeKey": [
+        508377,
+        10579541,
+        "9188ef94fcf904278cc47177a7898740b758ee7cad0c4fc1",
+        "render_23"
+      ],
+      "frontendKeys": [
+        [
+          4,
+          "render_23"
+        ]
+      ],
+      "payloadValueFingerprint": "b38e3335eff51817f49b1b55043124fd132aa3b579501c988ca0a1a8dccec504",
+      "wireBytes": 2985,
+      "wireSha256": "93d4d22f5f11c64c405487bc5341237cbae8fa4e54a57ba2a68285226cc53265",
+      "input": {
+        "pluginId": "milkup.diagrams",
+        "rendererId": "diagrams.mermaid",
+        "documentId": "desktop-large-1792218186252",
+        "version": 0,
+        "from": 434,
+        "to": 2752,
+        "fromLine": 26,
+        "toLine": 102,
+        "sourceUtf16": 2318,
+        "sourceSha256": "b4635cb21c53125f003eb3e97789849810dabefd13a7163efe24a24f9fb44029",
+        "theme": "dark",
+        "width": 380,
+        "target": "screen",
+        "selection": {
+          "anchor": 384,
+          "head": 432
+        },
+        "blocks": [
+          {
+            "kind": "fence",
+            "info": "mermaid",
+            "complete": true,
+            "from": 434,
+            "to": 2752,
+            "contentSha256": "c6739c6a83029fbe481d653c74d1e302c8226bc89edcbebec88062125baa78d3",
+            "firstContentLineAfterFrontmatter": "sankey"
+          }
+        ],
+        "classificationScope": "Literal source/block metadata only; not proof of which internal block/phase ran"
+      },
+      "terminal": {
+        "kind": "render-settled",
+        "eventOk": true,
+        "eventMonotonicNs": 105827019142914
+      },
+      "cancels": [],
+      "pipeCount": 1,
+      "frameCount": 1,
+      "acceptedToPipeMs": 0.033258,
+      "acceptedToFrameMs": 205.420593,
+      "acceptedToTerminalMs": 208.886235,
+      "frameToStrictSettleMs": 3.465642,
+      "frameMinusPipeMsSigned": 205.387335
+    }
+  ],
+  "frontendJobs": [
+    {
+      "client": 1,
+      "requestId": "render_1",
+      "nativeInstanceId": null,
+      "pluginId": "milkup.footnotes",
+      "nativeKeys": [],
+      "phases": [
+        "queued",
+        "dispatch",
+        "cancel-active",
+        "remote-settled"
+      ],
+      "closure": "remote-settled",
+      "queuedCancelledWithoutNativeAcceptance": false,
+      "frontendQueueWaitMs": 0.0,
+      "payloadValueFingerprint": "644f957095a3d815f0edc7ffcb77b940f79f14fbad5cd4b375749ce3a264e6ee"
+    },
+    {
+      "client": 2,
+      "requestId": "render_1",
+      "nativeInstanceId": null,
+      "pluginId": "milkup.math",
+      "nativeKeys": [],
+      "phases": [
+        "queued",
+        "dispatch",
+        "cancel-active",
+        "remote-settled"
+      ],
+      "closure": "remote-settled",
+      "queuedCancelledWithoutNativeAcceptance": false,
+      "frontendQueueWaitMs": 0,
+      "payloadValueFingerprint": "b95b8a5f7a3ed601c1ba93f5d06f82e89990e8d59453da8e00f908e39baa42ea"
+    },
+    {
+      "client": 1,
+      "requestId": "render_2",
+      "nativeInstanceId": null,
+      "pluginId": "milkup.footnotes",
+      "nativeKeys": [],
+      "phases": [
+        "queued",
+        "dispatch",
+        "remote-settled"
+      ],
+      "closure": "remote-settled",
+      "queuedCancelledWithoutNativeAcceptance": false,
+      "frontendQueueWaitMs": 10.00000000000091,
+      "payloadValueFingerprint": "4efa7cb995c6aee525589bfa0b11eed54c9e72e6131e90d4165daad0c2c6e4ee"
+    },
+    {
+      "client": 2,
+      "requestId": "render_2",
+      "nativeInstanceId": null,
+      "pluginId": "milkup.math",
+      "nativeKeys": [],
+      "phases": [
+        "queued",
+        "dispatch",
+        "remote-settled"
+      ],
+      "closure": "remote-settled",
+      "queuedCancelledWithoutNativeAcceptance": false,
+      "frontendQueueWaitMs": 9.00000000000091,
+      "payloadValueFingerprint": "c065c70c83b18039ab463e2a6d417e1fb19345bece8c8fe041b24beb92c6f431"
+    },
+    {
+      "client": 3,
+      "requestId": "render_1",
+      "nativeInstanceId": "df59918c2b99843db6dcb56cf7ad671c4e909afbe545efda",
+      "pluginId": "milkup.diagrams",
+      "nativeKeys": [
+        [
+          508377,
+          10579541,
+          "df59918c2b99843db6dcb56cf7ad671c4e909afbe545efda",
+          "render_1"
+        ]
+      ],
+      "phases": [
+        "queued",
+        "dispatch",
+        "remote-settled"
+      ],
+      "closure": "remote-settled",
+      "queuedCancelledWithoutNativeAcceptance": false,
+      "frontendQueueWaitMs": 0,
+      "payloadValueFingerprint": "533d26224098d565645de74331abe0d379c5405bf06ade7c45a5d486f0bad911"
+    },
+    {
+      "client": 3,
+      "requestId": "render_2",
+      "nativeInstanceId": "df59918c2b99843db6dcb56cf7ad671c4e909afbe545efda",
+      "pluginId": "milkup.diagrams",
+      "nativeKeys": [
+        [
+          508377,
+          10579541,
+          "df59918c2b99843db6dcb56cf7ad671c4e909afbe545efda",
+          "render_2"
+        ]
+      ],
+      "phases": [
+        "queued",
+        "dispatch",
+        "remote-settled"
+      ],
+      "closure": "remote-settled",
+      "queuedCancelledWithoutNativeAcceptance": false,
+      "frontendQueueWaitMs": 0,
+      "payloadValueFingerprint": "ba3841d8c968f057fff22db294a2507440cce89bd78b6943c4a71b6160e16a4e"
+    },
+    {
+      "client": 1,
+      "requestId": "render_3",
+      "nativeInstanceId": null,
+      "pluginId": "milkup.footnotes",
+      "nativeKeys": [],
+      "phases": [
+        "queued",
+        "dispatch",
+        "remote-settled"
+      ],
+      "closure": "remote-settled",
+      "queuedCancelledWithoutNativeAcceptance": false,
+      "frontendQueueWaitMs": 0,
+      "payloadValueFingerprint": "4efa7cb995c6aee525589bfa0b11eed54c9e72e6131e90d4165daad0c2c6e4ee"
+    },
+    {
+      "client": 2,
+      "requestId": "render_3",
+      "nativeInstanceId": null,
+      "pluginId": "milkup.math",
+      "nativeKeys": [],
+      "phases": [
+        "queued",
+        "dispatch",
+        "remote-settled"
+      ],
+      "closure": "remote-settled",
+      "queuedCancelledWithoutNativeAcceptance": false,
+      "frontendQueueWaitMs": 0,
+      "payloadValueFingerprint": "c065c70c83b18039ab463e2a6d417e1fb19345bece8c8fe041b24beb92c6f431"
+    },
+    {
+      "client": 3,
+      "requestId": "render_3",
+      "nativeInstanceId": "df59918c2b99843db6dcb56cf7ad671c4e909afbe545efda",
+      "pluginId": "milkup.diagrams",
+      "nativeKeys": [
+        [
+          508377,
+          10579541,
+          "df59918c2b99843db6dcb56cf7ad671c4e909afbe545efda",
+          "render_3"
+        ]
+      ],
+      "phases": [
+        "queued",
+        "dispatch",
+        "cancel-active",
+        "dispose"
+      ],
+      "closure": "client-dispose",
+      "queuedCancelledWithoutNativeAcceptance": false,
+      "frontendQueueWaitMs": 0,
+      "payloadValueFingerprint": "533d26224098d565645de74331abe0d379c5405bf06ade7c45a5d486f0bad911"
+    },
+    {
+      "client": 1,
+      "requestId": "render_4",
+      "nativeInstanceId": null,
+      "pluginId": "milkup.footnotes",
+      "nativeKeys": [],
+      "phases": [
+        "queued",
+        "dispatch",
+        "remote-settled"
+      ],
+      "closure": "remote-settled",
+      "queuedCancelledWithoutNativeAcceptance": false,
+      "frontendQueueWaitMs": 2,
+      "payloadValueFingerprint": "4efa7cb995c6aee525589bfa0b11eed54c9e72e6131e90d4165daad0c2c6e4ee"
+    },
+    {
+      "client": 2,
+      "requestId": "render_4",
+      "nativeInstanceId": null,
+      "pluginId": "milkup.math",
+      "nativeKeys": [],
+      "phases": [
+        "queued",
+        "dispatch",
+        "remote-settled"
+      ],
+      "closure": "remote-settled",
+      "queuedCancelledWithoutNativeAcceptance": false,
+      "frontendQueueWaitMs": 1,
+      "payloadValueFingerprint": "c065c70c83b18039ab463e2a6d417e1fb19345bece8c8fe041b24beb92c6f431"
+    },
+    {
+      "client": 1,
+      "requestId": "render_5",
+      "nativeInstanceId": null,
+      "pluginId": "milkup.footnotes",
+      "nativeKeys": [],
+      "phases": [
+        "queued",
+        "dispatch",
+        "remote-settled"
+      ],
+      "closure": "remote-settled",
+      "queuedCancelledWithoutNativeAcceptance": false,
+      "frontendQueueWaitMs": 0,
+      "payloadValueFingerprint": "4efa7cb995c6aee525589bfa0b11eed54c9e72e6131e90d4165daad0c2c6e4ee"
+    },
+    {
+      "client": 2,
+      "requestId": "render_5",
+      "nativeInstanceId": null,
+      "pluginId": "milkup.math",
+      "nativeKeys": [],
+      "phases": [
+        "queued",
+        "dispatch",
+        "remote-settled"
+      ],
+      "closure": "remote-settled",
+      "queuedCancelledWithoutNativeAcceptance": false,
+      "frontendQueueWaitMs": 0,
+      "payloadValueFingerprint": "c065c70c83b18039ab463e2a6d417e1fb19345bece8c8fe041b24beb92c6f431"
+    },
+    {
+      "client": 1,
+      "requestId": "render_6",
+      "nativeInstanceId": null,
+      "pluginId": "milkup.footnotes",
+      "nativeKeys": [],
+      "phases": [
+        "queued",
+        "dispatch",
+        "remote-settled"
+      ],
+      "closure": "remote-settled",
+      "queuedCancelledWithoutNativeAcceptance": false,
+      "frontendQueueWaitMs": 0,
+      "payloadValueFingerprint": "4efa7cb995c6aee525589bfa0b11eed54c9e72e6131e90d4165daad0c2c6e4ee"
+    },
+    {
+      "client": 2,
+      "requestId": "render_6",
+      "nativeInstanceId": null,
+      "pluginId": "milkup.math",
+      "nativeKeys": [],
+      "phases": [
+        "queued",
+        "dispatch",
+        "remote-settled"
+      ],
+      "closure": "remote-settled",
+      "queuedCancelledWithoutNativeAcceptance": false,
+      "frontendQueueWaitMs": 0.0,
+      "payloadValueFingerprint": "c065c70c83b18039ab463e2a6d417e1fb19345bece8c8fe041b24beb92c6f431"
+    },
+    {
+      "client": 1,
+      "requestId": "render_7",
+      "nativeInstanceId": null,
+      "pluginId": "milkup.footnotes",
+      "nativeKeys": [],
+      "phases": [
+        "queued",
+        "dispatch",
+        "remote-settled"
+      ],
+      "closure": "remote-settled",
+      "queuedCancelledWithoutNativeAcceptance": false,
+      "frontendQueueWaitMs": 0,
+      "payloadValueFingerprint": "4efa7cb995c6aee525589bfa0b11eed54c9e72e6131e90d4165daad0c2c6e4ee"
+    },
+    {
+      "client": 2,
+      "requestId": "render_7",
+      "nativeInstanceId": null,
+      "pluginId": "milkup.math",
+      "nativeKeys": [],
+      "phases": [
+        "queued",
+        "dispatch",
+        "remote-settled"
+      ],
+      "closure": "remote-settled",
+      "queuedCancelledWithoutNativeAcceptance": false,
+      "frontendQueueWaitMs": 0,
+      "payloadValueFingerprint": "c065c70c83b18039ab463e2a6d417e1fb19345bece8c8fe041b24beb92c6f431"
+    },
+    {
+      "client": 1,
+      "requestId": "render_8",
+      "nativeInstanceId": null,
+      "pluginId": "milkup.footnotes",
+      "nativeKeys": [],
+      "phases": [
+        "queued",
+        "dispatch",
+        "remote-settled"
+      ],
+      "closure": "remote-settled",
+      "queuedCancelledWithoutNativeAcceptance": false,
+      "frontendQueueWaitMs": 1,
+      "payloadValueFingerprint": "4efa7cb995c6aee525589bfa0b11eed54c9e72e6131e90d4165daad0c2c6e4ee"
+    },
+    {
+      "client": 2,
+      "requestId": "render_8",
+      "nativeInstanceId": null,
+      "pluginId": "milkup.math",
+      "nativeKeys": [],
+      "phases": [
+        "queued",
+        "dispatch",
+        "remote-settled"
+      ],
+      "closure": "remote-settled",
+      "queuedCancelledWithoutNativeAcceptance": false,
+      "frontendQueueWaitMs": 0,
+      "payloadValueFingerprint": "c065c70c83b18039ab463e2a6d417e1fb19345bece8c8fe041b24beb92c6f431"
+    },
+    {
+      "client": 4,
+      "requestId": "render_1",
+      "nativeInstanceId": "9188ef94fcf904278cc47177a7898740b758ee7cad0c4fc1",
+      "pluginId": "milkup.diagrams",
+      "nativeKeys": [
+        [
+          508377,
+          10579541,
+          "9188ef94fcf904278cc47177a7898740b758ee7cad0c4fc1",
+          "render_1"
+        ]
+      ],
+      "phases": [
+        "queued",
+        "dispatch",
+        "remote-settled"
+      ],
+      "closure": "remote-settled",
+      "queuedCancelledWithoutNativeAcceptance": false,
+      "frontendQueueWaitMs": 0,
+      "payloadValueFingerprint": "533d26224098d565645de74331abe0d379c5405bf06ade7c45a5d486f0bad911"
+    },
+    {
+      "client": 4,
+      "requestId": "render_2",
+      "nativeInstanceId": "9188ef94fcf904278cc47177a7898740b758ee7cad0c4fc1",
+      "pluginId": "milkup.diagrams",
+      "nativeKeys": [
+        [
+          508377,
+          10579541,
+          "9188ef94fcf904278cc47177a7898740b758ee7cad0c4fc1",
+          "render_2"
+        ]
+      ],
+      "phases": [
+        "queued",
+        "dispatch",
+        "cancel-active",
+        "remote-settled"
+      ],
+      "closure": "remote-settled",
+      "queuedCancelledWithoutNativeAcceptance": false,
+      "frontendQueueWaitMs": 1.000000000001819,
+      "payloadValueFingerprint": "ba3841d8c968f057fff22db294a2507440cce89bd78b6943c4a71b6160e16a4e"
+    },
+    {
+      "client": 1,
+      "requestId": "render_9",
+      "nativeInstanceId": null,
+      "pluginId": "milkup.footnotes",
+      "nativeKeys": [],
+      "phases": [
+        "queued",
+        "dispatch",
+        "remote-settled"
+      ],
+      "closure": "remote-settled",
+      "queuedCancelledWithoutNativeAcceptance": false,
+      "frontendQueueWaitMs": 0,
+      "payloadValueFingerprint": "4efa7cb995c6aee525589bfa0b11eed54c9e72e6131e90d4165daad0c2c6e4ee"
+    },
+    {
+      "client": 2,
+      "requestId": "render_9",
+      "nativeInstanceId": null,
+      "pluginId": "milkup.math",
+      "nativeKeys": [],
+      "phases": [
+        "queued",
+        "dispatch",
+        "remote-settled"
+      ],
+      "closure": "remote-settled",
+      "queuedCancelledWithoutNativeAcceptance": false,
+      "frontendQueueWaitMs": 0,
+      "payloadValueFingerprint": "c065c70c83b18039ab463e2a6d417e1fb19345bece8c8fe041b24beb92c6f431"
+    },
+    {
+      "client": 4,
+      "requestId": "render_3",
+      "nativeInstanceId": "9188ef94fcf904278cc47177a7898740b758ee7cad0c4fc1",
+      "pluginId": "milkup.diagrams",
+      "nativeKeys": [
+        [
+          508377,
+          10579541,
+          "9188ef94fcf904278cc47177a7898740b758ee7cad0c4fc1",
+          "render_3"
+        ]
+      ],
+      "phases": [
+        "queued",
+        "dispatch",
+        "cancel-active",
+        "remote-settled"
+      ],
+      "closure": "remote-settled",
+      "queuedCancelledWithoutNativeAcceptance": false,
+      "frontendQueueWaitMs": 0,
+      "payloadValueFingerprint": "533d26224098d565645de74331abe0d379c5405bf06ade7c45a5d486f0bad911"
+    },
+    {
+      "client": 1,
+      "requestId": "render_10",
+      "nativeInstanceId": null,
+      "pluginId": "milkup.footnotes",
+      "nativeKeys": [],
+      "phases": [
+        "queued",
+        "dispatch",
+        "remote-settled"
+      ],
+      "closure": "remote-settled",
+      "queuedCancelledWithoutNativeAcceptance": false,
+      "frontendQueueWaitMs": 0,
+      "payloadValueFingerprint": "4efa7cb995c6aee525589bfa0b11eed54c9e72e6131e90d4165daad0c2c6e4ee"
+    },
+    {
+      "client": 2,
+      "requestId": "render_10",
+      "nativeInstanceId": null,
+      "pluginId": "milkup.math",
+      "nativeKeys": [],
+      "phases": [
+        "queued",
+        "dispatch",
+        "remote-settled"
+      ],
+      "closure": "remote-settled",
+      "queuedCancelledWithoutNativeAcceptance": false,
+      "frontendQueueWaitMs": 0,
+      "payloadValueFingerprint": "c065c70c83b18039ab463e2a6d417e1fb19345bece8c8fe041b24beb92c6f431"
+    },
+    {
+      "client": 4,
+      "requestId": "render_4",
+      "nativeInstanceId": "9188ef94fcf904278cc47177a7898740b758ee7cad0c4fc1",
+      "pluginId": "milkup.diagrams",
+      "nativeKeys": [
+        [
+          508377,
+          10579541,
+          "9188ef94fcf904278cc47177a7898740b758ee7cad0c4fc1",
+          "render_4"
+        ]
+      ],
+      "phases": [
+        "queued",
+        "dispatch",
+        "remote-settled"
+      ],
+      "closure": "remote-settled",
+      "queuedCancelledWithoutNativeAcceptance": false,
+      "frontendQueueWaitMs": 222,
+      "payloadValueFingerprint": "533d26224098d565645de74331abe0d379c5405bf06ade7c45a5d486f0bad911"
+    },
+    {
+      "client": 4,
+      "requestId": "render_5",
+      "nativeInstanceId": "9188ef94fcf904278cc47177a7898740b758ee7cad0c4fc1",
+      "pluginId": "milkup.diagrams",
+      "nativeKeys": [
+        [
+          508377,
+          10579541,
+          "9188ef94fcf904278cc47177a7898740b758ee7cad0c4fc1",
+          "render_5"
+        ]
+      ],
+      "phases": [
+        "queued",
+        "dispatch",
+        "remote-settled"
+      ],
+      "closure": "remote-settled",
+      "queuedCancelledWithoutNativeAcceptance": false,
+      "frontendQueueWaitMs": 0,
+      "payloadValueFingerprint": "ba3841d8c968f057fff22db294a2507440cce89bd78b6943c4a71b6160e16a4e"
+    },
+    {
+      "client": 1,
+      "requestId": "render_11",
+      "nativeInstanceId": null,
+      "pluginId": "milkup.footnotes",
+      "nativeKeys": [],
+      "phases": [
+        "queued",
+        "dispatch",
+        "remote-settled"
+      ],
+      "closure": "remote-settled",
+      "queuedCancelledWithoutNativeAcceptance": false,
+      "frontendQueueWaitMs": 0,
+      "payloadValueFingerprint": "4efa7cb995c6aee525589bfa0b11eed54c9e72e6131e90d4165daad0c2c6e4ee"
+    },
+    {
+      "client": 2,
+      "requestId": "render_11",
+      "nativeInstanceId": null,
+      "pluginId": "milkup.math",
+      "nativeKeys": [],
+      "phases": [
+        "queued",
+        "dispatch",
+        "remote-settled"
+      ],
+      "closure": "remote-settled",
+      "queuedCancelledWithoutNativeAcceptance": false,
+      "frontendQueueWaitMs": 0,
+      "payloadValueFingerprint": "c065c70c83b18039ab463e2a6d417e1fb19345bece8c8fe041b24beb92c6f431"
+    },
+    {
+      "client": 4,
+      "requestId": "render_6",
+      "nativeInstanceId": "9188ef94fcf904278cc47177a7898740b758ee7cad0c4fc1",
+      "pluginId": "milkup.diagrams",
+      "nativeKeys": [
+        [
+          508377,
+          10579541,
+          "9188ef94fcf904278cc47177a7898740b758ee7cad0c4fc1",
+          "render_6"
+        ]
+      ],
+      "phases": [
+        "queued",
+        "dispatch",
+        "remote-settled"
+      ],
+      "closure": "remote-settled",
+      "queuedCancelledWithoutNativeAcceptance": false,
+      "frontendQueueWaitMs": 0,
+      "payloadValueFingerprint": "533d26224098d565645de74331abe0d379c5405bf06ade7c45a5d486f0bad911"
+    },
+    {
+      "client": 4,
+      "requestId": "render_7",
+      "nativeInstanceId": "9188ef94fcf904278cc47177a7898740b758ee7cad0c4fc1",
+      "pluginId": "milkup.diagrams",
+      "nativeKeys": [
+        [
+          508377,
+          10579541,
+          "9188ef94fcf904278cc47177a7898740b758ee7cad0c4fc1",
+          "render_7"
+        ]
+      ],
+      "phases": [
+        "queued",
+        "dispatch",
+        "cancel-active",
+        "remote-settled"
+      ],
+      "closure": "remote-settled",
+      "queuedCancelledWithoutNativeAcceptance": false,
+      "frontendQueueWaitMs": 0.0,
+      "payloadValueFingerprint": "ba3841d8c968f057fff22db294a2507440cce89bd78b6943c4a71b6160e16a4e"
+    },
+    {
+      "client": 1,
+      "requestId": "render_12",
+      "nativeInstanceId": null,
+      "pluginId": "milkup.footnotes",
+      "nativeKeys": [],
+      "phases": [
+        "queued",
+        "dispatch",
+        "remote-settled"
+      ],
+      "closure": "remote-settled",
+      "queuedCancelledWithoutNativeAcceptance": false,
+      "frontendQueueWaitMs": 0,
+      "payloadValueFingerprint": "83dfd01e3100626c76ca40bf2300ff78e80cbea7e86624b1f6df87ba3b60ce51"
+    },
+    {
+      "client": 2,
+      "requestId": "render_12",
+      "nativeInstanceId": null,
+      "pluginId": "milkup.math",
+      "nativeKeys": [],
+      "phases": [
+        "queued",
+        "dispatch",
+        "remote-settled"
+      ],
+      "closure": "remote-settled",
+      "queuedCancelledWithoutNativeAcceptance": false,
+      "frontendQueueWaitMs": 0,
+      "payloadValueFingerprint": "795119ad46eba0af67e470b07250d4e60928e303ec36ac160d21194ea0da73d9"
+    },
+    {
+      "client": 4,
+      "requestId": "render_8",
+      "nativeInstanceId": "9188ef94fcf904278cc47177a7898740b758ee7cad0c4fc1",
+      "pluginId": "milkup.diagrams",
+      "nativeKeys": [
+        [
+          508377,
+          10579541,
+          "9188ef94fcf904278cc47177a7898740b758ee7cad0c4fc1",
+          "render_8"
+        ]
+      ],
+      "phases": [
+        "queued",
+        "dispatch",
+        "remote-settled"
+      ],
+      "closure": "remote-settled",
+      "queuedCancelledWithoutNativeAcceptance": false,
+      "frontendQueueWaitMs": 169.00000000000364,
+      "payloadValueFingerprint": "5ba05b2acb7c2027542660109cd9923023faeea2b2ed26db300f038545bed1b7"
+    },
+    {
+      "client": 1,
+      "requestId": "render_13",
+      "nativeInstanceId": null,
+      "pluginId": "milkup.footnotes",
+      "nativeKeys": [],
+      "phases": [
+        "queued",
+        "dispatch",
+        "remote-settled"
+      ],
+      "closure": "remote-settled",
+      "queuedCancelledWithoutNativeAcceptance": false,
+      "frontendQueueWaitMs": 0.0,
+      "payloadValueFingerprint": "173fefb3cebda5367a137bb40c7d0374307393474dcba30fbacbe95a83503e7e"
+    },
+    {
+      "client": 2,
+      "requestId": "render_13",
+      "nativeInstanceId": null,
+      "pluginId": "milkup.math",
+      "nativeKeys": [],
+      "phases": [
+        "queued",
+        "dispatch",
+        "remote-settled"
+      ],
+      "closure": "remote-settled",
+      "queuedCancelledWithoutNativeAcceptance": false,
+      "frontendQueueWaitMs": 0,
+      "payloadValueFingerprint": "8d36672140135fb6c4cfb89fc5c45d0fdd9117876cc27d4cc6adb2351580da7f"
+    },
+    {
+      "client": 4,
+      "requestId": "render_9",
+      "nativeInstanceId": "9188ef94fcf904278cc47177a7898740b758ee7cad0c4fc1",
+      "pluginId": "milkup.diagrams",
+      "nativeKeys": [
+        [
+          508377,
+          10579541,
+          "9188ef94fcf904278cc47177a7898740b758ee7cad0c4fc1",
+          "render_9"
+        ]
+      ],
+      "phases": [
+        "queued",
+        "dispatch",
+        "remote-settled"
+      ],
+      "closure": "remote-settled",
+      "queuedCancelledWithoutNativeAcceptance": false,
+      "frontendQueueWaitMs": 0,
+      "payloadValueFingerprint": "5ba05b2acb7c2027542660109cd9923023faeea2b2ed26db300f038545bed1b7"
+    },
+    {
+      "client": 1,
+      "requestId": "render_14",
+      "nativeInstanceId": null,
+      "pluginId": "milkup.footnotes",
+      "nativeKeys": [],
+      "phases": [
+        "queued",
+        "dispatch",
+        "remote-settled"
+      ],
+      "closure": "remote-settled",
+      "queuedCancelledWithoutNativeAcceptance": false,
+      "frontendQueueWaitMs": 0,
+      "payloadValueFingerprint": "173fefb3cebda5367a137bb40c7d0374307393474dcba30fbacbe95a83503e7e"
+    },
+    {
+      "client": 2,
+      "requestId": "render_14",
+      "nativeInstanceId": null,
+      "pluginId": "milkup.math",
+      "nativeKeys": [],
+      "phases": [
+        "queued",
+        "dispatch",
+        "remote-settled"
+      ],
+      "closure": "remote-settled",
+      "queuedCancelledWithoutNativeAcceptance": false,
+      "frontendQueueWaitMs": 0,
+      "payloadValueFingerprint": "8d36672140135fb6c4cfb89fc5c45d0fdd9117876cc27d4cc6adb2351580da7f"
+    },
+    {
+      "client": 4,
+      "requestId": "render_10",
+      "nativeInstanceId": "9188ef94fcf904278cc47177a7898740b758ee7cad0c4fc1",
+      "pluginId": "milkup.diagrams",
+      "nativeKeys": [
+        [
+          508377,
+          10579541,
+          "9188ef94fcf904278cc47177a7898740b758ee7cad0c4fc1",
+          "render_10"
+        ]
+      ],
+      "phases": [
+        "queued",
+        "dispatch",
+        "cancel-active",
+        "remote-settled"
+      ],
+      "closure": "remote-settled",
+      "queuedCancelledWithoutNativeAcceptance": false,
+      "frontendQueueWaitMs": 0,
+      "payloadValueFingerprint": "5ba05b2acb7c2027542660109cd9923023faeea2b2ed26db300f038545bed1b7"
+    },
+    {
+      "client": 1,
+      "requestId": "render_15",
+      "nativeInstanceId": null,
+      "pluginId": "milkup.footnotes",
+      "nativeKeys": [],
+      "phases": [
+        "queued",
+        "dispatch",
+        "remote-settled"
+      ],
+      "closure": "remote-settled",
+      "queuedCancelledWithoutNativeAcceptance": false,
+      "frontendQueueWaitMs": 0,
+      "payloadValueFingerprint": "0ad996573aeb8865ba8c7faa947f08e46789b574dfd4140cfb0110c244204991"
+    },
+    {
+      "client": 2,
+      "requestId": "render_15",
+      "nativeInstanceId": null,
+      "pluginId": "milkup.math",
+      "nativeKeys": [],
+      "phases": [
+        "queued",
+        "dispatch",
+        "remote-settled"
+      ],
+      "closure": "remote-settled",
+      "queuedCancelledWithoutNativeAcceptance": false,
+      "frontendQueueWaitMs": 0,
+      "payloadValueFingerprint": "cbf889831f8dc2957c40f938b6ce3b3ae839e2fbda2a18add7d44e6660d4c8ba"
+    },
+    {
+      "client": 4,
+      "requestId": "render_11",
+      "nativeInstanceId": "9188ef94fcf904278cc47177a7898740b758ee7cad0c4fc1",
+      "pluginId": "milkup.diagrams",
+      "nativeKeys": [
+        [
+          508377,
+          10579541,
+          "9188ef94fcf904278cc47177a7898740b758ee7cad0c4fc1",
+          "render_11"
+        ]
+      ],
+      "phases": [
+        "queued",
+        "dispatch",
+        "cancel-active",
+        "remote-settled"
+      ],
+      "closure": "remote-settled",
+      "queuedCancelledWithoutNativeAcceptance": false,
+      "frontendQueueWaitMs": 81,
+      "payloadValueFingerprint": "ff351c37c46668e069728ccfff012f1b630f733e960eae527d725732ae757cb4"
+    },
+    {
+      "client": 1,
+      "requestId": "render_16",
+      "nativeInstanceId": null,
+      "pluginId": "milkup.footnotes",
+      "nativeKeys": [],
+      "phases": [
+        "queued",
+        "dispatch",
+        "cancel-active",
+        "remote-settled"
+      ],
+      "closure": "remote-settled",
+      "queuedCancelledWithoutNativeAcceptance": false,
+      "frontendQueueWaitMs": 0,
+      "payloadValueFingerprint": "48e580e2b7aa3a5e129aab39f23756aa0b6242bf09fabb4ff989e290cf751f52"
+    },
+    {
+      "client": 2,
+      "requestId": "render_16",
+      "nativeInstanceId": null,
+      "pluginId": "milkup.math",
+      "nativeKeys": [],
+      "phases": [
+        "queued",
+        "dispatch",
+        "cancel-active",
+        "remote-settled"
+      ],
+      "closure": "remote-settled",
+      "queuedCancelledWithoutNativeAcceptance": false,
+      "frontendQueueWaitMs": 0,
+      "payloadValueFingerprint": "071f5688d2e3334fe4f96981f48d78a8ee83ece8fd0ba46379ce622b01c21166"
+    },
+    {
+      "client": 1,
+      "requestId": "render_17",
+      "nativeInstanceId": null,
+      "pluginId": "milkup.footnotes",
+      "nativeKeys": [],
+      "phases": [
+        "queued",
+        "dispatch",
+        "remote-settled"
+      ],
+      "closure": "remote-settled",
+      "queuedCancelledWithoutNativeAcceptance": false,
+      "frontendQueueWaitMs": 39,
+      "payloadValueFingerprint": "48e580e2b7aa3a5e129aab39f23756aa0b6242bf09fabb4ff989e290cf751f52"
+    },
+    {
+      "client": 2,
+      "requestId": "render_17",
+      "nativeInstanceId": null,
+      "pluginId": "milkup.math",
+      "nativeKeys": [],
+      "phases": [
+        "queued",
+        "dispatch",
+        "remote-settled"
+      ],
+      "closure": "remote-settled",
+      "queuedCancelledWithoutNativeAcceptance": false,
+      "frontendQueueWaitMs": 42,
+      "payloadValueFingerprint": "071f5688d2e3334fe4f96981f48d78a8ee83ece8fd0ba46379ce622b01c21166"
+    },
+    {
+      "client": 4,
+      "requestId": "render_12",
+      "nativeInstanceId": "9188ef94fcf904278cc47177a7898740b758ee7cad0c4fc1",
+      "pluginId": "milkup.diagrams",
+      "nativeKeys": [
+        [
+          508377,
+          10579541,
+          "9188ef94fcf904278cc47177a7898740b758ee7cad0c4fc1",
+          "render_12"
+        ]
+      ],
+      "phases": [
+        "queued",
+        "dispatch",
+        "remote-settled"
+      ],
+      "closure": "remote-settled",
+      "queuedCancelledWithoutNativeAcceptance": false,
+      "frontendQueueWaitMs": 0,
+      "payloadValueFingerprint": "ead1511c9663a3927515c3ef942674ac07e69038c6ad30c47129b1558b71fffe"
+    },
+    {
+      "client": 1,
+      "requestId": "render_18",
+      "nativeInstanceId": null,
+      "pluginId": "milkup.footnotes",
+      "nativeKeys": [],
+      "phases": [
+        "queued",
+        "dispatch",
+        "remote-settled"
+      ],
+      "closure": "remote-settled",
+      "queuedCancelledWithoutNativeAcceptance": false,
+      "frontendQueueWaitMs": 0.0,
+      "payloadValueFingerprint": "e3c09329f2e6a4120dc354235842523c104e9017689dc056b306464981b84333"
+    },
+    {
+      "client": 2,
+      "requestId": "render_18",
+      "nativeInstanceId": null,
+      "pluginId": "milkup.math",
+      "nativeKeys": [],
+      "phases": [
+        "queued",
+        "dispatch",
+        "remote-settled"
+      ],
+      "closure": "remote-settled",
+      "queuedCancelledWithoutNativeAcceptance": false,
+      "frontendQueueWaitMs": 0.0,
+      "payloadValueFingerprint": "84eb33d3ac76c42f13288febdd97938f317020aad5dda69a65868394b22782cf"
+    },
+    {
+      "client": 4,
+      "requestId": "render_13",
+      "nativeInstanceId": "9188ef94fcf904278cc47177a7898740b758ee7cad0c4fc1",
+      "pluginId": "milkup.diagrams",
+      "nativeKeys": [
+        [
+          508377,
+          10579541,
+          "9188ef94fcf904278cc47177a7898740b758ee7cad0c4fc1",
+          "render_13"
+        ]
+      ],
+      "phases": [
+        "queued",
+        "dispatch",
+        "cancel-active",
+        "remote-settled"
+      ],
+      "closure": "remote-settled",
+      "queuedCancelledWithoutNativeAcceptance": false,
+      "frontendQueueWaitMs": 1,
+      "payloadValueFingerprint": "6750718bd47ec4e2bdd8ad63f70a4dbfb8d0ea62366dd6b11ee36ef5d44d8a19"
+    },
+    {
+      "client": 1,
+      "requestId": "render_19",
+      "nativeInstanceId": null,
+      "pluginId": "milkup.footnotes",
+      "nativeKeys": [],
+      "phases": [
+        "queued",
+        "dispatch",
+        "remote-settled"
+      ],
+      "closure": "remote-settled",
+      "queuedCancelledWithoutNativeAcceptance": false,
+      "frontendQueueWaitMs": 0,
+      "payloadValueFingerprint": "56cee67c44902cd4fed8af738d50ed045bdcc5a24a13f67b6830994dd9e5f3f7"
+    },
+    {
+      "client": 2,
+      "requestId": "render_19",
+      "nativeInstanceId": null,
+      "pluginId": "milkup.math",
+      "nativeKeys": [],
+      "phases": [
+        "queued",
+        "dispatch",
+        "remote-settled"
+      ],
+      "closure": "remote-settled",
+      "queuedCancelledWithoutNativeAcceptance": false,
+      "frontendQueueWaitMs": 0.0,
+      "payloadValueFingerprint": "f0ab15d9a8ff13857fd6d53fa3d04260aab8b419d429289cbf42d82db4492a16"
+    },
+    {
+      "client": 4,
+      "requestId": "render_14",
+      "nativeInstanceId": "9188ef94fcf904278cc47177a7898740b758ee7cad0c4fc1",
+      "pluginId": "milkup.diagrams",
+      "nativeKeys": [
+        [
+          508377,
+          10579541,
+          "9188ef94fcf904278cc47177a7898740b758ee7cad0c4fc1",
+          "render_14"
+        ]
+      ],
+      "phases": [
+        "queued",
+        "dispatch",
+        "cancel-active",
+        "remote-settled"
+      ],
+      "closure": "remote-settled",
+      "queuedCancelledWithoutNativeAcceptance": false,
+      "frontendQueueWaitMs": 0,
+      "payloadValueFingerprint": "bdb95fef20bca246490f6441ad36414bf1097acf518fa93d3690bff105ffba43"
+    },
+    {
+      "client": 1,
+      "requestId": "render_20",
+      "nativeInstanceId": null,
+      "pluginId": "milkup.footnotes",
+      "nativeKeys": [],
+      "phases": [
+        "queued",
+        "dispatch",
+        "remote-settled"
+      ],
+      "closure": "remote-settled",
+      "queuedCancelledWithoutNativeAcceptance": false,
+      "frontendQueueWaitMs": 1,
+      "payloadValueFingerprint": "56cee67c44902cd4fed8af738d50ed045bdcc5a24a13f67b6830994dd9e5f3f7"
+    },
+    {
+      "client": 2,
+      "requestId": "render_20",
+      "nativeInstanceId": null,
+      "pluginId": "milkup.math",
+      "nativeKeys": [],
+      "phases": [
+        "queued",
+        "dispatch",
+        "remote-settled"
+      ],
+      "closure": "remote-settled",
+      "queuedCancelledWithoutNativeAcceptance": false,
+      "frontendQueueWaitMs": 0,
+      "payloadValueFingerprint": "f0ab15d9a8ff13857fd6d53fa3d04260aab8b419d429289cbf42d82db4492a16"
+    },
+    {
+      "client": 4,
+      "requestId": "render_15",
+      "nativeInstanceId": "9188ef94fcf904278cc47177a7898740b758ee7cad0c4fc1",
+      "pluginId": "milkup.diagrams",
+      "nativeKeys": [
+        [
+          508377,
+          10579541,
+          "9188ef94fcf904278cc47177a7898740b758ee7cad0c4fc1",
+          "render_15"
+        ]
+      ],
+      "phases": [
+        "queued",
+        "dispatch",
+        "remote-settled"
+      ],
+      "closure": "remote-settled",
+      "queuedCancelledWithoutNativeAcceptance": false,
+      "frontendQueueWaitMs": 215,
+      "payloadValueFingerprint": "bdb95fef20bca246490f6441ad36414bf1097acf518fa93d3690bff105ffba43"
+    },
+    {
+      "client": 1,
+      "requestId": "render_21",
+      "nativeInstanceId": null,
+      "pluginId": "milkup.footnotes",
+      "nativeKeys": [],
+      "phases": [
+        "queued",
+        "dispatch",
+        "remote-settled"
+      ],
+      "closure": "remote-settled",
+      "queuedCancelledWithoutNativeAcceptance": false,
+      "frontendQueueWaitMs": 0,
+      "payloadValueFingerprint": "906ab134d7205a578320c5ab3a18f9fc213447eb869c447b325aa5f692a20bbe"
+    },
+    {
+      "client": 2,
+      "requestId": "render_21",
+      "nativeInstanceId": null,
+      "pluginId": "milkup.math",
+      "nativeKeys": [],
+      "phases": [
+        "queued",
+        "dispatch",
+        "remote-settled"
+      ],
+      "closure": "remote-settled",
+      "queuedCancelledWithoutNativeAcceptance": false,
+      "frontendQueueWaitMs": 0,
+      "payloadValueFingerprint": "0a73ab35453fab7ba8d824f60bfe459812639fdbb179acf324e58be25ca79a12"
+    },
+    {
+      "client": 4,
+      "requestId": "render_16",
+      "nativeInstanceId": "9188ef94fcf904278cc47177a7898740b758ee7cad0c4fc1",
+      "pluginId": "milkup.diagrams",
+      "nativeKeys": [
+        [
+          508377,
+          10579541,
+          "9188ef94fcf904278cc47177a7898740b758ee7cad0c4fc1",
+          "render_16"
+        ]
+      ],
+      "phases": [
+        "queued",
+        "dispatch",
+        "remote-settled"
+      ],
+      "closure": "remote-settled",
+      "queuedCancelledWithoutNativeAcceptance": false,
+      "frontendQueueWaitMs": 0,
+      "payloadValueFingerprint": "bdb95fef20bca246490f6441ad36414bf1097acf518fa93d3690bff105ffba43"
+    },
+    {
+      "client": 1,
+      "requestId": "render_22",
+      "nativeInstanceId": null,
+      "pluginId": "milkup.footnotes",
+      "nativeKeys": [],
+      "phases": [
+        "queued",
+        "dispatch",
+        "remote-settled"
+      ],
+      "closure": "remote-settled",
+      "queuedCancelledWithoutNativeAcceptance": false,
+      "frontendQueueWaitMs": 0,
+      "payloadValueFingerprint": "a5f5cc1c4eea5e6bde2a6c7c56fccd036627f523ba55b75a4f4ff58c0c4b90e2"
+    },
+    {
+      "client": 2,
+      "requestId": "render_22",
+      "nativeInstanceId": null,
+      "pluginId": "milkup.math",
+      "nativeKeys": [],
+      "phases": [
+        "queued",
+        "dispatch",
+        "remote-settled"
+      ],
+      "closure": "remote-settled",
+      "queuedCancelledWithoutNativeAcceptance": false,
+      "frontendQueueWaitMs": 0,
+      "payloadValueFingerprint": "d42deed0de16ddd90137a2afcbea41af76e6d8a853823b2425ab6a69dc2e4433"
+    },
+    {
+      "client": 4,
+      "requestId": "render_17",
+      "nativeInstanceId": "9188ef94fcf904278cc47177a7898740b758ee7cad0c4fc1",
+      "pluginId": "milkup.diagrams",
+      "nativeKeys": [
+        [
+          508377,
+          10579541,
+          "9188ef94fcf904278cc47177a7898740b758ee7cad0c4fc1",
+          "render_17"
+        ]
+      ],
+      "phases": [
+        "queued",
+        "dispatch",
+        "cancel-active",
+        "remote-settled"
+      ],
+      "closure": "remote-settled",
+      "queuedCancelledWithoutNativeAcceptance": false,
+      "frontendQueueWaitMs": 0.0,
+      "payloadValueFingerprint": "bdb95fef20bca246490f6441ad36414bf1097acf518fa93d3690bff105ffba43"
+    },
+    {
+      "client": 1,
+      "requestId": "render_23",
+      "nativeInstanceId": null,
+      "pluginId": "milkup.footnotes",
+      "nativeKeys": [],
+      "phases": [
+        "queued",
+        "dispatch",
+        "remote-settled"
+      ],
+      "closure": "remote-settled",
+      "queuedCancelledWithoutNativeAcceptance": false,
+      "frontendQueueWaitMs": 0.0,
+      "payloadValueFingerprint": "a5f5cc1c4eea5e6bde2a6c7c56fccd036627f523ba55b75a4f4ff58c0c4b90e2"
+    },
+    {
+      "client": 2,
+      "requestId": "render_23",
+      "nativeInstanceId": null,
+      "pluginId": "milkup.math",
+      "nativeKeys": [],
+      "phases": [
+        "queued",
+        "dispatch",
+        "remote-settled"
+      ],
+      "closure": "remote-settled",
+      "queuedCancelledWithoutNativeAcceptance": false,
+      "frontendQueueWaitMs": 0.0,
+      "payloadValueFingerprint": "d42deed0de16ddd90137a2afcbea41af76e6d8a853823b2425ab6a69dc2e4433"
+    },
+    {
+      "client": 4,
+      "requestId": "render_18",
+      "nativeInstanceId": "9188ef94fcf904278cc47177a7898740b758ee7cad0c4fc1",
+      "pluginId": "milkup.diagrams",
+      "nativeKeys": [
+        [
+          508377,
+          10579541,
+          "9188ef94fcf904278cc47177a7898740b758ee7cad0c4fc1",
+          "render_18"
+        ]
+      ],
+      "phases": [
+        "queued",
+        "dispatch",
+        "remote-settled"
+      ],
+      "closure": "remote-settled",
+      "queuedCancelledWithoutNativeAcceptance": false,
+      "frontendQueueWaitMs": 0,
+      "payloadValueFingerprint": "bdb95fef20bca246490f6441ad36414bf1097acf518fa93d3690bff105ffba43"
+    },
+    {
+      "client": 1,
+      "requestId": "render_24",
+      "nativeInstanceId": null,
+      "pluginId": "milkup.footnotes",
+      "nativeKeys": [],
+      "phases": [
+        "queued",
+        "dispatch",
+        "remote-settled"
+      ],
+      "closure": "remote-settled",
+      "queuedCancelledWithoutNativeAcceptance": false,
+      "frontendQueueWaitMs": 0,
+      "payloadValueFingerprint": "fd93ba8f0dc586c45171a3e06a1116f3b66d3e0d78e4bc4b0f33d98d43347d70"
+    },
+    {
+      "client": 2,
+      "requestId": "render_24",
+      "nativeInstanceId": null,
+      "pluginId": "milkup.math",
+      "nativeKeys": [],
+      "phases": [
+        "queued",
+        "dispatch",
+        "remote-settled"
+      ],
+      "closure": "remote-settled",
+      "queuedCancelledWithoutNativeAcceptance": false,
+      "frontendQueueWaitMs": 0,
+      "payloadValueFingerprint": "373940dd81943c748c787609aea73983e4783a9660f5ee8d466a0c27beba17d9"
+    },
+    {
+      "client": 4,
+      "requestId": "render_19",
+      "nativeInstanceId": "9188ef94fcf904278cc47177a7898740b758ee7cad0c4fc1",
+      "pluginId": "milkup.diagrams",
+      "nativeKeys": [
+        [
+          508377,
+          10579541,
+          "9188ef94fcf904278cc47177a7898740b758ee7cad0c4fc1",
+          "render_19"
+        ]
+      ],
+      "phases": [
+        "queued",
+        "dispatch",
+        "remote-settled"
+      ],
+      "closure": "remote-settled",
+      "queuedCancelledWithoutNativeAcceptance": false,
+      "frontendQueueWaitMs": 0,
+      "payloadValueFingerprint": "bdb95fef20bca246490f6441ad36414bf1097acf518fa93d3690bff105ffba43"
+    },
+    {
+      "client": 1,
+      "requestId": "render_25",
+      "nativeInstanceId": null,
+      "pluginId": "milkup.footnotes",
+      "nativeKeys": [],
+      "phases": [
+        "queued",
+        "dispatch",
+        "remote-settled"
+      ],
+      "closure": "remote-settled",
+      "queuedCancelledWithoutNativeAcceptance": false,
+      "frontendQueueWaitMs": 1,
+      "payloadValueFingerprint": "eb087f54b8892652cb2eb66b9b43cba76dfd3f046291225f5fd4fa20fedfce14"
+    },
+    {
+      "client": 2,
+      "requestId": "render_25",
+      "nativeInstanceId": null,
+      "pluginId": "milkup.math",
+      "nativeKeys": [],
+      "phases": [
+        "queued",
+        "dispatch",
+        "remote-settled"
+      ],
+      "closure": "remote-settled",
+      "queuedCancelledWithoutNativeAcceptance": false,
+      "frontendQueueWaitMs": 0,
+      "payloadValueFingerprint": "0bbe4077c6b76927d853b5dc4e24189aa5c1c21a7f02aa16fead427cd4c3bb98"
+    },
+    {
+      "client": 1,
+      "requestId": "render_26",
+      "nativeInstanceId": null,
+      "pluginId": "milkup.footnotes",
+      "nativeKeys": [],
+      "phases": [
+        "queued",
+        "dispatch",
+        "remote-settled"
+      ],
+      "closure": "remote-settled",
+      "queuedCancelledWithoutNativeAcceptance": false,
+      "frontendQueueWaitMs": 0,
+      "payloadValueFingerprint": "d4945c7f45cbd5ac30e2aab7b5fb46eb15799a06c3e50566dc71d9e337747fb4"
+    },
+    {
+      "client": 2,
+      "requestId": "render_26",
+      "nativeInstanceId": null,
+      "pluginId": "milkup.math",
+      "nativeKeys": [],
+      "phases": [
+        "queued",
+        "dispatch",
+        "remote-settled"
+      ],
+      "closure": "remote-settled",
+      "queuedCancelledWithoutNativeAcceptance": false,
+      "frontendQueueWaitMs": 0,
+      "payloadValueFingerprint": "56d3301abebdfc906c360e70498f0eb9f2aac92ccd8c40fa216fcbed94db1f8b"
+    },
+    {
+      "client": 4,
+      "requestId": "render_20",
+      "nativeInstanceId": "9188ef94fcf904278cc47177a7898740b758ee7cad0c4fc1",
+      "pluginId": "milkup.diagrams",
+      "nativeKeys": [
+        [
+          508377,
+          10579541,
+          "9188ef94fcf904278cc47177a7898740b758ee7cad0c4fc1",
+          "render_20"
+        ]
+      ],
+      "phases": [
+        "queued",
+        "dispatch",
+        "remote-settled"
+      ],
+      "closure": "remote-settled",
+      "queuedCancelledWithoutNativeAcceptance": false,
+      "frontendQueueWaitMs": 0.0,
+      "payloadValueFingerprint": "b38e3335eff51817f49b1b55043124fd132aa3b579501c988ca0a1a8dccec504"
+    },
+    {
+      "client": 1,
+      "requestId": "render_27",
+      "nativeInstanceId": null,
+      "pluginId": "milkup.footnotes",
+      "nativeKeys": [],
+      "phases": [
+        "queued",
+        "dispatch",
+        "remote-settled"
+      ],
+      "closure": "remote-settled",
+      "queuedCancelledWithoutNativeAcceptance": false,
+      "frontendQueueWaitMs": 1,
+      "payloadValueFingerprint": "30245bd2ca67b10158ce1a3b4a36d4e07b9821f56fb338598e3c4db54f477f19"
+    },
+    {
+      "client": 2,
+      "requestId": "render_27",
+      "nativeInstanceId": null,
+      "pluginId": "milkup.math",
+      "nativeKeys": [],
+      "phases": [
+        "queued",
+        "dispatch",
+        "remote-settled"
+      ],
+      "closure": "remote-settled",
+      "queuedCancelledWithoutNativeAcceptance": false,
+      "frontendQueueWaitMs": 1,
+      "payloadValueFingerprint": "a92d5a7ee15552f48b1142dd3fe07b47451b7e7da550e913466226f7ad6e36a2"
+    },
+    {
+      "client": 4,
+      "requestId": "render_21",
+      "nativeInstanceId": "9188ef94fcf904278cc47177a7898740b758ee7cad0c4fc1",
+      "pluginId": "milkup.diagrams",
+      "nativeKeys": [
+        [
+          508377,
+          10579541,
+          "9188ef94fcf904278cc47177a7898740b758ee7cad0c4fc1",
+          "render_21"
+        ]
+      ],
+      "phases": [
+        "queued",
+        "dispatch",
+        "remote-settled"
+      ],
+      "closure": "remote-settled",
+      "queuedCancelledWithoutNativeAcceptance": false,
+      "frontendQueueWaitMs": 0.0,
+      "payloadValueFingerprint": "b38e3335eff51817f49b1b55043124fd132aa3b579501c988ca0a1a8dccec504"
+    },
+    {
+      "client": 1,
+      "requestId": "render_28",
+      "nativeInstanceId": null,
+      "pluginId": "milkup.footnotes",
+      "nativeKeys": [],
+      "phases": [
+        "queued",
+        "dispatch",
+        "remote-settled"
+      ],
+      "closure": "remote-settled",
+      "queuedCancelledWithoutNativeAcceptance": false,
+      "frontendQueueWaitMs": 0,
+      "payloadValueFingerprint": "d4945c7f45cbd5ac30e2aab7b5fb46eb15799a06c3e50566dc71d9e337747fb4"
+    },
+    {
+      "client": 2,
+      "requestId": "render_28",
+      "nativeInstanceId": null,
+      "pluginId": "milkup.math",
+      "nativeKeys": [],
+      "phases": [
+        "queued",
+        "dispatch",
+        "remote-settled"
+      ],
+      "closure": "remote-settled",
+      "queuedCancelledWithoutNativeAcceptance": false,
+      "frontendQueueWaitMs": 0,
+      "payloadValueFingerprint": "56d3301abebdfc906c360e70498f0eb9f2aac92ccd8c40fa216fcbed94db1f8b"
+    },
+    {
+      "client": 4,
+      "requestId": "render_22",
+      "nativeInstanceId": "9188ef94fcf904278cc47177a7898740b758ee7cad0c4fc1",
+      "pluginId": "milkup.diagrams",
+      "nativeKeys": [
+        [
+          508377,
+          10579541,
+          "9188ef94fcf904278cc47177a7898740b758ee7cad0c4fc1",
+          "render_22"
+        ]
+      ],
+      "phases": [
+        "queued",
+        "dispatch",
+        "cancel-active",
+        "remote-settled"
+      ],
+      "closure": "remote-settled",
+      "queuedCancelledWithoutNativeAcceptance": false,
+      "frontendQueueWaitMs": 0,
+      "payloadValueFingerprint": "b38e3335eff51817f49b1b55043124fd132aa3b579501c988ca0a1a8dccec504"
+    },
+    {
+      "client": 1,
+      "requestId": "render_29",
+      "nativeInstanceId": null,
+      "pluginId": "milkup.footnotes",
+      "nativeKeys": [],
+      "phases": [
+        "queued",
+        "dispatch",
+        "remote-settled"
+      ],
+      "closure": "remote-settled",
+      "queuedCancelledWithoutNativeAcceptance": false,
+      "frontendQueueWaitMs": 0,
+      "payloadValueFingerprint": "073483c1a5c3fdffd62fc4a8934747593c03cb5733db96c1c60158c55a449eb0"
+    },
+    {
+      "client": 2,
+      "requestId": "render_29",
+      "nativeInstanceId": null,
+      "pluginId": "milkup.math",
+      "nativeKeys": [],
+      "phases": [
+        "queued",
+        "dispatch",
+        "remote-settled"
+      ],
+      "closure": "remote-settled",
+      "queuedCancelledWithoutNativeAcceptance": false,
+      "frontendQueueWaitMs": 0,
+      "payloadValueFingerprint": "b9b7cd7c2fe25d73c4cb2bb1ecec8258cfdce380c6a9a0d4f1c272fa8cd3d64d"
+    },
+    {
+      "client": 4,
+      "requestId": "render_23",
+      "nativeInstanceId": "9188ef94fcf904278cc47177a7898740b758ee7cad0c4fc1",
+      "pluginId": "milkup.diagrams",
+      "nativeKeys": [
+        [
+          508377,
+          10579541,
+          "9188ef94fcf904278cc47177a7898740b758ee7cad0c4fc1",
+          "render_23"
+        ]
+      ],
+      "phases": [
+        "queued",
+        "dispatch",
+        "remote-settled"
+      ],
+      "closure": "remote-settled",
+      "queuedCancelledWithoutNativeAcceptance": false,
+      "frontendQueueWaitMs": 0,
+      "payloadValueFingerprint": "b38e3335eff51817f49b1b55043124fd132aa3b579501c988ca0a1a8dccec504"
+    }
+  ],
+  "identicalCompletePayloadGroups": [
+    {
+      "fingerprint": "533d26224098d565645de74331abe0d379c5405bf06ade7c45a5d486f0bad911",
+      "count": 6,
+      "keys": [
+        [
+          508377,
+          10579541,
+          "df59918c2b99843db6dcb56cf7ad671c4e909afbe545efda",
+          "render_1"
+        ],
+        [
+          508377,
+          10579541,
+          "df59918c2b99843db6dcb56cf7ad671c4e909afbe545efda",
+          "render_3"
+        ],
+        [
+          508377,
+          10579541,
+          "9188ef94fcf904278cc47177a7898740b758ee7cad0c4fc1",
+          "render_1"
+        ],
+        [
+          508377,
+          10579541,
+          "9188ef94fcf904278cc47177a7898740b758ee7cad0c4fc1",
+          "render_3"
+        ],
+        [
+          508377,
+          10579541,
+          "9188ef94fcf904278cc47177a7898740b758ee7cad0c4fc1",
+          "render_4"
+        ],
+        [
+          508377,
+          10579541,
+          "9188ef94fcf904278cc47177a7898740b758ee7cad0c4fc1",
+          "render_6"
+        ]
+      ]
+    },
+    {
+      "fingerprint": "ba3841d8c968f057fff22db294a2507440cce89bd78b6943c4a71b6160e16a4e",
+      "count": 4,
+      "keys": [
+        [
+          508377,
+          10579541,
+          "df59918c2b99843db6dcb56cf7ad671c4e909afbe545efda",
+          "render_2"
+        ],
+        [
+          508377,
+          10579541,
+          "9188ef94fcf904278cc47177a7898740b758ee7cad0c4fc1",
+          "render_2"
+        ],
+        [
+          508377,
+          10579541,
+          "9188ef94fcf904278cc47177a7898740b758ee7cad0c4fc1",
+          "render_5"
+        ],
+        [
+          508377,
+          10579541,
+          "9188ef94fcf904278cc47177a7898740b758ee7cad0c4fc1",
+          "render_7"
+        ]
+      ]
+    },
+    {
+      "fingerprint": "5ba05b2acb7c2027542660109cd9923023faeea2b2ed26db300f038545bed1b7",
+      "count": 3,
+      "keys": [
+        [
+          508377,
+          10579541,
+          "9188ef94fcf904278cc47177a7898740b758ee7cad0c4fc1",
+          "render_8"
+        ],
+        [
+          508377,
+          10579541,
+          "9188ef94fcf904278cc47177a7898740b758ee7cad0c4fc1",
+          "render_9"
+        ],
+        [
+          508377,
+          10579541,
+          "9188ef94fcf904278cc47177a7898740b758ee7cad0c4fc1",
+          "render_10"
+        ]
+      ]
+    },
+    {
+      "fingerprint": "ff351c37c46668e069728ccfff012f1b630f733e960eae527d725732ae757cb4",
+      "count": 1,
+      "keys": [
+        [
+          508377,
+          10579541,
+          "9188ef94fcf904278cc47177a7898740b758ee7cad0c4fc1",
+          "render_11"
+        ]
+      ]
+    },
+    {
+      "fingerprint": "ead1511c9663a3927515c3ef942674ac07e69038c6ad30c47129b1558b71fffe",
+      "count": 1,
+      "keys": [
+        [
+          508377,
+          10579541,
+          "9188ef94fcf904278cc47177a7898740b758ee7cad0c4fc1",
+          "render_12"
+        ]
+      ]
+    },
+    {
+      "fingerprint": "6750718bd47ec4e2bdd8ad63f70a4dbfb8d0ea62366dd6b11ee36ef5d44d8a19",
+      "count": 1,
+      "keys": [
+        [
+          508377,
+          10579541,
+          "9188ef94fcf904278cc47177a7898740b758ee7cad0c4fc1",
+          "render_13"
+        ]
+      ]
+    },
+    {
+      "fingerprint": "bdb95fef20bca246490f6441ad36414bf1097acf518fa93d3690bff105ffba43",
+      "count": 6,
+      "keys": [
+        [
+          508377,
+          10579541,
+          "9188ef94fcf904278cc47177a7898740b758ee7cad0c4fc1",
+          "render_14"
+        ],
+        [
+          508377,
+          10579541,
+          "9188ef94fcf904278cc47177a7898740b758ee7cad0c4fc1",
+          "render_15"
+        ],
+        [
+          508377,
+          10579541,
+          "9188ef94fcf904278cc47177a7898740b758ee7cad0c4fc1",
+          "render_16"
+        ],
+        [
+          508377,
+          10579541,
+          "9188ef94fcf904278cc47177a7898740b758ee7cad0c4fc1",
+          "render_17"
+        ],
+        [
+          508377,
+          10579541,
+          "9188ef94fcf904278cc47177a7898740b758ee7cad0c4fc1",
+          "render_18"
+        ],
+        [
+          508377,
+          10579541,
+          "9188ef94fcf904278cc47177a7898740b758ee7cad0c4fc1",
+          "render_19"
+        ]
+      ]
+    },
+    {
+      "fingerprint": "b38e3335eff51817f49b1b55043124fd132aa3b579501c988ca0a1a8dccec504",
+      "count": 4,
+      "keys": [
+        [
+          508377,
+          10579541,
+          "9188ef94fcf904278cc47177a7898740b758ee7cad0c4fc1",
+          "render_20"
+        ],
+        [
+          508377,
+          10579541,
+          "9188ef94fcf904278cc47177a7898740b758ee7cad0c4fc1",
+          "render_21"
+        ],
+        [
+          508377,
+          10579541,
+          "9188ef94fcf904278cc47177a7898740b758ee7cad0c4fc1",
+          "render_22"
+        ],
+        [
+          508377,
+          10579541,
+          "9188ef94fcf904278cc47177a7898740b758ee7cad0c4fc1",
+          "render_23"
+        ]
+      ]
+    }
+  ],
+  "actualDeadlineCount": 0,
+  "nativeFailCount": 0,
+  "qualifications": [
+    "Audit completeness is not UI PASS or proof of a historical fix.",
+    "Native event times are App-local; frontend queue times stay frontend-local.",
+    "Signed frame-minus-pipe can be negative because emitting threads race; pipe publication is not a mandatory before-frame boundary.",
+    "Missing/ambiguous frame or pipe yields null spans, not inferred endpoints.",
+    "No CPU, helper internal phase or historical failure payload attribution."
+  ],
+  "manifestSha256": "d3c4a7007e0965c2a761edf3bc1706eb0d4a461a0d7e2b4b1e4b0264d8fe97cb",
+  "frozenFilesChecked": 222,
+  "productRecordsTail": [
+    "edges-windowed-live-dark-200-narrow-sankey-000-first-official-example-bottom-right",
+    "edges-windowed-live-dark-200-narrow-sankey-000-first-official-example-top-left",
+    "matrix-complete-windowed-live-dark-200-narrow",
+    "PASS"
+  ]
+}

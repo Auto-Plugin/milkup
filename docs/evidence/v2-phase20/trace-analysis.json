@@ -1,0 +1,6495 @@
+{
+  "diagnosticOnly": true,
+  "nestedIntervalsNotAdditive": true,
+  "runs": [
+    {
+      "run": "regression-trace-100m-long-live-r1",
+      "checkpoints": [
+        {
+          "startWallMs": 1791941203280.58,
+          "writeMs": 416.419,
+          "hashMs": 125.60899999999998,
+          "publishMs": 2.3910000000000764,
+          "totalMs": 548.784
+        },
+        {
+          "startWallMs": 1791941205634.59,
+          "writeMs": 507.881,
+          "hashMs": 117.09100000000001,
+          "publishMs": 2.5359999999999445,
+          "totalMs": 633.48
+        },
+        {
+          "startWallMs": 1791941208055.23,
+          "writeMs": 442.617,
+          "hashMs": 136.03099999999995,
+          "publishMs": 3.1019999999999754,
+          "totalMs": 592.677
+        },
+        {
+          "startWallMs": 1791941210519.319,
+          "writeMs": 312.897,
+          "hashMs": 174.37099999999998,
+          "publishMs": 4.343999999999994,
+          "totalMs": 499.481
+        }
+      ],
+      "worstSamples": [
+        {
+          "sample": {
+            "wall": 1791941208314,
+            "dom": 11114,
+            "temperature": "after-edit",
+            "modifiers": {
+              "alt": false,
+              "meta": false,
+              "ctrl": true
+            },
+            "direction": "end",
+            "twoFrames": 11157,
+            "recovery": "ready",
+            "frameMs": 514,
+            "domMs": 471,
+            "started": 10643,
+            "renderedLines": 5,
+            "kind": "jump",
+            "trusted": true,
+            "target": "milkup-input-proxy",
+            "cursor": 104857611,
+            "round": 3,
+            "expected": 104857611,
+            "key": "End",
+            "targetMs": 200,
+            "version": 6,
+            "externalCommandToObservedMs": 627.5796809999993,
+            "overTarget": true
+          },
+          "largestOverlappingFrontendSpans": [
+            {
+              "wall": 1791941208314,
+              "ms": 343,
+              "name": "view.readSourceLine",
+              "start": 10643,
+              "end": 10986,
+              "version": 6,
+              "overlapMs": 343
+            },
+            {
+              "wall": 1791941208315,
+              "to": 25602,
+              "ms": 342,
+              "name": "nativeSource.readLineWindow",
+              "start": 10644,
+              "from": 25602,
+              "end": 10986,
+              "version": 6,
+              "overlapMs": 342
+            },
+            {
+              "wall": 1791941208658,
+              "ms": 76,
+              "name": "view.scrollToLine",
+              "start": 10987,
+              "end": 11063,
+              "version": 6,
+              "overlapMs": 76
+            },
+            {
+              "wall": 1791941208660,
+              "ms": 74,
+              "name": "view.renderVisibleWindow",
+              "start": 10989,
+              "end": 11063,
+              "version": 6,
+              "overlapMs": 74
+            },
+            {
+              "wall": 1791941208661,
+              "ms": 59,
+              "name": "view.renderLiveLineWindow",
+              "start": 10990,
+              "end": 11049,
+              "version": 6,
+              "overlapMs": 59
+            },
+            {
+              "wall": 1791941208661,
+              "ms": 54,
+              "name": "view.parseCompleteTableWindow",
+              "start": 10990,
+              "end": 11044,
+              "version": 6,
+              "overlapMs": 54
+            },
+            {
+              "wall": 1791941208661,
+              "to": 25602,
+              "ms": 54,
+              "name": "view.parseLiveWindow",
+              "start": 10990,
+              "from": 25574,
+              "cacheHit": false,
+              "end": 11044,
+              "version": 6,
+              "overlapMs": 54
+            },
+            {
+              "wall": 1791941208662,
+              "to": 25602,
+              "ms": 48,
+              "name": "nativeSource.readLineWindow",
+              "start": 10991,
+              "from": 25574,
+              "end": 11039,
+              "version": 6,
+              "overlapMs": 48
+            },
+            {
+              "wall": 1791941208734,
+              "ms": 44.00000000000182,
+              "name": "view.renderLiveSyntaxAroundPositions",
+              "start": 11063,
+              "end": 11107.000000000002,
+              "version": 6,
+              "overlapMs": 44.00000000000182
+            },
+            {
+              "wall": 1791941208735,
+              "to": 25602,
+              "ms": 43.00000000000182,
+              "name": "view.parseLiveWindow",
+              "start": 11064,
+              "from": 25578,
+              "cacheHit": false,
+              "end": 11107.000000000002,
+              "version": 6,
+              "overlapMs": 43.00000000000182
+            },
+            {
+              "wall": 1791941208735,
+              "ms": 43.00000000000182,
+              "name": "view.renderSingleLiveLine",
+              "start": 11064,
+              "end": 11107.000000000002,
+              "version": 6,
+              "overlapMs": 43.00000000000182
+            },
+            {
+              "wall": 1791941208735,
+              "ms": 43.00000000000182,
+              "name": "view.renderRenderedLine",
+              "start": 11064,
+              "end": 11107.000000000002,
+              "version": 6,
+              "overlapMs": 43.00000000000182
+            }
+          ],
+          "nativeEventsAroundSample": [
+            {
+              "wallMs": 1791941207070.161,
+              "id": 41,
+              "thread": "ThreadId(1)",
+              "name": "apply",
+              "stage": "begin",
+              "elapsedMs": 0.002
+            },
+            {
+              "wallMs": 1791941207070.416,
+              "id": 41,
+              "thread": "ThreadId(1)",
+              "name": "apply",
+              "stage": "locked",
+              "elapsedMs": 0.256
+            },
+            {
+              "wallMs": 1791941207070.694,
+              "id": 41,
+              "thread": "ThreadId(1)",
+              "name": "apply",
+              "stage": "end",
+              "elapsedMs": 0.534
+            },
+            {
+              "wallMs": 1791941207086.406,
+              "id": 42,
+              "thread": "ThreadId(1)",
+              "name": "read-window",
+              "stage": "begin",
+              "elapsedMs": 0.001
+            },
+            {
+              "wallMs": 1791941207087.021,
+              "id": 42,
+              "thread": "ThreadId(1)",
+              "name": "read-window",
+              "stage": "locked",
+              "elapsedMs": 0.616
+            },
+            {
+              "wallMs": 1791941207087.967,
+              "id": 42,
+              "thread": "ThreadId(1)",
+              "name": "read-window",
+              "stage": "end",
+              "elapsedMs": 1.561
+            },
+            {
+              "wallMs": 1791941207289.523,
+              "id": 43,
+              "thread": "ThreadId(1)",
+              "name": "apply",
+              "stage": "begin",
+              "elapsedMs": 0.002
+            },
+            {
+              "wallMs": 1791941207290.059,
+              "id": 43,
+              "thread": "ThreadId(1)",
+              "name": "apply",
+              "stage": "locked",
+              "elapsedMs": 0.537
+            },
+            {
+              "wallMs": 1791941207290.692,
+              "id": 43,
+              "thread": "ThreadId(1)",
+              "name": "apply",
+              "stage": "end",
+              "elapsedMs": 1.17
+            },
+            {
+              "wallMs": 1791941207298.802,
+              "id": 44,
+              "thread": "ThreadId(1)",
+              "name": "read-window",
+              "stage": "begin",
+              "elapsedMs": 0.002
+            },
+            {
+              "wallMs": 1791941207299.582,
+              "id": 44,
+              "thread": "ThreadId(1)",
+              "name": "read-window",
+              "stage": "locked",
+              "elapsedMs": 0.782
+            },
+            {
+              "wallMs": 1791941207305.122,
+              "id": 44,
+              "thread": "ThreadId(1)",
+              "name": "read-window",
+              "stage": "end",
+              "elapsedMs": 6.321
+            },
+            {
+              "wallMs": 1791941208053.377,
+              "id": 45,
+              "thread": "ThreadId(9)",
+              "name": "checkpoint-registry",
+              "stage": "begin",
+              "elapsedMs": 0.001
+            },
+            {
+              "wallMs": 1791941208054.132,
+              "id": 45,
+              "thread": "ThreadId(9)",
+              "name": "checkpoint-registry",
+              "stage": "locked",
+              "elapsedMs": 0.756
+            },
+            {
+              "wallMs": 1791941208055.23,
+              "id": 46,
+              "thread": "ThreadId(9)",
+              "name": "checkpoint-store",
+              "stage": "begin",
+              "elapsedMs": 0.0
+            },
+            {
+              "wallMs": 1791941208055.876,
+              "id": 46,
+              "thread": "ThreadId(9)",
+              "name": "checkpoint-store",
+              "stage": "gate-locked",
+              "elapsedMs": 0.647
+            },
+            {
+              "wallMs": 1791941208057.935,
+              "id": 46,
+              "thread": "ThreadId(9)",
+              "name": "checkpoint-store",
+              "stage": "admitted",
+              "elapsedMs": 2.705
+            },
+            {
+              "wallMs": 1791941208061.058,
+              "id": 46,
+              "thread": "ThreadId(9)",
+              "name": "checkpoint-store",
+              "stage": "write-begin",
+              "elapsedMs": 5.829
+            },
+            {
+              "wallMs": 1791941208067.21,
+              "id": 47,
+              "thread": "ThreadId(9)",
+              "name": "checkpoint-write",
+              "stage": "begin",
+              "elapsedMs": 0.0
+            },
+            {
+              "wallMs": 1791941208318.524,
+              "id": 48,
+              "thread": "ThreadId(1)",
+              "name": "read-window",
+              "stage": "begin",
+              "elapsedMs": 0.001
+            },
+            {
+              "wallMs": 1791941208471.1,
+              "id": 47,
+              "thread": "ThreadId(9)",
+              "name": "checkpoint-write",
+              "stage": "flushed",
+              "elapsedMs": 403.892
+            },
+            {
+              "wallMs": 1791941208502.92,
+              "id": 47,
+              "thread": "ThreadId(9)",
+              "name": "checkpoint-write",
+              "stage": "end",
+              "elapsedMs": 435.712
+            },
+            {
+              "wallMs": 1791941208503.675,
+              "id": 46,
+              "thread": "ThreadId(9)",
+              "name": "checkpoint-store",
+              "stage": "write-end",
+              "elapsedMs": 448.446
+            },
+            {
+              "wallMs": 1791941208639.704,
+              "id": 46,
+              "thread": "ThreadId(9)",
+              "name": "checkpoint-store",
+              "stage": "hash-end",
+              "elapsedMs": 584.477
+            },
+            {
+              "wallMs": 1791941208642.809,
+              "id": 46,
+              "thread": "ThreadId(9)",
+              "name": "checkpoint-store",
+              "stage": "commit-end",
+              "elapsedMs": 587.579
+            },
+            {
+              "wallMs": 1791941208647.906,
+              "id": 46,
+              "thread": "ThreadId(9)",
+              "name": "checkpoint-store",
+              "stage": "end",
+              "elapsedMs": 592.677
+            },
+            {
+              "wallMs": 1791941208648.687,
+              "id": 45,
+              "thread": "ThreadId(9)",
+              "name": "checkpoint-registry",
+              "stage": "end",
+              "elapsedMs": 595.31
+            },
+            {
+              "wallMs": 1791941208648.728,
+              "id": 48,
+              "thread": "ThreadId(1)",
+              "name": "read-window",
+              "stage": "locked",
+              "elapsedMs": 330.207
+            },
+            {
+              "wallMs": 1791941208650.818,
+              "id": 48,
+              "thread": "ThreadId(1)",
+              "name": "read-window",
+              "stage": "end",
+              "elapsedMs": 332.295
+            },
+            {
+              "wallMs": 1791941208668.581,
+              "id": 49,
+              "thread": "ThreadId(1)",
+              "name": "read-window",
+              "stage": "begin",
+              "elapsedMs": 0.001
+            },
+            {
+              "wallMs": 1791941208669.312,
+              "id": 49,
+              "thread": "ThreadId(1)",
+              "name": "read-window",
+              "stage": "locked",
+              "elapsedMs": 0.731
+            },
+            {
+              "wallMs": 1791941208672.698,
+              "id": 49,
+              "thread": "ThreadId(1)",
+              "name": "read-window",
+              "stage": "end",
+              "elapsedMs": 4.117
+            },
+            {
+              "wallMs": 1791941208740.571,
+              "id": 50,
+              "thread": "ThreadId(1)",
+              "name": "read-window",
+              "stage": "begin",
+              "elapsedMs": 0.002
+            },
+            {
+              "wallMs": 1791941208741.817,
+              "id": 50,
+              "thread": "ThreadId(1)",
+              "name": "read-window",
+              "stage": "locked",
+              "elapsedMs": 1.247
+            },
+            {
+              "wallMs": 1791941208742.847,
+              "id": 50,
+              "thread": "ThreadId(1)",
+              "name": "read-window",
+              "stage": "end",
+              "elapsedMs": 2.278
+            }
+          ]
+        },
+        {
+          "sample": {
+            "version": 1,
+            "wall": 1791941202198,
+            "twoFrames": 4633,
+            "modifiers": {
+              "alt": false,
+              "meta": false,
+              "ctrl": false
+            },
+            "recovery": "idle",
+            "frameMs": 106,
+            "domMs": 9.00000000000091,
+            "started": 4527,
+            "renderedLines": 42,
+            "cursor": 1,
+            "kind": "input",
+            "trusted": true,
+            "target": "milkup-input-proxy",
+            "dom": 4536.000000000001,
+            "round": 0,
+            "expected": 1,
+            "targetMs": 200,
+            "key": "q",
+            "externalCommandToObservedMs": 187.88321499999984,
+            "overTarget": false
+          },
+          "largestOverlappingFrontendSpans": [
+            {
+              "wall": 1791941202251,
+              "to": 25,
+              "ms": 55,
+              "name": "nativeSource.readLineWindow",
+              "start": 4580,
+              "from": 1,
+              "end": 4635,
+              "version": 1,
+              "overlapMs": 53
+            },
+            {
+              "wall": 1791941202251,
+              "ms": 56,
+              "name": "view.parseCompleteTableWindow",
+              "start": 4580,
+              "end": 4636,
+              "version": 1,
+              "overlapMs": 53
+            },
+            {
+              "wall": 1791941202251,
+              "to": 25,
+              "ms": 56,
+              "name": "view.parseLiveWindow",
+              "start": 4580,
+              "from": 1,
+              "cacheHit": false,
+              "end": 4636,
+              "version": 1,
+              "overlapMs": 53
+            },
+            {
+              "wall": 1791941202251,
+              "ms": 56,
+              "name": "view.renderSingleLiveLine",
+              "start": 4580,
+              "end": 4636,
+              "version": 1,
+              "overlapMs": 53
+            },
+            {
+              "wall": 1791941202251,
+              "ms": 56,
+              "name": "view.renderRenderedLine",
+              "start": 4580,
+              "end": 4636,
+              "version": 1,
+              "overlapMs": 53
+            },
+            {
+              "wall": 1791941202232,
+              "ms": 19,
+              "name": "view.commitVisibleEdit",
+              "start": 4561,
+              "end": 4580,
+              "version": 0,
+              "overlapMs": 19
+            },
+            {
+              "wall": 1791941202232,
+              "ms": 19,
+              "name": "view.flushPendingVisibleEdit",
+              "start": 4561,
+              "end": 4580,
+              "version": 0,
+              "overlapMs": 19
+            },
+            {
+              "wall": 1791941202198,
+              "ms": 9.00000000000091,
+              "name": "view.applyTextInput",
+              "start": 4527,
+              "end": 4536.000000000001,
+              "version": 0,
+              "overlapMs": 9.00000000000091
+            },
+            {
+              "wall": 1791941202204,
+              "ms": 3.0000000000009095,
+              "name": "view.renderCursor",
+              "start": 4533,
+              "end": 4536.000000000001,
+              "version": 0,
+              "overlapMs": 3.0000000000009095
+            },
+            {
+              "wall": 1791941202200,
+              "ms": 1,
+              "name": "view.readVisibleEditRange",
+              "start": 4529,
+              "end": 4530,
+              "version": 0,
+              "overlapMs": 1
+            },
+            {
+              "wall": 1791941202204,
+              "ms": 0,
+              "name": "view.renderSelection",
+              "start": 4533,
+              "end": 4533,
+              "version": 0,
+              "overlapMs": 0
+            }
+          ],
+          "nativeEventsAroundSample": [
+            {
+              "wallMs": 1791941200805.219,
+              "id": 12,
+              "thread": "ThreadId(1)",
+              "name": "read-window",
+              "stage": "begin",
+              "elapsedMs": 0.002
+            },
+            {
+              "wallMs": 1791941200805.433,
+              "id": 12,
+              "thread": "ThreadId(1)",
+              "name": "read-window",
+              "stage": "locked",
+              "elapsedMs": 0.214
+            },
+            {
+              "wallMs": 1791941200805.763,
+              "id": 12,
+              "thread": "ThreadId(1)",
+              "name": "read-window",
+              "stage": "end",
+              "elapsedMs": 0.544
+            },
+            {
+              "wallMs": 1791941201123.983,
+              "id": 13,
+              "thread": "ThreadId(1)",
+              "name": "read-window",
+              "stage": "begin",
+              "elapsedMs": 0.002
+            },
+            {
+              "wallMs": 1791941201125.123,
+              "id": 13,
+              "thread": "ThreadId(1)",
+              "name": "read-window",
+              "stage": "locked",
+              "elapsedMs": 1.141
+            },
+            {
+              "wallMs": 1791941201126.334,
+              "id": 13,
+              "thread": "ThreadId(1)",
+              "name": "read-window",
+              "stage": "end",
+              "elapsedMs": 2.352
+            },
+            {
+              "wallMs": 1791941201398.238,
+              "id": 14,
+              "thread": "ThreadId(1)",
+              "name": "read-window",
+              "stage": "begin",
+              "elapsedMs": 0.002
+            },
+            {
+              "wallMs": 1791941201398.95,
+              "id": 14,
+              "thread": "ThreadId(1)",
+              "name": "read-window",
+              "stage": "locked",
+              "elapsedMs": 0.713
+            },
+            {
+              "wallMs": 1791941201399.763,
+              "id": 14,
+              "thread": "ThreadId(1)",
+              "name": "read-window",
+              "stage": "end",
+              "elapsedMs": 1.526
+            },
+            {
+              "wallMs": 1791941201678.132,
+              "id": 15,
+              "thread": "ThreadId(1)",
+              "name": "read-window",
+              "stage": "begin",
+              "elapsedMs": 0.002
+            },
+            {
+              "wallMs": 1791941201679.99,
+              "id": 15,
+              "thread": "ThreadId(1)",
+              "name": "read-window",
+              "stage": "locked",
+              "elapsedMs": 1.86
+            },
+            {
+              "wallMs": 1791941201681.066,
+              "id": 15,
+              "thread": "ThreadId(1)",
+              "name": "read-window",
+              "stage": "end",
+              "elapsedMs": 2.935
+            },
+            {
+              "wallMs": 1791941201921.367,
+              "id": 16,
+              "thread": "ThreadId(1)",
+              "name": "read-window",
+              "stage": "begin",
+              "elapsedMs": 0.001
+            },
+            {
+              "wallMs": 1791941201922.523,
+              "id": 16,
+              "thread": "ThreadId(1)",
+              "name": "read-window",
+              "stage": "locked",
+              "elapsedMs": 1.156
+            },
+            {
+              "wallMs": 1791941201923.576,
+              "id": 16,
+              "thread": "ThreadId(1)",
+              "name": "read-window",
+              "stage": "end",
+              "elapsedMs": 2.21
+            },
+            {
+              "wallMs": 1791941202238.415,
+              "id": 17,
+              "thread": "ThreadId(1)",
+              "name": "apply",
+              "stage": "begin",
+              "elapsedMs": 0.002
+            },
+            {
+              "wallMs": 1791941202238.673,
+              "id": 17,
+              "thread": "ThreadId(1)",
+              "name": "apply",
+              "stage": "locked",
+              "elapsedMs": 0.259
+            },
+            {
+              "wallMs": 1791941202239.073,
+              "id": 17,
+              "thread": "ThreadId(1)",
+              "name": "apply",
+              "stage": "end",
+              "elapsedMs": 0.658
+            },
+            {
+              "wallMs": 1791941202253.254,
+              "id": 18,
+              "thread": "ThreadId(1)",
+              "name": "read-window",
+              "stage": "begin",
+              "elapsedMs": 0.001
+            },
+            {
+              "wallMs": 1791941202253.513,
+              "id": 18,
+              "thread": "ThreadId(1)",
+              "name": "read-window",
+              "stage": "locked",
+              "elapsedMs": 0.259
+            },
+            {
+              "wallMs": 1791941202254.119,
+              "id": 18,
+              "thread": "ThreadId(1)",
+              "name": "read-window",
+              "stage": "end",
+              "elapsedMs": 0.866
+            }
+          ]
+        },
+        {
+          "sample": {
+            "version": 2,
+            "wall": 1791941202420,
+            "twoFrames": 4931,
+            "modifiers": {
+              "alt": false,
+              "meta": false,
+              "ctrl": false
+            },
+            "recovery": "pending",
+            "frameMs": 182,
+            "domMs": 70,
+            "started": 4749,
+            "renderedLines": 42,
+            "cursor": 0,
+            "kind": "delete",
+            "trusted": true,
+            "target": "milkup-input-proxy",
+            "dom": 4819,
+            "round": 0,
+            "expected": 0,
+            "targetMs": 200,
+            "key": "Backspace",
+            "externalCommandToObservedMs": 229.89331200000015,
+            "overTarget": false
+          },
+          "largestOverlappingFrontendSpans": [
+            {
+              "wall": 1791941202525,
+              "to": 25,
+              "ms": 91,
+              "name": "view.parseLiveWindow",
+              "start": 4854,
+              "from": 1,
+              "cacheHit": false,
+              "end": 4945,
+              "version": 2,
+              "overlapMs": 77
+            },
+            {
+              "wall": 1791941202525,
+              "ms": 94,
+              "name": "view.renderSingleLiveLine",
+              "start": 4854,
+              "end": 4948,
+              "version": 2,
+              "overlapMs": 77
+            },
+            {
+              "wall": 1791941202525,
+              "ms": 94,
+              "name": "view.renderRenderedLine",
+              "start": 4854,
+              "end": 4948,
+              "version": 2,
+              "overlapMs": 77
+            },
+            {
+              "wall": 1791941202526,
+              "to": 25,
+              "ms": 83,
+              "name": "nativeSource.readLineWindow",
+              "start": 4855,
+              "from": 1,
+              "end": 4938,
+              "version": 2,
+              "overlapMs": 76
+            },
+            {
+              "wall": 1791941202526,
+              "ms": 90,
+              "name": "view.parseCompleteTableWindow",
+              "start": 4855,
+              "end": 4945,
+              "version": 2,
+              "overlapMs": 76
+            },
+            {
+              "wall": 1791941202434,
+              "ms": 54,
+              "name": "view.renderCursor",
+              "start": 4763,
+              "end": 4817,
+              "version": 1,
+              "overlapMs": 54
+            },
+            {
+              "wall": 1791941202512,
+              "ms": 13,
+              "name": "view.flushPendingVisibleEdit",
+              "start": 4841,
+              "end": 4854,
+              "version": 1,
+              "overlapMs": 13
+            },
+            {
+              "wall": 1791941202513,
+              "ms": 11.99999999999909,
+              "name": "view.commitVisibleEdit",
+              "start": 4842.000000000001,
+              "end": 4854,
+              "version": 1,
+              "overlapMs": 11.99999999999909
+            },
+            {
+              "wall": 1791941202423,
+              "ms": 0,
+              "name": "view.readVisibleEditRange",
+              "start": 4752,
+              "end": 4752,
+              "version": 1,
+              "overlapMs": 0
+            },
+            {
+              "wall": 1791941202434,
+              "ms": 0,
+              "name": "view.renderSelection",
+              "start": 4763,
+              "end": 4763,
+              "version": 1,
+              "overlapMs": 0
+            }
+          ],
+          "nativeEventsAroundSample": [
+            {
+              "wallMs": 1791941201123.983,
+              "id": 13,
+              "thread": "ThreadId(1)",
+              "name": "read-window",
+              "stage": "begin",
+              "elapsedMs": 0.002
+            },
+            {
+              "wallMs": 1791941201125.123,
+              "id": 13,
+              "thread": "ThreadId(1)",
+              "name": "read-window",
+              "stage": "locked",
+              "elapsedMs": 1.141
+            },
+            {
+              "wallMs": 1791941201126.334,
+              "id": 13,
+              "thread": "ThreadId(1)",
+              "name": "read-window",
+              "stage": "end",
+              "elapsedMs": 2.352
+            },
+            {
+              "wallMs": 1791941201398.238,
+              "id": 14,
+              "thread": "ThreadId(1)",
+              "name": "read-window",
+              "stage": "begin",
+              "elapsedMs": 0.002
+            },
+            {
+              "wallMs": 1791941201398.95,
+              "id": 14,
+              "thread": "ThreadId(1)",
+              "name": "read-window",
+              "stage": "locked",
+              "elapsedMs": 0.713
+            },
+            {
+              "wallMs": 1791941201399.763,
+              "id": 14,
+              "thread": "ThreadId(1)",
+              "name": "read-window",
+              "stage": "end",
+              "elapsedMs": 1.526
+            },
+            {
+              "wallMs": 1791941201678.132,
+              "id": 15,
+              "thread": "ThreadId(1)",
+              "name": "read-window",
+              "stage": "begin",
+              "elapsedMs": 0.002
+            },
+            {
+              "wallMs": 1791941201679.99,
+              "id": 15,
+              "thread": "ThreadId(1)",
+              "name": "read-window",
+              "stage": "locked",
+              "elapsedMs": 1.86
+            },
+            {
+              "wallMs": 1791941201681.066,
+              "id": 15,
+              "thread": "ThreadId(1)",
+              "name": "read-window",
+              "stage": "end",
+              "elapsedMs": 2.935
+            },
+            {
+              "wallMs": 1791941201921.367,
+              "id": 16,
+              "thread": "ThreadId(1)",
+              "name": "read-window",
+              "stage": "begin",
+              "elapsedMs": 0.001
+            },
+            {
+              "wallMs": 1791941201922.523,
+              "id": 16,
+              "thread": "ThreadId(1)",
+              "name": "read-window",
+              "stage": "locked",
+              "elapsedMs": 1.156
+            },
+            {
+              "wallMs": 1791941201923.576,
+              "id": 16,
+              "thread": "ThreadId(1)",
+              "name": "read-window",
+              "stage": "end",
+              "elapsedMs": 2.21
+            },
+            {
+              "wallMs": 1791941202238.415,
+              "id": 17,
+              "thread": "ThreadId(1)",
+              "name": "apply",
+              "stage": "begin",
+              "elapsedMs": 0.002
+            },
+            {
+              "wallMs": 1791941202238.673,
+              "id": 17,
+              "thread": "ThreadId(1)",
+              "name": "apply",
+              "stage": "locked",
+              "elapsedMs": 0.259
+            },
+            {
+              "wallMs": 1791941202239.073,
+              "id": 17,
+              "thread": "ThreadId(1)",
+              "name": "apply",
+              "stage": "end",
+              "elapsedMs": 0.658
+            },
+            {
+              "wallMs": 1791941202253.254,
+              "id": 18,
+              "thread": "ThreadId(1)",
+              "name": "read-window",
+              "stage": "begin",
+              "elapsedMs": 0.001
+            },
+            {
+              "wallMs": 1791941202253.513,
+              "id": 18,
+              "thread": "ThreadId(1)",
+              "name": "read-window",
+              "stage": "locked",
+              "elapsedMs": 0.259
+            },
+            {
+              "wallMs": 1791941202254.119,
+              "id": 18,
+              "thread": "ThreadId(1)",
+              "name": "read-window",
+              "stage": "end",
+              "elapsedMs": 0.866
+            },
+            {
+              "wallMs": 1791941202516.743,
+              "id": 19,
+              "thread": "ThreadId(1)",
+              "name": "apply",
+              "stage": "begin",
+              "elapsedMs": 0.002
+            },
+            {
+              "wallMs": 1791941202518.177,
+              "id": 19,
+              "thread": "ThreadId(1)",
+              "name": "apply",
+              "stage": "locked",
+              "elapsedMs": 1.435
+            },
+            {
+              "wallMs": 1791941202519.036,
+              "id": 19,
+              "thread": "ThreadId(1)",
+              "name": "apply",
+              "stage": "end",
+              "elapsedMs": 2.295
+            },
+            {
+              "wallMs": 1791941202529.47,
+              "id": 20,
+              "thread": "ThreadId(1)",
+              "name": "read-window",
+              "stage": "begin",
+              "elapsedMs": 0.001
+            },
+            {
+              "wallMs": 1791941202530.688,
+              "id": 20,
+              "thread": "ThreadId(1)",
+              "name": "read-window",
+              "stage": "locked",
+              "elapsedMs": 1.218
+            },
+            {
+              "wallMs": 1791941202533.911,
+              "id": 20,
+              "thread": "ThreadId(1)",
+              "name": "read-window",
+              "stage": "end",
+              "elapsedMs": 4.442
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "run": "regression-trace-100m-long-live-r2",
+      "checkpoints": [
+        {
+          "startWallMs": 1791941255588.509,
+          "writeMs": 331.899,
+          "hashMs": 141.71800000000002,
+          "publishMs": 3.0889999999999986,
+          "totalMs": 485.342
+        },
+        {
+          "startWallMs": 1791941257838.233,
+          "writeMs": 343.837,
+          "hashMs": 148.03199999999998,
+          "publishMs": 3.2200000000000273,
+          "totalMs": 502.254
+        },
+        {
+          "startWallMs": 1791941260023.634,
+          "writeMs": 317.50600000000003,
+          "hashMs": 150.02100000000002,
+          "publishMs": 3.0779999999999745,
+          "totalMs": 479.784
+        },
+        {
+          "startWallMs": 1791941262272.361,
+          "writeMs": 338.42199999999997,
+          "hashMs": 200.89299999999997,
+          "publishMs": 3.5120000000000573,
+          "totalMs": 553.56
+        }
+      ],
+      "worstSamples": [
+        {
+          "sample": {
+            "wall": 1791941255831,
+            "dom": 6512,
+            "temperature": "after-edit",
+            "modifiers": {
+              "alt": false,
+              "meta": false,
+              "ctrl": true
+            },
+            "direction": "end",
+            "twoFrames": 6569,
+            "recovery": "ready",
+            "frameMs": 414,
+            "domMs": 357,
+            "started": 6155,
+            "renderedLines": 5,
+            "kind": "jump",
+            "trusted": true,
+            "target": "milkup-input-proxy",
+            "cursor": 104857611,
+            "round": 1,
+            "expected": 104857611,
+            "key": "End",
+            "targetMs": 200,
+            "version": 2,
+            "externalCommandToObservedMs": 543.9074260000007,
+            "overTarget": true
+          },
+          "largestOverlappingFrontendSpans": [
+            {
+              "wall": 1791941255831,
+              "ms": 249,
+              "name": "view.readSourceLine",
+              "start": 6155,
+              "end": 6404,
+              "version": 2,
+              "overlapMs": 249
+            },
+            {
+              "wall": 1791941255832,
+              "to": 25602,
+              "ms": 248,
+              "name": "nativeSource.readLineWindow",
+              "start": 6156,
+              "from": 25602,
+              "end": 6404,
+              "version": 2,
+              "overlapMs": 248
+            },
+            {
+              "wall": 1791941256081,
+              "ms": 55,
+              "name": "view.scrollToLine",
+              "start": 6405,
+              "end": 6460,
+              "version": 2,
+              "overlapMs": 55
+            },
+            {
+              "wall": 1791941256082,
+              "ms": 52,
+              "name": "view.renderVisibleWindow",
+              "start": 6406,
+              "end": 6458,
+              "version": 2,
+              "overlapMs": 52
+            },
+            {
+              "wall": 1791941256136,
+              "ms": 48,
+              "name": "view.parseCompleteTableWindow",
+              "start": 6460,
+              "end": 6508,
+              "version": 2,
+              "overlapMs": 48
+            },
+            {
+              "wall": 1791941256136,
+              "to": 25602,
+              "ms": 48,
+              "name": "view.parseLiveWindow",
+              "start": 6460,
+              "from": 25578,
+              "cacheHit": false,
+              "end": 6508,
+              "version": 2,
+              "overlapMs": 48
+            },
+            {
+              "wall": 1791941256136,
+              "ms": 48,
+              "name": "view.renderSingleLiveLine",
+              "start": 6460,
+              "end": 6508,
+              "version": 2,
+              "overlapMs": 48
+            },
+            {
+              "wall": 1791941256136,
+              "ms": 48,
+              "name": "view.renderRenderedLine",
+              "start": 6460,
+              "end": 6508,
+              "version": 2,
+              "overlapMs": 48
+            },
+            {
+              "wall": 1791941256136,
+              "ms": 48,
+              "name": "view.renderLiveSyntaxAroundPositions",
+              "start": 6460,
+              "end": 6508,
+              "version": 2,
+              "overlapMs": 48
+            },
+            {
+              "wall": 1791941256083,
+              "ms": 44,
+              "name": "view.renderLiveLineWindow",
+              "start": 6406,
+              "end": 6450,
+              "version": 2,
+              "overlapMs": 44
+            },
+            {
+              "wall": 1791941256136,
+              "to": 25602,
+              "ms": 44,
+              "name": "nativeSource.readLineWindow",
+              "start": 6460,
+              "from": 25578,
+              "end": 6504,
+              "version": 2,
+              "overlapMs": 44
+            },
+            {
+              "wall": 1791941256083,
+              "ms": 41,
+              "name": "view.parseCompleteTableWindow",
+              "start": 6407,
+              "end": 6448,
+              "version": 2,
+              "overlapMs": 41
+            }
+          ],
+          "nativeEventsAroundSample": [
+            {
+              "wallMs": 1791941254535.893,
+              "id": 17,
+              "thread": "ThreadId(1)",
+              "name": "apply",
+              "stage": "begin",
+              "elapsedMs": 0.002
+            },
+            {
+              "wallMs": 1791941254537.219,
+              "id": 17,
+              "thread": "ThreadId(1)",
+              "name": "apply",
+              "stage": "locked",
+              "elapsedMs": 1.326
+            },
+            {
+              "wallMs": 1791941254538.262,
+              "id": 17,
+              "thread": "ThreadId(1)",
+              "name": "apply",
+              "stage": "end",
+              "elapsedMs": 2.37
+            },
+            {
+              "wallMs": 1791941254557.77,
+              "id": 18,
+              "thread": "ThreadId(1)",
+              "name": "read-window",
+              "stage": "begin",
+              "elapsedMs": 0.001
+            },
+            {
+              "wallMs": 1791941254565.5,
+              "id": 18,
+              "thread": "ThreadId(1)",
+              "name": "read-window",
+              "stage": "locked",
+              "elapsedMs": 7.732
+            },
+            {
+              "wallMs": 1791941254569.577,
+              "id": 18,
+              "thread": "ThreadId(1)",
+              "name": "read-window",
+              "stage": "end",
+              "elapsedMs": 11.808
+            },
+            {
+              "wallMs": 1791941254813.913,
+              "id": 19,
+              "thread": "ThreadId(1)",
+              "name": "apply",
+              "stage": "begin",
+              "elapsedMs": 0.002
+            },
+            {
+              "wallMs": 1791941254818.438,
+              "id": 19,
+              "thread": "ThreadId(1)",
+              "name": "apply",
+              "stage": "locked",
+              "elapsedMs": 4.526
+            },
+            {
+              "wallMs": 1791941254820.604,
+              "id": 19,
+              "thread": "ThreadId(1)",
+              "name": "apply",
+              "stage": "end",
+              "elapsedMs": 6.693
+            },
+            {
+              "wallMs": 1791941254834.368,
+              "id": 20,
+              "thread": "ThreadId(1)",
+              "name": "read-window",
+              "stage": "begin",
+              "elapsedMs": 0.001
+            },
+            {
+              "wallMs": 1791941254842.183,
+              "id": 20,
+              "thread": "ThreadId(1)",
+              "name": "read-window",
+              "stage": "locked",
+              "elapsedMs": 7.815
+            },
+            {
+              "wallMs": 1791941254848.346,
+              "id": 20,
+              "thread": "ThreadId(1)",
+              "name": "read-window",
+              "stage": "end",
+              "elapsedMs": 13.978
+            },
+            {
+              "wallMs": 1791941255585.54,
+              "id": 21,
+              "thread": "ThreadId(8)",
+              "name": "checkpoint-registry",
+              "stage": "begin",
+              "elapsedMs": 0.002
+            },
+            {
+              "wallMs": 1791941255586.465,
+              "id": 21,
+              "thread": "ThreadId(8)",
+              "name": "checkpoint-registry",
+              "stage": "locked",
+              "elapsedMs": 0.926
+            },
+            {
+              "wallMs": 1791941255588.509,
+              "id": 22,
+              "thread": "ThreadId(8)",
+              "name": "checkpoint-store",
+              "stage": "begin",
+              "elapsedMs": 0.001
+            },
+            {
+              "wallMs": 1791941255590.075,
+              "id": 22,
+              "thread": "ThreadId(8)",
+              "name": "checkpoint-store",
+              "stage": "gate-locked",
+              "elapsedMs": 1.566
+            },
+            {
+              "wallMs": 1791941255591.958,
+              "id": 22,
+              "thread": "ThreadId(8)",
+              "name": "checkpoint-store",
+              "stage": "admitted",
+              "elapsedMs": 3.449
+            },
+            {
+              "wallMs": 1791941255596.442,
+              "id": 22,
+              "thread": "ThreadId(8)",
+              "name": "checkpoint-store",
+              "stage": "write-begin",
+              "elapsedMs": 7.933
+            },
+            {
+              "wallMs": 1791941255600.06,
+              "id": 23,
+              "thread": "ThreadId(8)",
+              "name": "checkpoint-write",
+              "stage": "begin",
+              "elapsedMs": 0.0
+            },
+            {
+              "wallMs": 1791941255844.822,
+              "id": 24,
+              "thread": "ThreadId(1)",
+              "name": "read-window",
+              "stage": "begin",
+              "elapsedMs": 0.002
+            },
+            {
+              "wallMs": 1791941255897.625,
+              "id": 23,
+              "thread": "ThreadId(8)",
+              "name": "checkpoint-write",
+              "stage": "flushed",
+              "elapsedMs": 297.566
+            },
+            {
+              "wallMs": 1791941255927.826,
+              "id": 23,
+              "thread": "ThreadId(8)",
+              "name": "checkpoint-write",
+              "stage": "end",
+              "elapsedMs": 327.768
+            },
+            {
+              "wallMs": 1791941255928.341,
+              "id": 22,
+              "thread": "ThreadId(8)",
+              "name": "checkpoint-store",
+              "stage": "write-end",
+              "elapsedMs": 339.832
+            },
+            {
+              "wallMs": 1791941256070.057,
+              "id": 22,
+              "thread": "ThreadId(8)",
+              "name": "checkpoint-store",
+              "stage": "hash-end",
+              "elapsedMs": 481.55
+            },
+            {
+              "wallMs": 1791941256073.147,
+              "id": 22,
+              "thread": "ThreadId(8)",
+              "name": "checkpoint-store",
+              "stage": "commit-end",
+              "elapsedMs": 484.639
+            },
+            {
+              "wallMs": 1791941256073.851,
+              "id": 22,
+              "thread": "ThreadId(8)",
+              "name": "checkpoint-store",
+              "stage": "end",
+              "elapsedMs": 485.342
+            },
+            {
+              "wallMs": 1791941256074.575,
+              "id": 21,
+              "thread": "ThreadId(8)",
+              "name": "checkpoint-registry",
+              "stage": "end",
+              "elapsedMs": 489.035
+            },
+            {
+              "wallMs": 1791941256074.595,
+              "id": 24,
+              "thread": "ThreadId(1)",
+              "name": "read-window",
+              "stage": "locked",
+              "elapsedMs": 229.782
+            },
+            {
+              "wallMs": 1791941256076.375,
+              "id": 24,
+              "thread": "ThreadId(1)",
+              "name": "read-window",
+              "stage": "end",
+              "elapsedMs": 231.554
+            },
+            {
+              "wallMs": 1791941256091.832,
+              "id": 25,
+              "thread": "ThreadId(1)",
+              "name": "read-window",
+              "stage": "begin",
+              "elapsedMs": 0.002
+            },
+            {
+              "wallMs": 1791941256092.031,
+              "id": 25,
+              "thread": "ThreadId(1)",
+              "name": "read-window",
+              "stage": "locked",
+              "elapsedMs": 0.2
+            },
+            {
+              "wallMs": 1791941256092.576,
+              "id": 25,
+              "thread": "ThreadId(1)",
+              "name": "read-window",
+              "stage": "end",
+              "elapsedMs": 0.745
+            },
+            {
+              "wallMs": 1791941256139.217,
+              "id": 26,
+              "thread": "ThreadId(1)",
+              "name": "read-window",
+              "stage": "begin",
+              "elapsedMs": 0.002
+            },
+            {
+              "wallMs": 1791941256141.421,
+              "id": 26,
+              "thread": "ThreadId(1)",
+              "name": "read-window",
+              "stage": "locked",
+              "elapsedMs": 2.205
+            },
+            {
+              "wallMs": 1791941256144.649,
+              "id": 26,
+              "thread": "ThreadId(1)",
+              "name": "read-window",
+              "stage": "end",
+              "elapsedMs": 5.433
+            }
+          ]
+        },
+        {
+          "sample": {
+            "version": 1,
+            "wall": 1791941254424,
+            "twoFrames": 4976,
+            "modifiers": {
+              "alt": false,
+              "meta": false,
+              "ctrl": false
+            },
+            "recovery": "idle",
+            "frameMs": 229,
+            "domMs": 81,
+            "started": 4747,
+            "renderedLines": 42,
+            "cursor": 1,
+            "kind": "input",
+            "trusted": true,
+            "target": "milkup-input-proxy",
+            "dom": 4828,
+            "round": 0,
+            "expected": 1,
+            "targetMs": 200,
+            "key": "q",
+            "externalCommandToObservedMs": 278.7283690000004,
+            "overTarget": true
+          },
+          "largestOverlappingFrontendSpans": [
+            {
+              "wall": 1791941254550,
+              "to": 25,
+              "ms": 119,
+              "name": "view.parseLiveWindow",
+              "start": 4873,
+              "from": 1,
+              "cacheHit": false,
+              "end": 4992,
+              "version": 1,
+              "overlapMs": 103
+            },
+            {
+              "wall": 1791941254550,
+              "ms": 121,
+              "name": "view.renderSingleLiveLine",
+              "start": 4873,
+              "end": 4994,
+              "version": 1,
+              "overlapMs": 103
+            },
+            {
+              "wall": 1791941254549,
+              "ms": 121,
+              "name": "view.renderRenderedLine",
+              "start": 4873,
+              "end": 4994,
+              "version": 1,
+              "overlapMs": 103
+            },
+            {
+              "wall": 1791941254550,
+              "to": 25,
+              "ms": 113,
+              "name": "nativeSource.readLineWindow",
+              "start": 4874,
+              "from": 1,
+              "end": 4987,
+              "version": 1,
+              "overlapMs": 102
+            },
+            {
+              "wall": 1791941254550,
+              "ms": 118,
+              "name": "view.parseCompleteTableWindow",
+              "start": 4874,
+              "end": 4992,
+              "version": 1,
+              "overlapMs": 102
+            },
+            {
+              "wall": 1791941254425,
+              "ms": 80,
+              "name": "view.applyTextInput",
+              "start": 4749,
+              "end": 4829,
+              "version": 0,
+              "overlapMs": 80
+            },
+            {
+              "wall": 1791941254436,
+              "ms": 68,
+              "name": "view.renderCursor",
+              "start": 4760,
+              "end": 4828,
+              "version": 0,
+              "overlapMs": 68
+            },
+            {
+              "wall": 1791941254529,
+              "ms": 21,
+              "name": "view.flushPendingVisibleEdit",
+              "start": 4852,
+              "end": 4873,
+              "version": 0,
+              "overlapMs": 21
+            },
+            {
+              "wall": 1791941254529,
+              "ms": 20,
+              "name": "view.commitVisibleEdit",
+              "start": 4853,
+              "end": 4873,
+              "version": 0,
+              "overlapMs": 20
+            },
+            {
+              "wall": 1791941254435,
+              "ms": 1,
+              "name": "view.renderSelection",
+              "start": 4759,
+              "end": 4760,
+              "version": 0,
+              "overlapMs": 1
+            },
+            {
+              "wall": 1791941254428,
+              "ms": 0,
+              "name": "view.readVisibleEditRange",
+              "start": 4752,
+              "end": 4752,
+              "version": 0,
+              "overlapMs": 0
+            }
+          ],
+          "nativeEventsAroundSample": [
+            {
+              "wallMs": 1791941253184.402,
+              "id": 13,
+              "thread": "ThreadId(1)",
+              "name": "read-window",
+              "stage": "begin",
+              "elapsedMs": 0.002
+            },
+            {
+              "wallMs": 1791941253184.934,
+              "id": 13,
+              "thread": "ThreadId(1)",
+              "name": "read-window",
+              "stage": "locked",
+              "elapsedMs": 0.532
+            },
+            {
+              "wallMs": 1791941253185.799,
+              "id": 13,
+              "thread": "ThreadId(1)",
+              "name": "read-window",
+              "stage": "end",
+              "elapsedMs": 1.398
+            },
+            {
+              "wallMs": 1791941253465.397,
+              "id": 14,
+              "thread": "ThreadId(1)",
+              "name": "read-window",
+              "stage": "begin",
+              "elapsedMs": 0.002
+            },
+            {
+              "wallMs": 1791941253466.182,
+              "id": 14,
+              "thread": "ThreadId(1)",
+              "name": "read-window",
+              "stage": "locked",
+              "elapsedMs": 0.785
+            },
+            {
+              "wallMs": 1791941253467.399,
+              "id": 14,
+              "thread": "ThreadId(1)",
+              "name": "read-window",
+              "stage": "end",
+              "elapsedMs": 2.003
+            },
+            {
+              "wallMs": 1791941253814.597,
+              "id": 15,
+              "thread": "ThreadId(1)",
+              "name": "read-window",
+              "stage": "begin",
+              "elapsedMs": 0.002
+            },
+            {
+              "wallMs": 1791941253814.81,
+              "id": 15,
+              "thread": "ThreadId(1)",
+              "name": "read-window",
+              "stage": "locked",
+              "elapsedMs": 0.214
+            },
+            {
+              "wallMs": 1791941253815.279,
+              "id": 15,
+              "thread": "ThreadId(1)",
+              "name": "read-window",
+              "stage": "end",
+              "elapsedMs": 0.682
+            },
+            {
+              "wallMs": 1791941254046.84,
+              "id": 16,
+              "thread": "ThreadId(1)",
+              "name": "read-window",
+              "stage": "begin",
+              "elapsedMs": 0.002
+            },
+            {
+              "wallMs": 1791941254049.778,
+              "id": 16,
+              "thread": "ThreadId(1)",
+              "name": "read-window",
+              "stage": "locked",
+              "elapsedMs": 2.94
+            },
+            {
+              "wallMs": 1791941254052.299,
+              "id": 16,
+              "thread": "ThreadId(1)",
+              "name": "read-window",
+              "stage": "end",
+              "elapsedMs": 5.46
+            },
+            {
+              "wallMs": 1791941254535.893,
+              "id": 17,
+              "thread": "ThreadId(1)",
+              "name": "apply",
+              "stage": "begin",
+              "elapsedMs": 0.002
+            },
+            {
+              "wallMs": 1791941254537.219,
+              "id": 17,
+              "thread": "ThreadId(1)",
+              "name": "apply",
+              "stage": "locked",
+              "elapsedMs": 1.326
+            },
+            {
+              "wallMs": 1791941254538.262,
+              "id": 17,
+              "thread": "ThreadId(1)",
+              "name": "apply",
+              "stage": "end",
+              "elapsedMs": 2.37
+            },
+            {
+              "wallMs": 1791941254557.77,
+              "id": 18,
+              "thread": "ThreadId(1)",
+              "name": "read-window",
+              "stage": "begin",
+              "elapsedMs": 0.001
+            },
+            {
+              "wallMs": 1791941254565.5,
+              "id": 18,
+              "thread": "ThreadId(1)",
+              "name": "read-window",
+              "stage": "locked",
+              "elapsedMs": 7.732
+            },
+            {
+              "wallMs": 1791941254569.577,
+              "id": 18,
+              "thread": "ThreadId(1)",
+              "name": "read-window",
+              "stage": "end",
+              "elapsedMs": 11.808
+            }
+          ]
+        },
+        {
+          "sample": {
+            "version": 2,
+            "wall": 1791941254758,
+            "twoFrames": 5178,
+            "modifiers": {
+              "alt": false,
+              "meta": false,
+              "ctrl": false
+            },
+            "recovery": "pending",
+            "frameMs": 96,
+            "domMs": 7,
+            "started": 5082,
+            "renderedLines": 42,
+            "cursor": 0,
+            "kind": "delete",
+            "trusted": true,
+            "target": "milkup-input-proxy",
+            "dom": 5089,
+            "round": 0,
+            "expected": 0,
+            "targetMs": 200,
+            "key": "Backspace",
+            "externalCommandToObservedMs": 161.39725799999997,
+            "overTarget": false
+          },
+          "largestOverlappingFrontendSpans": [
+            {
+              "wall": 1791941254826,
+              "to": 25,
+              "ms": 67,
+              "name": "nativeSource.readLineWindow",
+              "start": 5149,
+              "from": 1,
+              "end": 5216,
+              "version": 2,
+              "overlapMs": 29
+            },
+            {
+              "wall": 1791941254826,
+              "ms": 73,
+              "name": "view.parseCompleteTableWindow",
+              "start": 5149,
+              "end": 5222,
+              "version": 2,
+              "overlapMs": 29
+            },
+            {
+              "wall": 1791941254826,
+              "to": 25,
+              "ms": 73,
+              "name": "view.parseLiveWindow",
+              "start": 5149,
+              "from": 1,
+              "cacheHit": false,
+              "end": 5222,
+              "version": 2,
+              "overlapMs": 29
+            },
+            {
+              "wall": 1791941254826,
+              "ms": 74,
+              "name": "view.renderSingleLiveLine",
+              "start": 5149,
+              "end": 5223,
+              "version": 2,
+              "overlapMs": 29
+            },
+            {
+              "wall": 1791941254826,
+              "ms": 74,
+              "name": "view.renderRenderedLine",
+              "start": 5149,
+              "end": 5223,
+              "version": 2,
+              "overlapMs": 29
+            },
+            {
+              "wall": 1791941254808,
+              "ms": 18,
+              "name": "view.flushPendingVisibleEdit",
+              "start": 5131,
+              "end": 5149,
+              "version": 1,
+              "overlapMs": 18
+            },
+            {
+              "wall": 1791941254808,
+              "ms": 17,
+              "name": "view.commitVisibleEdit",
+              "start": 5132,
+              "end": 5149,
+              "version": 1,
+              "overlapMs": 17
+            },
+            {
+              "wall": 1791941254764,
+              "ms": 2,
+              "name": "view.renderCursor",
+              "start": 5087,
+              "end": 5089,
+              "version": 1,
+              "overlapMs": 2
+            },
+            {
+              "wall": 1791941254760,
+              "ms": 0,
+              "name": "view.readVisibleEditRange",
+              "start": 5084.000000000001,
+              "end": 5084.000000000001,
+              "version": 1,
+              "overlapMs": 0.0
+            },
+            {
+              "wall": 1791941254764,
+              "ms": 0,
+              "name": "view.renderSelection",
+              "start": 5087,
+              "end": 5087,
+              "version": 1,
+              "overlapMs": 0
+            }
+          ],
+          "nativeEventsAroundSample": [
+            {
+              "wallMs": 1791941253465.397,
+              "id": 14,
+              "thread": "ThreadId(1)",
+              "name": "read-window",
+              "stage": "begin",
+              "elapsedMs": 0.002
+            },
+            {
+              "wallMs": 1791941253466.182,
+              "id": 14,
+              "thread": "ThreadId(1)",
+              "name": "read-window",
+              "stage": "locked",
+              "elapsedMs": 0.785
+            },
+            {
+              "wallMs": 1791941253467.399,
+              "id": 14,
+              "thread": "ThreadId(1)",
+              "name": "read-window",
+              "stage": "end",
+              "elapsedMs": 2.003
+            },
+            {
+              "wallMs": 1791941253814.597,
+              "id": 15,
+              "thread": "ThreadId(1)",
+              "name": "read-window",
+              "stage": "begin",
+              "elapsedMs": 0.002
+            },
+            {
+              "wallMs": 1791941253814.81,
+              "id": 15,
+              "thread": "ThreadId(1)",
+              "name": "read-window",
+              "stage": "locked",
+              "elapsedMs": 0.214
+            },
+            {
+              "wallMs": 1791941253815.279,
+              "id": 15,
+              "thread": "ThreadId(1)",
+              "name": "read-window",
+              "stage": "end",
+              "elapsedMs": 0.682
+            },
+            {
+              "wallMs": 1791941254046.84,
+              "id": 16,
+              "thread": "ThreadId(1)",
+              "name": "read-window",
+              "stage": "begin",
+              "elapsedMs": 0.002
+            },
+            {
+              "wallMs": 1791941254049.778,
+              "id": 16,
+              "thread": "ThreadId(1)",
+              "name": "read-window",
+              "stage": "locked",
+              "elapsedMs": 2.94
+            },
+            {
+              "wallMs": 1791941254052.299,
+              "id": 16,
+              "thread": "ThreadId(1)",
+              "name": "read-window",
+              "stage": "end",
+              "elapsedMs": 5.46
+            },
+            {
+              "wallMs": 1791941254535.893,
+              "id": 17,
+              "thread": "ThreadId(1)",
+              "name": "apply",
+              "stage": "begin",
+              "elapsedMs": 0.002
+            },
+            {
+              "wallMs": 1791941254537.219,
+              "id": 17,
+              "thread": "ThreadId(1)",
+              "name": "apply",
+              "stage": "locked",
+              "elapsedMs": 1.326
+            },
+            {
+              "wallMs": 1791941254538.262,
+              "id": 17,
+              "thread": "ThreadId(1)",
+              "name": "apply",
+              "stage": "end",
+              "elapsedMs": 2.37
+            },
+            {
+              "wallMs": 1791941254557.77,
+              "id": 18,
+              "thread": "ThreadId(1)",
+              "name": "read-window",
+              "stage": "begin",
+              "elapsedMs": 0.001
+            },
+            {
+              "wallMs": 1791941254565.5,
+              "id": 18,
+              "thread": "ThreadId(1)",
+              "name": "read-window",
+              "stage": "locked",
+              "elapsedMs": 7.732
+            },
+            {
+              "wallMs": 1791941254569.577,
+              "id": 18,
+              "thread": "ThreadId(1)",
+              "name": "read-window",
+              "stage": "end",
+              "elapsedMs": 11.808
+            },
+            {
+              "wallMs": 1791941254813.913,
+              "id": 19,
+              "thread": "ThreadId(1)",
+              "name": "apply",
+              "stage": "begin",
+              "elapsedMs": 0.002
+            },
+            {
+              "wallMs": 1791941254818.438,
+              "id": 19,
+              "thread": "ThreadId(1)",
+              "name": "apply",
+              "stage": "locked",
+              "elapsedMs": 4.526
+            },
+            {
+              "wallMs": 1791941254820.604,
+              "id": 19,
+              "thread": "ThreadId(1)",
+              "name": "apply",
+              "stage": "end",
+              "elapsedMs": 6.693
+            },
+            {
+              "wallMs": 1791941254834.368,
+              "id": 20,
+              "thread": "ThreadId(1)",
+              "name": "read-window",
+              "stage": "begin",
+              "elapsedMs": 0.001
+            },
+            {
+              "wallMs": 1791941254842.183,
+              "id": 20,
+              "thread": "ThreadId(1)",
+              "name": "read-window",
+              "stage": "locked",
+              "elapsedMs": 7.815
+            },
+            {
+              "wallMs": 1791941254848.346,
+              "id": 20,
+              "thread": "ThreadId(1)",
+              "name": "read-window",
+              "stage": "end",
+              "elapsedMs": 13.978
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "run": "regression-trace-100m-short-source-r1",
+      "checkpoints": [
+        {
+          "startWallMs": 1791941185189.163,
+          "writeMs": 371.453,
+          "hashMs": 139.55900000000003,
+          "publishMs": 1.6899999999999409,
+          "totalMs": 520.434
+        },
+        {
+          "startWallMs": 1791941187470.105,
+          "writeMs": 441.277,
+          "hashMs": 114.34199999999998,
+          "publishMs": 2.2590000000000146,
+          "totalMs": 561.764
+        },
+        {
+          "startWallMs": 1791941189526.328,
+          "writeMs": 278.58299999999997,
+          "hashMs": 116.59000000000003,
+          "publishMs": 1.983000000000004,
+          "totalMs": 406.066
+        },
+        {
+          "startWallMs": 1791941191672.889,
+          "writeMs": 333.26,
+          "hashMs": 221.54899999999998,
+          "publishMs": 4.548999999999978,
+          "totalMs": 568.751
+        }
+      ],
+      "worstSamples": [
+        {
+          "sample": {
+            "wall": 1791941185474,
+            "dom": 5688,
+            "temperature": "after-edit",
+            "modifiers": {
+              "alt": false,
+              "meta": false,
+              "ctrl": true
+            },
+            "direction": "end",
+            "twoFrames": 5761,
+            "recovery": "ready",
+            "frameMs": 360,
+            "domMs": 287,
+            "started": 5401,
+            "renderedLines": 55,
+            "kind": "jump",
+            "trusted": true,
+            "target": "milkup-input-proxy",
+            "cursor": 104857611,
+            "round": 1,
+            "expected": 104857611,
+            "key": "End",
+            "targetMs": 200,
+            "version": 2,
+            "externalCommandToObservedMs": 507.6177120000002,
+            "overTarget": true
+          },
+          "largestOverlappingFrontendSpans": [
+            {
+              "wall": 1791941185475,
+              "to": 1638402,
+              "ms": 240,
+              "name": "nativeSource.readLineWindow",
+              "start": 5402,
+              "from": 1638402,
+              "end": 5642,
+              "version": 2,
+              "overlapMs": 240
+            },
+            {
+              "wall": 1791941185475,
+              "ms": 240,
+              "name": "view.readSourceLine",
+              "start": 5402,
+              "end": 5642,
+              "version": 2,
+              "overlapMs": 240
+            },
+            {
+              "wall": 1791941185716,
+              "ms": 42.00000000000091,
+              "name": "view.scrollToLine",
+              "start": 5643,
+              "end": 5685.000000000001,
+              "version": 2,
+              "overlapMs": 42.00000000000091
+            },
+            {
+              "wall": 1791941185718,
+              "ms": 36.99999999999909,
+              "name": "view.renderVisibleWindow",
+              "start": 5645.000000000001,
+              "end": 5682,
+              "version": 2,
+              "overlapMs": 36.99999999999909
+            },
+            {
+              "wall": 1791941185719,
+              "to": 1638402,
+              "ms": 33,
+              "name": "view.renderSourceLineWindow",
+              "start": 5646,
+              "from": 1638348,
+              "cacheHit": false,
+              "end": 5679,
+              "version": 2,
+              "overlapMs": 33
+            },
+            {
+              "wall": 1791941185719,
+              "to": 1638402,
+              "ms": 32,
+              "name": "nativeSource.readLineWindow",
+              "start": 5646,
+              "from": 1638348,
+              "end": 5678,
+              "version": 2,
+              "overlapMs": 32
+            },
+            {
+              "wall": 1791941185758,
+              "ms": 2.9999999999990905,
+              "name": "view.renderCursor",
+              "start": 5685.000000000001,
+              "end": 5688,
+              "version": 2,
+              "overlapMs": 2.9999999999990905
+            },
+            {
+              "wall": 1791941185716,
+              "ms": 1,
+              "name": "view.scrollGeometry",
+              "start": 5643,
+              "end": 5644,
+              "version": 2,
+              "overlapMs": 1
+            },
+            {
+              "wall": 1791941185753,
+              "ms": 1,
+              "name": "view.renderSearchHighlights",
+              "start": 5680,
+              "end": 5681,
+              "version": 2,
+              "overlapMs": 1
+            },
+            {
+              "wall": 1791941185754,
+              "ms": 1,
+              "name": "view.renderSelection",
+              "start": 5681,
+              "end": 5682,
+              "version": 2,
+              "overlapMs": 1
+            },
+            {
+              "wall": 1791941185475,
+              "ms": 0,
+              "name": "view.flushPendingVisibleEdit",
+              "start": 5402,
+              "end": 5402,
+              "version": 2,
+              "overlapMs": 0
+            },
+            {
+              "wall": 1791941185475,
+              "ms": 0,
+              "name": "view.flushPendingVisibleEdit",
+              "start": 5402,
+              "end": 5402,
+              "version": 2,
+              "overlapMs": 0
+            }
+          ],
+          "nativeEventsAroundSample": [
+            {
+              "wallMs": 1791941184166.753,
+              "id": 17,
+              "thread": "ThreadId(1)",
+              "name": "apply",
+              "stage": "begin",
+              "elapsedMs": 0.002
+            },
+            {
+              "wallMs": 1791941184167.652,
+              "id": 17,
+              "thread": "ThreadId(1)",
+              "name": "apply",
+              "stage": "locked",
+              "elapsedMs": 0.9
+            },
+            {
+              "wallMs": 1791941184168.72,
+              "id": 17,
+              "thread": "ThreadId(1)",
+              "name": "apply",
+              "stage": "end",
+              "elapsedMs": 1.968
+            },
+            {
+              "wallMs": 1791941184418.777,
+              "id": 18,
+              "thread": "ThreadId(1)",
+              "name": "apply",
+              "stage": "begin",
+              "elapsedMs": 0.002
+            },
+            {
+              "wallMs": 1791941184419.723,
+              "id": 18,
+              "thread": "ThreadId(1)",
+              "name": "apply",
+              "stage": "locked",
+              "elapsedMs": 0.947
+            },
+            {
+              "wallMs": 1791941184420.47,
+              "id": 18,
+              "thread": "ThreadId(1)",
+              "name": "apply",
+              "stage": "end",
+              "elapsedMs": 1.693
+            },
+            {
+              "wallMs": 1791941185186.69,
+              "id": 19,
+              "thread": "ThreadId(6)",
+              "name": "checkpoint-registry",
+              "stage": "begin",
+              "elapsedMs": 0.002
+            },
+            {
+              "wallMs": 1791941185188.153,
+              "id": 19,
+              "thread": "ThreadId(6)",
+              "name": "checkpoint-registry",
+              "stage": "locked",
+              "elapsedMs": 1.464
+            },
+            {
+              "wallMs": 1791941185189.163,
+              "id": 20,
+              "thread": "ThreadId(6)",
+              "name": "checkpoint-store",
+              "stage": "begin",
+              "elapsedMs": 0.0
+            },
+            {
+              "wallMs": 1791941185190.067,
+              "id": 20,
+              "thread": "ThreadId(6)",
+              "name": "checkpoint-store",
+              "stage": "gate-locked",
+              "elapsedMs": 0.904
+            },
+            {
+              "wallMs": 1791941185192.212,
+              "id": 20,
+              "thread": "ThreadId(6)",
+              "name": "checkpoint-store",
+              "stage": "admitted",
+              "elapsedMs": 3.05
+            },
+            {
+              "wallMs": 1791941185196.684,
+              "id": 20,
+              "thread": "ThreadId(6)",
+              "name": "checkpoint-store",
+              "stage": "write-begin",
+              "elapsedMs": 7.521
+            },
+            {
+              "wallMs": 1791941185197.554,
+              "id": 21,
+              "thread": "ThreadId(6)",
+              "name": "checkpoint-write",
+              "stage": "begin",
+              "elapsedMs": 0.0
+            },
+            {
+              "wallMs": 1791941185478.498,
+              "id": 22,
+              "thread": "ThreadId(1)",
+              "name": "read-window",
+              "stage": "begin",
+              "elapsedMs": 0.001
+            },
+            {
+              "wallMs": 1791941185533.712,
+              "id": 21,
+              "thread": "ThreadId(6)",
+              "name": "checkpoint-write",
+              "stage": "flushed",
+              "elapsedMs": 336.16
+            },
+            {
+              "wallMs": 1791941185567.41,
+              "id": 21,
+              "thread": "ThreadId(6)",
+              "name": "checkpoint-write",
+              "stage": "end",
+              "elapsedMs": 369.858
+            },
+            {
+              "wallMs": 1791941185568.136,
+              "id": 20,
+              "thread": "ThreadId(6)",
+              "name": "checkpoint-store",
+              "stage": "write-end",
+              "elapsedMs": 378.974
+            },
+            {
+              "wallMs": 1791941185707.693,
+              "id": 20,
+              "thread": "ThreadId(6)",
+              "name": "checkpoint-store",
+              "stage": "hash-end",
+              "elapsedMs": 518.533
+            },
+            {
+              "wallMs": 1791941185709.386,
+              "id": 20,
+              "thread": "ThreadId(6)",
+              "name": "checkpoint-store",
+              "stage": "commit-end",
+              "elapsedMs": 520.223
+            },
+            {
+              "wallMs": 1791941185709.597,
+              "id": 20,
+              "thread": "ThreadId(6)",
+              "name": "checkpoint-store",
+              "stage": "end",
+              "elapsedMs": 520.434
+            },
+            {
+              "wallMs": 1791941185709.779,
+              "id": 19,
+              "thread": "ThreadId(6)",
+              "name": "checkpoint-registry",
+              "stage": "end",
+              "elapsedMs": 523.09
+            },
+            {
+              "wallMs": 1791941185709.806,
+              "id": 22,
+              "thread": "ThreadId(1)",
+              "name": "read-window",
+              "stage": "locked",
+              "elapsedMs": 231.309
+            },
+            {
+              "wallMs": 1791941185711.386,
+              "id": 22,
+              "thread": "ThreadId(1)",
+              "name": "read-window",
+              "stage": "end",
+              "elapsedMs": 232.889
+            },
+            {
+              "wallMs": 1791941185728.521,
+              "id": 23,
+              "thread": "ThreadId(1)",
+              "name": "read-window",
+              "stage": "begin",
+              "elapsedMs": 0.001
+            },
+            {
+              "wallMs": 1791941185732.298,
+              "id": 23,
+              "thread": "ThreadId(1)",
+              "name": "read-window",
+              "stage": "locked",
+              "elapsedMs": 3.777
+            },
+            {
+              "wallMs": 1791941185735.081,
+              "id": 23,
+              "thread": "ThreadId(1)",
+              "name": "read-window",
+              "stage": "end",
+              "elapsedMs": 6.573
+            }
+          ]
+        },
+        {
+          "sample": {
+            "version": 1,
+            "wall": 1791941184129,
+            "twoFrames": 4150,
+            "modifiers": {
+              "alt": false,
+              "meta": false,
+              "ctrl": false
+            },
+            "recovery": "idle",
+            "frameMs": 95.00000000000045,
+            "domMs": 10.00000000000091,
+            "started": 4054.9999999999995,
+            "renderedLines": 58,
+            "cursor": 1,
+            "kind": "input",
+            "trusted": true,
+            "target": "milkup-input-proxy",
+            "dom": 4065.0000000000005,
+            "round": 0,
+            "expected": 1,
+            "targetMs": 200,
+            "key": "q",
+            "externalCommandToObservedMs": 177.6803259999997,
+            "overTarget": false
+          },
+          "largestOverlappingFrontendSpans": [
+            {
+              "wall": 1791941184162,
+              "ms": 12.999999999999545,
+              "name": "view.commitVisibleEdit",
+              "start": 4089.0000000000005,
+              "end": 4102,
+              "version": 0,
+              "overlapMs": 12.999999999999545
+            },
+            {
+              "wall": 1791941184162,
+              "ms": 12.999999999999545,
+              "name": "view.flushPendingVisibleEdit",
+              "start": 4089.0000000000005,
+              "end": 4102,
+              "version": 0,
+              "overlapMs": 12.999999999999545
+            },
+            {
+              "wall": 1791941184129,
+              "ms": 9.000000000000455,
+              "name": "view.applyTextInput",
+              "start": 4056,
+              "end": 4065.0000000000005,
+              "version": 0,
+              "overlapMs": 9.000000000000455
+            },
+            {
+              "wall": 1791941184135,
+              "ms": 3,
+              "name": "view.renderCursor",
+              "start": 4062.0000000000005,
+              "end": 4065.0000000000005,
+              "version": 0,
+              "overlapMs": 3.0
+            },
+            {
+              "wall": 1791941184131,
+              "ms": 1,
+              "name": "view.readVisibleEditRange",
+              "start": 4058,
+              "end": 4059,
+              "version": 0,
+              "overlapMs": 1
+            },
+            {
+              "wall": 1791941184135,
+              "ms": 0,
+              "name": "view.renderSelection",
+              "start": 4062.0000000000005,
+              "end": 4062.0000000000005,
+              "version": 0,
+              "overlapMs": 0.0
+            }
+          ],
+          "nativeEventsAroundSample": [
+            {
+              "wallMs": 1791941182851.805,
+              "id": 12,
+              "thread": "ThreadId(1)",
+              "name": "read-window",
+              "stage": "begin",
+              "elapsedMs": 0.001
+            },
+            {
+              "wallMs": 1791941182854.257,
+              "id": 12,
+              "thread": "ThreadId(1)",
+              "name": "read-window",
+              "stage": "locked",
+              "elapsedMs": 2.453
+            },
+            {
+              "wallMs": 1791941182855.231,
+              "id": 12,
+              "thread": "ThreadId(1)",
+              "name": "read-window",
+              "stage": "end",
+              "elapsedMs": 3.427
+            },
+            {
+              "wallMs": 1791941183125.11,
+              "id": 13,
+              "thread": "ThreadId(1)",
+              "name": "read-window",
+              "stage": "begin",
+              "elapsedMs": 0.002
+            },
+            {
+              "wallMs": 1791941183126.904,
+              "id": 13,
+              "thread": "ThreadId(1)",
+              "name": "read-window",
+              "stage": "locked",
+              "elapsedMs": 1.795
+            },
+            {
+              "wallMs": 1791941183128.295,
+              "id": 13,
+              "thread": "ThreadId(1)",
+              "name": "read-window",
+              "stage": "end",
+              "elapsedMs": 3.186
+            },
+            {
+              "wallMs": 1791941183344.787,
+              "id": 14,
+              "thread": "ThreadId(1)",
+              "name": "read-window",
+              "stage": "begin",
+              "elapsedMs": 0.002
+            },
+            {
+              "wallMs": 1791941183345.953,
+              "id": 14,
+              "thread": "ThreadId(1)",
+              "name": "read-window",
+              "stage": "locked",
+              "elapsedMs": 1.167
+            },
+            {
+              "wallMs": 1791941183346.998,
+              "id": 14,
+              "thread": "ThreadId(1)",
+              "name": "read-window",
+              "stage": "end",
+              "elapsedMs": 2.211
+            },
+            {
+              "wallMs": 1791941183618.83,
+              "id": 15,
+              "thread": "ThreadId(1)",
+              "name": "read-window",
+              "stage": "begin",
+              "elapsedMs": 0.002
+            },
+            {
+              "wallMs": 1791941183620.755,
+              "id": 15,
+              "thread": "ThreadId(1)",
+              "name": "read-window",
+              "stage": "locked",
+              "elapsedMs": 1.926
+            },
+            {
+              "wallMs": 1791941183621.632,
+              "id": 15,
+              "thread": "ThreadId(1)",
+              "name": "read-window",
+              "stage": "end",
+              "elapsedMs": 2.803
+            },
+            {
+              "wallMs": 1791941183845.078,
+              "id": 16,
+              "thread": "ThreadId(1)",
+              "name": "read-window",
+              "stage": "begin",
+              "elapsedMs": 0.002
+            },
+            {
+              "wallMs": 1791941183848.351,
+              "id": 16,
+              "thread": "ThreadId(1)",
+              "name": "read-window",
+              "stage": "locked",
+              "elapsedMs": 3.274
+            },
+            {
+              "wallMs": 1791941183852.726,
+              "id": 16,
+              "thread": "ThreadId(1)",
+              "name": "read-window",
+              "stage": "end",
+              "elapsedMs": 7.649
+            },
+            {
+              "wallMs": 1791941184166.753,
+              "id": 17,
+              "thread": "ThreadId(1)",
+              "name": "apply",
+              "stage": "begin",
+              "elapsedMs": 0.002
+            },
+            {
+              "wallMs": 1791941184167.652,
+              "id": 17,
+              "thread": "ThreadId(1)",
+              "name": "apply",
+              "stage": "locked",
+              "elapsedMs": 0.9
+            },
+            {
+              "wallMs": 1791941184168.72,
+              "id": 17,
+              "thread": "ThreadId(1)",
+              "name": "apply",
+              "stage": "end",
+              "elapsedMs": 1.968
+            }
+          ]
+        },
+        {
+          "sample": {
+            "version": 6,
+            "wall": 1791941188725,
+            "twoFrames": 8719,
+            "modifiers": {
+              "alt": false,
+              "meta": false,
+              "ctrl": false
+            },
+            "recovery": "pending",
+            "frameMs": 66.99999999999818,
+            "domMs": 8.999999999998181,
+            "started": 8652.000000000002,
+            "renderedLines": 58,
+            "cursor": 0,
+            "kind": "delete",
+            "trusted": true,
+            "target": "milkup-input-proxy",
+            "dom": 8661,
+            "round": 2,
+            "expected": 0,
+            "targetMs": 200,
+            "key": "Backspace",
+            "externalCommandToObservedMs": 181.75994799999899,
+            "overTarget": false
+          },
+          "largestOverlappingFrontendSpans": [
+            {
+              "wall": 1791941188759,
+              "ms": 14.000000000001819,
+              "name": "view.commitVisibleEdit",
+              "start": 8686,
+              "end": 8700.000000000002,
+              "version": 5,
+              "overlapMs": 14.000000000001819
+            },
+            {
+              "wall": 1791941188759,
+              "ms": 14.000000000001819,
+              "name": "view.flushPendingVisibleEdit",
+              "start": 8686,
+              "end": 8700.000000000002,
+              "version": 5,
+              "overlapMs": 14.000000000001819
+            },
+            {
+              "wall": 1791941188730,
+              "ms": 4,
+              "name": "view.renderCursor",
+              "start": 8657,
+              "end": 8661,
+              "version": 5,
+              "overlapMs": 4
+            },
+            {
+              "wall": 1791941188726,
+              "ms": 0,
+              "name": "view.readVisibleEditRange",
+              "start": 8653,
+              "end": 8653,
+              "version": 5,
+              "overlapMs": 0
+            },
+            {
+              "wall": 1791941188730,
+              "ms": 0,
+              "name": "view.renderSelection",
+              "start": 8657,
+              "end": 8657,
+              "version": 5,
+              "overlapMs": 0
+            }
+          ],
+          "nativeEventsAroundSample": [
+            {
+              "wallMs": 1791941187469.116,
+              "id": 28,
+              "thread": "ThreadId(6)",
+              "name": "checkpoint-registry",
+              "stage": "begin",
+              "elapsedMs": 0.002
+            },
+            {
+              "wallMs": 1791941187469.641,
+              "id": 28,
+              "thread": "ThreadId(6)",
+              "name": "checkpoint-registry",
+              "stage": "locked",
+              "elapsedMs": 0.526
+            },
+            {
+              "wallMs": 1791941187470.105,
+              "id": 29,
+              "thread": "ThreadId(6)",
+              "name": "checkpoint-store",
+              "stage": "begin",
+              "elapsedMs": 0.0
+            },
+            {
+              "wallMs": 1791941187470.708,
+              "id": 29,
+              "thread": "ThreadId(6)",
+              "name": "checkpoint-store",
+              "stage": "gate-locked",
+              "elapsedMs": 0.603
+            },
+            {
+              "wallMs": 1791941187472.032,
+              "id": 29,
+              "thread": "ThreadId(6)",
+              "name": "checkpoint-store",
+              "stage": "admitted",
+              "elapsedMs": 1.927
+            },
+            {
+              "wallMs": 1791941187473.448,
+              "id": 29,
+              "thread": "ThreadId(6)",
+              "name": "checkpoint-store",
+              "stage": "write-begin",
+              "elapsedMs": 3.343
+            },
+            {
+              "wallMs": 1791941187474.19,
+              "id": 30,
+              "thread": "ThreadId(6)",
+              "name": "checkpoint-write",
+              "stage": "begin",
+              "elapsedMs": 0.0
+            },
+            {
+              "wallMs": 1791941187819.363,
+              "id": 31,
+              "thread": "ThreadId(1)",
+              "name": "read-window",
+              "stage": "begin",
+              "elapsedMs": 0.002
+            },
+            {
+              "wallMs": 1791941187882.352,
+              "id": 30,
+              "thread": "ThreadId(6)",
+              "name": "checkpoint-write",
+              "stage": "flushed",
+              "elapsedMs": 408.164
+            },
+            {
+              "wallMs": 1791941187914.206,
+              "id": 30,
+              "thread": "ThreadId(6)",
+              "name": "checkpoint-write",
+              "stage": "end",
+              "elapsedMs": 440.018
+            },
+            {
+              "wallMs": 1791941187914.725,
+              "id": 29,
+              "thread": "ThreadId(6)",
+              "name": "checkpoint-store",
+              "stage": "write-end",
+              "elapsedMs": 444.62
+            },
+            {
+              "wallMs": 1791941188029.066,
+              "id": 29,
+              "thread": "ThreadId(6)",
+              "name": "checkpoint-store",
+              "stage": "hash-end",
+              "elapsedMs": 558.962
+            },
+            {
+              "wallMs": 1791941188031.326,
+              "id": 29,
+              "thread": "ThreadId(6)",
+              "name": "checkpoint-store",
+              "stage": "commit-end",
+              "elapsedMs": 561.221
+            },
+            {
+              "wallMs": 1791941188031.869,
+              "id": 29,
+              "thread": "ThreadId(6)",
+              "name": "checkpoint-store",
+              "stage": "end",
+              "elapsedMs": 561.764
+            },
+            {
+              "wallMs": 1791941188032.385,
+              "id": 28,
+              "thread": "ThreadId(6)",
+              "name": "checkpoint-registry",
+              "stage": "end",
+              "elapsedMs": 563.27
+            },
+            {
+              "wallMs": 1791941188032.398,
+              "id": 31,
+              "thread": "ThreadId(1)",
+              "name": "read-window",
+              "stage": "locked",
+              "elapsedMs": 213.037
+            },
+            {
+              "wallMs": 1791941188033.749,
+              "id": 31,
+              "thread": "ThreadId(1)",
+              "name": "read-window",
+              "stage": "end",
+              "elapsedMs": 214.387
+            },
+            {
+              "wallMs": 1791941188050.402,
+              "id": 32,
+              "thread": "ThreadId(1)",
+              "name": "read-window",
+              "stage": "begin",
+              "elapsedMs": 0.002
+            },
+            {
+              "wallMs": 1791941188051.67,
+              "id": 32,
+              "thread": "ThreadId(1)",
+              "name": "read-window",
+              "stage": "locked",
+              "elapsedMs": 1.268
+            },
+            {
+              "wallMs": 1791941188053.004,
+              "id": 32,
+              "thread": "ThreadId(1)",
+              "name": "read-window",
+              "stage": "end",
+              "elapsedMs": 2.603
+            },
+            {
+              "wallMs": 1791941188273.468,
+              "id": 33,
+              "thread": "ThreadId(1)",
+              "name": "read-window",
+              "stage": "begin",
+              "elapsedMs": 0.002
+            },
+            {
+              "wallMs": 1791941188273.998,
+              "id": 33,
+              "thread": "ThreadId(1)",
+              "name": "read-window",
+              "stage": "locked",
+              "elapsedMs": 0.531
+            },
+            {
+              "wallMs": 1791941188274.731,
+              "id": 33,
+              "thread": "ThreadId(1)",
+              "name": "read-window",
+              "stage": "end",
+              "elapsedMs": 1.264
+            },
+            {
+              "wallMs": 1791941188280.55,
+              "id": 34,
+              "thread": "ThreadId(1)",
+              "name": "read-window",
+              "stage": "begin",
+              "elapsedMs": 0.001
+            },
+            {
+              "wallMs": 1791941188281.158,
+              "id": 34,
+              "thread": "ThreadId(1)",
+              "name": "read-window",
+              "stage": "locked",
+              "elapsedMs": 0.609
+            },
+            {
+              "wallMs": 1791941188281.908,
+              "id": 34,
+              "thread": "ThreadId(1)",
+              "name": "read-window",
+              "stage": "end",
+              "elapsedMs": 1.359
+            },
+            {
+              "wallMs": 1791941188535.996,
+              "id": 35,
+              "thread": "ThreadId(1)",
+              "name": "apply",
+              "stage": "begin",
+              "elapsedMs": 0.002
+            },
+            {
+              "wallMs": 1791941188540.573,
+              "id": 35,
+              "thread": "ThreadId(1)",
+              "name": "apply",
+              "stage": "locked",
+              "elapsedMs": 4.578
+            },
+            {
+              "wallMs": 1791941188542.424,
+              "id": 35,
+              "thread": "ThreadId(1)",
+              "name": "apply",
+              "stage": "end",
+              "elapsedMs": 6.429
+            },
+            {
+              "wallMs": 1791941188765.041,
+              "id": 36,
+              "thread": "ThreadId(1)",
+              "name": "apply",
+              "stage": "begin",
+              "elapsedMs": 0.002
+            },
+            {
+              "wallMs": 1791941188766.016,
+              "id": 36,
+              "thread": "ThreadId(1)",
+              "name": "apply",
+              "stage": "locked",
+              "elapsedMs": 0.975
+            },
+            {
+              "wallMs": 1791941188766.318,
+              "id": 36,
+              "thread": "ThreadId(1)",
+              "name": "apply",
+              "stage": "end",
+              "elapsedMs": 1.277
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "run": "regression-trace-100m-short-source-r2",
+      "checkpoints": [
+        {
+          "startWallMs": 1791941236795.724,
+          "writeMs": 363.613,
+          "hashMs": 114.14799999999997,
+          "publishMs": 2.9879999999999995,
+          "totalMs": 493.893
+        },
+        {
+          "startWallMs": 1791941238749.017,
+          "writeMs": 730.6,
+          "hashMs": 177.51599999999996,
+          "publishMs": 2.5009999999999764,
+          "totalMs": 912.928
+        },
+        {
+          "startWallMs": 1791941241265.735,
+          "writeMs": 327.91900000000004,
+          "hashMs": 128.88899999999995,
+          "publishMs": 2.813000000000045,
+          "totalMs": 469.635
+        },
+        {
+          "startWallMs": 1791941243491.001,
+          "writeMs": 289.31,
+          "hashMs": 278.13100000000003,
+          "publishMs": 2.0949999999999136,
+          "totalMs": 576.409
+        }
+      ],
+      "worstSamples": [
+        {
+          "sample": {
+            "wall": 1791941239048,
+            "dom": 8318,
+            "temperature": "after-edit",
+            "modifiers": {
+              "alt": false,
+              "meta": false,
+              "ctrl": true
+            },
+            "direction": "end",
+            "twoFrames": 8381,
+            "recovery": "writing",
+            "frameMs": 722,
+            "domMs": 659,
+            "started": 7659,
+            "renderedLines": 55,
+            "kind": "jump",
+            "trusted": true,
+            "target": "milkup-input-proxy",
+            "cursor": 104857611,
+            "round": 2,
+            "expected": 104857611,
+            "key": "End",
+            "targetMs": 200,
+            "version": 4,
+            "externalCommandToObservedMs": 807.0568549999989,
+            "overTarget": true
+          },
+          "largestOverlappingFrontendSpans": [
+            {
+              "wall": 1791941239048,
+              "to": 1638402,
+              "ms": 620,
+              "name": "nativeSource.readLineWindow",
+              "start": 7659,
+              "from": 1638402,
+              "end": 8279,
+              "version": 4,
+              "overlapMs": 620
+            },
+            {
+              "wall": 1791941239048,
+              "ms": 620,
+              "name": "view.readSourceLine",
+              "start": 7659,
+              "end": 8279,
+              "version": 4,
+              "overlapMs": 620
+            },
+            {
+              "wall": 1791941239668,
+              "ms": 38,
+              "name": "view.scrollToLine",
+              "start": 8279,
+              "end": 8317,
+              "version": 4,
+              "overlapMs": 38
+            },
+            {
+              "wall": 1791941239669,
+              "ms": 29.00000000000182,
+              "name": "view.renderVisibleWindow",
+              "start": 8280,
+              "end": 8309.000000000002,
+              "version": 4,
+              "overlapMs": 29.00000000000182
+            },
+            {
+              "wall": 1791941239669,
+              "to": 1638402,
+              "ms": 28,
+              "name": "view.renderSourceLineWindow",
+              "start": 8280,
+              "from": 1638348,
+              "cacheHit": false,
+              "end": 8308,
+              "version": 4,
+              "overlapMs": 28
+            },
+            {
+              "wall": 1791941239669,
+              "to": 1638402,
+              "ms": 27,
+              "name": "nativeSource.readLineWindow",
+              "start": 8280,
+              "from": 1638348,
+              "end": 8307,
+              "version": 4,
+              "overlapMs": 27
+            },
+            {
+              "wall": 1791941239705,
+              "ms": 1,
+              "name": "view.renderCursor",
+              "start": 8317,
+              "end": 8318,
+              "version": 4,
+              "overlapMs": 1
+            },
+            {
+              "wall": 1791941239048,
+              "ms": 0,
+              "name": "view.flushPendingVisibleEdit",
+              "start": 7659,
+              "end": 7659,
+              "version": 4,
+              "overlapMs": 0
+            },
+            {
+              "wall": 1791941239048,
+              "ms": 0,
+              "name": "view.flushPendingVisibleEdit",
+              "start": 7659,
+              "end": 7659,
+              "version": 4,
+              "overlapMs": 0
+            },
+            {
+              "wall": 1791941239668,
+              "ms": 0,
+              "name": "view.scrollGeometry",
+              "start": 8279,
+              "end": 8279,
+              "version": 4,
+              "overlapMs": 0
+            },
+            {
+              "wall": 1791941239669,
+              "ms": 0,
+              "name": "view.scrollGeometry",
+              "start": 8280,
+              "end": 8280,
+              "version": 4,
+              "overlapMs": 0
+            },
+            {
+              "wall": 1791941239669,
+              "ms": 0,
+              "name": "view.scrollGeometry",
+              "start": 8280,
+              "end": 8280,
+              "version": 4,
+              "overlapMs": 0
+            }
+          ],
+          "nativeEventsAroundSample": [
+            {
+              "wallMs": 1791941237791.529,
+              "id": 26,
+              "thread": "ThreadId(1)",
+              "name": "apply",
+              "stage": "begin",
+              "elapsedMs": 0.002
+            },
+            {
+              "wallMs": 1791941237792.204,
+              "id": 26,
+              "thread": "ThreadId(1)",
+              "name": "apply",
+              "stage": "locked",
+              "elapsedMs": 0.676
+            },
+            {
+              "wallMs": 1791941237792.748,
+              "id": 26,
+              "thread": "ThreadId(1)",
+              "name": "apply",
+              "stage": "end",
+              "elapsedMs": 1.22
+            },
+            {
+              "wallMs": 1791941237986.238,
+              "id": 27,
+              "thread": "ThreadId(1)",
+              "name": "apply",
+              "stage": "begin",
+              "elapsedMs": 0.001
+            },
+            {
+              "wallMs": 1791941237986.683,
+              "id": 27,
+              "thread": "ThreadId(1)",
+              "name": "apply",
+              "stage": "locked",
+              "elapsedMs": 0.446
+            },
+            {
+              "wallMs": 1791941237986.918,
+              "id": 27,
+              "thread": "ThreadId(1)",
+              "name": "apply",
+              "stage": "end",
+              "elapsedMs": 0.681
+            },
+            {
+              "wallMs": 1791941238748.577,
+              "id": 28,
+              "thread": "ThreadId(8)",
+              "name": "checkpoint-registry",
+              "stage": "begin",
+              "elapsedMs": 0.002
+            },
+            {
+              "wallMs": 1791941238748.908,
+              "id": 28,
+              "thread": "ThreadId(8)",
+              "name": "checkpoint-registry",
+              "stage": "locked",
+              "elapsedMs": 0.332
+            },
+            {
+              "wallMs": 1791941238749.017,
+              "id": 29,
+              "thread": "ThreadId(8)",
+              "name": "checkpoint-store",
+              "stage": "begin",
+              "elapsedMs": 0.0
+            },
+            {
+              "wallMs": 1791941238749.138,
+              "id": 29,
+              "thread": "ThreadId(8)",
+              "name": "checkpoint-store",
+              "stage": "gate-locked",
+              "elapsedMs": 0.121
+            },
+            {
+              "wallMs": 1791941238749.668,
+              "id": 29,
+              "thread": "ThreadId(8)",
+              "name": "checkpoint-store",
+              "stage": "admitted",
+              "elapsedMs": 0.651
+            },
+            {
+              "wallMs": 1791941238750.583,
+              "id": 29,
+              "thread": "ThreadId(8)",
+              "name": "checkpoint-store",
+              "stage": "write-begin",
+              "elapsedMs": 1.567
+            },
+            {
+              "wallMs": 1791941238750.892,
+              "id": 30,
+              "thread": "ThreadId(8)",
+              "name": "checkpoint-write",
+              "stage": "begin",
+              "elapsedMs": 0.0
+            },
+            {
+              "wallMs": 1791941239060.352,
+              "id": 31,
+              "thread": "ThreadId(1)",
+              "name": "read-window",
+              "stage": "begin",
+              "elapsedMs": 0.001
+            },
+            {
+              "wallMs": 1791941239450.843,
+              "id": 30,
+              "thread": "ThreadId(8)",
+              "name": "checkpoint-write",
+              "stage": "flushed",
+              "elapsedMs": 699.953
+            },
+            {
+              "wallMs": 1791941239480.388,
+              "id": 30,
+              "thread": "ThreadId(8)",
+              "name": "checkpoint-write",
+              "stage": "end",
+              "elapsedMs": 729.498
+            },
+            {
+              "wallMs": 1791941239481.184,
+              "id": 29,
+              "thread": "ThreadId(8)",
+              "name": "checkpoint-store",
+              "stage": "write-end",
+              "elapsedMs": 732.167
+            },
+            {
+              "wallMs": 1791941239658.698,
+              "id": 29,
+              "thread": "ThreadId(8)",
+              "name": "checkpoint-store",
+              "stage": "hash-end",
+              "elapsedMs": 909.683
+            },
+            {
+              "wallMs": 1791941239661.201,
+              "id": 29,
+              "thread": "ThreadId(8)",
+              "name": "checkpoint-store",
+              "stage": "commit-end",
+              "elapsedMs": 912.184
+            },
+            {
+              "wallMs": 1791941239661.944,
+              "id": 29,
+              "thread": "ThreadId(8)",
+              "name": "checkpoint-store",
+              "stage": "end",
+              "elapsedMs": 912.928
+            },
+            {
+              "wallMs": 1791941239662.638,
+              "id": 28,
+              "thread": "ThreadId(8)",
+              "name": "checkpoint-registry",
+              "stage": "end",
+              "elapsedMs": 914.063
+            },
+            {
+              "wallMs": 1791941239662.658,
+              "id": 31,
+              "thread": "ThreadId(1)",
+              "name": "read-window",
+              "stage": "locked",
+              "elapsedMs": 602.308
+            },
+            {
+              "wallMs": 1791941239664.631,
+              "id": 31,
+              "thread": "ThreadId(1)",
+              "name": "read-window",
+              "stage": "end",
+              "elapsedMs": 604.28
+            },
+            {
+              "wallMs": 1791941239675.711,
+              "id": 32,
+              "thread": "ThreadId(1)",
+              "name": "read-window",
+              "stage": "begin",
+              "elapsedMs": 0.001
+            },
+            {
+              "wallMs": 1791941239682.869,
+              "id": 32,
+              "thread": "ThreadId(1)",
+              "name": "read-window",
+              "stage": "locked",
+              "elapsedMs": 7.159
+            },
+            {
+              "wallMs": 1791941239686.069,
+              "id": 32,
+              "thread": "ThreadId(1)",
+              "name": "read-window",
+              "stage": "end",
+              "elapsedMs": 10.359
+            }
+          ]
+        },
+        {
+          "sample": {
+            "version": 5,
+            "wall": 1791941240177,
+            "twoFrames": 8862,
+            "modifiers": {
+              "alt": false,
+              "meta": false,
+              "ctrl": false
+            },
+            "recovery": "ready",
+            "frameMs": 74,
+            "domMs": 3,
+            "started": 8788,
+            "renderedLines": 58,
+            "cursor": 1,
+            "kind": "input",
+            "trusted": true,
+            "target": "milkup-input-proxy",
+            "dom": 8791,
+            "round": 2,
+            "expected": 1,
+            "targetMs": 200,
+            "key": "q",
+            "externalCommandToObservedMs": 182.57269300000007,
+            "overTarget": false
+          },
+          "largestOverlappingFrontendSpans": [
+            {
+              "wall": 1791941240220,
+              "ms": 17,
+              "name": "view.commitVisibleEdit",
+              "start": 8831,
+              "end": 8848,
+              "version": 4,
+              "overlapMs": 17
+            },
+            {
+              "wall": 1791941240220,
+              "ms": 17,
+              "name": "view.flushPendingVisibleEdit",
+              "start": 8831,
+              "end": 8848,
+              "version": 4,
+              "overlapMs": 17
+            },
+            {
+              "wall": 1791941240177,
+              "ms": 3,
+              "name": "view.applyTextInput",
+              "start": 8788,
+              "end": 8791,
+              "version": 4,
+              "overlapMs": 3
+            },
+            {
+              "wall": 1791941240178,
+              "ms": 2,
+              "name": "view.renderCursor",
+              "start": 8789,
+              "end": 8791,
+              "version": 4,
+              "overlapMs": 2
+            },
+            {
+              "wall": 1791941240177,
+              "ms": 0,
+              "name": "view.readVisibleEditRange",
+              "start": 8788,
+              "end": 8788,
+              "version": 4,
+              "overlapMs": 0
+            },
+            {
+              "wall": 1791941240178,
+              "ms": 0,
+              "name": "view.renderSelection",
+              "start": 8789,
+              "end": 8789,
+              "version": 4,
+              "overlapMs": 0
+            }
+          ],
+          "nativeEventsAroundSample": [
+            {
+              "wallMs": 1791941238748.577,
+              "id": 28,
+              "thread": "ThreadId(8)",
+              "name": "checkpoint-registry",
+              "stage": "begin",
+              "elapsedMs": 0.002
+            },
+            {
+              "wallMs": 1791941238748.908,
+              "id": 28,
+              "thread": "ThreadId(8)",
+              "name": "checkpoint-registry",
+              "stage": "locked",
+              "elapsedMs": 0.332
+            },
+            {
+              "wallMs": 1791941238749.017,
+              "id": 29,
+              "thread": "ThreadId(8)",
+              "name": "checkpoint-store",
+              "stage": "begin",
+              "elapsedMs": 0.0
+            },
+            {
+              "wallMs": 1791941238749.138,
+              "id": 29,
+              "thread": "ThreadId(8)",
+              "name": "checkpoint-store",
+              "stage": "gate-locked",
+              "elapsedMs": 0.121
+            },
+            {
+              "wallMs": 1791941238749.668,
+              "id": 29,
+              "thread": "ThreadId(8)",
+              "name": "checkpoint-store",
+              "stage": "admitted",
+              "elapsedMs": 0.651
+            },
+            {
+              "wallMs": 1791941238750.583,
+              "id": 29,
+              "thread": "ThreadId(8)",
+              "name": "checkpoint-store",
+              "stage": "write-begin",
+              "elapsedMs": 1.567
+            },
+            {
+              "wallMs": 1791941238750.892,
+              "id": 30,
+              "thread": "ThreadId(8)",
+              "name": "checkpoint-write",
+              "stage": "begin",
+              "elapsedMs": 0.0
+            },
+            {
+              "wallMs": 1791941239060.352,
+              "id": 31,
+              "thread": "ThreadId(1)",
+              "name": "read-window",
+              "stage": "begin",
+              "elapsedMs": 0.001
+            },
+            {
+              "wallMs": 1791941239450.843,
+              "id": 30,
+              "thread": "ThreadId(8)",
+              "name": "checkpoint-write",
+              "stage": "flushed",
+              "elapsedMs": 699.953
+            },
+            {
+              "wallMs": 1791941239480.388,
+              "id": 30,
+              "thread": "ThreadId(8)",
+              "name": "checkpoint-write",
+              "stage": "end",
+              "elapsedMs": 729.498
+            },
+            {
+              "wallMs": 1791941239481.184,
+              "id": 29,
+              "thread": "ThreadId(8)",
+              "name": "checkpoint-store",
+              "stage": "write-end",
+              "elapsedMs": 732.167
+            },
+            {
+              "wallMs": 1791941239658.698,
+              "id": 29,
+              "thread": "ThreadId(8)",
+              "name": "checkpoint-store",
+              "stage": "hash-end",
+              "elapsedMs": 909.683
+            },
+            {
+              "wallMs": 1791941239661.201,
+              "id": 29,
+              "thread": "ThreadId(8)",
+              "name": "checkpoint-store",
+              "stage": "commit-end",
+              "elapsedMs": 912.184
+            },
+            {
+              "wallMs": 1791941239661.944,
+              "id": 29,
+              "thread": "ThreadId(8)",
+              "name": "checkpoint-store",
+              "stage": "end",
+              "elapsedMs": 912.928
+            },
+            {
+              "wallMs": 1791941239662.638,
+              "id": 28,
+              "thread": "ThreadId(8)",
+              "name": "checkpoint-registry",
+              "stage": "end",
+              "elapsedMs": 914.063
+            },
+            {
+              "wallMs": 1791941239662.658,
+              "id": 31,
+              "thread": "ThreadId(1)",
+              "name": "read-window",
+              "stage": "locked",
+              "elapsedMs": 602.308
+            },
+            {
+              "wallMs": 1791941239664.631,
+              "id": 31,
+              "thread": "ThreadId(1)",
+              "name": "read-window",
+              "stage": "end",
+              "elapsedMs": 604.28
+            },
+            {
+              "wallMs": 1791941239675.711,
+              "id": 32,
+              "thread": "ThreadId(1)",
+              "name": "read-window",
+              "stage": "begin",
+              "elapsedMs": 0.001
+            },
+            {
+              "wallMs": 1791941239682.869,
+              "id": 32,
+              "thread": "ThreadId(1)",
+              "name": "read-window",
+              "stage": "locked",
+              "elapsedMs": 7.159
+            },
+            {
+              "wallMs": 1791941239686.069,
+              "id": 32,
+              "thread": "ThreadId(1)",
+              "name": "read-window",
+              "stage": "end",
+              "elapsedMs": 10.359
+            },
+            {
+              "wallMs": 1791941239887.502,
+              "id": 33,
+              "thread": "ThreadId(1)",
+              "name": "read-window",
+              "stage": "begin",
+              "elapsedMs": 0.002
+            },
+            {
+              "wallMs": 1791941239892.052,
+              "id": 33,
+              "thread": "ThreadId(1)",
+              "name": "read-window",
+              "stage": "locked",
+              "elapsedMs": 4.551
+            },
+            {
+              "wallMs": 1791941239893.107,
+              "id": 33,
+              "thread": "ThreadId(1)",
+              "name": "read-window",
+              "stage": "end",
+              "elapsedMs": 5.606
+            },
+            {
+              "wallMs": 1791941239902.925,
+              "id": 34,
+              "thread": "ThreadId(1)",
+              "name": "read-window",
+              "stage": "begin",
+              "elapsedMs": 0.0
+            },
+            {
+              "wallMs": 1791941239903.44,
+              "id": 34,
+              "thread": "ThreadId(1)",
+              "name": "read-window",
+              "stage": "locked",
+              "elapsedMs": 0.515
+            },
+            {
+              "wallMs": 1791941239904.239,
+              "id": 34,
+              "thread": "ThreadId(1)",
+              "name": "read-window",
+              "stage": "end",
+              "elapsedMs": 1.314
+            },
+            {
+              "wallMs": 1791941240226.717,
+              "id": 35,
+              "thread": "ThreadId(1)",
+              "name": "apply",
+              "stage": "begin",
+              "elapsedMs": 0.001
+            },
+            {
+              "wallMs": 1791941240228.703,
+              "id": 35,
+              "thread": "ThreadId(1)",
+              "name": "apply",
+              "stage": "locked",
+              "elapsedMs": 1.987
+            },
+            {
+              "wallMs": 1791941240230.298,
+              "id": 35,
+              "thread": "ThreadId(1)",
+              "name": "apply",
+              "stage": "end",
+              "elapsedMs": 3.581
+            }
+          ]
+        },
+        {
+          "sample": {
+            "version": 2,
+            "wall": 1791941235942,
+            "twoFrames": 4699,
+            "modifiers": {
+              "alt": false,
+              "meta": false,
+              "ctrl": false
+            },
+            "recovery": "pending",
+            "frameMs": 146,
+            "domMs": 5,
+            "started": 4553,
+            "renderedLines": 58,
+            "cursor": 0,
+            "kind": "delete",
+            "trusted": true,
+            "target": "milkup-input-proxy",
+            "dom": 4558,
+            "round": 0,
+            "expected": 0,
+            "targetMs": 200,
+            "key": "Backspace",
+            "externalCommandToObservedMs": 213.02422599999954,
+            "overTarget": false
+          },
+          "largestOverlappingFrontendSpans": [
+            {
+              "wall": 1791941236012,
+              "ms": 26,
+              "name": "view.commitVisibleEdit",
+              "start": 4623,
+              "end": 4649,
+              "version": 1,
+              "overlapMs": 26
+            },
+            {
+              "wall": 1791941236012,
+              "ms": 26,
+              "name": "view.flushPendingVisibleEdit",
+              "start": 4623,
+              "end": 4649,
+              "version": 1,
+              "overlapMs": 26
+            },
+            {
+              "wall": 1791941235944,
+              "ms": 3,
+              "name": "view.renderCursor",
+              "start": 4555,
+              "end": 4558,
+              "version": 1,
+              "overlapMs": 3
+            },
+            {
+              "wall": 1791941235944,
+              "ms": 0,
+              "name": "view.readVisibleEditRange",
+              "start": 4555,
+              "end": 4555,
+              "version": 1,
+              "overlapMs": 0
+            },
+            {
+              "wall": 1791941235944,
+              "ms": 0,
+              "name": "view.renderSelection",
+              "start": 4555,
+              "end": 4555,
+              "version": 1,
+              "overlapMs": 0
+            }
+          ],
+          "nativeEventsAroundSample": [
+            {
+              "wallMs": 1791941234597.875,
+              "id": 13,
+              "thread": "ThreadId(1)",
+              "name": "read-window",
+              "stage": "begin",
+              "elapsedMs": 0.002
+            },
+            {
+              "wallMs": 1791941234598.457,
+              "id": 13,
+              "thread": "ThreadId(1)",
+              "name": "read-window",
+              "stage": "locked",
+              "elapsedMs": 0.583
+            },
+            {
+              "wallMs": 1791941234599.123,
+              "id": 13,
+              "thread": "ThreadId(1)",
+              "name": "read-window",
+              "stage": "end",
+              "elapsedMs": 1.249
+            },
+            {
+              "wallMs": 1791941234860.37,
+              "id": 14,
+              "thread": "ThreadId(1)",
+              "name": "read-window",
+              "stage": "begin",
+              "elapsedMs": 0.002
+            },
+            {
+              "wallMs": 1791941234861.059,
+              "id": 14,
+              "thread": "ThreadId(1)",
+              "name": "read-window",
+              "stage": "locked",
+              "elapsedMs": 0.69
+            },
+            {
+              "wallMs": 1791941234861.925,
+              "id": 14,
+              "thread": "ThreadId(1)",
+              "name": "read-window",
+              "stage": "end",
+              "elapsedMs": 1.556
+            },
+            {
+              "wallMs": 1791941235130.496,
+              "id": 15,
+              "thread": "ThreadId(1)",
+              "name": "read-window",
+              "stage": "begin",
+              "elapsedMs": 0.002
+            },
+            {
+              "wallMs": 1791941235132.042,
+              "id": 15,
+              "thread": "ThreadId(1)",
+              "name": "read-window",
+              "stage": "locked",
+              "elapsedMs": 1.546
+            },
+            {
+              "wallMs": 1791941235133.054,
+              "id": 15,
+              "thread": "ThreadId(1)",
+              "name": "read-window",
+              "stage": "end",
+              "elapsedMs": 2.559
+            },
+            {
+              "wallMs": 1791941235404.203,
+              "id": 16,
+              "thread": "ThreadId(1)",
+              "name": "read-window",
+              "stage": "begin",
+              "elapsedMs": 0.001
+            },
+            {
+              "wallMs": 1791941235405.314,
+              "id": 16,
+              "thread": "ThreadId(1)",
+              "name": "read-window",
+              "stage": "locked",
+              "elapsedMs": 1.112
+            },
+            {
+              "wallMs": 1791941235406.648,
+              "id": 16,
+              "thread": "ThreadId(1)",
+              "name": "read-window",
+              "stage": "end",
+              "elapsedMs": 2.446
+            },
+            {
+              "wallMs": 1791941235722.416,
+              "id": 17,
+              "thread": "ThreadId(1)",
+              "name": "apply",
+              "stage": "begin",
+              "elapsedMs": 0.002
+            },
+            {
+              "wallMs": 1791941235722.954,
+              "id": 17,
+              "thread": "ThreadId(1)",
+              "name": "apply",
+              "stage": "locked",
+              "elapsedMs": 0.539
+            },
+            {
+              "wallMs": 1791941235723.904,
+              "id": 17,
+              "thread": "ThreadId(1)",
+              "name": "apply",
+              "stage": "end",
+              "elapsedMs": 1.489
+            },
+            {
+              "wallMs": 1791941236022.189,
+              "id": 18,
+              "thread": "ThreadId(1)",
+              "name": "apply",
+              "stage": "begin",
+              "elapsedMs": 0.002
+            },
+            {
+              "wallMs": 1791941236023.933,
+              "id": 18,
+              "thread": "ThreadId(1)",
+              "name": "apply",
+              "stage": "locked",
+              "elapsedMs": 1.746
+            },
+            {
+              "wallMs": 1791941236025.925,
+              "id": 18,
+              "thread": "ThreadId(1)",
+              "name": "apply",
+              "stage": "end",
+              "elapsedMs": 3.738
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "run": "regression-trace-1m-long-live-r1",
+      "checkpoints": [
+        {
+          "startWallMs": 1791941222266.781,
+          "writeMs": 5.142000000000001,
+          "hashMs": 3.2239999999999984,
+          "publishMs": 1.6700000000000017,
+          "totalMs": 13.526
+        },
+        {
+          "startWallMs": 1791941224156.357,
+          "writeMs": 12.979,
+          "hashMs": 3.2250000000000014,
+          "publishMs": 2.539999999999999,
+          "totalMs": 31.052
+        },
+        {
+          "startWallMs": 1791941226063.058,
+          "writeMs": 14.493000000000002,
+          "hashMs": 4.167999999999999,
+          "publishMs": 2.718,
+          "totalMs": 27.979
+        },
+        {
+          "startWallMs": 1791941228097.869,
+          "writeMs": 7.225,
+          "hashMs": 3.128,
+          "publishMs": 3.0170000000000012,
+          "totalMs": 18.798
+        }
+      ],
+      "worstSamples": [
+        {
+          "sample": {
+            "wall": 1791941218488,
+            "dom": 1875,
+            "temperature": "unchanged-warm",
+            "modifiers": {
+              "alt": false,
+              "meta": false,
+              "ctrl": true
+            },
+            "direction": "home",
+            "twoFrames": 1923,
+            "recovery": "idle",
+            "frameMs": 262,
+            "domMs": 214,
+            "started": 1661,
+            "renderedLines": 42,
+            "kind": "jump",
+            "trusted": true,
+            "target": "milkup-input-proxy",
+            "cursor": 0,
+            "round": 0,
+            "expected": 0,
+            "key": "Home",
+            "targetMs": 200,
+            "version": 0,
+            "externalCommandToObservedMs": 360.7775919999999,
+            "overTarget": true
+          },
+          "largestOverlappingFrontendSpans": [
+            {
+              "wall": 1791941218494,
+              "ms": 162,
+              "name": "view.scrollToLine",
+              "start": 1667,
+              "end": 1829,
+              "version": 0,
+              "overlapMs": 162
+            },
+            {
+              "wall": 1791941218495,
+              "ms": 160,
+              "name": "view.renderVisibleWindow",
+              "start": 1668,
+              "end": 1828,
+              "version": 0,
+              "overlapMs": 160
+            },
+            {
+              "wall": 1791941218495,
+              "ms": 87.00000000000023,
+              "name": "view.renderLiveLineWindow",
+              "start": 1668,
+              "end": 1755.0000000000002,
+              "version": 0,
+              "overlapMs": 87.00000000000023
+            },
+            {
+              "wall": 1791941218495,
+              "to": 66,
+              "ms": 79,
+              "name": "view.parseLiveWindow",
+              "start": 1668,
+              "from": 1,
+              "cacheHit": false,
+              "end": 1747,
+              "version": 0,
+              "overlapMs": 79
+            },
+            {
+              "wall": 1791941218495,
+              "ms": 78,
+              "name": "view.parseCompleteTableWindow",
+              "start": 1668,
+              "end": 1746,
+              "version": 0,
+              "overlapMs": 78
+            },
+            {
+              "wall": 1791941218495,
+              "to": 66,
+              "ms": 71,
+              "name": "nativeSource.readLineWindow",
+              "start": 1668,
+              "from": 1,
+              "end": 1739,
+              "version": 0,
+              "overlapMs": 71
+            },
+            {
+              "wall": 1791941218584,
+              "ms": 70.99999999999977,
+              "name": "view.measureTableRows",
+              "start": 1757.0000000000002,
+              "end": 1828,
+              "version": 0,
+              "overlapMs": 70.99999999999977
+            },
+            {
+              "wall": 1791941218656,
+              "ms": 45,
+              "name": "view.renderSingleLiveLine",
+              "start": 1829,
+              "end": 1874,
+              "version": 0,
+              "overlapMs": 45
+            },
+            {
+              "wall": 1791941218656,
+              "ms": 45,
+              "name": "view.renderRenderedLine",
+              "start": 1829,
+              "end": 1874,
+              "version": 0,
+              "overlapMs": 45
+            },
+            {
+              "wall": 1791941218656,
+              "ms": 45,
+              "name": "view.renderLiveSyntaxAroundPositions",
+              "start": 1829,
+              "end": 1874,
+              "version": 0,
+              "overlapMs": 45
+            },
+            {
+              "wall": 1791941218657,
+              "ms": 44,
+              "name": "view.parseCompleteTableWindow",
+              "start": 1829,
+              "end": 1873,
+              "version": 0,
+              "overlapMs": 44
+            },
+            {
+              "wall": 1791941218656,
+              "to": 25,
+              "ms": 44,
+              "name": "view.parseLiveWindow",
+              "start": 1829,
+              "from": 1,
+              "cacheHit": false,
+              "end": 1873,
+              "version": 0,
+              "overlapMs": 44
+            }
+          ],
+          "nativeEventsAroundSample": [
+            {
+              "wallMs": 1791941217211.003,
+              "id": 1,
+              "thread": "ThreadId(1)",
+              "name": "read-window",
+              "stage": "begin",
+              "elapsedMs": 0.001
+            },
+            {
+              "wallMs": 1791941217212.341,
+              "id": 1,
+              "thread": "ThreadId(1)",
+              "name": "read-window",
+              "stage": "locked",
+              "elapsedMs": 1.338
+            },
+            {
+              "wallMs": 1791941217214.242,
+              "id": 1,
+              "thread": "ThreadId(1)",
+              "name": "read-window",
+              "stage": "end",
+              "elapsedMs": 3.24
+            },
+            {
+              "wallMs": 1791941217281.44,
+              "id": 2,
+              "thread": "ThreadId(1)",
+              "name": "read-window",
+              "stage": "begin",
+              "elapsedMs": 0.002
+            },
+            {
+              "wallMs": 1791941217284.179,
+              "id": 2,
+              "thread": "ThreadId(1)",
+              "name": "read-window",
+              "stage": "locked",
+              "elapsedMs": 2.741
+            },
+            {
+              "wallMs": 1791941217289.651,
+              "id": 2,
+              "thread": "ThreadId(1)",
+              "name": "read-window",
+              "stage": "end",
+              "elapsedMs": 8.212
+            },
+            {
+              "wallMs": 1791941218172.555,
+              "id": 3,
+              "thread": "ThreadId(1)",
+              "name": "read-window",
+              "stage": "begin",
+              "elapsedMs": 0.002
+            },
+            {
+              "wallMs": 1791941218173.206,
+              "id": 3,
+              "thread": "ThreadId(1)",
+              "name": "read-window",
+              "stage": "locked",
+              "elapsedMs": 0.651
+            },
+            {
+              "wallMs": 1791941218174.856,
+              "id": 3,
+              "thread": "ThreadId(1)",
+              "name": "read-window",
+              "stage": "end",
+              "elapsedMs": 2.302
+            },
+            {
+              "wallMs": 1791941218183.483,
+              "id": 4,
+              "thread": "ThreadId(1)",
+              "name": "read-window",
+              "stage": "begin",
+              "elapsedMs": 0.001
+            },
+            {
+              "wallMs": 1791941218189.547,
+              "id": 4,
+              "thread": "ThreadId(1)",
+              "name": "read-window",
+              "stage": "locked",
+              "elapsedMs": 6.066
+            },
+            {
+              "wallMs": 1791941218194.87,
+              "id": 4,
+              "thread": "ThreadId(1)",
+              "name": "read-window",
+              "stage": "end",
+              "elapsedMs": 11.388
+            },
+            {
+              "wallMs": 1791941218227.677,
+              "id": 5,
+              "thread": "ThreadId(1)",
+              "name": "read-window",
+              "stage": "begin",
+              "elapsedMs": 0.002
+            },
+            {
+              "wallMs": 1791941218229.91,
+              "id": 5,
+              "thread": "ThreadId(1)",
+              "name": "read-window",
+              "stage": "locked",
+              "elapsedMs": 2.234
+            },
+            {
+              "wallMs": 1791941218234.846,
+              "id": 5,
+              "thread": "ThreadId(1)",
+              "name": "read-window",
+              "stage": "end",
+              "elapsedMs": 7.171
+            },
+            {
+              "wallMs": 1791941218491.055,
+              "id": 6,
+              "thread": "ThreadId(1)",
+              "name": "read-window",
+              "stage": "begin",
+              "elapsedMs": 0.002
+            },
+            {
+              "wallMs": 1791941218491.731,
+              "id": 6,
+              "thread": "ThreadId(1)",
+              "name": "read-window",
+              "stage": "locked",
+              "elapsedMs": 0.677
+            },
+            {
+              "wallMs": 1791941218492.486,
+              "id": 6,
+              "thread": "ThreadId(1)",
+              "name": "read-window",
+              "stage": "end",
+              "elapsedMs": 1.432
+            },
+            {
+              "wallMs": 1791941218510.947,
+              "id": 7,
+              "thread": "ThreadId(1)",
+              "name": "read-window",
+              "stage": "begin",
+              "elapsedMs": 0.001
+            },
+            {
+              "wallMs": 1791941218514.161,
+              "id": 7,
+              "thread": "ThreadId(1)",
+              "name": "read-window",
+              "stage": "locked",
+              "elapsedMs": 3.215
+            },
+            {
+              "wallMs": 1791941218520.28,
+              "id": 7,
+              "thread": "ThreadId(1)",
+              "name": "read-window",
+              "stage": "end",
+              "elapsedMs": 9.334
+            },
+            {
+              "wallMs": 1791941218666.691,
+              "id": 8,
+              "thread": "ThreadId(1)",
+              "name": "read-window",
+              "stage": "begin",
+              "elapsedMs": 0.002
+            },
+            {
+              "wallMs": 1791941218667.702,
+              "id": 8,
+              "thread": "ThreadId(1)",
+              "name": "read-window",
+              "stage": "locked",
+              "elapsedMs": 1.012
+            },
+            {
+              "wallMs": 1791941218672.221,
+              "id": 8,
+              "thread": "ThreadId(1)",
+              "name": "read-window",
+              "stage": "end",
+              "elapsedMs": 5.532
+            }
+          ]
+        },
+        {
+          "sample": {
+            "version": 7,
+            "wall": 1791941227001,
+            "twoFrames": 10325.000000000002,
+            "modifiers": {
+              "alt": false,
+              "meta": false,
+              "ctrl": false
+            },
+            "recovery": "ready",
+            "frameMs": 151.00000000000182,
+            "domMs": 51,
+            "started": 10174,
+            "renderedLines": 42,
+            "cursor": 1,
+            "kind": "input",
+            "trusted": true,
+            "target": "milkup-input-proxy",
+            "dom": 10225,
+            "round": 3,
+            "expected": 1,
+            "targetMs": 200,
+            "key": "q",
+            "externalCommandToObservedMs": 208.66038499999922,
+            "overTarget": false
+          },
+          "largestOverlappingFrontendSpans": [
+            {
+              "wall": 1791941227002,
+              "ms": 50,
+              "name": "view.applyTextInput",
+              "start": 10175,
+              "end": 10225,
+              "version": 6,
+              "overlapMs": 50
+            },
+            {
+              "wall": 1791941227095,
+              "ms": 50,
+              "name": "view.renderSingleLiveLine",
+              "start": 10267,
+              "end": 10317,
+              "version": 7,
+              "overlapMs": 50
+            },
+            {
+              "wall": 1791941227094,
+              "ms": 50,
+              "name": "view.renderRenderedLine",
+              "start": 10267,
+              "end": 10317,
+              "version": 7,
+              "overlapMs": 50
+            },
+            {
+              "wall": 1791941227095,
+              "ms": 48,
+              "name": "view.parseCompleteTableWindow",
+              "start": 10267,
+              "end": 10315,
+              "version": 7,
+              "overlapMs": 48
+            },
+            {
+              "wall": 1791941227095,
+              "to": 25,
+              "ms": 48,
+              "name": "view.parseLiveWindow",
+              "start": 10267,
+              "from": 1,
+              "cacheHit": false,
+              "end": 10315,
+              "version": 7,
+              "overlapMs": 48
+            },
+            {
+              "wall": 1791941227095,
+              "to": 25,
+              "ms": 43,
+              "name": "nativeSource.readLineWindow",
+              "start": 10268,
+              "from": 1,
+              "end": 10311,
+              "version": 7,
+              "overlapMs": 43
+            },
+            {
+              "wall": 1791941227009,
+              "ms": 42,
+              "name": "view.renderCursor",
+              "start": 10182,
+              "end": 10224,
+              "version": 6,
+              "overlapMs": 42
+            },
+            {
+              "wall": 1791941227076,
+              "ms": 18,
+              "name": "view.commitVisibleEdit",
+              "start": 10249,
+              "end": 10267,
+              "version": 6,
+              "overlapMs": 18
+            },
+            {
+              "wall": 1791941227076,
+              "ms": 18,
+              "name": "view.flushPendingVisibleEdit",
+              "start": 10249,
+              "end": 10267,
+              "version": 6,
+              "overlapMs": 18
+            },
+            {
+              "wall": 1791941227148,
+              "ms": 4,
+              "name": "view.renderCursor",
+              "start": 10320,
+              "end": 10324,
+              "version": 7,
+              "overlapMs": 4
+            },
+            {
+              "wall": 1791941227145,
+              "ms": 3,
+              "name": "view.measureTableRows",
+              "start": 10317,
+              "end": 10320,
+              "version": 7,
+              "overlapMs": 3
+            },
+            {
+              "wall": 1791941227146,
+              "ms": 1,
+              "name": "view.scrollGeometry",
+              "start": 10319,
+              "end": 10320,
+              "version": 7,
+              "overlapMs": 1
+            }
+          ],
+          "nativeEventsAroundSample": [
+            {
+              "wallMs": 1791941226060.006,
+              "id": 45,
+              "thread": "ThreadId(9)",
+              "name": "checkpoint-registry",
+              "stage": "begin",
+              "elapsedMs": 0.002
+            },
+            {
+              "wallMs": 1791941226061.438,
+              "id": 45,
+              "thread": "ThreadId(9)",
+              "name": "checkpoint-registry",
+              "stage": "locked",
+              "elapsedMs": 1.433
+            },
+            {
+              "wallMs": 1791941226063.058,
+              "id": 46,
+              "thread": "ThreadId(9)",
+              "name": "checkpoint-store",
+              "stage": "begin",
+              "elapsedMs": 0.0
+            },
+            {
+              "wallMs": 1791941226064.183,
+              "id": 46,
+              "thread": "ThreadId(9)",
+              "name": "checkpoint-store",
+              "stage": "gate-locked",
+              "elapsedMs": 1.125
+            },
+            {
+              "wallMs": 1791941226066.402,
+              "id": 46,
+              "thread": "ThreadId(9)",
+              "name": "checkpoint-store",
+              "stage": "admitted",
+              "elapsedMs": 3.344
+            },
+            {
+              "wallMs": 1791941226068.578,
+              "id": 46,
+              "thread": "ThreadId(9)",
+              "name": "checkpoint-store",
+              "stage": "write-begin",
+              "elapsedMs": 5.52
+            },
+            {
+              "wallMs": 1791941226071.097,
+              "id": 47,
+              "thread": "ThreadId(9)",
+              "name": "checkpoint-write",
+              "stage": "begin",
+              "elapsedMs": 0.0
+            },
+            {
+              "wallMs": 1791941226078.488,
+              "id": 47,
+              "thread": "ThreadId(9)",
+              "name": "checkpoint-write",
+              "stage": "flushed",
+              "elapsedMs": 7.392
+            },
+            {
+              "wallMs": 1791941226081.248,
+              "id": 47,
+              "thread": "ThreadId(9)",
+              "name": "checkpoint-write",
+              "stage": "end",
+              "elapsedMs": 10.152
+            },
+            {
+              "wallMs": 1791941226083.071,
+              "id": 46,
+              "thread": "ThreadId(9)",
+              "name": "checkpoint-store",
+              "stage": "write-end",
+              "elapsedMs": 20.013
+            },
+            {
+              "wallMs": 1791941226087.239,
+              "id": 46,
+              "thread": "ThreadId(9)",
+              "name": "checkpoint-store",
+              "stage": "hash-end",
+              "elapsedMs": 24.181
+            },
+            {
+              "wallMs": 1791941226089.956,
+              "id": 46,
+              "thread": "ThreadId(9)",
+              "name": "checkpoint-store",
+              "stage": "commit-end",
+              "elapsedMs": 26.899
+            },
+            {
+              "wallMs": 1791941226091.037,
+              "id": 46,
+              "thread": "ThreadId(9)",
+              "name": "checkpoint-store",
+              "stage": "end",
+              "elapsedMs": 27.979
+            },
+            {
+              "wallMs": 1791941226092.162,
+              "id": 45,
+              "thread": "ThreadId(9)",
+              "name": "checkpoint-registry",
+              "stage": "end",
+              "elapsedMs": 32.157
+            },
+            {
+              "wallMs": 1791941226312.669,
+              "id": 48,
+              "thread": "ThreadId(1)",
+              "name": "read-window",
+              "stage": "begin",
+              "elapsedMs": 0.002
+            },
+            {
+              "wallMs": 1791941226314.03,
+              "id": 48,
+              "thread": "ThreadId(1)",
+              "name": "read-window",
+              "stage": "locked",
+              "elapsedMs": 1.362
+            },
+            {
+              "wallMs": 1791941226316.266,
+              "id": 48,
+              "thread": "ThreadId(1)",
+              "name": "read-window",
+              "stage": "end",
+              "elapsedMs": 3.598
+            },
+            {
+              "wallMs": 1791941226323.409,
+              "id": 49,
+              "thread": "ThreadId(1)",
+              "name": "read-window",
+              "stage": "begin",
+              "elapsedMs": 0.001
+            },
+            {
+              "wallMs": 1791941226324.133,
+              "id": 49,
+              "thread": "ThreadId(1)",
+              "name": "read-window",
+              "stage": "locked",
+              "elapsedMs": 0.725
+            },
+            {
+              "wallMs": 1791941226325.806,
+              "id": 49,
+              "thread": "ThreadId(1)",
+              "name": "read-window",
+              "stage": "end",
+              "elapsedMs": 2.397
+            },
+            {
+              "wallMs": 1791941226368.188,
+              "id": 50,
+              "thread": "ThreadId(1)",
+              "name": "read-window",
+              "stage": "begin",
+              "elapsedMs": 0.001
+            },
+            {
+              "wallMs": 1791941226370.27,
+              "id": 50,
+              "thread": "ThreadId(1)",
+              "name": "read-window",
+              "stage": "locked",
+              "elapsedMs": 2.083
+            },
+            {
+              "wallMs": 1791941226373.43,
+              "id": 50,
+              "thread": "ThreadId(1)",
+              "name": "read-window",
+              "stage": "end",
+              "elapsedMs": 5.244
+            },
+            {
+              "wallMs": 1791941226548.598,
+              "id": 51,
+              "thread": "ThreadId(1)",
+              "name": "read-window",
+              "stage": "begin",
+              "elapsedMs": 0.002
+            },
+            {
+              "wallMs": 1791941226549.951,
+              "id": 51,
+              "thread": "ThreadId(1)",
+              "name": "read-window",
+              "stage": "locked",
+              "elapsedMs": 1.354
+            },
+            {
+              "wallMs": 1791941226550.688,
+              "id": 51,
+              "thread": "ThreadId(1)",
+              "name": "read-window",
+              "stage": "end",
+              "elapsedMs": 2.091
+            },
+            {
+              "wallMs": 1791941226559.281,
+              "id": 52,
+              "thread": "ThreadId(1)",
+              "name": "read-window",
+              "stage": "begin",
+              "elapsedMs": 0.0
+            },
+            {
+              "wallMs": 1791941226559.454,
+              "id": 52,
+              "thread": "ThreadId(1)",
+              "name": "read-window",
+              "stage": "locked",
+              "elapsedMs": 0.173
+            },
+            {
+              "wallMs": 1791941226560.798,
+              "id": 52,
+              "thread": "ThreadId(1)",
+              "name": "read-window",
+              "stage": "end",
+              "elapsedMs": 1.517
+            },
+            {
+              "wallMs": 1791941227081.8,
+              "id": 53,
+              "thread": "ThreadId(1)",
+              "name": "apply",
+              "stage": "begin",
+              "elapsedMs": 0.002
+            },
+            {
+              "wallMs": 1791941227083.496,
+              "id": 53,
+              "thread": "ThreadId(1)",
+              "name": "apply",
+              "stage": "locked",
+              "elapsedMs": 1.697
+            },
+            {
+              "wallMs": 1791941227085.977,
+              "id": 53,
+              "thread": "ThreadId(1)",
+              "name": "apply",
+              "stage": "end",
+              "elapsedMs": 4.178
+            },
+            {
+              "wallMs": 1791941227097.497,
+              "id": 54,
+              "thread": "ThreadId(1)",
+              "name": "read-window",
+              "stage": "begin",
+              "elapsedMs": 0.001
+            },
+            {
+              "wallMs": 1791941227100.469,
+              "id": 54,
+              "thread": "ThreadId(1)",
+              "name": "read-window",
+              "stage": "locked",
+              "elapsedMs": 2.974
+            },
+            {
+              "wallMs": 1791941227103.095,
+              "id": 54,
+              "thread": "ThreadId(1)",
+              "name": "read-window",
+              "stage": "end",
+              "elapsedMs": 5.599
+            }
+          ]
+        },
+        {
+          "sample": {
+            "version": 8,
+            "wall": 1791941227283,
+            "twoFrames": 10550,
+            "modifiers": {
+              "alt": false,
+              "meta": false,
+              "ctrl": false
+            },
+            "recovery": "pending",
+            "frameMs": 95,
+            "domMs": 12,
+            "started": 10455,
+            "renderedLines": 42,
+            "cursor": 0,
+            "kind": "delete",
+            "trusted": true,
+            "target": "milkup-input-proxy",
+            "dom": 10467,
+            "round": 3,
+            "expected": 0,
+            "targetMs": 200,
+            "key": "Backspace",
+            "externalCommandToObservedMs": 159.0767190000006,
+            "overTarget": false
+          },
+          "largestOverlappingFrontendSpans": [
+            {
+              "wall": 1791941227340,
+              "ms": 23,
+              "name": "view.renderSingleLiveLine",
+              "start": 10512,
+              "end": 10535,
+              "version": 8,
+              "overlapMs": 23
+            },
+            {
+              "wall": 1791941227340,
+              "ms": 23,
+              "name": "view.renderRenderedLine",
+              "start": 10512,
+              "end": 10535,
+              "version": 8,
+              "overlapMs": 23
+            },
+            {
+              "wall": 1791941227340,
+              "ms": 22,
+              "name": "view.parseCompleteTableWindow",
+              "start": 10512,
+              "end": 10534,
+              "version": 8,
+              "overlapMs": 22
+            },
+            {
+              "wall": 1791941227340,
+              "to": 25,
+              "ms": 22,
+              "name": "view.parseLiveWindow",
+              "start": 10512,
+              "from": 1,
+              "cacheHit": false,
+              "end": 10534,
+              "version": 8,
+              "overlapMs": 22
+            },
+            {
+              "wall": 1791941227319,
+              "ms": 21,
+              "name": "view.commitVisibleEdit",
+              "start": 10491,
+              "end": 10512,
+              "version": 7,
+              "overlapMs": 21
+            },
+            {
+              "wall": 1791941227319,
+              "ms": 21,
+              "name": "view.flushPendingVisibleEdit",
+              "start": 10491,
+              "end": 10512,
+              "version": 7,
+              "overlapMs": 21
+            },
+            {
+              "wall": 1791941227340,
+              "to": 25,
+              "ms": 20,
+              "name": "nativeSource.readLineWindow",
+              "start": 10512,
+              "from": 1,
+              "end": 10532,
+              "version": 8,
+              "overlapMs": 20
+            },
+            {
+              "wall": 1791941227289,
+              "ms": 5,
+              "name": "view.renderCursor",
+              "start": 10462,
+              "end": 10467,
+              "version": 7,
+              "overlapMs": 5
+            },
+            {
+              "wall": 1791941227363,
+              "ms": 4.000000000001819,
+              "name": "view.renderCursor",
+              "start": 10536,
+              "end": 10540.000000000002,
+              "version": 8,
+              "overlapMs": 4.000000000001819
+            },
+            {
+              "wall": 1791941227362,
+              "ms": 1,
+              "name": "view.measureTableRows",
+              "start": 10535,
+              "end": 10536,
+              "version": 8,
+              "overlapMs": 1
+            },
+            {
+              "wall": 1791941227285,
+              "ms": 0,
+              "name": "view.readVisibleEditRange",
+              "start": 10458,
+              "end": 10458,
+              "version": 7,
+              "overlapMs": 0
+            },
+            {
+              "wall": 1791941227289,
+              "ms": 0,
+              "name": "view.renderSelection",
+              "start": 10462,
+              "end": 10462,
+              "version": 7,
+              "overlapMs": 0
+            }
+          ],
+          "nativeEventsAroundSample": [
+            {
+              "wallMs": 1791941226060.006,
+              "id": 45,
+              "thread": "ThreadId(9)",
+              "name": "checkpoint-registry",
+              "stage": "begin",
+              "elapsedMs": 0.002
+            },
+            {
+              "wallMs": 1791941226061.438,
+              "id": 45,
+              "thread": "ThreadId(9)",
+              "name": "checkpoint-registry",
+              "stage": "locked",
+              "elapsedMs": 1.433
+            },
+            {
+              "wallMs": 1791941226063.058,
+              "id": 46,
+              "thread": "ThreadId(9)",
+              "name": "checkpoint-store",
+              "stage": "begin",
+              "elapsedMs": 0.0
+            },
+            {
+              "wallMs": 1791941226064.183,
+              "id": 46,
+              "thread": "ThreadId(9)",
+              "name": "checkpoint-store",
+              "stage": "gate-locked",
+              "elapsedMs": 1.125
+            },
+            {
+              "wallMs": 1791941226066.402,
+              "id": 46,
+              "thread": "ThreadId(9)",
+              "name": "checkpoint-store",
+              "stage": "admitted",
+              "elapsedMs": 3.344
+            },
+            {
+              "wallMs": 1791941226068.578,
+              "id": 46,
+              "thread": "ThreadId(9)",
+              "name": "checkpoint-store",
+              "stage": "write-begin",
+              "elapsedMs": 5.52
+            },
+            {
+              "wallMs": 1791941226071.097,
+              "id": 47,
+              "thread": "ThreadId(9)",
+              "name": "checkpoint-write",
+              "stage": "begin",
+              "elapsedMs": 0.0
+            },
+            {
+              "wallMs": 1791941226078.488,
+              "id": 47,
+              "thread": "ThreadId(9)",
+              "name": "checkpoint-write",
+              "stage": "flushed",
+              "elapsedMs": 7.392
+            },
+            {
+              "wallMs": 1791941226081.248,
+              "id": 47,
+              "thread": "ThreadId(9)",
+              "name": "checkpoint-write",
+              "stage": "end",
+              "elapsedMs": 10.152
+            },
+            {
+              "wallMs": 1791941226083.071,
+              "id": 46,
+              "thread": "ThreadId(9)",
+              "name": "checkpoint-store",
+              "stage": "write-end",
+              "elapsedMs": 20.013
+            },
+            {
+              "wallMs": 1791941226087.239,
+              "id": 46,
+              "thread": "ThreadId(9)",
+              "name": "checkpoint-store",
+              "stage": "hash-end",
+              "elapsedMs": 24.181
+            },
+            {
+              "wallMs": 1791941226089.956,
+              "id": 46,
+              "thread": "ThreadId(9)",
+              "name": "checkpoint-store",
+              "stage": "commit-end",
+              "elapsedMs": 26.899
+            },
+            {
+              "wallMs": 1791941226091.037,
+              "id": 46,
+              "thread": "ThreadId(9)",
+              "name": "checkpoint-store",
+              "stage": "end",
+              "elapsedMs": 27.979
+            },
+            {
+              "wallMs": 1791941226092.162,
+              "id": 45,
+              "thread": "ThreadId(9)",
+              "name": "checkpoint-registry",
+              "stage": "end",
+              "elapsedMs": 32.157
+            },
+            {
+              "wallMs": 1791941226312.669,
+              "id": 48,
+              "thread": "ThreadId(1)",
+              "name": "read-window",
+              "stage": "begin",
+              "elapsedMs": 0.002
+            },
+            {
+              "wallMs": 1791941226314.03,
+              "id": 48,
+              "thread": "ThreadId(1)",
+              "name": "read-window",
+              "stage": "locked",
+              "elapsedMs": 1.362
+            },
+            {
+              "wallMs": 1791941226316.266,
+              "id": 48,
+              "thread": "ThreadId(1)",
+              "name": "read-window",
+              "stage": "end",
+              "elapsedMs": 3.598
+            },
+            {
+              "wallMs": 1791941226323.409,
+              "id": 49,
+              "thread": "ThreadId(1)",
+              "name": "read-window",
+              "stage": "begin",
+              "elapsedMs": 0.001
+            },
+            {
+              "wallMs": 1791941226324.133,
+              "id": 49,
+              "thread": "ThreadId(1)",
+              "name": "read-window",
+              "stage": "locked",
+              "elapsedMs": 0.725
+            },
+            {
+              "wallMs": 1791941226325.806,
+              "id": 49,
+              "thread": "ThreadId(1)",
+              "name": "read-window",
+              "stage": "end",
+              "elapsedMs": 2.397
+            },
+            {
+              "wallMs": 1791941226368.188,
+              "id": 50,
+              "thread": "ThreadId(1)",
+              "name": "read-window",
+              "stage": "begin",
+              "elapsedMs": 0.001
+            },
+            {
+              "wallMs": 1791941226370.27,
+              "id": 50,
+              "thread": "ThreadId(1)",
+              "name": "read-window",
+              "stage": "locked",
+              "elapsedMs": 2.083
+            },
+            {
+              "wallMs": 1791941226373.43,
+              "id": 50,
+              "thread": "ThreadId(1)",
+              "name": "read-window",
+              "stage": "end",
+              "elapsedMs": 5.244
+            },
+            {
+              "wallMs": 1791941226548.598,
+              "id": 51,
+              "thread": "ThreadId(1)",
+              "name": "read-window",
+              "stage": "begin",
+              "elapsedMs": 0.002
+            },
+            {
+              "wallMs": 1791941226549.951,
+              "id": 51,
+              "thread": "ThreadId(1)",
+              "name": "read-window",
+              "stage": "locked",
+              "elapsedMs": 1.354
+            },
+            {
+              "wallMs": 1791941226550.688,
+              "id": 51,
+              "thread": "ThreadId(1)",
+              "name": "read-window",
+              "stage": "end",
+              "elapsedMs": 2.091
+            },
+            {
+              "wallMs": 1791941226559.281,
+              "id": 52,
+              "thread": "ThreadId(1)",
+              "name": "read-window",
+              "stage": "begin",
+              "elapsedMs": 0.0
+            },
+            {
+              "wallMs": 1791941226559.454,
+              "id": 52,
+              "thread": "ThreadId(1)",
+              "name": "read-window",
+              "stage": "locked",
+              "elapsedMs": 0.173
+            },
+            {
+              "wallMs": 1791941226560.798,
+              "id": 52,
+              "thread": "ThreadId(1)",
+              "name": "read-window",
+              "stage": "end",
+              "elapsedMs": 1.517
+            },
+            {
+              "wallMs": 1791941227081.8,
+              "id": 53,
+              "thread": "ThreadId(1)",
+              "name": "apply",
+              "stage": "begin",
+              "elapsedMs": 0.002
+            },
+            {
+              "wallMs": 1791941227083.496,
+              "id": 53,
+              "thread": "ThreadId(1)",
+              "name": "apply",
+              "stage": "locked",
+              "elapsedMs": 1.697
+            },
+            {
+              "wallMs": 1791941227085.977,
+              "id": 53,
+              "thread": "ThreadId(1)",
+              "name": "apply",
+              "stage": "end",
+              "elapsedMs": 4.178
+            },
+            {
+              "wallMs": 1791941227097.497,
+              "id": 54,
+              "thread": "ThreadId(1)",
+              "name": "read-window",
+              "stage": "begin",
+              "elapsedMs": 0.001
+            },
+            {
+              "wallMs": 1791941227100.469,
+              "id": 54,
+              "thread": "ThreadId(1)",
+              "name": "read-window",
+              "stage": "locked",
+              "elapsedMs": 2.974
+            },
+            {
+              "wallMs": 1791941227103.095,
+              "id": 54,
+              "thread": "ThreadId(1)",
+              "name": "read-window",
+              "stage": "end",
+              "elapsedMs": 5.599
+            },
+            {
+              "wallMs": 1791941227328.471,
+              "id": 55,
+              "thread": "ThreadId(1)",
+              "name": "apply",
+              "stage": "begin",
+              "elapsedMs": 0.002
+            },
+            {
+              "wallMs": 1791941227329.567,
+              "id": 55,
+              "thread": "ThreadId(1)",
+              "name": "apply",
+              "stage": "locked",
+              "elapsedMs": 1.097
+            },
+            {
+              "wallMs": 1791941227330.808,
+              "id": 55,
+              "thread": "ThreadId(1)",
+              "name": "apply",
+              "stage": "end",
+              "elapsedMs": 2.338
+            },
+            {
+              "wallMs": 1791941227342.924,
+              "id": 56,
+              "thread": "ThreadId(1)",
+              "name": "read-window",
+              "stage": "begin",
+              "elapsedMs": 0.001
+            },
+            {
+              "wallMs": 1791941227343.651,
+              "id": 56,
+              "thread": "ThreadId(1)",
+              "name": "read-window",
+              "stage": "locked",
+              "elapsedMs": 0.728
+            },
+            {
+              "wallMs": 1791941227345.241,
+              "id": 56,
+              "thread": "ThreadId(1)",
+              "name": "read-window",
+              "stage": "end",
+              "elapsedMs": 2.318
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "run": "regression-trace-1m-long-live-r2",
+      "checkpoints": [
+        {
+          "startWallMs": 1791941274465.022,
+          "writeMs": 19.773,
+          "hashMs": 5.526,
+          "publishMs": 2.7860000000000014,
+          "totalMs": 36.589
+        },
+        {
+          "startWallMs": 1791941276511.538,
+          "writeMs": 6.446,
+          "hashMs": 3.040000000000001,
+          "publishMs": 4.451999999999998,
+          "totalMs": 20.632
+        },
+        {
+          "startWallMs": 1791941278359.919,
+          "writeMs": 13.872999999999998,
+          "hashMs": 3.5869999999999997,
+          "publishMs": 4.337000000000003,
+          "totalMs": 28.295
+        },
+        {
+          "startWallMs": 1791941280518.931,
+          "writeMs": 4.444,
+          "hashMs": 4.297999999999999,
+          "publishMs": 2.0420000000000016,
+          "totalMs": 14.572
+        }
+      ],
+      "worstSamples": [
+        {
+          "sample": {
+            "wall": 1791941278982,
+            "dom": 10321,
+            "temperature": "after-edit",
+            "modifiers": {
+              "alt": false,
+              "meta": false,
+              "ctrl": true
+            },
+            "direction": "home",
+            "twoFrames": 10366,
+            "recovery": "ready",
+            "frameMs": 263,
+            "domMs": 218,
+            "started": 10103,
+            "renderedLines": 42,
+            "kind": "jump",
+            "trusted": true,
+            "target": "milkup-input-proxy",
+            "cursor": 0,
+            "round": 3,
+            "expected": 0,
+            "key": "Home",
+            "targetMs": 200,
+            "version": 6,
+            "externalCommandToObservedMs": 400.037792000001,
+            "overTarget": true
+          },
+          "largestOverlappingFrontendSpans": [
+            {
+              "wall": 1791941278996,
+              "ms": 197,
+              "name": "view.scrollToLine",
+              "start": 10118,
+              "end": 10315,
+              "version": 6,
+              "overlapMs": 197
+            },
+            {
+              "wall": 1791941278997,
+              "ms": 195,
+              "name": "view.renderVisibleWindow",
+              "start": 10119,
+              "end": 10314,
+              "version": 6,
+              "overlapMs": 195
+            },
+            {
+              "wall": 1791941279082,
+              "ms": 109,
+              "name": "view.measureTableRows",
+              "start": 10204,
+              "end": 10313,
+              "version": 6,
+              "overlapMs": 109
+            },
+            {
+              "wall": 1791941278998,
+              "ms": 81.99999999999818,
+              "name": "view.renderLiveLineWindow",
+              "start": 10120.000000000002,
+              "end": 10202,
+              "version": 6,
+              "overlapMs": 81.99999999999818
+            },
+            {
+              "wall": 1791941278998,
+              "ms": 61.99999999999818,
+              "name": "view.parseCompleteTableWindow",
+              "start": 10120.000000000002,
+              "end": 10182,
+              "version": 6,
+              "overlapMs": 61.99999999999818
+            },
+            {
+              "wall": 1791941278998,
+              "to": 66,
+              "ms": 61.99999999999818,
+              "name": "view.parseLiveWindow",
+              "start": 10120.000000000002,
+              "from": 1,
+              "cacheHit": false,
+              "end": 10182,
+              "version": 6,
+              "overlapMs": 61.99999999999818
+            },
+            {
+              "wall": 1791941278999,
+              "to": 66,
+              "ms": 50,
+              "name": "nativeSource.readLineWindow",
+              "start": 10121,
+              "from": 1,
+              "end": 10171,
+              "version": 6,
+              "overlapMs": 50
+            },
+            {
+              "wall": 1791941278982,
+              "to": 1,
+              "ms": 13.999999999998181,
+              "name": "nativeSource.readLineWindow",
+              "start": 10104.000000000002,
+              "from": 1,
+              "end": 10118,
+              "version": 6,
+              "overlapMs": 13.999999999998181
+            },
+            {
+              "wall": 1791941278982,
+              "ms": 13.999999999998181,
+              "name": "view.readSourceLine",
+              "start": 10104.000000000002,
+              "end": 10118,
+              "version": 6,
+              "overlapMs": 13.999999999998181
+            },
+            {
+              "wall": 1791941279194,
+              "ms": 5,
+              "name": "view.renderCursor",
+              "start": 10315,
+              "end": 10320,
+              "version": 6,
+              "overlapMs": 5
+            },
+            {
+              "wall": 1791941278997,
+              "ms": 1,
+              "name": "view.scrollGeometry",
+              "start": 10118,
+              "end": 10119,
+              "version": 6,
+              "overlapMs": 1
+            },
+            {
+              "wall": 1791941279191,
+              "ms": 1,
+              "name": "view.renderSelection",
+              "start": 10313,
+              "end": 10314,
+              "version": 6,
+              "overlapMs": 1
+            }
+          ],
+          "nativeEventsAroundSample": [
+            {
+              "wallMs": 1791941277589.139,
+              "id": 43,
+              "thread": "ThreadId(1)",
+              "name": "apply",
+              "stage": "begin",
+              "elapsedMs": 0.002
+            },
+            {
+              "wallMs": 1791941277589.585,
+              "id": 43,
+              "thread": "ThreadId(1)",
+              "name": "apply",
+              "stage": "locked",
+              "elapsedMs": 0.447
+            },
+            {
+              "wallMs": 1791941277590.165,
+              "id": 43,
+              "thread": "ThreadId(1)",
+              "name": "apply",
+              "stage": "end",
+              "elapsedMs": 1.027
+            },
+            {
+              "wallMs": 1791941277608.31,
+              "id": 44,
+              "thread": "ThreadId(1)",
+              "name": "read-window",
+              "stage": "begin",
+              "elapsedMs": 0.001
+            },
+            {
+              "wallMs": 1791941277608.959,
+              "id": 44,
+              "thread": "ThreadId(1)",
+              "name": "read-window",
+              "stage": "locked",
+              "elapsedMs": 0.649
+            },
+            {
+              "wallMs": 1791941277610.289,
+              "id": 44,
+              "thread": "ThreadId(1)",
+              "name": "read-window",
+              "stage": "end",
+              "elapsedMs": 1.98
+            },
+            {
+              "wallMs": 1791941278357.075,
+              "id": 45,
+              "thread": "ThreadId(7)",
+              "name": "checkpoint-registry",
+              "stage": "begin",
+              "elapsedMs": 0.002
+            },
+            {
+              "wallMs": 1791941278358.852,
+              "id": 45,
+              "thread": "ThreadId(7)",
+              "name": "checkpoint-registry",
+              "stage": "locked",
+              "elapsedMs": 1.778
+            },
+            {
+              "wallMs": 1791941278359.919,
+              "id": 46,
+              "thread": "ThreadId(7)",
+              "name": "checkpoint-store",
+              "stage": "begin",
+              "elapsedMs": 0.0
+            },
+            {
+              "wallMs": 1791941278360.562,
+              "id": 46,
+              "thread": "ThreadId(7)",
+              "name": "checkpoint-store",
+              "stage": "gate-locked",
+              "elapsedMs": 0.643
+            },
+            {
+              "wallMs": 1791941278362.52,
+              "id": 46,
+              "thread": "ThreadId(7)",
+              "name": "checkpoint-store",
+              "stage": "admitted",
+              "elapsedMs": 2.601
+            },
+            {
+              "wallMs": 1791941278365.167,
+              "id": 46,
+              "thread": "ThreadId(7)",
+              "name": "checkpoint-store",
+              "stage": "write-begin",
+              "elapsedMs": 5.248
+            },
+            {
+              "wallMs": 1791941278366.446,
+              "id": 47,
+              "thread": "ThreadId(7)",
+              "name": "checkpoint-write",
+              "stage": "begin",
+              "elapsedMs": 0.0
+            },
+            {
+              "wallMs": 1791941278373.58,
+              "id": 47,
+              "thread": "ThreadId(7)",
+              "name": "checkpoint-write",
+              "stage": "flushed",
+              "elapsedMs": 7.134
+            },
+            {
+              "wallMs": 1791941278378.128,
+              "id": 47,
+              "thread": "ThreadId(7)",
+              "name": "checkpoint-write",
+              "stage": "end",
+              "elapsedMs": 11.682
+            },
+            {
+              "wallMs": 1791941278379.04,
+              "id": 46,
+              "thread": "ThreadId(7)",
+              "name": "checkpoint-store",
+              "stage": "write-end",
+              "elapsedMs": 19.121
+            },
+            {
+              "wallMs": 1791941278382.626,
+              "id": 46,
+              "thread": "ThreadId(7)",
+              "name": "checkpoint-store",
+              "stage": "hash-end",
+              "elapsedMs": 22.708
+            },
+            {
+              "wallMs": 1791941278386.964,
+              "id": 46,
+              "thread": "ThreadId(7)",
+              "name": "checkpoint-store",
+              "stage": "commit-end",
+              "elapsedMs": 27.045
+            },
+            {
+              "wallMs": 1791941278388.214,
+              "id": 46,
+              "thread": "ThreadId(7)",
+              "name": "checkpoint-store",
+              "stage": "end",
+              "elapsedMs": 28.295
+            },
+            {
+              "wallMs": 1791941278388.994,
+              "id": 45,
+              "thread": "ThreadId(7)",
+              "name": "checkpoint-registry",
+              "stage": "end",
+              "elapsedMs": 31.92
+            },
+            {
+              "wallMs": 1791941278605.333,
+              "id": 48,
+              "thread": "ThreadId(1)",
+              "name": "read-window",
+              "stage": "begin",
+              "elapsedMs": 0.002
+            },
+            {
+              "wallMs": 1791941278605.948,
+              "id": 48,
+              "thread": "ThreadId(1)",
+              "name": "read-window",
+              "stage": "locked",
+              "elapsedMs": 0.617
+            },
+            {
+              "wallMs": 1791941278606.605,
+              "id": 48,
+              "thread": "ThreadId(1)",
+              "name": "read-window",
+              "stage": "end",
+              "elapsedMs": 1.273
+            },
+            {
+              "wallMs": 1791941278610.208,
+              "id": 49,
+              "thread": "ThreadId(1)",
+              "name": "read-window",
+              "stage": "begin",
+              "elapsedMs": 0.001
+            },
+            {
+              "wallMs": 1791941278610.719,
+              "id": 49,
+              "thread": "ThreadId(1)",
+              "name": "read-window",
+              "stage": "locked",
+              "elapsedMs": 0.511
+            },
+            {
+              "wallMs": 1791941278611.901,
+              "id": 49,
+              "thread": "ThreadId(1)",
+              "name": "read-window",
+              "stage": "end",
+              "elapsedMs": 1.693
+            },
+            {
+              "wallMs": 1791941278642.964,
+              "id": 50,
+              "thread": "ThreadId(1)",
+              "name": "read-window",
+              "stage": "begin",
+              "elapsedMs": 0.002
+            },
+            {
+              "wallMs": 1791941278643.434,
+              "id": 50,
+              "thread": "ThreadId(1)",
+              "name": "read-window",
+              "stage": "locked",
+              "elapsedMs": 0.471
+            },
+            {
+              "wallMs": 1791941278644.357,
+              "id": 50,
+              "thread": "ThreadId(1)",
+              "name": "read-window",
+              "stage": "end",
+              "elapsedMs": 1.394
+            },
+            {
+              "wallMs": 1791941278985.843,
+              "id": 51,
+              "thread": "ThreadId(1)",
+              "name": "read-window",
+              "stage": "begin",
+              "elapsedMs": 0.002
+            },
+            {
+              "wallMs": 1791941278986.804,
+              "id": 51,
+              "thread": "ThreadId(1)",
+              "name": "read-window",
+              "stage": "locked",
+              "elapsedMs": 0.963
+            },
+            {
+              "wallMs": 1791941278988.159,
+              "id": 51,
+              "thread": "ThreadId(1)",
+              "name": "read-window",
+              "stage": "end",
+              "elapsedMs": 2.317
+            },
+            {
+              "wallMs": 1791941279002.251,
+              "id": 52,
+              "thread": "ThreadId(1)",
+              "name": "read-window",
+              "stage": "begin",
+              "elapsedMs": 0.001
+            },
+            {
+              "wallMs": 1791941279002.677,
+              "id": 52,
+              "thread": "ThreadId(1)",
+              "name": "read-window",
+              "stage": "locked",
+              "elapsedMs": 0.427
+            },
+            {
+              "wallMs": 1791941279005.307,
+              "id": 52,
+              "thread": "ThreadId(1)",
+              "name": "read-window",
+              "stage": "end",
+              "elapsedMs": 3.057
+            }
+          ]
+        },
+        {
+          "sample": {
+            "version": 7,
+            "wall": 1791941279436,
+            "twoFrames": 10715,
+            "modifiers": {
+              "alt": false,
+              "meta": false,
+              "ctrl": false
+            },
+            "recovery": "ready",
+            "frameMs": 157,
+            "domMs": 36,
+            "started": 10558,
+            "renderedLines": 42,
+            "cursor": 1,
+            "kind": "input",
+            "trusted": true,
+            "target": "milkup-input-proxy",
+            "dom": 10594,
+            "round": 3,
+            "expected": 1,
+            "targetMs": 200,
+            "key": "q",
+            "externalCommandToObservedMs": 212.32789400000001,
+            "overTarget": false
+          },
+          "largestOverlappingFrontendSpans": [
+            {
+              "wall": 1791941279520,
+              "to": 25,
+              "ms": 80,
+              "name": "nativeSource.readLineWindow",
+              "start": 10642,
+              "from": 1,
+              "end": 10722,
+              "version": 7,
+              "overlapMs": 73
+            },
+            {
+              "wall": 1791941279520,
+              "ms": 82,
+              "name": "view.parseCompleteTableWindow",
+              "start": 10642,
+              "end": 10724,
+              "version": 7,
+              "overlapMs": 73
+            },
+            {
+              "wall": 1791941279520,
+              "to": 25,
+              "ms": 82,
+              "name": "view.parseLiveWindow",
+              "start": 10642,
+              "from": 1,
+              "cacheHit": false,
+              "end": 10724,
+              "version": 7,
+              "overlapMs": 73
+            },
+            {
+              "wall": 1791941279520,
+              "ms": 82,
+              "name": "view.renderSingleLiveLine",
+              "start": 10642,
+              "end": 10724,
+              "version": 7,
+              "overlapMs": 73
+            },
+            {
+              "wall": 1791941279520,
+              "ms": 82,
+              "name": "view.renderRenderedLine",
+              "start": 10642,
+              "end": 10724,
+              "version": 7,
+              "overlapMs": 73
+            },
+            {
+              "wall": 1791941279437,
+              "ms": 36,
+              "name": "view.applyTextInput",
+              "start": 10558,
+              "end": 10594,
+              "version": 6,
+              "overlapMs": 36
+            },
+            {
+              "wall": 1791941279497,
+              "ms": 23,
+              "name": "view.flushPendingVisibleEdit",
+              "start": 10619,
+              "end": 10642,
+              "version": 6,
+              "overlapMs": 23
+            },
+            {
+              "wall": 1791941279497,
+              "ms": 22,
+              "name": "view.commitVisibleEdit",
+              "start": 10619,
+              "end": 10641,
+              "version": 6,
+              "overlapMs": 22
+            },
+            {
+              "wall": 1791941279468,
+              "ms": 4,
+              "name": "view.renderCursor",
+              "start": 10590,
+              "end": 10594,
+              "version": 6,
+              "overlapMs": 4
+            },
+            {
+              "wall": 1791941279442,
+              "ms": 0,
+              "name": "view.readVisibleEditRange",
+              "start": 10564,
+              "end": 10564,
+              "version": 6,
+              "overlapMs": 0
+            },
+            {
+              "wall": 1791941279468,
+              "ms": 0,
+              "name": "view.renderSelection",
+              "start": 10590,
+              "end": 10590,
+              "version": 6,
+              "overlapMs": 0
+            }
+          ],
+          "nativeEventsAroundSample": [
+            {
+              "wallMs": 1791941278357.075,
+              "id": 45,
+              "thread": "ThreadId(7)",
+              "name": "checkpoint-registry",
+              "stage": "begin",
+              "elapsedMs": 0.002
+            },
+            {
+              "wallMs": 1791941278358.852,
+              "id": 45,
+              "thread": "ThreadId(7)",
+              "name": "checkpoint-registry",
+              "stage": "locked",
+              "elapsedMs": 1.778
+            },
+            {
+              "wallMs": 1791941278359.919,
+              "id": 46,
+              "thread": "ThreadId(7)",
+              "name": "checkpoint-store",
+              "stage": "begin",
+              "elapsedMs": 0.0
+            },
+            {
+              "wallMs": 1791941278360.562,
+              "id": 46,
+              "thread": "ThreadId(7)",
+              "name": "checkpoint-store",
+              "stage": "gate-locked",
+              "elapsedMs": 0.643
+            },
+            {
+              "wallMs": 1791941278362.52,
+              "id": 46,
+              "thread": "ThreadId(7)",
+              "name": "checkpoint-store",
+              "stage": "admitted",
+              "elapsedMs": 2.601
+            },
+            {
+              "wallMs": 1791941278365.167,
+              "id": 46,
+              "thread": "ThreadId(7)",
+              "name": "checkpoint-store",
+              "stage": "write-begin",
+              "elapsedMs": 5.248
+            },
+            {
+              "wallMs": 1791941278366.446,
+              "id": 47,
+              "thread": "ThreadId(7)",
+              "name": "checkpoint-write",
+              "stage": "begin",
+              "elapsedMs": 0.0
+            },
+            {
+              "wallMs": 1791941278373.58,
+              "id": 47,
+              "thread": "ThreadId(7)",
+              "name": "checkpoint-write",
+              "stage": "flushed",
+              "elapsedMs": 7.134
+            },
+            {
+              "wallMs": 1791941278378.128,
+              "id": 47,
+              "thread": "ThreadId(7)",
+              "name": "checkpoint-write",
+              "stage": "end",
+              "elapsedMs": 11.682
+            },
+            {
+              "wallMs": 1791941278379.04,
+              "id": 46,
+              "thread": "ThreadId(7)",
+              "name": "checkpoint-store",
+              "stage": "write-end",
+              "elapsedMs": 19.121
+            },
+            {
+              "wallMs": 1791941278382.626,
+              "id": 46,
+              "thread": "ThreadId(7)",
+              "name": "checkpoint-store",
+              "stage": "hash-end",
+              "elapsedMs": 22.708
+            },
+            {
+              "wallMs": 1791941278386.964,
+              "id": 46,
+              "thread": "ThreadId(7)",
+              "name": "checkpoint-store",
+              "stage": "commit-end",
+              "elapsedMs": 27.045
+            },
+            {
+              "wallMs": 1791941278388.214,
+              "id": 46,
+              "thread": "ThreadId(7)",
+              "name": "checkpoint-store",
+              "stage": "end",
+              "elapsedMs": 28.295
+            },
+            {
+              "wallMs": 1791941278388.994,
+              "id": 45,
+              "thread": "ThreadId(7)",
+              "name": "checkpoint-registry",
+              "stage": "end",
+              "elapsedMs": 31.92
+            },
+            {
+              "wallMs": 1791941278605.333,
+              "id": 48,
+              "thread": "ThreadId(1)",
+              "name": "read-window",
+              "stage": "begin",
+              "elapsedMs": 0.002
+            },
+            {
+              "wallMs": 1791941278605.948,
+              "id": 48,
+              "thread": "ThreadId(1)",
+              "name": "read-window",
+              "stage": "locked",
+              "elapsedMs": 0.617
+            },
+            {
+              "wallMs": 1791941278606.605,
+              "id": 48,
+              "thread": "ThreadId(1)",
+              "name": "read-window",
+              "stage": "end",
+              "elapsedMs": 1.273
+            },
+            {
+              "wallMs": 1791941278610.208,
+              "id": 49,
+              "thread": "ThreadId(1)",
+              "name": "read-window",
+              "stage": "begin",
+              "elapsedMs": 0.001
+            },
+            {
+              "wallMs": 1791941278610.719,
+              "id": 49,
+              "thread": "ThreadId(1)",
+              "name": "read-window",
+              "stage": "locked",
+              "elapsedMs": 0.511
+            },
+            {
+              "wallMs": 1791941278611.901,
+              "id": 49,
+              "thread": "ThreadId(1)",
+              "name": "read-window",
+              "stage": "end",
+              "elapsedMs": 1.693
+            },
+            {
+              "wallMs": 1791941278642.964,
+              "id": 50,
+              "thread": "ThreadId(1)",
+              "name": "read-window",
+              "stage": "begin",
+              "elapsedMs": 0.002
+            },
+            {
+              "wallMs": 1791941278643.434,
+              "id": 50,
+              "thread": "ThreadId(1)",
+              "name": "read-window",
+              "stage": "locked",
+              "elapsedMs": 0.471
+            },
+            {
+              "wallMs": 1791941278644.357,
+              "id": 50,
+              "thread": "ThreadId(1)",
+              "name": "read-window",
+              "stage": "end",
+              "elapsedMs": 1.394
+            },
+            {
+              "wallMs": 1791941278985.843,
+              "id": 51,
+              "thread": "ThreadId(1)",
+              "name": "read-window",
+              "stage": "begin",
+              "elapsedMs": 0.002
+            },
+            {
+              "wallMs": 1791941278986.804,
+              "id": 51,
+              "thread": "ThreadId(1)",
+              "name": "read-window",
+              "stage": "locked",
+              "elapsedMs": 0.963
+            },
+            {
+              "wallMs": 1791941278988.159,
+              "id": 51,
+              "thread": "ThreadId(1)",
+              "name": "read-window",
+              "stage": "end",
+              "elapsedMs": 2.317
+            },
+            {
+              "wallMs": 1791941279002.251,
+              "id": 52,
+              "thread": "ThreadId(1)",
+              "name": "read-window",
+              "stage": "begin",
+              "elapsedMs": 0.001
+            },
+            {
+              "wallMs": 1791941279002.677,
+              "id": 52,
+              "thread": "ThreadId(1)",
+              "name": "read-window",
+              "stage": "locked",
+              "elapsedMs": 0.427
+            },
+            {
+              "wallMs": 1791941279005.307,
+              "id": 52,
+              "thread": "ThreadId(1)",
+              "name": "read-window",
+              "stage": "end",
+              "elapsedMs": 3.057
+            },
+            {
+              "wallMs": 1791941279502.272,
+              "id": 53,
+              "thread": "ThreadId(1)",
+              "name": "apply",
+              "stage": "begin",
+              "elapsedMs": 0.002
+            },
+            {
+              "wallMs": 1791941279504.278,
+              "id": 53,
+              "thread": "ThreadId(1)",
+              "name": "apply",
+              "stage": "locked",
+              "elapsedMs": 2.007
+            },
+            {
+              "wallMs": 1791941279506.853,
+              "id": 53,
+              "thread": "ThreadId(1)",
+              "name": "apply",
+              "stage": "end",
+              "elapsedMs": 4.582
+            },
+            {
+              "wallMs": 1791941279523.723,
+              "id": 54,
+              "thread": "ThreadId(1)",
+              "name": "read-window",
+              "stage": "begin",
+              "elapsedMs": 0.002
+            },
+            {
+              "wallMs": 1791941279529.768,
+              "id": 54,
+              "thread": "ThreadId(1)",
+              "name": "read-window",
+              "stage": "locked",
+              "elapsedMs": 6.046
+            },
+            {
+              "wallMs": 1791941279541.285,
+              "id": 54,
+              "thread": "ThreadId(1)",
+              "name": "read-window",
+              "stage": "end",
+              "elapsedMs": 17.564
+            }
+          ]
+        },
+        {
+          "sample": {
+            "version": 2,
+            "wall": 1791941273574,
+            "twoFrames": 4892,
+            "modifiers": {
+              "alt": false,
+              "meta": false,
+              "ctrl": false
+            },
+            "recovery": "pending",
+            "frameMs": 196,
+            "domMs": 89,
+            "started": 4696,
+            "renderedLines": 42,
+            "cursor": 0,
+            "kind": "delete",
+            "trusted": true,
+            "target": "milkup-input-proxy",
+            "dom": 4785,
+            "round": 0,
+            "expected": 0,
+            "targetMs": 200,
+            "key": "Backspace",
+            "externalCommandToObservedMs": 261.66523700000016,
+            "overTarget": false
+          },
+          "largestOverlappingFrontendSpans": [
+            {
+              "wall": 1791941273593,
+              "ms": 70,
+              "name": "view.renderCursor",
+              "start": 4715,
+              "end": 4785,
+              "version": 1,
+              "overlapMs": 70
+            },
+            {
+              "wall": 1791941273708,
+              "ms": 71,
+              "name": "view.parseCompleteTableWindow",
+              "start": 4829,
+              "end": 4900,
+              "version": 2,
+              "overlapMs": 63
+            },
+            {
+              "wall": 1791941273707,
+              "to": 25,
+              "ms": 71,
+              "name": "view.parseLiveWindow",
+              "start": 4829,
+              "from": 1,
+              "cacheHit": false,
+              "end": 4900,
+              "version": 2,
+              "overlapMs": 63
+            },
+            {
+              "wall": 1791941273707,
+              "ms": 72,
+              "name": "view.renderSingleLiveLine",
+              "start": 4829,
+              "end": 4901,
+              "version": 2,
+              "overlapMs": 63
+            },
+            {
+              "wall": 1791941273707,
+              "ms": 76,
+              "name": "view.renderRenderedLine",
+              "start": 4829,
+              "end": 4905,
+              "version": 2,
+              "overlapMs": 63
+            },
+            {
+              "wall": 1791941273708,
+              "to": 25,
+              "ms": 64,
+              "name": "nativeSource.readLineWindow",
+              "start": 4830,
+              "from": 1,
+              "end": 4894,
+              "version": 2,
+              "overlapMs": 62
+            },
+            {
+              "wall": 1791941273688,
+              "ms": 18.99999999999909,
+              "name": "view.commitVisibleEdit",
+              "start": 4810.000000000001,
+              "end": 4829,
+              "version": 1,
+              "overlapMs": 18.99999999999909
+            },
+            {
+              "wall": 1791941273688,
+              "ms": 18.99999999999909,
+              "name": "view.flushPendingVisibleEdit",
+              "start": 4810.000000000001,
+              "end": 4829,
+              "version": 1,
+              "overlapMs": 18.99999999999909
+            },
+            {
+              "wall": 1791941273584,
+              "ms": 1,
+              "name": "view.readVisibleEditRange",
+              "start": 4705,
+              "end": 4706,
+              "version": 1,
+              "overlapMs": 1
+            },
+            {
+              "wall": 1791941273593,
+              "ms": 0,
+              "name": "view.renderSelection",
+              "start": 4715,
+              "end": 4715,
+              "version": 1,
+              "overlapMs": 0
+            }
+          ],
+          "nativeEventsAroundSample": [
+            {
+              "wallMs": 1791941272208.361,
+              "id": 13,
+              "thread": "ThreadId(1)",
+              "name": "read-window",
+              "stage": "begin",
+              "elapsedMs": 0.002
+            },
+            {
+              "wallMs": 1791941272210.754,
+              "id": 13,
+              "thread": "ThreadId(1)",
+              "name": "read-window",
+              "stage": "locked",
+              "elapsedMs": 2.394
+            },
+            {
+              "wallMs": 1791941272216.268,
+              "id": 13,
+              "thread": "ThreadId(1)",
+              "name": "read-window",
+              "stage": "end",
+              "elapsedMs": 7.908
+            },
+            {
+              "wallMs": 1791941272471.718,
+              "id": 14,
+              "thread": "ThreadId(1)",
+              "name": "read-window",
+              "stage": "begin",
+              "elapsedMs": 0.002
+            },
+            {
+              "wallMs": 1791941272474.792,
+              "id": 14,
+              "thread": "ThreadId(1)",
+              "name": "read-window",
+              "stage": "locked",
+              "elapsedMs": 3.075
+            },
+            {
+              "wallMs": 1791941272477.316,
+              "id": 14,
+              "thread": "ThreadId(1)",
+              "name": "read-window",
+              "stage": "end",
+              "elapsedMs": 5.598
+            },
+            {
+              "wallMs": 1791941272707.92,
+              "id": 15,
+              "thread": "ThreadId(1)",
+              "name": "read-window",
+              "stage": "begin",
+              "elapsedMs": 0.001
+            },
+            {
+              "wallMs": 1791941272710.274,
+              "id": 15,
+              "thread": "ThreadId(1)",
+              "name": "read-window",
+              "stage": "locked",
+              "elapsedMs": 2.354
+            },
+            {
+              "wallMs": 1791941272712.227,
+              "id": 15,
+              "thread": "ThreadId(1)",
+              "name": "read-window",
+              "stage": "end",
+              "elapsedMs": 4.308
+            },
+            {
+              "wallMs": 1791941273001.969,
+              "id": 16,
+              "thread": "ThreadId(1)",
+              "name": "read-window",
+              "stage": "begin",
+              "elapsedMs": 0.001
+            },
+            {
+              "wallMs": 1791941273005.851,
+              "id": 16,
+              "thread": "ThreadId(1)",
+              "name": "read-window",
+              "stage": "locked",
+              "elapsedMs": 3.882
+            },
+            {
+              "wallMs": 1791941273010.004,
+              "id": 16,
+              "thread": "ThreadId(1)",
+              "name": "read-window",
+              "stage": "end",
+              "elapsedMs": 8.036
+            },
+            {
+              "wallMs": 1791941273351.226,
+              "id": 17,
+              "thread": "ThreadId(1)",
+              "name": "apply",
+              "stage": "begin",
+              "elapsedMs": 0.002
+            },
+            {
+              "wallMs": 1791941273353.833,
+              "id": 17,
+              "thread": "ThreadId(1)",
+              "name": "apply",
+              "stage": "locked",
+              "elapsedMs": 2.608
+            },
+            {
+              "wallMs": 1791941273355.677,
+              "id": 17,
+              "thread": "ThreadId(1)",
+              "name": "apply",
+              "stage": "end",
+              "elapsedMs": 4.452
+            },
+            {
+              "wallMs": 1791941273365.763,
+              "id": 18,
+              "thread": "ThreadId(1)",
+              "name": "read-window",
+              "stage": "begin",
+              "elapsedMs": 0.001
+            },
+            {
+              "wallMs": 1791941273366.534,
+              "id": 18,
+              "thread": "ThreadId(1)",
+              "name": "read-window",
+              "stage": "locked",
+              "elapsedMs": 0.772
+            },
+            {
+              "wallMs": 1791941273375.022,
+              "id": 18,
+              "thread": "ThreadId(1)",
+              "name": "read-window",
+              "stage": "end",
+              "elapsedMs": 9.261
+            },
+            {
+              "wallMs": 1791941273693.694,
+              "id": 19,
+              "thread": "ThreadId(1)",
+              "name": "apply",
+              "stage": "begin",
+              "elapsedMs": 0.002
+            },
+            {
+              "wallMs": 1791941273695.129,
+              "id": 19,
+              "thread": "ThreadId(1)",
+              "name": "apply",
+              "stage": "locked",
+              "elapsedMs": 1.435
+            },
+            {
+              "wallMs": 1791941273697.383,
+              "id": 19,
+              "thread": "ThreadId(1)",
+              "name": "apply",
+              "stage": "end",
+              "elapsedMs": 3.689
+            },
+            {
+              "wallMs": 1791941273711.956,
+              "id": 20,
+              "thread": "ThreadId(1)",
+              "name": "read-window",
+              "stage": "begin",
+              "elapsedMs": 0.001
+            },
+            {
+              "wallMs": 1791941273712.685,
+              "id": 20,
+              "thread": "ThreadId(1)",
+              "name": "read-window",
+              "stage": "locked",
+              "elapsedMs": 0.73
+            },
+            {
+              "wallMs": 1791941273719.796,
+              "id": 20,
+              "thread": "ThreadId(1)",
+              "name": "read-window",
+              "stage": "end",
+              "elapsedMs": 7.841
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

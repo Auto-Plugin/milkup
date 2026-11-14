@@ -1,0 +1,56 @@
+
+ RUN  v3.2.6 /workspace/milkup/packages/view-dom
+
+ ❯ src/__tests__/table-keyboard.test.ts (22 tests | 1 failed) 1014ms
+   ✓ live table editing > Tab selects the next cell without changing source 194ms
+   ✓ live table editing > Shift+Tab skips the delimiter row 47ms
+   ✓ live table editing > Enter goes down the same column without splitting the row 43ms
+   ✓ live table editing > Tab at the last cell appends one row and undo/redo restores it 91ms
+   ✓ live table editing > Shift+Enter inserts a cell line break without adding a Markdown row 47ms
+   ✓ live table editing > a literal pipe does not silently add a column 61ms
+   ✓ live table editing > Backspace at the cell start does not erase a separator 9ms
+   ✓ live table editing > Delete at the cell end does not erase a separator 7ms
+   ✓ live table editing > Escape exits after the table into a separate paragraph 30ms
+   ✓ live table editing > source mode keeps literal Enter and source/live switching preserves selection 27ms
+   ✓ explicit table structure commands > adds/deletes a data row as separate undo steps 47ms
+   ✓ explicit table structure commands > adds/deletes a column preserving cells and alignment 31ms
+   ✓ explicit table structure commands > never deletes the header or reduces a table below two columns 5ms
+   ✓ explicit table structure commands > appends a row to a header-only table without losing its delimiter 20ms
+   ✓ explicit table structure commands > keeps CRLF and adjacent paragraphs during column/row changes 23ms
+   ✓ explicit table structure commands > selects the table including the delimiter and preserves the source selection across modes 83ms
+   ✓ explicit table structure commands > keeps cross-cell selections intact instead of indenting or splitting the table 28ms
+   ✓ explicit table structure commands > replaces the selected next cell and undoes typing independently of navigation 67ms
+   ✓ explicit table structure commands > pastes multiline content into one cell and undoes it as a unit 36ms
+   ✓ explicit table structure commands > deletes the inline break as one unit and restores it on undo 45ms
+   × explicit table structure commands > preserves an already typed pipe escape 53ms
+     → expected '| Name | Value |\n| --- | --- |\n| A\…' to be '| Name | Value |\n| --- | --- |\n| A\…' // Object.is equality
+   ✓ explicit table structure commands > does not modify a readonly or composing table 15ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/__tests__/table-keyboard.test.ts > explicit table structure commands > preserves an already typed pipe escape
+AssertionError: expected '| Name | Value |\n| --- | --- |\n| A\…' to be '| Name | Value |\n| --- | --- |\n| A\…' // Object.is equality
+
+- Expected
++ Received
+
+  | Name | Value |
+  | --- | --- |
+- | A\| | 1 |
++ | A\\| | 1 |
+  | B | 2 |
+
+ ❯ src/__tests__/table-keyboard.test.ts:37:128
+
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 21 passed (22)
+   Start at  10:29:36
+   Duration  6.20s (transform 1.17s, setup 0ms, collect 1.51s, tests 1.01s, environment 2.43s, prepare 420ms)
+
+undefined
+/workspace/milkup/packages/view-dom:
+[ERR_PNPM_RECURSIVE_EXEC_FIRST_FAIL] Command failed with exit code 1: vitest run src/__tests__/table-keyboard.test.ts '--maxWorkers=1'

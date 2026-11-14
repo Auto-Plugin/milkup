@@ -1,0 +1,10 @@
+import sys,json,os,signal,time
+from pathlib import Path
+assert sys.argv[1].startswith('lifecycle-p06-')
+p=Path('/workspace/milkup-mermaid-engine-evidence/linux-production-06/lifecycle/control')/(sys.argv[1]+'-driver-owner.json');row=json.loads(p.read_text())
+try:
+ words=Path('/proc',str(row['pid']),'stat').read_text().rsplit(')',1)[1].split()
+ assert words[19]==row['birth'] and int(words[2])==row['group']==row['pid']
+ os.killpg(row['group'],signal.SIGTERM)
+ print('Stopped exact owned driver group',row['pid'])
+except FileNotFoundError:print('Owned driver already exited')

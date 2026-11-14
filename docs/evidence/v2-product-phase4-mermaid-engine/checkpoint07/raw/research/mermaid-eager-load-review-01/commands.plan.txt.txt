@@ -1,0 +1,31 @@
+PLAN ONLY — NOT EXECUTED; these commands are not ready to run.
+
+Prerequisite: after explicit CPU/UI GO, implement and review a new external adapter
+at this directory/run-ab-narrow.sh, copied from the recorded revision-product-converter05
+narrow wrapper. Its command contract is: RUN_NAME ARM SAMPLE_ID REPETITIONS.
+The adapter, two fixed entry variants and fixed converter/helper binaries do NOT
+exist yet. No existing script accepts the proposed ARM argument. Do not substitute
+the old runner and claim it measured preload. Build/review remains a future step.
+
+The new wrapper must keep the existing narrow mounts, independent outer supervisor,
+fixed-resource native guard, WebKit sandbox, fresh profile refusal, 10s preparation,
+2s native monotonic per-request deadline, 262144-byte frame, and owned cleanup.
+Each command below requires the same reviewed namespace execution approval used
+for this isolated helper. Commands must run sequentially in an exclusive UI/CPU slot.
+Do not run them under an additional outer timeout that kills the supervising cleanup.
+
+bash /workspace/milkup-mermaid-engine-evidence/research/mermaid-eager-load-review-01/run-ab-narrow.sh eager-01-A A classDiagram-000-first-official-example 2
+bash /workspace/milkup-mermaid-engine-evidence/research/mermaid-eager-load-review-01/run-ab-narrow.sh eager-02-B B classDiagram-000-first-official-example 2
+bash /workspace/milkup-mermaid-engine-evidence/research/mermaid-eager-load-review-01/run-ab-narrow.sh eager-03-B B classDiagram-000-first-official-example 2
+bash /workspace/milkup-mermaid-engine-evidence/research/mermaid-eager-load-review-01/run-ab-narrow.sh eager-04-A A classDiagram-000-first-official-example 2
+
+Each invocation has its own profiles/RUN_NAME and runs/RUN_NAME below this directory,
+and a new helper/WebContext. Request IDs are class_first then class_second in every
+instance; source bytes are exactly samples.json's named entry, SHA256
+01f53b9e79db0fe31e23e5b0bd74fde68bf38de3255c838d9effb67403ffb77b.
+Use light/default theme, 1000 CSSpx container, identical fixed helper viewport/fonts.
+These are process-cold instances, not a flushed OS filesystem/page cache.
+No dummy parse/render in readiness; no pre-render or retries. If any request fails,
+preserve it, terminate that instance and skip its remaining request. A later planned
+arm may proceed only after exact owned cleanup succeeds; never retry failed input
+within that arm. Cleanup failure stops the entire planned sequence.

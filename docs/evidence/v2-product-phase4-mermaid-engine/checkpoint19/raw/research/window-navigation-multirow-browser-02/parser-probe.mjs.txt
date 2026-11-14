@@ -1,0 +1,1426 @@
+// ../milkup-mermaid-engine-evidence/research/window-navigation-multirow-browser-02/parser-probe.ts
+import { readFile, writeFile } from "node:fs/promises";
+import assert from "node:assert/strict";
+
+// packages/core/src/position/range.ts
+function assertValidRange(range, length2) {
+  if (!Number.isInteger(range.from) || !Number.isInteger(range.to)) {
+    throw new RangeError(`Range offsets must be integers: ${range.from}-${range.to}`);
+  }
+  if (range.from < 0 || range.to < range.from) {
+    throw new RangeError(`Invalid range: ${range.from}-${range.to}`);
+  }
+  if (length2 !== void 0 && range.to > length2) {
+    throw new RangeError(`Range ${range.from}-${range.to} exceeds document length ${length2}`);
+  }
+}
+
+// packages/core/src/actions/builtin.ts
+var openFileAction = {
+  id: "file.open",
+  title: "Open File",
+  category: "file",
+  permissions: ["file:read"],
+  risk: "safe",
+  inputSchema: filePathInputSchema(false),
+  run: () => {
+    throw new Error("file.open requires a host file adapter");
+  }
+};
+var saveFileAsAction = {
+  id: "file.saveAs",
+  title: "Save File As",
+  category: "file",
+  permissions: ["file:write"],
+  risk: "write",
+  inputSchema: filePathInputSchema(false),
+  run: () => {
+    throw new Error("file.saveAs requires a host file adapter");
+  }
+};
+function filePathInputSchema(required) {
+  return {
+    type: "object",
+    properties: {
+      path: { type: "string", required }
+    }
+  };
+}
+
+// packages/core/src/text/document.ts
+var MemoryTextDocument = class _MemoryTextDocument {
+  text;
+  length;
+  lineCount;
+  lineStarts;
+  constructor(text2 = "") {
+    this.text = text2;
+    this.length = text2.length;
+    this.lineStarts = Object.freeze([...computeLineStarts(text2)]);
+    this.lineCount = this.lineStarts.length;
+    Object.freeze(this);
+  }
+  slice(from, to) {
+    assertValidRange({ from, to }, this.length);
+    return this.text.slice(from, to);
+  }
+  lineAt(pos) {
+    if (!Number.isInteger(pos) || pos < 0 || pos > this.length) {
+      throw new RangeError(`Invalid document position: ${pos}`);
+    }
+    const lineIndex = findLineIndex(this.lineStarts, pos);
+    return this.line(lineIndex + 1);
+  }
+  line(number) {
+    if (!Number.isInteger(number) || number < 1 || number > this.lineCount) {
+      throw new RangeError(`Invalid line number: ${number}`);
+    }
+    const index = number - 1;
+    const from = this.lineStarts[index];
+    if (from === void 0) {
+      throw new RangeError(`Invalid line number: ${number}`);
+    }
+    const nextLineStart = this.lineStarts[index + 1];
+    const rawTo = nextLineStart === void 0 ? this.length : nextLineStart - 1;
+    const to = rawTo > from && this.text.charCodeAt(rawTo - 1) === 13 ? rawTo - 1 : rawTo;
+    return {
+      number,
+      from,
+      to,
+      text: this.text.slice(from, to)
+    };
+  }
+  apply(changes) {
+    if (changes.empty) {
+      return this;
+    }
+    let next = "";
+    let offset = 0;
+    for (const change of changes.changes) {
+      assertValidRange(change, this.length);
+      next += this.text.slice(offset, change.from);
+      next += change.insert;
+      offset = change.to;
+    }
+    next += this.text.slice(offset);
+    return new _MemoryTextDocument(next);
+  }
+};
+function computeLineStarts(text2) {
+  const starts = [0];
+  for (let index = 0; index < text2.length; index += 1) {
+    if (text2.charCodeAt(index) === 10) {
+      starts.push(index + 1);
+    }
+  }
+  return starts;
+}
+function findLineIndex(lineStarts, pos) {
+  let low = 0;
+  let high = lineStarts.length - 1;
+  while (low <= high) {
+    const mid = Math.floor((low + high) / 2);
+    const start = lineStarts[mid];
+    if (start === void 0) {
+      break;
+    }
+    if (start === pos) {
+      return mid;
+    }
+    if (start < pos) {
+      low = mid + 1;
+    } else {
+      high = mid - 1;
+    }
+  }
+  return Math.max(0, low - 1);
+}
+
+// packages/core/src/store/editor-document-source.ts
+var MemoryDocumentSource = class {
+  documentId;
+  document;
+  sourceVersion;
+  constructor(config) {
+    this.documentId = config.documentId;
+    this.document = config.document ?? new MemoryTextDocument(config.text ?? "");
+    this.sourceVersion = config.version ?? 0;
+  }
+  get version() {
+    return this.sourceVersion;
+  }
+  get lineCount() {
+    return this.document.lineCount;
+  }
+  get length() {
+    return this.document.length;
+  }
+  async readLineWindow(fromLine, toLine, maxTextLength) {
+    assertValidLineWindow(fromLine, toLine, this.document.lineCount);
+    const start = this.document.line(fromLine).from;
+    const end = this.document.line(toLine).to;
+    if (maxTextLength !== void 0 && end - start > maxTextLength)
+      throw new RangeError("Line window exceeds text budget");
+    const lines = [];
+    for (let lineNumber = fromLine; lineNumber <= toLine; lineNumber += 1) {
+      lines.push(this.document.line(lineNumber));
+    }
+    const first = lines[0];
+    const last = lines.at(-1);
+    if (!first || !last) {
+      throw new RangeError(`Invalid line window: ${fromLine}-${toLine}`);
+    }
+    return Object.freeze({
+      fromLine,
+      toLine,
+      from: first.from,
+      to: last.to,
+      text: this.document.slice(first.from, last.to),
+      lines: Object.freeze(lines.map(freezeLine))
+    });
+  }
+  async lineAtPosition(position) {
+    return freezeLine(this.document.lineAt(position));
+  }
+  async positionAtLineOffset(lineNumber, offset) {
+    const line = this.document.line(lineNumber);
+    return line.from + clamp(Math.floor(offset), 0, line.to - line.from);
+  }
+  snapshot() {
+    return Object.freeze({
+      documentId: this.documentId,
+      version: this.version,
+      lineCount: this.lineCount,
+      length: this.length
+    });
+  }
+};
+function assertValidLineWindow(fromLine, toLine, lineCount) {
+  if (!Number.isInteger(fromLine) || !Number.isInteger(toLine) || fromLine < 1 || toLine < fromLine || toLine > lineCount) {
+    throw new RangeError(`Invalid line window: ${fromLine}-${toLine}`);
+  }
+}
+function freezeLine(line) {
+  return Object.freeze({
+    number: line.number,
+    from: line.from,
+    to: line.to,
+    text: line.text
+  });
+}
+function clamp(value, min, max) {
+  return Math.min(Math.max(value, min), max);
+}
+
+// packages/core/src/store/large-file-policy.ts
+var MIB = 1024 * 1024;
+var GIB = 1024 * MIB;
+var DEFAULT_DOCUMENT_SCALE_THRESHOLDS = Object.freeze({
+  performanceBytes: 128 * 1024
+});
+
+// packages/core/src/document-svg-image-codec.ts
+var LIMITS = Object.freeze({
+  bytes: 262144,
+  nodes: 4096,
+  depth: 64,
+  images: 128,
+  coordinate: 8192,
+  surfacePixels: 16777216,
+  filterWork: 268435456,
+  blur: 32
+});
+var SvgProfileError = class extends Error {
+  constructor(code, reason) {
+    super(reason);
+    this.code = code;
+    this.name = "SvgProfileError";
+    this.code = code;
+  }
+};
+function fail(reason, code = "invalid-output") {
+  throw new SvgProfileError(code, reason);
+}
+var coord = (v) => finite(v, -8192, 8192);
+function finite(v, min = -8192, max = 8192) {
+  if (typeof v !== "number" || !Number.isFinite(v) || v < min || v > max) fail("number domain");
+  return Object.is(v, -0) ? 0 : v;
+}
+function choice(values) {
+  return (v) => {
+    if (!values.includes(v)) fail("enum");
+    return v;
+  };
+}
+var integer = (v, min, max) => {
+  const n = finite(v, min, max);
+  if (!Number.isSafeInteger(n)) fail("integer");
+  return n;
+};
+var fonts = [
+  "sans",
+  "arial-sans",
+  "open-sans-sans",
+  "trebuchet-verdana-arial-sans",
+  "serif",
+  "monospace"
+];
+function charge(b, d, n = 1) {
+  if (d > 64 || (b.nodes += n) > 4096) fail("node/depth budget", "limit-exceeded");
+}
+function plain(v) {
+  if (!v || typeof v !== "object" || Array.isArray(v)) fail("plain object required");
+  const p = Object.getPrototypeOf(v);
+  if (p !== Object.prototype && p !== null) fail("prototype");
+  const ds = Object.getOwnPropertyDescriptors(v);
+  if (Reflect.ownKeys(ds).some((k) => typeof k !== "string" || !("value" in ds[k])))
+    fail("accessor/symbol");
+  return Object.fromEntries(Object.entries(ds).map(([k, d]) => [k, d.value]));
+}
+function object(v, required, optional, b, d) {
+  if (d > 64) fail("depth", "limit-exceeded");
+  const p = plain(v), allowed = /* @__PURE__ */ new Set([...Object.keys(required), ...Object.keys(optional)]);
+  for (const k of Object.keys(p))
+    if (!allowed.has(k)) {
+      if (/^(animation|transition)/i.test(k))
+        fail("effective motion not admitted", "unsupported-animation");
+      fail("unknown field " + k);
+    }
+  const out = {};
+  for (const [k, parse] of Object.entries(required)) {
+    if (!Object.hasOwn(p, k)) fail("missing " + k);
+    out[k] = parse(p[k], b, d + 1);
+  }
+  for (const [k, parse] of Object.entries(optional))
+    if (Object.hasOwn(p, k)) out[k] = parse(p[k], b, d + 1);
+  return out;
+}
+function array(v, parse, b, d, max = 4096) {
+  if (d > 64 || !Array.isArray(v) || Object.getPrototypeOf(v) !== Array.prototype || v.length > max)
+    fail("array/depth budget", "limit-exceeded");
+  const keys = Reflect.ownKeys(v);
+  if (keys.length !== v.length + 1 || keys.some((k) => typeof k !== "string" || k !== "length" && !/^(0|[1-9][0-9]*)$/.test(k)))
+    fail("sparse/custom array");
+  const out = [];
+  for (let i = 0; i < v.length; i++) {
+    const desc = Object.getOwnPropertyDescriptor(v, String(i));
+    if (!desc || !("value" in desc)) fail("array accessor");
+    out.push(parse(desc.value, b, d + 1));
+  }
+  return out;
+}
+var list = (parse, max = 4096) => (v, b, d) => array(v, parse, b, d, max);
+function tuple(v, parsers, b, d) {
+  const out = array(v, (x) => x, b, d, parsers.length);
+  if (out.length !== parsers.length) fail("tuple arity");
+  return out.map((x, i) => parsers[i](x, b, d + 1));
+}
+function text(v, b) {
+  const max = 4096;
+  if (typeof v !== "string" || v.length > max || /[\u0000-\u0008\u000b\u000c\u000e-\u001f\ufffe\uffff]/u.test(v))
+    fail("text domain");
+  for (let i = 0; i < v.length; i++) {
+    const c = v.charCodeAt(i);
+    if (c >= 55296 && c <= 56319) {
+      const n = v.charCodeAt(++i);
+      if (!(n >= 56320 && n <= 57343)) fail("unpaired surrogate");
+    } else if (c >= 56320 && c <= 57343) fail("unpaired surrogate");
+  }
+  b.text += v.length;
+  if (b.text > 262144) fail("text budget", "limit-exceeded");
+  return v;
+}
+var id = (v) => {
+  if (typeof v !== "string" || !/^[A-Za-z][A-Za-z0-9_-]{0,95}$/.test(v)) fail("local ID");
+  return v;
+};
+var styleId = (v) => integer(v, 0, 4095);
+var length = (v, b, d) => object(v, { value: coord, unit: choice(["user", "px", "em", "percent"]) }, {}, b, d);
+var positiveLength = (v, b, d) => {
+  const x = length(v, b, d);
+  finite(x.value, 0, 8192);
+  return x;
+};
+var rgba = (v, b, d) => tuple(
+  v,
+  [
+    (x) => finite(x, 0, 255),
+    (x) => finite(x, 0, 255),
+    (x) => finite(x, 0, 255),
+    (x) => finite(x, 0, 1)
+  ],
+  b,
+  d
+);
+function transform(v, b, d) {
+  charge(b, d);
+  const p = plain(v);
+  switch (p.kind) {
+    case "matrix":
+      return object(
+        p,
+        {
+          kind: choice(["matrix"]),
+          values: (x, b2, d2) => tuple(
+            x,
+            [
+              (x2) => finite(x2, -64, 64),
+              (x2) => finite(x2, -64, 64),
+              (x2) => finite(x2, -64, 64),
+              (x2) => finite(x2, -64, 64),
+              coord,
+              coord
+            ],
+            b2,
+            d2
+          )
+        },
+        {},
+        b,
+        d
+      );
+    case "translate":
+      return object(p, { kind: choice(["translate"]), x: coord, y: coord }, {}, b, d);
+    case "scale":
+      return object(
+        p,
+        { kind: choice(["scale"]), x: (x) => finite(x, -64, 64), y: (x) => finite(x, -64, 64) },
+        {},
+        b,
+        d
+      );
+    case "rotate":
+      return object(
+        p,
+        {
+          kind: choice(["rotate"]),
+          degrees: (x) => finite(x, -36e4, 36e4),
+          cx: coord,
+          cy: coord
+        },
+        {},
+        b,
+        d
+      );
+    case "skewX":
+    case "skewY":
+      return object(
+        p,
+        { kind: choice(["skewX", "skewY"]), degrees: (x) => finite(x, -80, 80) },
+        {},
+        b,
+        d
+      );
+    default:
+      fail("transform kind");
+  }
+}
+function paint(v, b, d) {
+  const p = plain(v);
+  if (p.kind === "none") return object(p, { kind: choice(["none"]) }, {}, b, d);
+  if (p.kind === "color") return object(p, { kind: choice(["color"]), rgba }, {}, b, d);
+  return object(p, { kind: choice(["gradient"]), ref: id }, {}, b, d);
+}
+function filter(v, b, d) {
+  const p = plain(v);
+  if (p.kind === "unresolved-local")
+    return object(p, { kind: choice(["unresolved-local"]) }, {}, b, d);
+  if (p.kind === "none") return object(p, { kind: choice(["none"]) }, {}, b, d);
+  if (p.kind === "definition") return object(p, { kind: choice(["definition"]), ref: id }, {}, b, d);
+  return object(
+    p,
+    {
+      kind: choice(["cssDropShadow"]),
+      shadows: list((v2, b2, d2) => {
+        charge(b2, d2);
+        return object(
+          v2,
+          { dx: coord, dy: coord, blur: (x) => finite(x, 0, 32), color: rgba },
+          {},
+          b2,
+          d2
+        );
+      }, 4)
+    },
+    {},
+    b,
+    d
+  );
+}
+var styleParsers = {
+  shapeRendering: choice(["auto", "optimizeSpeed", "crispEdges", "geometricPrecision"]),
+  fill: paint,
+  stroke: paint,
+  fillOpacity: (x) => finite(x, 0, 1),
+  strokeOpacity: (x) => finite(x, 0, 1),
+  opacity: (x) => finite(x, 0, 1),
+  fillRule: choice(["nonzero", "evenodd"]),
+  clipRule: choice(["nonzero", "evenodd"]),
+  strokeWidth: positiveLength,
+  dashArray: list((v, b, d) => {
+    charge(b, d);
+    return positiveLength(v, b, d);
+  }, 4096),
+  dashOffset: length,
+  lineCap: choice(["butt", "round", "square"]),
+  lineJoin: choice(["miter", "round", "bevel"]),
+  miterLimit: (x) => finite(x, 1, 64),
+  display: choice(["inline", "none"]),
+  visibility: choice(["visible", "hidden", "collapse"]),
+  overflow: choice(["visible", "hidden"]),
+  mixBlendMode: choice(["normal", "multiply"]),
+  isolation: choice(["auto", "isolate"]),
+  filter,
+  clipPath: id,
+  colorInterpolation: choice(["sRGB", "linearRGB"]),
+  colorInterpolationFilters: choice(["sRGB", "linearRGB"]),
+  fontId: choice(fonts),
+  fontSize: positiveLength,
+  fontWeight: choice([100, 200, 300, 400, 500, 600, 700, 800, 900]),
+  fontStyle: choice(["normal", "italic", "oblique"]),
+  letterSpacing: length,
+  wordSpacing: length,
+  textAnchor: choice(["start", "middle", "end"]),
+  dominantBaseline: choice([
+    "auto",
+    "alphabetic",
+    "central",
+    "middle",
+    "hanging",
+    "text-before-edge",
+    "text-after-edge"
+  ]),
+  alignmentBaseline: choice([
+    "auto",
+    "baseline",
+    "alphabetic",
+    "central",
+    "middle",
+    "hanging",
+    "before-edge",
+    "after-edge"
+  ]),
+  decoration: choice(["none", "underline", "overline", "line-through"]),
+  whiteSpace: choice(["normal", "pre", "pre-wrap", "nowrap"]),
+  textTransform: choice(["none", "uppercase", "lowercase", "capitalize"])
+};
+var common = {
+  style: styleId,
+  transforms: list(transform, 64),
+  transformOrigin: (v, b, d) => tuple(v, [length, length], b, d),
+  transformBox: choice(["fill-box", "stroke-box", "view-box"]),
+  title: text,
+  description: text
+};
+var marked = { ...common, markerStart: id, markerMid: id, markerEnd: id };
+var textFields = {
+  x: list(length, 4096),
+  y: list(length, 4096),
+  dx: list(length, 4096),
+  dy: list(length, 4096)
+};
+var units = choice(["userSpaceOnUse", "objectBoundingBox"]);
+
+// packages/core/src/document-presentation.ts
+var DOCUMENT_PRESENTATION_LIMITS = Object.freeze({
+  inputUtf16: 65536,
+  inputLines: 256,
+  outputBytes: 262144,
+  nodes: 4096,
+  depth: 64,
+  fragments: 128,
+  timeoutMs: 2e3,
+  queue: 2
+});
+
+// packages/markdown/src/cst/node.ts
+function createNode(node) {
+  assertNodeRange(node);
+  return Object.freeze({
+    type: node.type,
+    from: node.from,
+    to: node.to,
+    status: node.status,
+    ...node.markerRanges ? { markerRanges: freezeRanges(node.markerRanges) } : {},
+    ...node.contentRanges ? { contentRanges: freezeRanges(node.contentRanges) } : {},
+    ...node.children ? { children: Object.freeze([...node.children]) } : {},
+    ...node.data ? { data: Object.freeze({ ...node.data }) } : {}
+  });
+}
+function assertNodeRange(node) {
+  if (!Number.isInteger(node.from) || !Number.isInteger(node.to)) {
+    throw new RangeError(`Node ${node.type} range offsets must be integers`);
+  }
+  if (node.from < 0 || node.to < node.from) {
+    throw new RangeError(`Invalid ${node.type} node range: ${node.from}-${node.to}`);
+  }
+}
+function freezeRanges(ranges) {
+  return Object.freeze(
+    ranges.map((range) => {
+      if (!Number.isInteger(range.from) || !Number.isInteger(range.to)) {
+        throw new RangeError(`Range offsets must be integers: ${range.from}-${range.to}`);
+      }
+      if (range.from < 0 || range.to < range.from) {
+        throw new RangeError(`Invalid range: ${range.from}-${range.to}`);
+      }
+      return Object.freeze({ ...range });
+    })
+  );
+}
+
+// packages/markdown/src/extensions/safe.ts
+function compileMarkdownSyntaxPattern(extension) {
+  if (extension.pattern.length > 256) {
+    throw new Error(`Markdown syntax pattern is too long: ${extension.id}`);
+  }
+  if (/\(\?[<!=]|\\[1-9]|\([^)]*(?:\*|\+|\{\d+,?\d*\})[^)]*\)(?:\*|\+|\{)/.test(extension.pattern)) {
+    throw new Error(`Markdown syntax pattern uses unsafe features: ${extension.id}`);
+  }
+  const flags = extension.flags ?? "";
+  if (!/^[imu]*$/.test(flags)) {
+    throw new Error(`Markdown syntax flags are invalid: ${extension.id}`);
+  }
+  return new RegExp(extension.pattern, flags);
+}
+function runMarkdownExtensionSafely(context, run) {
+  try {
+    return Object.freeze({
+      ok: true,
+      value: run()
+    });
+  } catch (error) {
+    return Object.freeze({
+      ok: false,
+      error,
+      context: Object.freeze({ ...context })
+    });
+  }
+}
+
+// packages/markdown/src/block/lines.ts
+function scanLines(source) {
+  const lines = [];
+  let pos = 0;
+  let number = 1;
+  while (pos < source.length) {
+    const newline = source.indexOf("\n", pos);
+    const hasNewline = newline !== -1;
+    const lineBreakStart = hasNewline ? newline : source.length;
+    const to = hasNewline ? newline + 1 : source.length;
+    const contentTo = lineBreakStart > pos && source.charCodeAt(lineBreakStart - 1) === 13 ? lineBreakStart - 1 : lineBreakStart;
+    lines.push(
+      Object.freeze({
+        number,
+        from: pos,
+        contentTo,
+        to,
+        text: source.slice(pos, contentTo)
+      })
+    );
+    pos = to;
+    number += 1;
+  }
+  return Object.freeze(lines);
+}
+
+// packages/markdown/src/block/parser.ts
+function parseMarkdown(source, options = {}) {
+  try {
+    return {
+      source,
+      root: createNode({
+        type: "document",
+        from: 0,
+        to: source.length,
+        status: "valid",
+        children: parseBlocks(source, options.syntaxExtensions ?? [])
+      })
+    };
+  } catch {
+    return {
+      source,
+      root: createNode({
+        type: "document",
+        from: 0,
+        to: source.length,
+        status: "fallback",
+        children: source.length > 0 ? [
+          createNode({
+            type: "fallbackText",
+            from: 0,
+            to: source.length,
+            status: "fallback",
+            contentRanges: [{ from: 0, to: source.length }]
+          })
+        ] : []
+      })
+    };
+  }
+}
+function parseBlocks(source, extensions) {
+  const lines = scanLines(source);
+  const nodes = [];
+  let index = 0;
+  while (index < lines.length) {
+    const line = lines[index];
+    if (!line) {
+      break;
+    }
+    if (isBlankLine(line)) {
+      nodes.push(parseBlankLine(line));
+      index += 1;
+      continue;
+    }
+    const extensionBlock = parseExtensionBlock(line, extensions);
+    if (extensionBlock) {
+      nodes.push(extensionBlock);
+      index += 1;
+      continue;
+    }
+    const htmlBlock = parseHtmlBlock(lines, index);
+    if (htmlBlock) {
+      nodes.push(htmlBlock.node);
+      index = htmlBlock.nextIndex;
+      continue;
+    }
+    const fencedCode = parseFencedCode(lines, index);
+    if (fencedCode) {
+      nodes.push(fencedCode.node);
+      index = fencedCode.nextIndex;
+      continue;
+    }
+    const indentedCode = parseIndentedCode(lines, index);
+    if (indentedCode) {
+      nodes.push(indentedCode.node);
+      index = indentedCode.nextIndex;
+      continue;
+    }
+    const blockquote = parseBlockquote(lines, index);
+    if (blockquote) {
+      nodes.push(blockquote.node);
+      index = blockquote.nextIndex;
+      continue;
+    }
+    const thematicBreak = parseThematicBreak(line);
+    if (thematicBreak) {
+      nodes.push(thematicBreak);
+      index += 1;
+      continue;
+    }
+    const heading = parseAtxHeading(line);
+    if (heading) {
+      nodes.push(heading);
+      index += 1;
+      continue;
+    }
+    const table = parseTable(lines, index);
+    if (table) {
+      nodes.push(table.node);
+      index = table.nextIndex;
+      continue;
+    }
+    const list2 = parseList(lines, index);
+    if (list2) {
+      nodes.push(list2.node);
+      index = list2.nextIndex;
+      continue;
+    }
+    const previous = nodes.at(-1);
+    const allowSetext = !previous || !["unorderedList", "orderedList", "blockquote"].includes(previous.type);
+    const paragraph = collectParagraph(lines, index, extensions, allowSetext);
+    const setext = allowSetext ? parseSetextHeading(paragraph, lines[index + paragraph.length]) : void 0;
+    nodes.push(setext ?? parseParagraph(source, paragraph, extensions));
+    index += paragraph.length + (setext ? 1 : 0);
+  }
+  return Object.freeze(nodes);
+}
+function parseExtensionBlock(line, extensions) {
+  for (const extension of extensions) {
+    if (!extension.block) {
+      continue;
+    }
+    const result = runMarkdownExtensionSafely(
+      { extensionName: extension.id, hook: "block" },
+      () => compileMarkdownSyntaxPattern(extension).exec(line.text)
+    );
+    const match = result.ok ? result.value : void 0;
+    if (!match) {
+      continue;
+    }
+    const from = line.from + match.index;
+    const to = from + match[0].length;
+    return createNode({
+      type: extension.nodeType,
+      from,
+      to,
+      status: "valid",
+      contentRanges: [{ from, to }],
+      data: { extensionId: extension.id }
+    });
+  }
+  return void 0;
+}
+function isBlankLine(line) {
+  return line.text.trim().length === 0;
+}
+function parseBlankLine(line) {
+  return createNode({
+    type: "blankLine",
+    from: line.from,
+    to: line.to,
+    status: "valid",
+    contentRanges: []
+  });
+}
+function parseAtxHeading(line) {
+  const match = /^( {0,3})(#{1,6})(?:[ \t]+|$)(.*)$/.exec(line.text);
+  if (!match) {
+    return void 0;
+  }
+  const indent = match[1]?.length ?? 0;
+  const marker = match[2];
+  if (!marker) {
+    return void 0;
+  }
+  const markerFrom = line.from + indent;
+  const markerTo = markerFrom + marker.length;
+  const contentFrom = findHeadingContentStart(line.text, markerTo - line.from);
+  const content = line.text.slice(contentFrom);
+  const closing = /(?:^|[ \t]+)(#+)[ \t]*$/.exec(content);
+  const contentEnd = closing ? contentFrom + closing.index : line.text.length;
+  const trimmedContentEnd = line.text.slice(0, contentEnd).replace(/[ \t]+$/, "").length;
+  const contentRange = {
+    from: line.from + contentFrom,
+    to: line.from + Math.max(contentFrom, trimmedContentEnd)
+  };
+  const closingRange = closing ? {
+    from: line.from + contentFrom + closing.index + closing[0].indexOf("#"),
+    to: line.from + contentFrom + closing.index + closing[0].indexOf("#") + closing[1].length
+  } : void 0;
+  return createNode({
+    type: "heading",
+    from: line.from,
+    to: line.to,
+    status: "valid",
+    markerRanges: [{ from: markerFrom, to: markerTo }, ...closingRange ? [closingRange] : []],
+    contentRanges: contentRange.from <= contentRange.to ? [contentRange] : [],
+    data: { level: marker.length }
+  });
+}
+function parseSetextHeading(lines, underline) {
+  const first = lines[0];
+  const last = lines.at(-1);
+  const match = underline && /^ {0,3}(=+|-+)[ \t]*$/.exec(underline.text);
+  if (!first || !last || !underline || !match) return void 0;
+  const contentFrom = first.from + (first.text.match(/^[ \t]*/)?.[0].length ?? 0);
+  const contentTo = last.from + last.text.replace(/[ \t]+$/, "").length;
+  const markerFrom = underline.from + underline.text.indexOf(match[1]);
+  return createNode({
+    type: "heading",
+    from: first.from,
+    to: underline.to,
+    status: "valid",
+    markerRanges: [{ from: markerFrom, to: markerFrom + match[1].length }],
+    contentRanges: [{ from: contentFrom, to: contentTo }],
+    data: { level: match[1][0] === "=" ? 1 : 2, style: "setext" }
+  });
+}
+function htmlBlockEnd(text2, inParagraph) {
+  const special = /^ {0,3}<(script|pre|style|textarea)(?:[ \t>]|$)/i.exec(text2);
+  if (special) return new RegExp(`</${special[1]}>`, "i");
+  if (/^ {0,3}<!--/.test(text2)) return /-->/;
+  if (/^ {0,3}<\?/.test(text2)) return /\?>/;
+  if (/^ {0,3}<!\[CDATA\[/.test(text2)) return /\]\]>/;
+  if (/^ {0,3}<![A-Z]/.test(text2)) return />/;
+  if (/^ {0,3}<\/?(?:address|article|aside|base|basefont|blockquote|body|caption|center|col|colgroup|dd|details|dialog|dir|div|dl|dt|fieldset|figcaption|figure|footer|form|frame|frameset|h[1-6]|head|header|hr|html|iframe|legend|li|link|main|menu|menuitem|nav|noframes|ol|optgroup|option|p|param|search|section|summary|table|tbody|td|tfoot|th|thead|title|tr|track|ul)(?:[ \t/>]|$)/i.test(
+    text2
+  ))
+    return "blank";
+  if (!inParagraph && /^ {0,3}(?:<\/[a-zA-Z][\w-]*[ \t]*>|<[a-zA-Z][\w-]*(?:[ \t]+[a-zA-Z_:][\w.:-]*(?:[ \t]*=[ \t]*(?:[^ \t"'=<>`]+|'[^']*'|"[^"]*"))?)*[ \t]*\/?>)[ \t]*$/.test(
+    text2
+  ))
+    return "blank";
+  return void 0;
+}
+function parseHtmlBlock(lines, index) {
+  const first = lines[index];
+  if (!first) return void 0;
+  const end = htmlBlockEnd(first.text, false);
+  if (!end) return void 0;
+  let nextIndex = index;
+  while (nextIndex < lines.length) {
+    const line = lines[nextIndex];
+    if (end === "blank" && isBlankLine(line)) break;
+    nextIndex += 1;
+    if (end !== "blank" && end.test(line.text)) break;
+  }
+  const last = lines[nextIndex - 1] ?? first;
+  return {
+    node: createNode({
+      type: "fallbackText",
+      from: first.from,
+      to: last.to,
+      status: "valid",
+      contentRanges: [{ from: first.from, to: last.to }],
+      data: { block: "html" }
+    }),
+    nextIndex
+  };
+}
+function parseFencedCode(lines, startIndex) {
+  const opener = lines[startIndex];
+  if (!opener) {
+    return void 0;
+  }
+  const opening = /^( {0,3})(`{3,}|~{3,})(.*)$/.exec(opener.text);
+  if (!opening) {
+    return void 0;
+  }
+  const indent = opening[1]?.length ?? 0;
+  const fence = opening[2];
+  const info = opening[3]?.trim() ?? "";
+  if (!fence) {
+    return void 0;
+  }
+  const fenceChar = fence[0];
+  if (!fenceChar || fenceChar === "`" && info.includes("`")) {
+    return void 0;
+  }
+  const fenceLength = fence.length;
+  const openingMarkerFrom = opener.from + indent;
+  const openingMarkerTo = openingMarkerFrom + fenceLength;
+  let closingLine;
+  let closingMarkerFrom;
+  let closingMarkerTo;
+  let nextIndex = lines.length;
+  for (let index = startIndex + 1; index < lines.length; index += 1) {
+    const line = lines[index];
+    if (!line) {
+      break;
+    }
+    const closing = matchClosingFence(line, fenceChar, fenceLength);
+    if (closing) {
+      closingLine = line;
+      closingMarkerFrom = line.from + closing.indent;
+      closingMarkerTo = closingMarkerFrom + closing.length;
+      nextIndex = index + 1;
+      break;
+    }
+  }
+  const lastLine = closingLine ?? lines[lines.length - 1] ?? opener;
+  const contentFrom = opener.to;
+  const contentTo = closingLine ? closingLine.from : lastLine.to;
+  const markerRanges = closingMarkerFrom !== void 0 && closingMarkerTo !== void 0 ? [
+    { from: openingMarkerFrom, to: openingMarkerTo },
+    { from: closingMarkerFrom, to: closingMarkerTo }
+  ] : [{ from: openingMarkerFrom, to: openingMarkerTo }];
+  return {
+    node: createNode({
+      type: "fencedCode",
+      from: opener.from,
+      to: lastLine.to,
+      status: closingLine ? "valid" : "incomplete",
+      markerRanges,
+      contentRanges: [{ from: contentFrom, to: contentTo }],
+      data: { fenceChar, fenceLength, info }
+    }),
+    nextIndex
+  };
+}
+function matchClosingFence(line, fenceChar, fenceLength) {
+  const escaped = fenceChar === "`" ? "`" : "~";
+  const pattern = new RegExp(`^( {0,3})(${escaped}{${fenceLength},})[ \\t]*$`);
+  const match = pattern.exec(line.text);
+  if (!match) {
+    return void 0;
+  }
+  return {
+    indent: match[1]?.length ?? 0,
+    length: match[2]?.length ?? fenceLength
+  };
+}
+function parseIndentedCode(lines, startIndex) {
+  const first = lines[startIndex];
+  if (!first || !isIndentedCodeLine(first)) {
+    return void 0;
+  }
+  const codeLines = [];
+  let nextIndex = startIndex;
+  while (nextIndex < lines.length) {
+    const line = lines[nextIndex];
+    if (!line || !isIndentedCodeLine(line)) {
+      break;
+    }
+    codeLines.push(line);
+    nextIndex += 1;
+  }
+  const last = codeLines[codeLines.length - 1] ?? first;
+  return {
+    node: createNode({
+      type: "indentedCode",
+      from: first.from,
+      to: last.to,
+      status: "valid",
+      markerRanges: codeLines.map((line) => ({
+        from: line.from,
+        to: line.from + indentedCodePrefixLength(line.text)
+      })),
+      contentRanges: codeLines.map((line) => ({
+        from: line.from + indentedCodePrefixLength(line.text),
+        to: line.contentTo
+      }))
+    }),
+    nextIndex
+  };
+}
+function isIndentedCodeLine(line) {
+  return /^(?: {4}| {0,3}\t)/.test(line.text);
+}
+function indentedCodePrefixLength(text2) {
+  return /^(?: {4}| {0,3}\t)/.exec(text2)?.[0].length ?? 0;
+}
+function parseBlockquote(lines, startIndex) {
+  const first = parseBlockquoteLine(lines[startIndex]);
+  if (!first) {
+    return void 0;
+  }
+  const children = [first];
+  let nextIndex = startIndex + 1;
+  while (nextIndex < lines.length) {
+    const child = parseBlockquoteLine(lines[nextIndex]);
+    if (!child) {
+      break;
+    }
+    children.push(child);
+    nextIndex += 1;
+  }
+  const last = children[children.length - 1] ?? first;
+  return {
+    node: createNode({
+      type: "blockquote",
+      from: first.from,
+      to: last.to,
+      status: "valid",
+      markerRanges: children.flatMap((child) => child.markerRanges ?? []),
+      contentRanges: children.flatMap((child) => child.contentRanges ?? []),
+      children
+    }),
+    nextIndex
+  };
+}
+function parseBlockquoteLine(line) {
+  if (!line) {
+    return void 0;
+  }
+  const match = /^( {0,3})>(?:[ \t]?)(.*)$/.exec(line.text);
+  if (!match) {
+    return void 0;
+  }
+  const indent = match[1]?.length ?? 0;
+  const markerFrom = line.from + indent;
+  const markerTo = markerFrom + 1;
+  const contentFrom = findBlockquoteContentStart(line.text, markerTo - line.from);
+  return createNode({
+    type: "blockquoteLine",
+    from: line.from,
+    to: line.to,
+    status: "valid",
+    markerRanges: [{ from: markerFrom, to: markerTo }],
+    contentRanges: [{ from: line.from + contentFrom, to: line.contentTo }]
+  });
+}
+function findBlockquoteContentStart(text2, markerEnd) {
+  let pos = markerEnd;
+  if (text2[pos] === " " || text2[pos] === "	") {
+    pos += 1;
+  }
+  return pos;
+}
+function parseThematicBreak(line) {
+  const match = /^( {0,3})((?:\*[ \t]*){3,}|(?:-[ \t]*){3,}|(?:_[ \t]*){3,})$/.exec(line.text);
+  if (!match) {
+    return void 0;
+  }
+  const indent = match[1]?.length ?? 0;
+  return createNode({
+    type: "thematicBreak",
+    from: line.from,
+    to: line.to,
+    status: "valid",
+    markerRanges: [{ from: line.from + indent, to: line.contentTo }]
+  });
+}
+function parseList(lines, startIndex) {
+  const first = parseListItem(lines[startIndex]);
+  if (!first) {
+    return void 0;
+  }
+  const items = [first.node];
+  let nextIndex = startIndex + 1;
+  while (nextIndex < lines.length) {
+    const item = parseListItem(lines[nextIndex]);
+    if (!item || item.kind !== first.kind) {
+      break;
+    }
+    items.push(item.node);
+    nextIndex += 1;
+  }
+  const last = items[items.length - 1] ?? first.node;
+  return {
+    node: createNode({
+      type: first.kind === "ordered" ? "orderedList" : "unorderedList",
+      from: first.node.from,
+      to: last.to,
+      status: "valid",
+      children: items,
+      data: first.kind === "ordered" ? { start: first.start ?? 1 } : {}
+    }),
+    nextIndex
+  };
+}
+function parseListItem(line) {
+  if (!line || isBlankLine(line) || parseThematicBreak(line)) {
+    return void 0;
+  }
+  const unordered = /^( {0,3})([-+*])(?:[ \t]+|$)(.*)$/.exec(line.text);
+  if (unordered) {
+    const indent2 = unordered[1]?.length ?? 0;
+    const marker = unordered[2];
+    if (!marker) {
+      return void 0;
+    }
+    const markerFrom2 = line.from + indent2;
+    const markerTo2 = markerFrom2 + marker.length;
+    const contentFrom2 = findListContentStart(line.text, markerTo2 - line.from);
+    return {
+      kind: "unordered",
+      node: createNode({
+        type: "listItem",
+        from: line.from,
+        to: line.to,
+        status: "valid",
+        markerRanges: [{ from: markerFrom2, to: markerTo2 }],
+        contentRanges: [{ from: line.from + contentFrom2, to: line.contentTo }],
+        data: { marker }
+      })
+    };
+  }
+  const ordered = /^( {0,3})(\d{1,9})([.)])(?:[ \t]+|$)(.*)$/.exec(line.text);
+  if (!ordered) {
+    return void 0;
+  }
+  const indent = ordered[1]?.length ?? 0;
+  const numberText = ordered[2];
+  const delimiter = ordered[3];
+  if (!numberText || !delimiter) {
+    return void 0;
+  }
+  const markerFrom = line.from + indent;
+  const markerTo = markerFrom + numberText.length + delimiter.length;
+  const contentFrom = findListContentStart(line.text, markerTo - line.from);
+  return {
+    kind: "ordered",
+    start: Number.parseInt(numberText, 10),
+    node: createNode({
+      type: "listItem",
+      from: line.from,
+      to: line.to,
+      status: "valid",
+      markerRanges: [{ from: markerFrom, to: markerTo }],
+      contentRanges: [{ from: line.from + contentFrom, to: line.contentTo }],
+      data: { number: Number.parseInt(numberText, 10), delimiter }
+    })
+  };
+}
+function findListContentStart(text2, markerEnd) {
+  let pos = markerEnd;
+  while (pos < text2.length && (text2[pos] === " " || text2[pos] === "	")) {
+    pos += 1;
+  }
+  return pos;
+}
+function findHeadingContentStart(text2, markerEnd) {
+  let pos = markerEnd;
+  while (pos < text2.length && (text2[pos] === " " || text2[pos] === "	")) {
+    pos += 1;
+  }
+  return pos;
+}
+function parseTable(lines, startIndex) {
+  const header = parseTableRow(lines[startIndex]);
+  const delimiterLine = lines[startIndex + 1];
+  const delimiter = parseTableDelimiterRow(delimiterLine);
+  if (!header || !delimiter || header.cells.length < 2 || header.cells.length !== delimiter.alignments.length) {
+    return void 0;
+  }
+  const rows = [header.node];
+  let nextIndex = startIndex + 2;
+  while (nextIndex < lines.length) {
+    const row = parseTableRow(lines[nextIndex]);
+    if (!row || row.cells.length === 0) {
+      break;
+    }
+    rows.push(row.node);
+    nextIndex += 1;
+  }
+  const last = rows[rows.length - 1] ?? header.node;
+  return {
+    node: createNode({
+      type: "table",
+      from: header.node.from,
+      to: Math.max(last.to, delimiterLine.to),
+      status: "valid",
+      children: rows,
+      data: {
+        alignments: delimiter.alignments
+      }
+    }),
+    nextIndex
+  };
+}
+function parseTableRow(line) {
+  if (!line || !line.text.includes("|")) {
+    return void 0;
+  }
+  const cells = splitTableCells(line);
+  if (cells.length === 0) {
+    return void 0;
+  }
+  const children = cells.map(
+    (cell) => createNode({
+      type: "tableCell",
+      from: cell.from,
+      to: cell.to,
+      status: "valid",
+      contentRanges: [{ from: cell.from, to: cell.to }]
+    })
+  );
+  return {
+    cells: children,
+    line,
+    node: createNode({
+      type: "tableRow",
+      from: line.from,
+      to: line.to,
+      status: "valid",
+      children,
+      contentRanges: children.flatMap((cell) => cell.contentRanges ?? [])
+    })
+  };
+}
+function parseTableDelimiterRow(line) {
+  const row = parseTableRow(line);
+  if (!row) {
+    return void 0;
+  }
+  const parsedAlignments = row.cells.map((cell) => parseTableDelimiterCell(row.line, cell));
+  if (parsedAlignments.some((alignment) => alignment === false)) {
+    return void 0;
+  }
+  return {
+    alignments: parsedAlignments.map(
+      (alignment) => alignment === true || alignment === false ? void 0 : alignment
+    )
+  };
+}
+function parseTableDelimiterCell(line, cell) {
+  const text2 = line.text.slice(cell.from - line.from, cell.to - line.from).trim();
+  if (!/^:?-{3,}:?$/.test(text2)) {
+    return false;
+  }
+  const left = text2.startsWith(":");
+  const right = text2.endsWith(":");
+  if (left && right) {
+    return "center";
+  }
+  if (right) {
+    return "right";
+  }
+  if (left) {
+    return "left";
+  }
+  return true;
+}
+function splitTableCells(line) {
+  const ranges = [];
+  const text2 = line.text;
+  const startsWithPipe = text2.trimStart().startsWith("|");
+  const lastPipe = text2.trimEnd().length - 1;
+  const endsWithPipe = text2[lastPipe] === "|" && !isEscapedPipe(text2, lastPipe);
+  const start = startsWithPipe ? text2.indexOf("|") + 1 : 0;
+  const end = endsWithPipe ? text2.lastIndexOf("|") : text2.length;
+  let cellStart = start;
+  let pos = start;
+  while (pos <= end) {
+    const atCellEnd = pos === end;
+    const char = text2[pos];
+    const escaped = isEscapedPipe(text2, pos);
+    if (atCellEnd || char === "|" && !escaped) {
+      ranges.push(trimTableCellRange(line.from + cellStart, line.from + pos, text2, line.from));
+      cellStart = pos + 1;
+    }
+    pos += 1;
+  }
+  return Object.freeze(ranges);
+}
+function isEscapedPipe(text2, position) {
+  let slashes = 0;
+  for (let i = position - 1; i >= 0 && text2[i] === "\\"; i--) slashes++;
+  return slashes % 2 === 1;
+}
+function trimTableCellRange(from, to, lineText, lineFrom) {
+  let start = from;
+  let end = to;
+  while (start < end && /\s/.test(lineText[start - lineFrom] ?? "")) {
+    start += 1;
+  }
+  while (end > start && /\s/.test(lineText[end - lineFrom - 1] ?? "")) {
+    end -= 1;
+  }
+  return Object.freeze({ from: start, to: end });
+}
+function collectParagraph(lines, startIndex, extensions, allowSetext) {
+  const paragraph = [];
+  for (let index = startIndex; index < lines.length; index += 1) {
+    const line = lines[index];
+    if (!line || isBlankLine(line) || allowSetext && paragraph.length > 0 && /^ {0,3}(=+|-+)[ \t]*$/.test(line.text) || htmlBlockEnd(line.text, true) || parseFencedCode(lines, index) || parseBlockquote(lines, index) || parseThematicBreak(line) || parseAtxHeading(line) || parseTable(lines, index) || /^ {0,3}(?:[-+*]|1[.)])[ \t]+\S/.test(line.text) || parseExtensionBlock(line, extensions)) {
+      break;
+    }
+    paragraph.push(line);
+  }
+  return paragraph;
+}
+function parseParagraph(source, lines, extensions) {
+  const first = lines[0];
+  const last = lines[lines.length - 1];
+  if (!first || !last) {
+    return createNode({
+      type: "paragraph",
+      from: 0,
+      to: 0,
+      status: "fallback",
+      contentRanges: []
+    });
+  }
+  return createNode({
+    type: "paragraph",
+    from: first.from,
+    to: last.to,
+    status: "valid",
+    contentRanges: [{ from: first.from, to: last.contentTo }],
+    children: parseInlineExtensions(source, first.from, last.contentTo, extensions)
+  });
+}
+function parseInlineExtensions(source, from, to, extensions) {
+  const nodes = [];
+  const text2 = source.slice(from, to);
+  for (const extension of extensions) {
+    if (!extension.inline) {
+      continue;
+    }
+    const result = runMarkdownExtensionSafely(
+      { extensionName: extension.id, hook: "inline" },
+      () => {
+        const base2 = compileMarkdownSyntaxPattern(extension);
+        const pattern = new RegExp(base2.source, `${base2.flags}g`);
+        return [...text2.matchAll(pattern)];
+      }
+    );
+    if (!result.ok) {
+      continue;
+    }
+    for (const match of result.value) {
+      const matchFrom = from + (match.index ?? 0);
+      const matchTo = matchFrom + match[0].length;
+      if (matchTo <= matchFrom) {
+        continue;
+      }
+      nodes.push(
+        createNode({
+          type: extension.nodeType,
+          from: matchFrom,
+          to: matchTo,
+          status: "valid",
+          contentRanges: [{ from: matchFrom, to: matchTo }],
+          data: { extensionId: extension.id }
+        })
+      );
+    }
+  }
+  return Object.freeze(nodes.sort((left, right) => left.from - right.from || left.to - right.to));
+}
+
+// packages/markdown/src/incremental/window.ts
+async function parseMarkdownWindow(store, options) {
+  const window = await store.readLineWindow(options.fromLine, options.toLine);
+  const parsed = parseMarkdown(window.text);
+  return Object.freeze({
+    documentId: store.documentId,
+    version: store.version,
+    window,
+    localSource: parsed.source,
+    source: parsed.source,
+    root: shiftNode(parsed.root, window.from)
+  });
+}
+function shiftNode(node, offset) {
+  return createNode({
+    ...node,
+    from: node.from + offset,
+    to: node.to + offset,
+    ...node.markerRanges ? { markerRanges: shiftRanges(node.markerRanges, offset) } : {},
+    ...node.contentRanges ? { contentRanges: shiftRanges(node.contentRanges, offset) } : {},
+    ...node.children ? { children: node.children.map((child) => shiftNode(child, offset)) } : {}
+  });
+}
+function shiftRanges(ranges, offset) {
+  return ranges.map(
+    (range) => Object.freeze({
+      from: range.from + offset,
+      to: range.to + offset
+    })
+  );
+}
+
+// ../milkup-mermaid-engine-evidence/research/window-navigation-multirow-browser-02/parser-probe.ts
+var base = "/workspace/milkup-mermaid-engine-evidence/research";
+var results = [];
+for (const revision of ["01", "02"]) {
+  const text2 = await readFile(`${base}/window-navigation-multirow-browser-${revision}/fixture.md`, "utf8");
+  const source = new MemoryDocumentSource({ documentId: `parser-proof-${revision}`, text: text2 });
+  const marker = (await source.readLineWindow(398, 398)).lines[0];
+  assert.equal(marker.from, 8103);
+  assert.equal(marker.to, 8160);
+  for (const [fromLine, toLine] of [[280, 384], [304, 559]]) {
+    const parsed = await parseMarkdownWindow({
+      documentId: source.documentId,
+      version: source.version,
+      readLineWindow: (from, to) => source.readLineWindow(from, to, 65536)
+    }, { fromLine, toLine });
+    const fences = (parsed.root.children ?? []).filter((block) => block.type === "fencedCode").map((block) => ({
+      from: block.from,
+      to: block.to,
+      status: block.status,
+      markers: block.markerRanges,
+      fromLine: parsed.window.lines.find((line) => line.from === block.from)?.number,
+      closingLine: block.markerRanges?.length === 2 ? parsed.window.lines.find((line) => line.from <= block.markerRanges[1].to && line.to >= block.markerRanges[1].to)?.number : void 0
+    }));
+    results.push({ revision, requested: [fromLine, toLine], actualWindow: { fromLine: parsed.window.fromLine, toLine: parsed.window.toLine, from: parsed.window.from, to: parsed.window.to, lines: parsed.window.lines.length, codeUnits: parsed.window.text.length }, marker: { from: marker.from, to: marker.to }, fences });
+    if (revision === "02") {
+      assert(parsed.window.lines.length <= 256);
+      assert(parsed.window.text.length <= 65536);
+      const target = fences.find((block) => block.from === 5742);
+      assert(target, "Expected actual target opening at UTF16 offset5742");
+      if (fromLine === 280) assert.equal(target.status, "incomplete");
+      else {
+        assert.equal(target.status, "valid");
+        assert.equal(target.fromLine, 318);
+        assert.equal(target.closingLine, 394);
+        assert.equal(target.markers?.[1].to, 8060);
+      }
+    }
+  }
+}
+await writeFile(`${base}/window-navigation-multirow-browser-02/parser-proof.json`, JSON.stringify({ status: "PASS", assertions: "revision02 initial context has true incomplete target opening; bounded supplement has exact valid target closing; original revision01 recorded without imposed result", results }, null, 2) + "\n");
+console.log("PASS finite public-parser proof: 2 sources \xD7 2 bounded windows; revision02 exact complete target318..394 and marker398 offsets retained");

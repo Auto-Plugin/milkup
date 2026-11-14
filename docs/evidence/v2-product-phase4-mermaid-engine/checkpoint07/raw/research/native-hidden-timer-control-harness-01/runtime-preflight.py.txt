@@ -1,0 +1,74 @@
+#!/usr/bin/env python3
+"""Read-only preflight; never launches binaries, observers, or a display."""
+import argparse
+import hashlib
+import json
+import os
+import socket
+import time
+from pathlib import Path
+
+BASE = Path('/workspace/milkup-mermaid-engine-evidence/research/native-hidden-timer-control-harness-01')
+CANDIDATE = Path('/workspace/milkup-mermaid-engine-evidence/research/native-hidden-timer-candidate-01')
+CELLS = ['A-control','C-control','A-single','C-single','A-double','C-double','A-class','C-class']
+
+
+def file_record(path):
+    path = Path(path)
+    data = path.read_bytes()
+    return {'path':str(path), 'bytes':len(data), 'sha256':hashlib.sha256(data).hexdigest()}
+
+
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--binary-sha', required=True)
+    parser.add_argument('--tests-sha', required=True)
+    parser.add_argument('--output', required=True)
+    args = parser.parse_args()
+    manifest_path = BASE / 'preparation.json'
+    manifest = json.loads(manifest_path.read_text())
+    inputs = []
+    for row in manifest['files']:
+        actual = file_record(row['path'])
+        assert actual['sha256'] == row['sha256'] and actual['bytes'] == row['bytes'], row['path']
+        inputs.append(actual)
+    for name, expected in [('milkup-desktop',args.binary_sha),('native-tests',args.tests_sha)]:
+        assert len(expected)==64 and all(c in '0123456789abcdef' for c in expected)
+        row=file_record(CANDIDATE/'bin'/name)
+        assert row['sha256']==expected, name
+        inputs.append(row)
+    for name in ['runtime-preflight.py','aggregate-results.py']:
+        inputs.append(file_record(BASE/name))
+    for key in ['LD_PRELOAD','WEBKIT_DISABLE_SANDBOX_THIS_IS_DANGEROUS','MILKUP_GTK_THREAD_TRACE',
+                'CARGO_TARGET_X86_64_UNKNOWN_LINUX_GNU_RUNNER','PROOT_NO_SECCOMP']:
+        assert not os.environ.get(key), 'Forbidden inherited environment: '+key
+    proc=Path('/proc/288383')
+    argv=proc.joinpath('cmdline').read_bytes().decode().split('\0')
+    birth=proc.joinpath('stat').read_text().rsplit(')',1)[1].split()[19]
+    assert birth=='4366483'
+    assert argv==['Xvfb',':126','-screen','0','1600x1100x24','-nolisten','tcp','']
+    assert Path('/tmp/.X11-unix/X126').is_socket()
+    for port in [4626,4627]:
+        with socket.socket() as connection:
+            assert connection.connect_ex(('127.0.0.1',port))!=0, 'Unexpected active driver port'
+    assert not (BASE/'run').exists(), 'No retries/reuse of existing batch'
+    for cell in CELLS:
+        assert not Path('/tmp', 'milkup-timer-ac01-'+cell).exists()
+    authority = [
+        '/workspace/milkup-mermaid-engine-evidence/research/native-phase-prefix-diagnostic-01/run/ordinary.md',
+        '/workspace/milkup-mermaid-engine-evidence/research/native-phase-prefix-diagnostic-01/summary.json',
+        '/workspace/milkup-mermaid-engine-evidence/research/native-cold-cpu-batch-01/summary.json',
+    ]
+    record={'wallTime':time.time(),'monotonicNs':time.monotonic_ns(),'classification':'diagnostic mechanism, not production04',
+            'manifest':file_record(manifest_path),'inputs':inputs,'authoritySources':[file_record(p) for p in authority],
+            'cells':CELLS,'xvfb':{'pid':288383,'birth':birth,'argv':argv},'portsFree':[4626,4627],
+            'freshPaths':True,'forbiddenEnvironmentUnset':True,'runtimeLaunched':False,
+            'limits':['Preflight is not runtime authorization. Root must separately grant exclusive execution.',
+                      'No CPU sampler or editor acceptance is involved.']}
+    with Path(args.output).open('x') as output:
+        json.dump(record,output,indent=2);output.write('\n')
+    print(json.dumps({'preflight':'ready','output':args.output,'inputCount':len(inputs)}))
+
+
+if __name__=='__main__':
+    main()

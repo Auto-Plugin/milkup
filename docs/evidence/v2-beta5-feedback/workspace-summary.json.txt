@@ -1,0 +1,187 @@
+{
+  "recordedUtc": "2026-10-22T08:54:08.347844+00:00",
+  "headAtCompletion": "a5930de52773fd5a55ff11bdc6d40a0113d2d0f9",
+  "scope": "Original root pnpm workspace: 14 child projects; standalone plugins excluded by the existing pnpm-workspace.yaml",
+  "execution": "Tests followed by typecheck, package concurrency 1; no concurrent build/typecheck; original package scripts and Vitest defaults unchanged",
+  "noAutoInstall": true,
+  "productFilesEditedForChecks": false,
+  "committed": false,
+  "results": {
+    "workspace-test": {
+      "returncode": 0,
+      "elapsed_s": 73.725,
+      "startedUtc": "2026-10-22T08:51:17.724821+00:00",
+      "finishedUtc": "2026-10-22T08:52:31.449507+00:00",
+      "headAtStart": "a5930de52773fd5a55ff11bdc6d40a0113d2d0f9",
+      "command": [
+        "pnpm",
+        "--config.verify-deps-before-run=false",
+        "--config.manage-package-manager-versions=false",
+        "-r",
+        "--workspace-concurrency=1",
+        "test"
+      ],
+      "log": "/tmp/milkup-beta5-workspace-checks/workspace-test.log",
+      "telemetry": "/tmp/milkup-beta5-workspace-checks/workspace-test-cpu.jsonl"
+    },
+    "workspace-typecheck": {
+      "returncode": 0,
+      "elapsed_s": 45.032,
+      "startedUtc": "2026-10-22T08:52:44.718691+00:00",
+      "finishedUtc": "2026-10-22T08:53:29.751064+00:00",
+      "headAtStart": "a5930de52773fd5a55ff11bdc6d40a0113d2d0f9",
+      "command": [
+        "pnpm",
+        "--config.verify-deps-before-run=false",
+        "--config.manage-package-manager-versions=false",
+        "-r",
+        "--workspace-concurrency=1",
+        "typecheck"
+      ],
+      "log": "/tmp/milkup-beta5-workspace-checks/workspace-typecheck.log",
+      "telemetry": "/tmp/milkup-beta5-workspace-checks/workspace-typecheck-cpu.jsonl"
+    }
+  },
+  "packages": [
+    {
+      "path": "packages/assets",
+      "vitestFilesPassed": 1,
+      "vitestTestsPassed": 6,
+      "nodeTestsPassed": 0,
+      "noTestsAllowed": false
+    },
+    {
+      "path": "packages/core",
+      "vitestFilesPassed": 21,
+      "vitestTestsPassed": 189,
+      "nodeTestsPassed": 0,
+      "noTestsAllowed": false
+    },
+    {
+      "path": "packages/input",
+      "vitestFilesPassed": 1,
+      "vitestTestsPassed": 8,
+      "nodeTestsPassed": 0,
+      "noTestsAllowed": false
+    },
+    {
+      "path": "packages/markdown",
+      "vitestFilesPassed": 9,
+      "vitestTestsPassed": 121,
+      "nodeTestsPassed": 0,
+      "noTestsAllowed": false
+    },
+    {
+      "path": "packages/mcp",
+      "vitestFilesPassed": 2,
+      "vitestTestsPassed": 11,
+      "nodeTestsPassed": 0,
+      "noTestsAllowed": false
+    },
+    {
+      "path": "packages/plugin-sdk",
+      "vitestFilesPassed": 1,
+      "vitestTestsPassed": 6,
+      "nodeTestsPassed": 0,
+      "noTestsAllowed": false
+    },
+    {
+      "path": "packages/tauri-bridge",
+      "vitestFilesPassed": 9,
+      "vitestTestsPassed": 55,
+      "nodeTestsPassed": 0,
+      "noTestsAllowed": false
+    },
+    {
+      "path": "packages/export",
+      "vitestFilesPassed": 4,
+      "vitestTestsPassed": 75,
+      "nodeTestsPassed": 0,
+      "noTestsAllowed": false
+    },
+    {
+      "path": "packages/view-dom",
+      "vitestFilesPassed": 32,
+      "vitestTestsPassed": 847,
+      "nodeTestsPassed": 0,
+      "noTestsAllowed": false
+    },
+    {
+      "path": "packages/plugin",
+      "vitestFilesPassed": 46,
+      "vitestTestsPassed": 622,
+      "nodeTestsPassed": 0,
+      "noTestsAllowed": false
+    },
+    {
+      "path": "tests/regressions",
+      "vitestFilesPassed": 12,
+      "vitestTestsPassed": 12,
+      "nodeTestsPassed": 0,
+      "noTestsAllowed": false
+    },
+    {
+      "path": "apps/desktop",
+      "vitestFilesPassed": 61,
+      "vitestTestsPassed": 780,
+      "nodeTestsPassed": 4,
+      "noTestsAllowed": false
+    },
+    {
+      "path": "apps/playground",
+      "vitestFilesPassed": 0,
+      "vitestTestsPassed": 0,
+      "nodeTestsPassed": 0,
+      "noTestsAllowed": true
+    },
+    {
+      "path": "packages/cli",
+      "vitestFilesPassed": 1,
+      "vitestTestsPassed": 21,
+      "nodeTestsPassed": 0,
+      "noTestsAllowed": false
+    }
+  ],
+  "totals": {
+    "workspaceProjects": 14,
+    "vitestFilesPassed": 200,
+    "vitestTestsPassed": 2753,
+    "nodeTestsPassed": 4,
+    "allTestsPassed": 2757,
+    "failed": 0,
+    "typecheckProjectsPassed": 14
+  },
+  "largeDocumentSearch": {
+    "result": "passed",
+    "durationMs": 1033,
+    "unchangedDefaultTimeoutMs": 5000,
+    "originalParallelFailureMs": 5474,
+    "isolatedFileMs": 719,
+    "isolatedPackageMs": 723,
+    "conclusion": "No regression reproduced in isolated or full sequential workspace run; original concurrency/resource-contention explanation remains supported, without original CPU telemetry to prove sole causality"
+  },
+  "cpuTelemetry": [
+    {
+      "path": "/tmp/milkup-beta5-workspace-checks/workspace-test-cpu.jsonl",
+      "cpuSeconds": 238.533,
+      "throttledPeriods": 180,
+      "throttledSeconds": 3.686,
+      "loadBefore": "0.63 1.24 1.38 3/1528 188702",
+      "loadAfter": "3.63 2.06 1.66 2/1453 194185"
+    },
+    {
+      "path": "/tmp/milkup-beta5-workspace-checks/workspace-typecheck-cpu.jsonl",
+      "cpuSeconds": 101.989,
+      "throttledPeriods": 2,
+      "throttledSeconds": 0.076,
+      "loadBefore": "3.15 2.01 1.64 1/1442 194202",
+      "loadAfter": "2.89 2.12 1.70 1/1442 194533"
+    }
+  ],
+  "cpuTelemetryNote": "Cgroup samples include other light native UI activity authorized by the parent; they are not per-process benchmark measurements.",
+  "logSha256": {
+    "workspace-test": "aa8bc52e1d377cba51ae240c8c99d34f7076736c6da525eaeeccf7a2752086f8",
+    "workspace-typecheck": "a59c11c3bdea53d0583d177387c84a88b1919db8a3336298ff354e49a60e32a3"
+  },
+  "originalFailurePreserved": "/tmp/milkup-beta5-core-regression/original-workspace-test-failure.log"
+}

@@ -1,0 +1,118 @@
+$ playwright test tests/e2e/desktop-markdown-extensions.spec.ts tests/e2e/desktop-shell.spec.ts tests/e2e/desktop-workspace.spec.ts tests/e2e/desktop-updates.spec.ts tests/e2e/desktop-shortcuts.spec.ts tests/e2e/desktop-plugin-cards.spec.ts --grep 'real math and footnotes|official Mermaid DOM host|plugin manager restores|phase9 outline updates|trusted workspace commands|host About has no update|saved binding survives|shadowed plugin defaults|plugin permission approval' --project=desktop-msedge --workers=1 --reporter=line --output=/workspace/milkup-p7-quality-evidence/milestone01/browser-fixture-audit/second-startup/focused-artifacts
+
+[WebServer] (node:295711) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+[WebServer] $ vite --host 127.0.0.1
+
+[WebServer] (node:295727) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+[WebServer] (node:295752) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+[WebServer] $ vite --host 127.0.0.1
+
+[WebServer] (node:295771) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 9 tests using 1 worker
+
+
+(node:295859) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+[1/9] [desktop-msedge] › tests/e2e/desktop-markdown-extensions.spec.ts:45:1 › real math and footnotes plus controlled image Worker preserve source/history
+[2/9] [desktop-msedge] › tests/e2e/desktop-markdown-extensions.spec.ts:1460:1 › official Mermaid DOM host is explicitly unavailable in the browser and keeps source
+  1) [desktop-msedge] › tests/e2e/desktop-markdown-extensions.spec.ts:1460:1 › official Mermaid DOM host is explicitly unavailable in the browser and keeps source 
+
+    Error: expect(locator).toContainText(expected) failed
+
+    Locator: locator('.plugin-errors')
+    Expected substring: "DOM plugins require the native desktop runtime"
+    Received string:    "DOM module requires a native catalog generation"
+    Timeout: 5000ms
+
+    Call log:
+      - Expect "toContainText" with timeout 5000ms
+      - waiting for locator('.plugin-errors')
+        14 × locator resolved to <div class="plugin-errors">DOM module requires a native catalog generation</div>
+           - unexpected value "DOM module requires a native catalog generation"
+
+
+      1471 |   await page.getByRole('button', { name: '插件', exact: true }).click()
+      1472 |   await page.getByRole('button', { name: 'Milkup Diagrams', exact: true }).click()
+    > 1473 |   await expect(page.locator('.plugin-errors')).toContainText(
+           |                                                ^
+      1474 |     'DOM plugins require the native desktop runtime',
+      1475 |   )
+      1476 |   expect(loads).toEqual([])
+        at /workspace/milkup/tests/e2e/desktop-markdown-extensions.spec.ts:1473:48
+
+    attachment #1: page-state (text/plain) ─────────────────────────────────────────────────────────
+    - main:
+      - button "菜单" [expanded]
+      - heading "未命名" [level=1]
+      - paragraph: 未保存
+      - button "最小化"
+      - button "最大化"
+      - button "关闭窗口"
+      - dialog "菜单":
+        - heading "菜单" [level=2]
+        - button "关闭菜单"
+        - navigation "菜单分类":
+          - button "文件"
+          - button "插件"
+          - button "关于"
+        - heading "...
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ../milkup-p7-quality-evidence/milestone01/browser-fixture-audit/second-startup/focused-artifacts/desktop-markdown-extension-f6c05-he-browser-and-keeps-source-desktop-msedge/error-context.md
+
+
+
+(node:296078) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+[3/9] [desktop-msedge] › tests/e2e/desktop-plugin-cards.spec.ts:68:1 › plugin permission approval, enable, disable and uninstall remain inside details
+[4/9] [desktop-msedge] › tests/e2e/desktop-shell.spec.ts:149:1 › plugin manager restores, executes, disables, and reenables a Worker plugin
+[5/9] [desktop-msedge] › tests/e2e/desktop-shell.spec.ts:1205:1 › phase9 outline updates renamed headings and highlights the current section
+  2) [desktop-msedge] › tests/e2e/desktop-shell.spec.ts:1205:1 › phase9 outline updates renamed headings and highlights the current section 
+
+    Error: expect(locator).toBeVisible() failed
+
+    Locator: locator('[data-plugin-ui="milkup.outline:outline-panel"]').getByRole('button', { name: '跳转到 First，第 1 行', exact: true })
+    Expected: visible
+    Timeout: 5000ms
+    Error: element(s) not found
+
+    Call log:
+      - Expect "toBeVisible" with timeout 5000ms
+      - waiting for locator('[data-plugin-ui="milkup.outline:outline-panel"]').getByRole('button', { name: '跳转到 First，第 1 行', exact: true })
+
+
+      1217 |   await expect(
+      1218 |     outline.getByRole('button', { name: '跳转到 First，第 1 行', exact: true }),
+    > 1219 |   ).toBeVisible()
+           |     ^
+      1220 |   await outline.getByRole('button', { name: '跳转到 First，第 1 行', exact: true }).click()
+      1221 |   await expect(page.locator('.milkup-input-proxy')).toBeFocused()
+      1222 |   await page.keyboard.press('End')
+        at /workspace/milkup/tests/e2e/desktop-shell.spec.ts:1219:5
+
+    Error Context: ../milkup-p7-quality-evidence/milestone01/browser-fixture-audit/second-startup/focused-artifacts/desktop-shell-phase9-outli-fdd12-hlights-the-current-section-desktop-msedge/error-context.md
+
+
+
+(node:296425) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+[6/9] [desktop-msedge] › tests/e2e/desktop-shortcuts.spec.ts:117:1 › saved binding survives restart, restores defaults, and search field keeps local editing plus global save
+[7/9] [desktop-msedge] › tests/e2e/desktop-shortcuts.spec.ts:189:1 › shadowed plugin defaults retain their context after user rebinding and restart
+[8/9] [desktop-msedge] › tests/e2e/desktop-updates.spec.ts:121:1 › host About has no update feature; public plugin requires approval and owns the UI
+[9/9] [desktop-msedge] › tests/e2e/desktop-workspace.spec.ts:145:1 › trusted workspace commands cross the actual Worker and retain asynchronous capabilities; recent paths persist
+  2 failed
+    [desktop-msedge] › tests/e2e/desktop-markdown-extensions.spec.ts:1460:1 › official Mermaid DOM host is explicitly unavailable in the browser and keeps source 
+    [desktop-msedge] › tests/e2e/desktop-shell.spec.ts:1205:1 › phase9 outline updates renamed headings and highlights the current section 
+  7 passed (52.7s)
+[ELIFECYCLE] Command failed with exit code 1.

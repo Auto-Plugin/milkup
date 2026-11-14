@@ -1,0 +1,130 @@
+$ vitest run --passWithNoTests --exclude src-tauri/src/plugin_dom_bootstrap.test.mjs && node --experimental-vm-modules --test src-tauri/src/plugin_dom_bootstrap.test.mjs
+
+ RUN  v3.2.6 /workspace/milkup/apps/desktop
+
+ ✓ src/editor-context-menu.test.ts (4 tests) 52ms
+ ✓ src/controlled-tree-ui.test.ts (4 tests) 81ms
+ ✓ src/controlled-form-ui.test.ts (4 tests) 95ms
+ ✓ src/resource-save.test.ts (7 tests) 1343ms
+   ✓ resource service and save coordination > an acknowledgement failure retains copied files across plugin disposal and document release  1329ms
+ ✓ src/document-presentation-service.test.ts (26 tests) 198ms
+ ✓ src/output-service.test.ts (22 tests) 336ms
+ ✓ src/desktop-plugin-manager.test.ts (30 tests) 195ms
+ ✓ src/desktop-plugin-manager-catalog.test.ts (17 tests) 102ms
+ ✓ src/desktop-plugin-manager-dom.test.ts (10 tests) 142ms
+ ✓ src/clipboard-image-read.test.ts (16 tests) 109ms
+ ✓ src/output-presentations-readiness.test.ts (11 tests) 75ms
+ ✓ src/desktop-plugin-ui.test.ts (32 tests) 3146ms
+   ✓ DesktopPluginUiController > requests a new buffered range when the outline is scrolled outside its rendered slice  661ms
+   ✓ DesktopPluginUiController > requests one adjacent buffer only after a real user wheel gesture reaches an edge  650ms
+   ✓ DesktopPluginUiController > requests the previous buffer only when the list reaches the exact top edge  431ms
+ ✓ src/resource-service.test.ts (14 tests) 72ms
+ ✓ src/output-presentations.test.ts (13 tests) 92ms
+ ✓ src/bundled-plugins.test.ts (18 tests) 41ms
+ ✓ src/resource-reference-scan.test.ts (30 tests) 68ms
+ ✓ src/document-transition.test.ts (39 tests) 53ms
+ ✓ src/plugin-release-service.test.ts (15 tests) 44ms
+ ✓ src/editing-service.test.ts (26 tests) 44ms
+ ✓ src/plugin-workspace-service.test.ts (21 tests) 44ms
+ ✓ src/recovery.test.ts (7 tests) 25ms
+ ✓ src/output-presentations-queue.test.ts (7 tests) 63ms
+ ✓ src/settings-service.test.ts (39 tests) 43ms
+ ✓ src/desktop-settings-integration.test.ts (1 test) 31ms
+ ✓ src/plugin-temporary-storage.test.ts (5 tests) 39ms
+ ✓ src/keymap-service.test.ts (28 tests) 36ms
+ ❯ src/desktop-editing-capabilities.test.ts (2 tests | 1 failed) 34ms
+   ✓ desktop editing capability lifecycle > enables ordinary document editing without inventing sensitive approvals 15ms
+   × desktop editing capability lifecycle > requires approval, routes paste by contribution, revokes both brokers and awaits cleanup 17ms
+     → expected [ 'module', 'editing', 'resources' ] to deeply equal [ 'editing', 'resources', 'module' ]
+ ✓ src/plugin-dom.test.ts (20 tests) 42ms
+ ✓ src/desktop-plugin-catalog.test.ts (24 tests) 31ms
+ ✓ src/protected-install.test.ts (9 tests) 27ms
+ ✓ src/plugin-sidecar.test.ts (9 tests) 29ms
+ ❯ src/desktop-output-capabilities.test.ts (4 tests | 2 failed) 39ms
+   × desktop output capability lifecycle > requires sensitive approval and wires worker plus runtime 30ms
+     → expected [ 'module', 'output' ] to deeply equal [ 'output', 'module' ]
+   × desktop output capability lifecycle > requires sensitive approval and wires sidecar plus runtime 4ms
+     → expected [ 'module', 'output' ] to deeply equal [ 'output', 'module' ]
+   ✓ desktop output capability lifecycle > does not expose output without document read permission 2ms
+   ✓ desktop output capability lifecycle > revokes output synchronously on execution host failure 2ms
+ ✓ src/large-document-search.test.ts (5 tests) 18ms
+ ✓ src/file-service.test.ts (4 tests) 17ms
+ ✓ src/plugin-file-broker.test.ts (5 tests) 22ms
+ ✓ src/document-navigation.test.ts (4 tests) 18ms
+ ✓ src/desktop-document-search.test.ts (6 tests) 14ms
+ ✓ src/large-document-editing.test.ts (4 tests) 10ms
+ ✓ src/apply-editor-settings.test.ts (2 tests) 12ms
+ ✓ src/large-document-source.test.ts (5 tests) 12ms
+ ✓ src/document-loading-visibility.test.ts (4 tests) 12ms
+ ✓ src/appearance.test.ts (5 tests) 9ms
+ ✓ src/document-open-flow.test.ts (3 tests) 6ms
+ ✓ src/large-file-service.test.ts (1 test) 10ms
+ ✓ src/desktop-large-open-flow.test.ts (2 tests) 10ms
+ ✓ src/desktop-search-navigation.test.ts (4 tests) 4ms
+ ✓ src/desktop-open-policy.test.ts (6 tests) 5ms
+ ✓ src/csp-worker.test.ts (3 tests) 8ms
+ ✓ src/asset-service.test.ts (3 tests) 8ms
+ ✓ src/closed-worker-bundle.test.ts (10 tests) 31ms
+ ✓ src/large-document-conflict.test.ts (3 tests) 4ms
+ ✓ src/open-stage-diagnostics.test.ts (2 tests) 8ms
+ ✓ src/editor-view-refresh.test.ts (3 tests) 3ms
+ ✓ src/save-watch-reconciliation.test.ts (6 tests) 3ms
+ ✓ src/plugin-icon.test.ts (1 test) 3ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 3 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/desktop-editing-capabilities.test.ts > desktop editing capability lifecycle > requires approval, routes paste by contribution, revokes both brokers and awaits cleanup
+AssertionError: expected [ 'module', 'editing', 'resources' ] to deeply equal [ 'editing', 'resources', 'module' ]
+
+- Expected
++ Received
+
+  [
++   "module",
+    "editing",
+    "resources",
+-   "module",
+  ]
+
+ ❯ src/desktop-editing-capabilities.test.ts:162:21
+    160|     await before.resourcesBroker!.prepareDocument({ pasteId: 'paste-1'…
+    161|     await manager.disable(manifest.id)
+    162|     expect(stopped).toEqual(['editing', 'resources', 'module'])
+       |                     ^
+    163|     expect(manager.resolveImagePasteHandler()).toBeUndefined()
+    164|     await expect(before.editingBroker!.capture({ extent: 'selection' }…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/3]⎯
+
+ FAIL  src/desktop-output-capabilities.test.ts > desktop output capability lifecycle > requires sensitive approval and wires worker plus runtime
+ FAIL  src/desktop-output-capabilities.test.ts > desktop output capability lifecycle > requires sensitive approval and wires sidecar plus runtime
+AssertionError: expected [ 'module', 'output' ] to deeply equal [ 'output', 'module' ]
+
+- Expected
++ Received
+
+  [
+-   "output",
+    "module",
++   "output",
+  ]
+
+ ❯ src/desktop-output-capabilities.test.ts:103:25
+    101|       expect(t.adapter.capture).not.toHaveBeenCalled()
+    102|       await t.manager.disable(t.manifest.id)
+    103|       expect(t.stopped).toEqual(['output', 'module'])
+       |                         ^
+    104|       await expect(t.loaded[0]!.outputBroker!.release('snapshot-1')).r…
+    105|         code: 'revoked',
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/3]⎯
+
+
+ Test Files  2 failed | 53 passed (55)
+      Tests  3 failed | 602 passed (605)
+   Start at  08:57:52
+   Duration  15.63s (transform 5.54s, setup 0ms, collect 13.36s, tests 7.02s, environment 2.94s, prepare 6.67s)
+
+/workspace/milkup/apps/desktop:
+[ERR_PNPM_RECURSIVE_RUN_FIRST_FAIL] @milkup/desktop@2.0.0-beta.1 test: `vitest run --passWithNoTests --exclude src-tauri/src/plugin_dom_bootstrap.test.mjs && node --experimental-vm-modules --test src-tauri/src/plugin_dom_bootstrap.test.mjs`
+Exit status 1

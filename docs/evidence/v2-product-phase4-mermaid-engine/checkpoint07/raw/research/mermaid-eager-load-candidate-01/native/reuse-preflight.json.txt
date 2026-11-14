@@ -1,0 +1,32 @@
+{
+  "atUtc": "2026-10-16T18:19:42.172273+00:00",
+  "status": "static plan only; source not copied yet; no compiler/runtime",
+  "baseSourceManifest": {
+    "path": "/workspace/milkup-mermaid-engine-evidence/research/native-hidden-timer-candidate-01/final-source-manifest.json",
+    "sha256": "227fb90116f4fdcacad1cea05a45f8e0c06a8db14e6b0dd2864ffe876f46144a",
+    "verifiedFiles": 51
+  },
+  "reusedHelper": {
+    "path": "/workspace/milkup-mermaid-engine-evidence/research/native-hidden-timer-candidate-01/bin/milkup-desktop",
+    "sha256": "02b15a8038e694806e4cbc5f8a6b6324160529a0ab3303934a626d7c8e848982",
+    "bytes": 21932608
+  },
+  "reusedGuard": {
+    "path": "/workspace/milkup-mermaid-engine-evidence/research/native-hidden-timer-candidate-01/bin/libmilkup_dom_guard.so",
+    "sha256": "5b1082768123b9ac1923eb8ef3f6f8c0bd05ffd5d66b8b2a023f75b69106c44c",
+    "bytes": 15656
+  },
+  "processNonTestPrefixSha256": "1ffa2849e29e49737de94041ee1f53d0e776eebf03d59a5b64d2349469cf8b25",
+  "proposedSourceRoot": "/workspace/milkup-mermaid-engine-evidence/research/mermaid-eager-load-candidate-01/native/source",
+  "proposedTestOutput": "/workspace/milkup-mermaid-engine-evidence/research/mermaid-eager-load-candidate-01/native/bin/native-tests",
+  "testFunction": "plugin_dom::process::tests::real_webkit_eager_loading_cell",
+  "expectedOverlay": [
+    "Replace copied process::tests include of plugin_dom_timer_control_tests.rs with plugin_dom_eager_module_tests.rs",
+    "Exclude old timer-only test file from new source and add exact reviewed transport ABBA test file"
+  ],
+  "runtimeEnvironmentInvariant": {
+    "MILKUP_DOM_TIMER_CONTROL": "hidden",
+    "MILKUP_DOM_DIAGNOSTICS": "1"
+  },
+  "frozenOldSourceAndArtifactsRemainUntouched": true
+}

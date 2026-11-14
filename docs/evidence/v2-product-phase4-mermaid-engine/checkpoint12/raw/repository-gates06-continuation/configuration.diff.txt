@@ -1,0 +1,11 @@
+diff --git a/.prettierignore b/.prettierignore
+index 8aa152eb..f1fae64e 100644
+--- a/.prettierignore
++++ b/.prettierignore
+@@ -8,3 +8,6 @@ playwright-report
+ target
+ pnpm-lock.yaml
+ apps/desktop/src-tauri/gen
++# Published evidence manifests retain exact bytes for cross-checkpoint SHA references.
++# Validate their contents with each checkpoint's verify-index.py.
++docs/evidence/v2-product-phase4-mermaid-engine/checkpoint*/index.json

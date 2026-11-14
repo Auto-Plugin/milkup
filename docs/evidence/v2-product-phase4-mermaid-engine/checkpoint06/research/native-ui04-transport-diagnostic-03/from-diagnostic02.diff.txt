@@ -1,0 +1,41 @@
+--- diagnostic02/diagnostic.mjs
++++ diagnostic03/diagnostic.mjs
+@@ -186,7 +186,7 @@
+             'native-owned-process.mjs',
+             'native-updates-fixture.mjs',
+             'native-clipboard.mjs',
+-          ].map((name) => new URL('../helpers/' + name, import.meta.url).href),
++          ].map((name) => new URL('file:///workspace/milkup/tests/helpers/' + name).href),
+         ].map(async (url) => ({
+           path: new URL(url).pathname,
+           sha256: sha256(await readFile(new URL(url))),
+@@ -833,7 +833,7 @@
+     })
+   }
+   const observerSource = await readFile(
+-    '/workspace/milkup-mermaid-engine-evidence/research/native-ui04-transport-diagnostic-02/observer.js',
++    '/workspace/milkup-mermaid-engine-evidence/research/native-ui04-transport-diagnostic-03/observer.js',
+     'utf8',
+   )
+   const observerInstalledAt = Date.now()
+
+--- diagnostic02/driver.sh
++++ diagnostic03/driver.sh
+@@ -1,6 +1,6 @@
+ #!/usr/bin/env bash
+ set -euo pipefail
+-source /workspace/milkup-mermaid-engine-evidence/research/native-ui04-transport-diagnostic-02/env.sh
++source /workspace/milkup-mermaid-engine-evidence/research/native-ui04-transport-diagnostic-03/env.sh
+ # A fresh profile, log and evidence directory are mandatory for each attempt.
+ [[ ! -e "$XDG_RUNTIME_DIR" && ! -e "$MILKUP_NATIVE_PROFILE_ROOT" && ! -e "$MILKUP_NATIVE_APP_LOG" && ! -e "$MILKUP_NATIVE_EVIDENCE_DIR" ]]
+ mkdir -p "$XDG_CONFIG_HOME" "$XDG_CACHE_HOME" "$XDG_DATA_HOME" "$(dirname "$MILKUP_NATIVE_APP_LOG")" "$(dirname "$MILKUP_NATIVE_EVIDENCE_DIR")"
+
+--- diagnostic02/env.sh
++++ diagnostic03/env.sh
+@@ -1,3 +1,3 @@
+-source /workspace/milkup-mermaid-engine-evidence/research/product-ui-preparation/run-env.sh mermaid-ui-04-diagnostic-02 /workspace/milkup-mermaid-engine-evidence/linux-production-04/install/usr/bin/milkup-desktop 323213867fda26d1de66f67c5a428dd26d0a78f0334d40f8d15f1e94b161a172 /workspace/milkup-mermaid-engine-evidence/research/generic-build-gate-preparation/final-build01/standalone/plugin/dist/milkup.diagrams-1.1.0.milkup-plugin 27db9bdefb9b241b03da2f3536f7e50d334117f928f963cfe290543f650b6239
+-export MILKUP_NATIVE_EVIDENCE_DIR=/workspace/milkup-mermaid-engine-evidence/research/native-ui04-transport-diagnostic-02/run
+-export MILKUP_NATIVE_APP_LOG=/workspace/milkup-mermaid-engine-evidence/research/native-ui04-transport-diagnostic-02/native-driver-first.log
++source /workspace/milkup-mermaid-engine-evidence/research/product-ui-preparation/run-env.sh mermaid-ui-04-diagnostic-03 /workspace/milkup-mermaid-engine-evidence/linux-production-04/install/usr/bin/milkup-desktop 323213867fda26d1de66f67c5a428dd26d0a78f0334d40f8d15f1e94b161a172 /workspace/milkup-mermaid-engine-evidence/research/generic-build-gate-preparation/final-build01/standalone/plugin/dist/milkup.diagrams-1.1.0.milkup-plugin 27db9bdefb9b241b03da2f3536f7e50d334117f928f963cfe290543f650b6239
++export MILKUP_NATIVE_EVIDENCE_DIR=/workspace/milkup-mermaid-engine-evidence/research/native-ui04-transport-diagnostic-03/run
++export MILKUP_NATIVE_APP_LOG=/workspace/milkup-mermaid-engine-evidence/research/native-ui04-transport-diagnostic-03/native-driver-first.log

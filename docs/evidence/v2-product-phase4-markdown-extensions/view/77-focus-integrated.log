@@ -1,0 +1,76 @@
+
+ RUN  v3.2.6 /workspace/milkup/packages/view-dom
+
+ ❯ src/__tests__/document-presentation.test.ts (42 tests | 1 failed) 1250ms
+   × keeps preview keyboard focus when the view refreshes its source DOM (false) 74ms
+     → Invalid editor presentation
+   ✓ anchors an asynchronously growing preview above the visible selection (false) 44ms
+   ✓ refreshes selection-dependent third-party output without repaint loops (false) 138ms
+   ✓ cancels the old selection job and discards its late output (false) 89ms
+   ✓ uses real MathML, retains mapped source and reveals on selection (false) 24ms
+   ✓ keeps source literal and disable restores source without a transaction (false) 23ms
+   ✓ excludes preview text from mapped offsets, coalesces and invalidates (false) 33ms
+   ✓ mounts a multiline block once and restores every original line (false) 26ms
+   ✓ renders the native CRLF matrix range without consuming its line ending (false) 51ms
+   ✓ uses accessible references without editing or swallowing keyboard activation (false) 16ms
+   ✓ preserves an ordinary task control alongside inline presentation (false) 15ms
+   ✓ rejects protected and malformed output while preserving editable source (false) 17ms
+   ✓ bounds requests before invoking a provider on a huge line (false) 14ms
+   ✓ discards old-document results while a fresh document remains editable (false) 23ms
+   ✓ discards an asynchronous result after disable (false) 15ms
+   ✓ keeps preview keyboard focus when the view refreshes its source DOM (true) 28ms
+   ✓ anchors an asynchronously growing preview above the visible selection (true) 29ms
+   ✓ refreshes selection-dependent third-party output without repaint loops (true) 77ms
+   ✓ cancels the old selection job and discards its late output (true) 36ms
+   ✓ uses real MathML, retains mapped source and reveals on selection (true) 20ms
+   ✓ keeps source literal and disable restores source without a transaction (true) 24ms
+   ✓ excludes preview text from mapped offsets, coalesces and invalidates (true) 25ms
+   ✓ mounts a multiline block once and restores every original line (true) 34ms
+   ✓ renders the native CRLF matrix range without consuming its line ending (true) 81ms
+   ✓ uses accessible references without editing or swallowing keyboard activation (true) 13ms
+   ✓ preserves an ordinary task control alongside inline presentation (true) 15ms
+   ✓ rejects protected and malformed output while preserving editable source (true) 16ms
+   ✓ bounds requests before invoking a provider on a huge line (true) 11ms
+   ✓ discards old-document results while a fresh document remains editable (true) 28ms
+   ✓ discards an asynchronous result after disable (true) 14ms
+   ✓ constructs inert SVG and maps only validated MathML attribute names 3ms
+   ✓ checks the host navigation lease after asynchronous viewport loading 4ms
+   ✓ checks the host navigation assertion before changing selection 2ms
+   ✓ measures collapsed block continuation lines as zero and restores their heights 20ms
+   ✓ allows bounded host snapshot preparation beyond the renderer worker deadline 9ms
+   ✓ cancels a slow host preparation without waiting for its deadline 3ms
+   ✓ rejects a completed job if selection changed before the next synchronization 12ms
+   ✓ preserves the correct viewport anchor during preview growth (visible) 7ms
+   ✓ preserves the correct viewport anchor during preview growth (scrolled-away) 7ms
+   ✓ preserves the correct viewport anchor during preview growth (source) 6ms
+   ✓ preserves block focus across a viewport job without stealing a later external focus 63ms
+   ✓ preserves reference focus across a viewport job without stealing a later external focus 61ms
+ ✓ src/__tests__/editor-view.test.ts (123 tests) 3292ms
+   ✓ EditorView > keeps docs/coding-plan.md live interactions bounded to affected lines  2204ms
+ ✓ src/__tests__/source-document-view.test.ts (64 tests) 1638ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/__tests__/document-presentation.test.ts > keeps preview keyboard focus when the view refreshes its source DOM (false)
+RangeError: Invalid editor presentation
+ ❯ validatePresentation src/presentation.ts:31:11
+     29|     !['spaces-2', 'spaces-4', 'tabs'].includes(value.indentation)
+     30|   ) {
+     31|     throw new RangeError('Invalid editor presentation')
+       |           ^
+     32|   }
+     33|   return Object.freeze({ ...value })
+ ❯ EditorView.setPresentation src/editor-view.ts:325:18
+ ❯ src/__tests__/document-presentation.test.ts:114:12
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed | 2 passed (3)
+      Tests  1 failed | 228 passed (229)
+   Start at  13:40:38
+   Duration  5.56s (transform 843ms, setup 0ms, collect 1.80s, tests 6.18s, environment 1.65s, prepare 215ms)
+
+undefined
+/workspace/milkup/packages/view-dom:
+[ERR_PNPM_RECURSIVE_EXEC_FIRST_FAIL] Command failed with exit code 1: vitest run src/__tests__/document-presentation.test.ts src/__tests__/editor-view.test.ts src/__tests__/source-document-view.test.ts '--maxWorkers=2'

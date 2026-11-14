@@ -1,0 +1,580 @@
+▶ autocrlf checkout preserves every reviewed diagrams hash without normalizing validation
+  ✔ exact bytes survive checkout: pnpm-lock.yaml (11.420124ms)
+  ✔ exact bytes survive checkout: build-dependencies.json (16.693072ms)
+  ✔ exact bytes survive checkout: vendor/plugin-sdk.tgz (7.475333ms)
+  ✔ exact bytes survive checkout: THIRD-PARTY-NOTICES.txt (25.465456ms)
+  ✔ the real frozen-closure validator accepts the checked-out package (274.013342ms)
+✔ autocrlf checkout preserves every reviewed diagrams hash without normalizing validation (948.626296ms)
+▶ autocrlf checkout preserves Worker parser and packaged provenance bytes, with the strict build gate intact
+  ✖ official parser survives real Git checkout: flow (16.348495ms)
+  ✖ official parser survives real Git checkout: sequence (14.281154ms)
+  ✖ packaged provenance/license bytes survive checkout: THIRD-PARTY-NOTICES.txt (11.906899ms)
+  ✖ packaged provenance/license bytes survive checkout: dependency-provenance.json (14.567418ms)
+  ✖ real build reaches compilation only after both strict hashes pass (82.050153ms)
+  ✔ real build rejects CRLF and content tampering without normalization: flow (331.744571ms)
+  ✔ real build rejects CRLF and content tampering without normalization: sequence (233.561955ms)
+  ✔ real build still rejects a changed provenance digest (145.41476ms)
+✖ autocrlf checkout preserves Worker parser and packaged provenance bytes, with the strict build gate intact (932.113819ms)
+ℹ tests 15
+ℹ suites 0
+ℹ pass 9
+ℹ fail 6
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 2056.510472
+
+✖ failing tests:
+
+test at tests/ci/public-plugin-windows-checkout.test.mjs:149:13
+✖ official parser survives real Git checkout: flow (16.348495ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  + actual - expected
+  
+  + '059d30bd2db6c62f4426579018831419fbc6898e571aa433cbb6e2fb57b6c3e7'
+  - 'b5f13e3de8bf72b04dbfc3122a5132c1201cbebbcd987624516a9d006734f879'
+  
+      at TestContext.<anonymous> (file:///tmp/milkup-windows-manual-candidate/tests/ci/public-plugin-windows-checkout.test.mjs:151:14)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async TestContext.<anonymous> (file:///tmp/milkup-windows-manual-candidate/tests/ci/public-plugin-windows-checkout.test.mjs:149:5)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: '059d30bd2db6c62f4426579018831419fbc6898e571aa433cbb6e2fb57b6c3e7',
+    expected: 'b5f13e3de8bf72b04dbfc3122a5132c1201cbebbcd987624516a9d006734f879',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at tests/ci/public-plugin-windows-checkout.test.mjs:149:13
+✖ official parser survives real Git checkout: sequence (14.281154ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  + actual - expected
+  
+  + '2c18ea3493a4f30c096ec59f53f1439d332fe501424b5b451e6e8ace72d14b7b'
+  - 'f62b94fda144694da8293b13ef59ab05a19ed833060dfab8ddfe23c23ea4494b'
+  
+      at TestContext.<anonymous> (file:///tmp/milkup-windows-manual-candidate/tests/ci/public-plugin-windows-checkout.test.mjs:151:14)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async TestContext.<anonymous> (file:///tmp/milkup-windows-manual-candidate/tests/ci/public-plugin-windows-checkout.test.mjs:149:5)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: '2c18ea3493a4f30c096ec59f53f1439d332fe501424b5b451e6e8ace72d14b7b',
+    expected: 'f62b94fda144694da8293b13ef59ab05a19ed833060dfab8ddfe23c23ea4494b',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at tests/ci/public-plugin-windows-checkout.test.mjs:156:13
+✖ packaged provenance/license bytes survive checkout: THIRD-PARTY-NOTICES.txt (11.906899ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+  + actual - expected
+  ... Skipped lines
+  
+  + Buffer(1313) [Uint8Array] [
+  - Buffer(1288) [Uint8Array] [
+      77,
+      101,
+      114,
+      109,
+      97,
+  ...
+      46,
+  +   13,
+      10,
+      83,
+      111,
+      117,
+      114,
+  ...
+      100,
+  +   13,
+      10,
+      83,
+      101,
+      101,
+      32,
+  ...
+      46,
+  +   13,
+      10,
+  +   13,
+      10,
+      84,
+      104,
+      101,
+      32,
+  ...
+      41,
+  +   13,
+      10,
+  +   13,
+      10,
+      67,
+      111,
+      112,
+      121,
+  ...
+      116,
+  +   13,
+      10,
+  +   13,
+      10,
+      80,
+      101,
+      114,
+      109,
+  ...
+      121,
+  +   13,
+      10,
+      111,
+      102,
+      32,
+      116,
+  ...
+      108,
+  +   13,
+      10,
+      105,
+      110,
+      32,
+      116,
+  ...
+      115,
+  +   13,
+      10,
+      116,
+      111,
+      32,
+      117,
+  ...
+      108,
+  +   13,
+      10,
+      99,
+      111,
+      112,
+      105,
+  ...
+      115,
+  +   13,
+      10,
+      102,
+      117,
+      114,
+      110,
+  ...
+      58,
+  +   13,
+      10,
+  +   13,
+      10,
+      84,
+      104,
+      101,
+      32,
+  ...
+      108,
+  +   13,
+      10,
+      99,
+      111,
+      112,
+      105,
+  ...
+      46,
+  +   13,
+      10,
+  +   13,
+      10,
+      84,
+      72,
+      69,
+      32,
+  ...
+      82,
+  +   13,
+      10,
+      73,
+      77,
+      80,
+      76,
+  ...
+      44,
+  +   13,
+      10,
+      70,
+      73,
+      84,
+      78,
+  ...
+      69,
+  +   13,
+      10,
+      65,
+      85,
+      84,
+      72,
+  ...
+      82,
+  +   13,
+      10,
+      76,
+      73,
+      65,
+      66,
+  ...
+      44,
+  +   13,
+      10,
+      79,
+      85,
+      84,
+      32,
+  ...
+      69,
+  +   13,
+      10,
+      83,
+      79,
+      70,
+      84,
+  ...
+      46,
+  +   13,
+      10
+    ]
+  
+      at TestContext.<anonymous> (file:///tmp/milkup-windows-manual-candidate/tests/ci/public-plugin-windows-checkout.test.mjs:157:14)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async TestContext.<anonymous> (file:///tmp/milkup-windows-manual-candidate/tests/ci/public-plugin-windows-checkout.test.mjs:156:5)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: <Buffer 4d 65 72 6d 61 69 64 20 31 32 2e 32 2e 30 3a 20 65 78 61 63 74 20 67 65 6e 65 72 61 74 65 64 20 66 6c 6f 77 63 68 61 72 74 20 61 6e 64 20 73 65 71 75 ... 1263 more bytes>,
+    expected: <Buffer 4d 65 72 6d 61 69 64 20 31 32 2e 32 2e 30 3a 20 65 78 61 63 74 20 67 65 6e 65 72 61 74 65 64 20 66 6c 6f 77 63 68 61 72 74 20 61 6e 64 20 73 65 71 75 ... 1238 more bytes>,
+    operator: 'deepStrictEqual',
+    diff: 'simple'
+  }
+
+test at tests/ci/public-plugin-windows-checkout.test.mjs:156:13
+✖ packaged provenance/license bytes survive checkout: dependency-provenance.json (14.567418ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+  + actual - expected
+  ... Skipped lines
+  
+  + Buffer(1525) [Uint8Array] [
+  - Buffer(1490) [Uint8Array] [
+      123,
+  +   13,
+      10,
+      32,
+      32,
+      34,
+      112,
+  ...
+      44,
+  +   13,
+      10,
+      32,
+      32,
+      34,
+      118,
+  ...
+      44,
+  +   13,
+      10,
+      32,
+      32,
+      34,
+      115,
+  ...
+      44,
+  +   13,
+      10,
+      32,
+      32,
+      34,
+      105,
+  ...
+      44,
+  +   13,
+      10,
+      32,
+      32,
+      34,
+      108,
+  ...
+      44,
+  +   13,
+      10,
+      32,
+      32,
+      34,
+      115,
+  ...
+      44,
+  +   13,
+      10,
+      32,
+      32,
+      34,
+      112,
+  ...
+      91,
+  +   13,
+      10,
+      32,
+      32,
+      32,
+      32,
+      123,
+  +   13,
+      10,
+      32,
+      32,
+      32,
+      32,
+  ...
+      44,
+  +   13,
+      10,
+      32,
+      32,
+      32,
+      32,
+  ...
+      44,
+  +   13,
+      10,
+      32,
+      32,
+      32,
+      32,
+  ...
+      44,
+  +   13,
+      10,
+      32,
+      32,
+      32,
+      32,
+  ...
+      44,
+  +   13,
+      10,
+      32,
+      32,
+      32,
+      32,
+  ...
+      44,
+  +   13,
+      10,
+      32,
+      32,
+      32,
+      32,
+  ...
+      44,
+  +   13,
+      10,
+      32,
+      32,
+      32,
+      32,
+  ...
+      44,
+  +   13,
+      10,
+      32,
+      32,
+      32,
+      32,
+  ...
+      44,
+  +   13,
+      10,
+      32,
+      32,
+      32,
+      32,
+  ...
+      44,
+  +   13,
+      10,
+      32,
+      32,
+      32,
+      32,
+  ...
+      34,
+  +   13,
+      10,
+      32,
+      32,
+      32,
+      32,
+      125,
+      44,
+  +   13,
+      10,
+      32,
+      32,
+      32,
+      32,
+      123,
+  +   13,
+      10,
+      32,
+      32,
+      32,
+      32,
+  ...
+      44,
+  +   13,
+      10,
+      32,
+      32,
+      32,
+      32,
+  ...
+      44,
+  +   13,
+      10,
+      32,
+      32,
+      32,
+      32,
+  ...
+      44,
+  +   13,
+      10,
+      32,
+      32,
+      32,
+      32,
+  ...
+      44,
+  +   13,
+      10,
+      32,
+      32,
+      32,
+      32,
+  ...
+      44,
+  +   13,
+      10,
+      32,
+      32,
+      32,
+      32,
+  ...
+      44,
+  +   13,
+      10,
+      32,
+      32,
+      32,
+      32,
+  ...
+      44,
+  +   13,
+      10,
+      32,
+      32,
+      32,
+      32,
+  ...
+      44,
+  +   13,
+      10,
+      32,
+      32,
+      32,
+      32,
+  ...
+      44,
+  +   13,
+      10,
+      32,
+      32,
+      32,
+      32,
+  ...
+      34,
+  +   13,
+      10,
+      32,
+      32,
+      32,
+      32,
+      125,
+  +   13,
+      10,
+      32,
+      32,
+      93,
+      44,
+  +   13,
+      10,
+      32,
+      32,
+      34,
+      114,
+  ...
+      93,
+  +   13,
+      10,
+      125,
+  +   13,
+      10
+    ]
+  
+      at TestContext.<anonymous> (file:///tmp/milkup-windows-manual-candidate/tests/ci/public-plugin-windows-checkout.test.mjs:157:14)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async TestContext.<anonymous> (file:///tmp/milkup-windows-manual-candidate/tests/ci/public-plugin-windows-checkout.test.mjs:156:5)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: <Buffer 7b 0d 0a 20 20 22 70 61 63 6b 61 67 65 22 3a 20 22 6d 65 72 6d 61 69 64 22 2c 0d 0a 20 20 22 76 65 72 73 69 6f 6e 22 3a 20 22 31 32 2e 32 2e 30 22 2c ... 1475 more bytes>,
+    expected: <Buffer 7b 0a 20 20 22 70 61 63 6b 61 67 65 22 3a 20 22 6d 65 72 6d 61 69 64 22 2c 0a 20 20 22 76 65 72 73 69 6f 6e 22 3a 20 22 31 32 2e 32 2e 30 22 2c 0a 20 ... 1440 more bytes>,
+    operator: 'deepStrictEqual',
+    diff: 'simple'
+  }
+
+test at tests/ci/public-plugin-windows-checkout.test.mjs:175:11
+✖ real build reaches compilation only after both strict hashes pass (82.050153ms)
+  AssertionError [ERR_ASSERTION]: The input did not match the regular expression /PASSED_STRICT_VENDOR_HASH_GATE/u. Input:
+  
+  'file:///tmp/milkup-worker-checkout-NIzHRH/checkout%20with%20spaces/plugins/diagrams-worker/scripts/build.mjs:19\n' +
+    "    throw new Error('Vendored parser hash differs: ' + parser.vendoredPath)\n" +
+    '          ^\n' +
+    '\n' +
+    'Error: Vendored parser hash differs: src/vendor/flow-parser.mjs\n' +
+    '    at file:///tmp/milkup-worker-checkout-NIzHRH/checkout%20with%20spaces/plugins/diagrams-worker/scripts/build.mjs:19:11\n' +
+    '\n' +
+    'Node.js v24.19.0\n'
+  
+      at TestContext.<anonymous> (file:///tmp/milkup-windows-manual-candidate/tests/ci/public-plugin-windows-checkout.test.mjs:176:12)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1382:25)
+      at Test.start (node:internal/test_runner/test:1242:17)
+      at TestContext.test (node:internal/test_runner/test:394:20)
+      at TestContext.<anonymous> (file:///tmp/milkup-windows-manual-candidate/tests/ci/public-plugin-windows-checkout.test.mjs:175:11)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: "file:///tmp/milkup-worker-checkout-NIzHRH/checkout%20with%20spaces/plugins/diagrams-worker/scripts/build.mjs:19\n    throw new Error('Vendored parser hash differs: ' + parser.vendoredPath)\n          ^\n\nError: Vendored parser hash differs: src/vendor/flow-parser.mjs\n    at file:///tmp/milkup-worker-checkout-NIzHRH/checkout%20with%20spaces/plugins/diagrams-worker/scripts/build.mjs:19:11\n\nNode.js v24.19.0\n",
+    expected: /PASSED_STRICT_VENDOR_HASH_GATE/u,
+    operator: 'match',
+    diff: 'simple'
+  }

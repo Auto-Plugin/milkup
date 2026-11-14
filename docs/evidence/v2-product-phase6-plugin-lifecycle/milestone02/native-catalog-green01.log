@@ -1,0 +1,35 @@
+   Compiling milkup-desktop v2.0.0-beta.1 (/workspace/milkup/apps/desktop/src-tauri)
+warning: unused import: `std::sync::Arc`
+    --> src/piece_tree.rs:1029:9
+     |
+1029 |     use std::sync::Arc;
+     |         ^^^^^^^^^^^^^^
+     |
+     = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: `milkup-desktop` (lib test) generated 1 warning (run `cargo fix --lib -p milkup-desktop --tests` to apply 1 suggestion)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 8.53s
+     Running unittests src/lib.rs (apps/desktop/src-tauri/target/debug/deps/milkup_desktop_lib-8969ac6bfdf4806e)
+
+running 18 tests
+test plugin_catalog::tests::commit_failure_before_replace_restores_old_decision_after_restart ... ok
+test plugin_catalog::tests::concurrent_different_ids_never_lose_catalog_updates ... ok
+test plugin_catalog::tests::corrupt_primary_uses_backup_without_restoring_old_enabled_or_approval ... ok
+test plugin_catalog::tests::deletion_failure_is_durable_tombstone_and_can_retry_without_deleting_data ... ok
+test plugin_catalog::tests::expanded_origins_require_new_approval_and_revocation_cannot_rollback_old_authority ... ok
+test plugin_catalog::tests::injected_mid_stage_failure_never_changes_catalog_or_old_bytes ... ok
+test plugin_catalog::tests::insufficient_space_is_rejected_before_generation_or_authority_changes ... ok
+test plugin_catalog::tests::interrupted_startup_stays_disabled_and_late_complete_rejected ... ok
+test plugin_catalog::tests::malformed_package_fails_before_any_catalog_or_plugin_write ... ok
+test plugin_catalog::tests::migration_io_failure_preserves_backup_and_remains_retryable ... ok
+test plugin_catalog::tests::migration_keeps_exact_backup_and_duplicate_ids_quarantined ... ok
+test plugin_catalog::tests::package_symlink_never_reads_or_writes_outside ... ok
+test plugin_catalog::tests::prepare_leaves_active_and_data_unchanged_and_commit_retains_verified_previous ... ok
+test plugin_catalog::tests::rejects_base64_worker_entry_even_when_decodable_utf8 ... ok
+test plugin_catalog::tests::revision_and_candidate_identity_prevent_late_approval ... ok
+test plugin_catalog::tests::sealed_worker_snapshot_rejects_mutation_and_symlink ... ok
+test plugin_catalog::tests::tombstone_preserves_user_data_and_cannot_start_old_generation ... ok
+test plugin_catalog::tests::two_ids_commit_without_lost_catalog_updates ... ok
+
+test result: ok. 18 passed; 0 failed; 0 ignored; 0 measured; 154 filtered out; finished in 1.11s
+

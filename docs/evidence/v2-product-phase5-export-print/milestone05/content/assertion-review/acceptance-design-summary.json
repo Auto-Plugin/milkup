@@ -1,0 +1,34 @@
+{
+  "status": "PAGINATION_EXPERIMENT_PASS__UNICODE_EXPANDED_ARABIC_FAIL",
+  "productChanges": false,
+  "fixturePaths": [
+    "tests/fixtures/p5-output/acceptance/unicode-fidelity.md",
+    "tests/fixtures/p5-output/acceptance/unicode-expectations.json",
+    "tests/fixtures/p5-output/acceptance/pagination-cases.json",
+    "tests/fixtures/p5-output/acceptance/pagination/*.md",
+    "tests/fixtures/p5-output/acceptance/oversized-cases.json",
+    "tests/fixtures/p5-output/acceptance/README.md"
+  ],
+  "assertionTool": "tests/native/p5-output-content-audit.py",
+  "negativeControls": {
+    "webkitPagination": "FAIL exit1: long heading orphans reproduced",
+    "webkitUnicode": "FAIL exit1: original glyph alias / combining / ligature / emoji / quote / SVG losses detected"
+  },
+  "chromiumControls": {
+    "pagination": "PASS_CONTENT_ASSERTIONS_ONLY exit0, nine key pages additionally inspected",
+    "unicode": "FAIL exit1 overall: eight non-Arabic cases pass required source-codepoint units and raw/MuPDF quote exactness; expanded Arabic logical text fails"
+  },
+  "readerDifferences": {
+    "quotes": "Poppler raw and MuPDF exactly preserve const message = quoted Chinese code; Poppler layout inserts five geometry spaces after opening quote. Exact-phrase mismatch recorded, not rewritten.",
+    "emoji": "Poppler raw removes separator spaces between whole emoji clusters; all source codepoint sequences including ZWJ, skin tone, VS16 preserved. Poppler layout and MuPDF retain full phrase.",
+    "Arabic": {
+      "popplerRaw": "‫ال‬ ‫العربية‬",
+      "popplerLayout": "‫العربية ال‬",
+      "mupdf": "ال العربية"
+    },
+    "ArabicBoundary": "Exact source logical phrase العربية لا does not occur in either reader. Poppler introduces bidi controls/reorders; MuPDF also reorders lam-alef/words. No normalization or reverse-order expected string used to turn this green. Arabic visual/glyph order remains separately NOT_VERIFIED."
+  },
+  "pipelineBoundary": "Fixtures + audit are engine-independent. Scope label and hashes do not prove product provenance; final binary/GUI/input/output evidence must be collected separately.",
+  "oversizedExtension": "Three new pending cases cover a first row/logical code line/list item exceeding a page, each with120 internal chunk markers. No rendered success claimed.",
+  "formatting": "Fixture Markdown only is excluded from Prettier to preserve frozen hashes, real tabs and trailing code spaces. JSON Prettier and git diff --check pass."
+}

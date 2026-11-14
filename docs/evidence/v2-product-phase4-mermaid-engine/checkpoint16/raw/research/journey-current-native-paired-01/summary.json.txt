@@ -1,0 +1,177 @@
+{
+  "status": "completed-with-pixel-difference",
+  "scope": "Current full renderer/source and official dependency-bound native WebKit research; not production archive Instance closure or historical UI09 payload reproduction",
+  "archiveSha256": "9889f1796f9080ff230a1c51147522e83e065bc191a258035208f69403a327df",
+  "root": {
+    "width": "100%",
+    "height": 565,
+    "viewBox": [
+      0,
+      -25,
+      1300,
+      540
+    ],
+    "preserveAspectRatio": "xMinYMin meet",
+    "typedWidth": 380,
+    "typedHeight": 565,
+    "paintZoom": 2,
+    "nativeRaster": [
+      760,
+      1130
+    ]
+  },
+  "pixelComparisons": [
+    {
+      "original": "original-full-canvas",
+      "canonical": "canonical-full-canvas",
+      "size": [
+        1520,
+        1280
+      ],
+      "differentPixels": 1106,
+      "rgbDifferenceBounds": [
+        68,
+        47,
+        269,
+        86
+      ],
+      "originalSha256": "838f4f7a88ba60187b5ef9c7939bf4af5bf347385626936fde7346c32c95297a",
+      "canonicalSha256": "5eeb56d29bab9d431c868570bcd359a30619f5ad7a80d2cb4db988fa075177a1"
+    },
+    {
+      "original": "original-top-left",
+      "canonical": "canonical-top-left",
+      "size": [
+        1520,
+        1280
+      ],
+      "differentPixels": 1106,
+      "rgbDifferenceBounds": [
+        70,
+        49,
+        271,
+        88
+      ],
+      "originalSha256": "e985f624e42d18dab248cc4cb778a02251ce68e34dff20d83443502379264b38",
+      "canonicalSha256": "c77e29963b0767d5f3537a08e466e74137e2ba2c843d7e873fdf1d2e845b67f2"
+    },
+    {
+      "original": "original-bottom-right",
+      "canonical": "canonical-bottom-right",
+      "size": [
+        1520,
+        1280
+      ],
+      "differentPixels": 0,
+      "rgbDifferenceBounds": null,
+      "originalSha256": "43d0ca495644ddf80325d00a0d87532440fce4537f9a80cf11f37ebc6b227178",
+      "canonicalSha256": "43d0ca495644ddf80325d00a0d87532440fce4537f9a80cf11f37ebc6b227178"
+    }
+  ],
+  "qualifications": [
+    "Full canvas and top-left each have 1106 differing title-area pixels; cause unresolved. Raw title uses 4ex; converter captured 33.8125px at zoom1, paint at zoom2. No title computed metrics captured in paint.",
+    "Both bottom-right frames are exactly equal and blank, consistent with original root mapping retaining a large lower white canvas.",
+    "Original inline SVG scrollHeight569 vs canonical img565; 4px inline baseline overflow is separate. Research viewport client326x167 yields maxima original402/54 and canonical398/54, not historical UI09 413/69.",
+    "No crop, white-space removal, source edits, feature/sandbox changes or pixel tolerance.",
+    "Capture/paint use research native helper, not production hidden Instance; no performance equivalence claim."
+  ],
+  "firstFailures": [
+    {
+      "stage": "validate-first",
+      "reason": "Research request fromLine0 invalid; original capture retained. New request1..12 validated before fresh capture02."
+    },
+    {
+      "stage": "validate02",
+      "reason": "Research validator omitted exact official renderer declaration; protected-range rejection retained. Validator03 passes original archive declaration; same capture02 AST/request reused."
+    }
+  ],
+  "execution": {
+    "capture01": {
+      "phase": "capture",
+      "command": [
+        "/workspace/.cloud/milkup-v2/sysroot/usr/bin/Xvfb",
+        ":128",
+        "-screen",
+        "0",
+        "1600x1400x24",
+        "-dpi",
+        "96",
+        "-nolisten",
+        "tcp",
+        "-ac"
+      ],
+      "existingDisplay126": "untouched",
+      "started": 1792187929.302398,
+      "comparison": "Same WebKit/font/software environment, separate larger display; native zoom and actual geometry recorded independently",
+      "pid": 424992,
+      "birth": "7554174",
+      "namespaceExitCode": 0,
+      "xvfbExitCode": 0,
+      "ended": 1792187932.3490763,
+      "displaySocketRemaining": false
+    },
+    "capture02": {
+      "phase": "capture",
+      "command": [
+        "/workspace/.cloud/milkup-v2/sysroot/usr/bin/Xvfb",
+        ":128",
+        "-screen",
+        "0",
+        "1600x1400x24",
+        "-dpi",
+        "96",
+        "-nolisten",
+        "tcp",
+        "-ac"
+      ],
+      "existingDisplay126": "untouched",
+      "started": 1792188158.2915828,
+      "comparison": "Same WebKit/font/software environment, separate larger display; native zoom and actual geometry recorded independently",
+      "pid": 425595,
+      "birth": "7577073",
+      "namespaceExitCode": 0,
+      "xvfbExitCode": 0,
+      "ended": 1792188160.6717587,
+      "displaySocketRemaining": false
+    },
+    "paint01": {
+      "phase": "paint",
+      "command": [
+        "/workspace/.cloud/milkup-v2/sysroot/usr/bin/Xvfb",
+        ":128",
+        "-screen",
+        "0",
+        "1600x1400x24",
+        "-dpi",
+        "96",
+        "-nolisten",
+        "tcp",
+        "-ac"
+      ],
+      "existingDisplay126": "untouched",
+      "started": 1792188278.2472174,
+      "comparison": "Same WebKit/font/software environment, separate larger display; native zoom and actual geometry recorded independently",
+      "pid": 426214,
+      "birth": "7589068",
+      "namespaceExitCode": 0,
+      "xvfbExitCode": 0,
+      "ended": 1792188285.8939388,
+      "displaySocketRemaining": false
+    }
+  },
+  "preparedInputChecks": [
+    {
+      "manifest": "prepared-inputs.json",
+      "sha256": "b02de29d11dc45e16f695cc72112a66e2a15b4bbee684d29ca09488ac9ed8cd3"
+    },
+    {
+      "manifest": "revision02-inputs.json",
+      "sha256": "9b33041be086313240d2beeffe07d7ccbb89d88b378aa27ea5f56b18c6c6e5dc"
+    },
+    {
+      "manifest": "revision03-inputs.json",
+      "sha256": "a3054794b8dd8769ef46cd114501311696d8e60bd45704f155222f188fc91dde"
+    }
+  ],
+  "cleanup": "Each native supervisor records cleared owned group before namespace exit. Each owned Xvfb128 exited, socket absent; Xvfb126 untouched. No runtime left active."
+}

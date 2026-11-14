@@ -1,0 +1,49 @@
+{
+  "created": "2026-10-16T12:06:13.564348+00:00",
+  "before": {
+    "failed": 2,
+    "passed": 2,
+    "log": "01-before.log",
+    "cause": [
+      "Repeated markers wrongly inherit referring shape fill/stroke: root gradient omitted when shape fill is none.",
+      "Referring shape gradient wrongly charged again for every marker whose own/root paint has no gradient."
+    ]
+  },
+  "fix": "Only marker reference expansion uses rootPaint as inherited context; marker own style still overrides. Symbol/use inheritance unchanged. Memo already distinguishes inherited gradient references.",
+  "after": {
+    "svgTests": 70,
+    "files": 8,
+    "failed": 0,
+    "log": "02-after-all-svg.log",
+    "strictCore": "03-core-types.log PASS",
+    "format": "04-format.log PASS"
+  },
+  "guards": [
+    "Marker own fill overrides root gradient.",
+    "Symbol/use continues to inherit referring context and enforce expansion limit.",
+    "All prior raster/safety/cost/fixed-element/unresolved tests included."
+  ],
+  "scopeLimits": [
+    "clipPath reference painting/geometry distinction reviewed but no change made; existing conservative accounting remains.",
+    "No native/converter pixel run performed here.",
+    "Earlier raster-bounds implemented-files.json is a historical pre-marker-fix snapshot, not the newest full core freeze."
+  ],
+  "files": [
+    {
+      "path": "packages/core/src/document-svg-image-codec.ts",
+      "sha256": "238b6e27c662ab85b17d411a04dcdc9aea40e668166c3c4f5bc7a83c7b39cdf7"
+    },
+    {
+      "path": "packages/core/src/document-svg-image-geometry.ts",
+      "sha256": "edab339b5a994faa92416a7e048f47504a60f29380083f759b4569bddcab380f"
+    },
+    {
+      "path": "packages/core/src/__tests__/document-svg-image-marker-paint.test.ts",
+      "sha256": "e51a05c79f12f234d4fac9d8308e4193ab98a51a54877888bcf254b87ec74c74"
+    },
+    {
+      "path": "packages/core/src/__tests__/document-svg-image-marker-reference.test.ts",
+      "sha256": "a647e0e4b9dfa8fa7f3cfd3d94de4c5b6371e3ee56097450729799870a23c624"
+    }
+  ]
+}

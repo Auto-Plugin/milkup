@@ -1,0 +1,21 @@
+{
+  "sample": {
+    "id": "flowchart-006-subgraph",
+    "family": "flowchart",
+    "source": "flowchart LR\n  subgraph Client\n    UI[Web app]\n    Cache[(Local cache)]\n  end\n  subgraph Services\n    API[API gateway]\n    Auth[Auth service]\n    Orders[Order service]\n  end\n  subgraph Storage\n    DB[(Orders DB)]\n  end\n  UI --> API\n  UI --> Cache\n  API --> Auth\n  API --> Orders\n  Orders --> DB\n  Auth -. token .-> UI\n",
+    "sourceSha256": "db4aa3083cae19b2161f65a3286ca21bd0af2272991be4d9b363418ce69e51ed",
+    "officialSource": "https://github.com/mermaid-js/mermaid/blob/mermaid%4012.2.0/packages/mermaid/src/docs/syntax/flowchart.md",
+    "line": 115,
+    "unmodifiedOfficialBlock": true
+  },
+  "request": {
+    "id": "scan_010",
+    "source": "flowchart LR\n  subgraph Client\n    UI[Web app]\n    Cache[(Local cache)]\n  end\n  subgraph Services\n    API[API gateway]\n    Auth[Auth service]\n    Orders[Order service]\n  end\n  subgraph Storage\n    DB[(Orders DB)]\n  end\n  UI --> API\n  UI --> Cache\n  API --> Auth\n  API --> Orders\n  Orders --> DB\n  Auth -. token .-> UI\n",
+    "profile": "baseline",
+    "theme": "light"
+  },
+  "converterResearch": {
+    "originalCatalogIndex": 10,
+    "sourceUnchanged": true
+  }
+}

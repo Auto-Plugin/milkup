@@ -1,0 +1,102 @@
+
+ RUN  v3.2.6 /workspace/milkup/packages/view-dom
+
+ ❯ src/__tests__/document-presentation.test.ts (46 tests | 2 failed | 44 skipped) 162ms
+   ↓ keeps preview keyboard focus when the view refreshes its source DOM (false)
+   ↓ anchors an asynchronously growing preview above the visible selection (false)
+   ↓ refreshes selection-dependent third-party output without repaint loops (false)
+   ↓ cancels the old selection job and discards its late output (false)
+   ↓ uses real MathML, retains mapped source and reveals on selection (false)
+   ↓ keeps source literal and disable restores source without a transaction (false)
+   ↓ excludes preview text from mapped offsets, coalesces and invalidates (false)
+   ↓ mounts a multiline block once and restores every original line (false)
+   ↓ renders the native CRLF matrix range without consuming its line ending (false)
+   ↓ uses accessible references without editing or swallowing keyboard activation (false)
+   ↓ preserves an ordinary task control alongside inline presentation (false)
+   ↓ rejects protected and malformed output while preserving editable source (false)
+   ↓ bounds requests before invoking a provider on a huge line (false)
+   ↓ discards old-document results while a fresh document remains editable (false)
+   ↓ discards an asynchronous result after disable (false)
+   ↓ keeps preview keyboard focus when the view refreshes its source DOM (true)
+   ↓ anchors an asynchronously growing preview above the visible selection (true)
+   ↓ refreshes selection-dependent third-party output without repaint loops (true)
+   ↓ cancels the old selection job and discards its late output (true)
+   ↓ uses real MathML, retains mapped source and reveals on selection (true)
+   ↓ keeps source literal and disable restores source without a transaction (true)
+   ↓ excludes preview text from mapped offsets, coalesces and invalidates (true)
+   ↓ mounts a multiline block once and restores every original line (true)
+   ↓ renders the native CRLF matrix range without consuming its line ending (true)
+   ↓ uses accessible references without editing or swallowing keyboard activation (true)
+   ↓ preserves an ordinary task control alongside inline presentation (true)
+   ↓ rejects protected and malformed output while preserving editable source (true)
+   ↓ bounds requests before invoking a provider on a huge line (true)
+   ↓ discards old-document results while a fresh document remains editable (true)
+   ↓ discards an asynchronous result after disable (true)
+   ↓ constructs inert SVG and maps only validated MathML attribute names
+   ↓ checks the host navigation lease after asynchronous viewport loading
+   ↓ checks the host navigation assertion before changing selection
+   ↓ measures collapsed block continuation lines as zero and restores their heights
+   ↓ allows bounded host snapshot preparation beyond the renderer worker deadline
+   ↓ cancels a slow host preparation without waiting for its deadline
+   ↓ rejects a completed job if selection changed before the next synchronization
+   ↓ preserves the correct viewport anchor during preview growth (visible)
+   ↓ preserves the correct viewport anchor during preview growth (scrolled-away)
+   ↓ preserves the correct viewport anchor during preview growth (source)
+   ↓ preserves block focus across a viewport job without stealing a later external focus
+   ↓ preserves reference focus across a viewport job without stealing a later external focus
+   ↓ retains validated block during background refresh and clears failed or revoked results
+   ↓ retains validated reference during background refresh and clears failed or revoked results
+   × preserves the pre-replacement selected-line anchor when a window reinstalls source DOM 112ms
+     → expected -137 to be 42 // Object.is equality
+   × preserves the pre-replacement reader-position anchor when a window reinstalls source DOM 48ms
+     → expected -190 to be -11 // Object.is equality
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/__tests__/document-presentation.test.ts > preserves the pre-replacement selected-line anchor when a window reinstalls source DOM
+AssertionError: expected -137 to be 42 // Object.is equality
+
+- Expected
++ Received
+
+- 42
++ -137
+
+ ❯ src/__tests__/document-presentation.test.ts:1154:93
+    1152|       manager.updateContent(() => content.replaceChildren(...makeLines…
+    1153|       manager.selectionChanged()
+    1154|       expect(content.querySelector(`[data-line="${number}"]`)!.getBoun…
+       |                                                                                             ^
+    1155|       expect(content.querySelector('[data-line="3"]')!.getBoundingClie…
+    1156|       expect(content.querySelector('math')).not.toBeNull()
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯
+
+ FAIL  src/__tests__/document-presentation.test.ts > preserves the pre-replacement reader-position anchor when a window reinstalls source DOM
+AssertionError: expected -190 to be -11 // Object.is equality
+
+- Expected
++ Received
+
+- -11
++ -190
+
+ ❯ src/__tests__/document-presentation.test.ts:1154:93
+    1152|       manager.updateContent(() => content.replaceChildren(...makeLines…
+    1153|       manager.selectionChanged()
+    1154|       expect(content.querySelector(`[data-line="${number}"]`)!.getBoun…
+       |                                                                                             ^
+    1155|       expect(content.querySelector('[data-line="3"]')!.getBoundingClie…
+    1156|       expect(content.querySelector('math')).not.toBeNull()
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/2]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  2 failed | 44 skipped (46)
+   Start at  02:04:25
+   Duration  2.51s (transform 753ms, setup 0ms, collect 925ms, tests 162ms, environment 947ms, prepare 139ms)
+
+undefined
+/workspace/milkup/packages/view-dom:
+[ERR_PNPM_RECURSIVE_EXEC_FIRST_FAIL] Command failed with exit code 1: vitest run src/__tests__/document-presentation.test.ts -t pre-replacement

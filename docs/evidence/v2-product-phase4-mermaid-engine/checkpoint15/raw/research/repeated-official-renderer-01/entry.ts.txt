@@ -1,0 +1,7 @@
+import mermaid from '/workspace/milkup/plugins/diagrams/node_modules/mermaid/dist/mermaid.core.mjs'
+import {prepareRenderer, renderDocuments} from '/workspace/milkup/plugins/diagrams/src/renderer'
+import {copyDocumentPresentationRequest,copyDocumentPresentationResult,serializeDocumentPresentationNode} from '/workspace/milkup/packages/core/src/document-presentation'
+let originalSvg=''
+const actualRender=mermaid.render
+mermaid.render=async function(...args){const result=await actualRender.apply(this,args);originalSvg=result.svg;return result}
+Object.assign(window,{probe:{async run(value){await prepareRenderer(); const request=copyDocumentPresentationRequest(value); const started=performance.now();const result=await renderDocuments(request,{signal:new AbortController().signal});const elapsedMs=performance.now()-started; const checked=copyDocumentPresentationResult(result,request,{id:'diagrams.mermaid',contexts:['fence'],fenceLanguages:['mermaid']});return {request,result,checked,elapsedMs,originalSvg,canonical:checked.fragments.map(f=>serializeDocumentPresentationNode(f.content))}}}})

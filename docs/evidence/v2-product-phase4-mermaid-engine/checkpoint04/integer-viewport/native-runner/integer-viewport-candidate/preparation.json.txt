@@ -1,0 +1,52 @@
+{
+  "status": "prepared-static-only-not-built-not-run",
+  "originalCanonical": "/workspace/milkup-mermaid-engine-evidence/research/svg-converter-prototype/native-runner/host-validation-round05/scan_036-result-canonical.svg",
+  "originalSha256": "57ecb510fc6cda31e9e8501929e6084ec44464b438851a00c27d477dcded3f62",
+  "candidateSha256": "b9e50369a7753f5a3c5909687e355480b2f30153dd95000e900b05de68337c4f",
+  "originalBytes": 224570,
+  "candidateBytes": 224690,
+  "innerBytesUnchanged": true,
+  "outerViewport": {
+    "width": 600,
+    "height": 407,
+    "viewBox": [
+      0,
+      0,
+      600,
+      407
+    ],
+    "preserveAspectRatio": "none"
+  },
+  "expectedImgCssSize": [
+    600,
+    407
+  ],
+  "expectedLayoutFootprint": [
+    600.0,
+    406.90625
+  ],
+  "notArbitraryPadding": "Only ceil() of exact measured original dimensions; original coordinates, inner width/height/viewBox/PAR and overflow clipping stay byte-identical. The surrounding slot keeps exact original footprint and adds no clipping. Whether the remainder is actually transparent is a runtime observation to verify, not an assumption.",
+  "sameEnforcement": {
+    "nativeRenderSeconds": 2,
+    "maxFrameBytes": 262144,
+    "separateObservationSeconds": 2
+  },
+  "plannedChecks": [
+    "Original inline, integer-wrapped canonical inline, integer-wrapped canonical image screenshots at identical top-left and exact original surrounding footprint.",
+    "Record original/inner viewport, viewBox, PAR, computed overflow, root and content bbox, CTM and sampled rect/path/text CTMs; verify no rescaling/translation or changed clipping.",
+    "Record image natural size and CSS size exactly equal ceil dimensions; slot remains original exact dimensions.",
+    "Compare full screenshot differences including count, bbox, max/mean absolute channel difference over all pixels and changed pixels, plus fixed region grid and channel-difference histogram. Do not use a chosen tolerance as automatic acceptance.",
+    "Compare entire original extent and newly enclosed fractional row/column against original screenshot to detect lost content or new painted remainder.",
+    "Actually inspect three original PNGs. Classify geometric displacement/missing paint separately from edge/text raster differences only if evidence supports it."
+  ],
+  "limitations": [
+    "One sample cannot establish a general serializer contract, high-DPI behavior, zoom behavior, or nondefault PAR support.",
+    "Whole-content bbox plus sampled CTMs is diagnostic evidence, not a proof for every possible SVG node.",
+    "Any wrapper cost must be included in independent host node/serialized-byte budgets before product adoption."
+  ],
+  "ceilRasterRemainderToVerify": [
+    0.0,
+    0.09375
+  ],
+  "layoutControl": "Preserve untouched original snapshot first. Add an exact original-sized, non-clipping block slot and a following visible footer control for controlled-original, canonical-inline and canonical-image phases. Capture original geometry before any replacement; assert all footer tops equal and slot dimensions equal original, without deriving footprint from integer outer SVG. Compare controlled-original diagram crop to untouched original to detect harness changes."
+}

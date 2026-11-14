@@ -1,0 +1,24 @@
+// Prepared only; uses frozen current core, never an old image-only validator.
+import assert from 'node:assert/strict'
+import { createRequire } from 'node:module'
+import { readFile, writeFile, realpath } from 'node:fs/promises'
+import { dirname, resolve } from 'node:path'
+import { fileURLToPath } from 'node:url'
+import { createHash } from 'node:crypto'
+assert.equal(process.env.MILKUP_EAGER_BUILD_APPROVED, '1', 'Separate build GO required')
+const root = dirname(fileURLToPath(import.meta.url))
+const sha = b => createHash('sha256').update(b).digest('hex')
+const freeze = JSON.parse(await readFile(resolve(root, 'source-freeze.json'), 'utf8'))
+const allowed = new Set(freeze.files.map(x => resolve(root, x.path)))
+async function verify() { for (const x of freeze.files) assert.equal(sha(await readFile(resolve(root, x.path))), x.sha256) }
+await verify()
+const require = createRequire('/workspace/milkup/plugins/diagrams/package.json')
+const { build, version } = require('esbuild')
+assert.equal(version, '0.25.12')
+const result = await build({ absWorkingDir: root, entryPoints: ['source/document-presentation.ts'], bundle: true, format: 'esm', platform: 'node', target: 'node22', write: false, metafile: true, outfile: 'validator.mjs' })
+assert.equal(result.outputFiles.length, 1)
+assert(Object.values(result.metafile.outputs).every(x => x.imports.length === 0))
+for (const input of Object.keys(result.metafile.inputs)) assert(allowed.has(await realpath(resolve(root, input))))
+await verify()
+await writeFile(resolve(root, 'validator.mjs'), result.outputFiles[0].contents, { flag: 'wx' })
+await writeFile(resolve(root, 'validator-build.json'), JSON.stringify({ esbuild: version, bytes: result.outputFiles[0].contents.length, sha256: sha(result.outputFiles[0].contents), sourceFreezeSha256: sha(await readFile(resolve(root, 'source-freeze.json'))), metafile: result.metafile, executed: false }, null, 2) + '\n', { flag: 'wx' })

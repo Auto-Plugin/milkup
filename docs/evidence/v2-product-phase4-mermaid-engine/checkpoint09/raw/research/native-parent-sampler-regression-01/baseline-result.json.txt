@@ -1,0 +1,109 @@
+{
+  "status": "EXPECTED_BASELINE_RED",
+  "exitCode": 101,
+  "soleFailedAssertion": "actual sample_owned call count must equal zero for guardian-backed Instance",
+  "actualCallCount": 125,
+  "expectedCallCount": 0,
+  "originalFixtureAssertionsPassed": [
+    "activation",
+    "bbox positive",
+    "exact native resource guard rejection",
+    "network/file rejection",
+    "global alias rebind isolation",
+    "real synchronous loop native deadline"
+  ],
+  "observedRoles": [
+    {
+      "role": "other-owned",
+      "pid": 58,
+      "birth": 6525980
+    },
+    {
+      "role": "helper",
+      "pid": 12,
+      "birth": 6525963
+    },
+    {
+      "role": "other-owned",
+      "pid": 57,
+      "birth": 6525979
+    },
+    {
+      "role": "other-owned",
+      "pid": 64,
+      "birth": 6525981
+    },
+    {
+      "role": "guardian",
+      "pid": 6,
+      "birth": 6525954
+    },
+    {
+      "role": "webkit-web",
+      "pid": 66,
+      "birth": 6525982
+    },
+    {
+      "role": "other-owned",
+      "pid": 59,
+      "birth": 6525980
+    },
+    {
+      "role": "other-owned",
+      "pid": 15,
+      "birth": 6525971
+    },
+    {
+      "role": "other-owned",
+      "pid": 62,
+      "birth": 6525981
+    }
+  ],
+  "cleanupEvidence": "Each of 9 independently observed PID/birth identities checked absent; Instance.stop returned success before counter read/assert. Guardian cleanup-complete and App cleanup-confirmed retained. Cleanup Drop also executes on assertion panic; outer namespace ends after test verdict. No inference that a sampled list enumerates every transient descendant.",
+  "loopPhaseTimings": [
+    {
+      "phase": "dispatch",
+      "pid": 4,
+      "elapsedFromLoopDispatchNs": 0
+    },
+    {
+      "phase": "deadline-observed",
+      "pid": 4,
+      "elapsedFromLoopDispatchNs": 2000110661
+    },
+    {
+      "phase": "kill-start",
+      "pid": 6,
+      "elapsedFromLoopDispatchNs": 2003083247
+    },
+    {
+      "phase": "cleanup-complete",
+      "pid": 6,
+      "elapsedFromLoopDispatchNs": 2015128349
+    },
+    {
+      "phase": "cleanup-confirmed",
+      "pid": 4,
+      "elapsedFromLoopDispatchNs": 2021806376
+    },
+    {
+      "phase": "control-emitted",
+      "pid": 4,
+      "elapsedFromLoopDispatchNs": 2021875609
+    },
+    {
+      "phase": "cleanup-confirmed",
+      "pid": 4,
+      "elapsedFromLoopDispatchNs": 2022032069
+    },
+    {
+      "phase": "cleanup-confirmed",
+      "pid": 4,
+      "elapsedFromLoopDispatchNs": 2022331264
+    }
+  ],
+  "sourceFilesChecked": 50,
+  "sourceDifferences": [],
+  "productWorkerStillPresent": true,
+  "qualifiedScope": "Actual Instance owner compiled from test-instrumented current source; guardian/GTK run frozen production04 helper. This is a regression mechanism result, not a new production package or performance comparison."
+}

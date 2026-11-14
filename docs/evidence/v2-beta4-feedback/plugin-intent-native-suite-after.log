@@ -1,0 +1,71 @@
+   Compiling milkup-catalog-core-tests v0.0.0 (/tmp/milkup-windows-manual-candidate/tests/native/catalog-core)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 2.32s
+     Running unittests src/lib.rs (tests/native/catalog-core/target/debug/deps/milkup_catalog_core_tests-5e221c9cbad76ec3)
+
+running 41 tests
+test plugin_catalog::tests::beta3_backup_recovery_preserves_first_candidate_without_restoring_approval ... ok
+test plugin_catalog::tests::backup_replacement_failure_leaves_primary_decision_byte_exact ... ok
+test plugin_catalog::tests::beta3_rejected_first_install_is_tombstoned_and_does_not_return_on_restart ... ok
+test plugin_catalog::tests::beta3_interrupted_first_install_remains_visible_for_review_after_restart ... ok
+test plugin_catalog::tests::beta4_atomic_bundled_replacement_keeps_previous_bytes_and_never_inherits_approval ... ok
+test plugin_catalog::tests::beta3_tampered_first_candidate_stays_visible_but_cannot_be_approved_or_executed ... ok
+test plugin_catalog::tests::beta4_bundled_replacement_records_new_source_without_forging_the_old_receipt ... ok
+test plugin_catalog::tests::beta4_bundled_replacement_preserves_enabled_active_and_backup_candidate ... ok
+test plugin_catalog::tests::beta4_bundled_replacement_disk_failures_preserve_catalog_candidate_and_userdata ... ok
+test plugin_catalog::tests::beta4_concurrent_bundled_replacements_accept_only_one_revision ... ok
+test plugin_catalog::tests::changed_candidate_cannot_commit_or_replace_retained_active_generation ... ok
+test plugin_catalog::tests::commit_failure_before_replace_restores_old_decision_after_restart ... ok
+test plugin_catalog::tests::beta4_bundled_replacement_rejects_stale_identity_version_and_user_receipts ... ok
+test plugin_catalog::tests::concurrent_different_ids_never_lose_catalog_updates ... ok
+test plugin_catalog::tests::concurrent_same_id_approval_and_abort_accept_only_one_revision ... ok
+test plugin_catalog::tests::corrupt_primary_and_backup_fail_closed_and_retain_original_bytes ... ok
+test plugin_catalog::tests::beta3_failed_candidate_retains_sealed_bytes_and_requires_exact_identity_for_retry_or_cleanup ... ok
+test plugin_catalog::tests::expanded_origins_require_new_approval_and_revocation_cannot_rollback_old_authority ... ok
+test plugin_catalog::tests::injected_mid_stage_failure_never_changes_catalog_or_old_bytes ... ok
+test plugin_catalog::tests::deletion_failure_is_durable_tombstone_and_can_retry_without_deleting_data ... ok
+test plugin_catalog::tests::corrupt_primary_uses_backup_without_restoring_old_enabled_or_approval ... ok
+test plugin_catalog::tests::malformed_package_fails_before_any_catalog_or_plugin_write ... ok
+test plugin_catalog::tests::interrupted_startup_stays_disabled_and_late_complete_rejected ... ok
+test plugin_catalog::tests::migration_corrupt_root_is_backed_up_and_quarantined_once ... ok
+test plugin_catalog::tests::insufficient_space_is_rejected_before_generation_or_authority_changes ... ok
+test plugin_catalog::tests::migration_missing_or_changed_old_package_is_quarantined_without_retry_loop ... ok
+test plugin_catalog::tests::migration_quarantines_bad_manifest_rows_without_poisoning_valid_plugin ... ok
+test plugin_catalog::tests::migration_keeps_exact_backup_and_duplicate_ids_quarantined ... ok
+test plugin_catalog::tests::migration_io_failure_preserves_backup_and_remains_retryable ... ok
+test plugin_catalog::tests::package_symlink_never_reads_or_writes_outside ... ok
+test plugin_catalog::tests::prepare_leaves_active_and_data_unchanged_and_commit_retains_verified_previous ... ok
+test plugin_catalog::tests::rejects_base64_worker_entry_even_when_decodable_utf8 ... ok
+test plugin_catalog::tests::rejects_checksummed_inconsistent_authority_states ... ok
+test plugin_catalog::tests::revision_and_candidate_identity_prevent_late_approval ... ok
+test plugin_catalog::tests::ordinary_reads_do_not_abort_live_trial_or_startup_attempt ... ok
+test plugin_catalog::tests::sidecar_candidate_remains_unactivated_even_after_explicit_approval ... ok
+test plugin_catalog::tests::migration_rejects_missing_or_unbound_validation_after_exact_backup ... ok
+test plugin_catalog::tests::sealed_worker_snapshot_rejects_mutation_and_symlink ... ok
+test plugin_catalog::tests::tombstone_preserves_user_data_and_cannot_start_old_generation ... ok
+test plugin_catalog::tests::two_ids_commit_without_lost_catalog_updates ... ok
+test plugin_catalog::tests::gc_retains_backup_generations_for_third_commit_corruption_recovery ... ok
+
+test result: ok. 41 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.88s
+
+     Running unittests src/bin/catalog-probe.rs (tests/native/catalog-core/target/debug/deps/catalog_probe-42fb075b8ddf0496)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/process_boundary.rs (tests/native/catalog-core/target/debug/deps/process_boundary-7752a29947dc9bf2)
+
+running 4 tests
+test fresh_process_recovers_interrupted_trial_without_changing_old_package ... ok
+test fresh_process_disables_interrupted_startup_without_repeated_revision_changes ... ok
+test fresh_process_keeps_interrupted_first_install_visible_without_approval ... ok
+test other_process_cannot_read_or_mutate_while_native_catalog_lock_is_owned ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.04s
+
+   Doc-tests milkup_catalog_core_tests
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+

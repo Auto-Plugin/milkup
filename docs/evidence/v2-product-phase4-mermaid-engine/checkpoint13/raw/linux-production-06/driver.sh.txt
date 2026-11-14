@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+set -euo pipefail
+source /workspace/milkup-mermaid-engine-evidence/linux-production-06/run-env.sh "$@"
+# A fresh profile, log and evidence directory are mandatory for each attempt.
+[[ ! -e "$XDG_RUNTIME_DIR" && ! -e "$MILKUP_NATIVE_PROFILE_ROOT" && ! -e "$MILKUP_NATIVE_APP_LOG" && ! -e "$MILKUP_NATIVE_EVIDENCE_DIR" ]]
+mkdir -p "$XDG_CONFIG_HOME" "$XDG_CACHE_HOME" "$XDG_DATA_HOME" "$(dirname "$MILKUP_NATIVE_APP_LOG")" "$(dirname "$MILKUP_NATIVE_EVIDENCE_DIR")"
+mkdir -m 0700 "$XDG_RUNTIME_DIR"
+# The harness itself exclusively creates its case evidence directory.
+exec bwrap --unshare-user --ro-bind / / --bind /workspace /workspace --bind /tmp /tmp --dev-bind /dev /dev --proc /proc --overlay-src /usr/bin --tmp-overlay /usr/bin --ro-bind /workspace/.cloud/milkup-v2/sysroot/usr/bin/xdg-dbus-proxy /usr/bin/xdg-dbus-proxy --remount-ro /usr/bin --overlay-src /usr/lib/x86_64-linux-gnu --tmp-overlay /usr/lib/x86_64-linux-gnu --ro-bind /workspace/.cloud/milkup-v2/sysroot/usr/lib/x86_64-linux-gnu/webkit2gtk-4.1 /usr/lib/x86_64-linux-gnu/webkit2gtk-4.1 --remount-ro /usr/lib/x86_64-linux-gnu -- dbus-run-session -- /workspace/.cargo/bin/tauri-driver --port 4626 --native-port 4627 --native-driver /workspace/.cloud/milkup-v2/sysroot/usr/bin/WebKitWebDriver > "$MILKUP_NATIVE_APP_LOG" 2>&1

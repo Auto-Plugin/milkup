@@ -1,0 +1,240 @@
+[
+  {
+    "suite": "quality",
+    "exitCode": 0,
+    "passed": 12,
+    "results": [
+      {
+        "name": "new: cancel, focus, discard",
+        "result": "PASS"
+      },
+      {
+        "name": "new: save then transition with disk bytes",
+        "result": "PASS"
+      },
+      {
+        "name": "open: cancel, focus, discard",
+        "result": "PASS"
+      },
+      {
+        "name": "open: save then transition with disk bytes",
+        "result": "PASS"
+      },
+      {
+        "name": "close: cancel, focus, discard",
+        "result": "PASS"
+      },
+      {
+        "name": "close: save then transition with disk bytes",
+        "result": "PASS"
+      },
+      {
+        "name": "real missing-directory save failure retains draft and supports retry",
+        "result": "PASS"
+      },
+      {
+        "name": "native save catches external write before watcher and saves rescue copy",
+        "result": "PASS"
+      },
+      {
+        "name": "real readonly failure preserves bytes and recovers after permissions restored",
+        "result": "PASS"
+      },
+      {
+        "name": "native large file disk save, conflict guard and active buffer lifecycle",
+        "result": "PASS"
+      },
+      {
+        "name": "native window close event: cancel and save",
+        "result": "PASS"
+      },
+      {
+        "name": "native window close event: discard",
+        "result": "PASS"
+      }
+    ]
+  },
+  {
+    "suite": "windowed-unicode",
+    "exitCode": 0,
+    "passed": 6,
+    "results": [
+      {
+        "name": "source: whole grapheme movement, deletion, immediate undo and redo",
+        "result": "PASS"
+      },
+      {
+        "name": "source: distant viewport and return preserve cursor",
+        "result": "PASS"
+      },
+      {
+        "name": "source: CRLF cross-line selection, delete, undo and disk save",
+        "result": "PASS"
+      },
+      {
+        "name": "live: whole grapheme movement, deletion, immediate undo and redo",
+        "result": "PASS"
+      },
+      {
+        "name": "live: distant viewport and return preserve cursor",
+        "result": "PASS"
+      },
+      {
+        "name": "live: CRLF cross-line selection, delete, undo and disk save",
+        "result": "PASS"
+      }
+    ]
+  },
+  {
+    "suite": "block-keyboard",
+    "exitCode": 0,
+    "passed": 8,
+    "results": [
+      {
+        "name": "source: list nesting, empty exit, history and mode-switch caret",
+        "result": "PASS"
+      },
+      {
+        "name": "source: multiline selection indent/outdent preserves source and undo",
+        "result": "PASS"
+      },
+      {
+        "name": "source: code literal lists, indentation, blank lines, fence exit and history",
+        "result": "PASS"
+      },
+      {
+        "name": "live: list nesting, empty exit, history and mode-switch caret",
+        "result": "PASS"
+      },
+      {
+        "name": "live: multiline selection indent/outdent preserves source and undo",
+        "result": "PASS"
+      },
+      {
+        "name": "live: code literal lists, indentation, blank lines, fence exit and history",
+        "result": "PASS"
+      },
+      {
+        "name": "issue 255: native bracket caret remains after 2.5 seconds",
+        "result": "PASS"
+      },
+      {
+        "name": "issue 255: image followed by a single-space heading",
+        "result": "PASS"
+      }
+    ]
+  },
+  {
+    "suite": "table-editing",
+    "exitCode": 0,
+    "passed": 9,
+    "results": [
+      {
+        "name": "native OS clipboard has HTML table, Unicode Markdown and a rich editable paste",
+        "result": "PASS"
+      },
+      {
+        "name": "source copy stays plain, live cut carries HTML and undo restores disk bytes",
+        "result": "PASS"
+      },
+      {
+        "name": "real cell click, Tab/Shift+Tab, Enter, replacement and undo",
+        "result": "PASS"
+      },
+      {
+        "name": "cell line break, literal pipe, multiline native paste and history",
+        "result": "PASS"
+      },
+      {
+        "name": "toolbar row/column edits, protections and independent undo",
+        "result": "PASS"
+      },
+      {
+        "name": "last-cell expansion, table selection, copy and paragraph exit",
+        "result": "PASS"
+      },
+      {
+        "name": "live arrows skip structure and shifted ranges stay within the cell",
+        "result": "PASS"
+      },
+      {
+        "name": "live arrows preserve Unicode and rendered break/pipe atoms",
+        "result": "PASS"
+      },
+      {
+        "name": "trailing empty paragraph remains outside table editing",
+        "result": "PASS"
+      }
+    ]
+  },
+  {
+    "suite": "navigation",
+    "exitCode": 0,
+    "passed": 6,
+    "results": [
+      {
+        "name": "native find keyboard loop, literal queries, focus and disk edit at selected hit",
+        "result": "PASS"
+      },
+      {
+        "name": "native Unicode replacement, case switch, all deletion and isolated undo on real disk",
+        "result": "PASS"
+      },
+      {
+        "name": "native edit refresh preserves insertion point and document switch discards old results",
+        "result": "PASS"
+      },
+      {
+        "name": "native outline hierarchy, heading rename, keyboard activation and document switch",
+        "result": "PASS"
+      },
+      {
+        "name": "native narrow window search layout and repeated source/live inline-code styles",
+        "result": "PASS"
+      },
+      {
+        "name": "native windowed search selects exact Unicode offsets and outline moves the editing cursor",
+        "result": "PASS"
+      }
+    ]
+  },
+  {
+    "suite": "windowed-blocks",
+    "exitCode": 0,
+    "passed": 8,
+    "results": [
+      {
+        "name": "source: native windowed list continuation, empty exit and cursor history",
+        "result": "PASS"
+      },
+      {
+        "name": "source: offscreen opening fence, CRLF and code indentation",
+        "result": "PASS"
+      },
+      {
+        "name": "source: reverse selection crosses render windows, one indent transaction and undo",
+        "result": "PASS"
+      },
+      {
+        "name": "source: UTF-16 undo caret and subsequent real input",
+        "result": "PASS"
+      },
+      {
+        "name": "live: native windowed list continuation, empty exit and cursor history",
+        "result": "PASS"
+      },
+      {
+        "name": "live: offscreen opening fence, CRLF and code indentation",
+        "result": "PASS"
+      },
+      {
+        "name": "live: reverse selection crosses render windows, one indent transaction and undo",
+        "result": "PASS"
+      },
+      {
+        "name": "live: UTF-16 undo caret and subsequent real input",
+        "result": "PASS"
+      }
+    ]
+  }
+]

@@ -1,0 +1,120 @@
+//! External Linux mechanism probe. Official Mermaid research only: no Wry fork or Tauri capability.
+use std::{io::{self,BufRead,Read,Write},sync::{Arc,atomic::{AtomicBool,Ordering}}};
+use tao::{event::{Event,WindowEvent},event_loop::{ControlFlow,EventLoopBuilder},window::WindowBuilder};
+use tao::platform::unix::WindowExtUnix;
+use gtk::{prelude::*,gio,glib};
+use webkit2gtk::{WebViewExt,WebContextExt,SettingsExt,PermissionRequestExt,FileChooserRequestExt,
+ URISchemeRequestExt,URISchemeResponseExt,PolicyDecisionExt,NavigationPolicyDecisionExt,URIRequestExt,
+ DownloadExt,SecurityManagerExt};
+use javascriptcore::ValueExt;
+use serde_json::{json,Value};
+use std::{fs::File,os::fd::FromRawFd,sync::{Mutex,OnceLock}};
+static RESULTS:OnceLock<Mutex<File>>=OnceLock::new();
+#[derive(Debug)]enum User { Loaded,Ready(String),Task(String),Result(String),Eof }
+const URL:&str="milkup-render://job/index.html";
+const CSP:&str="default-src 'none'; script-src milkup-render://job/entry.mjs milkup-render://job/converter.mjs milkup-render://job/primitives.mjs milkup-render://job/mermaid-full-12.2.0.mjs; style-src 'unsafe-inline'; connect-src 'none'; img-src milkup-render://job/canonical.svg; font-src 'none'; frame-src 'none'; child-src 'none'; worker-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'";
+fn emit(v:Value){let mut out=RESULTS.get().expect("result pipe").lock().unwrap();writeln!(out,"{}",v).unwrap();out.flush().unwrap();}
+fn evaluated(result:Result<javascriptcore::Value,glib::Error>)->String {
+ match result {Ok(value)=>value.to_json(0).map(|v|v.to_string()).unwrap_or("null".into()),Err(error)=>json!({"nativeEvaluationError":error.to_string()}).to_string()}
+}
+fn main(){
+ // Dedicated result FD; forbid inheritance into any subsequently spawned child.
+ let flags=unsafe{libc::fcntl(3,libc::F_GETFD)};assert!(flags>=0,"dedicated fd3 missing");
+ assert_eq!(unsafe{libc::fcntl(3,libc::F_SETFD,flags|libc::FD_CLOEXEC)},0);
+ RESULTS.set(Mutex::new(unsafe{File::from_raw_fd(3)})).unwrap();
+ let extension=std::env::var("MILKUP_PROBE_EXTENSIONS").expect("explicit extension path required");
+ let events=EventLoopBuilder::<User>::with_user_event().build();
+ let window=WindowBuilder::new().with_title("Isolated DOM mechanism probe").with_inner_size(tao::dpi::LogicalSize::new(1100.,800.)).with_visible(true).build(&events).unwrap();
+ // Public native API: set sandbox BEFORE creating any WebView / WebProcess.
+ let context=webkit2gtk::WebContext::new_ephemeral();
+ context.set_sandbox_enabled(true);assert!(context.is_sandbox_enabled());
+ context.set_web_extensions_directory(&extension);
+ context.set_automation_allowed(false);
+ context.security_manager().unwrap().register_uri_scheme_as_secure("milkup-render");
+ context.security_manager().unwrap().register_uri_scheme_as_cors_enabled("milkup-render");
+ context.register_uri_scheme("milkup-render",|request|{
+  let uri=request.uri().map(|s|s.to_string()).unwrap_or_default();
+  let method=request.http_method().map(|s|s.to_string()).unwrap_or_default();
+  let (status,mime,body)=match(method.as_str(),uri.as_str()){
+   ("GET","milkup-render://job/index.html")=>(200,"text/html; charset=utf-8",include_bytes!("../assets/index.html").as_slice()),
+   ("GET","milkup-render://job/entry.mjs")=>(200,"text/javascript; charset=utf-8",include_bytes!("../assets/entry.mjs").as_slice()),
+   ("GET","milkup-render://job/converter.mjs")=>(200,"text/javascript; charset=utf-8",include_bytes!("../assets/converter.mjs").as_slice()),
+   ("GET","milkup-render://job/primitives.mjs")=>(200,"text/javascript; charset=utf-8",include_bytes!("../assets/primitives.mjs").as_slice()),
+   ("GET","milkup-render://job/canonical.svg")=>(200,"image/svg+xml",include_bytes!("../assets/canonical.svg").as_slice()),
+   ("GET","milkup-render://job/mermaid-full-12.2.0.mjs")=>(200,"text/javascript; charset=utf-8",include_bytes!("../assets/mermaid-full-12.2.0.mjs").as_slice()),
+   _=>(403,"text/plain",b"denied".as_slice())};
+  eprintln!("FIXED_PROTOCOL_REQUEST method={:?} uri={:?} status={}",method,uri,status);
+  let bytes=glib::Bytes::from_static(body);let stream=gio::MemoryInputStream::from_bytes(&bytes);
+  let response=webkit2gtk::URISchemeResponse::new(&stream,body.len() as i64);
+  response.set_status(status,None);response.set_content_type(mime);
+  let headers=soup::MessageHeaders::new(soup::MessageHeadersType::Response);
+  headers.append("Content-Type",mime);headers.append("Content-Security-Policy",CSP);headers.append("X-Content-Type-Options","nosniff");headers.append("Cache-Control","no-store");
+  response.set_http_headers(headers);request.finish_with_response(&response);
+ });
+ context.connect_download_started(|_,download|download.cancel());
+ let native=webkit2gtk::WebView::with_context(&context);
+ let settings=WebViewExt::settings(&native).unwrap();
+ settings.set_enable_write_console_messages_to_stdout(true);
+ settings.set_allow_file_access_from_file_urls(false);settings.set_allow_universal_access_from_file_urls(false);
+ settings.set_enable_webrtc(false);settings.set_enable_media_stream(false);settings.set_enable_webgl(false);
+ settings.set_enable_html5_database(false);settings.set_enable_html5_local_storage(false);settings.set_enable_dns_prefetching(false);
+ settings.set_javascript_can_open_windows_automatically(false);settings.set_enable_developer_extras(false);
+ native.connect_permission_request(|_,p|{p.deny();true});native.connect_run_file_chooser(|_,p|{p.cancel();true});
+ native.connect_script_dialog(|_,dialog|{dialog.close();true});
+ let nav=Arc::new(AtomicBool::new(false));let nav2=nav.clone();
+ native.connect_decide_policy(move|_,decision,kind|{
+  match kind {
+   webkit2gtk::PolicyDecisionType::NavigationAction=>{
+    let allowed=decision.downcast_ref::<webkit2gtk::NavigationPolicyDecision>().and_then(|d|d.navigation_action()).and_then(|a|a.request()).and_then(|r|r.uri()).map(|u|u==URL&&!nav2.swap(true,Ordering::SeqCst)).unwrap_or(false);
+    if allowed{decision.use_();}else{decision.ignore();}true
+   },
+   webkit2gtk::PolicyDecisionType::NewWindowAction=>{decision.ignore();true},
+   _=>false
+  }
+ });
+ let loaded=events.create_proxy();native.connect_load_changed(move|view,event|{if matches!(event,webkit2gtk::LoadEvent::Finished)&&view.uri().as_deref()==Some(URL){let _=loaded.send_event(User::Loaded);}});
+ window.default_vbox().unwrap().add(&native);native.set_size_request(1100,800);native.set_zoom_level(1.0);native.show();
+ emit(json!({"type":"native-policy","sandbox":context.is_sandbox_enabled(),"ephemeral":native.is_ephemeral(),"tauriBridge":false,"wryIpcStub":false,"javascript":settings.enables_javascript(),"javascriptMarkup":settings.enables_javascript_markup(),"allowedResources":3,"settings":"file/universal/webrtc/media/webgl/storage/dns/windows/devtools denied"}));
+ let input=events.create_proxy();std::thread::spawn(move||{
+  let mut reader=io::stdin().lock();
+  loop{let mut bytes=Vec::new();match reader.by_ref().take(131074).read_until(b'\n',&mut bytes){
+   Ok(0)=>break,Ok(_)if bytes.len()<=131073&&bytes.last()==Some(&b'\n')=>{bytes.pop();match String::from_utf8(bytes){Ok(line)=>{let _=input.send_event(User::Task(line));},Err(_)=>break}},_=>break
+  }}let _=input.send_event(User::Eof);
+ });
+ native.load_uri(URL);let callback=events.create_proxy();let mut ready=false;
+ events.run(move|event,_,flow|{*flow=ControlFlow::Wait;match event{
+  Event::UserEvent(User::Loaded)=>{let cb=callback.clone();native.evaluate_javascript("(()=>{const p=window.__milkupSvgConverterProbe;if(!p)return {bootstrapMissing:true};void p.ready().catch(()=>{});const r=p.readiness();return r.status==='ready'?{ready:true,hasTauri:typeof window.__TAURI_INTERNALS__!=='undefined',...r.result}:r.status==='error'?{preparationError:r.error}:{bootstrapMissing:true,fontPending:true}})()",None,None,None::<&gio::Cancellable>,move|r|{let _=cb.send_event(User::Ready(evaluated(r)));});},
+  Event::UserEvent(User::Ready(s))=>{let value:Value=serde_json::from_str(&s).unwrap_or(Value::Null);ready=value.get("ready")==Some(&Value::Bool(true));emit(json!({"type":"ready","value":value}));},
+  Event::UserEvent(User::Task(task))=>{
+   if task=="bootstrap" {let cb=callback.clone();native.evaluate_javascript("(()=>{const p=window.__milkupSvgConverterProbe;if(!p)return {bootstrapMissing:true};void p.ready().catch(()=>{});const r=p.readiness();return r.status==='ready'?{ready:true,hasTauri:typeof window.__TAURI_INTERNALS__!=='undefined',...r.result}:r.status==='error'?{preparationError:r.error}:{bootstrapMissing:true,fontPending:true}})()",None,None,None::<&gio::Cancellable>,move|r|{let _=cb.send_event(User::Ready(evaluated(r)));});return}
+
+   if !ready{emit(json!({"type":"rejected","reason":"not-ready"}));*flow=ControlFlow::Exit;return}
+   let input:Value=match serde_json::from_str(&task){Ok(v)=>v,Err(_)=>{emit(json!({"type":"rejected"}));*flow=ControlFlow::Exit;return}};
+   if input.get("op").and_then(Value::as_str)==Some("snapshot") {
+    let cb=callback.clone();native.snapshot(webkit2gtk::SnapshotRegion::Visible,webkit2gtk::SnapshotOptions::NONE,None::<&gio::Cancellable>,move|r|{
+     let result=match r {Ok(surface)=>{
+      match cairo::ImageSurface::try_from(surface){Ok(image)=>{
+       let mut file=File::create("/profile/journey.png").expect("fixed snapshot path");
+       match image.write_to_png(&mut file){Ok(())=>json!({"snapshot":true,"width":image.width(),"height":image.height(),"zoom":1.0}),Err(e)=>json!({"snapshotError":e.to_string()})}
+      },Err(e)=>json!({"snapshotError":e.to_string()})}
+     },Err(e)=>json!({"snapshotError":e.to_string()})};let _=cb.send_event(User::Result(result.to_string()));
+    });return
+   }
+   let script=match input.get("op").and_then(Value::as_str){
+    Some("start")=>format!("window.__milkupSvgConverterProbe.start({})",input.get("request").unwrap_or(&Value::Null)),
+    Some("original-source")=>"window.__milkupSvgConverterProbe.inspect(true)".into(),
+    Some("control-original")=>"window.__milkupSvgConverterProbe.controlOriginal()".into(),
+    Some("inspect")=>"window.__milkupSvgConverterProbe.inspect(false)".into(),
+    Some("canonical-inline")=>format!("window.__milkupSvgConverterProbe.showCanonicalInline({})",serde_json::to_string(std::str::from_utf8(include_bytes!("../assets/canonical.svg")).unwrap()).unwrap()),
+    Some("canonical")=>"window.__milkupSvgConverterProbe.showCanonical()".into(),
+    Some("poll")=>format!("window.__milkupSvgConverterProbe.poll({})",input.get("taskId").unwrap_or(&Value::Null)),
+    Some("guard")=>"(()=>{if(!window.__guardProbe){window.__guardProbe={status:'pending'};const s=document.createElement('script');s.type='module';s.src='milkup-render://job/entry.mjs?guard-check';s.onload=()=>window.__guardProbe.status='unexpected-load';s.onerror=()=>window.__guardProbe.status='blocked';document.head.append(s)}return window.__guardProbe})()".into(),
+    _=>{emit(json!({"type":"rejected"}));*flow=ControlFlow::Exit;return}
+   };
+   let cb=callback.clone();native.evaluate_javascript(&script,None,None,None::<&gio::Cancellable>,move|r|{let _=cb.send_event(User::Result(evaluated(r)));});
+  },
+  Event::UserEvent(User::Result(s))=>{if s.len()>262144{emit(json!({"type":"oversize"}));*flow=ControlFlow::Exit;}else{emit(json!({"type":"result","value":serde_json::from_str::<Value>(&s).unwrap_or(Value::Null)}));}},
+  Event::UserEvent(User::Eof)|Event::WindowEvent{event:WindowEvent::CloseRequested,..}=>*flow=ControlFlow::Exit,
+  _=>{}
+ }});
+}

@@ -1,0 +1,50 @@
+
+ RUN  v3.2.6 /workspace/milkup
+
+ ❯ packages/core/src/__tests__/document-svg-image-elements.test.ts (3 tests | 3 failed) 456ms
+   × charges present title and description elements even when their text is empty 223ms
+     → expected [Function] to throw an error
+   × charges fixed textBox children for every expanded symbol instance 46ms
+     → expected [Function] to throw an error
+   × charges the fixed shadow primitive for every applied filter instance 185ms
+     → expected [Function] to throw an error
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 3 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  packages/core/src/__tests__/document-svg-image-elements.test.ts > charges present title and description elements even when their text is empty
+AssertionError: expected [Function] to throw an error
+ ❯ packages/core/src/__tests__/document-svg-image-elements.test.ts:8:79
+      6|  const input=image(Array.from({length:4092},()=>({kind:'group',childre…
+      7|  expect(()=>copyDocumentPresentationNode(input)).not.toThrow()
+      8|  expect(()=>copyDocumentPresentationNode({...input,title:'',descriptio…
+       |                                                                               ^
+      9| })
+     10| it('charges fixed textBox children for every expanded symbol instance'…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/3]⎯
+
+ FAIL  packages/core/src/__tests__/document-svg-image-elements.test.ts > charges fixed textBox children for every expanded symbol instance
+AssertionError: expected [Function] to throw an error
+ ❯ packages/core/src/__tests__/document-svg-image-elements.test.ts:14:121
+     12|  const input={...image([{kind:'use',ref:'label'}]),definitions:[{kind:…
+     13|  expect(()=>copyDocumentPresentationNode(input)).not.toThrow()
+     14|  expect(()=>copyDocumentPresentationNode({...input,children:Array.from…
+       |                                                                                                                         ^
+     15| })
+     16| it('charges the fixed shadow primitive for every applied filter instan…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/3]⎯
+
+ FAIL  packages/core/src/__tests__/document-svg-image-elements.test.ts > charges the fixed shadow primitive for every applied filter instance
+AssertionError: expected [Function] to throw an error
+ ❯ packages/core/src/__tests__/document-svg-image-elements.test.ts:20:99
+
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/3]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  3 failed (3)
+   Start at  11:34:53
+   Duration  1.35s (transform 154ms, setup 0ms, collect 170ms, tests 456ms, environment 0ms, prepare 87ms)
+

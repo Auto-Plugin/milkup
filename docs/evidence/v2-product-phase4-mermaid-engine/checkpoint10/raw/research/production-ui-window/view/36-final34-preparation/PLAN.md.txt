@@ -1,0 +1,29 @@
+# Final manager full-file browser rerun — preparation only
+
+No server, browser, Playwright collection, build or test has been started. CPU/UI remains with native formal UI05 until explicit handoff.
+
+Current manager SHA is `8dc1f4a2571539cdb32b85bb7f8cecee6c32cf2aa2f1f757b580d1087301d8e3`. Prior directory `33-browser-pointer-final` records 34 PASS in 4.6m on manager `8a432ce...`; `34-browser-scroll-final` records the two directly affected layout cases passing on the final 8dc manager. This next run closes the full-file final-source coverage gap; historical results remain unchanged.
+
+## Established command and configuration
+
+The preserved `run-browser.py` contains the exact full-file argument vector, also recorded with resolved Node executable in `16-browser-after/execution.json`. The later 33 directory preserves its log, exit code and artifacts but does not contain a separate execution.json; do not invent a historical argv record for 33.
+
+Working directory `/workspace/milkup`; original repository `playwright.config.ts`, no temporary config and no grep:
+
+```sh
+node node_modules/@playwright/test/cli.js test tests/e2e/desktop-markdown-extensions.spec.ts --project=desktop-msedge --workers=1 --retries=0 --reporter=line,json --output=/workspace/milkup-mermaid-engine-evidence/research/production-ui-window/view/37-browser-final34/artifacts
+```
+
+Environment: source `/workspace/.cloud/milkup-v2/env.sh` to use the configured pnpm11.7/corepack environment; set `MILKUP_BROWSER_EXECUTABLE=/usr/bin/chromium` and `PLAYWRIGHT_JSON_OUTPUT_NAME` to the fresh run's `report.json`. Record actual resolved node/pnpm paths at launch. The existing runner already sets browser/reporter variables and records argv, timestamps, PID/process group, sources and remaining listeners. Reuse that runner with a new, previously absent `37-browser-final34` output directory rather than adding another harness.
+
+Config selects project desktop-msedge, uses installed Chromium through the executable override, viewport Desktop Chrome and baseURL127.0.0.1:1420. It starts BOTH original webServer commands: `pnpm --filter @milkup/playground dev` on5174 and `pnpm --filter @milkup/desktop dev` on1420; reuseExistingServer=false. Existing60s test/5s expect limits and zero retries remain unchanged. `trace:on-first-retry` means zero-retry failures do not acquire a retry trace; preserve the first failure's existing screenshot/context/log and JSON report.
+
+Before starting, reconfirm native UI slot released and both ports free. If occupied, stop setup without killing or replacing another service. Runner uses a new process session. On completion, verify its exact owned Playwright/Vite/browser descendants are gone and ports no longer listening. Any cleanup must use recorded ownership/PID birth and argv, never broad process-name kills. Record abnormal cleanup rather than calling the run clean.
+
+## Frozen inputs and limits of the snapshot
+
+`inputs.json` records current source snapshots and SHA values: test, helper, controlled image fixture, manager/mount and view/core/Markdown/plugin/SDK/runtime dependencies, real math and footnotes sources/manifests, desktop/playground source/config, package/lock metadata and version-check inputs. `support/` retains prior runner and historical command record plus installed package metadata and environment script. The snapshot is a review record, not a substitute source tree to execute; run current repository after confirming these hashes remain unchanged. Node_modules implementations are not copied in full; lockfile and installed package metadata identify dependencies, with actual tool versions/paths recorded at execution.
+
+The browser test explicitly uses real math and footnotes Workers plus `test.document-image` closed SVG output. The native-unavailable case uses a small placeholder that is not executed. It does not exercise the official Mermaid native renderer or prove production native visual stability. Full-file expected count is34 from the prior run; actual collection and all outcomes must be reported, not forced to34.
+
+No product/test/config changes are planned. Preserve first failure and ask the parent to classify it before any correction or rerun. After the run, add execution-time before/after source hashes and exact cleanup evidence; do not rewrite this preparation as a completed test.

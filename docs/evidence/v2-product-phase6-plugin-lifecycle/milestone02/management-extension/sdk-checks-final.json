@@ -1,0 +1,34 @@
+[
+  {
+    "command": [
+      "node",
+      "node_modules/typescript/bin/tsc",
+      "-p",
+      "packages/plugin-sdk/tsconfig.json",
+      "--noEmit"
+    ],
+    "exitCode": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "command": [
+      "node",
+      "node_modules/typescript/bin/tsc",
+      "-p",
+      "packages/plugin-sdk/tsconfig.contract.json"
+    ],
+    "exitCode": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "command": [
+      "node",
+      "scripts/check-versions.mjs"
+    ],
+    "exitCode": 0,
+    "stdout": "Application 2.0.0-beta.1; SDK 0.3.7; outline 1.3.1\n",
+    "stderr": ""
+  }
+]

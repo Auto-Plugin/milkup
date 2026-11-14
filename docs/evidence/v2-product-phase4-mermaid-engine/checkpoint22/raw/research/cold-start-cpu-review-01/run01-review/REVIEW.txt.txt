@@ -1,0 +1,39 @@
+mermaid-ui-cold-diag-01 独立 CPU / setup 失败审查
+范围：root 明确 GO 且 native 已冻结后，只读原始完成产物；未运行 native、未读 live /proc、未重试或清理。审查产物单独写于 run01-review。
+
+结论：首轮诊断 setup 失败，CPU observer 硬失败，冷 gate 未执行。不能用零样本或空请求区间证明 App/renderer 空闲；也不能将 native capture 完整误称为 CPU 观测成功。
+
+完整性
+run01-frozen-manifest.json SHA256 34075c3348416bf710325c29ac6a68e0cfaf34b3d6b5dbbb3a72f5dd159ad40e；172 个文件实际 bytes+SHA256 全部匹配。详见 manifest-verification.json。offline-audit.json 的 issues=[] 仅表示该脚本覆盖的字节、native身份/计数/事件一致性检查没有发现不一致，不是该运行或 CPU 观测通过；sampleCount=0、stopReason=observer-error 必须独立报告。
+
+CPU 首失败（原始记录保留）
+control/harness-execution.json：sampler PID 467050，samplerExitCode=2；harnessExitCode=1。
+cpu-observer/summary.json：stopReason=observer-error；failure 为 PermissionError: [Errno 13] Permission denied: '/proc/467203/environ'。errorCount=1。stdout 仅 waiting-app 和 finished(observer-error)，没有 app-bound；stderr 空不表示没有错误，原失败在 summary/stdout 中。
+App PID 467079 / birth 8800972 在绑定中途通过 stat/argv，knownIdentities 仅有 App；guardianBindingEvents=[]。读取 guardian environ 时终止，所以未进入采样/后代发现。
+samples.ndjson 实际 0 bytes；sampleCount/retainedSamples/discoveryCount/discoveryTasks/nativeEvents/logBytes 全为零。没有 renderer CPU，也没有 App CPU 区间，更没有 schedstat 样本。App 绑定快照 userTicks=71、systemTicks=62（100 ticks/s）只是单个 lifetime 累计点，不能计算 CPU 使用率、冷请求 delta 或归因。
+
+原失败时间与开销
+observer startedMonoNs=88009145163223；finishedMonoNs=88013399551138；约 4.254387915 s（含预启动 hash、等待身份、失败处理）。
+waiting-app mono=88009165321684；App boundNs=88013399097859，在按 tick 换算的 App birth 后约 3679.097859 ms（birth 10 ms 粒度）。
+native guardian-spawn mono=88013363185619，App bound 比该 native记录晚 35.912240 ms。
+observer 结束比日志第一条 render_1 dispatch（88015146839422）早 1747.288284 ms。因此这次没有覆盖任何已记录请求的 CPU。
+observerOwnCpuNs=37,001,747（37.001747 ms）；prelaunchHashCpuNs=20,149,633；afterReadyCpuNs=16,854,649。三个字段在不同瞬时读出，后两者相加比总值多 2535 ns，不能要求完全等式；它们也不是三个独立可相加的成本。
+8 次 proc 读取，累计 readTotalNs=194,718，最大 71,792；identityLogReadNs=8,377,323；identityLogBytes=523。采样/发现自身耗时零只是“未执行”，不是稳态采样低开销证明。此轮不能用来证明250ms采样开销。
+
+权限边界
+已有证据直接证明 guardian environ 返回 EACCES；没有证明所有 proc 文件都不可读。失败前已做 guardian stat、精确 helper argv，随后读取额外的环境一致性检查失败。此 run 没有记录造成权限拒绝的完整内核访问判定、dumpable 状态或 proc mount 权限链，不能断言唯一原因是某个 sandbox 设置或特定 Linux 安全开关。审查没有改权限、关闭 sandbox 或越权重读。
+
+独立 harness setup 失败
+failure.json 原错误：“Native startup did not produce one owned Milkup window within 60000ms; editing assertions were not started”。results.json=[]。startup helper 第43/67行精确匹配 WM_CLASS 的 milkup-desktop；原 xwininfo 留证窗口实际 class 为 diagnostic-only-milkup-desktop，标题 milkup 窗口确实存在。因此是诊断二进制 basename 改动造成原 startup 识别失败；cold assertion 未开始。这不是原产品冷 gate 的复测结果，既不证明原失败被修复，也不是新产品 gate failure。
+
+Native capture 与 CPU 分开
+native-capture complete.json/status.json 相等且 final/diagnosticClosed=true；attempted=enqueued=written=9；queueFull/disconnected/oversize/capped/ioErrors/incompleteTiming/inFlight 均0。实际9行=1 guardian-spawn +8 render-accepted，sequence连续、owner/App PID+birth一致。8 个 wire UTF8 bytes/SHA256/requestId 都通过独立核验。CPU guardian 环境检查失败并不取消 native创建记录的独立价值。
+原 driver 有 render_1..render_8 dispatch，没有 deadline-observed。不能仅凭缺少 deadline 或只有 dispatch 宣称渲染成功；本次没有进入图像 gate，native日志为best-effort。
+原 capture 后台 writerThreadCpuNs=240,684,198（240.684198 ms），属 App 自身 CPU；captureTotalNs=119,826（0.119826 ms），captureMaxNs=45,758（0.045758 ms），是同步capture elapsed wall时间。不能将 writer CPU、capture wall 和缺失的 App CPU delta 相加。writer范围贯穿约一分钟捕获，不与失败observer的4.254s窗口等同。
+
+清理留证范围
+只读取历史 cleanup 记录：App exact PID/birth pidfd TERM 后先Z，再后续 absent；guardian 原 native kill-start=88114050948471、cleanup-complete=88114127321439，间隔76.372968 ms。driver组 cleanup记录 App/guardian/renderer 已absent后才执行授权组TERM；run-summary列16个knownOwnedPids absent、ports列表空、ancestorReaps=11。本审查没有重做 live 进程检查或将该清单当全系统后代证明。
+
+v02 的最小纠正与剩余边界
+新 candidate-v02 保留 v01 原字节。可读的 guardian 环境必须精确匹配；只有 PermissionError 可记为 unavailable/errno、matched=null。此降级要求来自预置独占 App sink 的 guardian-spawn schema+来源文件标识、owner/guardian PID+birth、current PPID、精确argv、双stat重验全通过；instance只取native创建记录，不猜测。没有nativeproof或可读instance mismatch仍失败。
+19项纯合成测试通过，尚无v02 native运行。进程发现、/proc/PID/schedstat 是否可读、namespace 下 children 覆盖、真实CPU开销仍需新run独立验证；这次setup修正不可以补写01为成功。root未GO前不得执行run02。

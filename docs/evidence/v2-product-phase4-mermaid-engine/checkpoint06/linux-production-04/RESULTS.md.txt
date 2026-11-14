@@ -1,0 +1,69 @@
+# Linux production04 — completed lifecycle verification
+
+All five generic DOM lifecycle cases passed on their first attempt, using the same actual deb-extracted executable. No product or harness modification, automatic retry, or post-freeze source change occurred. This is generic DOM lifecycle evidence; official Mermaid UI acceptance is a separate gate.
+
+## Frozen build and inputs
+
+Build began 2026-10-16T16:22:10.168538+00:00 and ended 2026-10-16T16:23:54.001147+00:00, exit0. The real command was `bash scripts/cloud/pnpm.sh --filter @milkup/desktop tauri build --bundles deb`, with the cloud environment loaded and legacy proot runner unset. Source-before/source-after and final-source-check confirm all 2912 captured inputs are unchanged.
+
+The deb target differs only at the unique three-byte Tauri bundle marker (UNK→DEB); full byte equality after that replacement and equal ELF build IDs are recorded in bundle-marker-attribution.json. Guard bytes are verified inside the actual extracted binary.
+
+- binary: `323213867fda26d1de66f67c5a428dd26d0a78f0334d40f8d15f1e94b161a172` (21859680 bytes); retained at `/workspace/milkup-mermaid-engine-evidence/linux-production-04/install/usr/bin/milkup-desktop`.
+- deb: `3e9574e28cbb2cd00cdfe7a1814f022fcd6e7da26c65c6cdc5da9e27cf0d2200` (7504086 bytes); retained at `/workspace/milkup-mermaid-engine-evidence/linux-production-04/artifacts/milkup_2.0.0-beta.1_amd64.deb`.
+- guard: `5b1082768123b9ac1923eb8ef3f6f8c0bd05ffd5d66b8b2a023f75b69106c44c` (15656 bytes); retained at `/workspace/milkup-mermaid-engine-evidence/linux-production-04/artifacts/libmilkup_dom_guard.so`.
+- archive: `27db9bdefb9b241b03da2f3536f7e50d334117f928f963cfe290543f650b6239` (5726804 bytes); retained at `/workspace/milkup-mermaid-engine-evidence/linux-production-04/artifacts/milkup.diagrams-1.1.0.milkup-plugin`.
+- sdkTarball: `1717c0114aa165fa3e48a1bfa7687ffd0d9b2e5392d33e99d8b2dc59a1f3ad4f` (22524 bytes); retained at `/workspace/milkup-mermaid-engine-evidence/linux-production-04/artifacts/plugin-sdk-0.3.4.tgz`.
+
+## Five independent fresh profiles
+
+| Case | Attempt | Command duration | Result |
+| --- | --- | --- | --- |
+| timeout | lifecycle-p04-timeout-01 | 24.091628 s | PASS / exit0 |
+| disable | lifecycle-p04-disable-01 | 21.012751 s | PASS / exit0 |
+| remove | lifecycle-p04-remove-01 | 23.821535 s | PASS / exit0 |
+| wm-close | lifecycle-p04-wm-close-01 | 30.457479 s | PASS / exit0 |
+| app-sigkill | lifecycle-p04-app-sigkill-01 | 28.232279 s | PASS / exit0 |
+
+All runs use diagnostics:false in startProduction, real public editor controls/XTest, and the validated read-only GTK picker observer. Native MILKUP_DOM_DIAGNOSTICS supplies trusted timing traces; it does not enable Worker monkeypatching or a product runtime hook. Exact picker PID/birth, accessible enum/state/entry value and rectangle are observed; actual input and activation use XTest. Observer subprocesses finish before the busy fixture measurement.
+
+The same reviewed narrow bwrap configuration retains the native WebKit sandbox and exact readonly WebKit/proxy mappings. The outer approved harness observes exact owned process identities across the user/mount namespace boundary. A trusted ancestor implements ordinary init subreaper/wait duties only; it sends no cleanup signal and deletes no private directory. Product cleanup verdicts precede driver termination and namespace teardown.
+
+## Native timing and cleanup evidence
+
+All values below are seconds from the original render dispatch, not the later click, WM action or SIGKILL. They are observed scheduling times, not a real-time guarantee.
+
+| Case | Deadline observed | Kill begins | Exact ECHILD trace | App cleanup confirmed | Timeout control |
+| --- | --- | --- | --- | --- | --- |
+| timeout | 2.002989807 | 2.003299345 | 2.057705795 | 2.074809440 | 2.074842770 |
+| disable | — | 0.943646273 | 0.999687557 | 1.080787588 | — |
+| remove | — | 0.657292314 | 0.719735996 | 0.728342052 | — |
+| wm-close | — | 0.200944179 | 0.266578175 | 0.314394913 | — |
+| app-sigkill | — | 0.349711924 | — | — | — |
+
+WM close binds guardian 352574/birth5566341 and App 352210/birth5564093 to the exact instance. This run has the terminal ECHILD diagnostic at 55670614763201 ns and exact App successful Child wait confirmation at 55670662579939 ns.
+
+App SIGKILL binds guardian 353083/birth5571733. Its terminal asynchronous ECHILD trace is absent: exact time is null. The trusted ancestor observed natural exit0 at 55721806605936 ns and completed waitpid at 55721808627214 ns, with no signal sent by the ancestor. Natural exit is an upper bound on successful ECHILD completion, not an invented exact timestamp. All nine PID/birth identities and the exact private directory disappeared within the original 4.5-second cleanup bound while the outer environment remained alive.
+
+Timeout keeps the original render request and deadline through source cancellation. Late replies, UI source changes or queued work do not provide a replacement deadline. The full raw request/phase/observer records remain in lifecycle-summary.json and each run.
+
+## UI responsiveness measurements
+
+| Case | Trusted input→DOM | Trusted input→two rAF | Busy→cleanup max rAF gap | Max timer gap |
+| --- | --- | --- | --- | --- |
+| timeout | 8 ms | 34 ms | 47 ms | 34 ms |
+| disable | 16 ms | 58 ms | 369 ms | 69 ms |
+| remove | 9 ms | 29 ms | 154 ms | 93 ms |
+
+The 200 ms assertion applies to the specific trusted input→two-rAF samples, not every frame/timer. Disable has a 369 ms maximum frame gap, retained without adjustment. Disable/remove input occurs after cleanup and is not evidence of typing overlap with cleanup; timeout input occurs during the busy request. Page listeners, MutationObserver, a 20 ms timer, rAF and external process sampling add measurement overhead; none is subtracted.
+
+## Ownership, source audit and handoff
+
+owned-process-final-audit.json verifies all 45 observed exact PID/birth identities and all five exact drivers are absent. Final driver stop occurred after the SIGKILL product verdict; ports4626/4627 were then empty. Shared Xvfb :126 PID288383/birth4366483 was intentionally retained for the next root-authorized UI suite. This is not a claim about later suite processes, and no blanket cleanup was performed.
+
+No repository file was edited in this production04 task. The final source equality check covers all 2912 captured files; docs/ is excluded by the documented capture rules. The fixture README was not updated after this freeze. Production01/02/03 remain unchanged. Preparation Python AST/bash syntax checks passed; every run independently verifies and snapshots all actual harness/helper/wrapper bytes. Root repository gates05 had already passed typecheck, 2051 Vitest plus 4 Node tests, lint and frontend build before the capture. No additional cargo unit/clippy or official Mermaid UI claim is made here.
+
+root-visual-review.json contains the root agent’s actual review of three original PNGs (normal generic preview, timeout failure card, remove complete), with the visible-content limits and hashes. completed-manifest.json is the exact lightweight archival allowlist. It excludes source bodies, binaries/deb, official archive, SDK bodies, frontend bundles and profiles/SQLite; those original external artifact bodies remain retained at provenance paths. Small generated lifecycle fixture archives stay with the run evidence.
+
+One post-run read-only audit aggregation initially assumed a list instead of the recorded PID→birth map and failed before writing the audit. Correct map iteration produced the final audit; no runtime test was rerun and no raw record was changed.
+
+No Windows build, upload, release, merge or commit was performed.

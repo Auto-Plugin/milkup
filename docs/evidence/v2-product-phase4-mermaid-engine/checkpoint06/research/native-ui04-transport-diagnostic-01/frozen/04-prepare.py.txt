@@ -1,0 +1,40 @@
+from pathlib import Path
+import hashlib, json, shutil, sqlite3, datetime, sys
+
+base = Path(__file__).resolve().parent
+old = Path('/workspace/milkup-mermaid-engine-evidence/product-ui-runs/profiles/mermaid-ui-04')
+new = old.with_name('mermaid-ui-04-diagnostic-01')
+source = Path('/workspace/milkup-mermaid-engine-evidence/product-ui-runs/runs/mermaid-ui-04/ordinary.md')
+def digest(p): return hashlib.sha256(p.read_bytes()).hexdigest()
+def snapshot():
+    return {'files': {str(p.relative_to(old)): digest(p) for p in sorted(old.rglob('*')) if p.is_file()}, 'source': digest(source)}
+def save(name, value): (base / name).write_text(json.dumps(value, indent=2) + '\n')
+if len(sys.argv) > 1 and sys.argv[1] == 'verify':
+    after = snapshot()
+    before = json.loads((base/'historical-before.json').read_text())
+    save('historical-after.json', after)
+    save('historical-verification.json', {'at':datetime.datetime.now(datetime.timezone.utc).isoformat(),'unchanged':before==after})
+    assert before == after, 'Historical profile or source changed'
+    sys.exit(0)
+assert not new.exists()
+assert not (base/'ordinary.md').exists()
+assert not any(p.is_symlink() for p in old.rglob('*'))
+save('historical-before.json', snapshot())
+shutil.copytree(old, new)
+shutil.copyfile(source, base/'ordinary.md')
+db = new/'data/app.milkup.desktop/localstorage/tauri_localhost_0.localstorage'
+c = sqlite3.connect(db)
+raw = c.execute("select value from ItemTable where key='milkup.desktop.plugins.registry.v1'").fetchone()[0]
+registry = json.loads(raw.decode('utf-16-le'))
+changes=[]
+for record in registry['records']:
+    for key in ['manifestPath','rootPath','dataRoot','storageRoot']:
+        value=record.get(key)
+        if isinstance(value,str) and value.startswith(str(old)+'/'):
+            updated=str(new)+value[len(str(old)):]
+            changes.append({'pluginId':record['manifest']['id'],'field':key,'before':value,'after':updated})
+            record[key]=updated
+updated=json.dumps(registry,ensure_ascii=False,separators=(',',':')).encode('utf-16-le')
+c.execute("update ItemTable set value=? where key='milkup.desktop.plugins.registry.v1'",(updated,))
+c.commit(); c.close()
+save('clone.json',{'at':datetime.datetime.now(datetime.timezone.utc).isoformat(),'historical':str(old),'clone':str(new),'source':str(base/'ordinary.md'),'sourceSha256':digest(source),'registryBeforeSha256':hashlib.sha256(raw).hexdigest(),'registryAfterSha256':hashlib.sha256(updated).hexdigest(),'changes':changes,'scope':'Only clone-local absolute plugin paths rebased. Enabled states, approvals, audit and package bytes preserved.'})

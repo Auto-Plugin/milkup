@@ -1,0 +1,95 @@
+{
+  "scope": "Actual current output module via frozen test-binary native helper, not packaged GUI production export",
+  "binary": "/workspace/milkup/apps/desktop/src-tauri/target/debug/deps/milkup_desktop_lib-8969ac6bfdf4806e",
+  "binarySHA256": "950c8c4de38de8e5079a60d50983c4763c01f8d6232bf35c510394a9bede17e7",
+  "originalNine": {
+    "status": "PASS_CONTENT_ASSERTIONS_ONLY",
+    "pages": 36,
+    "audit": "original-nine-audit.json",
+    "producerExecution": "../chromium-controlled/execution.json",
+    "producerBinaryMatches": true,
+    "pdfSHA256": "4d04720234f2d7df9477382812f466db856f99edb71b458387e2329b474fa881",
+    "keyPagePixels": "Nine actual helper screenshots are pixel-identical to previously individually reviewed unchanged-HTML Chromium pages; see original-nine-pixel-comparison.json."
+  },
+  "oversized": {
+    "status": "PASS_CONTENT_ASSERTIONS_ONLY",
+    "pages": 13,
+    "pdfSHA256": "522e2a77412179cc95dfdcac9598f1d3e481b436add403c57effe356b31cf59f",
+    "headingAndFirstPages": {
+      "TABLE-OVERSIZED-FIRST": [
+        2
+      ],
+      "CODE-OVERSIZED-FIRST": [
+        7
+      ],
+      "LIST-OVERSIZED-FIRST": [
+        11
+      ]
+    },
+    "chunks": 360,
+    "allMarkersExactlyOnce": true,
+    "crossPageMarkers": {
+      "TABLE-OVERSIZED-FIRST": [
+        "TABLE-OVERSIZED-FIRST-CHUNK-095"
+      ],
+      "CODE-OVERSIZED-FIRST": [],
+      "LIST-OVERSIZED-FIRST": []
+    },
+    "guardianExit": 0,
+    "unicodeUnitCounts": [
+      {
+        "unit": "é",
+        "codepoints": [
+          "U+0065",
+          "U+0301"
+        ],
+        "expectedCount": 360,
+        "popplerRawCount": 360,
+        "mupdfCount": 360
+      },
+      {
+        "unit": "👩🏽‍💻",
+        "codepoints": [
+          "U+1F469",
+          "U+1F3FD",
+          "U+200D",
+          "U+1F4BB"
+        ],
+        "expectedCount": 360,
+        "popplerRawCount": 360,
+        "mupdfCount": 360
+      }
+    ],
+    "allContentPagesVisuallyReviewed": [
+      2,
+      3,
+      4,
+      5,
+      7,
+      8,
+      9,
+      11,
+      12,
+      13
+    ],
+    "pixelObservations": [
+      "All three headings share a page with their first real content; oversized first units naturally continue on later pages.",
+      "Table first row spans pages2–4; same table and repeated header preserved. Its auto layout allocates a very narrow first column, wrapping the row ID into many short lines; this is a readability limitation, not missing content.",
+      "Code first logical line wraps across pages7–8, second line follows intact; END paragraph is alone on page9. This is no clipping but not optimal page packing.",
+      "Ordered list starts7 on page11, first item continues through page13, second item remains8 and END is retained.",
+      "No overlap or missing continuation observed in all ten content-page rasters. Filler-only pages1/6/10 are intentional harness boundary positioning, not blank output pages."
+    ]
+  },
+  "auditCorrection": {
+    "initialReport": "oversized-audit-layout-initial.json",
+    "cause": "Layout extraction interleaves narrow first-column row-ID fragments into second-column text; CHUNK095 spans pages3/4 around repeated table header.",
+    "finalPolicy": "Use raw content order for marker scanning; join pages for global counts and remove only manifest-declared original repeated header labels. Per-page heading/first relation unchanged; original Unicode normalization forbidden.",
+    "negativeControl": "webkit-negative-control.json remains FAIL exit1 for real original orphan cases, so correction does not waive heading assertions."
+  },
+  "remaining": [
+    "Packaged production GUI HTML/PDF/print audit still pending.",
+    "Arabic exact logical extraction remains a separately documented expanded Unicode failure; this pagination result does not close it.",
+    "Table narrow-column readability and code END-only page are explicitly retained visual boundaries."
+  ],
+  "productConverterChanged": false
+}

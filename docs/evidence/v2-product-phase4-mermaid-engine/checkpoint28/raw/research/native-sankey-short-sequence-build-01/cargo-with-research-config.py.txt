@@ -1,0 +1,11 @@
+"""Runs after env.sh, preserving its platform config and selecting frozen research assets."""
+import hashlib,json,os,sys
+from pathlib import Path
+research=Path(sys.argv[1]).resolve();record=Path(sys.argv[2]);command=sys.argv[3:]
+assert research.is_dir() and (research/'index.html').is_file() and command[0]=='cargo'
+prior=json.loads(os.environ.get('TAURI_CONFIG','{}'));assert isinstance(prior,dict)
+effective=json.loads(json.dumps(prior));effective.setdefault('build',{})['frontendDist']=str(research)
+assert effective['bundle']['icon']==['/workspace/.cloud/milkup-v2/icon.png']
+with record.open('x') as f:json.dump({'priorAfterEnvSh':prior,'effective':effective,'command':command,'frontendDist':str(research)},f,indent=2);f.write('\n')
+os.environ['TAURI_CONFIG']=json.dumps(effective,separators=(',',':'))
+os.execvpe(command[0],command,os.environ)

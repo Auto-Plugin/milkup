@@ -1,0 +1,55 @@
+
+Running 5 tests using 1 worker
+
+(node:242528) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  1 tests/e2e/desktop-formatting.spec.ts:65:1 › formatting modal applies headings and links through retained bounded snapshots (4.6s)
+  ✘  2 tests/e2e/desktop-formatting.spec.ts:174:1 › formatting context menu submits its command before hiding and restores editor focus on Escape (1.0m)
+
+
+  1) tests/e2e/desktop-formatting.spec.ts:174:1 › formatting context menu submits its command before hiding and restores editor focus on Escape 
+
+    Test timeout of 60000ms exceeded.
+
+    Error: locator.click: Test timeout of 60000ms exceeded.
+    Call log:
+      - waiting for getByRole('menu', { name: '编辑操作', exact: true }).getByRole('button', { name: '删除线', exact: true })
+
+
+      180 |   const menu = page.getByRole('menu', { name: '编辑操作', exact: true })
+      181 |   await expect(menu).toBeVisible()
+    > 182 |   await menu.getByRole('button', { name: '删除线', exact: true }).click()
+          |                                                                ^
+      183 |   await expect(menu).toBeHidden()
+      184 |   await expect(page.locator('.milkup-line[data-line="1"]')).toHaveText('~~context 中文~~')
+      185 |   await page.locator('.milkup-input-proxy').focus()
+        at /tmp/milkup-windows-manual-candidate/tests/e2e/desktop-formatting.spec.ts:182:64
+
+    attachment #2: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ../milkup-beta6-formatting-targeted/desktop-formatting-formatt-119de-ores-editor-focus-on-Escape/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #3: page-state (text/plain) ─────────────────────────────────────────────────────────
+    - main:
+      - button "菜单"
+      - heading "未命名" [level=1]
+      - paragraph: 未保存
+      - button "最小化"
+      - button "最大化"
+      - button "关闭窗口"
+      - textbox
+      - textbox "Markdown 编辑器"
+      - menu "编辑操作":
+        - group:
+          - menuitem "复制 Ctrl+C"
+          - menuitem "剪切 Ctrl+X"
+          - menuitem "粘贴 Ctrl+V"
+          - menuitem "全选 ...
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ../milkup-beta6-formatting-targeted/desktop-formatting-formatt-119de-ores-editor-focus-on-Escape/error-context.md
+
+  1 failed
+    tests/e2e/desktop-formatting.spec.ts:174:1 › formatting context menu submits its command before hiding and restores editor focus on Escape 
+  3 did not run
+  1 passed (1.1m)

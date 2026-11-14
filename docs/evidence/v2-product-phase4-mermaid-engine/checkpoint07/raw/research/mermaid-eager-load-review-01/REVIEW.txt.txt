@@ -1,0 +1,106 @@
+Mermaid 12.2.0 eager module loading: static review and proposed A/B
+
+State: plan only. No bundle was executed, no helper built, no UI started, and no
+product source changed. summary.json contains exact paths, SHA256/lengths and line
+ranges; source-excerpts.txt preserves relevant source lines. Commands are proposed
+invocations of a NOT-YET-IMPLEMENTED external adapter, explicitly not executable proof.
+
+Finding
+The public API registerExternalDiagrams([], {lazyLoad:false}) calls addDiagrams,
+registerLazyLoadedDiagrams(empty), then loadRegisteredDiagrams. For this locked
+version, the empty list does not make the call a no-op: addDiagrams registers all
+builtins once, and loadRegisteredDiagrams visits all registered detectors. Public
+API documentation promises immediate loading of registered diagrams, not a stable
+all-builtins warmup contract. Re-audit on a Mermaid upgrade.
+
+loadRegisteredDiagrams awaits all loader promises and registerDiagram stores the
+diagram, detector and styles function, optionally calling injectUtils. This audited
+orchestration does not call user-document parse, diagram init/db getters or renderer.
+Loading evaluates modules and initializes code/registries, so it is not side-effect
+free. No exhaustive transitive proof of absence of arbitrary DOM/resource APIs is
+claimed. Native CSP/exact resource guard and network isolation remain mandatory.
+
+The full offline artifact has all 36 unique diagram dynamic-import targets and the
+separate dagre/ELK/swimlane/cose-bilkent chunks in its metafile, with final output
+imports empty. The metafile's elkjs synthetic <runtime> input edge is not a runtime
+network dependency. This is a bundle inclusion fact, not proof all code is evaluated
+by the preload call. Layout registry loaders are still invoked by actual render;
+layout construction, JIT, actual glyph/font usage and conversion may remain cold.
+
+Import itself installs a window.load listener, with public startOnLoad true by
+default. The preload method does not itself call run(), but import cannot be called
+free of auto-start behavior. Both A/B entries must disable it synchronously, before
+the first await after import, rather than relying on an empty helper document.
+
+Required common entry ordering
+1. Import the exact recorded official offline ESM. Immediately set the public
+   mermaid.startOnLoad=false and call mermaid.initialize(COMMON_STRICT_CONFIG).
+   This must happen at module top level before any await; do not defer disabling
+   until ready(), because the helper's load event may precede its ready call.
+2. COMMON_STRICT_CONFIG is an exact reviewed copy of current renderer.ts lines
+   108–145: startOnLoad:false, securityLevel:'strict', htmlLabels:false,
+   suppressErrorRendering:true, maxTextSize:50000, maxEdges:500,
+   deterministicIds:true, deterministicIDSeed:'milkup-offline',
+   arrowMarkerAbsolute:false, fontFamily:'Arial, sans-serif',
+   legacyMathML:false, forceLegacyMathML:false, theme:'default', darkMode:false,
+   and its complete secure array. Save the copied object and hash in preparation
+   provenance. Do not reuse the older probe's different seed/secure array silently.
+3. ready() is idempotent, records stage times, and awaits document.fonts.ready.
+   A then reports ready. B awaits public registerExternalDiagrams([],
+   {lazyLoad:false}) and only then reports ready. No request source is available
+   to either readiness branch, no parser/render method is called, no fake document.
+4. Each actual request runs the SAME initialize config again (matching production
+   per-request initialization), real mermaid.render, attachment, current frozen
+   converter, serialization and result transfer. Record the converter and helpers'
+   frozen hashes after preparation; do not use a concurrently edited checkout.
+
+The original independent native preparation timer begins at spawn and never resets
+when ready is polled. It remains 10 seconds. Each real request starts the native
+2-second timer before dispatch, including engine parse/layout, SVG attachment,
+conversion, serialization, polling and transfer/acceptance. The 256KiB frame/result
+cap remains unchanged. Preparation measurements must not hide module import time.
+The helper's native exact-resource denial check, if retained, is identical in both
+arms and must not call Mermaid, parser or converter; record its separate timing.
+
+Reuse, not production equivalence
+The recorded revision-product-converter05 wrapper supplies the narrow namespace;
+supervise-product-converter05.py supplies the outer pipe reader, frame cap,
+monotonic checks, deadlines and process-tree cleanup; helper/src/main.rs supplies
+the ephemeral sandboxed WebKit context, fixed URI resources, and start/poll bridge.
+The frozen entry gives the ready/readiness/start/poll lifecycle and converter call.
+It currently supports one catalog case per instance. The future adapter must
+explicitly change this to two named requests within one instance and expose two
+fixed entry variants, without changing security/clock/size boundaries. None of
+these adaptations has been implemented or validated by this review. Current live
+helper/source hashes are reference inputs, not claims of matching an old binary.
+
+Timing/output plan
+Run A,B then B,A, four fresh instances, two identical class source requests each.
+Keep request IDs and deterministic sequence equal across corresponding arms.
+Record monotonic stage boundaries: preparation import/initialize/fonts/preload;
+request dispatch, initialize, mermaid.render, DOM attach, convert, serialization;
+plus native frame arrival/acceptance. Use wall timestamps only for correlation,
+not deadlines. Existing renderMs includes pre-render setup; replace it with named
+stage measurements in the external experiment, never relabel it pure engine CPU.
+Compare complete typed output/canonical bytes where stable; exclude timing fields
+from hashes. Do not discard differences or normalize arbitrary SVG fields to force
+identity. Record ready metadata, DOM SVG count before/after preload and guard logs.
+Metadata diagram IDs alone do not prove modules loaded. Record all failures,
+preparation costs and owned cleanup, including a B preparation timeout if any.
+
+Interpretation
+A positive result would show an optimization under these controlled first-request
+conditions, with explicit activation/memory tradeoffs. Four instances are a small
+screen, not a statistical performance guarantee. Failure may show prep pressure or
+remaining layout/render cost. Loader rejection deletes failed detectors and leaves
+partial state; fail preparation and dispose, never catch-and-continue as ready.
+Historical formal and cold timeout payloads remain unknown. Neither successful
+preloading nor first-class timing establishes their cause or that they are fixed.
+
+Primary sources
+https://mermaid.js.org/config/setup/mermaid/interfaces/Mermaid.html
+https://github.com/mermaid-js/mermaid/blob/mermaid%4012.2.0/packages/mermaid/src/mermaid.ts
+https://github.com/mermaid-js/mermaid/blob/mermaid%4012.2.0/packages/mermaid/src/diagram-api/loadDiagram.ts
+https://github.com/mermaid-js/mermaid/blob/mermaid%4012.2.0/packages/mermaid/src/diagram-api/diagramAPI.ts
+Official live documentation can change; local installed package and recorded hashes
+pin this review to the actual locked 12.2.0 implementation.

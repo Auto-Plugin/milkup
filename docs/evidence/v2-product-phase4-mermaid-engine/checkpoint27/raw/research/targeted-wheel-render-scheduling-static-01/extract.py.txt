@@ -1,0 +1,22 @@
+import json, pathlib, hashlib, datetime, collections
+root=pathlib.Path('/workspace/milkup'); evidence=pathlib.Path('/workspace/milkup-mermaid-engine-evidence'); out=evidence/'research/targeted-wheel-render-scheduling-static-01'; run=evidence/'research/production08-targeted-sankey-native-01/runtime/mermaid-ui-production08-targeted-01'; ev=run/'evidence'
+def item(p):
+ b=p.read_bytes();return {'path':str(p),'bytes':len(b),'sha256':hashlib.sha256(b).hexdigest()}
+rows=[json.loads(s) for s in (ev/'inner-wheel.jsonl').read_text().splitlines()]
+align=[json.loads(s) for s in (ev/'corner-alignment.jsonl').read_text().splitlines()]
+traces=[]
+for n,s in enumerate((run/'driver.log').read_text().splitlines(),1):
+ if s.startswith('DOM_NATIVE_TIMING '):
+  q=json.loads(s[len('DOM_NATIVE_TIMING '):]);q['line']=n;traces.append(q)
+instance='7bc0620d4b97b639ac92c79eb5b8a6d8dbd074c6944199ab'; own=[x for x in traces if x.get('instanceId')==instance];req=[x for x in own if x.get('requestId')=='render_1037']; d=next(x for x in req if x['phase']=='dispatch');t=next(x for x in req if x['phase']=='deadline-observed')
+small={'classification':'READ_ONLY_STATIC_ANALYSIS_NOT_NEW_RUNTIME','createdUtc':datetime.datetime.now(datetime.timezone.utc).isoformat(),'native':{'instanceId':instance,'requestId':'render_1037','events':req,'dispatchToDeadlineObservedMs':(t['monotonicNs']-d['monotonicNs'])/1e6,'phaseCounts':dict(collections.Counter(x['phase'] for x in own)),'limitations':['No accepted wire, cancel event or successful settlement phase in this production log.','Request sequence numbers are frontend allocation IDs, not a count of dispatched native jobs.','App PID on dispatch is not renderer CPU identity.']},'lastAlignment':{k:align[-1][k] for k in ['sample','ticks','elapsedMs','completed','fileUnchanged']},'lastInnerAxes':[]}
+for x in rows[-4:]:
+ s={k:x.get(k) for k in ['sample','corner','axis','steps','error']};s['observations']=[]
+ for y in x['observations']:
+  p=y.get('preview');s['observations'].append({'at':y.get('at'),'phase':y['phase'],'step':y.get('step'),'preview':None if not p else {'innerTop':p['top'],'innerLeft':p['left'],'rectTop':p['rect']['top'],'rectHeight':p['rect']['height']}})
+ small['lastInnerAxes'].append(s)
+(out/'observations.json').write_text(json.dumps(small,ensure_ascii=False,indent=2)+'\n')
+paths=[root/p for p in ['packages/view-dom/src/document-presentation.ts','packages/view-dom/src/source-document-view.ts','apps/desktop/src/document-presentation-service.ts','packages/plugin/src/document-render-rpc.ts','apps/desktop/src-tauri/src/plugin_dom_process.rs','apps/desktop/src-tauri/src/plugin_dom_bootstrap.js','apps/desktop/src-tauri/src/plugin_dom_helper.rs','plugins/diagrams/src/renderer.ts','apps/desktop/src/main.ts']]+[ev/'results.json',ev/'inner-wheel.jsonl',ev/'corner-alignment.jsonl',ev/'failure.json',run/'driver.log',run/'control/first-result-summary.json',run.parent.parent/'native/tauri-mermaid-ui-targeted.mjs']
+# Actual harness sits at research root, outside runtime.
+paths[-1]=evidence/'research/production08-targeted-sankey-native-01/native/tauri-mermaid-ui-targeted.mjs'
+(out/'source-and-evidence-inputs.json').write_text(json.dumps({'scope':'Explicit sources and frozen records read; not full filesystem closure','files':[item(p) for p in paths]},indent=2)+'\n')

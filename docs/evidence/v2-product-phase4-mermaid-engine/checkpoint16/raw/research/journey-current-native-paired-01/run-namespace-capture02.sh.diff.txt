@@ -1,0 +1,21 @@
+--- run-namespace.sh
++++ run-namespace-capture02.sh
+@@ -7,7 +7,8 @@
+ runtime=/workspace/.cloud/milkup-v2/sysroot
+ phase=${1:?capture or paint}
+ [[ "$phase" == capture || "$phase" == paint ]]
+-run="$phase-first01"
++[[ "$phase" == capture ]]
++run="capture-second02"
+ [[ "$run" =~ ^[a-zA-Z0-9_-]{1,64}$ ]] || { printf 'Invalid run name\n' >&2; exit 2; }
+ profile="$root/profiles/$run"
+ output="$root/runs/$run"
+@@ -17,7 +18,7 @@
+ uid=$(id -u)
+ # The supervisor remains OUTSIDE the child namespaces, owning the host PIDs,
+ # monotonic watchdog, process-group signals and subreaper waitpid audit.
+-exec /usr/bin/python3 "$root/supervise.py" --output "$output" --phase "$phase" -- \
++exec /usr/bin/python3 "$root/supervise-capture02.py" --output "$output" --phase "$phase" -- \
+   /usr/bin/bwrap \
+   --die-with-parent --unshare-user --unshare-pid --unshare-ipc --unshare-uts --unshare-net \
+   --clearenv \

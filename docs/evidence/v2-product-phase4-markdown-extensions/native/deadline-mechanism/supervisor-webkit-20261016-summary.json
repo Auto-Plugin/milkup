@@ -1,0 +1,43 @@
+{
+  "diagnosticOnly": true,
+  "formalAcceptance": false,
+  "binarySha256": "1b94f76b6ac09d31483e4c5a7355122a83afe9c86577028a18e4baca3fe0aa55",
+  "allTenDisabled": true,
+  "budgetMs": 2000,
+  "trials": [
+    {
+      "name": "prewarmed-baseline",
+      "status": "result",
+      "terminationElapsedMs": 50,
+      "mainStallStart": null,
+      "mainStallEnd": null,
+      "resultReceivedDuringMainStall": false,
+      "watchdogRanDuringMainStall": false
+    },
+    {
+      "name": "prewarmed-main-stall-fast-child",
+      "status": "result",
+      "terminationElapsedMs": 62,
+      "mainStallStart": 1792112703100,
+      "mainStallEnd": 1792112705500,
+      "resultReceivedDuringMainStall": true,
+      "watchdogRanDuringMainStall": false
+    },
+    {
+      "name": "prewarmed-main-stall-runaway-child",
+      "status": "timeout",
+      "terminationElapsedMs": 2001,
+      "mainStallStart": 1792112705541,
+      "mainStallEnd": 1792112707941,
+      "resultReceivedDuringMainStall": false,
+      "watchdogRanDuringMainStall": true
+    }
+  ],
+  "rawResult": "/workspace/milkup-markdown-extensions-phase4-evidence/native/run-candidate04-supervisor-20261016-02/supervisor-webkit-result.json",
+  "probeSha256": "85cd2ce747c6103d5798468d8de4a4ce2ffec32320a5a61b0ad9df3a8ad692f1",
+  "limits": [
+    "Standalone diagnostic nested-worker prototype, not production isolation contract",
+    "Current Linux WebKit only; no Windows/runtime validation",
+    "Prototype uses Date.now for diagnostic timing; production monotonic-clock design remains SDK owner work"
+  ]
+}

@@ -1,0 +1,203 @@
+{
+  "pageErrors": [],
+  "events": [
+    {
+      "time": 31.09999999962747,
+      "wall": 1792114822707,
+      "kind": "registry",
+      "records": [
+        {
+          "id": "milkup.updates",
+          "state": "installed",
+          "enabled": false,
+          "updatedAt": 1,
+          "errors": []
+        }
+      ],
+      "audit": []
+    },
+    {
+      "kind": "fixture-return",
+      "time": 906.8999999999069
+    },
+    {
+      "time": 962.2999999998137,
+      "wall": 1792114823638,
+      "kind": "click",
+      "text": "\n        \n      ",
+      "trusted": true
+    },
+    {
+      "time": 1061,
+      "wall": 1792114823737,
+      "kind": "click",
+      "text": "插件",
+      "trusted": true
+    },
+    {
+      "time": 1127,
+      "wall": 1792114823803,
+      "kind": "click",
+      "text": "MMilkup Updates检查版本、阅读更新说明，并请求安全下载和安装软件更新。",
+      "action": "details",
+      "trusted": true
+    },
+    {
+      "time": 1210.6999999997206,
+      "wall": 1792114823886,
+      "kind": "click",
+      "text": "批准能力",
+      "action": "approve",
+      "trusted": true
+    },
+    {
+      "time": 1212.0999999996275,
+      "wall": 1792114823888,
+      "kind": "registry",
+      "records": [
+        {
+          "id": "milkup.updates",
+          "state": "disabled",
+          "enabled": false,
+          "updatedAt": 1792114823887,
+          "errors": []
+        }
+      ],
+      "audit": [
+        {
+          "pluginId": "milkup.updates",
+          "operation": "approval",
+          "at": 1792114823887,
+          "detail": "approved"
+        }
+      ]
+    },
+    {
+      "time": 1276.6999999997206,
+      "wall": 1792114823952,
+      "kind": "click",
+      "text": "启用",
+      "action": "enable",
+      "trusted": true
+    },
+    {
+      "time": 1279.0999999996275,
+      "wall": 1792114823955,
+      "kind": "new",
+      "worker": 1,
+      "url": "http://127.0.0.1:1420/src/plugin-worker.ts?worker_file&type=module",
+      "name": "milkup-plugin-milkup.updates"
+    },
+    {
+      "time": 1280.1999999997206,
+      "wall": 1792114823956,
+      "kind": "send",
+      "worker": 1,
+      "protocol": "milkup.plugin.worker.init.v1",
+      "type": "init"
+    },
+    {
+      "time": 1484.5999999996275,
+      "wall": 1792114824160,
+      "kind": "receive",
+      "worker": 1,
+      "protocol": "milkup.plugin.worker.init.v1",
+      "type": "ready"
+    },
+    {
+      "time": 1486.6999999997206,
+      "wall": 1792114824162,
+      "kind": "send",
+      "worker": 1,
+      "protocol": "milkup.plugin.isolation.rpc.v1",
+      "type": "request",
+      "id": "mvaaw89u-0",
+      "method": "activate"
+    },
+    {
+      "time": 1489.2999999998137,
+      "wall": 1792114824165,
+      "kind": "receive",
+      "worker": 1,
+      "protocol": "milkup.plugin.isolation.rpc.v1",
+      "type": "response",
+      "id": "mvaaw89u-0",
+      "ok": true
+    },
+    {
+      "time": 1490.1999999997206,
+      "wall": 1792114824166,
+      "kind": "registry",
+      "records": [
+        {
+          "id": "milkup.updates",
+          "state": "enabled",
+          "enabled": true,
+          "updatedAt": 1792114824166,
+          "errors": []
+        }
+      ],
+      "audit": [
+        {
+          "pluginId": "milkup.updates",
+          "operation": "approval",
+          "at": 1792114823887,
+          "detail": "approved"
+        },
+        {
+          "pluginId": "milkup.updates",
+          "operation": "enable",
+          "at": 1792114824166
+        }
+      ]
+    },
+    {
+      "time": 1561.6999999997206,
+      "wall": 1792114824237,
+      "kind": "click",
+      "text": "打开 软件更新",
+      "action": "open-ui",
+      "trusted": true
+    },
+    {
+      "time": 1564.6999999997206,
+      "wall": 1792114824240,
+      "kind": "send",
+      "worker": 1,
+      "protocol": "milkup.plugin.isolation.rpc.v1",
+      "type": "request",
+      "id": "mvaaw8c0-1",
+      "method": "render"
+    },
+    {
+      "time": 1565.2999999998137,
+      "wall": 1792114824241,
+      "kind": "send",
+      "worker": 1,
+      "protocol": "milkup.plugin.isolation.rpc.v1",
+      "type": "request",
+      "id": "mvaaw8c1-2",
+      "method": "render"
+    },
+    {
+      "time": 1573,
+      "wall": 1792114824249,
+      "kind": "receive",
+      "worker": 1,
+      "protocol": "milkup.plugin.isolation.rpc.v1",
+      "type": "response",
+      "id": "mvaaw8c0-1",
+      "ok": true
+    },
+    {
+      "time": 1574.5,
+      "wall": 1792114824250,
+      "kind": "receive",
+      "worker": 1,
+      "protocol": "milkup.plugin.isolation.rpc.v1",
+      "type": "response",
+      "id": "mvaaw8c1-2",
+      "ok": true
+    }
+  ]
+}

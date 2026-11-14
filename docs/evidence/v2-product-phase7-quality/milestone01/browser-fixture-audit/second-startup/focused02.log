@@ -1,0 +1,36 @@
+$ playwright test tests/e2e/desktop-markdown-extensions.spec.ts tests/e2e/desktop-shell.spec.ts tests/e2e/desktop-workspace.spec.ts tests/e2e/desktop-updates.spec.ts tests/e2e/desktop-shortcuts.spec.ts tests/e2e/desktop-plugin-cards.spec.ts tests/e2e/desktop-preferences.spec.ts --grep 'real math and footnotes|official Mermaid DOM host|plugin manager restores|phase9 outline updates|trusted workspace commands|host About has no update|saved binding survives|shadowed plugin defaults|plugin permission approval|permissions, generic menu entry|browser image chooser failure' --project=desktop-msedge --workers=1 --reporter=line --output=/workspace/milkup-p7-quality-evidence/milestone01/browser-fixture-audit/second-startup/focused02-artifacts
+
+[WebServer] (node:296961) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+[WebServer] $ vite --host 127.0.0.1
+
+[WebServer] (node:296976) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+[WebServer] (node:297000) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+[WebServer] $ vite --host 127.0.0.1
+
+[WebServer] (node:297019) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 11 tests using 1 worker
+
+
+(node:297056) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+[1/11] [desktop-msedge] › tests/e2e/desktop-markdown-extensions.spec.ts:45:1 › real math and footnotes plus controlled image Worker preserve source/history
+[2/11] [desktop-msedge] › tests/e2e/desktop-markdown-extensions.spec.ts:1460:1 › official Mermaid DOM host is explicitly unavailable in the browser and keeps source
+[3/11] [desktop-msedge] › tests/e2e/desktop-plugin-cards.spec.ts:68:1 › plugin permission approval, enable, disable and uninstall remain inside details
+[4/11] [desktop-msedge] › tests/e2e/desktop-preferences.spec.ts:37:1 › permissions, generic menu entry, controlled invalid drafts, preview cancellation and default reset
+[5/11] [desktop-msedge] › tests/e2e/desktop-shell.spec.ts:152:1 › plugin manager restores, executes, disables, and reenables a Worker plugin
+[6/11] [desktop-msedge] › tests/e2e/desktop-shell.spec.ts:864:1 › browser image chooser failure and retry preserve the document and editable history
+[7/11] [desktop-msedge] › tests/e2e/desktop-shell.spec.ts:1208:1 › phase9 outline updates renamed headings and highlights the current section
+[8/11] [desktop-msedge] › tests/e2e/desktop-shortcuts.spec.ts:117:1 › saved binding survives restart, restores defaults, and search field keeps local editing plus global save
+[9/11] [desktop-msedge] › tests/e2e/desktop-shortcuts.spec.ts:189:1 › shadowed plugin defaults retain their context after user rebinding and restart
+[10/11] [desktop-msedge] › tests/e2e/desktop-updates.spec.ts:121:1 › host About has no update feature; public plugin requires approval and owns the UI
+[11/11] [desktop-msedge] › tests/e2e/desktop-workspace.spec.ts:145:1 › trusted workspace commands cross the actual Worker and retain asynchronous capabilities; recent paths persist
+  11 passed (38.0s)

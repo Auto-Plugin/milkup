@@ -1,0 +1,83 @@
+{
+  "author": "release_sdk",
+  "atUtc": "2026-10-16T23:44:33.878161+00:00",
+  "scope": "Read-only source, frozen fixture text and completed controlled-summary inspection; no code changes, runtime or tests.",
+  "sourceSha256": {
+    "packages/view-dom/src/source-document-view.ts": "ad1a9a7a746c8eaf641e132ee5a91cb4779c4d860c9f9f445231c8d2b8923206",
+    "packages/view-dom/src/document-presentation.ts": "07cbcfb4d576ff148585a397195edb691ab8780fe539c2fad52e246b081462b7",
+    "packages/view-dom/src/measured-line-heights.ts": "2322378bc06d1d8c0d49b074b5d1094f05a4657424ce1a2fc73a34c9403f42d1",
+    "packages/view-dom/src/bounded-scroll.ts": "73f8121316b141dad7cd6da0ca096e02c102286de6beaa83fe1c2b36b9a62766"
+  },
+  "completedNegativeControl": {
+    "path": "research/window-navigation-reflow-browser-01/summary.json",
+    "sha256": "9e6f23ff31eb2d716b05f05d17ce8a99398c700b037514ff328acdb40bd8689d",
+    "finding": "600->80 actual image shrink caused genuine scroll/layout; target, projection and caret persisted. Sole recorded failure was -0.21875px whole-row-top threshold. Does not reproduce missing native target."
+  },
+  "actualFixture": {
+    "path": "product-ui-runs/runs/mermaid-ui-deadline-diagnostic-01/ordinary.md",
+    "sha256": "a7267df165778c560a8fba59bfbff7065ae63365741e3eb87078783bc865fd4b",
+    "sankey": {
+      "markerLine": 316,
+      "fenceFromLine": 318,
+      "fenceToLine": 394,
+      "fenceLines": 77
+    },
+    "sequence000": {
+      "markerLine": 398,
+      "fenceFromLine": 400,
+      "fenceToLine": 405,
+      "fenceLines": 6
+    },
+    "differenceFromSingleHeightControl": "77-row complete fence can switch between one preview owner and many zero-height collapsed source rows, or literal rows. A single image shrink at a fixed source-row structure does not exercise all these model changes."
+  },
+  "facts": [
+    "MeasuredLineHeights.top is base-line sum plus all retained per-line deltas; zero-height collapsed rows are explicitly recorded. lineAt is a binary search choosing largest line top <= offset, including zero-height plateaus. This alone does not prove a corrupt mapping.",
+    "Measurement cache is bounded2048 lines and survives ordinary window replacement; it is cleared on source/mode/presentation changes. Offscreen estimates can therefore retain prior collapsed or literal measurements until that line is measured again.",
+    "Source createRenderRequest computes lineAtTop and immutable from/to before asynchronous source reads. Application guards identity/version/mode/presentationReadRevision/editRevision/request ordering, not the measurement model or scroll position used to choose the range.",
+    "updateContent captures an anchor from current old DOM, installs replacement lines, may repaint cached presentation or measure rows, then restores only an exactly matching anchor row still mounted. paint similarly captures -> changes nodes/collapsed rows -> layout updates measurements and spacers -> restores anchor.",
+    "captureScrollAnchor prefers a visible selected endpoint, otherwise first source row reaching viewport top. Selection being logically correct but offscreen/unmounted does not force target anchoring. restoreScrollAnchor skips disconnected/collapsed owners.",
+    "Changed outer scroll starts a newer render; same-offset/context events are deduplicated. A measurement/spacer mutation without another effective scroll does not itself call createRenderRequest from measureTableRows. Thus correcting spacer geometry is not synonymous with reselecting the loaded range."
+  ],
+  "candidates": [
+    {
+      "id": "stale-window-after-geometry-change",
+      "status": "Plausible code path, unproven in native",
+      "necessary": "Window range was selected against an earlier geometry/scroll state; applying rows or a later paint changes cumulative preceding heights or restores scroll without a corresponding fresh window application. The matching prior anchor is absent or cannot restore target.",
+      "testablePublicSignature": "Mountedfrom remains433+ while first noncollapsed mounted row top is below editor client bottom and top spacer spans the client viewport; target398 absent, scroll stable over subsequent observations.",
+      "falsifier": "Target/another legitimate visible row intersects viewport, or top spacer does not cover whitespace, or blankness comes from hidden/zero-sized content rather than unloaded range.",
+      "controlledFollowup": "Use actual 77-line Sankey fence followed by target398. Gate public source read for a request selected before a real validated provider transition between literal/collapsed multirow presentation; record read bounds/order plus source-view public DOM at release. Do not manually set scrollTop to claim the natural path."
+    },
+    {
+      "id": "model-correction-and-anchor-replacement-gap",
+      "status": "Alternative or contributing phase, not separate proven cause",
+      "necessary": "Cumulative map is corrected when rows become literal or collapsed; synchronous update replaces the old anchor with a range excluding it, so exact-anchor restore is unavailable. Later no valid target re-reveal occurs.",
+      "testablePublicSignature": "Sankey collapsed count/owner height or top-spacer changes first, followed by changed outer scroll and new from/to; target disappears after previous full projection.",
+      "falsifier": "No preceding geometric/spacer change or target never mounted/assigned; investigate request ordering/initial navigation instead."
+    },
+    {
+      "id": "compressed-scroll-or-cache-eviction",
+      "status": "Do not assume relevant",
+      "necessary": "Compression requires measured logical content >8000000px; cache eviction requires >2048 distinct measured lines. Neither follows solely from 160000-line source or observed subset.",
+      "testablePublicSignature": "Check actual computed line height and physical scroll extent for compression; cannot prove cache contents from DOM alone. Use narrow controlled tests only if runtime data makes this branch relevant."
+    }
+  ],
+  "phaseDistinction": {
+    "beforeSelectionAssignment": "revealSelection can return without assigning if target missing after initial await; incompatible with attributing later exact marker request snapshots to never-assigned selection. Such snapshots do not prove target had already been onscreen throughout.",
+    "afterSelectionAssignment": "revealSelection then awaits live line updates, checking source/version/nav revision on return but not target visibility. Later legitimate presentation paint can also dismount target after reveal settles. Need timestamped marker-mounted and outgoing-selection observations to distinguish these."
+  },
+  "minimumNextFields": [
+    "Single-task time, editor client rect and scrollTop/clientHeight/scrollHeight",
+    "content data-fromLine/toLine and rect",
+    "top/bottom spacer rect+styleheight",
+    "first/last noncollapsed mounted row number/from/to/rect",
+    "marker398 row presence/rect and actual normalized selection/cursor",
+    "bounded nearby Sankey owner/collapsed row count and preview image dimensions/state",
+    "changes in source/version/mode/focus; distinguish native user wheel from programmatic/layout scroll"
+  ],
+  "interpretation": "A stable white top-spacer state would support wrong loaded-window coverage, not alone identify which model update or queued request caused it. Existing controlled negative result is retained; no repair, timeout increase or causal conclusion authorized by this review.",
+  "competingFocusHypothesis": {
+    "status": "Requires runtime timing distinction",
+    "finding": "Native app.focus helper calls element.focus() without preventScroll; product close-search uses focusActiveView. A focus-induced scroll can compete with presentation reflow. Do not attribute all observed scroll changes to anchor restoration.",
+    "nextObservation": "Record activeElement and scroll/marker state immediately before Escape, after Escape, and after harness input-proxy focus. No extra focus or scroll writes in observer."
+  }
+}

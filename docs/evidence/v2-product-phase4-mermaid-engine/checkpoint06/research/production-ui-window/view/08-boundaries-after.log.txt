@@ -1,0 +1,98 @@
+
+ RUN  v3.2.6 /workspace/milkup/packages/view-dom
+
+stdout | src/__tests__/document-presentation-boundaries.test.ts > includes an initially visible complete long fence within the input budget (ordinary)
+boundary-before-assert {
+  windowed: false,
+  fromLine: 1,
+  toLine: 63,
+  first: [
+    { line: '1', from: '0', to: '6' },
+    {
+      line: '2',
+      from: '7',
+      to: '17',
+      presentationBlockFrom: '7',
+      presentationBlockTo: '491'
+    },
+    {
+      line: '3',
+      from: '18',
+      to: '24',
+      presentationBlockFrom: '7',
+      presentationBlockTo: '491'
+    }
+  ],
+  last: [
+    {
+      line: '62',
+      from: '480',
+      to: '487',
+      presentationBlockFrom: '7',
+      presentationBlockTo: '491'
+    },
+    {
+      line: '63',
+      from: '488',
+      to: '491',
+      presentationBlockFrom: '7',
+      presentationBlockTo: '491'
+    },
+    { line: '64', from: '492', to: '497' }
+  ]
+}
+
+stdout | src/__tests__/document-presentation-boundaries.test.ts > includes an initially visible complete long fence within the input budget (windowed)
+boundary-before-assert {
+  windowed: true,
+  fromLine: 1,
+  toLine: 63,
+  first: [
+    { line: '1', from: '0', to: '6' },
+    {
+      line: '2',
+      from: '7',
+      to: '17',
+      presentationBlockFrom: '7',
+      presentationBlockTo: '491'
+    },
+    {
+      line: '3',
+      from: '18',
+      to: '24',
+      presentationBlockFrom: '7',
+      presentationBlockTo: '491'
+    }
+  ],
+  last: [
+    {
+      line: '61',
+      from: '472',
+      to: '479',
+      presentationBlockFrom: '7',
+      presentationBlockTo: '491'
+    },
+    {
+      line: '62',
+      from: '480',
+      to: '487',
+      presentationBlockFrom: '7',
+      presentationBlockTo: '491'
+    },
+    {
+      line: '63',
+      from: '488',
+      to: '491',
+      presentationBlockFrom: '7',
+      presentationBlockTo: '491'
+    }
+  ]
+}
+
+ ✓ src/__tests__/document-presentation-boundaries.test.ts (4 tests) 380ms
+
+ Test Files  1 passed (1)
+      Tests  4 passed (4)
+   Start at  14:02:54
+   Duration  2.74s (transform 928ms, setup 0ms, collect 1.24s, tests 380ms, environment 747ms, prepare 136ms)
+

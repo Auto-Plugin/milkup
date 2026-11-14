@@ -1,0 +1,88 @@
+$ vitest run src/__tests__/image-hooks.test.ts
+
+ RUN  v3.2.6 /workspace/milkup/packages/view-dom
+
+ ❯ src/__tests__/image-hooks.test.ts (19 tests | 4 failed) 370ms
+   × routes only empty clipboard payloads to the controlled fallback (false) 50ms
+     → expected "spy" to be called 1 times, but got 0 times
+   × leaves an unclaimed empty paste unprevented (false) 10ms
+     → expected "spy" to be called 1 times, but got 0 times
+   ✓ renders an escaped closing bracket in image alt text (false) 22ms
+   ✓ refreshes a newly available local image without a document transaction (false) 16ms
+   ✓ delivers real paste files with the event-time selection and aborts on disable (false) 7ms
+   ✓ renders only resolver-owned blobs, preserves text, and disposes on destroy (false) 12ms
+   ✓ reports selection ABA changes and composition without changing content (false) 7ms
+   ✓ disposes a late resolver response after the view is destroyed (false) 9ms
+   ✓ renders nested strikethrough with mapped Unicode content (false) 11ms
+   × routes only empty clipboard payloads to the controlled fallback (true) 8ms
+     → expected "spy" to be called 1 times, but got 0 times
+   × leaves an unclaimed empty paste unprevented (true) 1ms
+     → expected "spy" to be called 1 times, but got 0 times
+   ✓ renders an escaped closing bracket in image alt text (true) 15ms
+   ✓ refreshes a newly available local image without a document transaction (true) 11ms
+   ✓ delivers real paste files with the event-time selection and aborts on disable (true) 132ms
+   ✓ renders only resolver-owned blobs, preserves text, and disposes on destroy (true) 9ms
+   ✓ reports selection ABA changes and composition without changing content (true) 6ms
+   ✓ disposes a late resolver response after the view is destroyed (true) 7ms
+   ✓ renders nested strikethrough with mapped Unicode content (true) 35ms
+   ✓ rejects remote, absolute, traversal and encoded path escapes before resource lookup 0ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 4 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/__tests__/image-hooks.test.ts > routes only empty clipboard payloads to the controlled fallback (false)
+AssertionError: expected "spy" to be called 1 times, but got 0 times
+ ❯ src/__tests__/image-hooks.test.ts:26:24
+     24|     }
+     25|     const event = dispatch({ files: [], items: [], types: [], getData:…
+     26|     expect(emptyPaste).toHaveBeenCalledTimes(1)
+       |                        ^
+     27|     expect(event.defaultPrevented).toBe(true)
+     28|     const context = emptyPaste.mock.calls[0]?.[0] as unknown as { sele…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/4]⎯
+
+ FAIL  src/__tests__/image-hooks.test.ts > leaves an unclaimed empty paste unprevented (false)
+AssertionError: expected "spy" to be called 1 times, but got 0 times
+ ❯ src/__tests__/image-hooks.test.ts:54:24
+     52|     Object.defineProperty(event, 'clipboardData', { value: { files: []…
+     53|     view.inputDOM.dispatchEvent(event)
+     54|     expect(emptyPaste).toHaveBeenCalledTimes(1)
+       |                        ^
+     55|     expect(event.defaultPrevented).toBe(false)
+     56|   })
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/4]⎯
+
+ FAIL  src/__tests__/image-hooks.test.ts > routes only empty clipboard payloads to the controlled fallback (true)
+AssertionError: expected "spy" to be called 1 times, but got 0 times
+ ❯ src/__tests__/image-hooks.test.ts:26:24
+     24|     }
+     25|     const event = dispatch({ files: [], items: [], types: [], getData:…
+     26|     expect(emptyPaste).toHaveBeenCalledTimes(1)
+       |                        ^
+     27|     expect(event.defaultPrevented).toBe(true)
+     28|     const context = emptyPaste.mock.calls[0]?.[0] as unknown as { sele…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/4]⎯
+
+ FAIL  src/__tests__/image-hooks.test.ts > leaves an unclaimed empty paste unprevented (true)
+AssertionError: expected "spy" to be called 1 times, but got 0 times
+ ❯ src/__tests__/image-hooks.test.ts:54:24
+     52|     Object.defineProperty(event, 'clipboardData', { value: { files: []…
+     53|     view.inputDOM.dispatchEvent(event)
+     54|     expect(emptyPaste).toHaveBeenCalledTimes(1)
+       |                        ^
+     55|     expect(event.defaultPrevented).toBe(false)
+     56|   })
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/4]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  4 failed | 15 passed (19)
+   Start at  09:16:45
+   Duration  3.70s (transform 1.10s, setup 0ms, collect 1.53s, tests 370ms, environment 1.31s, prepare 81ms)
+
+/workspace/milkup/packages/view-dom:
+[ERR_PNPM_RECURSIVE_RUN_FIRST_FAIL] @milkup/view-dom@2.0.0-beta.1 test: `vitest run src/__tests__/image-hooks.test.ts`
+Exit status 1

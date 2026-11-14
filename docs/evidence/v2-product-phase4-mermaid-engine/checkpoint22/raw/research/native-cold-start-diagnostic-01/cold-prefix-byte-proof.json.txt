@@ -1,0 +1,35 @@
+{
+  "source": "/workspace/milkup-mermaid-engine-evidence/research/native-ui10-deadline-diagnostic-01/native/full-workflow-diagnostic.mjs",
+  "sourceSha256": "0b3a42f80c9c73b901a61f0b0659a27ddece9ae147c102858856055f0597aa52",
+  "candidateSha256": "cd83f4b29035605e919d8d1287620dd4ee1a5d63acdf9cb392839deacfde996c",
+  "segments": {
+    "fixtures": {
+      "sha256": "98a09d684fb9e083ff27e847ff89b66b2da11f0e9167e376d50587fb62fee5ba",
+      "identical": true,
+      "normalization": "none"
+    },
+    "coldGate": {
+      "sha256": "e361abf9af19a909478e664bef76906400cfe472f0cc1d1eb41844dc1896699f",
+      "identical": true,
+      "normalization": "none"
+    },
+    "startup": {
+      "sha256": "b70416792a0a3480899fff4d519eabb3a80f63fee1737e6c6bea698ddf189ebd",
+      "identical": true,
+      "normalization": "remove old post-startProduction CPU launch only"
+    },
+    "assertSample": {
+      "sha256": "2e55d6489ac3045f65046f61265b50a390863baa00fdfe8d0a9efc3aeb59f785",
+      "identical": true,
+      "normalization": "none"
+    },
+    "allColdHelpers": {
+      "sha256": "9c3925d88b5c741d7349fec5f742d4031a0a9084a34e4b50eee372489c814ac2",
+      "identical": true,
+      "normalization": "none"
+    }
+  },
+  "helpers": "byte copies unchanged; all unused full-UI function definitions retained but never called",
+  "status": "STATIC_ONLY",
+  "diagnosticFinalization": "new post-cold finally helper before original app.close; 1s bounded capture flush, no product budget change"
+}

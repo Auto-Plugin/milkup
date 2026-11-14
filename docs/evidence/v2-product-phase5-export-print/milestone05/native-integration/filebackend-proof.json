@@ -1,0 +1,25 @@
+{
+  "status": "PASS",
+  "scope": "Real Rust submit_pdf -> GTK source_fd/send -> local GtkPrintBackendFile; no physical printer or external job",
+  "binarySha256": "950c8c4de38de8e5079a60d50983c4763c01f8d6232bf35c510394a9bede17e7",
+  "inputPdf": "/workspace/milkup-export-print-evidence/milestone05/chromium-controlled/real.pdf",
+  "bytes": 368049,
+  "sourceAndSpooledSha256": "e943b2d1af95ddb58515cfa8e92deb7862c4bf7bec065d993c3c49d1422b3e1c",
+  "assertions": [
+    "Output bytes exactly equal source PDF bytes",
+    "Source remains unchanged",
+    "Submitting event precedes Printed event",
+    "GTK callback returns successfully while source FD is alive"
+  ],
+  "test": "output::linux::tests::real_gtk_source_fd_submission_preserves_pdf_bytes",
+  "testExit": 0,
+  "passed": 1,
+  "durationSeconds": 0.14,
+  "log": "filebackend-runtime/run.log",
+  "xvfbCleanup": {
+    "pid": 92752,
+    "birth": "9234472",
+    "exit": 0,
+    "ownedProcessExited": true
+  }
+}

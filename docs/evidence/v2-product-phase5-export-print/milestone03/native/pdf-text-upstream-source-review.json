@@ -1,0 +1,28 @@
+{
+  "status": "source-based mechanism; binary-level trace not performed",
+  "runtimeObserved": {
+    "webkitGtk": "2.52.6",
+    "pdfProducer": "Skia/PDF m145"
+  },
+  "sources": [
+    {
+      "url": "https://raw.githubusercontent.com/WebKit/WebKit/webkitgtk-2.52.6/Source/WebCore/platform/graphics/skia/FontSkia.cpp",
+      "finding": "FontBase::buildTextBlob constructs positional glyph runs from glyph IDs and advances; it does not attach original UTF-8 text or cluster mapping."
+    },
+    {
+      "url": "https://raw.githubusercontent.com/WebKit/WebKit/webkitgtk-2.52.6/Source/ThirdParty/skia/src/pdf/SkPDFDevice.cpp",
+      "finding": "internalDrawGlyphRun can emit ActualText when cluster source text is supplied; otherwise font glyph-to-Unicode mapping is the fallback."
+    },
+    {
+      "url": "https://raw.githubusercontent.com/WebKit/WebKit/webkitgtk-2.52.6/Source/ThirdParty/skia/src/pdf/SkPDFFont.cpp",
+      "finding": "Both Type0 and Type3 generation use glyphToUnicode for ToUnicode. Font type alone does not prove or exclude faithful Unicode extraction."
+    }
+  ],
+  "inference": "Loss of original text before Skia PDF emission plausibly explains font cmap aliases and unmapped substituted/combined glyphs. Actual PDF maps and font cmap inspection are needed to connect individual failures.",
+  "unsafeWorkaroundsRejected": [
+    "NFKC-normalizing extracted text is not a PDF repair and cannot restore omitted characters.",
+    "Blind replacement of ToUnicode aliases cannot distinguish original compatibility characters from equivalent CJK characters sharing one glyph.",
+    "Changing fonts does not by itself supply the missing original text/cluster information; any mitigation must be validated and reported as partial."
+  ],
+  "next": "Native agent inspects actual PDF maps and bounded feature/font experiments; implementation remains failed for text copy/search until a real fix is proved."
+}

@@ -1,0 +1,85 @@
+$ playwright test --workers=2 --grep 'windowed.*graphemes|issue 255'
+[WebServer] (node:19437) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] $ vite --host 127.0.0.1
+[WebServer] (node:19468) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] (node:19502) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] $ vite --host 127.0.0.1
+[WebServer] (node:19528) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 4 tests using 1 worker
+
+(node:19554) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  1 [desktop-msedge] › tests/e2e/desktop-shell.spec.ts:869:3 › windowed source keyboard edits preserve whole graphemes and undo (8.8s)
+(node:19694) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  2 [desktop-msedge] › tests/e2e/desktop-shell.spec.ts:869:3 › windowed live keyboard edits preserve whole graphemes and undo (7.6s)
+(node:19841) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  3 [desktop-msedge] › tests/e2e/desktop-shell.spec.ts:901:1 › issue 255 bracket typing keeps its position after delayed rendering (4.8s)
+  ✓  4 [desktop-msedge] › tests/e2e/desktop-shell.spec.ts:918:1 › issue 255 single-space headings render immediately after an image line (2.0s)
+
+
+  1) [desktop-msedge] › tests/e2e/desktop-shell.spec.ts:869:3 › windowed source keyboard edits preserve whole graphemes and undo 
+
+    Error: expect(locator).toHaveText(expected) failed
+
+    Locator:  locator('.milkup-line[data-line="1"]')
+    Expected: "A👩🏽‍💻B"
+    Received: "AB"
+    Timeout:  5000ms
+
+    Call log:
+      - Expect "toHaveText" with timeout 5000ms
+      - waiting for locator('.milkup-line[data-line="1"]')
+        14 × locator resolved to <div data-to="2" data-line="1" data-from="0" class="milkup-line">AB</div>
+           - unexpected value "AB"
+
+
+      893 |     await expect(page.locator('.milkup-line[data-line="1"]')).toHaveText('AB')
+      894 |     await page.keyboard.press('Control+z')
+    > 895 |     await expect(page.locator('.milkup-line[data-line="1"]')).toHaveText('A👩🏽‍💻B')
+          |                                                               ^
+      896 |     await page.keyboard.press('Control+Shift+z')
+      897 |     await expect(page.locator('.milkup-line[data-line="1"]')).toHaveText('AB')
+      898 |   })
+        at /workspace/milkup/tests/e2e/desktop-shell.spec.ts:895:63
+
+    Error Context: test-results/desktop-shell-windowed-sou-621cc-ve-whole-graphemes-and-undo-desktop-msedge/error-context.md
+
+  2) [desktop-msedge] › tests/e2e/desktop-shell.spec.ts:869:3 › windowed live keyboard edits preserve whole graphemes and undo 
+
+    Error: expect(locator).toHaveText(expected) failed
+
+    Locator:  locator('.milkup-line[data-line="1"]')
+    Expected: "A👩🏽‍💻B"
+    Received: "AB"
+    Timeout:  5000ms
+
+    Call log:
+      - Expect "toHaveText" with timeout 5000ms
+      - waiting for locator('.milkup-line[data-line="1"]')
+        14 × locator resolved to <div data-to="2" data-line="1" data-from="0" class="milkup-line milkup-line-live">…</div>
+           - unexpected value "AB"
+
+
+      893 |     await expect(page.locator('.milkup-line[data-line="1"]')).toHaveText('AB')
+      894 |     await page.keyboard.press('Control+z')
+    > 895 |     await expect(page.locator('.milkup-line[data-line="1"]')).toHaveText('A👩🏽‍💻B')
+          |                                                               ^
+      896 |     await page.keyboard.press('Control+Shift+z')
+      897 |     await expect(page.locator('.milkup-line[data-line="1"]')).toHaveText('AB')
+      898 |   })
+        at /workspace/milkup/tests/e2e/desktop-shell.spec.ts:895:63
+
+    Error Context: test-results/desktop-shell-windowed-liv-bfef5-ve-whole-graphemes-and-undo-desktop-msedge/error-context.md
+
+  2 failed
+    [desktop-msedge] › tests/e2e/desktop-shell.spec.ts:869:3 › windowed source keyboard edits preserve whole graphemes and undo 
+    [desktop-msedge] › tests/e2e/desktop-shell.spec.ts:869:3 › windowed live keyboard edits preserve whole graphemes and undo 
+  2 passed (40.7s)
+[ELIFECYCLE] Command failed with exit code 1.

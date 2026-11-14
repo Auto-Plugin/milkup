@@ -1,0 +1,4 @@
+import { build } from 'esbuild';
+import fs from 'node:fs';
+const result = await build({stdin:{contents:"export { default } from 'mermaid';",resolveDir:process.cwd(),sourcefile:'offline-entry.mjs'},bundle:true,format:'esm',platform:'browser',target:'es2024',minify:true,legalComments:'external',outfile:'dist/mermaid-full-12.2.0.mjs',metafile:true});
+fs.writeFileSync('bundle-metafile.json',JSON.stringify(result.metafile,null,2)+'\n');

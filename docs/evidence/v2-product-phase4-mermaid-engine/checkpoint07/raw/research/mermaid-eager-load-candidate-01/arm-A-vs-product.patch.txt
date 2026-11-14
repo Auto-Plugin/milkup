@@ -1,0 +1,49 @@
+--- product/src/renderer.ts
++++ candidate/A/src/renderer.ts
+@@ -5,6 +5,46 @@
+   SdkDocumentPresentationResult,
+ } from '@milkup/plugin-sdk'
+ import { convertSvgElement, ConversionError } from './svg-converter'
++
++// External A/B diagnostic only: disable import's load hook before any await.
++mermaid.startOnLoad = false
++mermaid.initialize({
++  startOnLoad: false,
++  securityLevel: 'strict',
++  htmlLabels: false,
++  suppressErrorRendering: true,
++  maxTextSize: 50_000,
++  maxEdges: 500,
++  deterministicIds: true,
++  deterministicIDSeed: 'milkup-offline',
++  arrowMarkerAbsolute: false,
++  fontFamily: 'Arial, sans-serif',
++  legacyMathML: false,
++  forceLegacyMathML: false,
++  theme: 'default',
++  darkMode: false,
++  secure: [
++    'secure',
++    'securityLevel',
++    'startOnLoad',
++    'maxTextSize',
++    'maxEdges',
++    'suppressErrorRendering',
++    'htmlLabels',
++    'fontFamily',
++    'themeCSS',
++    'legacyMathML',
++    'forceLegacyMathML',
++    'look',
++    'textPlacement',
++    'theme',
++    'darkMode',
++    'dompurifyConfig',
++    'arrowMarkerAbsolute',
++    'deterministicIds',
++    'deterministicIDSeed',
++  ],
++})
+ 
+ // Preparation waits for installed fonts but never parses a document. The
+ // independent native host owns activation and execution deadlines.

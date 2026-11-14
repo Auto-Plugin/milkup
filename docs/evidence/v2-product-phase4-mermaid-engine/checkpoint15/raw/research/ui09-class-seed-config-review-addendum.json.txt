@@ -1,0 +1,75 @@
+{
+  "author": "/root/release_sdk",
+  "createdUtc": "2026-10-16T21:40:11.935377+00:00",
+  "kind": "independent static configuration-change review",
+  "baselineCommit": "e6772555e9a420b1dcf4581c8436e92b82dfb10b",
+  "reviewedInputs": [
+    {
+      "path": "/workspace/milkup/plugins/diagrams/src/renderer.ts",
+      "bytes": 7375,
+      "sha256": "d1573b69618f0cb0aa0ab3a5fad57c494d9da203de2d5c86c4abdff852f6c3df"
+    },
+    {
+      "path": "/workspace/milkup/plugins/diagrams/src/renderer.test.ts",
+      "bytes": 10889,
+      "sha256": "4fa9190222cfad26b998957fa8ceb8bca65dad49c143e5abaff6cad78d61de22"
+    },
+    {
+      "path": "/workspace/milkup/plugins/diagrams/node_modules/mermaid/dist/chunks/mermaid.core/chunk-DSNLSHJZ.mjs",
+      "bytes": 276663,
+      "sha256": "d5097d3469d77fe5b3e9f2623a1bb943d7b55279a88af5c254feb28c198a1123"
+    },
+    {
+      "path": "/workspace/milkup/plugins/diagrams/node_modules/mermaid/dist/mermaid.core.mjs",
+      "bytes": 55022,
+      "sha256": "4d085c790146a42c65d51ea21170427b24bc706de970df570331321996cbdbaf"
+    }
+  ],
+  "priorReview": {
+    "path": "/workspace/milkup-mermaid-engine-evidence/research/ui09-class-seed-mechanism-review.json",
+    "sha256": "2f8df7e3d8f92edafea47dabd3a06e6e516b4a52760605c1875ae6710c273e5a",
+    "unchanged": true
+  },
+  "diff": {
+    "sha256": "bdad882b22b5aca4d790c20260a6668fe0b1e05600e76e80958e31633205447f",
+    "utf8Text": "diff --git a/plugins/diagrams/src/renderer.test.ts b/plugins/diagrams/src/renderer.test.ts\nindex f12b4c57..4c4f6a3d 100644\n--- a/plugins/diagrams/src/renderer.test.ts\n+++ b/plugins/diagrams/src/renderer.test.ts\n@@ -160,6 +160,7 @@ describe('official Mermaid document wrapper (mock engine; native layout tested s\n         fontFamily: 'Arial, sans-serif',\n         legacyMathML: false,\n         forceLegacyMathML: false,\n+        handDrawnSeed: 1,\n       })\n       expect(call[0].secure).toEqual(\n         expect.arrayContaining([\n@@ -173,6 +174,7 @@ describe('official Mermaid document wrapper (mock engine; native layout tested s\n           'arrowMarkerAbsolute',\n           'deterministicIds',\n           'deterministicIDSeed',\n+          'handDrawnSeed',\n         ]),\n       )\n       expect(call[0]).not.toHaveProperty('journey')\ndiff --git a/plugins/diagrams/src/renderer.ts b/plugins/diagrams/src/renderer.ts\nindex 4e4613e0..977368ea 100644\n--- a/plugins/diagrams/src/renderer.ts\n+++ b/plugins/diagrams/src/renderer.ts\n@@ -114,6 +114,9 @@ export const renderDocuments: SdkDocumentRenderer = async (request, { signal })\n             maxEdges: 500,\n             deterministicIds: true,\n             deterministicIDSeed: 'milkup-offline',\n+            // Classic class shapes also use roughjs. Keep equal inputs stable\n+            // so a refresh does not replace their image and reset inner scroll.\n+            handDrawnSeed: 1,\n             arrowMarkerAbsolute: false,\n             fontFamily: 'Arial, sans-serif',\n             legacyMathML: false,\n@@ -140,6 +143,7 @@ export const renderDocuments: SdkDocumentRenderer = async (request, { signal })\n               'arrowMarkerAbsolute',\n               'deterministicIds',\n               'deterministicIDSeed',\n+              'handDrawnSeed',\n             ],\n           })\n           sequence = (sequence + 1) % 0x1_0000_0000\n"
+  },
+  "conclusion": "No static blocker found in the reviewed configuration and test increment. Runtime GREEN remains separately owned and is not asserted here.",
+  "changes": [
+    "renderer initialize adds handDrawnSeed:1 plus explanatory comment.",
+    "Existing secure list adds handDrawnSeed.",
+    "Existing mock configuration test adds fixed-value and secure-membership expectations for both light/screen and dark/export requests."
+  ],
+  "overrideMechanism": {
+    "references": [
+      "mermaid.core.mjs:1103 addDirective(processed.config)",
+      "chunk-DSNLSHJZ.mjs:5164-5172 sanitize each directive before merge",
+      "chunk-DSNLSHJZ.mjs:5225-5242 delete siteConfig.secure names and recurse"
+    ],
+    "finding": "The host initialize value remains the configured seed after document frontmatter/directive sanitization. The secure entry is required to prevent a document requesting seed0/random again. No new public API is introduced."
+  },
+  "unchangedByReviewedDiff": [
+    "Mermaid source and parser input",
+    "look selection and diagram geometry configuration other than random seed",
+    "fontFamily and host theme/width selection",
+    "public SDK and manifest interfaces",
+    "shared CSS",
+    "converter numeric precision and full AST output",
+    "view full JSON semantic equality, image lifecycle and legitimate semantic-change scroll reset",
+    "native 2s/host preparation10s deadlines",
+    "shared bytes/nodes/depth budgets",
+    "global Math.random"
+  ],
+  "testScope": "The two additional assertions inspect mock initialize arguments. They do not themselves execute Mermaid sanitization, demonstrate native determinism, or prove pixel equality. Existing assertions are retained unchanged.",
+  "evidenceSeparation": {
+    "nativeBefore": "Independent prior review parsed retained native adjacent requests: each160 numerical changes across14path nodes.",
+    "chromiumBefore": "Root reports a separate real Chromium RED with152differences; not read/reproduced for this addendum and not substituted for native160.",
+    "green": "Same-runner GREEN reported in progress by root; no result claimed in this static review."
+  },
+  "risks": [
+    "Nonzero seed selects a stable realization for rough-generated geometry across diagrams; it is not proof that all font/layout/runtime-dependent output is deterministic.",
+    "Hand-drawn appearances can change their specific pen strokes with a fixed seed; source/appearance selection is not rewritten.",
+    "Actual identical-request AST stability and retained inner scroll still require the separately authorized real renderer regression."
+  ],
+  "execution": "Only git/read/hash/JSON-write operations. No tests, build, browser, native process, product edit, or formatting run performed."
+}

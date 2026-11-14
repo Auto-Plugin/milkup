@@ -1,0 +1,143 @@
+{
+  "status": "PASS_BOUNDED_LIFECYCLE_REVIEW",
+  "reviewedAt": "2026-10-16T21:55:31.922173+00:00",
+  "summarySha256": "61582376285e7aa44060486ea54a0e6fe5783367b2c8f702de1a71818bd2612f",
+  "cases": [
+    {
+      "case": "timeout",
+      "exitCode": 0,
+      "events": 49,
+      "eventsSha256": "fff7396a47999c3984692d34d71c56cfd3f209e4c7e1cee1cefb8adc020050e0",
+      "ownedPids": [
+        421545,
+        421550,
+        421553,
+        421587,
+        421588,
+        421589,
+        421592,
+        421593,
+        421596,
+        421148,
+        421144
+      ],
+      "allAbsent": true,
+      "privateDirectoryAbsent": true
+    },
+    {
+      "case": "disable",
+      "exitCode": 0,
+      "events": 54,
+      "eventsSha256": "fe7564c6fe2eb53420296b7073fca12941428cfec272fb38847f757a46dfded9",
+      "ownedPids": [
+        422088,
+        422093,
+        422096,
+        422130,
+        422131,
+        422132,
+        422135,
+        422136,
+        422139,
+        421697,
+        421693
+      ],
+      "allAbsent": true,
+      "privateDirectoryAbsent": true
+    },
+    {
+      "case": "remove",
+      "exitCode": 0,
+      "events": 54,
+      "eventsSha256": "7467766133b6c929cfd0294430b25a0d2ce86d3afc53945f968801a76fa8de68",
+      "ownedPids": [
+        422669,
+        422674,
+        422677,
+        422711,
+        422712,
+        422713,
+        422716,
+        422719,
+        422720,
+        422267,
+        422263
+      ],
+      "allAbsent": true,
+      "privateDirectoryAbsent": true
+    },
+    {
+      "case": "wm-close",
+      "exitCode": 0,
+      "events": 48,
+      "eventsSha256": "b22f215a5b205331e6f0a038db395b1ade273021c1c8450dedc1d756b8d67d6f",
+      "ownedPids": [
+        423222,
+        423227,
+        423230,
+        423264,
+        423265,
+        423266,
+        423269,
+        423270,
+        423271,
+        422830,
+        422826
+      ],
+      "allAbsent": true,
+      "privateDirectoryAbsent": true
+    },
+    {
+      "case": "app-sigkill",
+      "exitCode": 0,
+      "events": 48,
+      "eventsSha256": "fc42bbf3fa5aa39541cbede6cf030e50defa0245a98d2b0c0948d9087d0c68ae",
+      "ownedPids": [
+        423741,
+        423746,
+        423749,
+        423783,
+        423784,
+        423785,
+        423788,
+        423789,
+        423792,
+        423357,
+        423353
+      ],
+      "allAbsent": true,
+      "privateDirectoryAbsent": true
+    }
+  ],
+  "pidCount": 55,
+  "sigkillProof": {
+    "name": "guardian-natural-exit-proof",
+    "wall": 1792187652225,
+    "monotonicMs": 20449.27592,
+    "monotonicNs": 75264664690585,
+    "reaped": {
+      "identity": {
+        "pid": 423741,
+        "birth": "7526016",
+        "parent": 423353,
+        "state": "Z",
+        "group": 423741,
+        "name": "milkup-desktop"
+      },
+      "exitedObservedMonotonicNs": 75264430401382,
+      "waitpidCompletedMonotonicNs": 75264431143063,
+      "exitCode": 0,
+      "noSignalSent": true
+    },
+    "exactEchildMonotonicNs": null,
+    "echildCompletedUpperBoundMonotonicNs": 75264430401382,
+    "terminalDiagnostic": "unobservable: best-effort asynchronous trace",
+    "functionalCleanup": "All tracked PID/birth identities and private directory cleared within original 4.5s observer bound"
+  },
+  "qualification": [
+    "Generic lifecycle cases, not official Mermaid full UI acceptance.",
+    "Ancestor PID derives from saved owner record; not claiming independent prior birth capture for those5 ancestors.",
+    "Port state was recorded by lifecycle owner before release; root does not retest ports now because next owned native diagnostic may run.",
+    "SIGKILL exact ECHILD trace absent in this run; natural exit/waitpid proof is an upper bound, unlike prior production06 exact trace."
+  ]
+}

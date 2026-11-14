@@ -1,0 +1,18 @@
+export default {
+  root: "/workspace/milkup-mermaid-engine-evidence/research/frontend-queue-trace-v03-tests-01",
+  resolve: {
+    alias: {
+      "@milkup/core": "/workspace/milkup/packages/core/src/index.ts",
+      "./render-arbitration":
+        "/workspace/milkup/packages/plugin/src/render-arbitration.ts",
+      "./document-render-wire":
+        "/workspace/milkup/packages/plugin/src/document-render-wire.ts",
+    },
+  },
+  test: {
+    environment: "node",
+    include: ["*.test.ts"],
+    maxWorkers: 1,
+    fileParallelism: false,
+  },
+};

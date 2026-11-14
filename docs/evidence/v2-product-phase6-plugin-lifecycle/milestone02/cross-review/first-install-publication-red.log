@@ -1,0 +1,46 @@
+
+ RUN  v3.2.6 /workspace/milkup/apps/desktop
+
+ ❯ src/catalog-cross-review.test.ts (13 tests | 1 failed | 12 skipped) 25ms
+   ↓ P6 authoritative catalog transactions > stages without running or replacing old active approval; exact review is required
+   ↓ P6 authoritative catalog transactions > tears old epoch down before trial, commits before publish, and recovers old version with new epoch on failure
+   ↓ P6 authoritative catalog transactions > cannot grant candidate capabilities via pending approval or side effects during activate
+   ↓ P6 authoritative catalog transactions > serializes queued approval and remove; tombstone keeps data/settings and never revives from mirror
+   ↓ P6 authoritative catalog transactions > recovers a committed generation when contribution publication fails
+   ↓ P6 candidate failure injection > denies a swallowed initialization write and restores unchanged data
+   ↓ P6 candidate failure injection > recovers old active after native commit rejects without publishing the candidate
+   ↓ P6 candidate failure injection > caps hanging candidate activation and attempts new-epoch recovery
+   ↓ P6 candidate failure injection > does not trust a poisoned mirror and quarantines an interrupted startup instead of retrying forever
+   ↓ P6 retirement and public diagnostic boundaries > retains a rejected isolation owner and retries before any new activation
+   ↓ P6 retirement and public diagnostic boundaries > keeps callback errors diagnostic when the trusted owner confirms termination
+   ↓ P6 retirement and public diagnostic boundaries > never exposes native or activation paths through the public management adapter
+   × Read-only cross-review regressions > first-install publication failure must persist disabled state when no rollback generation exists 24ms
+     → expected true to be false // Object.is equality
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/catalog-cross-review.test.ts > Read-only cross-review regressions > first-install publication failure must persist disabled state when no rollback generation exists
+AssertionError: expected true to be false // Object.is equality
+
+- Expected
++ Received
+
+- false
++ true
+
+ ❯ src/catalog-cross-review.test.ts:160:50
+    158|   vi.spyOn((s.manager as any).runtime,'publishPlugin').mockImplementat…
+    159|   await expect(s.manager.enable('test.lifecycle')).rejects.toThrow('fi…
+    160|   expect(s.catalog.snapshot.entries[0]!.enabled).toBe(false)
+       |                                                  ^
+    161|  })
+    162| })
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 12 skipped (13)
+   Start at  08:55:03
+   Duration  1.34s (transform 744ms, setup 0ms, collect 992ms, tests 25ms, environment 0ms, prepare 77ms)
+

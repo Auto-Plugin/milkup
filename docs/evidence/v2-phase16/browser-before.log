@@ -1,0 +1,71 @@
+$ playwright test --workers=1 --grep phase16
+[WebServer] (node:102820) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] $ vite --host 127.0.0.1
+[WebServer] (node:102833) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] (node:102857) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] $ vite --host 127.0.0.1
+[WebServer] (node:102873) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 2 tests using 1 worker
+
+(node:102899) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  1 [desktop-msedge] › tests/e2e/desktop-shell.spec.ts:1375:1 › phase16 modal menu contains keyboard focus and closes ahead of background search (600ms)
+(node:103033) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  2 [desktop-msedge] › tests/e2e/desktop-shell.spec.ts:1388:1 › phase16 F6 reaches shell and table controls without inserting document text (5.5s)
+
+
+  1) [desktop-msedge] › tests/e2e/desktop-shell.spec.ts:1375:1 › phase16 modal menu contains keyboard focus and closes ahead of background search 
+
+    Error: expect(received).toBe(expected) // Object.is equality
+
+    Expected: true
+    Received: false
+
+      1379 |   await page.keyboard.press('Shift+Tab')
+      1380 |   await page.keyboard.press('Shift+Tab')
+    > 1381 |   expect(await page.locator('[data-app-menu]').evaluate(e => e.contains(document.activeElement))).toBe(true)
+           |                                                                                                   ^
+      1382 |   await page.keyboard.press('Escape')
+      1383 |   await expect(page.locator('[data-app-menu]')).toBeHidden()
+      1384 |   await expect(page.locator('[data-floating-search]')).toBeVisible()
+        at /workspace/milkup/tests/e2e/desktop-shell.spec.ts:1381:99
+
+    Error Context: test-results/desktop-shell-phase16-moda-26b4c--ahead-of-background-search-desktop-msedge/error-context.md
+
+  2) [desktop-msedge] › tests/e2e/desktop-shell.spec.ts:1388:1 › phase16 F6 reaches shell and table controls without inserting document text 
+
+    Error: expect(locator).toBeFocused() failed
+
+    Locator:  locator('[data-table-action="select-cell"]')
+    Expected: focused
+    Received: inactive
+    Timeout:  5000ms
+
+    Call log:
+      - Expect "toBeFocused" with timeout 5000ms
+      - waiting for locator('[data-table-action="select-cell"]')
+        14 × locator resolved to <button type="button" data-table-action="select-cell">选中单元格</button>
+           - unexpected value "inactive"
+
+
+      1392 |   const before = await page.locator('.milkup-editor-content').textContent()
+      1393 |   await page.keyboard.press('F6')
+    > 1394 |   await expect(page.locator('[data-table-action="select-cell"]')).toBeFocused()
+           |                                                                   ^
+      1395 |   await page.keyboard.press('F6')
+      1396 |   await expect(page.locator('[data-sidebar-toggle]')).toBeFocused()
+      1397 |   await page.keyboard.press('F6')
+        at /workspace/milkup/tests/e2e/desktop-shell.spec.ts:1394:67
+
+    Error Context: test-results/desktop-shell-phase16-F6-r-c08b1-out-inserting-document-text-desktop-msedge/error-context.md
+
+  2 failed
+    [desktop-msedge] › tests/e2e/desktop-shell.spec.ts:1375:1 › phase16 modal menu contains keyboard focus and closes ahead of background search 
+    [desktop-msedge] › tests/e2e/desktop-shell.spec.ts:1388:1 › phase16 F6 reaches shell and table controls without inserting document text 
+[ELIFECYCLE] Command failed with exit code 1.

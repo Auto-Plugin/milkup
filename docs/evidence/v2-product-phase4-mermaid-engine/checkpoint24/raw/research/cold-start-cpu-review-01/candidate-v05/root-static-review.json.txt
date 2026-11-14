@@ -1,0 +1,15 @@
+{
+  "reviewedUtc": "2026-10-17T02:45:07.501707+00:00",
+  "manifestSha256": "ac396381a7a52d36484dd104d5bb6fa5121b3b03b3a02194160846161c31ca33",
+  "verifiedFiles": 10,
+  "preparedTestMethods": 57,
+  "testExecuted": false,
+  "decision": "Static code review acceptable for first pure fakeFS test after independent review; no native build or runtime authorized.",
+  "reviewed": "Complete new native_pidfd.py, integration diff and all 23 new tests plus inherited fixture; bounded fixed-file reader, native schema/ext hash, no inner PID indexing, repeated kernel fdinfo, guardian/helper live boundary and two-phase max8node ancestry, argv in brackets, shared original budgets/caps, no signal/global scan.",
+  "limitations": [
+    "Real OS nofollow/permissions and WebKit FD transport not proven by fakeFS tests.",
+    "5ms budget cooperative; individual file/proc calls may overrun.",
+    "Source immutability and same-UID controlled-run assumptions remain; hash/token not cryptographic authentication.",
+    "No CPU causal attribution or full renderer tree guarantee; prior errors remain."
+  ]
+}

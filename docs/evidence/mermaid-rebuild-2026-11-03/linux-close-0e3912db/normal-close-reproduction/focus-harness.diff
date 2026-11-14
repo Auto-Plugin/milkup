@@ -1,0 +1,77 @@
+--- run02/normal-close.mjs
++++ focus/normal-close-focus.mjs
+@@ -21,7 +21,10 @@
+ const pause = (ms) => new Promise((resolve) => setTimeout(resolve, ms))
+ const json = async (file) => JSON.parse(await readFile(file, 'utf8'))
+ const report = {
+-  candidateSha: execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim(),
++  candidateSha: '0e3912db3f2cc4d77dd73513ce73d5440ec36f54',
++  currentWorktreeHead: execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim(),
++  currentWorktreeStatus: execFileSync('git', ['status', '--porcelain=v1'], { encoding: 'utf8' }),
++  frozenBinaryAfterSourceFreezeReleased: true,
+   binarySha256: expected,
+   startedAt: new Date().toISOString(),
+   status: 'running',
+@@ -52,7 +55,13 @@
+ try {
+   assert.equal(process.env.MILKUP_NORMAL_CLOSE_RUN, '1')
+   assert.equal(report.candidateSha, '0e3912db3f2cc4d77dd73513ce73d5440ec36f54')
+-  assert.equal(execFileSync('git', ['status', '--porcelain=v1'], { encoding: 'utf8' }), '')
++  report.helperFiles = []
++  for (const name of ['native-production.mjs','native-startup.mjs','native-beta5-fixture.mjs','native-updates-fixture.mjs','native-owned-process.mjs']) {
++    const current = await readFile('/workspace/milkup-mermaid-rebuild/tests/helpers/' + name)
++    const baseline = execFileSync('git', ['show', report.candidateSha + ':tests/helpers/' + name])
++    assert(current.equals(baseline), 'Shared helper unchanged from binary source baseline')
++    report.helperFiles.push({name,sha256:hash(current)})
++  }
+   assert(!process.env.WEBKIT_DISABLE_SANDBOX_THIS_IS_DANGEROUS && !process.env.LD_PRELOAD)
+   assert.equal(hash(await readFile(binary)), expected)
+   await writeFile(fixture, source, { flag: 'wx' })
+@@ -79,6 +88,8 @@
+   await ui.list()
+   const selector = '.plugin-summary-card[data-plugin-id="milkup.diagrams"] [role="switch"]'
+   await app.until(() => app.execute('const e=document.querySelector(arguments[0]);return !!e&&e.getAttribute("aria-checked")==="false"&&!e.disabled', selector), 'Fresh disabled Diagrams card')
++  report.focusBeforeEnable = {active:x('getactivewindow'),tree:execFileSync('xwininfo',['-root','-tree'],{encoding:'utf8'})}
++  execFileSync('/usr/bin/import',['-display',display,'-window','root',path.join(evidence,'00-before-enable-system.png')],{timeout:10000})
+   report.inputs.push({ kind: 'XTest-pointer', selector, at: new Date().toISOString() })
+   await ui.pointer(selector)
+   await app.until(() => app.execute('const e=document.querySelector(arguments[0]);return !!e&&e.getAttribute("aria-checked")==="true"&&!e.disabled', selector), 'Single actual plugin enable')
+@@ -86,10 +97,16 @@
+   // decoded output, then restore the exact main window before a real click.
+   await app.until(() => app.execute('return [...document.querySelectorAll("[data-document-presentation] img")].some(e=>e.complete&&e.naturalWidth>0)'), 'Decoded Mermaid before returning window focus', 30000)
+   report.activeWindowBeforeMenuClose = x('getactivewindow')
+-  x('windowactivate', '--sync', window)
+-  report.activeWindowAfterFocus = x('getactivewindow')
++  report.focusAfterDecoded = {active:x('getactivewindow'),tree:execFileSync('xwininfo',['-root','-tree'],{encoding:'utf8'})}
++  execFileSync('/usr/bin/import',['-display',display,'-window','root',path.join(evidence,'01a-decoded-before-any-refocus-system.png')],{timeout:10000})
+   report.inputs.push({ kind: 'XTest-pointer', selector: '[data-menu-close]', at: new Date().toISOString() })
+   await ui.pointer('[data-menu-close]')
++  report.menuClosedAfterFirstRealClick = await app.execute('return !document.querySelector("[data-app-menu]")?.getClientRects().length')
++  report.activeAfterFirstMenuClick = x('getactivewindow')
++  if (!report.menuClosedAfterFirstRealClick) {
++    report.inputs.push({kind:'XTest-pointer',selector:'[data-menu-close]',reason:'Second actual click after first was observed not to close the menu',at:new Date().toISOString()})
++    await ui.pointer('[data-menu-close]')
++  }
+   await app.until(() => app.execute('return !document.querySelector("[data-app-menu]")?.getClientRects().length'), 'Actually clicked menu close')
+   await app.until(() => app.execute('return [...document.querySelectorAll("[data-document-presentation] img")].some(e=>e.complete&&e.naturalWidth>0&&e.getBoundingClientRect().height>0)'), 'Actual decoded Mermaid PNG', 30000)
+   report.beforeClose = await app.probe()
+@@ -109,7 +126,10 @@
+   report.privateDirectoriesBeforeClose = (await readdir(temp)).filter((name) => name.startsWith('milkup-mermaid-'))
+   await app.shot('01-enabled-before-normal-close-webview')
+   execFileSync('/usr/bin/import', ['-display', display, '-window', 'root', path.join(evidence, '01-enabled-before-normal-close-system.png')], { timeout: 10000 })
+-  x('windowactivate', '--sync', window)
++  if (x('getactivewindow') !== String(Number(window))) {
++    report.inputs.push({kind:'XTest-pointer',selector:'.document-title',reason:'Actual user click to focus the exact main window before Alt+F4',at:new Date().toISOString()})
++    await ui.pointer('.document-title')
++  }
+   assert.equal(x('getactivewindow'), String(Number(window)))
+   await persist()
+   report.closeStartedMonotonicNs = process.hrtime.bigint().toString()
+@@ -165,6 +185,7 @@
+     // teardown of only this fresh process group/namespace and records it.
+     report.sessionCleanupSkipped = 'No successful normal exit; outer owned namespace cleanup only'
+   }
++  await writeFile(path.join(evidence,'stop-x11-observation'),'harness finished\n',{flag:'wx'})
+   report.finishedAt = new Date().toISOString()
+   await persist()
+ }

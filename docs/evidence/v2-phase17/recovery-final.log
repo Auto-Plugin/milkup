@@ -1,0 +1,102 @@
+2026-10-13T20:31:43.597Z NATIVE_STARTUP_WINDOW 1312ms
+2026-10-13T20:31:50.880Z NATIVE_STARTUP_WINDOW 3456ms
+X Error of failed request:  BadWindow (invalid Window parameter)
+  Major opcode of failed request:  20 (X_GetProperty)
+  Resource id in failed request:  0x200001
+  Serial number of failed request:  13
+  Current serial number in output stream:  13
+2026-10-13T20:31:56.372Z NATIVE_STARTUP_WINDOW 2696ms
+X Error of failed request:  BadWindow (invalid Window parameter)
+  Major opcode of failed request:  20 (X_GetProperty)
+  Resource id in failed request:  0x20000e
+  Serial number of failed request:  13
+  Current serial number in output stream:  13
+X Error of failed request:  BadWindow (invalid Window parameter)
+  Major opcode of failed request:  20 (X_GetProperty)
+  Resource id in failed request:  0x200001
+  Serial number of failed request:  13
+  Current serial number in output stream:  13
+2026-10-13T20:31:58.879Z NATIVE_STARTUP_WINDOW 1320ms
+2026-10-13T20:32:02.685Z NATIVE_STARTUP_WINDOW 1299ms
+2026-10-13T20:32:05.941Z NATIVE_STARTUP_WINDOW 1287ms
+2026-10-13T20:32:06.912Z NATIVE_APPLICATION_CLEANUP 130415
+2026-10-13T20:32:08.249Z NATIVE_STARTUP_WINDOW 1305ms
+2026-10-13T20:32:12.250Z NATIVE_STARTUP_WINDOW 1295ms
+X Error: 9: Bad Drawable
+  Request Major code: 14
+  ResourceID in failed request: 0x20000f
+  Serial number of failed request: 26
+X Error: 3: Bad Window
+  Request Major code: 15
+  ResourceID in failed request: 0x20000f
+  Serial number of failed request: 28
+xwininfo: error: Can't query window tree.
+node:internal/errors:985
+  const err = new Error(message);
+              ^
+
+Error: Command failed: xwininfo -root -tree
+X Error: 9: Bad Drawable
+  Request Major code: 14
+  ResourceID in failed request: 0x20000f
+  Serial number of failed request: 26
+X Error: 3: Bad Window
+  Request Major code: 15
+  ResourceID in failed request: 0x20000f
+  Serial number of failed request: 28
+xwininfo: error: Can't query window tree.
+
+    at genericNodeError (node:internal/errors:985:15)
+    at wrappedFn (node:internal/errors:539:14)
+    at checkExecSyncError (node:child_process:942:11)
+    at execFileSync (node:child_process:978:15)
+    at tree (file:///workspace/milkup/tests/helpers/native-startup.mjs:10:10)
+    at beginNativeStartup (file:///workspace/milkup/tests/helpers/native-startup.mjs:41:57)
+    at startProduction (file:///workspace/milkup/tests/helpers/native-production.mjs:88:21)
+    at file:///workspace/milkup/tests/native/tauri-crash-recovery.mjs:134:17
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5) {
+  status: 1,
+  signal: null,
+  output: [
+    null,
+    '\n' +
+      'xwininfo: Window id: 0x21f (the root window) (has no name)\n' +
+      '\n' +
+      '  Root window id: 0x21f (the root window) (has no name)\n' +
+      '  Parent window id: 0x0 (none)\n' +
+      '     2 children:\n' +
+      '     0x20000e "milkup": ("milkup-desktop" "Milkup-desktop")  1100x760+0+0  +0+0\n' +
+      '        1 child:\n' +
+      '        0x20000f (has no name): () \n',
+    'X Error: 9: Bad Drawable\n' +
+      '  Request Major code: 14\n' +
+      '  ResourceID in failed request: 0x20000f\n' +
+      '  Serial number of failed request: 26\n' +
+      'X Error: 3: Bad Window\n' +
+      '  Request Major code: 15\n' +
+      '  ResourceID in failed request: 0x20000f\n' +
+      '  Serial number of failed request: 28\n' +
+      "xwininfo: error: Can't query window tree.\n"
+  ],
+  pid: 130767,
+  stdout: '\n' +
+    'xwininfo: Window id: 0x21f (the root window) (has no name)\n' +
+    '\n' +
+    '  Root window id: 0x21f (the root window) (has no name)\n' +
+    '  Parent window id: 0x0 (none)\n' +
+    '     2 children:\n' +
+    '     0x20000e "milkup": ("milkup-desktop" "Milkup-desktop")  1100x760+0+0  +0+0\n' +
+    '        1 child:\n' +
+    '        0x20000f (has no name): () \n',
+  stderr: 'X Error: 9: Bad Drawable\n' +
+    '  Request Major code: 14\n' +
+    '  ResourceID in failed request: 0x20000f\n' +
+    '  Serial number of failed request: 26\n' +
+    'X Error: 3: Bad Window\n' +
+    '  Request Major code: 15\n' +
+    '  ResourceID in failed request: 0x20000f\n' +
+    '  Serial number of failed request: 28\n' +
+    "xwininfo: error: Can't query window tree.\n"
+}
+
+Node.js v24.19.0

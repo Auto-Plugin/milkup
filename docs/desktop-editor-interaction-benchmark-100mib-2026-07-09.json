@@ -1,0 +1,156 @@
+{
+  "generatedAt": "2026-07-09T01:36:22.180Z",
+  "sourceSnapshot": "95c16615f6ee85cf069f7cbfc456ddeaa9337632",
+  "implementation": {
+    "mode": "desktop-editor-policy-source-backed-working-temp",
+    "expectedDesktopApi": "globalThis.__milkupDesktopTest.runDesktopEditorInteractionBenchmark",
+    "expectedPaths": [
+      "normal/incremental: desktop EditorView over memory document",
+      "large/ultra-large: desktop SourceDocumentView over LargeDocumentSource"
+    ]
+  },
+  "environment": {
+    "platform": "win32",
+    "release": "10.0.22631",
+    "arch": "x64",
+    "cpu": "Intel(R) Core(TM) i7-6700HQ CPU @ 2.60GHz",
+    "cpuCount": 8,
+    "totalMemoryBytes": 17096855552,
+    "freeMemoryBytesAfterRun": 7286030336,
+    "node": "v24.18.0",
+    "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/150.0.0.0 Safari/537.36 Edg/150.0.0.0",
+    "driverPath": "C:\\Users\\admin\\.cargo\\bin\\tauri-driver.exe",
+    "nativeDriverPath": "D:\\me\\project\\milkup\\.tmp\\msedgedriver-150.0.4078.48\\msedgedriver.exe",
+    "appPath": "D:\\me\\project\\milkup\\apps\\desktop\\src-tauri\\target\\x86_64-pc-windows-gnu\\debug\\milkup-desktop.exe",
+    "desktopProcessMemory": 57851904
+  },
+  "runs": [
+    {
+      "target": "100mib",
+      "description": "100 MiB desktop large-mode source-backed report",
+      "expectedPath": "large native SourceDocumentView path",
+      "fixture": {
+        "path": "C:\\Users\\admin\\AppData\\Local\\Temp\\milkup-desktop-interaction-22932-1783560961431\\desktop-interaction-100mib.md",
+        "retained": false,
+        "generated": true,
+        "sizeBytesBeforeRun": 104857600,
+        "sha256BeforeRun": "5c1efb755d56525b1c139aa9324534bd981505965e306fabc2ff38570ec1ba98",
+        "sizeBytesAfterRun": 104857632,
+        "sha256AfterRun": "672ff87036ad333c237935351dea4e6ad7acfb116fd9d4409f80b81c1fccccf7"
+      },
+      "benchmark": {
+        "afterInteractions": {
+          "dirty": false,
+          "documentId": "desktop-large-1783560966031",
+          "memoryDocLength": 0,
+          "memoryDocLineCount": 1,
+          "path": "C:/Users/admin/AppData/Local/Temp/milkup-desktop-interaction-22932-1783560961431/desktop-interaction-100mib.md",
+          "readonly": false,
+          "renderStrategy": "viewport-dom",
+          "renderedFromLine": "1",
+          "renderedLineCount": 51,
+          "renderedToLine": "51",
+          "scaleMode": "large",
+          "sourceLineCount": 1692447,
+          "sourceSizeBytes": 104857632,
+          "viewMode": "source"
+        },
+        "afterOpen": {
+          "dirty": false,
+          "documentId": "desktop-large-1783560966031",
+          "memoryDocLength": 0,
+          "memoryDocLineCount": 1,
+          "path": "C:/Users/admin/AppData/Local/Temp/milkup-desktop-interaction-22932-1783560961431/desktop-interaction-100mib.md",
+          "readonly": false,
+          "renderStrategy": "viewport-dom",
+          "renderedFromLine": "1",
+          "renderedLineCount": 46,
+          "renderedToLine": "46",
+          "scaleMode": "large",
+          "sourceLineCount": 1692446,
+          "sourceSizeBytes": 104857600,
+          "viewMode": "source"
+        },
+        "interactions": {
+          "flush": true,
+          "middleScroll": null,
+          "search": null,
+          "tailScroll": null,
+          "visibleClickToCursor": {
+            "clickedFrom": 98995852,
+            "clickedLine": 1597843,
+            "clickedTo": 98995914,
+            "cursorPosition": 98995853
+          },
+          "visibleEdit": null
+        },
+        "openDiagnostics": {
+          "id": 1,
+          "label": "desktop-editor-benchmark:C:/Users/admin/AppData/Local/Temp/milkup-desktop-interaction-22932-1783560961431/desktop-interaction-100mib.md",
+          "timings": [
+            {
+              "deltaMs": 0.5999999940395355,
+              "detail": "C:/Users/admin/AppData/Local/Temp/milkup-desktop-interaction-22932-1783560961431/desktop-interaction-100mib.md",
+              "elapsedMs": 0.5999999940395355,
+              "stage": "native-dialog-selected",
+              "timestampMs": 2130.2999999821186
+            },
+            {
+              "deltaMs": 4.600000023841858,
+              "detail": "104857600 bytes",
+              "elapsedMs": 5.200000017881393,
+              "stage": "file-metadata",
+              "timestampMs": 2134.9000000059605
+            },
+            {
+              "deltaMs": 0.5999999940395355,
+              "detail": "native-large-open",
+              "elapsedMs": 5.800000011920929,
+              "stage": "memory-document-start",
+              "timestampMs": 2135.5
+            },
+            {
+              "deltaMs": 6964.199999988079,
+              "detail": "80 preview lines",
+              "elapsedMs": 6970,
+              "stage": "memory-document-end",
+              "timestampMs": 9099.699999988079
+            },
+            {
+              "deltaMs": 0,
+              "detail": "large native-line-window",
+              "elapsedMs": 6970,
+              "stage": "first-editor-paint",
+              "timestampMs": 9099.699999988079
+            },
+            {
+              "deltaMs": 10.099999994039536,
+              "elapsedMs": 6980.0999999940395,
+              "stage": "first-interactive-focus",
+              "timestampMs": 9109.799999982119
+            }
+          ]
+        },
+        "path": "C:/Users/admin/AppData/Local/Temp/milkup-desktop-interaction-22932-1783560961431/desktop-interaction-100mib.md",
+        "timings": {
+          "clickToCursorMs": 29.5,
+          "flushMs": 1476.7,
+          "middleScrollMs": 56.4,
+          "openMs": 6980.9,
+          "searchFirstResultMs": 221.6,
+          "tailScrollMs": 47.7,
+          "visibleEditMs": 6538.1
+        }
+      },
+      "verification": {
+        "ranInsideDesktopWebView": true,
+        "activePathMatchedFixture": true,
+        "usedExpectedScaleMode": true,
+        "renderedLineCount": 51,
+        "hasClickToCursorMetric": true,
+        "flushMarkerPresent": true
+      },
+      "wallTimeMs": 16777.57
+    }
+  ]
+}

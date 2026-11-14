@@ -1,0 +1,29 @@
+{
+  "name": "@milkup/view-dom",
+  "version": "2.0.0-beta.1",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "import": "./src/index.ts"
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "bench": "vitest run src/__tests__/view-benchmark.test.ts",
+    "test": "vitest run",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "@milkup/assets": "workspace:*",
+    "@milkup/core": "workspace:*",
+    "@milkup/input": "workspace:*",
+    "@milkup/markdown": "workspace:*"
+  },
+  "devDependencies": {
+    "jsdom": "^27.1.0",
+    "typescript": "^5.8.3",
+    "vitest": "^3.2.4"
+  }
+}

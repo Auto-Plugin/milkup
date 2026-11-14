@@ -1,0 +1,51 @@
+"""Offline evidence verification plus one exact recorded-PID /proc read. No runtime/signal."""
+import json,hashlib,datetime
+from pathlib import Path
+B=Path('/workspace/milkup-mermaid-engine-evidence'); N='mermaid-ui-production08-observed-01'
+C=B/'product-ui-runs/control'/N; R=B/'product-ui-runs/runs'/N; O=B/'research/cold-start-cpu-review-01'
+def read(p):return json.loads(p.read_text())
+def save(n,v):(O/n).write_text(json.dumps(v,ensure_ascii=False,indent=2)+'\n')
+m=read(C/'completed-manifest.json'); checks=[]
+for category in ['files','externalReferences']:
+ for entry in m[category]:
+  p=Path(entry['path']); p=p if p.is_absolute() else B/p
+  q={'category':category,'path':str(p),'expectedBytes':entry['bytes'],'expectedSha256':entry['sha256']}
+  try:
+   raw=p.read_bytes();q.update(bytes=len(raw),sha256=hashlib.sha256(raw).hexdigest());q['match']=q['bytes']==q['expectedBytes'] and q['sha256']==q['expectedSha256']
+  except OSError as e:q.update(match=False,error=str(e))
+  checks.append(q)
+save('manifest-verification.json',{'checkedAt':datetime.datetime.now(datetime.timezone.utc).isoformat(),'manifestSha256':hashlib.sha256((C/'completed-manifest.json').read_bytes()).hexdigest(),'fileCount':m['fileCount'],'actualFilesCount':len(m['files']),'totalBytes':m['totalBytes'],'actualDeclaredFilesBytes':sum(e['bytes'] for e in m['files']),'allMatch':all(c['match'] for c in checks),'checks':checks})
+s=read(R/'cpu-observer/summary.json'); tr=[]
+for i,line in enumerate((B/'product-ui-runs/logs'/f'{N}-driver.log').read_text().splitlines(),1):
+ if line.startswith('DOM_NATIVE_TIMING '):tr.append({'logLine':i,**json.loads(line[len('DOM_NATIVE_TIMING '):])})
+d=next(t['monotonicNs'] for t in tr if t['requestId']=='render_3' and t['phase']=='dispatch'); end=s['firstDeadline']['monotonicNs']
+for t in tr:t['relativeToRender3DispatchMs']=(t['monotonicNs']-d)/1e6
+save('timeline.json',{'nativeTracesMatch':[{k:v for k,v in t.items() if k not in ['logLine','relativeToRender3DispatchMs']} for t in tr]==read(C/'native-traces.json'),'render3DispatchNs':d,'deadlineNs':end,'phases':tr,'observerDelayMs':s['firstDeadline']['observedDelayNs']/1e6,'observerBoundMsAfterAppBirth':(s['startedMonoNs']-s['identity']['birth']*1e7)/1e6,'wallClockNote':'No exact CLOCK_REALTIME/CLOCK_MONOTONIC pair in saved evidence; UTC records retained separately.'})
+def interval(rows,kind):
+ a,z=rows[0],rows[-1];sec=(z['monoNs']-a['monoNs'])/1e9
+ o={'sampleCount':len(rows),'firstMonoNs':a['monoNs'],'lastMonoNs':z['monoNs'],'wallSeconds':sec,'firstMinusDispatchMs':(a['monoNs']-d)/1e6,'deadlineMinusLastMs':(end-z['monoNs'])/1e6}
+ if kind=='app':
+  u=z['utime']-a['utime'];sy=z['stime']-a['stime'];o.update(userTicks=u,systemTicks=sy,cpuSeconds=(u+sy)/s['clockTicksPerSecond'],oneCorePercent=(u+sy)/s['clockTicksPerSecond']/sec*100)
+ else:
+  for f in ['cpu.stat','memory.events']:
+   o[f]={k:v-a['files'][f]['values'][k] for k,v in z['files'][f]['values'].items()}
+  o['cpuSeconds']=o['cpu.stat']['usage_usec']/1e6;o['oneCorePercent']=o['cpuSeconds']/sec*100
+ return o
+calc={}
+for kind in ['app','cgroup']:
+ rows=s[kind]['samples'];calc[kind]={'full':interval(rows,kind),'wholeSamplesWithinRender3':interval([r for r in rows if d<=r['monoNs']<=end],kind),'maxLateMs':max(r['lateNs'] for r in rows)/1e6}
+calc.update(renderer='NOT MEASURED',clockTicksPerSecond=s['clockTicksPerSecond'],observerOwnCpuMs=s['overhead']['observerOwnCpuNs']/1e6,sampleFiles=[p.name for p in (R/'cpu-observer').iterdir()])
+save('recomputed-cpu.json',calc)
+a=read(C/'cleanup-audit.json'); ident=a['ownedIdentities']+[{'role':'trace-guardian','pid':r['pid'],'birth':r['historicalBirth']} for r in a['extraTracePidObservations']]
+# Warning text names another PID; retain it as unbound log-only observation, not an owned renderer identity.
+ident += [{'role':'warning-log-only-unbound','pid':463910,'birth':None}]
+now=[]
+for i in ident:
+ r={'role':i['role'],'pid':i['pid'],'historicalBirth':i.get('birth'),'checkedAt':datetime.datetime.now(datetime.timezone.utc).isoformat()}
+ try:
+  raw=Path(f'/proc/{i["pid"]}/stat').read_text();w=raw[raw.rfind(')')+1:].split();r.update(currentBirth=w[19],state=w[0],sameIdentity=str(i.get('birth'))==w[19] if i.get('birth') is not None else None)
+ except FileNotFoundError:r['state']='absent'
+ except OSError as e:r.update(state='unreadable',error=str(e))
+ now.append(r)
+save('recorded-pid-check.json',{'method':'One pass over seven PIDs already present in saved run evidence. No enumeration, signals, runtime or port probes. Birthless PIDs cannot prove historical identity if present.','observations':now,'limitation':'No captured renderer/descendant identity set; cannot certify every past descendant absent.'})
+print(json.dumps({'manifestChecks':len(checks),'allMatch':all(c['match'] for c in checks),'mismatches':[c for c in checks if not c['match']],'computed':calc,'currentPids':now},indent=2))

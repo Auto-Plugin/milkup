@@ -1,0 +1,34 @@
+2026-10-16T03:48:04.334Z NATIVE_STARTUP_WINDOW 4519ms
+PASS 00-installed-distribution
+PASS installed-milkup.math
+PASS enabled-milkup.math
+PASS installed-milkup.diagrams
+PASS enabled-milkup.diagrams
+PASS installed-milkup.footnotes
+PASS enabled-milkup.footnotes
+PASS ordinary-root-source-revealed
+PASS ordinary-flow-source-revealed
+PASS ordinary-graph-keyboard-focus
+PASS ordinary-footnote-keyboard-focus
+PASS ordinary-footnote-definition
+PASS ordinary-footnote-return
+PASS ordinary-invalid-source-fallback
+PASS ordinary-opaque-context-source
+PASS editing-ordinary-source-saved
+PASS editing-ordinary-source-undo
+PASS editing-ordinary-source-redo
+PASS editing-ordinary-live-saved
+PASS editing-ordinary-live-undo
+PASS editing-ordinary-live-redo
+PASS windowed-root-source-revealed
+PASS FAIL
+node:internal/modules/run_main:107
+    triggerUncaughtException(
+    ^
+
+Error: Timeout: click preview reveals editable source
+    at Object.until (file:///workspace/milkup/tests/helpers/native-production.mjs:46:11)
+    at async semantics (file:///workspace/milkup/tests/native/tauri-markdown-extensions.mjs:1000:5)
+    at async file:///workspace/milkup/tests/native/tauri-markdown-extensions.mjs:1300:7
+
+Node.js v24.19.0

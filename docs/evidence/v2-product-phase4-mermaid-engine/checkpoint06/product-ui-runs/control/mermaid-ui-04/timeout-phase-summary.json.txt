@@ -1,0 +1,81 @@
+{
+  "instanceId": "a578b14039c3d010ffa15d8cd43a02aaf7c28397dc84bcdc",
+  "requestId": "render_68",
+  "sequence": [
+    {
+      "instanceId": "a578b14039c3d010ffa15d8cd43a02aaf7c28397dc84bcdc",
+      "monotonicNs": 55993548668858,
+      "phase": "dispatch",
+      "pid": 353375,
+      "requestId": "render_68"
+    },
+    {
+      "instanceId": "a578b14039c3d010ffa15d8cd43a02aaf7c28397dc84bcdc",
+      "monotonicNs": 55995548819357,
+      "phase": "deadline-observed",
+      "pid": 353375,
+      "requestId": "render_68"
+    },
+    {
+      "instanceId": "a578b14039c3d010ffa15d8cd43a02aaf7c28397dc84bcdc",
+      "monotonicNs": 55995548916301,
+      "phase": "kill-start",
+      "pid": 353708,
+      "requestId": null
+    },
+    {
+      "instanceId": "a578b14039c3d010ffa15d8cd43a02aaf7c28397dc84bcdc",
+      "monotonicNs": 55995716652368,
+      "phase": "cleanup-complete",
+      "pid": 353708,
+      "requestId": null
+    },
+    {
+      "instanceId": "a578b14039c3d010ffa15d8cd43a02aaf7c28397dc84bcdc",
+      "monotonicNs": 55995726665917,
+      "phase": "cleanup-confirmed",
+      "pid": 353375,
+      "requestId": null
+    },
+    {
+      "instanceId": "a578b14039c3d010ffa15d8cd43a02aaf7c28397dc84bcdc",
+      "monotonicNs": 55995726703355,
+      "phase": "control-emitted",
+      "pid": 353375,
+      "requestId": "render_68"
+    },
+    {
+      "instanceId": "a578b14039c3d010ffa15d8cd43a02aaf7c28397dc84bcdc",
+      "monotonicNs": 55996474123081,
+      "phase": "cleanup-confirmed",
+      "pid": 353375,
+      "requestId": null
+    },
+    {
+      "instanceId": "a578b14039c3d010ffa15d8cd43a02aaf7c28397dc84bcdc",
+      "monotonicNs": 55996474434227,
+      "phase": "cleanup-confirmed",
+      "pid": 353375,
+      "requestId": null
+    }
+  ],
+  "dispatchToDeadlineMs": 2000.150499,
+  "deadlineToKillStartMs": 0.096944,
+  "killStartToGuardianCleanupMs": 167.736067,
+  "guardianCleanupToParentConfirmationMs": 10.013549,
+  "deadlineToControlMs": 177.883998,
+  "echildEvidence": "cleanup-complete is emitted only after guardian waitpid(-1,WNOHANG) returns ECHILD; cleanup-confirmed follows successful exact guardian wait. This is production trace plus frozen source semantics, not independent child enumeration in this UI run.",
+  "semanticsSources": [
+    {
+      "source": "/workspace/milkup/apps/desktop/src-tauri/src/plugin_dom_process.rs",
+      "frozen": "/workspace/milkup-mermaid-engine-evidence/product-ui-runs/control/mermaid-ui-04/trace-semantics-plugin_dom_process.rs",
+      "sha256": "f5e413dac08345f96069b9a75120687243d87031c91861beb87a856011cd99d8"
+    },
+    {
+      "source": "/workspace/milkup/apps/desktop/src-tauri/src/plugin_dom_guardian.rs",
+      "frozen": "/workspace/milkup-mermaid-engine-evidence/product-ui-runs/control/mermaid-ui-04/trace-semantics-plugin_dom_guardian.rs",
+      "sha256": "44fd4cfd661817cddd2cf0b9bdb5090ddeea1f18de91dfb46cb8ac94d2211054"
+    }
+  ],
+  "payloadBoundary": "No request payload hook in acceptance; render_68 source/range cannot be inferred from the current search alone."
+}

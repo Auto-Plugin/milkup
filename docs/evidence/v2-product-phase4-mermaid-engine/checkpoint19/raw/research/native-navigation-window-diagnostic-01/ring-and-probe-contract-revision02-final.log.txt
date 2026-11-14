@@ -1,0 +1,11 @@
+PASS clock-only changes deduplicate without hiding sample/read cost
+PASS explicit key phases retain one atomic snapshot without double counting read cost
+PASS changed-state count cap preserves initial and terminal phases
+PASS total UTF8 byte bound includes newline and evicts ordinary rows first
+PASS single oversize state retains explicit omission and key phase
+PASS missing page snapshot remains missing, never synthesized as successful DOM
+{"cases":6,"scope":"Pure in-memory ring only; no browser/driver/sampler execution"}
+PASS same page task preserves original probe values and reports absent public DOM honestly
+{"finalCases":7,"scope":"Pure memory and fake public DOM only; no page, process or browser launched"}
+PASS unmounted target still captures bounded actual mounted preview and flags child-scan truncation
+{"finalReviewedCases":8,"nativeRuntime":false}

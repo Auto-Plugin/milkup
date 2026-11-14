@@ -1,0 +1,19 @@
+import fs from 'node:fs';
+import path from 'node:path';
+import crypto from 'node:crypto';
+import {copyDocumentSvgImage,createDocumentOutputBudget,serializeDocumentSvgImage} from './product-host-validator05.mjs';
+const base=path.dirname(new URL(import.meta.url).pathname);
+const out=path.join(base,'product-converter05-host-validation');fs.mkdirSync(out);
+const sha=x=>crypto.createHash('sha256').update(x).digest('hex');
+const resultFile=path.join(base,'runs/product-converter-gantt-fifth01/scan_022-result.json');
+const input=fs.readFileSync(resultFile);const result=JSON.parse(input);const budget=createDocumentOutputBudget();
+try {
+ const image=copyDocumentSvgImage(result.image,budget,0);
+ const canonical=serializeDocumentSvgImage(image,{idPrefix:'gantt05'});
+ fs.writeFileSync(path.join(out,'gantt.svg'),canonical);
+ const identities=image.definitions.filter(d=>d.id.startsWith('opacityBound'));
+ const summary={status:'accepted',resultFile,resultSha256:sha(input),rasterBounds:image.rasterBounds,budget,canonicalSha256:sha(canonical),canonicalBytes:Buffer.byteLength(canonical),boundedIdentityDefinitions:identities,scope:'Actual fresh product converter AST. Independent current core validation and serialization; pixel acceptance remains separate.'};
+ fs.writeFileSync(path.join(out,'results.json'),JSON.stringify(summary,null,2)+'\n');console.log(JSON.stringify(summary,null,2));
+} catch(e) {
+ fs.writeFileSync(path.join(out,'results.json'),JSON.stringify({status:'rejected',error:String(e),stack:e.stack,budget,resultFile,resultSha256:sha(input)},null,2)+'\n');throw e;
+}

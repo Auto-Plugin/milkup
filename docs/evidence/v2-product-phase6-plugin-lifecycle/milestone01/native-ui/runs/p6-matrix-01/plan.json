@@ -1,0 +1,217 @@
+{
+  "stage": "manager-matrix",
+  "format": "html",
+  "basedOn": {
+    "file": "tests/native/tauri-p5-diagrams-output.mjs",
+    "sha256": "af1eaa490ea09f498bc8aabd216494007d614c7f4ad6fc99f43395d124a9d215"
+  },
+  "binary": "/workspace/milkup-plugin-lifecycle-evidence/milestone01/production-accepted/milkup-desktop",
+  "binarySha256": "58652f2cea9361b6ee562a65f7405259f2320f9ac170bf9598a798e58905789e",
+  "packages": [
+    {
+      "file": "/workspace/milkup-plugin-lifecycle-evidence/milestone01/outline-external/milkup.outline-1.3.1.milkup-plugin",
+      "sha256": "7eea6ffb5bba53155b3c256c6e35d95b04a93199ebbbd04636ee9c7ec5f6f712",
+      "manifest": {
+        "id": "milkup.outline",
+        "name": "Milkup Outline",
+        "version": "1.3.1",
+        "description": "Show a read-only document outline.",
+        "host": "worker",
+        "main": "./dist/plugin.js",
+        "engines": {
+          "milkup": "^2.0.0-0",
+          "pluginSdk": ">=0.2.0 <0.4.0"
+        },
+        "permissions": [
+          "document:read"
+        ],
+        "contributes": {
+          "commands": [
+            {
+              "id": "outline.gotoHeading",
+              "title": "Go to heading",
+              "action": "outline.gotoHeading",
+              "category": "navigation",
+              "inputSchema": {
+                "type": "object",
+                "properties": {
+                  "line": {
+                    "type": "number",
+                    "required": true,
+                    "description": "Heading line number"
+                  },
+                  "documentId": {
+                    "type": "string",
+                    "required": true
+                  },
+                  "version": {
+                    "type": "number",
+                    "required": true
+                  },
+                  "generation": {
+                    "type": "number",
+                    "required": true
+                  },
+                  "ordinal": {
+                    "type": "number",
+                    "required": true
+                  },
+                  "id": {
+                    "type": "string",
+                    "required": true
+                  }
+                }
+              }
+            },
+            {
+              "id": "outline.toggleHeading",
+              "title": "Collapse or expand heading",
+              "action": "outline.toggleHeading",
+              "category": "navigation",
+              "inputSchema": {
+                "type": "object",
+                "properties": {
+                  "line": {
+                    "type": "number",
+                    "required": true,
+                    "description": "Positive integer heading line number"
+                  },
+                  "documentId": {
+                    "type": "string",
+                    "required": true
+                  },
+                  "version": {
+                    "type": "number",
+                    "required": true
+                  },
+                  "generation": {
+                    "type": "number",
+                    "required": true
+                  },
+                  "ordinal": {
+                    "type": "number",
+                    "required": true
+                  },
+                  "id": {
+                    "type": "string",
+                    "required": true
+                  }
+                }
+              }
+            },
+            {
+              "id": "outline.collapseAll",
+              "title": "Collapse all headings",
+              "action": "outline.collapseAll",
+              "category": "navigation"
+            },
+            {
+              "id": "outline.expandAll",
+              "title": "Expand all headings",
+              "action": "outline.expandAll",
+              "category": "navigation"
+            },
+            {
+              "id": "outline.cancel",
+              "title": "Cancel outline indexing",
+              "action": "outline.cancel",
+              "category": "navigation"
+            },
+            {
+              "id": "outline.retry",
+              "title": "Retry outline indexing",
+              "action": "outline.retry",
+              "category": "navigation"
+            }
+          ],
+          "ui": [
+            {
+              "id": "outline-panel",
+              "slot": "sidebar-panel",
+              "title": "大纲",
+              "scope": "document",
+              "viewportUpdates": true
+            }
+          ]
+        }
+      }
+    },
+    {
+      "file": "/workspace/milkup-plugin-lifecycle-evidence/milestone01/footnotes-external/artifacts/milkup.footnotes-1.0.1.milkup-plugin",
+      "sha256": "cf495f6bdf22dc6b24143a06fc34fdce8d2b2ecab90b8296b85fb49773b692a2",
+      "manifest": {
+        "id": "milkup.footnotes",
+        "name": "Milkup Footnotes",
+        "version": "1.0.1",
+        "description": "有界脚注索引、定义与引用导航；编辑时保留 Markdown 源文。",
+        "host": "worker",
+        "main": "./dist/plugin.js",
+        "engines": {
+          "milkup": "^2.0.0-0",
+          "pluginSdk": ">=0.3.6 <0.4.0"
+        },
+        "permissions": [
+          "document:read"
+        ],
+        "contributes": {
+          "documentRenderers": [
+            {
+              "id": "footnotes",
+              "contexts": [
+                "text"
+              ]
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "rejectedCandidates": [],
+  "fixture": {
+    "id": "single-r1",
+    "file": "single-r1.md",
+    "format": "markdown",
+    "fixtureRevision": "single-r1",
+    "sourceSHA256": "4a5112399a0afcf9b634076263034d79cf1248d3388d3585cd0551a65bb16b41",
+    "sourceBytes": 231,
+    "sourceUtf16": 178,
+    "sourceLines": 12,
+    "diagrams": [
+      {
+        "ordinal": 1,
+        "fromUtf16": 61,
+        "toUtf16": 158,
+        "rangeIncludesClosingNewline": true,
+        "fenceSHA256": "4210adc5c3253055f548ede046e11691537822502e4cf120d6b3219751de72c6",
+        "nodeLabels": [
+          "P5M6S-R1-A 中文输入",
+          "P5M6S-R1-B 冻结内容",
+          "P5M6S-R1-C 打印"
+        ],
+        "nodeCount": 3,
+        "edgeCount": 2
+      }
+    ],
+    "bodyMarkersExactlyOnce": [
+      "P5M6-SINGLE-R1-BODY",
+      "P5M6-SINGLE-R1-END"
+    ],
+    "allowedWarningKinds": [],
+    "forbiddenRevisionMarkers": [
+      "P5M6-SINGLE-R2",
+      "P5M6S-R2"
+    ]
+  },
+  "sourcePath": "/workspace/milkup-plugin-lifecycle-evidence/milestone01/native-ui/runs/p6-matrix-01/source.md",
+  "fixtureManifestSha256": "e4e9e719a82a53f599a6010c21c78ba7fd7c3f60e486abc43653fcef24ace948",
+  "preparedOnly": false,
+  "memoryMeasurement": "not sampled; preload memory increment is unknown",
+  "nativeLog": "/workspace/milkup-plugin-lifecycle-evidence/milestone01/native-ui/logs/p6-matrix-01-driver.log",
+  "boundaries": [
+    "No renderer deadline/isolation changes; existing 2s budget remains.",
+    "First output is not proof of first render: the editor may pre-render.",
+    "Upgrade rollback and permission-delta transactions are outside this first checkpoint; never simulate them with registry mutation.",
+    "PDF raster is retained for separate visual review; text presence never proves a diagram.",
+    "Cold cases do not run a renderer warmup; editor pre-rendering remains observable and is not called a first-render guarantee."
+  ]
+}

@@ -1,0 +1,97 @@
+import hashlib, json, pathlib, re
+
+OUT = pathlib.Path(__file__).resolve().parent
+ROOT = pathlib.Path('/workspace/milkup-mermaid-engine-evidence/research')
+SPECS = [('production08-generic-busy-final-01', '4fb108f375481a30be976bd6251ccf8900b8517bad0ac025d841350fb9c0b5dd', [0,0,1]), ('production08-generic-busy-proof-fix-01', '7334c840c92a6aa2eadd4a7681931f4d66b41a567e6ca46707f94e707bb79e82', [0,0,0])]
+def sha(b): return hashlib.sha256(b).hexdigest()
+def read(p): return json.loads(p.read_text())
+report = {'scope':'Frozen offline audit only; original failure retained; no native execution', 'manifests':[], 'cases':[], 'sourceChecks':[]}
+for name, expected, exits in SPECS:
+    base = ROOT/name
+    mp = base/'completed-manifest.json'
+    assert sha(mp.read_bytes()) == expected
+    m = read(mp); assert pathlib.Path(m['root']).resolve() == base.resolve()
+    seen = set(); total = 0
+    for entry in m['files']:
+        rel = pathlib.Path(entry['path']); p = base/rel
+        assert not rel.is_absolute() and '..' not in rel.parts
+        assert str(rel) not in seen; seen.add(str(rel))
+        assert p.resolve().is_relative_to(base.resolve()) and p.is_file() and not p.is_symlink()
+        b = p.read_bytes(); assert len(b) == entry['bytes'] and sha(b) == entry['sha256'], str(p)
+        total += len(b)
+    assert len(seen) == m['fileCount'] and total == m['totalBytes'] and m['symlinks'] == []
+    report['manifests'].append({'path':str(mp),'sha256':expected,'verifiedFiles':len(seen),'verifiedBytes':total})
+    summaries = read(base/'first-results-summary.json')['cases']
+    active = [c for c in summaries if 'actualExitCode' in c]
+    assert [c['actualExitCode'] for c in active] == exits
+    if name.endswith('busy-final-01'):
+        assert len(summaries) == 5 and all(c['status']=='NOT_RUN_STOPPED_AFTER_REMOVE_FIRST_FAILURE' for c in summaries[3:])
+    for c in active:
+        run = c['run']; p = base/'lifecycle/runs'/run; ctl = base/'lifecycle/control'
+        events = read(p/'events.json')
+        def event(n): return next(e for e in events if e['name']==n)
+        installed = event('installed-enabled-real-layout'); g = installed['binding']['selectedGuardian']
+        before = event('activate-loop-view')['baseline']; busy = event('actual-webkit-busy'); proc = busy['busy']; dispatch = busy['originalDispatch']
+        bproc = next(x for x in before['members'] if x['pid']==proc['pid'] and x['birth']==proc['birth'])
+        delta = proc['ticks']-bproc['ticks']; assert delta >= 10 and proc['state']=='R' and proc['name'].startswith('WebKitWebPro')
+        # Verify ancestry within saved baseline, never enumerate live processes.
+        table = {x['pid']:x for x in before['members']}; chain = []; cur = bproc
+        while cur['pid'] != g['pid']:
+            assert cur['pid'] not in chain; chain.append(cur['pid']); cur=table[cur['parent']]
+        chain.append(g['pid']); assert cur['birth']==g['birth']
+        observer = read(p/'process-observer/summary.json'); app = observer['root']
+        assert observer['selectedGuardian']==g and g['parent']==app['pid']
+        assert dispatch['instanceId']==g['instanceId'] and dispatch['pid']==app['pid'] and dispatch['requestId']=='render_2'
+        traces = [json.loads(x) for x in re.findall(r'DOM_NATIVE_TIMING (\{[^\n]+\})', (p/'native-app.log').read_text())]
+        traces = [t for t in traces if t['instanceId']==g['instanceId']]
+        assert dispatch in traces
+        tp=p/'native-traces.json'
+        if tp.exists(): assert read(tp)==traces
+        samples=[json.loads(x) for x in (p/'process-observer/samples.ndjson').read_text().splitlines()]
+        assert any(any(x==proc for x in row['members']) for row in samples)
+        assert observer['knownPidBirth'][str(proc['pid'])]==proc['birth'] and observer['cleanupObserved']
+        cleared=event('owned-context-cleared'); obs=cleared['observation']
+        assert cleared['elapsedMs'] < 4500 and not obs['members'] and not obs['guardians'] and not obs['privateDirectoryExists']
+        assert obs['appAlive'] == (c['case'] not in ['wm-close','app-sigkill'])
+        assert cleared['monotonicNs'] < event('verdict')['monotonicNs'] < event('test-cleanup-after-verdict')['monotonicNs']
+        post=read(ctl/(run+'-postcheck.json')); tools=read(ctl/(run+'-tool-exits.json'))
+        assert post['harnessExitCode']==tools['harnessToolExit']==c['actualExitCode']
+        assert post['allKnownGone'] and not post['listeners'] and post['xvfbPreserved'] and post['inputDrift']==[]
+        assert all(not x['sameIdentityPresent'] for x in post['knownIdentities'])
+        kills=[t for t in traces if t['phase']=='kill-start']; assert any(t['pid']==g['pid'] for t in kills)
+        completes=[t for t in traces if t['phase']=='cleanup-complete']; confirms=[t for t in traces if t['phase']=='cleanup-confirmed' and t['pid']==app['pid']]
+        item={'run':run,'case':c['case'],'exit':c['actualExitCode'],'app':{'pid':app['pid'],'birth':app['birth']},'guardian':g,'renderer':proc,'baselineTicks':bproc['ticks'],'busyDeltaTicks':delta,'savedParentChain':chain,'dispatch':dispatch,'cleanupObservedElapsedMs':cleared['elapsedMs'],'knownGone':len(post['knownIdentities']),'waitOnlyReaps':post['reaps'],'cleanupComplete':completes,'cleanupConfirmed':confirms}
+        if c['case']=='timeout':
+            deadline=next(t for t in traces if t['phase']=='deadline-observed'); emitted=next(t for t in traces if t['phase']=='control-emitted')
+            assert deadline['pid']==dispatch['pid'] and deadline['requestId']==dispatch['requestId']==emitted['requestId']
+            elapsed=(deadline['monotonicNs']-dispatch['monotonicNs'])/1e6; assert 2000<=elapsed<2250
+            assert not any(t['phase']=='dispatch' and dispatch['monotonicNs']<t['monotonicNs']<deadline['monotonicNs'] for t in traces)
+            assert completes and emitted['monotonicNs']>=completes[0]['monotonicNs']
+            item['sameAppDispatchToDeadlineMs']=elapsed
+        if c['actualExitCode']==1:
+            assert c['case']=='remove' and 'Actual fixture guardian ECHILD diagnostic' in event('verdict')['error'] and not completes
+            item['qualification']='Original missing diagnostic assertion failure retained; functional clearing is not a retroactive PASS.'
+        elif c['case']=='app-sigkill':
+            proof=event('guardian-natural-exit-proof'); reaped=proof['reaped']; owner=read(ctl/(run+'-driver-owner.json'))
+            reaps=read(ctl/(run+'-ancestor-reaps.json')); assert reaped in reaps
+            assert reaped['identity']['pid']==g['pid'] and str(reaped['identity']['birth'])==str(g['birth'])
+            assert reaped['identity']['parent']==owner['ancestorPid'] and reaped['exitCode']==0 and reaped['noSignalSent']
+            assert reaped['waitpidCompletedMonotonicNs']>=reaped['exitedObservedMonotonicNs']
+            assert proof['exactEchildMonotonicNs'] is None and not completes and not confirms
+            assert proof['echildCompletedUpperBoundMonotonicNs']==reaped['exitedObservedMonotonicNs']
+            item['naturalExitProof']=proof
+        elif 'proof-fix' in name:
+            proof=event('guardian-app-wait-proof'); assert proof['guardian']==g and proof['confirmed'] in confirms and proof['killStarted'] in kills
+            assert proof['exactEchildMonotonicNs']==completes[0]['monotonicNs']
+            item['appWaitProof']=proof
+        report['cases'].append(item)
+# Preserve inspected source bytes and tie them to the production build's source manifest.
+source_manifest=pathlib.Path('/workspace/milkup-mermaid-engine-evidence/linux-production-08/source-before.json')
+source_entries={e['path']:e for e in read(source_manifest)['files']}
+for file in ['plugin_dom_guardian.rs','plugin_dom_process.rs']:
+    rel='apps/desktop/src-tauri/src/'+file; b=(pathlib.Path('/workspace/milkup')/rel).read_bytes()
+    assert sha(b)==source_entries[rel]['sha256']
+    (OUT/file).write_bytes(b)
+    report['sourceChecks'].append({'path':rel,'sha256':sha(b),'productionSourceManifest':str(source_manifest),'productionSourceManifestSha256':sha(source_manifest.read_bytes())})
+(OUT/'audit.json').write_text(json.dumps(report,indent=2)+'\n')
+print(json.dumps({'audit':'PASS','manifestFiles':sum(x['verifiedFiles'] for x in report['manifests']),'manifestBytes':sum(x['verifiedBytes'] for x in report['manifests']),'runs':len(report['cases']),'originalRemoveExit':1}))

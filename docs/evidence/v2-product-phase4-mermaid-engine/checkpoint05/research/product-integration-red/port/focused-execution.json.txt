@@ -1,0 +1,55 @@
+[
+  {
+    "name": "08-core-focused-first",
+    "command": [
+      "node",
+      "node_modules/vitest/vitest.mjs",
+      "run",
+      "packages/core/src/__tests__/document-svg-image.test.ts",
+      "packages/core/src/__tests__/document-svg-image-security.test.ts",
+      "packages/core/src/__tests__/document-svg-image-cost.test.ts",
+      "packages/core/src/__tests__/document-presentation.test.ts"
+    ],
+    "startUtc": "2026-10-16T11:26:57.582018+00:00",
+    "elapsedSeconds": 1.9913088230023277,
+    "exit": 0
+  },
+  {
+    "name": "09-core-types-current",
+    "command": [
+      "node",
+      "node_modules/typescript/bin/tsc",
+      "-p",
+      "packages/core/tsconfig.json",
+      "--noEmit"
+    ],
+    "startUtc": "2026-10-16T11:26:59.573874+00:00",
+    "elapsedSeconds": 4.35909034100041,
+    "exit": 0
+  },
+  {
+    "name": "10-sdk-types-current",
+    "command": [
+      "node",
+      "node_modules/typescript/bin/tsc",
+      "-p",
+      "packages/plugin-sdk/tsconfig.json",
+      "--noEmit"
+    ],
+    "startUtc": "2026-10-16T11:27:03.933149+00:00",
+    "elapsedSeconds": 1.077595148999535,
+    "exit": 0
+  },
+  {
+    "name": "11-sdk-contract-current",
+    "command": [
+      "node",
+      "node_modules/typescript/bin/tsc",
+      "-p",
+      "packages/plugin-sdk/tsconfig.contract.json"
+    ],
+    "startUtc": "2026-10-16T11:27:05.011110+00:00",
+    "elapsedSeconds": 2.3304112359983264,
+    "exit": 0
+  }
+]

@@ -1,0 +1,732 @@
+// Production preferences acceptance. Native keys/pointer perform every action;
+// WebDriver observes shipped DOM. No settings, document, or IPC state injection.
+import assert from 'node:assert/strict'
+import { execFileSync } from 'node:child_process'
+import { createHash } from 'node:crypto'
+import { mkdir, readFile, writeFile, appendFile } from 'node:fs/promises'
+import path from 'node:path'
+import { startProduction } from '../helpers/native-production.mjs'
+import { action, nativeFixture, x } from '../helpers/native-updates-fixture.mjs'
+
+const id = 'milkup.preferences'
+const panel = '[data-plugin-ui="milkup.preferences:preferences-panel"]'
+const field = (key) => `${panel} [data-plugin-field-control="${key}"]`
+const command = (name) => `${panel} [data-plugin-command="preferences.${name}"]`
+const output =
+  process.env.MILKUP_NATIVE_EVIDENCE_DIR || '/workspace/milkup-preferences-phase3-evidence/native'
+const archive =
+  process.env.MILKUP_PREFERENCES_ARCHIVE ||
+  '/workspace/milkup-preferences-phase3-evidence/preferences/external/dist/milkup.preferences-1.0.0.milkup-plugin'
+const binary = process.env.TAURI_APP_PATH
+const hash = (bytes) => createHash('sha256').update(bytes).digest('hex')
+await mkdir(output, { recursive: true })
+const bundle = JSON.parse(await readFile(archive, 'utf8'))
+assert.equal(bundle.manifest.id, id)
+assert.equal(bundle.manifest.engines.pluginSdk, '^0.3.1')
+assert.deepEqual(bundle.manifest.permissions, ['settings:write'])
+assert(bundle.files.some((f) => f.path === bundle.manifest.icon && f.encoding === 'base64'))
+if (process.argv.includes('--preflight')) {
+  console.log('PASS independent preferences archive preflight; no application started')
+  process.exit(0)
+}
+assert.equal(
+  process.env.MILKUP_P3_BINARY_CONFIRMED,
+  '1',
+  'Wait for the confirmed final P3 Linux production build',
+)
+assert(binary, 'Set TAURI_APP_PATH explicitly')
+await writeFile(
+  path.join(output, 'provenance.json'),
+  JSON.stringify(
+    {
+      binary,
+      binarySha256: hash(await readFile(binary)),
+      archive,
+      archiveSha256: hash(await readFile(archive)),
+      display: process.env.DISPLAY,
+      driver: process.env.TAURI_DRIVER_URL,
+      sourceHead: execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim(),
+      input: 'XTest pointer and keyboard; read-only DOM observations; ordinary GTK file selection',
+    },
+    null,
+    2,
+  ),
+)
+const launcher = path.join(output, 'launcher.md')
+await writeFile(launcher, '# Preferences acceptance\r\n')
+const prefix =
+  '# Preferences 中文😀\r\n```text\r\n' +
+  'long-code-'.repeat(250) +
+  '\r\n```\r\n\r\n- 中文 👩🏽‍💻 é\r\n\r\n'
+const contents = new Map([
+  ['ordinary', prefix + '正文保留。\r\n'],
+  [
+    'windowed',
+    prefix +
+      Array.from(
+        { length: 18000 },
+        (_, i) => `Line ${i} 中文 é 👩🏽‍💻 ${'preserved '.repeat(15)}\r\n`,
+      ).join(''),
+  ],
+])
+for (const [name, text] of contents) {
+  assert(!/(^|[^\r])\n/.test(text), `${name}: genuine CRLF throughout`)
+  assert(!text.includes('\\r\\n'), `${name}: no literal newline escapes`)
+  await writeFile(path.join(output, `${name}.md`), text)
+}
+let app
+let activeFile = launcher
+const ui = nativeFixture(() => app)
+const results = []
+const observe = () =>
+  app.execute(
+    `
+const e=document.querySelector('.milkup-editor'),c=document.querySelector('.milkup-editor-content'),p=document.querySelector(arguments[0]),a=document.activeElement;
+const modal=a?.closest('[data-plugin-ui]'), ar=a?.getBoundingClientRect(), mr=modal?.getBoundingClientRect();
+const focusBounds=modal&&ar&&mr?{field:ar.toJSON(),clip:{top:mr.top+modal.clientTop,bottom:mr.top+modal.clientTop+modal.clientHeight,left:mr.left+modal.clientLeft,right:mr.left+modal.clientLeft+modal.clientWidth},scrollTop:modal.scrollTop,clientHeight:modal.clientHeight,ring:4,fullyVisible:ar.top-4>=mr.top+modal.clientTop&&ar.bottom+4<=mr.top+modal.clientTop+modal.clientHeight&&ar.left-4>=mr.left+modal.clientLeft&&ar.right+4<=mr.left+modal.clientLeft+modal.clientWidth}:null;
+return {width:innerWidth,height:innerHeight,theme:document.documentElement.dataset.theme,zoom:Number(document.querySelector('#app')?.dataset.appearanceZoom),windowed:!!document.querySelector('.milkup-source-document-view'),font:e&&getComputedStyle(e).fontFamily,fontSize:e&&getComputedStyle(e).fontSize,lineHeight:e&&getComputedStyle(e).lineHeight,contentWidth:c&&getComputedStyle(c).maxWidth,scrollLeft:e?.scrollLeft,scrollTop:e?.scrollTop,renderedLines:document.querySelectorAll('.milkup-line').length,firstLine:c?.dataset.fromLine,lastLine:c?.dataset.toLine,editorRect:e?.getBoundingClientRect().toJSON(),cursor:document.querySelector('.milkup-cursor')?.getBoundingClientRect().toJSON(),panelText:p?.textContent,fields:p&&Object.fromEntries([...p.querySelectorAll('[data-plugin-field-control]')].map(x=>[x.dataset.pluginFieldControl,{value:x.value,invalid:x.getAttribute('aria-invalid'),disabled:x.disabled}])),focus:{bounds:focusBounds,tag:a?.tagName,field:a?.dataset.pluginFieldControl,command:a?.dataset.pluginCommand,visible:a?.matches(':focus-visible'),outlineStyle:a&&getComputedStyle(a).outlineStyle,outlineWidth:a&&getComputedStyle(a).outlineWidth,rect:a?.getBoundingClientRect().toJSON()},registry:JSON.parse(localStorage.getItem('milkup.desktop.plugins.registry.v1')||'{"records":[]}').records.map(r=>({id:r.manifest.id,enabled:r.enabled,state:r.state})),diagnostics:window.__productionDiagnostics}
+`,
+    panel,
+  )
+async function record(name, extra = {}) {
+  results.push({
+    name,
+    at: new Date().toISOString(),
+    ...extra,
+    document: await app.probe(),
+    dom: await observe(),
+  })
+  await writeFile(path.join(output, 'results.json'), JSON.stringify(results, null, 2))
+  console.log(name)
+}
+async function shot(name, extra = {}) {
+  await app.delay(250)
+  await app.shot(name + '-webview')
+  execFileSync('import', ['-window', 'root', path.join(output, name + '-x11.png')], {
+    env: process.env,
+  })
+  await record(name, extra)
+}
+async function keyboardFocus(selector) {
+  await ui.ready(selector)
+  for (let i = 0; i < 100; i++) {
+    if (await app.execute('return document.activeElement?.matches(arguments[0])', selector)) return
+    const previous = await app.execute('return document.activeElement?.outerHTML')
+    await app.key('Tab')
+    await app.until(
+      () => app.execute('return document.activeElement?.outerHTML !== arguments[0]', previous),
+      'native Tab focus settled',
+    )
+  }
+  throw Error('Keyboard focus did not reach ' + selector)
+}
+async function click(selector) {
+  await ui.ready(selector)
+  const r = await app.execute(
+    'const e=document.querySelector(arguments[0]),r=e.getBoundingClientRect(),x=r.left+r.width/2,y=r.top+r.height/2;return {x,y,w:innerWidth,h:innerHeight,hit:e.contains(document.elementFromPoint(x,y))}',
+    selector,
+  )
+  if (!r.hit || r.x < 0 || r.x >= r.w || r.y < 0 || r.y >= r.h) {
+    await keyboardFocus(selector)
+    await app.key('Return')
+  } else {
+    const geometry = x('getwindowgeometry', '--shell', ui.windowId())
+    const scale = Number(/WIDTH=(\d+)/.exec(geometry)[1]) / r.w
+    x(
+      'mousemove',
+      '--window',
+      ui.windowId(),
+      String(Math.round(r.x * scale)),
+      String(Math.round(r.y * scale)),
+      'click',
+      '1',
+    )
+  }
+  await app.delay(150)
+  await appendFile(path.join(output,'pointer-trace.jsonl'), JSON.stringify({selector,sampled:r,after:await app.execute('return {active:document.activeElement?.outerHTML,events:window.pointerTrace,scroll:document.querySelector(arguments[0])?.closest("[data-plugin-ui]")?.scrollTop}',selector)})+'\n')
+}
+async function menu() {
+  if (
+    !(await app.execute(
+      'return !!document.querySelector("[data-app-menu]")?.getClientRects().length',
+    ))
+  )
+    await click('[data-menu-toggle]')
+  await click('[data-menu-section="plugins"]')
+}
+async function list() {
+  await menu()
+  if (await ui.exists('[data-plugin-action="back"]')) await click('[data-plugin-action="back"]')
+}
+async function details(pluginId = id) {
+  await list()
+  await click(action('details', pluginId))
+  await ui.ready('#plugin-detail-title')
+}
+async function closeMenu() {
+  if (
+    await app.execute('return !!document.querySelector("[data-app-menu]")?.getClientRects().length')
+  )
+    await click('[data-menu-close]')
+}
+async function openPanel() {
+  if (!(await ui.exists(panel))) {
+    await details()
+    await click(action('open-ui', id))
+  }
+  await ui.ready(field('editor.fontSize'))
+}
+async function closePanel() {
+  if (await ui.exists(panel)) {
+    await click(`${panel} .plugin-ui-close`)
+    await app.until(async () => !(await ui.exists(panel)), 'preferences closed')
+  }
+  await closeMenu()
+}
+async function setField(key, value) {
+  const selector = field(key)
+  await keyboardFocus(selector)
+  const options = await app.execute(
+    'const e=document.querySelector(arguments[0]);return e.tagName==="SELECT"?[...e.options].map(o=>o.value):null',
+    selector,
+  )
+  if (options) {
+    const index = options.indexOf(String(value))
+    assert(index >= 0, `supported option ${key}=${value}`)
+    await app.key('Home')
+    for (let i = 0; i < index; i++) {
+      await app.key('Down')
+      await app.delay(80)
+    }
+    await app.key('Tab')
+  } else {
+    await app.key('ctrl+a')
+    await app.text(String(value))
+    await app.key('Tab')
+  }
+  await app.until(
+    () =>
+      app.execute(
+        'return document.querySelector(arguments[0])?.value===arguments[1]',
+        selector,
+        String(value),
+      ),
+    'controlled draft ' + key,
+  )
+  await app.delay(200)
+}
+async function saveSettings() {
+  await click(command('save'))
+  await app.until(
+    async () => (await observe()).panelText?.includes('偏好已保存'),
+    'settings committed',
+  )
+}
+async function start(file = launcher) {
+  activeFile = file
+  app = await startProduction(file, output)
+  x('windowsize', ui.windowId(), '1100', '760')
+}
+async function openDocument(name) {
+  await closePanel()
+  const file = path.join(output, `${name}.md`)
+  await app.key('ctrl+o')
+  await ui.picker(file)
+  await app.until(
+    async () => (await app.probe()).path === file && (await app.probe()).loading === 'ready',
+    'GTK open ' + name,
+  )
+  activeFile = file
+  assert.equal((await observe()).windowed, name === 'windowed')
+}
+async function editorMode(mode) {
+  await closePanel()
+  await app.key(mode === 'source' ? 'ctrl+1' : 'ctrl+2')
+  await app.until(async () => (await app.probe()).mode === mode, mode + ' mode')
+  const point = await app.execute(
+    'const r=document.querySelector(".milkup-editor").getBoundingClientRect(),c=document.querySelector(".milkup-editor-content").getBoundingClientRect();return {x:Math.min(r.right-20,Math.max(r.left+20,c.left+40)),y:r.top+35,w:innerWidth}',
+  )
+  const geometry = x('getwindowgeometry', '--shell', ui.windowId())
+  const scale = Number(/WIDTH=(\d+)/.exec(geometry)[1]) / point.w
+  x(
+    'mousemove',
+    '--window',
+    ui.windowId(),
+    String(Math.round(point.x * scale)),
+    String(Math.round(point.y * scale)),
+    'click',
+    '1',
+  )
+  await app.until(
+    () => app.execute('return document.activeElement?.matches(".milkup-input-proxy")'),
+    'native editor pointer focus',
+  )
+  await app.key('ctrl+Home')
+  await app.until(async () => (await app.probe()).cursor === 0, 'editor CtrlHome settled')
+}
+async function gutterRoundTrip(name) {
+  await editorMode('live')
+  const original = contents.get(name)
+  const end = original.indexOf('\r\n')
+  const r = await app.execute(
+    'const e=document.querySelector(".milkup-editor").getBoundingClientRect(),c=document.querySelector(".milkup-editor-content").getBoundingClientRect(),l=document.querySelector(".milkup-line").getBoundingClientRect();return {left:e.left+20,right:e.right-20,y:l.top+l.height/2,contentLeft:c.left,contentRight:c.right,w:innerWidth}',
+  )
+  assert.ok(
+    r.left < r.contentLeft && r.right > r.contentRight,
+    'centered live body has both real gutters',
+  )
+  const geometry = x('getwindowgeometry', '--shell', ui.windowId())
+  const scale = Number(/WIDTH=(\d+)/.exec(geometry)[1]) / r.w
+  const pointer = (clientX, ...actions) =>
+    x(
+      'mousemove',
+      '--window',
+      ui.windowId(),
+      String(Math.round(clientX * scale)),
+      String(Math.round(r.y * scale)),
+      ...actions,
+    )
+  pointer(r.left, 'click', '1')
+  await app.until(
+    async () =>
+      (await app.probe()).cursor === 0 &&
+      (await app.execute('return document.activeElement?.matches(".milkup-input-proxy")')),
+    'left gutter focus and exact line start',
+  )
+  await app.text('L')
+  await app.until(async () => (await app.probe()).cursor === 1, 'left gutter text input')
+  pointer(r.right, 'click', '1')
+  await app.until(
+    async () => (await app.probe()).cursor === end + 1,
+    'right gutter exact Unicode line end',
+  )
+  await app.text('R')
+  await app.key('ctrl+s')
+  const expected = 'L' + original.slice(0, end) + 'R' + original.slice(end)
+  await app.until(
+    async () =>
+      !(await app.probe()).dirty && (await readFile(activeFile)).equals(Buffer.from(expected)),
+    'gutter input full byte save',
+    30000,
+  )
+  contents.set(name, expected)
+  pointer(r.left, 'mousedown', '1')
+  pointer(r.right)
+  await app.delay(100)
+  x('mouseup', '1')
+  await app.until(
+    () =>
+      app.execute(
+        'return !!document.querySelector(".milkup-selection") && document.activeElement?.matches(".milkup-input-proxy")',
+      ),
+    'gutter drag selection',
+  )
+  await shot(`gutters-${name}-live`, { sha256: hash(Buffer.from(expected)), unicodeEnd: end + 1 })
+}
+
+async function byteEdit(name, mode, suffix = '') {
+  const before = contents.get(name)
+  await editorMode(mode)
+  await app.text('EDIT-')
+  await app.until(
+    async () => (await app.probe()).dirty && (await app.probe()).cursor === 5,
+    'document edited',
+  )
+  await app.key('ctrl+z')
+  await app.until(async () => (await app.probe()).cursor === 0, 'history undo')
+  assert.deepEqual(await readFile(activeFile), Buffer.from(before))
+  await app.key('ctrl+shift+z')
+  await app.until(async () => (await app.probe()).cursor === 5, 'history redo')
+  await app.key('ctrl+s')
+  const after = 'EDIT-' + before
+  await app.until(
+    async () =>
+      !(await app.probe()).dirty && (await readFile(activeFile)).equals(Buffer.from(after)),
+    'full byte save',
+    30000,
+  )
+  contents.set(name, after)
+  await shot(`edit-${name}-${mode}${suffix}`, {
+    sha256: hash(Buffer.from(after)),
+    bytes: Buffer.byteLength(after),
+  })
+}
+
+async function indentRoundTrip(name, mode, unit = '    ', suffix = '') {
+  await editorMode(mode)
+  await app.key('Down')
+  await app.key('Down')
+  await app.key('Home')
+  const original = contents.get(name)
+  const from = original.indexOf('long-code-')
+  await app.until(async () => (await app.probe()).cursor === from, 'code line before indentation')
+  await app.key('Tab')
+  await app.key('ctrl+s')
+  const indented = original.slice(0, from) + unit + original.slice(from)
+  await app.until(
+    async () =>
+      !(await app.probe()).dirty && (await readFile(activeFile)).equals(Buffer.from(indented)),
+    'preferred indentation saved',
+    30000,
+  )
+  await app.key('shift+Tab')
+  await app.key('ctrl+s')
+  await app.until(
+    async () =>
+      !(await app.probe()).dirty && (await readFile(activeFile)).equals(Buffer.from(original)),
+    'outdent restores exact original bytes',
+    30000,
+  )
+  await shot(`indent-${name}-${mode}-${unit === '\t' ? 'tabs' : 'four-spaces'}${suffix}`)
+}
+
+async function previewOnPath(name, mode) {
+  await editorMode(mode)
+  const before = await app.probe()
+  await openPanel()
+  await setField('editor.fontSize', 24)
+  await setField('editor.lineHeight', 2)
+  await setField('editor.fontFamily', 'monospace')
+  await setField('editor.lineWidth', 480)
+  await app.until(
+    async () => (await observe()).lineHeight === '48px',
+    'current view typography preview',
+  )
+  const preview = await app.probe()
+  assert.equal(preview.version, before.version)
+  assert.equal(preview.dirty, before.dirty)
+  assert.equal(preview.cursor, before.cursor)
+  assert.equal(preview.mode, mode)
+  await shot(`preview-${name}-${mode}`)
+  await click(command('cancel'))
+  await app.until(
+    async () => (await observe()).lineHeight === '36px',
+    'current view preview cancelled',
+  )
+  assert.deepEqual(await readFile(activeFile), Buffer.from(contents.get(name)))
+  await closePanel()
+}
+
+async function keymapAcceptance() {
+  const shortcutId = 'milkup.shortcuts'
+  const modal = '[data-plugin-ui="milkup.shortcuts:shortcuts-modal"]'
+  const input = `${modal} [data-plugin-field-control="file.save"]`
+  const button = (name) => `${modal} [data-plugin-command="shortcuts.${name}"]`
+  const archive =
+    process.env.MILKUP_SHORTCUTS_ARCHIVE ||
+    '/workspace/milkup-preferences-phase3-evidence/keymap/external/dist/milkup.shortcuts-1.0.0.milkup-plugin'
+  const bytes = await readFile(archive)
+  assert.equal(JSON.parse(bytes).manifest.id, shortcutId)
+  await list()
+  if (await ui.exists(action('details', shortcutId))) {
+    await details(shortcutId)
+    await click(action('remove', shortcutId))
+  }
+  await list()
+  await click('[data-plugin-action="install"]')
+  await ui.picker(archive)
+  await ui.ready(action('approve', shortcutId))
+  await click(action('approve', shortcutId))
+  await click(action('enable', shortcutId))
+  async function open() {
+    await details(shortcutId)
+    await click(action('open-ui', shortcutId))
+    await ui.ready(input)
+  }
+  async function close() {
+    await click(`${modal} .plugin-ui-close`)
+    await app.until(async () => !(await ui.exists(modal)), 'shortcut modal closed')
+    await closeMenu()
+  }
+  async function draft(value) {
+    await keyboardFocus(input)
+    await app.key('ctrl+a')
+    await app.text(value)
+    await app.key('Tab')
+    await app.until(
+      () =>
+        app.execute(
+          'return document.querySelector(arguments[0])?.value===arguments[1]',
+          input,
+          value,
+        ),
+      'shortcut draft',
+    )
+  }
+  async function message(text) {
+    await app.until(
+      () =>
+        app.execute(
+          'return document.querySelector(arguments[0])?.textContent.includes(arguments[1])',
+          modal,
+          text,
+        ),
+      'shortcut status ' + text,
+    )
+  }
+  await open()
+  await draft('Mod+O')
+  await click(button('save'))
+  await message('快捷键已被其他命令占用')
+  await shot('keymap-01-conflict', {
+    archive,
+    archiveSha256: hash(bytes),
+    text: await app.execute('return document.querySelector(arguments[0]).textContent', modal),
+  })
+  await click(button('cancel'))
+  await message('已取消未保存的修改')
+  await draft('Mod+K')
+  await click(button('save'))
+  await message('快捷键已保存')
+  await draft('Mod+J')
+  await click(button('cancel'))
+  await message('已取消未保存的修改')
+  assert.equal(
+    await app.execute('return document.querySelector(arguments[0]).value', input),
+    'Mod+K',
+  )
+  await shot('keymap-02-rebound-cancelled', { binding: 'Mod+K' })
+  await close()
+  async function verifySave(tag, checkOld) {
+    const before = contents.get('ordinary')
+    await editorMode('source')
+    await app.text('KEYMAP-')
+    await app.until(async () => (await app.probe()).dirty, 'keymap document edit')
+    if (checkOld) {
+      await app.key('ctrl+s')
+      await app.delay(400)
+      assert((await app.probe()).dirty, 'rebound save does not retain the previous Ctrl+S')
+      assert.deepEqual(await readFile(activeFile), Buffer.from(before))
+    }
+    await app.key('ctrl+k')
+    const expected = 'KEYMAP-' + before
+    await app.until(
+      async () =>
+        !(await app.probe()).dirty && (await readFile(activeFile)).equals(Buffer.from(expected)),
+      'native rebound save',
+      30000,
+    )
+    contents.set('ordinary', expected)
+    await shot(tag, { sha256: hash(Buffer.from(expected)) })
+  }
+  await verifySave('keymap-03-native-control-k-save', true)
+  await app.close()
+  app = undefined
+  await start(path.join(output, 'ordinary.md'))
+  await verifySave('keymap-04-restart-control-k-save', false)
+  await open()
+  await click(button('reset'))
+  await message('已恢复默认快捷键')
+  await close()
+}
+
+try {
+  await start()
+  await details()
+  await shot('00-bundled-preferences-inactive')
+  await click(action('remove', id))
+  await list()
+  await click('[data-plugin-action="install"]')
+  await ui.picker(archive)
+  await ui.ready(action('approve', id))
+  await app.until(
+    () =>
+      app.execute(
+        'const e=document.querySelector(".plugin-detail [data-plugin-icon]");return e?.complete&&e.naturalWidth>0',
+      ),
+    'independent PNG icon',
+  )
+  await shot('01-independent-installed')
+  await click(action('approve', id))
+  await click(action('enable', id))
+  await ui.ready(action('disable', id))
+  await openPanel()
+  await app.execute(`window.pointerTrace=[]; for(const type of ['pointerdown','mousedown','pointerup','mouseup','click','focusin']) document.addEventListener(type,event=>{const t=event.target,m=t?.closest?.('[data-plugin-ui]');window.pointerTrace.push({type,time:performance.now(),x:event.clientX,y:event.clientY,tag:t?.tagName,command:t?.closest?.('[data-plugin-command]')?.dataset.pluginCommand,rect:t?.getBoundingClientRect?.().toJSON(),scroll:m?.scrollTop,active:document.activeElement?.tagName});if(window.pointerTrace.length>60)window.pointerTrace.shift()},true);`)
+  await setField('editor.fontSize',20)
+  for(let iteration=0;iteration<6;iteration++) {
+    x('windowsize',ui.windowId(),'1100','760')
+    await setField('appearance.theme','dark')
+    await setField('appearance.zoom',1.5)
+    await saveSettings()
+    await shot('probe-'+iteration+'-150')
+    await setField('appearance.theme','dark')
+    await setField('appearance.zoom',2)
+    await saveSettings()
+    await shot('probe-'+iteration+'-200')
+  }
+  await app.close();app=undefined;process.exit(0)
+  const unchanged = await app.probe()
+  await setField('editor.fontSize', 24)
+  await setField('editor.fontFamily', 'serif')
+  await setField('editor.lineHeight', 2)
+  await setField('editor.lineWidth', 720)
+  await app.until(
+    async () => (await observe()).fontSize === '24px' && (await observe()).lineHeight === '48px',
+    'preview geometry applied',
+  )
+  assert.equal((await app.probe()).version, unchanged.version)
+  assert.equal((await app.probe()).dirty, unchanged.dirty)
+  await shot('02-preview-without-document-edit')
+  await setField('editor.fontSize', 99)
+  assert.equal((await observe()).fields['editor.fontSize'].invalid, 'true')
+  assert.equal((await observe()).fontSize, '24px')
+  await shot('03-invalid-value-preserves-preview')
+  await click(command('cancel'))
+  await app.until(async () => (await observe()).fontSize === '14px', 'cancel restores defaults')
+  await setField('editor.fontSize', 20)
+  await closePanel()
+  await app.until(async () => (await observe()).fontSize === '14px', 'close rolls preview back')
+  await openPanel()
+  await setField('editor.fontSize', 20)
+  await setField('editor.fontFamily', 'system')
+  await setField('editor.lineHeight', 1.8)
+  await setField('editor.lineWidth', 720)
+  await setField('editor.indentSize', 4)
+  await setField('editor.indentStyle', 'spaces')
+  await saveSettings()
+  await click(command('reset'))
+  await app.until(async () => (await observe()).fontSize === '14px', 'reset previews defaults')
+  await click(command('cancel'))
+  await app.until(
+    async () => (await observe()).fontSize === '20px',
+    'cancel default preview restores saved preference',
+  )
+  await shot('04-saved-reset-cancel')
+  await closePanel()
+  await app.close()
+  app = undefined
+  await start()
+  await app.until(
+    async () => (await observe()).fontSize === '20px' && (await observe()).lineHeight === '36px',
+    'persisted settings after process restart',
+  )
+  await shot('05-restart-persisted')
+  for (const name of contents.keys()) {
+    await openDocument(name)
+    for (const mode of ['source', 'live']) {
+      await byteEdit(name, mode)
+      if (mode === 'live') await gutterRoundTrip(name)
+      await indentRoundTrip(name, mode)
+      await previewOnPath(name, mode)
+    }
+  }
+  await openPanel()
+  await setField('editor.indentStyle', 'tabs')
+  await saveSettings()
+  await closePanel()
+  await indentRoundTrip('windowed', 'source', '\t')
+  await openPanel()
+  await setField('editor.indentStyle', 'spaces')
+  await saveSettings()
+  await closePanel()
+  // Every theme/zoom/width combination is captured with each document/view path.
+  for (const theme of ['light', 'dark'])
+    for (const zoom of [1, 1.25, 1.5, 2]) {
+      x('windowsize', ui.windowId(), '1100', '760')
+      await openPanel()
+      await setField('appearance.theme', theme)
+      await setField('appearance.zoom', zoom)
+      await saveSettings()
+      await app.until(async () => {
+        const dom = await observe()
+        return dom.theme === theme && dom.zoom === zoom
+      }, 'native appearance settings applied')
+      await keyboardFocus(field('editor.fontSize'))
+      assert.equal((await observe()).focus.field, 'editor.fontSize')
+      assert.equal((await observe()).focus.visible, true)
+      assert.notEqual((await observe()).focus.outlineStyle, 'none')
+      await app.until(
+        async () => (await observe()).focus.bounds?.fullyVisible === true,
+        'wide focused control and ring inside modal',
+      )
+      await shot(`panel-${theme}-${zoom * 100}-wide`)
+      x('windowsize', ui.windowId(), '760', '520')
+      await app.key('shift+Tab')
+      await app.until(
+        () =>
+          app.execute(
+            'return !document.activeElement?.matches(arguments[0])',
+            field('editor.fontSize'),
+          ),
+        'reverse Tab left font size',
+      )
+      await keyboardFocus(field('editor.fontSize'))
+      const focused = (await observe()).focus
+      assert.equal(focused.visible, true)
+      assert.notEqual(focused.outlineStyle, 'none')
+      await app.until(
+        async () => (await observe()).focus.bounds?.fullyVisible === true,
+        'narrow focused control and ring inside modal',
+      )
+      await shot(`panel-${theme}-${zoom * 100}-narrow`)
+      await closePanel()
+      for (const name of contents.keys()) {
+        await openDocument(name)
+        for (const mode of ['source', 'live'])
+          for (const width of [1100, 760]) {
+            x('windowsize', ui.windowId(), String(width), width === 760 ? '520' : '760')
+            await editorMode(mode)
+            await app.key('Down')
+            await app.key('Down')
+            await app.key('End')
+            await app.delay(250)
+            const dom = await observe()
+            assert.equal(dom.theme, theme)
+            assert.equal(dom.zoom, zoom)
+            assert.equal(dom.fontSize, '20px')
+            assert.equal(dom.lineHeight, '36px')
+            if (name === 'windowed')
+              assert(dom.renderedLines < 100, 'window remains bounded after settings and zoom')
+            assert(dom.cursor && dom.editorRect)
+            assert(
+              dom.cursor.left >= dom.editorRect.left - 2 &&
+                dom.cursor.right <= dom.editorRect.right + 2,
+              'End caret stays horizontally visible after preferences/zoom',
+            )
+            await app.key('shift+Home')
+            await app.until(
+              async () => (await app.probe()).selection.some((range) => range.to > range.from),
+              'native selection after End',
+            )
+            await shot(`editor-${name}-${mode}-${theme}-${zoom * 100}-${width}`)
+            assert.deepEqual(await readFile(activeFile), Buffer.from(contents.get(name)))
+          }
+      }
+    }
+  x('windowsize', ui.windowId(), '1100', '760')
+  await openPanel()
+  await setField('appearance.zoom', 1)
+  await saveSettings()
+  await closePanel()
+  await details()
+  await click(action('disable', id))
+  await ui.ready(action('enable', id))
+  assert.equal((await observe()).fontSize, '20px')
+  await shot('06-disabled-keeps-host-preferences')
+  await click(action('remove', id))
+  await list()
+  assert(!(await ui.exists(action('details', id))))
+  await closeMenu()
+  await openDocument('ordinary')
+  await byteEdit('ordinary', 'source', '-after-uninstall')
+  await indentRoundTrip('ordinary', 'source', '    ', '-after-uninstall')
+  await shot('07-uninstalled-host-still-edits')
+  await app.close()
+  app = undefined
+  await start(path.join(output, 'ordinary.md'))
+  assert.equal((await observe()).fontSize, '20px')
+  assert(!(await observe()).registry.some((r) => r.id === id))
+  assert.deepEqual(await readFile(activeFile), Buffer.from(contents.get('ordinary')))
+  await shot('08-uninstalled-restart-preserved')
+  await keymapAcceptance()
+  await record('PASS', {
+    paths: ['ordinary/source', 'ordinary/live', 'windowed/source', 'windowed/live'],
+    editorMatrixCases: 64,
+    panelMatrixCases: 16,
+  })
+} catch (error) {
+  if (app) await shot('FAIL', { error: String(error), stack: error.stack }).catch(() => {})
+  throw error
+} finally {
+  if (app) await app.close()
+}

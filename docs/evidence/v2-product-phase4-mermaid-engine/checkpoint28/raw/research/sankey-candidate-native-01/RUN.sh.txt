@@ -1,0 +1,20 @@
+#!/usr/bin/env bash
+set -euo pipefail
+ROOT=/workspace/milkup-mermaid-engine-evidence/research/sankey-candidate-native-01
+RUN=mermaid-ui-sankey-candidate-repro-01
+source "$ROOT/reviewed-binary.env"
+[[ "$BINARY" == "/workspace/milkup-mermaid-engine-evidence/research/native-sankey-short-sequence-build-01/build-attempt-02/diagnostic-binary/milkup-desktop" ]]
+ARCHIVE=/workspace/milkup-mermaid-engine-evidence/research/renderer-exact-memo-product-integration-01/artifacts/milkup.diagrams-1.1.1.milkup-plugin
+ARCHIVE_SHA=2351692438a2083a72bcb8cddce28c7a530a8557734926992a3a2e3120c68a19
+export MILKUP_COLD_REQUEST_DIAGNOSTICS=1
+export MILKUP_COLD_REQUEST_OUTPUT_DIR="$ROOT/runtime/$RUN/native-capture"
+python3 "$ROOT/verify-runtime-go.py"
+case "${1:-}" in
+ driver) exec bash "$ROOT/driver.sh" "$RUN" "$BINARY" "$BINARY_SHA" "$ARCHIVE" "$ARCHIVE_SHA" ;;
+ harness)
+  source "$ROOT/run-env.sh" "$RUN" "$BINARY" "$BINARY_SHA" "$ARCHIVE" "$ARCHIVE_SHA"
+  cd /workspace/milkup
+  exec node "$ROOT/native/sankey-short-sequence.mjs"
+  ;;
+ *) exit 2 ;;
+esac

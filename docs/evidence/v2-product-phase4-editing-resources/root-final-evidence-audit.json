@@ -1,0 +1,50 @@
+{
+  "status": "passed",
+  "candidate": "03",
+  "uniqueMatrixCases": 64,
+  "checks": [
+    "exact Cartesian product",
+    "actual ordinary/windowed mode",
+    "actual source/live mode",
+    "actual light/dark theme",
+    "actual native zoom and viewport dimensions",
+    "field focus and all four 4 CSS pixel margins",
+    "version zero and clean not-saving state",
+    "all 64 raw X11 images present",
+    "28 SELECT focus samples across 760px breakpoint"
+  ],
+  "pixelReview": {
+    "method": "Root agent directly viewed original X11 PNGs; no cropping, redraw or synthetic replacement.",
+    "findings": "Toolbar/title overlap eliminated in before/after pair. Representative 200% narrow light/dark and windowed live wide/narrow show entire field and focus ring; all-disabled recovered document visibly retains text and no contributed toolbar. Black outside the application is the original X11 canvas.",
+    "files": [
+      {
+        "path": "native-before/ordinary-live-列居中-x11.png",
+        "sha256": "3852028f31549a68b673e2dd1d32b0ed9696e069e1d093bfeabac44daddbd26c"
+      },
+      {
+        "path": "native-format-and-paste/ordinary-live-列居中-x11.png",
+        "sha256": "25ec9bd61c94eea8c5bba4e9677d6bcb163cf1a7a7e8d71609dac29f24010fc4"
+      },
+      {
+        "path": "native-matrix-candidate03/matrix-ordinary-source-light-200-narrow-x11.png",
+        "sha256": "b099882c02f6fd3bb02e0e892fe2506a34de179b0a02a3327c4ec0f97f2a34f2"
+      },
+      {
+        "path": "native-matrix-candidate03/matrix-ordinary-live-dark-200-narrow-x11.png",
+        "sha256": "8af4a2ad18555b4b76e82a796c6b28a01fcdb9862375062cc960a87f5f8a66c4"
+      },
+      {
+        "path": "native-matrix-candidate03/matrix-windowed-live-dark-200-narrow-x11.png",
+        "sha256": "b8317a41bc41104fa98710c3b2e5f6e663cf56af36c9f357d55e93a9bc35aa19"
+      },
+      {
+        "path": "native-matrix-candidate03/matrix-windowed-live-dark-200-wide-x11.png",
+        "sha256": "38451982a787232bb79d3a29e6edc3f27259c0c5aa6c72c43e96cde98fbca05c"
+      },
+      {
+        "path": "native-all-seven-disabled-candidate03/10-host-recovered-copy-x11.png",
+        "sha256": "fa5b742ebe2724785d8d1285f6bde7d2a6ddda5835edb89e757e900a1819d5e3"
+      }
+    ]
+  }
+}

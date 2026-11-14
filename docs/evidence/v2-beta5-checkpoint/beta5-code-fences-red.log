@@ -1,0 +1,108 @@
+
+ RUN  v3.2.6 /tmp/milkup-windows-manual-candidate/packages/view-dom
+
+ ❯ src/__tests__/code-presentation.test.ts (31 tests | 5 failed) 1555ms
+   ✓ ordinary highlights safe source text and changes only fence language with undo 72ms
+   ✓ windowed highlights safe source text and changes only fence language with undo 260ms
+   ✓ ordinary supports empty/incomplete fences and plain text without losing trailing metadata 12ms
+   ✓ ordinary isolates language history from typed Unicode and composition commits 21ms
+   ✓ ordinary read-only and stale detached controls cannot mutate text 6ms
+   ✓ ordinary bounds token nodes and keeps oversized and unknown language text intact 26ms
+   ✓ windowed supports empty/incomplete fences and plain text without losing trailing metadata 118ms
+   ✓ windowed isolates language history from typed Unicode and composition commits 184ms
+   ✓ windowed read-only and stale detached controls cannot mutate text 99ms
+   ✓ windowed bounds token nodes and keeps oversized and unknown language text intact 73ms
+   ✓ ordinary updates body highlighting for plain to javascript and history 22ms
+   ✓ ordinary updates body highlighting for javascript to plain and history 17ms
+   ✓ ordinary updates body highlighting for unknown to javascript and history 14ms
+   ✓ windowed updates body highlighting for plain to javascript and history 81ms
+   ✓ windowed updates body highlighting for javascript to plain and history 79ms
+   ✓ windowed updates body highlighting for unknown to javascript and history 66ms
+   ✓ ordinary retains later code nodes and remaps their picker after an earlier language edit 12ms
+   ✓ windowed retains later code nodes and remaps their picker after an earlier language edit 74ms
+   ✓ ordinary respects exclusive code extent for "```js\nconst x = 1;\n```" 11ms
+   ✓ ordinary respects exclusive code extent for "```js\n```" 8ms
+   ✓ ordinary respects exclusive code extent for "```js\n\n```\n\nparagraph" 8ms
+   ✓ ordinary respects exclusive code extent for "```js\nconst x = 1;\n```\nparagraph" 8ms
+   ✓ windowed respects exclusive code extent for "```js\nconst x = 1;\n```" 49ms
+   ✓ windowed respects exclusive code extent for "```js\n```" 47ms
+   ✓ windowed respects exclusive code extent for "```js\n\n```\n\nparagraph" 51ms
+   ✓ windowed respects exclusive code extent for "```js\nconst x = 1;\n```\nparagraph" 46ms
+   × ordinary hides both fenced markers in live while source and copied Markdown stay exact 19ms
+     → expected false to be true // Object.is equality
+   × ordinary arrows cross hidden fences without stopping and shift-copy keeps delimiters 6ms
+     → expected 7 to be 13 // Object.is equality
+   × windowed hides both fenced markers in live while source and copied Markdown stay exact 29ms
+     → expected false to be true // Object.is equality
+   × windowed arrows cross hidden fences without stopping and shift-copy keeps delimiters 25ms
+     → expected 7 to be 13 // Object.is equality
+   × ordinary preview hides fenced source and retains the language picker 9ms
+     → expected  to have a length of 2 but got +0
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 5 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/__tests__/code-presentation.test.ts > ordinary hides both fenced markers in live while source and copied Markdown stay exact
+ FAIL  src/__tests__/code-presentation.test.ts > windowed hides both fenced markers in live while source and copied Markdown stay exact
+AssertionError: expected false to be true // Object.is equality
+
+- Expected
++ Received
+
+- true
++ false
+
+ ❯ src/__tests__/code-presentation.test.ts:279:64
+    277|     expect(fences).toHaveLength(2)
+    278|     for (const fence of fences) {
+    279|       expect(fence.classList.contains('milkup-marker-hidden')).toBe(tr…
+       |                                                                ^
+    280|       expect(sourcePositionToVisualOffsetInLine(fence.parentElement!, …
+    281|     }
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/5]⎯
+
+ FAIL  src/__tests__/code-presentation.test.ts > ordinary arrows cross hidden fences without stopping and shift-copy keeps delimiters
+ FAIL  src/__tests__/code-presentation.test.ts > windowed arrows cross hidden fences without stopping and shift-copy keeps delimiters
+AssertionError: expected 7 to be 13 // Object.is equality
+
+- Expected
++ Received
+
+- 13
++ 7
+
+ ❯ src/__tests__/code-presentation.test.ts:307:20
+    305|     const head = () => (s.view instanceof EditorView ? s.view.state.se…
+    306|     await key('ArrowRight')
+    307|     expect(head()).toBe(text.indexOf('名'))
+       |                    ^
+    308|     await key('End')
+    309|     await key('ArrowRight', true)
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/5]⎯
+
+ FAIL  src/__tests__/code-presentation.test.ts > ordinary preview hides fenced source and retains the language picker
+AssertionError: expected  to have a length of 2 but got +0
+
+- Expected
++ Received
+
+- 2
++ 0
+
+ ❯ src/__tests__/code-presentation.test.ts:323:90
+    321|   s.view.setMode('preview')
+    322|   expect(s.view.contentDOM.querySelector('.milkup-code-language')).not…
+    323|   expect(s.view.contentDOM.querySelectorAll('.milkup-code-source.milku…
+       |                                                                                          ^
+    324| })
+    325| 
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/5]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  5 failed | 26 passed (31)
+   Start at  08:13:37
+   Duration  3.13s (transform 531ms, setup 0ms, collect 729ms, tests 1.55s, environment 515ms, prepare 74ms)
+

@@ -1,0 +1,61 @@
+[WebServer] (node:2064) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] $ vite --host 127.0.0.1
+[WebServer] (node:2100) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] (node:2136) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] $ vite --host 127.0.0.1
+[WebServer] (node:2155) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 5 tests using 1 worker
+
+(node:2189) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  1 [desktop-msedge] › tests/e2e/desktop-markdown-extensions.spec.ts:43:1 › three isolated document extensions render safe semantics and preserve source/history (2.2s)
+  ✓  2 [desktop-msedge] › tests/e2e/desktop-markdown-extensions.spec.ts:75:1 › opaque code and unsupported diagrams stay literal without executable content (1.2s)
+  ✓  3 [desktop-msedge] › tests/e2e/desktop-markdown-extensions.spec.ts:107:1 › footnote navigation reveals editable original and remains read only (1.8s)
+  ✓  4 [desktop-msedge] › tests/e2e/desktop-markdown-extensions.spec.ts:129:1 › disabled renderers disappear and leave Unicode editing and save available (2.4s)
+  ✘  5 [desktop-msedge] › tests/e2e/desktop-markdown-extensions.spec.ts:154:1 › search keeps the selected marker visible while asynchronous block previews settle (1.0m)
+
+
+  1) [desktop-msedge] › tests/e2e/desktop-markdown-extensions.spec.ts:154:1 › search keeps the selected marker visible while asynchronous block previews settle 
+
+    Test timeout of 60000ms exceeded.
+
+    Error: locator.click: Test timeout of 60000ms exceeded.
+    Call log:
+      - waiting for locator('[data-presentation-from="43"]')
+
+
+      194 |     observations.slice(-3).every((r) => r.top >= r.viewportTop && r.bottom <= r.viewportBottom),
+      195 |   ).toBe(true)
+    > 196 |   await page.locator(`[data-presentation-from="${source.indexOf('$\\frac')}"]`).click()
+          |                                                                                 ^
+      197 |   await expect(page.locator('.milkup-line[data-line="4"]')).toContainText('\\frac')
+      198 |   await expect(page.locator('.milkup-input-proxy')).toBeFocused()
+      199 |   const revealed = []
+        at /workspace/milkup/tests/e2e/desktop-markdown-extensions.spec.ts:196:81
+
+    attachment #2: page-state (text/plain) ─────────────────────────────────────────────────────────
+    - main:
+      - button "菜单"
+      - heading "未命名" [level=1]
+      - paragraph: 未保存
+      - button "最小化"
+      - button "最大化"
+      - button "关闭窗口"
+      - textbox:
+        - 'group "$\\frac{x_1^2}{\\sqrt[3]{y}}$"':
+          - math: x 1 2 y 3
+        - group "$\\int_0^\\infty x\\,dx$":
+          - math: ∫ 0 ∞ x d x
+        - 'group "$$ \\begin{pm...
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/desktop-markdown-extension-f2bb0-onous-block-previews-settle-desktop-msedge/error-context.md
+
+  1 failed
+    [desktop-msedge] › tests/e2e/desktop-markdown-extensions.spec.ts:154:1 › search keeps the selected marker visible while asynchronous block previews settle 
+  4 passed (1.2m)

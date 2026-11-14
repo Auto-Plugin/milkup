@@ -1,0 +1,81 @@
+
+ RUN  v3.2.6 /workspace/milkup/packages/view-dom
+
+ ❯ src/__tests__/table-keyboard.test.ts (25 tests | 2 failed | 23 skipped) 880ms
+   ↓ live table editing > Tab selects the next cell without changing source
+   ↓ live table editing > Shift+Tab skips the delimiter row
+   ↓ live table editing > Enter goes down the same column without splitting the row
+   ↓ live table editing > Tab at the last cell appends one row and undo/redo restores it
+   ↓ live table editing > Shift+Enter inserts a cell line break without adding a Markdown row
+   ↓ live table editing > a literal pipe does not silently add a column
+   ↓ live table editing > Backspace at the cell start does not erase a separator
+   ↓ live table editing > Delete at the cell end does not erase a separator
+   ↓ live table editing > Escape exits after the table into a separate paragraph
+   ↓ live table editing > source mode keeps literal Enter and source/live switching preserves selection
+   ↓ explicit table structure commands > adds/deletes a data row as separate undo steps
+   ↓ explicit table structure commands > adds/deletes a column preserving cells and alignment
+   ↓ explicit table structure commands > never deletes the header or reduces a table below two columns
+   ↓ explicit table structure commands > appends a row to a header-only table without losing its delimiter
+   ↓ explicit table structure commands > keeps CRLF and adjacent paragraphs during column/row changes
+   ↓ explicit table structure commands > selects the table including the delimiter and preserves the source selection across modes
+   ↓ explicit table structure commands > keeps cross-cell selections intact instead of indenting or splitting the table
+   ↓ explicit table structure commands > replaces the selected next cell and undoes typing independently of navigation
+   ↓ explicit table structure commands > pastes multiline content into one cell and undoes it as a unit
+   ↓ explicit table structure commands > deletes the inline break as one unit and restores it on undo
+   ↓ explicit table structure commands > preserves an already typed pipe escape
+   ↓ explicit table structure commands > does not modify a readonly or composing table
+   ↓ does not capture Tab/Enter on the empty line after a trailing table newline
+   × live table arrow navigation > crosses cell edges and skips the delimiter row without editing history 522ms
+     → expected 35 to be 37 // Object.is equality
+   × live table arrow navigation > keeps a shifted selection within its cell so typing cannot erase hidden separators 352ms
+     → expected 32 to be 33 // Object.is equality
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/__tests__/table-keyboard.test.ts > live table arrow navigation > crosses cell edges and skips the delimiter row without editing history
+AssertionError: expected 35 to be 37 // Object.is equality
+
+- Expected
++ Received
+
+- 37
++ 35
+
+ ❯ src/__tests__/table-keyboard.test.ts:240:46
+    238|     const s = setup(table.indexOf('A') + 1)
+    239|     s.key('ArrowRight')
+    240|     expect(s.view.state.selection.main.head).toBe(table.indexOf('1'))
+       |                                              ^
+    241|     s.key('ArrowLeft')
+    242|     expect(s.view.state.selection.main.head).toBe(table.indexOf('A') +…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯
+
+ FAIL  src/__tests__/table-keyboard.test.ts > live table arrow navigation > keeps a shifted selection within its cell so typing cannot erase hidden separators
+AssertionError: expected 32 to be 33 // Object.is equality
+
+- Expected
++ Received
+
+- 33
++ 32
+
+ ❯ src/__tests__/table-keyboard.test.ts:256:46
+    254|     const s = setup(table.indexOf('A'))
+    255|     s.key('ArrowLeft', true)
+    256|     expect(s.view.state.selection.main.head).toBe(table.indexOf('A'))
+       |                                              ^
+    257|     s.key('ArrowRight', true)
+    258|     s.key('ArrowRight', true)
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/2]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  2 failed | 23 skipped (25)
+   Start at  12:35:40
+   Duration  25.89s (transform 6.05s, setup 0ms, collect 7.74s, tests 880ms, environment 14.38s, prepare 1.36s)
+
+undefined
+/workspace/milkup/packages/view-dom:
+[ERR_PNPM_RECURSIVE_EXEC_FIRST_FAIL] Command failed with exit code 1: vitest run src/__tests__/table-keyboard.test.ts -t 'live table arrow navigation'

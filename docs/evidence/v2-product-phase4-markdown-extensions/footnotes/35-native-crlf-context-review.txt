@@ -1,0 +1,34 @@
+
+ RUN  v3.2.6 /workspace/milkup-markdown-extensions-phase4-evidence/footnotes
+
+ ❯ native-crlf-context-review/context.test.ts (1 test | 1 failed) 58ms
+   × preserves TeX matrix context and reports actual CRLF fragment/line boundaries 57ms
+     → expected 159 to be 158 // Object.is equality
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  native-crlf-context-review/context.test.ts > preserves TeX matrix context and reports actual CRLF fragment/line boundaries
+AssertionError: expected 159 to be 158 // Object.is equality
+
+- Expected
++ Received
+
+- 158
++ 159
+
+ ❯ native-crlf-context-review/context.test.ts:23:21
+     21|   expect(overlappingProtected).toEqual([])
+     22|   expect(matrix.status).toBe('ready')
+     23|   expect(matrix.to).toBe(closing.to)
+       |                     ^
+     24| })
+     25| 
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed (1)
+   Start at  12:21:21
+   Duration  1.03s (transform 467ms, setup 0ms, collect 677ms, tests 58ms, environment 0ms, prepare 81ms)
+

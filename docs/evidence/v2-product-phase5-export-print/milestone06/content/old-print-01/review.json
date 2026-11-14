@@ -1,0 +1,49 @@
+{
+  "scope": "One lightweight actual page2 raster inspection only; no new native UI, no all-page raster or complete output assertion.",
+  "pdf": "/workspace/milkup-export-print-evidence/milestone01/native-ui/runs/p5-m06-old-print-01/printed.pdf",
+  "pdfSHA256": "0e8abd02ffff2d66c3cf179bc8c87c95f649f37a5d6c61ea6fbb8c5b904ffc98",
+  "sourceSHA256": "8b4f460fb664ce9b2ef92314dd284404eb4bdfeb28578a34d6dfa08a608454a7",
+  "page": 2,
+  "rasterSize": [
+    884,
+    1250
+  ],
+  "rasterSHA256": "2ba0f1e6f5e16d29c9f4697018cbb19a824f81b91882411b64a8e6269b6f7ee7",
+  "comparisons": [
+    {
+      "reference": "pdf05-rendered",
+      "path": "/workspace/milkup-export-print-evidence/milestone05/print04-review/exported/page-2.png",
+      "pixelsExactlyEqual": true,
+      "differenceBounds": null
+    },
+    {
+      "reference": "print04-fallback",
+      "path": "/workspace/milkup-export-print-evidence/milestone05/print04-review/printed/page-2.png",
+      "pixelsExactlyEqual": false,
+      "differenceBounds": [
+        50,
+        306,
+        833,
+        1176
+      ]
+    }
+  ],
+  "visualReview": {
+    "diagram": "PASS_VISIBLE_PAGE2: three rectangles with Chinese input/frozen-content/HTML-PDF-print labels and two connecting arrows, not fenced source.",
+    "math": "Inline superscript and display summation/fraction visibly rendered.",
+    "footnote": "Heading, reference, explanation and return-link text readable on page2.",
+    "sourceFallback": "No Mermaid source fallback on inspected page2; original print04 page2 has fenced source.",
+    "layout": "No visible clipping/overlap on this inspected page."
+  },
+  "copySearchPage2Exact": {
+    "中文输入": false,
+    "冻结内容": false,
+    "打印": false
+  },
+  "conclusion": "Old 1.1.1 can render successfully on this actual run. This positive baseline does not erase print04 timeout and does not prove a fix or determinism.",
+  "unverified": [
+    "Other pages not newly rasterized/reviewed in this lightweight check.",
+    "PDF original-codepoint loss and long-block pagination remain open.",
+    "Not physical print."
+  ]
+}

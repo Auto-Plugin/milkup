@@ -1,0 +1,114 @@
+
+ RUN  v3.2.6 /workspace/milkup/packages/view-dom
+
+ ❯ src/__tests__/document-svg-image.test.ts (74 tests | 1 failed) 3596ms
+   ✓ keeps full mapped source until decode, then mounts an inert owned image (false) 169ms
+   ✓ restores a whole compound fragment when any decoded image later errors (false) 58ms
+   ✓ decode rejection leaves usable original source and an accessible notice (false) 30ms
+   ✓ does not hide any compound source while a sibling image is still decoding (false) 75ms
+   ✓ bounds a stalled decode and preserves source without retrying it (false) 14ms
+   ✓ revokes selection ABA decode and ignores an old image error after replacement (false) 79ms
+   ✓ uses integer image pixels inside the exact fractional layout slot (false) 26ms
+   ✓ reserves actual negative and positive ink inside the mapped scrollable fragment (false) 29ms
+   ✓ distinguishes real fractional overflow from transparent raster rounding (false) 24ms
+   ✓ preserves math and reference siblings around an owned image (false) 37ms
+   ✓ hard invalidation revokes the pending resource even when the response is equivalent (false) 44ms
+   ✓ revokes pending decode on disabled, ignoring its late completion (false) 32ms
+   ✓ revokes pending decode on source, ignoring its late completion (false) 33ms
+   ✓ revokes pending decode on destroy, ignoring its late completion (false) 31ms
+   ✓ releases a successfully mounted URL when the provider is removed (false) 34ms
+   ✓ late old-document decode cannot replace the new source (false) 44ms
+   ✓ source mode stays literal and does not create image resources (false) 15ms
+   ✓ unknown child yields full-source fallback without allocating a URL (false) 21ms
+   ✓ keeps full mapped source until decode, then mounts an inert owned image (true) 60ms
+   ✓ restores a whole compound fragment when any decoded image later errors (true) 73ms
+   ✓ decode rejection leaves usable original source and an accessible notice (true) 54ms
+   ✓ does not hide any compound source while a sibling image is still decoding (true) 100ms
+   ✓ bounds a stalled decode and preserves source without retrying it (true) 28ms
+   ✓ revokes selection ABA decode and ignores an old image error after replacement (true) 77ms
+   ✓ uses integer image pixels inside the exact fractional layout slot (true) 31ms
+   ✓ reserves actual negative and positive ink inside the mapped scrollable fragment (true) 37ms
+   ✓ distinguishes real fractional overflow from transparent raster rounding (true) 42ms
+   ✓ preserves math and reference siblings around an owned image (true) 39ms
+   ✓ hard invalidation revokes the pending resource even when the response is equivalent (true) 47ms
+   ✓ revokes pending decode on disabled, ignoring its late completion (true) 39ms
+   ✓ revokes pending decode on source, ignoring its late completion (true) 41ms
+   ✓ revokes pending decode on destroy, ignoring its late completion (true) 37ms
+   ✓ releases a successfully mounted URL when the provider is removed (true) 38ms
+   ✓ late old-document decode cannot replace the new source (true) 40ms
+   ✓ source mode stays literal and does not create image resources (true) 12ms
+   ✓ unknown child yields full-source fallback without allocating a URL (true) 15ms
+   ✓ transfers a decoded node through a same-context source-window replacement without a new URL 49ms
+   ✓ the existing synchronous factory cannot create an ownerless image URL 2ms
+   ✓ keeps an equivalent decoded image through a validated provider refresh (false) 45ms
+   ✓ keeps an equivalent decoded image through a validated provider refresh (true) 57ms
+   ✓ does not reuse a decoded owner after theme changes (false) 48ms
+   ✓ does not reuse a decoded owner after width changes (false) 50ms
+   ✓ does not reuse a decoded owner after declaration changes (false) 54ms
+   ✓ does not migrate a pending decode or accept its late completion (false) 54ms
+   ✓ does not reuse a decoded owner after theme changes (true) 51ms
+   ✓ does not reuse a decoded owner after width changes (true) 51ms
+   ✓ does not reuse a decoded owner after declaration changes (true) 46ms
+   ✓ does not migrate a pending decode or accept its late completion (true) 44ms
+   ✓ keeps the complete previous presentation until a changed image replacement decodes (false) 44ms
+   ✓ keeps the complete previous presentation until a changed image replacement decodes (true) 47ms
+   ✓ withdraws the previous decoded fragment on omitted during replacement (false) 62ms
+   ✓ withdraws the previous decoded fragment on error during replacement (false) 60ms
+   ✓ withdraws the previous decoded fragment on decode-error during replacement (false) 75ms
+   ✓ withdraws the previous decoded fragment on disabled during replacement (false) 54ms
+   ✓ withdraws the previous decoded fragment on source during replacement (false) 52ms
+   ✓ withdraws the previous decoded fragment on selection during replacement (false) 51ms
+   ✓ withdraws the previous decoded fragment on destroy during replacement (false) 49ms
+   ✓ does not renew the replacement deadline for successive distinct pending images (false) 14ms
+   ✓ withdraws the previous decoded fragment on omitted during replacement (true) 52ms
+   ✓ withdraws the previous decoded fragment on error during replacement (true) 62ms
+   ✓ withdraws the previous decoded fragment on decode-error during replacement (true) 63ms
+   ✓ withdraws the previous decoded fragment on disabled during replacement (true) 80ms
+   ✓ withdraws the previous decoded fragment on source during replacement (true) 68ms
+   ✓ withdraws the previous decoded fragment on selection during replacement (true) 56ms
+   ✓ withdraws the previous decoded fragment on destroy during replacement (true) 63ms
+   ✓ does not renew the replacement deadline for successive distinct pending images (true) 26ms
+   ✓ keeps old semantics and inner scroll until every replacement image decodes (false) 74ms
+   ✓ does not keep an obsolete decoded layer after old-error (false) 58ms
+   ✓ does not keep an obsolete decoded layer after provider-rejection (false) 51ms
+   × does not keep an obsolete decoded layer after version (false) 52ms
+     → expected <img alt="Typed diagram" …(5)></img> to be null
+   ✓ keeps old semantics and inner scroll until every replacement image decodes (true) 58ms
+   ✓ does not keep an obsolete decoded layer after old-error (true) 50ms
+   ✓ does not keep an obsolete decoded layer after provider-rejection (true) 53ms
+   ✓ does not keep an obsolete decoded layer after version (true) 65ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/__tests__/document-svg-image.test.ts > does not keep an obsolete decoded layer after version (false)
+AssertionError: expected <img alt="Typed diagram" …(5)></img> to be null
+
+- Expected: 
+null
+
++ Received: 
+<img
+  alt="Typed diagram"
+  draggable="false"
+  height="96"
+  src="blob:closed-image-0"
+  style="position: absolute; left: 0px; top: 0px; display: block; width: 160px; height: 96px; max-width: none; max-height: none;"
+  width="160"
+/>
+
+ ❯ src/__tests__/document-svg-image.test.ts:812:52
+    810|       } else view.updateState(new EditorState({ doc: new MemoryTextDoc…
+    811|       await settle()
+    812|       expect(view.contentDOM.querySelector('img')).toBeNull()
+       |                                                    ^
+    813|       expect(revoked.filter(url => url === created[0])).toHaveLength(1)
+    814|       if (boundary !== 'old-error') {
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 73 passed (74)
+   Start at  15:53:47
+   Duration  6.28s (transform 882ms, setup 0ms, collect 1.19s, tests 3.60s, environment 713ms, prepare 113ms)
+

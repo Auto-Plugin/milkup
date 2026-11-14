@@ -1,0 +1,262 @@
+
+ RUN  v3.2.6 /workspace/milkup/packages/view-dom
+
+ ❯ src/__tests__/editor-view.test.ts (123 tests | 2 failed | 121 skipped) 100ms
+   ↓ EditorView > renders a plain text document into line wrappers
+   ↓ EditorView > renders search highlights and distinguishes the active result
+   ↓ EditorView > renders empty lines with a zero-width placeholder without changing document text
+   ↓ EditorView > updates rendered lines when editor state changes
+   ↓ EditorView > renders cursor overlay from editor selection
+   ↓ EditorView > updates cursor overlay when editor state changes
+   ↓ EditorView > updates only selection and cursor layers for source selection-only changes
+   ↓ EditorView > virtualizes source line rendering to the visible window with overscan
+   ↓ EditorView > updates the virtual source window on scroll without rendering offscreen lines
+   ↓ EditorView > scrolls virtual source cursors into view before rendering the target line
+   ↓ EditorView > rerenders live content for selection-only changes so syntax visibility updates
+   ↓ EditorView > renders selection overlay for non-collapsed ranges
+   ↓ EditorView > aligns selection overlays to measured DOM rects after scrolling
+   ↓ EditorView > names the focusable input proxy without hiding it from accessibility APIs
+   ↓ EditorView > inserts text from the input proxy through a transaction
+   ↓ EditorView > replaces selected text from the input proxy through a transaction
+   ↓ EditorView > inserts printable keydown text without native textarea input
+   ↓ EditorView > inserts spaces from keydown without native textarea input
+   ↓ EditorView > continues markdown list prefixes when Enter is pressed
+   ↓ EditorView > focuses from blank editor space and places the cursor by editor coordinates
+   ↓ EditorView > maps live table row clicks to visible cells instead of hidden pipes
+   ↓ EditorView > ignores browser hit-testing results inside hidden table syntax
+   ↓ EditorView > constrains incorrect browser hit-testing to the clicked table cell
+   ↓ EditorView > keeps live list clicks out of the source marker range
+   ↓ EditorView > pastes plain text through one undoable transaction
+   ↓ EditorView > converts html-only paste to markdown before dispatching
+   ↓ EditorView > pastes html tables and survives source/live mode switches
+   ↓ EditorView > imports pasted image files and inserts markdown image syntax
+   ↓ EditorView > pastes literal plain text inside fenced code blocks
+   ↓ EditorView > does not commit document changes during composition updates
+   ↓ EditorView > commits composition text as one history entry
+   ↓ EditorView > does not let a stale composition flag block Enter or Delete
+   ↓ EditorView > handles editing keys reported with the legacy IME key code
+   ↓ EditorView > deletes backward through the input proxy
+   ↓ EditorView > deletes the selected range on Backspace
+   ↓ EditorView > inserts a newline on Enter through a transaction
+   ↓ EditorView > replaces the selected range with a newline on Enter
+   ↓ EditorView > deletes forward through the input proxy
+   ↓ EditorView > deletes the selected range on Delete
+   ↓ EditorView > moves the cursor with horizontal arrows without entering history
+   ↓ EditorView > extends selection with shift-arrow keys without entering history
+   ↓ EditorView > collapses a selected range with horizontal arrows
+   ↓ EditorView > moves the cursor vertically while preserving line offset when possible
+   ↓ EditorView > caps vertical arrow movement to the target line length
+   ↓ EditorView > places the cursor by clicking a line wrapper
+   ↓ EditorView > falls back to the clicked source line when browser hit-testing is unavailable
+   ↓ EditorView > uses browser caret hit-testing for precise click placement when available
+   ↓ EditorView > aligns the cursor to the measured wrapped visual row
+   ↓ EditorView > aligns live list cursors to content spans instead of marker text
+   ↓ EditorView > keeps the hidden input proxy aligned with the cursor overlay
+   ↓ EditorView > maps live clicks through hidden heading markers
+   ↓ EditorView > falls back to the clicked live line when browser hit-testing is unavailable
+   ↓ EditorView > selects a range by dragging across line wrappers
+   ↓ EditorView > maps live clicks through hidden inline markers from browser hit-testing
+   ↓ EditorView > maps live clicks inside verification result lists without jumping across the document
+   ↓ EditorView > shows inline syntax immediately after moving the live cursor into the node
+   ↓ EditorView > snaps live text clicks to the nearest caret boundary around punctuation
+   ↓ EditorView > keeps the mousedown caret position when mouseup and click hit a rerendered live line
+   ↓ EditorView > does not collapse a dragged selection on the following click
+   ↓ EditorView > maps positions and coordinates through the view smoke geometry
+   ↓ EditorView > maps live positions and coordinates through hidden marker projections
+   ↓ EditorView > renders live cursor overlays at projected visual offsets
+   ↓ EditorView > ensures the cursor is visible by updating scrollTop
+   ↓ EditorView > keeps the cursor visible after selection-changing updates
+   ↓ EditorView > does not scroll the editor after pointer selection updates
+   ↓ EditorView > keeps the cursor visible inside a code block-like region
+   ↓ EditorView > does not force cursor scrolling when selection is unchanged
+   ↓ EditorView > keeps scroll position stable when typing at a visible measured cursor
+   ↓ EditorView > allows external dispatch to own state updates
+   ↓ EditorView > updates view mode without changing document state
+   ↓ EditorView > rerenders live mode with markdown decorations without changing source text
+   ↓ EditorView > renders live mode as a markdown projection
+   ↓ EditorView > assigns heading level classes in live mode
+   ↓ EditorView > keeps blockquote syntax hidden when the cursor is inside the quote
+   ↓ EditorView > keeps table syntax hidden when the cursor is inside the table
+   ↓ EditorView > preserves native horizontal code-scrollbar dragging in the editor
+   ↓ EditorView > keeps read-only state locked while allowing selection changes
+   ↓ EditorView > does not duplicate a live heading onto the following text line
+   ↓ EditorView > does not render an extra heading line when a heading is followed by a blank line
+   ↓ EditorView > switches modes without changing document history, selection, or scroll position
+   ↓ EditorView > switches source and live mode with the cursor near link markers
+   ↓ EditorView > switches source and live mode in the middle of a document without moving anchors
+   ↓ EditorView > keeps the cursor visible after a mode switch when the viewport is measurable
+   ↓ EditorView > can toggle source and live mode repeatedly without changing text or history
+   ↓ EditorView > keeps incomplete inline syntax editable in live mode
+   ↓ EditorView > rerenders only selection-affected live lines when the cursor moves
+   ↓ EditorView > rerenders only the changed live line for single-line edits
+   ↓ EditorView > keeps docs/coding-plan.md live interactions bounded to affected lines
+   ↓ EditorView > destroys the root DOM node
+   ↓ renderPlainTextLines > can render without constructing an EditorView
+   ↓ renderPlainTextLines > can render a bounded source line window without constructing an EditorView
+   ↓ renderPlainTextLines > can render markdown decorations without constructing an EditorView
+   ↓ renderPlainTextLines > renders list markers separately from inline-decorated list content
+   ↓ renderPlainTextLines > renders every item in a contiguous list
+   ↓ renderPlainTextLines > keeps task-list syntax rendered after the cursor enters the item
+   ↓ renderPlainTextLines > hides heading markers when the cursor is outside the heading
+   ↓ renderPlainTextLines > shows heading markers when the cursor is inside the heading
+   ↓ renderPlainTextLines > renders blockquote markers separately from quote content
+   ↓ renderPlainTextLines > renders table rows as editable live cells
+   ↓ renderPlainTextLines > can render link decorations without constructing an EditorView
+   ↓ renderPlainTextLines > hides inline markers when the cursor is outside the syntax node
+   ↓ renderPlainTextLines > shows inline markers when the cursor is inside the syntax node
+   ↓ renderPlainTextLines > shows inline markers when selection crosses the syntax node
+   ↓ renderPlainTextLines > hides link syntax while keeping the label visible when cursor is outside
+   ↓ renderPlainTextLines > shows link syntax when the cursor is inside the link node
+   ↓ renderPlainTextLines > hides and shows inline code markers based on cursor position
+   ↓ renderPlainTextLines > does not hide markers for incomplete inline syntax
+   ↓ position helpers > maps a document position to line and offset
+   ↓ position helpers > maps a document position to a smoke rect
+   ↓ position helpers > maps a smoke coordinate to a document position
+   ↓ position helpers > clamps smoke coordinates to the document line bounds
+   ↓ position helpers > computes the scrollTop needed to reveal a position
+   ↓ position helpers > computes a visible line window with top and bottom spacers
+   ↓ position helpers > can render cursor overlay without constructing an EditorView
+   ↓ position helpers > can render selection overlay without constructing an EditorView
+   ↓ position helpers > can create an input proxy directly
+   ↓ line projection helpers > builds collapsed visual segments for hidden emphasis markers
+   ↓ line projection helpers > maps source positions through hidden marker boundaries
+   ↓ line projection helpers > maps visual offsets back to source positions around hidden markers
+   ↓ line projection helpers > keeps syntax ranges visible in projection when cursor is inside the node
+   ↓ line projection helpers > collapses link marker and destination syntax while preserving label mapping
+   × collapses both selection directions at either existing endpoint in source 72ms
+     → expected SelectionRange{ anchor: 12, …(2) } to match object { anchor: 31, head: 31 }
+(1 matching property omitted from actual)
+   × collapses both selection directions at either existing endpoint in live 27ms
+     → expected SelectionRange{ anchor: 12, …(2) } to match object { anchor: 31, head: 31 }
+(1 matching property omitted from actual)
+ ❯ src/__tests__/source-document-view.test.ts (64 tests | 2 failed | 62 skipped) 257ms
+   ↓ SourceDocumentView > restores the source caret after a save lock rerenders the window
+   ↓ SourceDocumentView > restores the live caret after a save lock rerenders the window
+   ↓ SourceDocumentView > renders an async document source as a bounded line window
+   ↓ SourceDocumentView > refreshes the source line window on scroll without rendering offscreen lines
+   ↓ SourceDocumentView > can swap to another source and resets the scroll window
+   ↓ SourceDocumentView > keeps scroll position when updating the same source document version
+   ↓ SourceDocumentView > scrolls directly to a requested line window
+   ↓ SourceDocumentView > renders the requested line even when the browser clamps a huge scroll offset
+   ↓ SourceDocumentView > renders search highlights and marks the active result
+   ↓ SourceDocumentView > renders live mode from a padded markdown line window without offscreen DOM
+   ↓ SourceDocumentView > maps live-mode clicks through visible source spans before editing
+   ↓ SourceDocumentView > positions the source cursor from the rendered line box instead of guessed line number
+   ↓ SourceDocumentView > moves the source cursor with arrow keys without editing
+   ↓ SourceDocumentView > handles source cursor arrow keys from the focused root element
+   ↓ SourceDocumentView > moves the source cursor vertically by preserving line offset
+   ↓ SourceDocumentView > moves vertically from rendered lines when the source cannot resolve positions directly
+   ↓ SourceDocumentView > uses measured line width when source cursor range measurement is unavailable
+   ↓ SourceDocumentView > uses font-size instead of line-height for the source cursor height
+   ↓ SourceDocumentView > caches live markdown windows by document version and line range
+   ↓ SourceDocumentView > shows live block syntax around the source cursor
+   ↓ SourceDocumentView > hides table pipes between rendered source cells
+   ↓ SourceDocumentView > preserves native horizontal code-scrollbar dragging in the source view
+   ↓ SourceDocumentView > patches the edited visible source line without rereading the window
+   ↓ SourceDocumentView > warms markdown windows around the visible viewport without repeated source reads
+   ↓ SourceDocumentView > emits bounded visible edits when editable source mode receives keyboard input
+   ↓ SourceDocumentView > continues list prefixes when editable source mode receives Enter
+   ↓ SourceDocumentView > commits only finalized IME composition text
+   ↓ SourceDocumentView > clears the IME placeholder before immediately handling enter and delete
+   ↓ SourceDocumentView > does not let a stale composition flag block enter and delete
+   ↓ SourceDocumentView > handles editing keys reported with the legacy IME key code
+   ↓ SourceDocumentView > flushes pending source edits before save operations
+   ↓ SourceDocumentView > does not block saving when a structural edit commits but its viewport refresh fails
+   ↓ SourceDocumentView > keeps consecutive structural edits in separate native history commits
+   ↓ SourceDocumentView > flush waits for every isolated batch even when the first commit is delayed
+   ↓ SourceDocumentView > flush rejects when a later isolated edit fails instead of reporting a successful save
+   ↓ SourceDocumentView > renders structural edits while the native commit is still pending
+   ↓ SourceDocumentView > rolls back an optimistic structural edit when the native commit fails
+   ↓ SourceDocumentView > deletes a selected range inside the rendered source window
+   ↓ SourceDocumentView > commits enter and delete keys when lineAtPosition is unavailable
+   ↓ SourceDocumentView > deletes complete surrogate pairs from a rendered-only source
+   ↓ SourceDocumentView > copies, cuts, and pastes a selection through clipboard events
+   ↓ SourceDocumentView > renders live list markers like the regular editor
+   ↓ SourceDocumentView > keeps live list clicks out of source marker ranges
+   ↓ SourceDocumentView > keeps task-list syntax rendered after the cursor enters the item
+   ↓ SourceDocumentView > creates a selection while dragging through a rendered source window
+   ↓ SourceDocumentView > commits optimistic input before a new source viewport read
+   ↓ SourceDocumentView > commits optimistic input before a new live viewport read
+   ↓ SourceDocumentView > does not apply a source window read started before a newer optimistic edit
+   ↓ SourceDocumentView > does not apply a live window read started before a newer optimistic edit
+   ↓ SourceDocumentView > does not let stale single-line commits replace newer optimistic input
+   ↓ SourceDocumentView > does not emit edits when the source view remains readonly
+   ↓ reveals an exact source search selection without stealing focus
+   ↓ moves a source outline cursor to the revealed heading line
+   ↓ ignores a pending reveal after the document identity changes
+   ↓ windowed source block commands > exits an empty nested list without inserting another marker
+   ↓ windowed source block commands > does not continue literal lists inside a fence outside the rendered window and preserves CRLF
+   ↓ windowed source block commands > indents a reversed selection across windows in one edit and preserves its direction
+   ↓ windowed live block commands > exits an empty nested list without inserting another marker
+   ↓ windowed live block commands > does not continue literal lists inside a fence outside the rendered window and preserves CRLF
+   ↓ windowed live block commands > indents a reversed selection across windows in one edit and preserves its direction
+   ↓ does not scan the document prefix for ordinary windowed character backspace
+   ↓ discards a delayed fence scan after the active document changes
+   × collapses both windowed selection directions at either existing endpoint in source 195ms
+     → expected SelectionRange{ anchor: 12, …(2) } to match object { anchor: 31, head: 31 }
+(1 matching property omitted from actual)
+   × collapses both windowed selection directions at either existing endpoint in live 61ms
+     → expected SelectionRange{ anchor: 12, …(2) } to match object { anchor: 31, head: 31 }
+(1 matching property omitted from actual)
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 4 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/__tests__/editor-view.test.ts > collapses both selection directions at either existing endpoint in source
+ FAIL  src/__tests__/editor-view.test.ts > collapses both selection directions at either existing endpoint in live
+AssertionError: expected SelectionRange{ anchor: 12, …(2) } to match object { anchor: 31, head: 31 }
+(1 matching property omitted from actual)
+
+- Expected
++ Received
+
+- {
+-   "anchor": 31,
++ SelectionRange {
++   "anchor": 12,
+    "head": 31,
+  }
+
+ ❯ src/__tests__/editor-view.test.ts:2599:43
+    2597|         view.inputDOM.dispatchEvent(event)
+    2598|         const expected = key==='ArrowRight'||key==='ArrowDown' ? to : …
+    2599|         expect(view.state.selection.main).toMatchObject({anchor:expect…
+       |                                           ^
+    2600|         expect(event.defaultPrevented).toBe(true)
+    2601|         expect(view.state.doc.text).toBe(text)
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/4]⎯
+
+ FAIL  src/__tests__/source-document-view.test.ts > collapses both windowed selection directions at either existing endpoint in source
+ FAIL  src/__tests__/source-document-view.test.ts > collapses both windowed selection directions at either existing endpoint in live
+AssertionError: expected SelectionRange{ anchor: 12, …(2) } to match object { anchor: 31, head: 31 }
+(1 matching property omitted from actual)
+
+- Expected
++ Received
+
+- {
+-   "anchor": 31,
++ SelectionRange {
++   "anchor": 12,
+    "head": 31,
+  }
+
+ ❯ src/__tests__/source-document-view.test.ts:1985:37
+    1983|         await view.runAfterPendingEdits(async () => {})
+    1984|         const expected = key==='ArrowRight'||key==='ArrowDown' ? to : …
+    1985|         expect(view.selection.main).toMatchObject({anchor:expected,hea…
+       |                                     ^
+    1986|         expect(event.defaultPrevented).toBe(true)
+    1987|         expect(source.version).toBe(0)
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/4]⎯
+
+
+ Test Files  2 failed (2)
+      Tests  4 failed | 183 skipped (187)
+   Start at  12:54:59
+   Duration  1.63s (transform 623ms, setup 0ms, collect 1.39s, tests 357ms, environment 877ms, prepare 135ms)
+
+undefined
+/workspace/milkup/packages/view-dom:
+[ERR_PNPM_RECURSIVE_EXEC_FIRST_FAIL] Command failed with exit code 1: vitest run src/__tests__/editor-view.test.ts src/__tests__/source-document-view.test.ts '--maxWorkers=2' -t 'collapses both'

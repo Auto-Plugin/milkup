@@ -1,0 +1,252 @@
+{
+  "kind": "production-ELF-direct-helper-corpus",
+  "mode": "smoke",
+  "sourceCommit": "ee305c4c8e8fc2e2a8fb7356170a6ec59b6674e4",
+  "binarySha256": "9bfce3146a9d6f5b44a2c769a3e55b72521fdb33beed8247980aaa412742347a",
+  "guardSha256": "5b1082768123b9ac1923eb8ef3f6f8c0bd05ffd5d66b8b2a023f75b69106c44c",
+  "startedAt": "2026-11-03T15:04:03.496Z",
+  "status": "passed",
+  "display": ":143",
+  "runtimeProfile": "/tmp/milkup-corpus-MLwCq6",
+  "runtimeTmp": "/tmp/milkup-corpus-MLwCq6/native-tmp",
+  "pidNamespace": "pid:[4026532484]",
+  "outerPidNamespace": "pid:[4026532200]",
+  "sandboxDisabled": false,
+  "registryLeaseTest": false,
+  "parameters": {
+    "width": 1280,
+    "theme": "default",
+    "look": "classic",
+    "renderBudgetMs": 30000
+  },
+  "boundaries": [
+    "No editor/Registry lease acceptance.",
+    "All 50 original positive fixtures; no negative cases.",
+    "Matches the historical native50 classic look; the manifest neo override for case44 is not claimed.",
+    "Decoded retained PNGs do not substitute for complete visual review."
+  ],
+  "cases": [
+    {
+      "fixture": "01-c4",
+      "sourceSha256": "91802e01eae02d2aa4d25a2c6565712b80f2a15753094ca6912672121ab72276",
+      "inputBytes": 234,
+      "privateRoot": "/tmp/milkup-corpus-MLwCq6/native-tmp/milkup-mermaid-8deb664a-69e8-46b5-8051-dc0dcf2ed17e",
+      "startedAt": "2026-11-03T15:04:05.722Z",
+      "status": "rendered-decoded-retained",
+      "guardian": {
+        "pid": 51,
+        "birth": "1311032",
+        "state": "R",
+        "parent": 4,
+        "group": 51,
+        "argv": [
+          "/workspace/mermaid-rebuild-evidence/linux-x11-popup/native-corpus-ee305c4c-01/binary/milkup-desktop",
+          "--milkup-internal-fixed-mermaid-linux"
+        ]
+      },
+      "header": {
+        "bytes": 15452,
+        "height": 194,
+        "ok": true,
+        "width": 564
+      },
+      "stopChannelClosedAt": "2026-11-03T15:04:06.662Z",
+      "exit": {
+        "code": 0,
+        "signal": null,
+        "observedMonotonicMs": 3218.688969
+      },
+      "stdioClosed": true,
+      "privateDirectoryAbsent": true,
+      "nativeProcessesAfterCleanup": [],
+      "cleanupVerified": true,
+      "log": {
+        "bytesSeen": 711,
+        "bytesRetained": 711,
+        "overflow": false
+      },
+      "png": {
+        "file": "png/01-c4.png",
+        "bytes": 15452,
+        "sha256": "2c4cb6ae15766fedbd439ef087beda64830f8eb3143be68f61f4d72ddbcff499",
+        "width": 564,
+        "height": 194
+      },
+      "decode": {
+        "decoder": "Pillow",
+        "size": [
+          564,
+          194
+        ],
+        "mode": "RGBA",
+        "decodedBytes": 437664,
+        "rgbaSha256": "4b8b1b1a946f23f69321a6952d43c9ec7d0d4c91cf4c9ea7542ec6da62c3e829"
+      },
+      "elapsedMs": 1053.8677539999999,
+      "finishedAt": "2026-11-03T15:04:06.777Z"
+    }
+  ],
+  "services": [
+    {
+      "name": "xvfb",
+      "command": "Xvfb",
+      "args": [
+        ":143",
+        "-screen",
+        "0",
+        "1440x1000x24",
+        "-nolisten",
+        "tcp"
+      ],
+      "identity": {
+        "pid": 16,
+        "birth": "1310956",
+        "state": "R",
+        "parent": 4,
+        "group": 16,
+        "argv": [
+          "Xvfb",
+          ":143",
+          "-screen",
+          "0",
+          "1440x1000x24",
+          "-nolisten",
+          "tcp"
+        ]
+      }
+    },
+    {
+      "name": "xfconfd",
+      "command": "/usr/host/lib/x86_64-linux-gnu/xfce4/xfconf/xfconfd",
+      "args": [],
+      "identity": {
+        "pid": 20,
+        "birth": "1310964",
+        "state": "S",
+        "parent": 4,
+        "group": 20,
+        "argv": [
+          "/usr/host/lib/x86_64-linux-gnu/xfce4/xfconf/xfconfd"
+        ]
+      }
+    },
+    {
+      "name": "xfwm4",
+      "command": "/usr/bin/xfwm4",
+      "args": [
+        "--compositor=off",
+        "--sm-client-disable"
+      ],
+      "identity": {
+        "pid": 27,
+        "birth": "1310968",
+        "state": "R",
+        "parent": 4,
+        "group": 27,
+        "argv": [
+          "/usr/bin/xfwm4",
+          "--compositor=off",
+          "--sm-client-disable"
+        ]
+      }
+    }
+  ],
+  "cleanup": [
+    {
+      "name": "xfwm4",
+      "identity": {
+        "pid": 27,
+        "birth": "1310968",
+        "state": "R",
+        "parent": 4,
+        "group": 27,
+        "argv": [
+          "/usr/bin/xfwm4",
+          "--compositor=off",
+          "--sm-client-disable"
+        ]
+      },
+      "requestedSignal": "SIGTERM",
+      "exit": {
+        "code": 0,
+        "signal": null
+      },
+      "identityAbsent": true,
+      "activeGroupMembers": [],
+      "log": {
+        "bytesSeen": 0,
+        "retained": 0,
+        "overflow": false
+      }
+    },
+    {
+      "name": "xfconfd",
+      "identity": {
+        "pid": 20,
+        "birth": "1310964",
+        "state": "S",
+        "parent": 4,
+        "group": 20,
+        "argv": [
+          "/usr/host/lib/x86_64-linux-gnu/xfce4/xfconf/xfconfd"
+        ]
+      },
+      "requestedSignal": "SIGTERM",
+      "exit": {
+        "code": 0,
+        "signal": null
+      },
+      "identityAbsent": true,
+      "activeGroupMembers": [],
+      "log": {
+        "bytesSeen": 0,
+        "retained": 0,
+        "overflow": false
+      }
+    },
+    {
+      "name": "xvfb",
+      "identity": {
+        "pid": 16,
+        "birth": "1310956",
+        "state": "R",
+        "parent": 4,
+        "group": 16,
+        "argv": [
+          "Xvfb",
+          ":143",
+          "-screen",
+          "0",
+          "1440x1000x24",
+          "-nolisten",
+          "tcp"
+        ]
+      },
+      "requestedSignal": "SIGTERM",
+      "exit": {
+        "code": 0,
+        "signal": null
+      },
+      "identityAbsent": true,
+      "activeGroupMembers": [],
+      "log": {
+        "bytesSeen": 64,
+        "retained": 64,
+        "overflow": false
+      }
+    }
+  ],
+  "fixtureManifestSha256": "89925556b195b9eb77fb693b6511ca37eb3f23e27f98b90fbf614d6a66b9c33a",
+  "depfileSha256": "9f1edceacc40ee6657d3100782e213771503a81ee9125e9c8df64bf5c6b223ac",
+  "binary": "/workspace/mermaid-rebuild-evidence/linux-x11-popup/native-corpus-ee305c4c-01/binary/milkup-desktop",
+  "guard": "/workspace/mermaid-rebuild-evidence/linux-x11-popup/native-corpus-ee305c4c-01/binary/libmilkup_dom_guard.so",
+  "harnessSha256": "bf48e1597e936e0da980fe0901a8e7cb6c6ac5ddf419784014698a02c6561710",
+  "decoderSha256": "8a5e1a1814659163b942544c0b5235d6a97ebfe9bdaaa28ad1d44d7ec1cba99f",
+  "runtime": {
+    "webkitGtk": "2.52.6",
+    "source": "Existing selected-environment sysroot"
+  },
+  "wm": "_NET_SUPPORTING_WM_CHECK(WINDOW): window id # 0x200032",
+  "finishedAt": "2026-11-03T15:04:07.183Z",
+  "visualReview": "pending"
+}

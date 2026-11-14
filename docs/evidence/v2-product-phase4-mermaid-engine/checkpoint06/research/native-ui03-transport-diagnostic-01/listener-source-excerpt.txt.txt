@@ -1,0 +1,25 @@
+
+pub(crate) fn listen_js_script(
+  listeners_object_name: &str,
+  serialized_target: &str,
+  event: EventName<&str>,
+  event_id: EventId,
+  handler: CallbackFn,
+) -> String {
+  let handler_id = handler.0;
+  format!(
+    "(function () {{
+      if (window['{listeners_object_name}'] === void 0) {{
+        Object.defineProperty(window, '{listeners_object_name}', {{ value: Object.create(null) }});
+      }}
+      if (window['{listeners_object_name}']['{event}'] === void 0) {{
+        Object.defineProperty(window['{listeners_object_name}'], '{event}', {{ value: Object.create(null) }});
+      }}
+      const eventListeners = window['{listeners_object_name}']['{event}']
+      const listener = {{
+        target: {serialized_target},
+        handlerId: {handler_id}
+      }};
+      Object.defineProperty(eventListeners, '{event_id}', {{ value: listener, configurable: true }});
+    }})()
+  ",

@@ -1,0 +1,68 @@
+{
+  "atUtc": "2026-10-16T21:43:53.269704+00:00",
+  "status": "passed",
+  "scope": "Fresh standalone frozen diagrams build/typecheck/tests and independent trusted staging parity; repository gates and native acceptance separate",
+  "commands": [
+    {
+      "command": [
+        "node",
+        "plugins/diagrams/scripts/verify-external.mjs",
+        "/workspace/milkup/plugins/diagrams/vendor/plugin-sdk.tgz",
+        "/workspace/milkup-mermaid-engine-evidence/diagrams-gate07/standalone"
+      ],
+      "cwd": "/workspace/milkup",
+      "explicitEnvironment": {
+        "PNPM_HOME": "/workspace/.cache/pnpm/home",
+        "XDG_DATA_HOME": "/workspace/.cache/xdg-data",
+        "XDG_STATE_HOME": "/workspace/.cache/xdg-state",
+        "XDG_CACHE_HOME": "/workspace/.cache/xdg-cache",
+        "PNPM_CLI": "/workspace/.cache/corepack/v1/pnpm/11.7.0/bin/pnpm.cjs",
+        "COREPACK_HOME": "/workspace/.cache/corepack"
+      },
+      "inheritedEnvironment": "Not dumped; may contain unrelated credentials",
+      "startedUtc": "2026-10-16T21:42:00.847572+00:00",
+      "endedUtc": "2026-10-16T21:42:10.420541+00:00",
+      "exitCode": 0,
+      "log": "/workspace/milkup-mermaid-engine-evidence/diagrams-gate07/standalone.log",
+      "logSha256": "550c16265adb9938e4bdbf820e98a5a9b387cf3d7111edc999262173ad16c89c"
+    },
+    {
+      "command": [
+        "node",
+        "scripts/ci/prepare-bundled-plugins.mjs"
+      ],
+      "cwd": "/workspace/milkup",
+      "explicitEnvironment": {
+        "PNPM_HOME": "/workspace/.cache/pnpm/home",
+        "XDG_DATA_HOME": "/workspace/.cache/xdg-data",
+        "XDG_STATE_HOME": "/workspace/.cache/xdg-state",
+        "XDG_CACHE_HOME": "/workspace/.cache/xdg-cache",
+        "PNPM_CLI": "/workspace/.cache/corepack/v1/pnpm/11.7.0/bin/pnpm.cjs",
+        "COREPACK_HOME": "/workspace/.cache/corepack"
+      },
+      "inheritedEnvironment": "Not dumped; may contain unrelated credentials",
+      "startedUtc": "2026-10-16T21:42:23.734326+00:00",
+      "endedUtc": "2026-10-16T21:42:26.563365+00:00",
+      "exitCode": 0,
+      "log": "/workspace/milkup-mermaid-engine-evidence/diagrams-gate07/trusted-staging.log",
+      "logSha256": "bf10299f454465f4f35895f436ede36361923b9cf2366dd0daa89e0eb4c9abef"
+    }
+  ],
+  "archive": {
+    "path": "/workspace/milkup-mermaid-engine-evidence/diagrams-gate07/standalone/plugin/dist/milkup.diagrams-1.1.0.milkup-plugin",
+    "bytes": 5726838,
+    "sha256": "9889f1796f9080ff230a1c51147522e83e065bc191a258035208f69403a327df"
+  },
+  "sdkSha256": "1717c0114aa165fa3e48a1bfa7687ffd0d9b2e5392d33e99d8b2dc59a1f3ad4f",
+  "testsPassed": 89,
+  "typecheck": "Declared standalone build executed tsc --noEmit before bundling",
+  "runtimeImports": [],
+  "externalStagedLocalWholeBytesEqual": true,
+  "otherNineStagedUnchanged": true,
+  "localDistQualification": "Local dist synchronized from authoritative successful external build, not claimed as another local build. Staging independently rebuilt from current reviewed inputs; no generic-all10 install/test rerun.",
+  "sourceChanges": [],
+  "sourceFileCount": 16356,
+  "firstAttemptOnly": true,
+  "parentProductCommitPending": true,
+  "production07NotStarted": true
+}

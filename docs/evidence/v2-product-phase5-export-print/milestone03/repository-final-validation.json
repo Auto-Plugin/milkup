@@ -1,0 +1,30 @@
+{
+  "vitestPassed": 2182,
+  "nodePassed": 4,
+  "testsExit": 0,
+  "typecheckExit": 0,
+  "commands": [
+    [
+      "bash",
+      "scripts/cloud/pnpm.sh",
+      "--config.verify-deps-before-run=false",
+      "--config.manage-package-manager-versions=false",
+      "-r",
+      "test"
+    ],
+    [
+      "bash",
+      "scripts/cloud/pnpm.sh",
+      "--config.verify-deps-before-run=false",
+      "--config.manage-package-manager-versions=false",
+      "-r",
+      "typecheck"
+    ]
+  ],
+  "productCommit": "aa9db739d40eb37494e45b5394d45326141605a8",
+  "notes": [
+    "Independent plugin tests/typecheck/build and native Rust tests are recorded separately.",
+    "Native production UI tests use exact binary SHA, not test-build outputs."
+  ],
+  "formatExit": 0
+}

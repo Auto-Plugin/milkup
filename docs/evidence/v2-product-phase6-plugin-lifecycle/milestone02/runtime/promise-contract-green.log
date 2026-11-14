@@ -1,0 +1,120 @@
+
+ RUN  v3.2.6 /workspace/milkup
+
+ ❯ packages/plugin/src/settings-broker.test.ts (21 tests | 1 failed) 44ms
+   ✓ settings scope and transactions > cancel rolls back despite a pre-aborted caller and keeps failed rollback retryable 10ms
+   ✓ settings scope and transactions > offers application and caller-only plugin schema, preview/reset/commit and issued IDs 3ms
+   ✓ settings scope and transactions > rejects absent permissions, undeclared plugin schema and forged scopes before dispatch 1ms
+   ✓ settings scope and transactions > rejects invalid patch {"size":11} before host mutation 1ms
+   ✓ settings scope and transactions > rejects invalid patch {"size":33} before host mutation 1ms
+   ✓ settings scope and transactions > rejects invalid patch {"size":14.5} before host mutation 1ms
+   ✓ settings scope and transactions > rejects invalid patch {"size":null} before host mutation 1ms
+   ✓ settings scope and transactions > rejects invalid patch {"size":"14"} before host mutation 0ms
+   ✓ settings scope and transactions > rejects invalid patch {"theme":"file:///private"} before host mutation 1ms
+   ✓ settings scope and transactions > rejects invalid patch {"enabled":1} before host mutation 1ms
+   ✓ settings scope and transactions > rejects invalid patch {"extra":true} before host mutation 0ms
+   ✓ settings scope and transactions > rejects invalid patch {} before host mutation 0ms
+   ✓ settings scope and transactions > rejects invalid patch {"__proto__":true} before host mutation 1ms
+   ✓ settings scope and transactions > rejects invalid patch {"size":14,"pluginId":"other"} before host mutation 0ms
+   ✓ settings scope and transactions > enforces one transaction per scope, ownership and in-flight mutation serialization 3ms
+   ✓ settings scope and transactions > cleans late begin results and rejects stale methods after disable/re-enable 1ms
+   ✓ settings scope and transactions > retains a failed commit for retry and sanitizes adapter errors 1ms
+   ✓ settings scope and transactions > does not publish data after queued disposal between native completion and outer return 2ms
+   ✓ settings scope and transactions > rejects plugin namespace schema substitution and rolls back its invalid begin 2ms
+   ✓ settings scope and transactions > validates manifest schema and numeric exceptions without arbitrary strings 2ms
+   × settings scope and transactions > runtime grants only declared settings and seals captured capabilities 11ms
+     → Plugin capability was revoked
+ ❯ packages/plugin/src/workspace-broker.test.ts (34 tests | 1 failed) 53ms
+   ✓ workspace scope broker > rejects list results when disposal runs between the adapter result and publication 6ms
+   ✓ workspace scope broker > rejects resolve results when disposal runs between the adapter result and publication 1ms
+   ✓ workspace scope broker > rejects refresh results when disposal runs between the adapter result and publication 1ms
+   ✓ workspace scope broker > rejects open results when disposal runs between the adapter result and publication 1ms
+   ✓ workspace scope broker > requires declared permission, issued roots and one-use gesture before side effects 3ms
+   ✓ workspace scope broker > rejects unsafe relative path "/etc/passwd" before adapter access 1ms
+   ✓ workspace scope broker > rejects unsafe relative path "../note.md" before adapter access 1ms
+   ✓ workspace scope broker > rejects unsafe relative path "a/../b" before adapter access 1ms
+   ✓ workspace scope broker > rejects unsafe relative path "./a" before adapter access 1ms
+   ✓ workspace scope broker > rejects unsafe relative path "a//b" before adapter access 1ms
+   ✓ workspace scope broker > rejects unsafe relative path "C:/a" before adapter access 1ms
+   ✓ workspace scope broker > rejects unsafe relative path "//server/a" before adapter access 1ms
+   ✓ workspace scope broker > rejects unsafe relative path "a\\b" before adapter access 1ms
+   ✓ workspace scope broker > rejects unsafe relative path "file:///a" before adapter access 0ms
+   ✓ workspace scope broker > rejects unsafe relative path "a\u0000b" before adapter access 1ms
+   ✓ workspace scope broker > rejects unsafe relative path "a\nb" before adapter access 0ms
+   ✓ workspace scope broker > rejects unsafe relative path "a./b" before adapter access 1ms
+   ✓ workspace scope broker > rejects unsafe relative path "a /b" before adapter access 1ms
+   ✓ workspace scope broker > rejects unsafe relative path "a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/b" before adapter access 1ms
+   ✓ workspace scope broker > keeps encoded-looking filenames literal and resolves only in an issued root 1ms
+   ✓ workspace scope broker > binds cursors to the directory, rejects reuse and invalidates previous enumeration replies 1ms
+   ✓ workspace scope broker > rejects unbounded page limit 0 1ms
+   ✓ workspace scope broker > rejects unbounded page limit -1 1ms
+   ✓ workspace scope broker > rejects unbounded page limit 201 0ms
+   ✓ workspace scope broker > rejects unbounded page limit 1.5 0ms
+   ✓ workspace scope broker > rejects unbounded page limit Infinity 0ms
+   ✓ workspace scope broker > refresh replaces the grant and invalidates files and cursors; release does not open documents 1ms
+   ✓ workspace scope broker > releases old native grants on nine consecutive root replacements 2ms
+   ✓ workspace scope broker > cancelled chooser retains existing root; aborted late chooser is cleaned and never published 2ms
+   ✓ workspace scope broker > aborts protected open and seals a revoked broker even if permission later returns 1ms
+   ✓ workspace scope broker > retains safe adapter error codes while removing OS messages and paths 1ms
+   ✓ workspace scope broker > activation surface has no chooser/open and command closure cannot substitute gesture input 3ms
+   ✓ workspace scope broker > does not mark synthetic events or expose proofs on context 1ms
+   × workspace scope broker > runtime exposes capability only with permission and rejects retained activation methods after disable 12ms
+     → Plugin capability was revoked
+ ❯ packages/plugin/src/releases-broker.test.ts (3 tests | 1 failed) 27ms
+   ✓ managed releases capability > requires permission and IDs issued by check, and strips private metadata 10ms
+   ✓ managed releases capability > rejects captured methods, late results and all subsequent calls after revocation 3ms
+   × managed releases capability > exposes capabilities only to permitted runtime activations and seals old handles on re-enable 13ms
+     → Plugin capability was revoked
+ ✓ packages/plugin/src/runtime.test.ts (18 tests) 46ms
+ ✓ packages/plugin/src/isolation-worker.test.ts (29 tests) 108ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 3 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  packages/plugin/src/releases-broker.test.ts > managed releases capability > exposes capabilities only to permitted runtime activations and seals old handles on re-enable
+Error: Plugin capability was revoked
+ ❯ packages/plugin/src/activation-gate.ts:11:46
+      9|   contract: { readonly asynchronous?: (method: string) => boolean; rea…
+     10| ): T {
+     11|   const revoked = contract.revoked ?? (() => new Error('Plugin capabil…
+       |                                              ^
+     12|   return Object.freeze(Object.fromEntries(Object.entries(capability).m…
+     13|     if (typeof value !== 'function') return [key, value]
+ ❯ Object.invoke [as check] packages/plugin/src/activation-gate.ts:16:30
+ ❯ packages/plugin/src/releases-broker.test.ts:134:22
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/3]⎯
+
+ FAIL  packages/plugin/src/settings-broker.test.ts > settings scope and transactions > runtime grants only declared settings and seals captured capabilities
+Error: Plugin capability was revoked
+ ❯ packages/plugin/src/activation-gate.ts:11:46
+      9|   contract: { readonly asynchronous?: (method: string) => boolean; rea…
+     10| ): T {
+     11|   const revoked = contract.revoked ?? (() => new Error('Plugin capabil…
+       |                                              ^
+     12|   return Object.freeze(Object.fromEntries(Object.entries(capability).m…
+     13|     if (typeof value !== 'function') return [key, value]
+ ❯ Object.invoke [as get] packages/plugin/src/activation-gate.ts:16:30
+ ❯ packages/plugin/src/settings-broker.test.ts:213:27
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/3]⎯
+
+ FAIL  packages/plugin/src/workspace-broker.test.ts > workspace scope broker > runtime exposes capability only with permission and rejects retained activation methods after disable
+Error: Plugin capability was revoked
+ ❯ packages/plugin/src/activation-gate.ts:11:46
+      9|   contract: { readonly asynchronous?: (method: string) => boolean; rea…
+     10| ): T {
+     11|   const revoked = contract.revoked ?? (() => new Error('Plugin capabil…
+       |                                              ^
+     12|   return Object.freeze(Object.fromEntries(Object.entries(capability).m…
+     13|     if (typeof value !== 'function') return [key, value]
+ ❯ Object.invoke [as releaseRoot] packages/plugin/src/activation-gate.ts:16:30
+ ❯ packages/plugin/src/workspace-broker.test.ts:323:67
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/3]⎯
+
+
+ Test Files  3 failed | 2 passed (5)
+      Tests  3 failed | 102 passed (105)
+   Start at  08:59:12
+   Duration  1.51s (transform 1.09s, setup 0ms, collect 2.22s, tests 278ms, environment 1ms, prepare 452ms)
+

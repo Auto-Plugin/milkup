@@ -1,0 +1,16 @@
+// Unexecuted red/green specifications. All fixtures run only in the isolated DOM helper.
+const svg=body=>`<svg xmlns="http://www.w3.org/2000/svg" width="200" height="120" viewBox="0 0 200 120" style="font-family:Arial,sans-serif;font-size:16px">${body}</svg>`;
+export const fixtures=[
+ {id:'group-opacity-overlap',expected:'ready',svg:svg('<g opacity=".5"><rect x="10" y="10" width="50" height="50" fill="#f00"/><rect x="30" y="30" width="50" height="50" fill="#00f"/></g>'),assertion:'one parent opacity .5; children remain opacity1; original group retained'},
+ {id:'css-rx-over-attribute',expected:'ready',svg:svg('<style>.rounded{rx:8px;ry:10px}</style><rect class="rounded" x="10" y="10" width="40" height="40" rx="0"/>'),assertion:'rect effective rx8/ry10, not attribute0'},
+ {id:'local-transform-once',expected:'ready',svg:svg('<g transform="translate(50)"><rect style="transform:translateX(20px)" transform="translate(10)" width="40" height="40"/></g>'),assertion:'parent local50 + child local20, not30 or70'},
+ {id:'text-transform',expected:'ready',svg:svg('<text x="10" y="30" style="text-transform:uppercase">Mixed case</text>'),assertion:'typed textTransform uppercase; original mixed-case text retained'},
+ {id:'unknown-writing-mode',expected:'unsupported-feature',svg:svg('<text x="10" y="30" style="writing-mode:vertical-rl">Mixed case</text>')},
+ {id:'external-anchor',expected:'unsafe-output',svg:svg('<a href="https://example.invalid/not-clicked"><rect width="30" height="30"/></a>')},
+ {id:'effective-animation',expected:'unsupported-animation',svg:svg('<style>@keyframes move{to{stroke-dashoffset:0}}.moving{animation:move 20s linear infinite;stroke-dashoffset:900}</style><path class="moving" d="M0 0 L80 80" stroke="red"/>')},
+ {id:'unused-animation-rule',expected:'ready',svg:svg('<style>@keyframes move{to{stroke-dashoffset:0}}.unused{animation:move 20s linear infinite}</style><path d="M0 0 L80 80" stroke="red"/>')},
+ {id:'arc-packed-flags',expected:'ready',svg:svg('<path d="M0 0 A10 10 0 0110 20"/>'),assertion:'full arc flags0/1 and endpoint10/20'},
+ {id:'css-shadow',expected:'ready',svg:svg('<rect width="40" height="40" style="filter:drop-shadow(1px 2px 2px rgb(185,185,185))"/>'),assertion:'typed CSS drop-shadow; do not relabel blur as SVG stdDeviation'},
+ {id:'gradient-multiply',expected:'ready',svg:svg('<defs><linearGradient id="grad"><stop offset="0" stop-color="red"/><stop offset="1" stop-color="blue"/></linearGradient></defs><g style="mix-blend-mode:multiply"><rect width="60" height="60" fill="url(#grad)"/></g>'),assertion:'typed local gradient; group multiply retained'},
+ {id:'clip-cycle',expected:'invalid-output',svg:svg('<defs><clipPath id="clip"><rect width="40" height="40" clip-path="url(#clip)"/></clipPath></defs><rect width="80" height="80" clip-path="url(#clip)"/>')},
+];

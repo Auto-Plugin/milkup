@@ -1,0 +1,108 @@
+{
+  "qualification": "Invented schema examples only; not runtime evidence. Canonical file names derive from externally bound helper identity.",
+  "directory": "$MILKUP_WEBPROCESS_PIDFD_OUTPUT_DIR/slot",
+  "armedFilename": "helper-12345-100000-armed.json",
+  "resultFilename": "helper-12345-100000-result.json",
+  "armed": {
+    "schema": "milkup.webprocess-self-pidfd.v1",
+    "final": true,
+    "instanceId": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "helper": {
+      "pid": 12345,
+      "birth": 100000,
+      "parent": 12340,
+      "state": "S"
+    },
+    "guardian": {
+      "pid": 12340,
+      "birth": 99999,
+      "parent": 12300,
+      "state": "S"
+    },
+    "nativeMonotonicNs": 1000000000000,
+    "contextProvenance": "owned extension -> one private ephemeral native WebContext; no JavaScript channel",
+    "clock": "local CLOCK_MONOTONIC; cross-process comparability must be verified",
+    "recordLimitBytes": 8192,
+    "kind": "armed",
+    "status": "receiver-prepared",
+    "prepareStartNs": 999999990000,
+    "captureEndNs": 1000000000001,
+    "extensionSha256": "0000000000000000000000000000000000000000000000000000000000000000",
+    "tokenPrepared": true
+  },
+  "heldResult": {
+    "schema": "milkup.webprocess-self-pidfd.v1",
+    "final": true,
+    "instanceId": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "helper": {
+      "pid": 12345,
+      "birth": 100000,
+      "parent": 12340,
+      "state": "S"
+    },
+    "guardian": {
+      "pid": 12340,
+      "birth": 99999,
+      "parent": 12300,
+      "state": "S"
+    },
+    "nativeMonotonicNs": 1000000001100,
+    "contextProvenance": "owned extension -> one private ephemeral native WebContext; no JavaScript channel",
+    "clock": "local CLOCK_MONOTONIC; cross-process comparability must be verified",
+    "recordLimitBytes": 8192,
+    "kind": "result",
+    "status": "held",
+    "receiveStartNs": 1000000001000,
+    "captureEndNs": 1000000004000,
+    "tokenMatched": true,
+    "nativeStage": 0,
+    "nativeErrno": 0,
+    "nativeGErrorDomain": 0,
+    "nativeGErrorCode": 0,
+    "webProcessCallbackStartNs": 1000000000100,
+    "webProcessCallbackEndNs": 1000000000200,
+    "pageId": 1,
+    "receivedFdCount": 1,
+    "heldFd": 31,
+    "receiverFdinfoRaw": "pos:\t0\nflags:\t02000002\nmnt_id:\t4\nino:\t1\nPid:\t12350\nNSpid:\t12350\n",
+    "receiverReadStartNs": 1000000002000,
+    "receiverReadEndNs": 1000000003000,
+    "lifetime": "one CLOEXEC duplicate retained until helper process exit; no explicit close/reuse API"
+  },
+  "failedResult": {
+    "schema": "milkup.webprocess-self-pidfd.v1",
+    "final": true,
+    "instanceId": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "helper": {
+      "pid": 12345,
+      "birth": 100000,
+      "parent": 12340,
+      "state": "S"
+    },
+    "guardian": {
+      "pid": 12340,
+      "birth": 99999,
+      "parent": 12300,
+      "state": "S"
+    },
+    "nativeMonotonicNs": 1000000001100,
+    "contextProvenance": "owned extension -> one private ephemeral native WebContext; no JavaScript channel",
+    "clock": "local CLOCK_MONOTONIC; cross-process comparability must be verified",
+    "recordLimitBytes": 8192,
+    "kind": "result",
+    "status": "failed",
+    "receiveStartNs": 1000000001000,
+    "captureEndNs": 1000000004000,
+    "tokenMatched": true,
+    "nativeStage": 1,
+    "nativeErrno": 1,
+    "nativeGErrorDomain": 0,
+    "nativeGErrorCode": 0,
+    "webProcessCallbackStartNs": 1000000000100,
+    "webProcessCallbackEndNs": 1000000000200,
+    "pageId": 1,
+    "receivedFdCount": 0,
+    "receiverErrno": null,
+    "receiverError": "WebProcess self-pidfd preparation failed"
+  }
+}

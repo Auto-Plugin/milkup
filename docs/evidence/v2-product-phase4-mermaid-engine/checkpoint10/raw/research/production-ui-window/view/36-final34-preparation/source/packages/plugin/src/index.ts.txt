@@ -1,0 +1,292 @@
+export {
+  createPluginDocumentBroker,
+  createPluginDocumentHostCapabilities,
+  type ManagedPluginDocumentBroker,
+  type PluginDocumentBroker,
+  type PluginDocumentBrokerConfig,
+  type PluginDocumentHost,
+  type PluginDocumentScanEvent,
+  type PluginDocumentScanHeading,
+  type PluginDocumentScanItem,
+  type PluginDocumentScanMatch,
+  type PluginDocumentScanQuery,
+  type PluginDocumentScanRequest,
+  type PluginDocumentScanner,
+  type PluginDocumentScanSource,
+  type PluginDocumentScanStartResult,
+} from './document-broker'
+export {
+  createPluginDocumentRpcServer,
+  createRpcPluginDocumentBroker,
+  type PluginDocumentRpcBrokerOptions,
+  type PluginDocumentRpcServer,
+  type RpcPluginDocumentBroker,
+} from './document-rpc'
+export {
+  createPluginUiBroker,
+  createPluginUiHostCapabilities,
+  type PluginUiBroker,
+  type PluginUiBrokerConfig,
+  type PluginUiHost,
+  type PluginUiNotice,
+} from './ui-broker'
+export { createPluginUiRpcServer, createRpcPluginUiBroker, type RpcPluginUiBroker } from './ui-rpc'
+export {
+  createPluginStorageBroker,
+  type PluginStorageAdapter,
+  type PluginStorageAuditRecord,
+  type PluginStorageBroker,
+  type ManagedPluginStorageBroker,
+  type PluginTemporaryStore,
+  assertTemporaryKeys,
+  assertTemporaryEntries,
+  assertTemporaryValues,
+  type PluginStorageBrokerConfig,
+  type PluginStorageOperation,
+} from './storage-broker'
+export {
+  createPluginStorageRpcServer,
+  createRpcPluginStorageBroker,
+  type RpcPluginStorageBroker,
+} from './storage-rpc'
+export {
+  createPluginPackageArchive,
+  isPluginPackageArchive,
+  normalizePackagePath,
+  parsePluginPackageArchive,
+  PLUGIN_PACKAGE_FORMAT,
+  PLUGIN_PACKAGE_VERSION,
+  readPluginPackageTextFile,
+  serializePluginPackageArchive,
+  type PluginPackageArchive,
+  type PluginPackageFile,
+  type PluginPackageFileEncoding,
+} from './package'
+export {
+  createPluginFileBroker,
+  createPluginFileHostCapabilities,
+  type PluginFileAuditRecord,
+  type PluginFileAuditSink,
+  type PluginFileBroker,
+  type PluginFileBrokerAdapter,
+  type PluginFileBrokerConfig,
+  type PluginFileBrokerResult,
+  type PluginFileDeleteRequest,
+  type PluginFileHostCapabilities,
+  type PluginFileOperation,
+  type PluginFileReadRequest,
+  type PluginFileScopeRoot,
+  type PluginFileWriteRequest,
+} from './filesystem-broker'
+export {
+  createPluginFileRpcServer,
+  createRpcPluginFileBroker,
+  type PluginFileRpcBrokerOptions,
+  type PluginFileRpcServer,
+  type RpcPluginFileBroker,
+} from './filesystem-rpc'
+export {
+  createPluginNetworkBroker,
+  createPluginNetworkHostCapabilities,
+  type PluginNetworkAuditRecord,
+  type PluginNetworkAuditSink,
+  type PluginNetworkBroker,
+  type PluginNetworkBrokerAdapter,
+  type PluginNetworkBrokerConfig,
+  type PluginNetworkFetchRequest,
+  type PluginNetworkHostCapabilities,
+} from './network-broker'
+export {
+  createPluginNetworkRpcServer,
+  createRpcPluginNetworkBroker,
+  type PluginNetworkRpcBrokerOptions,
+  type PluginNetworkRpcServer,
+  type RpcPluginNetworkBroker,
+} from './network-rpc'
+export {
+  coercePluginModule,
+  loadLocalPlugin,
+  type LoadedLocalPlugin,
+  type LocalPluginHost,
+  type LocalPluginImportContext,
+  type LocalPluginLoadRequest,
+} from './loader'
+export {
+  createIsolatedPluginModule,
+  type IsolatedPluginActivateRequest,
+  type IsolatedPluginActivateResult,
+  type IsolatedPluginCommandRequest,
+  type IsolatedPluginCommandResult,
+  type IsolatedPluginDeactivateRequest,
+  type IsolatedPluginModuleConfig,
+  type IsolatedPluginRenderRequest,
+  type PluginHostCapabilityName,
+  type PluginIsolationHost,
+  type SerializedChange,
+  type SerializedSelection,
+  type SerializedTransaction,
+} from './isolation'
+export {
+  createPluginIsolationRpcServer,
+  createRpcPluginIsolationHost,
+  type PluginIsolationRpcEndpoint,
+  type PluginIsolationRpcHostOptions,
+  type PluginIsolationRpcMessageListener,
+  type PluginIsolationRpcServer,
+  type RpcPluginIsolationHost,
+} from './isolation-rpc'
+export {
+  createPluginModuleIsolationHost,
+  type PluginModuleIsolationHostConfig,
+} from './isolation-module-host'
+export {
+  createSidecarPluginModule,
+  type PluginSidecarEndpoint,
+  type PluginSidecarHostConfig,
+  type PluginSidecarProcess,
+  type PluginSidecarStartRequest,
+  type PluginSidecarStopRequest,
+} from './isolation-sidecar'
+export {
+  createBrowserWorkerPluginHost,
+  initializePluginWorkerRealm,
+  installNetworkGuards,
+  type BrowserWorkerPluginHost,
+  type BrowserWorkerPluginHostConfig,
+  type PluginWorkerEndpoint,
+  type PluginWorkerImportModule,
+  type PluginWorkerInitRequest,
+  type PluginWorkerRealmOptions,
+} from './isolation-worker'
+export {
+  parsePluginManifest,
+  validatePluginManifest,
+  type PluginCommandContribution,
+  type PluginContributionSet,
+  type PluginDocumentTypeContribution,
+  type PluginEngineCompatibility,
+  type PluginHostKind,
+  type PluginImporterContribution,
+  type PluginKeymapContribution,
+  type PluginManifest,
+  type PluginManifestValidationError,
+  type PluginManifestValidationResult,
+  type PluginMarkdownSyntaxContribution,
+  type PluginPermission,
+  type PluginRendererContribution,
+  type PluginUiContribution,
+  type PluginUiSlot,
+} from './manifest'
+export {
+  PluginRegistry,
+  createPluginContributionIndex,
+  createPluginScopedStorage,
+  parsePluginRegistrySnapshot,
+  serializePluginRegistry,
+  type PluginApprovalState,
+  type PluginAuditOperation,
+  type PluginAuditRecord,
+  type PluginCompatibilityTarget,
+  type PluginContributionIndex,
+  type PluginDocumentTypeBinding,
+  type PluginImporterBinding,
+  type PluginInstallState,
+  type PluginKeymapBinding,
+  type PluginPackageDescriptor,
+  type PluginRegistryOptions,
+  type PluginRegistryRecord,
+  type PluginRegistrySnapshot,
+  type PluginRendererBinding,
+  type PluginScopedStorage,
+  type PluginStorageHost,
+  type PluginSyntaxBinding,
+  type PluginTrustState,
+  type PluginUiBinding,
+} from './registry'
+export {
+  PluginRuntime,
+  type PluginActivation,
+  type PluginActivationContext,
+  type PluginCommandContext,
+  type PluginCommandFailure,
+  type PluginCommandHandler,
+  type PluginCommandRunResult,
+  type PluginCommandSuccess,
+  type PluginLifecycleState,
+  type PluginLoadConfig,
+  type PluginModule,
+  type PluginRenderer,
+  type PluginRendererContext,
+  type PluginRendererFailure,
+  type PluginRendererRunResult,
+  type PluginRendererSuccess,
+  type PluginRuntimeErrorRecord,
+  type PluginRuntimeInfo,
+  type PluginRuntimeOptions,
+  type PluginRuntimePhase,
+  type PluginFileBrokerProvider,
+  type PluginDocumentBrokerProvider,
+  type PluginUiBrokerProvider,
+  type PluginNetworkBrokerProvider,
+  type PluginStorageBrokerProvider,
+  type PluginReleasesBrokerProvider,
+  type PluginWorkspaceBrokerProvider,
+  type RestrictedPluginCommandHost,
+} from './runtime'
+
+export {
+  createPluginReleasesBroker,
+  createPluginReleasesHostCapabilities,
+  type PluginReleasesBroker,
+  type RevocablePluginReleasesBroker,
+  type PluginReleasesHost,
+  type PluginReleasesBrokerAdapter,
+  type PluginReleasesBrokerConfig,
+  type PluginReleaseCheckResult,
+  type PluginReleaseStatus,
+  type PluginReleaseInstallResult,
+} from './releases-broker'
+export {
+  createRpcPluginReleasesBroker,
+  createPluginReleasesRpcServer,
+  type RpcPluginReleasesBroker,
+  type PluginReleasesRpcServer,
+} from './releases-rpc'
+
+export * from './workspace-broker'
+export * from './workspace-rpc'
+export { markTrustedPluginCommand } from './workspace-gesture'
+
+export * from './settings-broker'
+export * from './settings-rpc'
+export type { PluginSettingsBrokerProvider } from './runtime'
+
+export * from './keymap-broker'
+export * from './keymap-rpc'
+export type { PluginKeymapBrokerProvider } from './runtime'
+export * from './editing-broker'
+export * from './resources-broker'
+export * from './editing-rpc'
+export * from './resources-rpc'
+
+export type { PluginDocumentRendererContribution } from './manifest'
+export type { PluginDocumentRendererBinding } from './registry'
+export type { IsolatedPluginDocumentRenderRequest } from './isolation'
+export * from './document-render-rpc'
+export type {
+  PluginDocumentReadWindowRequest,
+  PluginDocumentReadWindowResult,
+  PluginDocumentReadOptions,
+  PluginDocumentInvalidatePresentationRequest,
+  PluginDocumentOperationContext,
+} from './document-broker'
+export type {
+  PluginUiRevealLocationRequest,
+  PluginUiOperationOptions,
+  PluginUiOperationContext,
+} from './ui-broker'
+export { createTrustedPluginRenderEndpoint, type PluginRenderControl } from './render-arbitration'
+export {
+  createSupervisedPluginWorkerEndpoint,
+  initializePluginWorkerSupervisor,
+} from './worker-supervisor'

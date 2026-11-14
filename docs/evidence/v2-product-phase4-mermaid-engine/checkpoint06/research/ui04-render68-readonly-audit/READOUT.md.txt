@@ -1,0 +1,35 @@
+# UI04 render68 — read-only scheduling audit
+
+The native owner timed out the accepted `render_68` request, from its own dispatch, with no evidence of an inherited predecessor deadline. This does not establish which fixture payload it carried, or whether its time was spent rendering versus transport/WebKit scheduling. No runtime, build, source mutation or budget change was performed. The eight inspected host/renderer source files match the production04 capture byte-for-byte; hashes and raw timing rows/line numbers are in evidence.json.
+
+## Exact observed sequence
+
+One instance `a578b14039c3d010ffa15d8cd43a02aaf7c28397dc84bcdc`, App353375 and guardian353708:
+
+| Phase | Monotonic ns | Milliseconds from render68 dispatch |
+| --- | --- | --- |
+| dispatch | 55993548668858 | 0 |
+| deadline observed | 55995548819357 | 2000.150499 |
+| guardian kill start | 55995548916301 | 2000.247443 |
+| guardian cleanup/ECHILD | 55995716652368 | 2167.983510 |
+| App cleanup confirmed | 55995726665917 | 2177.997059 |
+| timeout control emitted | 55995726703355 | 2178.034497 |
+
+Render67 dispatch precedes render68 dispatch by3833.547429ms. This is an inter-dispatch gap, not render67 execution duration: successful result settlement is not logged. Missing request61 dispatch is also not proof of message loss: IDs are allocated before queue admission/possible queued cancellation. No request68 payload/range/hash was captured, so the UI's later flowchart decode target cannot identify the timed-out request. A native request may still target an earlier fence in the host-visible/prepared window.
+
+## What the scheduling code guarantees
+
+- `document-render-rpc.ts:74-110,173-187`: frontend pump posts only one active job. An active abort rejects its caller and sends cancel but deliberately retains active; queued abort removes only that queued job. A matching valid remote result clears active and then pumps. Trusted native timeout revokes the context, rather than advancing queued work into the dead context. Thus frontend queue wait and Tauri spawn_blocking scheduling before `Instance.send` do not start native render68's budget.
+- `plugin_dom_process.rs:208-307`: native accepts a render only when active/rpc are empty and initialized. It traces dispatch and creates a fresh `Instant::now()+2s` before waiting on preparation/write locks and writing the pipe. Matching cancel does not clear/reset the deadline. It has no native render-job admission queue: an overlapping render is rejected as busy.
+- `plugin_dom_process.rs:313-380`: only matching grammar-valid result, output budget checks and final monotonic deadline comparison settle active; wrong/malformed IDs cannot settle it. Dispatch68 therefore means predecessor active had settled (or there was no predecessor). Cancellation alone cannot have freed67 while67 was still rendering.
+- `plugin_dom_helper.rs:241-330`: a bounded sync_channel(2) transports frames; a5ms GTK poll services either one input or a result drain. A `busy` flag permits one asynchronous evaluate_javascript call at a time. Transport, pending evaluate completion, scheduling/layout/GC, JSON conversion and return-pipe work after native dispatch are included in the two seconds. This is end-to-end native execution allowance, not measured JS-only CPU time. No helper-arrival/start/settlement timestamps currently distinguish these stages.
+- `plugin_dom_bootstrap.js`: cancel only aborts the realm-local controller. It does not push an early result. The renderer promise is awaited, the result is validated/serialized, then a result is placed in the private slot and the `finally` clears running. Native observes it only through a later drain. Under this path, a still-running predecessor renderer is not released merely because the editor has aborted its caller.
+- Official `renderer.ts`: it awaits `mermaid.render`, checks cancellation, performs conversion/serialization, removes its temporary container, and resets rendering in finally. It does not race abort against the underlying Mermaid promise. Installed Mermaid's executionQueue awaits its current API promise; this call chain does not intentionally leave a cancelled Mermaid render running while advertising settlement. This static observation does not prove absence of all library timers, GC, detached work or WebKit scheduling pressure.
+
+There are small transport race possibilities (for example a cancel admitted just before result settlement obtaining the pipe lock later), and helper input frames take priority over an idle drain. Such work remains inside the new request's budget if it arrives after dispatch. The ordinary single-render/once-abort path is bounded and provides no evidence of a two-second predecessor backlog here. A pathological slow pipe/evaluate or leftover library background work is a candidate, not a demonstrated explanation. Idle-script CPU has no separate quota; the next accepted request still receives the unchanged whole-context deadline.
+
+## Minimal discriminating follow-up proposal (not executed)
+
+Keep the two-second native owner clock and cleanup unchanged. Preserve this first failure. For one explicitly authorized diagnostic reproduction, record bounded metadata at trusted native admission: requestId, document version/range, one-fence range, theme/width, and a hash of source/request; map to the fixed public fixture catalog rather than infer from current UI target. Add nonblocking, diagnostic-only phase records for pipe-write completion, helper frame receipt/dequeue and evaluate submission/callback, result-frame receipt and accepted settlement. The last accepted result/cancel ID should be recorded too. Diagnostic metadata must not grant readiness or reset deadlines.
+
+If dispatch-to-helper-dequeue consumes the interval, investigate transport/evaluate/event-loop scheduling; if it reaches JS promptly but no result emerges, instrument the trusted bootstrap renderer entry/resolution and serialization boundaries in a separate diagnostic build. JS timestamps are diagnostic only and cannot authorize settlement. Correlate an external exact PID/birth CPU sample to distinguish sustained WebKit work from scheduling stalls. Only after request identity is captured should an isolated fresh-context replay and the preceding accepted/cancel sequence be compared. No automatic rerun, budget extension or speculative product change is justified by the current evidence.

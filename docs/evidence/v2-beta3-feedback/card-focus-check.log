@@ -1,0 +1,41 @@
+
+Running 1 test using 1 worker
+
+(node:94727) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  1 tests/e2e/desktop-plugin-cards.spec.ts:251:1 › beta3 card switch toggles in place without opening details (7.1s)
+
+
+  1) tests/e2e/desktop-plugin-cards.spec.ts:251:1 › beta3 card switch toggles in place without opening details 
+
+    Error: expect(locator).toBeFocused() failed
+
+    Locator:  locator('.plugin-summary-card[data-plugin-id="cards.beta"]').getByRole('switch')
+    Expected: focused
+    Received: inactive
+    Timeout:  5000ms
+
+    Call log:
+      - Expect "toBeFocused" with timeout 5000ms
+      - waiting for locator('.plugin-summary-card[data-plugin-id="cards.beta"]').getByRole('switch')
+        14 × locator resolved to <button title="已启用" type="button" role="switch" aria-checked="true" aria-label="beta tools 启用" data-plugin-action="toggle" data-plugin-id="cards.beta" class="plugin-enable-switch">…</button>
+           - unexpected value "inactive"
+
+
+      257 |   await card.getByRole('switch').click()
+      258 |   await expect(card.getByRole('switch')).toHaveAttribute('aria-checked', 'true')
+    > 259 |   await expect(card.getByRole('switch')).toBeFocused()
+          |                                          ^
+      260 |   await expect(page.locator('.plugin-detail')).toHaveCount(0)
+      261 |   await card.getByRole('switch').click()
+      262 |   await expect(card.getByRole('switch')).toHaveAttribute('aria-checked', 'false')
+        at /tmp/milkup-windows-manual-candidate/tests/e2e/desktop-plugin-cards.spec.ts:259:42
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ../milkup-beta3-evidence/browser-final/desktop-plugin-cards-beta3-3245e-ace-without-opening-details/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ../milkup-beta3-evidence/browser-final/desktop-plugin-cards-beta3-3245e-ace-without-opening-details/error-context.md
+
+  1 failed
+    tests/e2e/desktop-plugin-cards.spec.ts:251:1 › beta3 card switch toggles in place without opening details 

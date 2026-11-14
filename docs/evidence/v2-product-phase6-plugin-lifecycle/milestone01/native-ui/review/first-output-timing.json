@@ -1,0 +1,1353 @@
+{
+  "generatedAt": "2026-10-19T08:09:27.645327+00:00",
+  "method": "Group DOM_NATIVE_TIMING by instanceId/requestId; sort by monotonicNs, not interleaved stderr order. Duration starts at native dispatch, not enqueue or user click.",
+  "queueWaitMs": null,
+  "pendingRetryCount": null,
+  "limits": [
+    "No enqueue timestamps: queue wait is unmeasured.",
+    "DOM request count is not worker footnote pending/retry count.",
+    "Native acceptance does not establish PDF text fidelity, physical printing or absence of all leaks.",
+    "Missing timeout traces mean none observed, not proof against every future timeout.",
+    "Only completion/failure terminal runs are analysed."
+  ],
+  "runs": [
+    {
+      "run": "p6-cold-a4-01",
+      "status": "automated-checks-passed",
+      "harnessExitCode": 0,
+      "harnessSha256": "72648e9fdd3873cc488e3d90aac14a7e17ffe8495e61ec372ce66b4b2c86028b",
+      "expectedBinarySha256": "58652f2cea9361b6ee562a65f7405259f2320f9ac170bf9598a798e58905789e",
+      "commandEvidenceSha256": "84e0d2d03314e11e97b6ab8796db6596a5a6309e66292c9b4b5307097c98c702",
+      "completion": {
+        "automatedChecksPassed": true,
+        "scope": "First checkpoint only; no upgrade rollback or permission-delta acceptance",
+        "visualReview": "pending",
+        "diagramPdfFidelity": "not asserted",
+        "stage": "cold-output",
+        "format": "pdf-a4",
+        "sourceSha256": "8b4f460fb664ce9b2ef92314dd284404eb4bdfeb28578a34d6dfa08a608454a7",
+        "physicalPrinting": "not exercised"
+      },
+      "failure": null,
+      "requests": [
+        {
+          "instanceId": "1c5c637e29209576a5ce628edc82c11f8766fed6ddfb4c6c",
+          "requestId": "render_1",
+          "request": {
+            "from": 800,
+            "target": "export",
+            "to": 876,
+            "version": 0
+          },
+          "dispatchToOwnerAcceptedMs": 602.034282,
+          "dispatchToHelperDequeuedMs": 5.054845,
+          "evalSubmittedToCallbackMs": 315.799867,
+          "callbackToResultDrainedMs": 280.113004,
+          "forwardedToOwnerAcceptedMs": 0.797256,
+          "sourceCandidatesAtRequestVersion": [
+            {
+              "sourceSha256": "8b4f460fb664ce9b2ef92314dd284404eb4bdfeb28578a34d6dfa08a608454a7",
+              "documentVersion": 0
+            }
+          ],
+          "outputObservations": [
+            {
+              "name": "cold-first",
+              "sourceSha256": "8b4f460fb664ce9b2ef92314dd284404eb4bdfeb28578a34d6dfa08a608454a7",
+              "documentVersion": 0,
+              "artifact": "cold-first.pdf"
+            }
+          ],
+          "events": [
+            {
+              "instanceId": "1c5c637e29209576a5ce628edc82c11f8766fed6ddfb4c6c",
+              "monotonicNs": 100820837760422,
+              "phase": "dispatch",
+              "pid": 167657,
+              "requestId": "render_1"
+            },
+            {
+              "instanceId": "1c5c637e29209576a5ce628edc82c11f8766fed6ddfb4c6c",
+              "monotonicNs": 100820837821110,
+              "phase": "render-request",
+              "pid": 167657,
+              "request": {
+                "from": 800,
+                "target": "export",
+                "to": 876,
+                "version": 0
+              },
+              "requestId": "render_1"
+            },
+            {
+              "instanceId": "1c5c637e29209576a5ce628edc82c11f8766fed6ddfb4c6c",
+              "monotonicNs": 100820842815267,
+              "phase": "helper-dequeued",
+              "pid": 168175,
+              "requestId": "render_1"
+            },
+            {
+              "instanceId": "1c5c637e29209576a5ce628edc82c11f8766fed6ddfb4c6c",
+              "monotonicNs": 100820843030099,
+              "phase": "helper-eval-submitted",
+              "pid": 168175,
+              "requestId": "render_1"
+            },
+            {
+              "instanceId": "1c5c637e29209576a5ce628edc82c11f8766fed6ddfb4c6c",
+              "monotonicNs": 100821158829966,
+              "phase": "helper-eval-callback",
+              "pid": 168175,
+              "requestId": "render_1"
+            },
+            {
+              "instanceId": "1c5c637e29209576a5ce628edc82c11f8766fed6ddfb4c6c",
+              "monotonicNs": 100821438942970,
+              "phase": "helper-result-drained",
+              "pid": 168175,
+              "requestId": "render_1"
+            },
+            {
+              "instanceId": "1c5c637e29209576a5ce628edc82c11f8766fed6ddfb4c6c",
+              "monotonicNs": 100821438997448,
+              "phase": "helper-frame-forwarded",
+              "pid": 168175,
+              "requestId": "render_1"
+            },
+            {
+              "instanceId": "1c5c637e29209576a5ce628edc82c11f8766fed6ddfb4c6c",
+              "monotonicNs": 100821439695389,
+              "phase": "owner-frame-received",
+              "pid": 167657,
+              "requestId": "render_1"
+            },
+            {
+              "instanceId": "1c5c637e29209576a5ce628edc82c11f8766fed6ddfb4c6c",
+              "monotonicNs": 100821439794704,
+              "phase": "owner-result-accepted",
+              "pid": 167657,
+              "requestId": "render_1"
+            }
+          ]
+        }
+      ],
+      "outputs": [
+        {
+          "name": "cold-first",
+          "at": "2026-10-19T08:04:00.667Z",
+          "sourceSha256": "8b4f460fb664ce9b2ef92314dd284404eb4bdfeb28578a34d6dfa08a608454a7",
+          "sourceBytes": 11971,
+          "elapsedMs": 5951,
+          "statuses": [
+            "Rich content is rendered in bounded Markdown windows; extensions spanning windows retain their original source.",
+            "图片未获授权、缺失或无法离线内嵌；保留占位与原始地址。",
+            "已保存 cold-first.pdf（599.7 KB）。"
+          ],
+          "artifact": {
+            "file": "/workspace/milkup-plugin-lifecycle-evidence/milestone01/native-ui/runs/p6-cold-a4-01/cold-first.pdf",
+            "sha256": "e4f952a6eaae328dc16fe13983a8f64ebbb34f3c94f6551cb045a771b7766e78",
+            "bytes": 614133,
+            "visualReview": "pending independent review",
+            "diagramFidelity": "NOT_ASSERTED: inspect all page rasters; extracted labels are not diagram evidence"
+          },
+          "documentVersion": 0,
+          "harnessElapsedIncludesDialogs": true
+        }
+      ],
+      "timeoutEvents": [],
+      "cleanup": [
+        {
+          "instanceId": "aa3fb5febc481aacdc360f902aaef01be032ee3f7eaad4e5",
+          "guardianPid": 167781,
+          "killStartNs": 100804573503888,
+          "killToCleanupCompleteMs": 37.624272,
+          "killToOwnerConfirmedMs": 49.770893
+        },
+        {
+          "instanceId": null,
+          "guardianPid": 168372,
+          "killStartNs": 100824301814320,
+          "killToCleanupCompleteMs": 22.674596,
+          "killToOwnerConfirmedMs": null
+        },
+        {
+          "instanceId": null,
+          "guardianPid": 168428,
+          "killStartNs": 100825329424060,
+          "killToCleanupCompleteMs": 27.033414,
+          "killToOwnerConfirmedMs": null
+        },
+        {
+          "instanceId": "1c5c637e29209576a5ce628edc82c11f8766fed6ddfb4c6c",
+          "guardianPid": 168170,
+          "killStartNs": 100828501077966,
+          "killToCleanupCompleteMs": 43.511686,
+          "killToOwnerConfirmedMs": null
+        }
+      ],
+      "cleanupFinalSnapshot": {
+        "label": "after-app-close",
+        "at": "2026-10-19T08:04:01.673Z",
+        "appCurrent": null,
+        "helpers": [
+          {
+            "pid": 168372,
+            "birth": "10082180",
+            "running": false,
+            "sameBirth": false,
+            "current": null,
+            "windows": []
+          },
+          {
+            "pid": 168377,
+            "birth": "10082190",
+            "running": false,
+            "sameBirth": false,
+            "current": null,
+            "windows": []
+          }
+        ]
+      },
+      "nativeWarnings": [
+        "** (milkup-desktop:167786): WARNING **: 08:03:12.629: Failed to start remote inspector server on 127.0.0.1:49935: Error binding to address 127.0.0.1:49935: Address already in use",
+        "(milkup-desktop:167657): Gtk-CRITICAL **: 08:03:25.565: gtk_widget_event: assertion 'WIDGET_REALIZED_FOR_EVENT (widget, event)' failed",
+        "(milkup-desktop:167657): Gtk-CRITICAL **: 08:03:31.807: gtk_widget_event: assertion 'WIDGET_REALIZED_FOR_EVENT (widget, event)' failed",
+        "(milkup-desktop:167657): Gtk-CRITICAL **: 08:03:39.957: gtk_widget_event: assertion 'WIDGET_REALIZED_FOR_EVENT (widget, event)' failed",
+        "** (milkup-desktop:168175): WARNING **: 08:03:46.167: Failed to start remote inspector server on 127.0.0.1:49935: Error binding to address 127.0.0.1:49935: Address already in use",
+        "** (milkup-desktop:168432): WARNING **: 08:03:57.574: Failed to start remote inspector server on 127.0.0.1:49935: Error binding to address 127.0.0.1:49935: Address already in use"
+      ],
+      "malformedTraceLines": [],
+      "evidenceSha256": {
+        "native-timing.log": "819435b83c825bcb6ce58b9a0820bab9634f18ce0e59c4178f51907411b64308",
+        "observations.json": "8e877ea9d5191797dabfe8e6d53a8ddf16ea5beea559b84977543e7db1185f29",
+        "completion.json": "2e0e9c212adda20c410ae92f761aacc35339e9556d88a3bb973a6cf1d7ed0a33",
+        "process-lifecycle.json": "2f2811fbaf7eb8dfecc3f758f69578fa5fe1849ffa861779ad3704403b3b81e9",
+        "production-origin.json": "bd1033b8ef021c249e7488bcfcd4b4d3fe667fd064bda4ef92f381ccd9ff1bf1"
+      }
+    },
+    {
+      "run": "p6-cold-html-02",
+      "status": "automated-checks-passed",
+      "harnessExitCode": 0,
+      "harnessSha256": "72648e9fdd3873cc488e3d90aac14a7e17ffe8495e61ec372ce66b4b2c86028b",
+      "expectedBinarySha256": "58652f2cea9361b6ee562a65f7405259f2320f9ac170bf9598a798e58905789e",
+      "commandEvidenceSha256": "9259683613306aa9548fe7f4ec9d6c2ab9b4da93bc4893d09fcc2d7c466c2111",
+      "completion": {
+        "automatedChecksPassed": true,
+        "scope": "First checkpoint only; no upgrade rollback or permission-delta acceptance",
+        "visualReview": "pending",
+        "diagramPdfFidelity": "not applicable",
+        "stage": "cold-edit",
+        "format": "html",
+        "sourceSha256": "0c5fb591b1dbf492e735f9d158d1f76eed16f6dd71ea1f6c5831bb0d4ea78d16",
+        "physicalPrinting": "not exercised"
+      },
+      "failure": null,
+      "requests": [
+        {
+          "instanceId": "c501a5c41b59673f78fc1ae762506333c2e53227b31724f6",
+          "requestId": "render_1",
+          "request": {
+            "from": 800,
+            "target": "export",
+            "to": 876,
+            "version": 0
+          },
+          "dispatchToOwnerAcceptedMs": 594.18865,
+          "dispatchToHelperDequeuedMs": 1.697214,
+          "evalSubmittedToCallbackMs": 304.963248,
+          "callbackToResultDrainedMs": 284.530297,
+          "forwardedToOwnerAcceptedMs": 2.776591,
+          "sourceCandidatesAtRequestVersion": [
+            {
+              "sourceSha256": "8b4f460fb664ce9b2ef92314dd284404eb4bdfeb28578a34d6dfa08a608454a7",
+              "documentVersion": 0
+            }
+          ],
+          "outputObservations": [
+            {
+              "name": "cold-first",
+              "sourceSha256": "8b4f460fb664ce9b2ef92314dd284404eb4bdfeb28578a34d6dfa08a608454a7",
+              "documentVersion": 0,
+              "artifact": "cold-first.html"
+            }
+          ],
+          "events": [
+            {
+              "instanceId": "c501a5c41b59673f78fc1ae762506333c2e53227b31724f6",
+              "monotonicNs": 100761332400778,
+              "phase": "dispatch",
+              "pid": 166707,
+              "requestId": "render_1"
+            },
+            {
+              "instanceId": "c501a5c41b59673f78fc1ae762506333c2e53227b31724f6",
+              "monotonicNs": 100761332728022,
+              "phase": "render-request",
+              "pid": 166707,
+              "request": {
+                "from": 800,
+                "target": "export",
+                "to": 876,
+                "version": 0
+              },
+              "requestId": "render_1"
+            },
+            {
+              "instanceId": "c501a5c41b59673f78fc1ae762506333c2e53227b31724f6",
+              "monotonicNs": 100761334097992,
+              "phase": "helper-dequeued",
+              "pid": 167259,
+              "requestId": "render_1"
+            },
+            {
+              "instanceId": "c501a5c41b59673f78fc1ae762506333c2e53227b31724f6",
+              "monotonicNs": 100761334267523,
+              "phase": "helper-eval-submitted",
+              "pid": 167259,
+              "requestId": "render_1"
+            },
+            {
+              "instanceId": "c501a5c41b59673f78fc1ae762506333c2e53227b31724f6",
+              "monotonicNs": 100761639230771,
+              "phase": "helper-eval-callback",
+              "pid": 167259,
+              "requestId": "render_1"
+            },
+            {
+              "instanceId": "c501a5c41b59673f78fc1ae762506333c2e53227b31724f6",
+              "monotonicNs": 100761923761068,
+              "phase": "helper-result-drained",
+              "pid": 167259,
+              "requestId": "render_1"
+            },
+            {
+              "instanceId": "c501a5c41b59673f78fc1ae762506333c2e53227b31724f6",
+              "monotonicNs": 100761923812837,
+              "phase": "helper-frame-forwarded",
+              "pid": 167259,
+              "requestId": "render_1"
+            },
+            {
+              "instanceId": "c501a5c41b59673f78fc1ae762506333c2e53227b31724f6",
+              "monotonicNs": 100761926500044,
+              "phase": "owner-frame-received",
+              "pid": 166707,
+              "requestId": "render_1"
+            },
+            {
+              "instanceId": "c501a5c41b59673f78fc1ae762506333c2e53227b31724f6",
+              "monotonicNs": 100761926589428,
+              "phase": "owner-result-accepted",
+              "pid": 166707,
+              "requestId": "render_1"
+            }
+          ]
+        },
+        {
+          "instanceId": "c501a5c41b59673f78fc1ae762506333c2e53227b31724f6",
+          "requestId": "render_2",
+          "request": {
+            "from": 804,
+            "target": "export",
+            "to": 880,
+            "version": 1
+          },
+          "dispatchToOwnerAcceptedMs": 166.767593,
+          "dispatchToHelperDequeuedMs": 5.215111,
+          "evalSubmittedToCallbackMs": 51.059171,
+          "callbackToResultDrainedMs": 109.870535,
+          "forwardedToOwnerAcceptedMs": 0.548708,
+          "sourceCandidatesAtRequestVersion": [
+            {
+              "sourceSha256": "0c5fb591b1dbf492e735f9d158d1f76eed16f6dd71ea1f6c5831bb0d4ea78d16",
+              "documentVersion": 1
+            }
+          ],
+          "outputObservations": [
+            {
+              "name": "edited-r2",
+              "sourceSha256": "0c5fb591b1dbf492e735f9d158d1f76eed16f6dd71ea1f6c5831bb0d4ea78d16",
+              "documentVersion": 1,
+              "artifact": "edited-r2.html"
+            }
+          ],
+          "events": [
+            {
+              "instanceId": "c501a5c41b59673f78fc1ae762506333c2e53227b31724f6",
+              "monotonicNs": 100767163476563,
+              "phase": "dispatch",
+              "pid": 166707,
+              "requestId": "render_2"
+            },
+            {
+              "instanceId": "c501a5c41b59673f78fc1ae762506333c2e53227b31724f6",
+              "monotonicNs": 100767163526063,
+              "phase": "render-request",
+              "pid": 166707,
+              "request": {
+                "from": 804,
+                "target": "export",
+                "to": 880,
+                "version": 1
+              },
+              "requestId": "render_2"
+            },
+            {
+              "instanceId": "c501a5c41b59673f78fc1ae762506333c2e53227b31724f6",
+              "monotonicNs": 100767168691674,
+              "phase": "helper-dequeued",
+              "pid": 167259,
+              "requestId": "render_2"
+            },
+            {
+              "instanceId": "c501a5c41b59673f78fc1ae762506333c2e53227b31724f6",
+              "monotonicNs": 100767168724826,
+              "phase": "helper-eval-submitted",
+              "pid": 167259,
+              "requestId": "render_2"
+            },
+            {
+              "instanceId": "c501a5c41b59673f78fc1ae762506333c2e53227b31724f6",
+              "monotonicNs": 100767219783997,
+              "phase": "helper-eval-callback",
+              "pid": 167259,
+              "requestId": "render_2"
+            },
+            {
+              "instanceId": "c501a5c41b59673f78fc1ae762506333c2e53227b31724f6",
+              "monotonicNs": 100767329654532,
+              "phase": "helper-result-drained",
+              "pid": 167259,
+              "requestId": "render_2"
+            },
+            {
+              "instanceId": "c501a5c41b59673f78fc1ae762506333c2e53227b31724f6",
+              "monotonicNs": 100767329695448,
+              "phase": "helper-frame-forwarded",
+              "pid": 167259,
+              "requestId": "render_2"
+            },
+            {
+              "instanceId": "c501a5c41b59673f78fc1ae762506333c2e53227b31724f6",
+              "monotonicNs": 100767330152844,
+              "phase": "owner-frame-received",
+              "pid": 166707,
+              "requestId": "render_2"
+            },
+            {
+              "instanceId": "c501a5c41b59673f78fc1ae762506333c2e53227b31724f6",
+              "monotonicNs": 100767330244156,
+              "phase": "owner-result-accepted",
+              "pid": 166707,
+              "requestId": "render_2"
+            }
+          ]
+        }
+      ],
+      "outputs": [
+        {
+          "name": "cold-first",
+          "at": "2026-10-19T08:02:58.417Z",
+          "sourceSha256": "8b4f460fb664ce9b2ef92314dd284404eb4bdfeb28578a34d6dfa08a608454a7",
+          "sourceBytes": 11971,
+          "elapsedMs": 4922,
+          "statuses": [
+            "Rich content is rendered in bounded Markdown windows; extensions spanning windows retain their original source.",
+            "图片未获授权、缺失或无法离线内嵌；保留占位与原始地址。",
+            "已保存 cold-first.html（63.1 KB）。"
+          ],
+          "artifact": {
+            "file": "/workspace/milkup-plugin-lifecycle-evidence/milestone01/native-ui/runs/p6-cold-html-02/cold-first.html",
+            "sha256": "82c8f7bce5dc8a3e4b79eb9c7c98224c0a81091c98dcb5bcbc1f56367be7320d",
+            "bytes": 64601,
+            "visualReview": "pending independent review",
+            "diagrams": [
+              {
+                "viewBox": [
+                  0,
+                  0,
+                  552,
+                  75
+                ],
+                "paths": 9,
+                "shapes": 14,
+                "arrowReferences": 2,
+                "svgSha256": "b98e7bf49492e7e98ad115464e0f03388178cc1286c3f76873b50dd4045148bd"
+              }
+            ],
+            "footnoteLinks": 2,
+            "bodyMarkerScope": "Decoded body text nodes, excluding tags/attributes/style/script/comments"
+          },
+          "documentVersion": 0,
+          "harnessElapsedIncludesDialogs": true
+        },
+        {
+          "name": "edited-r2",
+          "at": "2026-10-19T08:03:03.249Z",
+          "sourceSha256": "0c5fb591b1dbf492e735f9d158d1f76eed16f6dd71ea1f6c5831bb0d4ea78d16",
+          "sourceBytes": 12179,
+          "elapsedMs": 3707,
+          "statuses": [
+            "Rich content is rendered in bounded Markdown windows; extensions spanning windows retain their original source.",
+            "图片未获授权、缺失或无法离线内嵌；保留占位与原始地址。",
+            "已保存 edited-r2.html（63.3 KB）。"
+          ],
+          "artifact": {
+            "file": "/workspace/milkup-plugin-lifecycle-evidence/milestone01/native-ui/runs/p6-cold-html-02/edited-r2.html",
+            "sha256": "200780d4de1dcd36785c621ca895a0e4c340ff18ba3d7c101846740fbe91bd44",
+            "bytes": 64811,
+            "visualReview": "pending independent review",
+            "diagrams": [
+              {
+                "viewBox": [
+                  0,
+                  0,
+                  552,
+                  75
+                ],
+                "paths": 9,
+                "shapes": 14,
+                "arrowReferences": 2,
+                "svgSha256": "cf1a3c45534f120c72670fc88576d5998a822eee81604cfb917685fed65889df"
+              }
+            ],
+            "footnoteLinks": 2,
+            "bodyMarkerScope": "Decoded body text nodes, excluding tags/attributes/style/script/comments"
+          },
+          "documentVersion": 1,
+          "harnessElapsedIncludesDialogs": true
+        }
+      ],
+      "timeoutEvents": [],
+      "cleanup": [
+        {
+          "instanceId": "f12f13bb229e62595fb6e0e47ed7c46d55434eb9b6dec9fc",
+          "guardianPid": 166833,
+          "killStartNs": 100745224190134,
+          "killToCleanupCompleteMs": 100.396807,
+          "killToOwnerConfirmedMs": 116.994562
+        },
+        {
+          "instanceId": null,
+          "guardianPid": 167417,
+          "killStartNs": 100764734704797,
+          "killToCleanupCompleteMs": 24.736402,
+          "killToOwnerConfirmedMs": null
+        },
+        {
+          "instanceId": null,
+          "guardianPid": 167513,
+          "killStartNs": 100769786237518,
+          "killToCleanupCompleteMs": 20.810431,
+          "killToOwnerConfirmedMs": null
+        },
+        {
+          "instanceId": "c501a5c41b59673f78fc1ae762506333c2e53227b31724f6",
+          "guardianPid": 167254,
+          "killStartNs": 100771098183910,
+          "killToCleanupCompleteMs": 48.331421,
+          "killToOwnerConfirmedMs": null
+        }
+      ],
+      "cleanupFinalSnapshot": {
+        "label": "after-app-close",
+        "at": "2026-10-19T08:03:04.247Z",
+        "appCurrent": null,
+        "helpers": [
+          {
+            "pid": 167417,
+            "birth": "10076221",
+            "running": false,
+            "sameBirth": false,
+            "current": null,
+            "windows": []
+          },
+          {
+            "pid": 167422,
+            "birth": "10076231",
+            "running": false,
+            "sameBirth": false,
+            "current": null,
+            "windows": []
+          },
+          {
+            "pid": 167513,
+            "birth": "10076758",
+            "running": false,
+            "sameBirth": false,
+            "current": null,
+            "windows": []
+          },
+          {
+            "pid": 167518,
+            "birth": "10076769",
+            "running": false,
+            "sameBirth": false,
+            "current": null,
+            "windows": []
+          }
+        ]
+      },
+      "nativeWarnings": [
+        "** (milkup-desktop:166839): WARNING **: 08:02:12.882: Failed to start remote inspector server on 127.0.0.1:39539: Error binding to address 127.0.0.1:39539: Address already in use",
+        "(milkup-desktop:166707): Gtk-CRITICAL **: 08:02:32.496: gtk_widget_event: assertion 'WIDGET_REALIZED_FOR_EVENT (widget, event)' failed",
+        "(milkup-desktop:166707): Gtk-CRITICAL **: 08:02:32.500: gtk_widget_event: assertion 'WIDGET_REALIZED_FOR_EVENT (widget, event)' failed",
+        "(milkup-desktop:166707): Gtk-CRITICAL **: 08:02:40.652: gtk_widget_event: assertion 'WIDGET_REALIZED_FOR_EVENT (widget, event)' failed",
+        "(milkup-desktop:166707): Gtk-CRITICAL **: 08:02:40.653: gtk_widget_event: assertion 'WIDGET_REALIZED_FOR_EVENT (widget, event)' failed",
+        "** (milkup-desktop:167259): WARNING **: 08:02:47.093: Failed to start remote inspector server on 127.0.0.1:39539: Error binding to address 127.0.0.1:39539: Address already in use"
+      ],
+      "malformedTraceLines": [],
+      "evidenceSha256": {
+        "native-timing.log": "acb304df9b8b1379479dd3e4047911ca20f58c96597716dacc854212aba885a8",
+        "observations.json": "f09946391132d05732053187367f91c15f56013f2994d48e08afc846c0eb8b05",
+        "completion.json": "93311c143f3a6c559593b1616748d69ffbef9b6a11cf0735af36cb04282f0f8e",
+        "process-lifecycle.json": "5900d1b79c3d97424ab228ac75aef636293f0d1d7e1d88ad3304ae60966851b8",
+        "production-origin.json": "bd1033b8ef021c249e7488bcfcd4b4d3fe667fd064bda4ef92f381ccd9ff1bf1"
+      }
+    },
+    {
+      "run": "p6-cold-letter-01",
+      "status": "automated-checks-passed",
+      "harnessExitCode": 0,
+      "harnessSha256": "72648e9fdd3873cc488e3d90aac14a7e17ffe8495e61ec372ce66b4b2c86028b",
+      "expectedBinarySha256": "58652f2cea9361b6ee562a65f7405259f2320f9ac170bf9598a798e58905789e",
+      "commandEvidenceSha256": "b4e9152c12160b5dd1e3b17dd69089eebf77b81728271c4ec8d5e60fc93f66aa",
+      "completion": {
+        "automatedChecksPassed": true,
+        "scope": "First checkpoint only; no upgrade rollback or permission-delta acceptance",
+        "visualReview": "pending",
+        "diagramPdfFidelity": "not asserted",
+        "stage": "cold-output",
+        "format": "pdf-letter",
+        "sourceSha256": "8b4f460fb664ce9b2ef92314dd284404eb4bdfeb28578a34d6dfa08a608454a7",
+        "physicalPrinting": "not exercised"
+      },
+      "failure": null,
+      "requests": [
+        {
+          "instanceId": "838f442a64cd13f7990a04bdceb680dd3b29d0d49b59af6e",
+          "requestId": "render_1",
+          "request": {
+            "from": 800,
+            "target": "export",
+            "to": 876,
+            "version": 0
+          },
+          "dispatchToOwnerAcceptedMs": 681.243949,
+          "dispatchToHelperDequeuedMs": 4.240775,
+          "evalSubmittedToCallbackMs": 331.105855,
+          "callbackToResultDrainedMs": 344.160483,
+          "forwardedToOwnerAcceptedMs": 0.969837,
+          "sourceCandidatesAtRequestVersion": [
+            {
+              "sourceSha256": "8b4f460fb664ce9b2ef92314dd284404eb4bdfeb28578a34d6dfa08a608454a7",
+              "documentVersion": 0
+            }
+          ],
+          "outputObservations": [
+            {
+              "name": "cold-first",
+              "sourceSha256": "8b4f460fb664ce9b2ef92314dd284404eb4bdfeb28578a34d6dfa08a608454a7",
+              "documentVersion": 0,
+              "artifact": "cold-first.pdf"
+            }
+          ],
+          "events": [
+            {
+              "instanceId": "838f442a64cd13f7990a04bdceb680dd3b29d0d49b59af6e",
+              "monotonicNs": 100880080908820,
+              "phase": "dispatch",
+              "pid": 168621,
+              "requestId": "render_1"
+            },
+            {
+              "instanceId": "838f442a64cd13f7990a04bdceb680dd3b29d0d49b59af6e",
+              "monotonicNs": 100880080976127,
+              "phase": "render-request",
+              "pid": 168621,
+              "request": {
+                "from": 800,
+                "target": "export",
+                "to": 876,
+                "version": 0
+              },
+              "requestId": "render_1"
+            },
+            {
+              "instanceId": "838f442a64cd13f7990a04bdceb680dd3b29d0d49b59af6e",
+              "monotonicNs": 100880085149595,
+              "phase": "helper-dequeued",
+              "pid": 169149,
+              "requestId": "render_1"
+            },
+            {
+              "instanceId": "838f442a64cd13f7990a04bdceb680dd3b29d0d49b59af6e",
+              "monotonicNs": 100880085290827,
+              "phase": "helper-eval-submitted",
+              "pid": 169149,
+              "requestId": "render_1"
+            },
+            {
+              "instanceId": "838f442a64cd13f7990a04bdceb680dd3b29d0d49b59af6e",
+              "monotonicNs": 100880416396682,
+              "phase": "helper-eval-callback",
+              "pid": 169149,
+              "requestId": "render_1"
+            },
+            {
+              "instanceId": "838f442a64cd13f7990a04bdceb680dd3b29d0d49b59af6e",
+              "monotonicNs": 100880760557165,
+              "phase": "helper-result-drained",
+              "pid": 169149,
+              "requestId": "render_1"
+            },
+            {
+              "instanceId": "838f442a64cd13f7990a04bdceb680dd3b29d0d49b59af6e",
+              "monotonicNs": 100880761182932,
+              "phase": "helper-frame-forwarded",
+              "pid": 169149,
+              "requestId": "render_1"
+            },
+            {
+              "instanceId": "838f442a64cd13f7990a04bdceb680dd3b29d0d49b59af6e",
+              "monotonicNs": 100880761778255,
+              "phase": "owner-frame-received",
+              "pid": 168621,
+              "requestId": "render_1"
+            },
+            {
+              "instanceId": "838f442a64cd13f7990a04bdceb680dd3b29d0d49b59af6e",
+              "monotonicNs": 100880762152769,
+              "phase": "owner-result-accepted",
+              "pid": 168621,
+              "requestId": "render_1"
+            }
+          ]
+        }
+      ],
+      "outputs": [
+        {
+          "name": "cold-first",
+          "at": "2026-10-19T08:05:00.188Z",
+          "sourceSha256": "8b4f460fb664ce9b2ef92314dd284404eb4bdfeb28578a34d6dfa08a608454a7",
+          "sourceBytes": 11971,
+          "elapsedMs": 6055,
+          "statuses": [
+            "Rich content is rendered in bounded Markdown windows; extensions spanning windows retain their original source.",
+            "图片未获授权、缺失或无法离线内嵌；保留占位与原始地址。",
+            "已保存 cold-first.pdf（602.3 KB）。"
+          ],
+          "artifact": {
+            "file": "/workspace/milkup-plugin-lifecycle-evidence/milestone01/native-ui/runs/p6-cold-letter-01/cold-first.pdf",
+            "sha256": "57f4aad2dcf7c0431977070a17fb46e00f537d4ea7e89a49b10f412ef34e7260",
+            "bytes": 616709,
+            "visualReview": "pending independent review",
+            "diagramFidelity": "NOT_ASSERTED: inspect all page rasters; extracted labels are not diagram evidence"
+          },
+          "documentVersion": 0,
+          "harnessElapsedIncludesDialogs": true
+        }
+      ],
+      "timeoutEvents": [],
+      "cleanup": [
+        {
+          "instanceId": "600b60bfba58c8eb2f75d5717d74ebc034e6b2582c2c18b6",
+          "guardianPid": 168745,
+          "killStartNs": 100863021769118,
+          "killToCleanupCompleteMs": 49.705403,
+          "killToOwnerConfirmedMs": 54.912605
+        },
+        {
+          "instanceId": null,
+          "guardianPid": 169312,
+          "killStartNs": 100883796993997,
+          "killToCleanupCompleteMs": 25.054647,
+          "killToOwnerConfirmedMs": null
+        },
+        {
+          "instanceId": null,
+          "guardianPid": 169369,
+          "killStartNs": 100884779128501,
+          "killToCleanupCompleteMs": 56.398877,
+          "killToOwnerConfirmedMs": null
+        },
+        {
+          "instanceId": "838f442a64cd13f7990a04bdceb680dd3b29d0d49b59af6e",
+          "guardianPid": 169144,
+          "killStartNs": 100888012288439,
+          "killToCleanupCompleteMs": 62.767796,
+          "killToOwnerConfirmedMs": null
+        }
+      ],
+      "cleanupFinalSnapshot": {
+        "label": "after-app-close",
+        "at": "2026-10-19T08:05:01.267Z",
+        "appCurrent": null,
+        "helpers": [
+          {
+            "pid": 169312,
+            "birth": "10088118",
+            "running": false,
+            "sameBirth": false,
+            "current": null,
+            "windows": []
+          },
+          {
+            "pid": 169317,
+            "birth": "10088130",
+            "running": false,
+            "sameBirth": false,
+            "current": null,
+            "windows": []
+          }
+        ]
+      },
+      "nativeWarnings": [
+        "** (milkup-desktop:168752): WARNING **: 08:04:11.072: Failed to start remote inspector server on 127.0.0.1:49601: Error binding to address 127.0.0.1:49601: Address already in use",
+        "(milkup-desktop:168621): Gtk-CRITICAL **: 08:04:24.391: gtk_widget_event: assertion 'WIDGET_REALIZED_FOR_EVENT (widget, event)' failed",
+        "(milkup-desktop:168621): Gtk-CRITICAL **: 08:04:24.392: gtk_widget_event: assertion 'WIDGET_REALIZED_FOR_EVENT (widget, event)' failed",
+        "(milkup-desktop:168621): Gtk-CRITICAL **: 08:04:30.562: gtk_widget_event: assertion 'WIDGET_REALIZED_FOR_EVENT (widget, event)' failed",
+        "(milkup-desktop:168621): Gtk-CRITICAL **: 08:04:30.562: gtk_widget_event: assertion 'WIDGET_REALIZED_FOR_EVENT (widget, event)' failed",
+        "(milkup-desktop:168621): Gtk-CRITICAL **: 08:04:38.510: gtk_widget_event: assertion 'WIDGET_REALIZED_FOR_EVENT (widget, event)' failed",
+        "** (milkup-desktop:169149): WARNING **: 08:04:45.222: Failed to start remote inspector server on 127.0.0.1:49601: Error binding to address 127.0.0.1:49601: Address already in use",
+        "(milkup-desktop:168621): Gtk-CRITICAL **: 08:04:48.950: gtk_widget_event: assertion 'WIDGET_REALIZED_FOR_EVENT (widget, event)' failed",
+        "(milkup-desktop:168621): Gtk-CRITICAL **: 08:04:48.950: gtk_widget_event: assertion 'WIDGET_REALIZED_FOR_EVENT (widget, event)' failed",
+        "** (milkup-desktop:169373): WARNING **: 08:04:57.065: Failed to start remote inspector server on 127.0.0.1:49601: Error binding to address 127.0.0.1:49601: Address already in use"
+      ],
+      "malformedTraceLines": [],
+      "evidenceSha256": {
+        "native-timing.log": "cbae18441c59d198ce8553eaa642467a743eaf802572130e461a82784c202c05",
+        "observations.json": "e843d8f55fadee0196cf5da8218d8311ace9a9c79bcc97a81ced01bd6b75c23c",
+        "completion.json": "6e7765029b1838a9ecf361f7ba7ab373b79affe74a5ad5521cebbd8d19b7d920",
+        "process-lifecycle.json": "872fdee82d473b7084d459dbfa02cc29b9466eba5845b330d61996adccd871e4",
+        "production-origin.json": "bd1033b8ef021c249e7488bcfcd4b4d3fe667fd064bda4ef92f381ccd9ff1bf1"
+      }
+    },
+    {
+      "run": "p6-cold-print-01",
+      "status": "failed",
+      "harnessExitCode": 1,
+      "harnessSha256": "72648e9fdd3873cc488e3d90aac14a7e17ffe8495e61ec372ce66b4b2c86028b",
+      "expectedBinarySha256": "58652f2cea9361b6ee562a65f7405259f2320f9ac170bf9598a798e58905789e",
+      "commandEvidenceSha256": "83d59686d5bbedeb57f6c26e8b65120fa7d12d8e984c594bbe8588f92d9e3066",
+      "completion": null,
+      "failure": {
+        "error": "Error: Command failed: xdotool search --onlyvisible --pid 170266\nX Error of failed request:  BadWindow (invalid Window parameter)\n  Major opcode of failed request:  3 (X_GetWindowAttributes)\n  Resource id in failed request:  0xa00671\n  Serial number of failed request:  63\n  Current serial number in output stream:  64\n"
+      },
+      "requests": [
+        {
+          "instanceId": "beaa926150c48e7a68080449bccb1d2bf9f259bd74f57577",
+          "requestId": "render_1",
+          "request": {
+            "from": 800,
+            "target": "export",
+            "to": 876,
+            "version": 0
+          },
+          "dispatchToOwnerAcceptedMs": 621.696752,
+          "dispatchToHelperDequeuedMs": 4.80264,
+          "evalSubmittedToCallbackMs": 324.403687,
+          "callbackToResultDrainedMs": 291.53545,
+          "forwardedToOwnerAcceptedMs": 0.752489,
+          "sourceCandidatesAtRequestVersion": [
+            {
+              "sourceSha256": "8b4f460fb664ce9b2ef92314dd284404eb4bdfeb28578a34d6dfa08a608454a7",
+              "documentVersion": 0
+            }
+          ],
+          "outputObservations": [],
+          "events": [
+            {
+              "instanceId": "beaa926150c48e7a68080449bccb1d2bf9f259bd74f57577",
+              "monotonicNs": 100938974408146,
+              "phase": "dispatch",
+              "pid": 169569,
+              "requestId": "render_1"
+            },
+            {
+              "instanceId": "beaa926150c48e7a68080449bccb1d2bf9f259bd74f57577",
+              "monotonicNs": 100938974449411,
+              "phase": "render-request",
+              "pid": 169569,
+              "request": {
+                "from": 800,
+                "target": "export",
+                "to": 876,
+                "version": 0
+              },
+              "requestId": "render_1"
+            },
+            {
+              "instanceId": "beaa926150c48e7a68080449bccb1d2bf9f259bd74f57577",
+              "monotonicNs": 100938979210786,
+              "phase": "helper-dequeued",
+              "pid": 170078,
+              "requestId": "render_1"
+            },
+            {
+              "instanceId": "beaa926150c48e7a68080449bccb1d2bf9f259bd74f57577",
+              "monotonicNs": 100938979335423,
+              "phase": "helper-eval-submitted",
+              "pid": 170078,
+              "requestId": "render_1"
+            },
+            {
+              "instanceId": "beaa926150c48e7a68080449bccb1d2bf9f259bd74f57577",
+              "monotonicNs": 100939303739110,
+              "phase": "helper-eval-callback",
+              "pid": 170078,
+              "requestId": "render_1"
+            },
+            {
+              "instanceId": "beaa926150c48e7a68080449bccb1d2bf9f259bd74f57577",
+              "monotonicNs": 100939595274560,
+              "phase": "helper-result-drained",
+              "pid": 170078,
+              "requestId": "render_1"
+            },
+            {
+              "instanceId": "beaa926150c48e7a68080449bccb1d2bf9f259bd74f57577",
+              "monotonicNs": 100939595352409,
+              "phase": "helper-frame-forwarded",
+              "pid": 170078,
+              "requestId": "render_1"
+            },
+            {
+              "instanceId": "beaa926150c48e7a68080449bccb1d2bf9f259bd74f57577",
+              "monotonicNs": 100939595886987,
+              "phase": "owner-frame-received",
+              "pid": 169569,
+              "requestId": "render_1"
+            },
+            {
+              "instanceId": "beaa926150c48e7a68080449bccb1d2bf9f259bd74f57577",
+              "monotonicNs": 100939596104898,
+              "phase": "owner-result-accepted",
+              "pid": 169569,
+              "requestId": "render_1"
+            }
+          ]
+        }
+      ],
+      "outputs": [],
+      "timeoutEvents": [],
+      "cleanup": [
+        {
+          "instanceId": "430e0a59b8834bdbe6f5c2b3d420e72886ed57e7e6a890bb",
+          "guardianPid": 169694,
+          "killStartNs": 100922894472018,
+          "killToCleanupCompleteMs": 83.975077,
+          "killToOwnerConfirmedMs": 89.57274
+        },
+        {
+          "instanceId": "beaa926150c48e7a68080449bccb1d2bf9f259bd74f57577",
+          "guardianPid": 170073,
+          "killStartNs": 100944973042619,
+          "killToCleanupCompleteMs": 60.927402,
+          "killToOwnerConfirmedMs": null
+        },
+        {
+          "instanceId": null,
+          "guardianPid": 170252,
+          "killStartNs": 100945008594609,
+          "killToCleanupCompleteMs": null,
+          "killToOwnerConfirmedMs": null
+        }
+      ],
+      "cleanupFinalSnapshot": {
+        "label": "after-app-close",
+        "at": "2026-10-19T08:05:58.162Z",
+        "appCurrent": null,
+        "helpers": [
+          {
+            "pid": 170252,
+            "birth": "10093993",
+            "running": false,
+            "sameBirth": true,
+            "current": {
+              "pid": 170252,
+              "parent": 1,
+              "group": 170252,
+              "birth": "10093993",
+              "state": "Z",
+              "exitCodeRaw": "0"
+            },
+            "windows": []
+          },
+          {
+            "pid": 170266,
+            "birth": "10094021",
+            "running": false,
+            "sameBirth": false,
+            "current": null,
+            "windows": []
+          },
+          {
+            "pid": 170270,
+            "birth": "10094026",
+            "running": false,
+            "sameBirth": false,
+            "current": null,
+            "windows": []
+          },
+          {
+            "pid": 170301,
+            "birth": "10094039",
+            "running": false,
+            "sameBirth": false,
+            "current": null,
+            "windows": []
+          },
+          {
+            "pid": 170309,
+            "birth": "10094042",
+            "running": false,
+            "sameBirth": false,
+            "current": null,
+            "windows": []
+          },
+          {
+            "pid": 170304,
+            "birth": "10094040",
+            "running": false,
+            "sameBirth": false,
+            "current": null,
+            "windows": []
+          },
+          {
+            "pid": 170312,
+            "birth": "10094042",
+            "running": false,
+            "sameBirth": false,
+            "current": null,
+            "windows": []
+          },
+          {
+            "pid": 170306,
+            "birth": "10094041",
+            "running": false,
+            "sameBirth": false,
+            "current": null,
+            "windows": []
+          },
+          {
+            "pid": 170313,
+            "birth": "10094043",
+            "running": false,
+            "sameBirth": false,
+            "current": null,
+            "windows": []
+          }
+        ]
+      },
+      "nativeWarnings": [
+        "** (milkup-desktop:169700): WARNING **: 08:05:10.682: Failed to start remote inspector server on 127.0.0.1:54079: Error binding to address 127.0.0.1:54079: Address already in use",
+        "(milkup-desktop:169569): Gtk-CRITICAL **: 08:05:15.705: gtk_widget_event: assertion 'WIDGET_REALIZED_FOR_EVENT (widget, event)' failed",
+        "(milkup-desktop:169569): Gtk-CRITICAL **: 08:05:15.706: gtk_widget_event: assertion 'WIDGET_REALIZED_FOR_EVENT (widget, event)' failed",
+        "(milkup-desktop:169569): Gtk-CRITICAL **: 08:05:23.664: gtk_widget_event: assertion 'WIDGET_REALIZED_FOR_EVENT (widget, event)' failed",
+        "(milkup-desktop:169569): Gtk-CRITICAL **: 08:05:38.437: gtk_widget_event: assertion 'WIDGET_REALIZED_FOR_EVENT (widget, event)' failed",
+        "** (milkup-desktop:170078): WARNING **: 08:05:44.360: Failed to start remote inspector server on 127.0.0.1:54079: Error binding to address 127.0.0.1:54079: Address already in use",
+        "(milkup-desktop:169569): Gtk-CRITICAL **: 08:05:47.952: gtk_widget_event: assertion 'WIDGET_REALIZED_FOR_EVENT (widget, event)' failed",
+        "** (milkup-desktop:170266): WARNING **: 08:05:53.312: Failed to start remote inspector server on 127.0.0.1:54079: Error binding to address 127.0.0.1:54079: Address already in use",
+        "** (milkup-desktop:170266): WARNING **: 08:05:53.979: Couldn't connect to D-Bus system bus, Could not connect: No such file or directory"
+      ],
+      "malformedTraceLines": [],
+      "evidenceSha256": {
+        "native-timing.log": "b029d0142c1afd2336adbab1aa3a71f9a82def3f62f00c9bf58095ceb63ae2c7",
+        "observations.json": "1ec51e26336fbe3cf73eedbfe1ff3b04f3479a60ae36cbcfefcd6eea6c675a9c",
+        "failure.json": "dbe601d0b970ee8ace26543c3ef45f35e08a6f478eceef41441afffa3e5adbf1",
+        "process-lifecycle.json": "89d00589f8c4ce494bb755a0d8087cb11cd9ad624e4674dd8911c431f778503f",
+        "production-origin.json": "bd1033b8ef021c249e7488bcfcd4b4d3fe667fd064bda4ef92f381ccd9ff1bf1"
+      }
+    },
+    {
+      "run": "p6-cold-print-02",
+      "status": "automated-checks-passed",
+      "harnessExitCode": 0,
+      "harnessSha256": "cff9f2ce26301b6a8f8b97399f0b9c35d043e53e0be056bfcfa1f242c5febdd3",
+      "expectedBinarySha256": "58652f2cea9361b6ee562a65f7405259f2320f9ac170bf9598a798e58905789e",
+      "commandEvidenceSha256": "59469f3a6594b76f8854c7f4b43a3b415100fa81af984acce6e318a408f862e6",
+      "completion": {
+        "automatedChecksPassed": true,
+        "scope": "First checkpoint only; no upgrade rollback or permission-delta acceptance",
+        "visualReview": "pending",
+        "diagramPdfFidelity": "not asserted",
+        "stage": "cold-output",
+        "format": "print-to-file",
+        "sourceSha256": "8b4f460fb664ce9b2ef92314dd284404eb4bdfeb28578a34d6dfa08a608454a7",
+        "physicalPrinting": "not exercised"
+      },
+      "failure": null,
+      "requests": [
+        {
+          "instanceId": "d3c414b24f5410b214877b2ec46a96ce0f27f09f7829bd31",
+          "requestId": "render_1",
+          "request": {
+            "from": 800,
+            "target": "export",
+            "to": 876,
+            "version": 0
+          },
+          "dispatchToOwnerAcceptedMs": 627.804452,
+          "dispatchToHelperDequeuedMs": 5.186354,
+          "evalSubmittedToCallbackMs": 317.638263,
+          "callbackToResultDrainedMs": 304.068885,
+          "forwardedToOwnerAcceptedMs": 0.573203,
+          "sourceCandidatesAtRequestVersion": [
+            {
+              "sourceSha256": "8b4f460fb664ce9b2ef92314dd284404eb4bdfeb28578a34d6dfa08a608454a7",
+              "documentVersion": 0
+            }
+          ],
+          "outputObservations": [
+            {
+              "name": "cold-first",
+              "sourceSha256": "8b4f460fb664ce9b2ef92314dd284404eb4bdfeb28578a34d6dfa08a608454a7",
+              "documentVersion": 0,
+              "artifact": "cold-first.pdf"
+            }
+          ],
+          "events": [
+            {
+              "instanceId": "d3c414b24f5410b214877b2ec46a96ce0f27f09f7829bd31",
+              "monotonicNs": 101078717988342,
+              "phase": "dispatch",
+              "pid": 170574,
+              "requestId": "render_1"
+            },
+            {
+              "instanceId": "d3c414b24f5410b214877b2ec46a96ce0f27f09f7829bd31",
+              "monotonicNs": 101078718041185,
+              "phase": "render-request",
+              "pid": 170574,
+              "request": {
+                "from": 800,
+                "target": "export",
+                "to": 876,
+                "version": 0
+              },
+              "requestId": "render_1"
+            },
+            {
+              "instanceId": "d3c414b24f5410b214877b2ec46a96ce0f27f09f7829bd31",
+              "monotonicNs": 101078723174696,
+              "phase": "helper-dequeued",
+              "pid": 171068,
+              "requestId": "render_1"
+            },
+            {
+              "instanceId": "d3c414b24f5410b214877b2ec46a96ce0f27f09f7829bd31",
+              "monotonicNs": 101078723331065,
+              "phase": "helper-eval-submitted",
+              "pid": 171068,
+              "requestId": "render_1"
+            },
+            {
+              "instanceId": "d3c414b24f5410b214877b2ec46a96ce0f27f09f7829bd31",
+              "monotonicNs": 101079040969328,
+              "phase": "helper-eval-callback",
+              "pid": 171068,
+              "requestId": "render_1"
+            },
+            {
+              "instanceId": "d3c414b24f5410b214877b2ec46a96ce0f27f09f7829bd31",
+              "monotonicNs": 101079345038213,
+              "phase": "helper-result-drained",
+              "pid": 171068,
+              "requestId": "render_1"
+            },
+            {
+              "instanceId": "d3c414b24f5410b214877b2ec46a96ce0f27f09f7829bd31",
+              "monotonicNs": 101079345219591,
+              "phase": "helper-frame-forwarded",
+              "pid": 171068,
+              "requestId": "render_1"
+            },
+            {
+              "instanceId": "d3c414b24f5410b214877b2ec46a96ce0f27f09f7829bd31",
+              "monotonicNs": 101079345687969,
+              "phase": "owner-frame-received",
+              "pid": 170574,
+              "requestId": "render_1"
+            },
+            {
+              "instanceId": "d3c414b24f5410b214877b2ec46a96ce0f27f09f7829bd31",
+              "monotonicNs": 101079345792794,
+              "phase": "owner-result-accepted",
+              "pid": 170574,
+              "requestId": "render_1"
+            }
+          ]
+        }
+      ],
+      "outputs": [
+        {
+          "name": "cold-first",
+          "at": "2026-10-19T08:08:18.994Z",
+          "sourceSha256": "8b4f460fb664ce9b2ef92314dd284404eb4bdfeb28578a34d6dfa08a608454a7",
+          "sourceBytes": 11971,
+          "elapsedMs": 6298,
+          "statuses": [
+            "Rich content is rendered in bounded Markdown windows; extensions spanning windows retain their original source.",
+            "图片未获授权、缺失或无法离线内嵌；保留占位与原始地址。",
+            "已提交打印。请在打印队列中查看进度。"
+          ],
+          "artifact": {
+            "file": "/workspace/milkup-plugin-lifecycle-evidence/milestone01/native-ui/runs/p6-cold-print-02/cold-first.pdf",
+            "sha256": "c7a5419340d70aeb1de2bcc63464f942686c8d211e25d0b8163083add389ff14",
+            "bytes": 614133,
+            "visualReview": "pending independent review",
+            "diagramFidelity": "NOT_ASSERTED: inspect all page rasters; extracted labels are not diagram evidence"
+          },
+          "documentVersion": 0,
+          "harnessElapsedIncludesDialogs": true
+        }
+      ],
+      "timeoutEvents": [],
+      "cleanup": [
+        {
+          "instanceId": "025e80555d99b26ec560f97b10179044ae1403e9920ad9a2",
+          "guardianPid": 170704,
+          "killStartNs": 101062674592679,
+          "killToCleanupCompleteMs": 35.520039,
+          "killToOwnerConfirmedMs": 48.147919
+        },
+        {
+          "instanceId": null,
+          "guardianPid": 171262,
+          "killStartNs": 101083638813967,
+          "killToCleanupCompleteMs": 21.968995,
+          "killToOwnerConfirmedMs": null
+        },
+        {
+          "instanceId": "d3c414b24f5410b214877b2ec46a96ce0f27f09f7829bd31",
+          "guardianPid": 171063,
+          "killStartNs": 101086680370726,
+          "killToCleanupCompleteMs": 48.534904,
+          "killToOwnerConfirmedMs": null
+        }
+      ],
+      "cleanupFinalSnapshot": {
+        "label": "after-app-close",
+        "at": "2026-10-19T08:08:19.904Z",
+        "appCurrent": null,
+        "helpers": [
+          {
+            "pid": 171262,
+            "birth": "10107969",
+            "running": false,
+            "sameBirth": false,
+            "current": null,
+            "windows": []
+          },
+          {
+            "pid": 171267,
+            "birth": "10107981",
+            "running": false,
+            "sameBirth": false,
+            "current": null,
+            "windows": []
+          },
+          {
+            "pid": 171271,
+            "birth": "10107987",
+            "running": false,
+            "sameBirth": false,
+            "current": null,
+            "windows": []
+          },
+          {
+            "pid": 171301,
+            "birth": "10107999",
+            "running": false,
+            "sameBirth": false,
+            "current": null,
+            "windows": []
+          },
+          {
+            "pid": 171310,
+            "birth": "10108001",
+            "running": false,
+            "sameBirth": false,
+            "current": null,
+            "windows": []
+          },
+          {
+            "pid": 171302,
+            "birth": "10108000",
+            "running": false,
+            "sameBirth": false,
+            "current": null,
+            "windows": []
+          },
+          {
+            "pid": 171311,
+            "birth": "10108001",
+            "running": false,
+            "sameBirth": false,
+            "current": null,
+            "windows": []
+          },
+          {
+            "pid": 171307,
+            "birth": "10108001",
+            "running": false,
+            "sameBirth": false,
+            "current": null,
+            "windows": []
+          },
+          {
+            "pid": 171314,
+            "birth": "10108003",
+            "running": false,
+            "sameBirth": false,
+            "current": null,
+            "windows": []
+          }
+        ]
+      },
+      "nativeWarnings": [
+        "** (milkup-desktop:170710): WARNING **: 08:07:30.103: Failed to start remote inspector server on 127.0.0.1:54063: Error binding to address 127.0.0.1:54063: Address already in use",
+        "(milkup-desktop:170574): Gtk-CRITICAL **: 08:07:43.398: gtk_widget_event: assertion 'WIDGET_REALIZED_FOR_EVENT (widget, event)' failed",
+        "(milkup-desktop:170574): Gtk-CRITICAL **: 08:07:49.860: gtk_widget_event: assertion 'WIDGET_REALIZED_FOR_EVENT (widget, event)' failed",
+        "** (milkup-desktop:171068): WARNING **: 08:08:04.165: Failed to start remote inspector server on 127.0.0.1:54063: Error binding to address 127.0.0.1:54063: Address already in use",
+        "(milkup-desktop:170574): Gtk-CRITICAL **: 08:08:07.816: gtk_widget_event: assertion 'WIDGET_REALIZED_FOR_EVENT (widget, event)' failed",
+        "** (milkup-desktop:171267): WARNING **: 08:08:12.914: Failed to start remote inspector server on 127.0.0.1:54063: Error binding to address 127.0.0.1:54063: Address already in use",
+        "** (milkup-desktop:171267): WARNING **: 08:08:13.623: Couldn't connect to D-Bus system bus, Could not connect: No such file or directory"
+      ],
+      "malformedTraceLines": [],
+      "evidenceSha256": {
+        "native-timing.log": "81600cbcb5d3cb9e80d610083f6812b8d293225f9f4b860142d580485f6556ef",
+        "observations.json": "ff608aa599f415e8fc82cc6e92a51fbb8cc2f3fbd5110d8004afaadef17c26b3",
+        "completion.json": "a036981b2082301928baeb8fc688d602e580c85878e937513ede9f4f3f028b0c",
+        "process-lifecycle.json": "8a3758d05c9390ba9326db2a25d2ec4f0c849823a02c841e7fffda7b3c3b35ea",
+        "production-origin.json": "bd1033b8ef021c249e7488bcfcd4b4d3fe667fd064bda4ef92f381ccd9ff1bf1"
+      }
+    }
+  ],
+  "awaitingTerminal": [],
+  "priorFailurePreserved": {
+    "run": "p6-cold-html-01",
+    "status": "failed",
+    "error": "AssertionError [ERR_ASSERTION]: P5-FOOTNOTE-MARKER\n\n2 !== 1\n",
+    "note": "Prior harness assertion failure retained, not counted as pass or folded into HTML02."
+  },
+  "production": {
+    "sourceHead": "1388f646703ba19c4ed501b0450d123e70388f9a",
+    "binary": "/workspace/milkup-plugin-lifecycle-evidence/milestone01/production-accepted/milkup-desktop",
+    "binarySha256": "58652f2cea9361b6ee562a65f7405259f2320f9ac170bf9598a798e58905789e",
+    "binaryBytes": 22329824,
+    "frontendIndexSha256": "5d7373bf4de7a8580d1584ce4386d63898ea4225d260435a96f22e104f196de8",
+    "proofSha256": "2b785884d4e4feeca01ca0917a7158ec51f3a967d3387d1da31cdbfa064d0f1b",
+    "sourceScope": "Base HEAD plus changedInputs recorded in proof.json; not a clean-HEAD-only build claim."
+  },
+  "summary": {
+    "terminalRunsAnalysed": 5,
+    "automatedChecksPassedRuns": 4,
+    "failedRunsAnalysed": 1,
+    "requestsAnalysed": 6,
+    "additionalPriorFailedRunPreserved": 1,
+    "allExpectedBinaryHashesMatchProof": true
+  }
+}

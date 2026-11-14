@@ -1,0 +1,28 @@
+2026-10-14T00:07:31.994Z NATIVE_STARTUP_WINDOW 1321ms
+PASS light 125% uses native viewport scaling with clean document
+PASS light 125% narrow search, sidebar and appearance controls remain reachable
+PASS light 150% uses native viewport scaling with clean document
+PASS light 150% narrow search, sidebar and appearance controls remain reachable
+PASS light 200% uses native viewport scaling with clean document
+PASS light 200% narrow search, sidebar and appearance controls remain reachable
+PASS dark 125% uses native viewport scaling with clean document
+PASS dark 125% narrow search, sidebar and appearance controls remain reachable
+PASS dark 150% uses native viewport scaling with clean document
+PASS dark 150% narrow search, sidebar and appearance controls remain reachable
+PASS dark 200% uses native viewport scaling with clean document
+PASS dark 200% narrow search, sidebar and appearance controls remain reachable
+PASS native pointer hit testing at 200% lands on the intended Unicode-safe source position
+PASS 200% editing, caret, undo, redo and save preserve CRLF and Unicode bytes
+2026-10-14T00:07:53.518Z NATIVE_STARTUP_WINDOW 1302ms
+PASS theme and 200% native scale survive a real application restart
+file:///workspace/milkup/tests/helpers/native-production.mjs:46
+    throw Error('Timeout: ' + label)
+          ^
+
+Error: Timeout: zoom select 100%
+    at Object.until (file:///workspace/milkup/tests/helpers/native-production.mjs:46:11)
+    at async file:///workspace/milkup/tests/native/tauri-appearance.mjs:278:7
+    at async check (file:///workspace/milkup/tests/native/tauri-appearance.mjs:30:3)
+    at async file:///workspace/milkup/tests/native/tauri-appearance.mjs:271:3
+
+Node.js v24.19.0

@@ -1,0 +1,89 @@
+
+ RUN  v3.2.6 /workspace/milkup
+
+ ❯ apps/desktop/src/desktop-plugin-manager-catalog.test.ts (24 tests | 3 failed) 481ms
+   ✓ P6 authoritative catalog transactions > stages without running or replacing old active approval; exact review is required 24ms
+   ✓ P6 authoritative catalog transactions > tears old epoch down before trial, commits before publish, and recovers old version with new epoch on failure 10ms
+   ✓ P6 authoritative catalog transactions > cannot grant candidate capabilities via pending approval or side effects during activate 3ms
+   ✓ P6 authoritative catalog transactions > serializes queued approval and remove; tombstone keeps data/settings and never revives from mirror 2ms
+   ✓ P6 authoritative catalog transactions > recovers a committed generation when contribution publication fails 15ms
+   ✓ P6 candidate failure injection > denies a swallowed initialization write and restores unchanged data 5ms
+   ✓ P6 candidate failure injection > recovers old active after native commit rejects without publishing the candidate 3ms
+   ✓ P6 candidate failure injection > caps hanging candidate activation and attempts new-epoch recovery 6ms
+   ✓ P6 candidate failure injection > does not trust a poisoned mirror and quarantines an interrupted startup instead of retrying forever 2ms
+   ✓ P6 retirement and public diagnostic boundaries > retains a rejected isolation owner and retries before any new activation 3ms
+   ✓ P6 retirement and public diagnostic boundaries > keeps callback errors diagnostic when the trusted owner confirms termination 2ms
+   ✓ P6 retirement and public diagnostic boundaries > never exposes native or activation paths through the public management adapter 3ms
+   ✓ P6 sealed generations > permits package reads, refuses package writes/deletes, and gives data a distinct writable scope 4ms
+   ✓ P6 sealed generations > disables a newly committed first installation if publication fails with no previous generation 2ms
+   ✓ P6 compatibility at execution boundary > quarantines incompatible native active intent after a host/SDK change without loading code 6ms
+   ✓ P6 compatibility at execution boundary > does not run an incompatible native pending candidate or retire the old active instance 2ms
+   ✓ P6 compatibility at execution boundary > blocks candidate data writes before publication even when approval includes file write 3ms
+   ✓ P6 native read-only renderer profile > permits only the sealed read-only DOM renderer and awaits its retirement before replacement 4ms
+   ✓ P6 bounded management metadata > lists all 512 valid native entries with long Unicode metadata and keeps differences exact  356ms
+   ✓ P6 mounted UI retirement > retires mounted UI without dispatching renderer RPC after epoch revocation 4ms
+   ✓ P6 mounted UI retirement > still rejects real owner stop failure when a UI was mounted 2ms
+   × P6 trusted manager action wiring > rejects a candidate through ActionRegistry without changing old active approval or execution 8ms
+     → Unknown action: plugin.rejectCandidate
+   × P6 trusted manager action wiring > requires control permission and exact well-formed reviewed identity before rejection 7ms
+     → expected undefined to match object { Object (permissions, risk, ...) }
+   × P6 trusted manager action wiring > registers every fixed plugin action dispatched by the shipped manager click handler 3ms
+     → plugin.rejectCandidate must be registered: expected undefined to be defined
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 3 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  apps/desktop/src/desktop-plugin-manager-catalog.test.ts > P6 trusted manager action wiring > rejects a candidate through ActionRegistry without changing old active approval or execution
+Error: Unknown action: plugin.rejectCandidate
+ ❯ ActionRegistry.run packages/core/src/actions/registry.ts:109:13
+    107| 
+    108|     if (!action) {
+    109|       throw new Error(`Unknown action: ${id}`)
+       |             ^
+    110|     }
+    111| 
+ ❯ apps/desktop/src/desktop-plugin-manager-catalog.test.ts:826:21
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/3]⎯
+
+ FAIL  apps/desktop/src/desktop-plugin-manager-catalog.test.ts > P6 trusted manager action wiring > requires control permission and exact well-formed reviewed identity before rejection
+AssertionError: expected undefined to match object { Object (permissions, risk, ...) }
+
+- Expected: 
+{
+  "inputSchema": {
+    "properties": {
+      "fingerprint": {
+        "required": true,
+      },
+      "reviewedRevision": {
+        "required": true,
+      },
+    },
+  },
+  "permissions": [
+    "app:control",
+  ],
+  "risk": "write",
+}
+
++ Received: 
+undefined
+
+ ❯ apps/desktop/src/desktop-plugin-manager-catalog.test.ts:833:81
+
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/3]⎯
+
+ FAIL  apps/desktop/src/desktop-plugin-manager-catalog.test.ts > P6 trusted manager action wiring > registers every fixed plugin action dispatched by the shipped manager click handler
+AssertionError: plugin.rejectCandidate must be registered: expected undefined to be defined
+ ❯ apps/desktop/src/desktop-plugin-manager-catalog.test.ts:842:135
+
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/3]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  3 failed | 21 passed (24)
+   Start at  09:28:09
+   Duration  2.52s (transform 1.03s, setup 0ms, collect 1.38s, tests 481ms, environment 0ms, prepare 93ms)
+

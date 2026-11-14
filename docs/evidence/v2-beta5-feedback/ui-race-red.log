@@ -1,0 +1,221 @@
+
+ RUN  v3.2.6 /tmp/milkup-windows-manual-candidate/apps/desktop
+
+ ❯ src/desktop-plugin-ui.test.ts (72 tests | 9 failed | 62 skipped) 205ms
+   × plugin UI lifecycle races > does not resume mounting views after disable interrupts sync 70ms
+     → expected [ <section …(5)>…(3)</section> ] to have a length of +0 but got 1
+   × plugin UI lifecycle races > does not resume mounting views after dispose interrupts sync 10ms
+     → expected [ <section …(5)>…(3)</section> ] to have a length of +0 but got 1
+   × plugin UI lifecycle races > removes every retired view synchronously while disable cleanup is pending 11ms
+     → expected [ false, true ] to deeply equal [ false, false ]
+   × plugin UI lifecycle races > removes every retired view synchronously while dispose cleanup is pending 7ms
+     → expected [ false, true ] to deeply equal [ false, false ]
+   × plugin UI lifecycle races > removes every retired view synchronously while document cleanup is pending 24ms
+     → expected [ false, true ] to deeply equal [ false, false ]
+   × plugin UI lifecycle races > keeps only the newest document when a prior sync resumes after pending cleanup 22ms
+     → expected [ [ 'example', 'first', …(2) ], …(3) ] to have a length of 2 but got 4
+   × plugin UI lifecycle races > refreshes app-scoped views for a new document while an old mount is pending 34ms
+     → expected [ '', 'second:mount:doc-b' ] to deeply equal [ 'first:update:doc-b', …(1) ]
+   ✓ plugin UI lifecycle races > does not cancel an in-flight sync when its document and contributions are unchanged 7ms
+   × plugin UI lifecycle races > remounts unchanged contributions for a new execution generation without disposing the new instance 5ms
+     → expected false to be true // Object.is equality
+   × plugin UI lifecycle races > drops late render output and invalidation once its execution generation is revoked 12ms
+     → expected [ 'first:update:doc-a', …(1) ] to deeply equal [ 'first:mount:doc-a', …(1) ]
+   ↓ generic contextual document toolbar > collapses empty contributions and the entire empty slot, restoring either when content returns
+   ↓ generic virtual scroll scheduling > publishes a near-edge range within one frame window during sustained scrolling
+   ↓ generic virtual scroll scheduling > keeps a requested buffer across old-slice echoes without suppressing a newer distant range
+   ↓ generic virtual scroll scheduling > allows only one scroll render in flight and retains only the latest pending range
+   ↓ generic virtual scroll scheduling > drops a scheduled scroll demand after its document changes
+   ↓ generic virtual scroll scheduling > drops a scheduled scroll demand after its version changes
+   ↓ generic virtual scroll scheduling > drops a scheduled scroll demand after its dispose changes
+   ↓ generic virtual scroll scheduling > lets a new version schedule its own range without inheriting an old timer
+   ↓ generic virtual scroll scheduling > lets same-document selection navigation supersede an old echoed scroll buffer
+   ↓ generic virtual scroll scheduling > lets same-document follow-active navigation supersede an old echoed scroll buffer
+   ↓ generic virtual scroll scheduling > requests the same position again after a version change with an old echo
+   ↓ generic virtual scroll scheduling > requests the same position again after a version change with an old in-flight
+   ↓ generic virtual scroll scheduling > lets local keyboard Home cancel even an already in-flight scroll range
+   ↓ generic virtual scroll scheduling > does not reclaim departed focus or replay pending scroll over keyboard Home
+   ↓ DesktopPluginUiController > restores a virtual keyboard target named by text without requiring aria-label
+   ↓ DesktopPluginUiController > requests bounded virtual tree ranges for End, Home and arrow boundary focus
+   ↓ DesktopPluginUiController > does not let late virtual keyboard ranges steal focus after Tab or document change
+   ↓ DesktopPluginUiController > discards a rejected keyboard range after the request document changes
+   ↓ DesktopPluginUiController > discards a rejected keyboard range after the request version changes
+   ↓ DesktopPluginUiController > discards a rejected keyboard range after the request mount changes
+   ↓ DesktopPluginUiController > discards a pending End range when focus moves to another row of the same tree
+   ↓ DesktopPluginUiController > keeps the latest virtual keyboard intent and discards ranges after teardown
+   ↓ DesktopPluginUiController > uses visible ranks rather than source ordinals after folding a virtual tree
+   ↓ DesktopPluginUiController > holds modal focus while a controlled save action is temporarily disabled
+   ↓ DesktopPluginUiController > combines embedding slot visibility with panel collapse without affecting other slots
+   ↓ DesktopPluginUiController > traps modal Tab using only the current tree tab stop
+   ↓ DesktopPluginUiController > does not treat scripted clicks or forged action details as trusted user gestures
+   ↓ DesktopPluginUiController > keeps a pressed controlled button until click and coalesces progress renders
+   ↓ DesktopPluginUiController > mounts controlled slots and recreates document-scoped views on document changes
+   ↓ DesktopPluginUiController > opens and closes modal views repeatedly and bridges declared commands
+   ↓ DesktopPluginUiController > takes modal focus before pending mount output, so immediate Escape closes and restores the opener
+   ↓ DesktopPluginUiController > does not take focus back from a host confirmation when asynchronous opening completes
+   ↓ DesktopPluginUiController > restores an available card when unloading removes the opener and ignores late output
+   ↓ DesktopPluginUiController > resumes focus after a pending output removes controls, with final Action A
+   ↓ DesktopPluginUiController > resumes focus after a pending output removes controls, with final Action B
+   ↓ DesktopPluginUiController > does not resume a removed action after the user focuses close
+   ↓ DesktopPluginUiController > does not resume a removed action after the user focuses confirmation
+   ↓ DesktopPluginUiController > traps native WebKit Shift+Tab with Unidentified key and Tab code at the close button
+   ↓ DesktopPluginUiController > rerenders only the requested plugin view when invalidated
+   ↓ DesktopPluginUiController > passes fresh viewport state when an editor scroll update rerenders mounted UI
+   ↓ DesktopPluginUiController > skips editor viewport updates for views that opt out
+   ↓ DesktopPluginUiController > collapses sidebar panels to the bottom and exposes resizers only between expanded panels
+   ↓ DesktopPluginUiController > reports actual visibility on collapse and expand, independent of focus lifecycle
+   ↓ DesktopPluginUiController > resizes adjacent expanded sidebar panels as a bounded pair
+   ↓ DesktopPluginUiController > ends a sidebar pointer drag on pointercancel without responding to later moves
+   ↓ DesktopPluginUiController > ends a sidebar pointer drag on lostpointercapture without responding to later moves
+   ↓ DesktopPluginUiController > ends a sidebar pointer drag on dispose without responding to later moves
+   ↓ DesktopPluginUiController > ends a sidebar pointer drag on collapse without responding to later moves
+   ↓ DesktopPluginUiController > ends a sidebar pointer drag on hide without responding to later moves
+   ↓ DesktopPluginUiController > ends a sidebar pointer drag on resize without responding to later moves
+   ↓ DesktopPluginUiController > ends a sidebar pointer drag on blur without responding to later moves
+   ↓ DesktopPluginUiController > keeps identical controlled output mounted and preserves internal scroll on changes
+   ↓ DesktopPluginUiController > decorates a controlled host icon without relying on plugin-specific classes
+   ↓ DesktopPluginUiController > projects a virtual outline slice into the full scroll height and follows its active item
+   ↓ DesktopPluginUiController > requests a new buffered range when the outline is scrolled outside its rendered slice
+   ↓ DesktopPluginUiController > does not rerender while outline scrolling remains inside the current overscan buffer
+   ↓ DesktopPluginUiController > keeps the virtual outline viewport stable while background scanning extends the total
+   ↓ DesktopPluginUiController > requests one adjacent buffer only after a real user wheel gesture reaches an edge
+   ↓ DesktopPluginUiController > requests the previous buffer only when the list reaches the exact top edge
+   ↓ DesktopPluginUiController > does not request an adjacent buffer for a small scroll far from the cache edge
+   ↓ DesktopPluginUiController > compensates scroll position once when headings are prepended
+   ↓ DesktopPluginUiController > coalesces viewport updates without running concurrent plugin renders
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 9 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/desktop-plugin-ui.test.ts > plugin UI lifecycle races > does not resume mounting views after disable interrupts sync
+ FAIL  src/desktop-plugin-ui.test.ts > plugin UI lifecycle races > does not resume mounting views after dispose interrupts sync
+AssertionError: expected [ <section …(5)>…(3)</section> ] to have a length of +0 but got 1
+
+- Expected
++ Received
+
+- 0
++ 1
+
+ ❯ src/desktop-plugin-ui.test.ts:49:24
+     47|     pending.resolve('retired first view')
+     48|     await syncing
+     49|     expect(f.panels()).toHaveLength(0)
+       |                        ^
+     50|     expect(f.render.mock.calls.filter(([, id, phase]) => id === 'secon…
+     51|     await f.controller.dispose()
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/9]⎯
+
+ FAIL  src/desktop-plugin-ui.test.ts > plugin UI lifecycle races > removes every retired view synchronously while disable cleanup is pending
+ FAIL  src/desktop-plugin-ui.test.ts > plugin UI lifecycle races > removes every retired view synchronously while dispose cleanup is pending
+ FAIL  src/desktop-plugin-ui.test.ts > plugin UI lifecycle races > removes every retired view synchronously while document cleanup is pending
+AssertionError: expected [ false, true ] to deeply equal [ false, false ]
+
+- Expected
++ Received
+
+  [
+    false,
+-   false,
++   true,
+  ]
+
+ ❯ src/desktop-plugin-ui.test.ts:65:23
+     63|     pending.resolve('retired cleanup')
+     64|     await stopping
+     65|     expect(connected).toEqual([false, false])
+       |                       ^
+     66|     await f.controller.dispose()
+     67|   })
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/9]⎯
+
+ FAIL  src/desktop-plugin-ui.test.ts > plugin UI lifecycle races > keeps only the newest document when a prior sync resumes after pending cleanup
+AssertionError: expected [ [ 'example', 'first', …(2) ], …(3) ] to have a length of 2 but got 4
+
+- Expected
++ Received
+
+- 2
++ 4
+
+ ❯ src/desktop-plugin-ui.test.ts:79:116
+     77|     await Promise.all([oldSync, latestSync])
+     78|     expect(f.text()).toEqual(['first:mount:doc-c', 'second:mount:doc-c…
+     79|     expect(f.render.mock.calls.filter(([, , phase, state]) => phase ==…
+       |                                                                                                                    ^
+     80|     expect(f.render.mock.calls.filter(([, , phase, state]) => phase ==…
+     81|     await f.controller.dispose()
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/9]⎯
+
+ FAIL  src/desktop-plugin-ui.test.ts > plugin UI lifecycle races > refreshes app-scoped views for a new document while an old mount is pending
+AssertionError: expected [ '', 'second:mount:doc-b' ] to deeply equal [ 'first:update:doc-b', …(1) ]
+
+- Expected
++ Received
+
+  [
+-   "first:update:doc-b",
++   "",
+    "second:mount:doc-b",
+  ]
+
+ ❯ src/desktop-plugin-ui.test.ts:92:22
+     90|     pending.resolve('retired document output')
+     91|     await oldSync
+     92|     expect(f.text()).toEqual(['first:update:doc-b', 'second:mount:doc-…
+       |                      ^
+     93|     await f.controller.dispose()
+     94|   })
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/9]⎯
+
+ FAIL  src/desktop-plugin-ui.test.ts > plugin UI lifecycle races > remounts unchanged contributions for a new execution generation without disposing the new instance
+AssertionError: expected false to be true // Object.is equality
+
+- Expected
++ Received
+
+- true
++ false
+
+ ❯ src/desktop-plugin-ui.test.ts:116:64
+    114|     generation++
+    115|     await f.controller.sync('doc-a')
+    116|     expect(retiredPanels.every((panel) => !panel.isConnected)).toBe(tr…
+       |                                                                ^
+    117|     expect(f.render.mock.calls.filter(([, , phase]) => phase === 'moun…
+    118|     expect(f.render.mock.calls.filter(([, , phase]) => phase === 'disp…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/9]⎯
+
+ FAIL  src/desktop-plugin-ui.test.ts > plugin UI lifecycle races > drops late render output and invalidation once its execution generation is revoked
+AssertionError: expected [ 'first:update:doc-a', …(1) ] to deeply equal [ 'first:mount:doc-a', …(1) ]
+
+- Expected
++ Received
+
+  [
+-   "first:mount:doc-a",
+-   "second:mount:doc-a",
++   "first:update:doc-a",
++   "second:update:doc-a",
+  ]
+
+ ❯ src/desktop-plugin-ui.test.ts:135:22
+    133|     const count = f.render.mock.calls.length
+    134|     await f.controller.invalidate('example')
+    135|     expect(f.text()).toEqual(['first:mount:doc-a', 'second:mount:doc-a…
+       |                      ^
+    136|     expect(f.render).toHaveBeenCalledTimes(count)
+    137|     await f.controller.dispose()
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/9]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  9 failed | 1 passed | 62 skipped (72)
+   Start at  08:35:37
+   Duration  1.95s (transform 728ms, setup 0ms, collect 965ms, tests 205ms, environment 517ms, prepare 84ms)
+

@@ -1,0 +1,137 @@
+--- /workspace/milkup-mermaid-engine-evidence/linux-production-05/snapshot-run-inputs.py
++++ /workspace/milkup-mermaid-engine-evidence/linux-production-06/snapshot-run-inputs.py
+@@ -1,7 +1,7 @@
+ from pathlib import Path
+ import sys,json,hashlib,shutil,datetime
+ base=Path(__file__).parent;repo=Path('/workspace/milkup');run,case=sys.argv[1:]
+-assert run.startswith('lifecycle-p05-') and case in ['timeout','disable','remove','wm-close','app-sigkill']
++assert run.startswith('lifecycle-p06-') and case in ['timeout','disable','remove','wm-close','app-sigkill']
+ provenance=json.loads((base/'provenance.json').read_text())
+ assert hashlib.sha256(Path(provenance['binary']['path']).read_bytes()).hexdigest()==provenance['binary']['sha256']
+ dest=base/'lifecycle/control'/(run+'-inputs');assert not dest.exists();dest.mkdir(parents=True)
+@@ -17,5 +17,5 @@
+ for name in ['run-env.sh','driver.sh','launch-driver-reaping.py','snapshot-run-inputs.py','run-case.py','stop-driver.py']:
+  p=base/name;raw=p.read_bytes();(dest/name).write_bytes(raw)
+  rows.append({'source':str(p),'snapshot':name,'bytes':len(raw),'sha256':hashlib.sha256(raw).hexdigest()})
+-(dest/'manifest.json').write_text(json.dumps({'atUtc':datetime.datetime.now(datetime.timezone.utc).isoformat(),'run':run,'case':case,'binary':provenance['binary'],'files':rows,'scope':'Exact pre-launch test source and wrapper snapshot. Product build inputs are in production-05 source freeze.','ancestorRole':'subreaper wait-only, no signals or directory deletion'},indent=2)+'\n')
++(dest/'manifest.json').write_text(json.dumps({'atUtc':datetime.datetime.now(datetime.timezone.utc).isoformat(),'run':run,'case':case,'binary':provenance['binary'],'files':rows,'scope':'Exact pre-launch test source and wrapper snapshot. Product build inputs are in production-06 source freeze.','ancestorRole':'subreaper wait-only, no signals or directory deletion'},indent=2)+'\n')
+ print('Frozen run inputs',run,len(rows))
+--- /workspace/milkup-mermaid-engine-evidence/linux-production-05/finalize.py
++++ /workspace/milkup-mermaid-engine-evidence/linux-production-06/finalize.py
+@@ -6,7 +6,7 @@
+ def dump(p,o):p.write_text(json.dumps(o,indent=2)+'\n')
+ rows=[]
+ for case in ['timeout','disable','remove','wm-close','app-sigkill']:
+- name='lifecycle-p05-'+case+'-01';p=runs/name;events=read(p/'events.json');by={e['name']:e for e in events};assert by['verdict']['status']=='passed',name
++ name='lifecycle-p06-'+case+'-01';p=runs/name;events=read(p/'events.json');by={e['name']:e for e in events};assert by['verdict']['status']=='passed',name
+  command=read(control/(name+'-command.json'));assert command['exitCode']==0
+  final=by['observer-final'];clear=by['owned-context-cleared'];assert final['cleanupObserved'] and not clear['observation']['members'] and not clear['observation']['privateDirectoryExists'];assert len(final['knownPidBirth'])==9
+  dispatch=by['actual-webkit-busy']['originalDispatch'];start=dispatch['monotonicNs'];traces=read(p/'native-traces.json')
+@@ -29,7 +29,7 @@
+  if actual!=item['sha256']:changes.append({'path':item['path'],'expected':item['sha256'],'actual':actual})
+ assert not changes, changes
+ dump(b/'final-source-check.json',{'atUtc':datetime.datetime.now(datetime.timezone.utc).isoformat(),'filesChecked':len(source['files']),'changes':changes,'qualification':'Exact final source equality; any later approved test/doc change requires separate evidence and explicit audit qualification.'})
+-summary={'atUtc':datetime.datetime.now(datetime.timezone.utc).isoformat(),'scope':'Production-05 extracted Linux deb; all five generic DOM lifecycle cases rerun after removing the unused parent-App process sampler thread. Official Mermaid matrix remains separate.','artifacts':artifacts,'cases':rows,'passingCases':len(rows),'caseCount':len(list(control.glob('*-command.json'))),'limitations':['Native phase timing is relative to original render dispatch.','Only measured trusted input-to-two-RAF sample has 200ms assertion; not all frame gaps.','App SIGKILL ancestor only natural wait/reap. Missing asynchronous ECHILD trace means exact time unknown and natural exit an upper bound.','Production-01/02/03/04 originals preserved separately; no prior binary verifies removal of the unused parent-App process sampler thread.']}
++summary={'atUtc':datetime.datetime.now(datetime.timezone.utc).isoformat(),'scope':'Production-06 extracted Linux deb; all five generic DOM lifecycle cases rerun after coalescing the document-presentation ResizeObserver refresh through requestAnimationFrame with destroy cancellation. Official Mermaid matrix remains separate.','artifacts':artifacts,'cases':rows,'passingCases':len(rows),'caseCount':len(list(control.glob('*-command.json'))),'limitations':['Native phase timing is relative to original render dispatch.','Only measured trusted input-to-two-RAF sample has 200ms assertion; not all frame gaps.','App SIGKILL ancestor only natural wait/reap. Missing asynchronous ECHILD trace means exact time unknown and natural exit an upper bound.','Production-01/02/03/04/05 originals preserved separately; no prior binary verifies the ResizeObserver refresh scheduling and destroy-cancellation fix.']}
+ summary['allAttempts']=[{'run':p.name.removesuffix('-command.json'),'command':read(p),'verdict':next((e for e in read(runs/p.name.removesuffix('-command.json')/'events.json') if e.get('name')=='verdict'),None)} for p in sorted(control.glob('*-command.json'))]
+ summary['setupFailures']={}
+ summary['caseCount']=len(summary['allAttempts'])
+--- /workspace/milkup-mermaid-engine-evidence/linux-production-05/run-case.py
++++ /workspace/milkup-mermaid-engine-evidence/linux-production-06/run-case.py
+@@ -1,6 +1,6 @@
+ import subprocess,sys,json,datetime,time,urllib.request
+ from pathlib import Path
+-run,case=sys.argv[1:];assert run.startswith('lifecycle-p05-') and case in ['timeout','disable','remove','wm-close','app-sigkill']
++run,case=sys.argv[1:];assert run.startswith('lifecycle-p06-') and case in ['timeout','disable','remove','wm-close','app-sigkill']
+ base=Path(__file__).parent
+ frozen=json.loads((base/'provenance.json').read_text())
+ binary=frozen['binary']['path'];sha=frozen['binary']['sha256']
+@@ -8,7 +8,7 @@
+ import hashlib
+ for row in inputs['files']:
+  assert hashlib.sha256(Path(row['source']).read_bytes()).hexdigest()==row['sha256'], row['source']
+-out=Path('/workspace/milkup-mermaid-engine-evidence/linux-production-05/lifecycle/control');out.mkdir(parents=True,exist_ok=True)
++out=Path('/workspace/milkup-mermaid-engine-evidence/linux-production-06/lifecycle/control');out.mkdir(parents=True,exist_ok=True)
+ record=out/(run+'-command.json');log=out/(run+'-harness.log');assert not record.exists() and not log.exists()
+ for attempt in range(50):
+  try:
+@@ -17,7 +17,7 @@
+  except Exception:
+   if attempt==49:raise
+   time.sleep(.1)
+-command=['bash','-lc','source /workspace/milkup-mermaid-engine-evidence/linux-production-05/run-env.sh "$@"\nexec node tests/native/tauri-dom-plugin-lifecycle.mjs','bash',run,case,binary,sha]
++command=['bash','-lc','source /workspace/milkup-mermaid-engine-evidence/linux-production-06/run-env.sh "$@"\nexec node tests/native/tauri-dom-plugin-lifecycle.mjs','bash',run,case,binary,sha]
+ row={'command':command,'cwd':'/workspace/milkup','startedUtc':datetime.datetime.now(datetime.timezone.utc).isoformat()};record.write_text(json.dumps(row,indent=2)+'\n')
+ with log.open('w') as stream:p=subprocess.run(command,cwd=row['cwd'],stdout=stream,stderr=subprocess.STDOUT)
+ row.update(exitCode=p.returncode,endedUtc=datetime.datetime.now(datetime.timezone.utc).isoformat());record.write_text(json.dumps(row,indent=2)+'\n');print(json.dumps(row));print(log.read_text()[-10000:]);sys.exit(p.returncode)
+--- /workspace/milkup-mermaid-engine-evidence/linux-production-05/run-env.sh
++++ /workspace/milkup-mermaid-engine-evidence/linux-production-06/run-env.sh
+@@ -1,6 +1,6 @@
+ # Source with: RUN_NAME CASE FROZEN_BINARY EXPECTED_SHA256.
+ # Static preparation only; this file starts no process and creates no directory.
+-if [[ $# != 4 || ! "$1" =~ ^lifecycle-p05-[a-z0-9-]+$ || ! "$4" =~ ^[a-f0-9]{64}$ ]]; then
++if [[ $# != 4 || ! "$1" =~ ^lifecycle-p06-[a-z0-9-]+$ || ! "$4" =~ ^[a-f0-9]{64}$ ]]; then
+   echo 'Expected unique lifecycle run, case, frozen binary and SHA256' >&2
+   return 1
+ fi
+@@ -27,12 +27,12 @@
+ export DISPLAY=:126
+ export GDK_PIXBUF_MODULE_FILE=/workspace/milkup-markdown-extensions-phase4-evidence/native/environment/loaders-sysroot.cache
+ export GDK_PIXBUF_MODULEDIR=/workspace/.cloud/milkup-v2/sysroot/usr/lib/x86_64-linux-gnu/gdk-pixbuf-2.0/2.10.0/loaders
+-export MILKUP_NATIVE_PROFILE_ROOT=/workspace/milkup-mermaid-engine-evidence/linux-production-05/lifecycle/profiles/$MILKUP_NATIVE_RUN
++export MILKUP_NATIVE_PROFILE_ROOT=/workspace/milkup-mermaid-engine-evidence/linux-production-06/lifecycle/profiles/$MILKUP_NATIVE_RUN
+ export XDG_CONFIG_HOME=$MILKUP_NATIVE_PROFILE_ROOT/config
+ export XDG_CACHE_HOME=$MILKUP_NATIVE_PROFILE_ROOT/cache
+ export XDG_DATA_HOME=$MILKUP_NATIVE_PROFILE_ROOT/data
+-export MILKUP_NATIVE_EVIDENCE_DIR=/workspace/milkup-mermaid-engine-evidence/linux-production-05/lifecycle/runs/$MILKUP_NATIVE_RUN
+-export MILKUP_NATIVE_APP_LOG=/workspace/milkup-mermaid-engine-evidence/linux-production-05/lifecycle/logs/$MILKUP_NATIVE_RUN-driver.log
++export MILKUP_NATIVE_EVIDENCE_DIR=/workspace/milkup-mermaid-engine-evidence/linux-production-06/lifecycle/runs/$MILKUP_NATIVE_RUN
++export MILKUP_NATIVE_APP_LOG=/workspace/milkup-mermaid-engine-evidence/linux-production-06/lifecycle/logs/$MILKUP_NATIVE_RUN-driver.log
+ export TAURI_DRIVER_URL=http://127.0.0.1:4626
+ export MILKUP_NATIVE_EXCLUSIVE_DISPLAY=1
+ export MILKUP_DOM_DIAGNOSTICS=1
+--- /workspace/milkup-mermaid-engine-evidence/linux-production-05/driver.sh
++++ /workspace/milkup-mermaid-engine-evidence/linux-production-06/driver.sh
+@@ -1,6 +1,6 @@
+ #!/usr/bin/env bash
+ set -euo pipefail
+-source /workspace/milkup-mermaid-engine-evidence/linux-production-05/run-env.sh "$@"
++source /workspace/milkup-mermaid-engine-evidence/linux-production-06/run-env.sh "$@"
+ # A fresh profile, log and evidence directory are mandatory for each attempt.
+ [[ ! -e "$XDG_RUNTIME_DIR" && ! -e "$MILKUP_NATIVE_PROFILE_ROOT" && ! -e "$MILKUP_NATIVE_APP_LOG" && ! -e "$MILKUP_NATIVE_EVIDENCE_DIR" ]]
+ mkdir -p "$XDG_CONFIG_HOME" "$XDG_CACHE_HOME" "$XDG_DATA_HOME" "$(dirname "$MILKUP_NATIVE_APP_LOG")" "$(dirname "$MILKUP_NATIVE_EVIDENCE_DIR")"
+--- /workspace/milkup-mermaid-engine-evidence/linux-production-05/launch-driver-reaping.py
++++ /workspace/milkup-mermaid-engine-evidence/linux-production-06/launch-driver-reaping.py
+@@ -2,7 +2,7 @@
+ import ctypes, datetime, json, os, subprocess, sys, time
+ from pathlib import Path
+ run,case=sys.argv[1:]
+-assert run.startswith('lifecycle-p05-') and case in ['timeout','disable','remove','wm-close','app-sigkill']
++assert run.startswith('lifecycle-p06-') and case in ['timeout','disable','remove','wm-close','app-sigkill']
+ base=Path(__file__).parent
+ frozen=json.loads((base/'provenance.json').read_text())
+ binary=frozen['binary']['path'];sha=frozen['binary']['sha256']
+@@ -12,9 +12,9 @@
+ subprocess.run([sys.executable,str(base/'snapshot-run-inputs.py'),run,case],check=True)
+ libc=ctypes.CDLL(None,use_errno=True)
+ assert libc.prctl(36,1,0,0,0)==0, ('PR_SET_CHILD_SUBREAPER',ctypes.get_errno())
+-out=Path('/workspace/milkup-mermaid-engine-evidence/linux-production-05/lifecycle/control');out.mkdir(parents=True,exist_ok=True)
++out=Path('/workspace/milkup-mermaid-engine-evidence/linux-production-06/lifecycle/control');out.mkdir(parents=True,exist_ok=True)
+ record=out/(run+'-driver-owner.json');reaps=out/(run+'-ancestor-reaps.json');assert not record.exists() and not reaps.exists()
+-p=subprocess.Popen(['bash','/workspace/milkup-mermaid-engine-evidence/linux-production-05/driver.sh',run,case,binary,sha],start_new_session=True)
++p=subprocess.Popen(['bash','/workspace/milkup-mermaid-engine-evidence/linux-production-06/driver.sh',run,case,binary,sha],start_new_session=True)
+ words=Path('/proc',str(p.pid),'stat').read_text().rsplit(')',1)[1].split()
+ row={'pid':p.pid,'birth':words[19],'group':int(words[2]),'ancestorPid':os.getpid(),'ancestorRole':'subreaper wait-only, no signals or directory deletion','startedUtc':datetime.datetime.now(datetime.timezone.utc).isoformat(),'command':['bash','driver.sh',run,case,binary,sha]};record.write_text(json.dumps(row,indent=2)+'\n');print(json.dumps(row),flush=True)
+ events=[];driver_status=None;driver_exited_at=None
+--- /workspace/milkup-mermaid-engine-evidence/linux-production-05/stop-driver.py
++++ /workspace/milkup-mermaid-engine-evidence/linux-production-06/stop-driver.py
+@@ -1,7 +1,7 @@
+ import sys,json,os,signal,time
+ from pathlib import Path
+-assert sys.argv[1].startswith('lifecycle-p05-')
+-p=Path('/workspace/milkup-mermaid-engine-evidence/linux-production-05/lifecycle/control')/(sys.argv[1]+'-driver-owner.json');row=json.loads(p.read_text())
++assert sys.argv[1].startswith('lifecycle-p06-')
++p=Path('/workspace/milkup-mermaid-engine-evidence/linux-production-06/lifecycle/control')/(sys.argv[1]+'-driver-owner.json');row=json.loads(p.read_text())
+ try:
+  words=Path('/proc',str(row['pid']),'stat').read_text().rsplit(')',1)[1].split()
+  assert words[19]==row['birth'] and int(words[2])==row['group']==row['pid']

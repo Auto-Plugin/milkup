@@ -1,0 +1,24 @@
+from pathlib import Path
+import subprocess,os,json,hashlib,datetime,signal
+root=Path('/workspace/milkup');out=Path('/workspace/milkup-mermaid-engine-evidence/research/window-navigation-multirow-browser-03')
+manifest=json.loads((out/'preparation-inputs.json').read_text())
+def info(p):
+ b=p.read_bytes();return {'bytes':len(b),'sha256':hashlib.sha256(b).hexdigest()}
+def inputs():
+ return {'repositoryInputs':{f:info(root/f) for f in manifest['repositoryInputs']},'researchInputs':{f:info(out/f) for f in manifest['researchInputs']}}
+before=inputs();(out/'inputs-before.json').write_text(json.dumps(before,indent=2)+'\n')
+assert before['repositoryInputs']==manifest['repositoryInputs'] and before['researchInputs']==manifest['researchInputs'], 'Frozen input mismatch: no test launched'
+for f in ['packages/view-dom/src/source-document-view.ts','packages/view-dom/src/document-presentation.ts','packages/view-dom/src/measured-line-heights.ts']:
+ p=out/'source'/f;p.parent.mkdir(parents=True,exist_ok=True);p.write_bytes((root/f).read_bytes())
+env=os.environ.copy();env['MILKUP_BROWSER_EXECUTABLE']='/usr/bin/chromium';env['PLAYWRIGHT_JSON_OUTPUT_NAME']=str(out/'report.json');env.pop('CARGO_TARGET_X86_64_UNKNOWN_LINUX_GNU_RUNNER',None)
+command=['node','node_modules/@playwright/test/cli.js','test','--config='+str(out/'playwright.config.ts'),'--project=desktop-msedge','--workers=1','--retries=0','--reporter=line,json']
+meta={'command':command,'cwd':str(root),'started':datetime.datetime.now(datetime.timezone.utc).isoformat(),'environment':'source /workspace/.cloud/milkup-v2/env.sh; unset CARGO_TARGET_X86_64_UNKNOWN_LINUX_GNU_RUNNER; explicit /usr/bin/chromium','retry':0}
+with (out/'run.log').open('w') as log:
+ p=subprocess.Popen(command,cwd=root,env=env,stdout=log,stderr=subprocess.STDOUT,start_new_session=True);meta['pid']=p.pid;meta['processGroup']=p.pid
+ (out/'execution.json').write_text(json.dumps(meta,indent=2)+'\n')
+ try:code=p.wait(timeout=180)
+ except subprocess.TimeoutExpired:
+  meta['runnerTimeout']=True;os.killpg(p.pid,signal.SIGTERM);code=p.wait(timeout=10)
+meta.update(exit=code,ended=datetime.datetime.now(datetime.timezone.utc).isoformat());after=inputs();meta['sourceUnchanged']=before==after
+(out/'inputs-after.json').write_text(json.dumps(after,indent=2)+'\n');(out/'execution.json').write_text(json.dumps(meta,indent=2)+'\n')
+print(json.dumps(meta,indent=2));raise SystemExit(code)

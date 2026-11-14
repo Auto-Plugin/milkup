@@ -1,0 +1,34 @@
+2026-10-16T15:21:49.950Z NATIVE_STARTUP_WINDOW 1382ms
+PASS preinstalled-cold-before-render
+PASS preinstalled-cold-window
+PASS bundled-removed-before-independent-install
+PASS installed-official-engine
+PASS isolated-fallback-flowchart-069-image
+PASS notice-fallback-flowchart-069-image
+PASS isolated-fallback-flowchart-086-animated-edge
+PASS notice-fallback-flowchart-086-animated-edge
+PASS isolated-fallback-flowchart-088-classDef
+PASS notice-fallback-flowchart-088-classDef
+PASS isolated-fallback-timeline-000-first-official-example
+PASS notice-fallback-timeline-000-first-official-example
+PASS coverage-ordinary-block-000-first-official-example
+PASS FAIL
+node:internal/modules/run_main:107
+    triggerUncaughtException(
+    ^
+
+AssertionError [ERR_ASSERTION]: after screenshot: same range remains visible
+    at assertCapturedPreview (file:///workspace/milkup/tests/native/tauri-mermaid-ui.mjs:215:3)
+    at record (file:///workspace/milkup/tests/native/tauri-mermaid-ui.mjs:253:22)
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+    at async shot (file:///workspace/milkup/tests/native/tauri-mermaid-ui.mjs:299:3)
+    at async file:///workspace/milkup/tests/native/tauri-mermaid-ui.mjs:770:7 {
+  generatedMessage: false,
+  code: 'ERR_ASSERTION',
+  actual: undefined,
+  expected: true,
+  operator: '==',
+  diff: 'simple'
+}
+
+Node.js v24.19.0

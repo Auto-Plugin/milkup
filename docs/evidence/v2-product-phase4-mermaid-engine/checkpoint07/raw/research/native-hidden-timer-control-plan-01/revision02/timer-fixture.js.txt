@@ -1,0 +1,39 @@
+// Proposed generic research fixture only. No monkeypatch or renderer prewarm.
+export default {
+  activate() {
+    return {
+      documentRenderers: {
+        timer: async (request) => {
+          const fence = request.blocks.find((block) => block.kind === 'fence' && block.complete)
+          if (!fence) throw new Error('Missing timer control fence')
+          const mode = request.source.includes('DOUBLE_TIMER') ? 'double'
+            : request.source.includes('SINGLE_TIMER') ? 'single' : 'none'
+          const started = performance.now()
+          const wallStarted = Date.now()
+          const initial = { hidden: document.hidden, visibility: document.visibilityState,
+            width: innerWidth, height: innerHeight, dpr: devicePixelRatio }
+          const callbacksMs = []
+          if (mode !== 'none') {
+            await new Promise((resolve) => {
+              setTimeout(() => {
+                callbacksMs.push(performance.now() - started)
+                if (mode === 'double') {
+                  setTimeout(() => {
+                    callbacksMs.push(performance.now() - started)
+                    resolve()
+                  }, 0)
+                } else resolve()
+              }, 0)
+            })
+          }
+          const observation = { mode, initial, callbacksMs, totalMs: performance.now() - started,
+            wallDeltaMs: Date.now() - wallStarted, finalHidden: document.hidden,
+            finalVisibility: document.visibilityState }
+          return { fragments: [{ from: fence.from, to: fence.to, layout: 'block',
+            content: { type: 'text', text: JSON.stringify(observation) },
+            accessibleText: 'Timer control observation' }], complete: true }
+        },
+      },
+    }
+  },
+}

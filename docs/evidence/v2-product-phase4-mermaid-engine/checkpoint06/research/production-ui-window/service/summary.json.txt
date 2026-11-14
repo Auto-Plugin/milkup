@@ -1,0 +1,59 @@
+{
+  "status": "focused-service-verified-awaiting-view-and-native-integration",
+  "before": {
+    "log": "01-before.log",
+    "failed": 3,
+    "passed": 1,
+    "skippedExisting": 9,
+    "scope": "Existing implementation loses entire multi-fence result when canonical aggregate exceeds original budget; no visible priority or fence slicing."
+  },
+  "after": {
+    "log": "03-after.log",
+    "tests": 19,
+    "passed": 19,
+    "includesExistingTextAndSlowSourceCases": 9,
+    "types": "04-types.log exit0",
+    "format": "02-format.log exit0"
+  },
+  "actualAstProbe": {
+    "before": "../budget-probe.json",
+    "after": "../budget-probe-after.json",
+    "inputs": "Unchanged captured04 block/class/ER ASTs, validated by current public core and current service. Not a new native renderer run.",
+    "same73LineWindow": true,
+    "blockVisible": [
+      "block",
+      "class"
+    ],
+    "erVisible": [
+      "class",
+      "ER"
+    ],
+    "sharedAggregatePassed": true,
+    "complete": false
+  },
+  "design": {
+    "request": "Original trusted source window remains response identity; pure fence providers get exact complete fence requests with absolute offsets and correct line bounds.",
+    "priority": "Host-only visibleFrom/visibleTo, independent of remote selection; final fragments source-sorted.",
+    "budget": "Original256KiB wire/canonical,4096nodes/depth64/work limits remain strict. First admission failure settles valid partial instead of dropping all.",
+    "conflicts": "All providers of a fence plus mixed-provider seed checked before budget admission. Unvisited fence seed never becomes a winner.",
+    "deadline": "Host-only optional original preparation deadline; new unit requires nominal2s+100ms remaining. This is admission reserve, not Promise settlement guarantee: queues, cleanup and frontend may exceed it. Original10s view timeout/retry and native2s unchanged.",
+    "partial": "No background auto-repeat or fixed2fence cap. Partial remains until real viewport/context change. Fast3smallfences allcomplete.",
+    "lifecycle": "No new cache. Signal/source identity/source version/theme/service generation checked after awaits; renderer active checked before/after invocation."
+  },
+  "limitations": [
+    "Actual production UI/native after-fix validation pending.",
+    "Independent cold bundled native renderer timeout from first UI run remains a separate failure; this service budget fix does not claim its cause or resolution."
+  ],
+  "sources": [
+    {
+      "path": "/workspace/milkup/apps/desktop/src/document-presentation-service.ts",
+      "sha256": "4478b83bc3b64eb6ce0fad94575ec8cf1e5dd8b4f17baf08489b6e1821a98227",
+      "snapshot": "/workspace/milkup-mermaid-engine-evidence/research/production-ui-window/service/document-presentation-service.ts"
+    },
+    {
+      "path": "/workspace/milkup/apps/desktop/src/document-presentation-service.test.ts",
+      "sha256": "784afaa37e923bd1c207680693717ab99aaee251e27def34cd03034ff26d7bc7",
+      "snapshot": "/workspace/milkup-mermaid-engine-evidence/research/production-ui-window/service/document-presentation-service.test.ts"
+    }
+  ]
+}

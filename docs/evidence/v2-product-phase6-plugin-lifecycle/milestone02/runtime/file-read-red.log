@@ -1,0 +1,84 @@
+
+ RUN  v3.2.6 /workspace/milkup
+
+ ❯ packages/plugin/src/runtime.test.ts (20 tests | 1 failed) 39ms
+   ✓ PluginRuntime > loads, enables, disables, unloads, and reloads local plugins 6ms
+   ✓ PluginRuntime > runs plugin commands through the Action Registry and global document history 3ms
+   ✓ PluginRuntime > isolates plugin command failures and keeps failed edits out of the real document 2ms
+   ✓ PluginRuntime > enforces plugin and action permissions before commands run 2ms
+   ✓ PluginRuntime > rejects in-process plugin modules unless the runtime explicitly allows dev fixtures 1ms
+   ✓ PluginRuntime > rejects sidecar-hosted plugins unless the runtime explicitly allows them 1ms
+   ✓ PluginRuntime > requires confirmation metadata for destructive plugin actions 1ms
+   ✓ PluginRuntime > keeps renderer failures contained and returns a fallback result 1ms
+   ✓ PluginRuntime > routes plugin file host capabilities through the filesystem broker 2ms
+   ✓ PluginRuntime > routes plugin fetch host capabilities through the network broker 3ms
+   ✓ PluginRuntime > narrows plugin action permissions and host capabilities per command 9ms
+   ✓ PluginRuntime > exposes plugin actions to automation surfaces through the shared registry 1ms
+   ✓ PluginRuntime > uses activation-returned command handlers and renderer handlers 1ms
+   ✓ PluginRuntime > projects plugin command input schemas to Action Registry and MCP tools 1ms
+   ✓ prepared activation transactions > keeps contributions private and initialization writes blocked until host publication 1ms
+   ✓ prepared activation transactions > never publishes late activation after disable and disposes its late result 1ms
+   ✓ prepared activation transactions > attempts deactivate even when activation cleanup rejects 1ms
+   ✓ rejects a prepared activation whose plugin swallowed a forbidden initialization write 1ms
+   ✓ requires the trusted commit callback before publishing a prepared activation 0ms
+   × permits candidate file reads within the approved roots while writes stay sticky-blocked 1ms
+     → Plugin activation is not committed: readText
+ ❯ packages/plugin/src/isolation-worker.test.ts (30 tests | 1 failed) 81ms
+   ✓ browser worker plugin isolation > streams document scan results into an isolated plugin 22ms
+   ✓ browser worker plugin isolation > loads and executes a plugin module inside a worker-style realm 5ms
+   ✓ browser worker plugin isolation > reports worker module import failures during initialization 3ms
+   ✓ browser worker plugin isolation > times out silent startup and releases host and broker listeners exactly once 4ms
+   ✓ browser worker plugin isolation > uses a bounded default startup timeout 1ms
+   ✓ browser worker plugin isolation > rejects early disposal even when startup is awaited later 2ms
+   ✓ browser worker plugin isolation > cleans listeners and terminates when posting initialization fails 1ms
+   ✓ browser worker plugin isolation > does not recreate realm RPC listeners after disposal during module import 1ms
+   ✓ browser worker plugin isolation > installs network guards before importing plugins without network permission 1ms
+   ✓ browser worker plugin isolation > blocks worker importScripts even when network access is brokered 2ms
+   ✓ browser worker plugin isolation > blocks dynamic code execution even when network access is brokered 1ms
+   ✓ browser worker plugin isolation > blocks child worker creation even when network access is brokered 1ms
+   ✓ browser worker plugin isolation > routes ambient worker fetch through the main-thread network broker before import 1ms
+   ✓ browser worker plugin isolation > routes worker file capabilities through the main-thread filesystem broker 3ms
+   ✓ browser worker plugin isolation > propagates filesystem broker denials from the main thread to worker commands 2ms
+   ✓ browser worker plugin isolation > records main-thread filesystem audit entries for worker broker access 2ms
+   ✓ browser worker plugin isolation > routes worker network capabilities through the main-thread network broker 2ms
+   ✓ browser worker plugin isolation > propagates network broker denials from the main thread to worker commands 1ms
+   ✓ browser worker plugin isolation > records main-thread network audit entries for worker broker access 2ms
+   ✓ browser worker plugin isolation > routes allowed ambient fetch through a broker and blocks unbrokered network globals 1ms
+   ✓ browser worker plugin isolation > clears the startup timeout on success and disposes a ready host only once 5ms
+   ✓ worker transaction boundaries > revokes a ready ordinary worker on error and rejects pending RPC 1ms
+   ✓ worker transaction boundaries > revokes a ready ordinary worker on messageerror and rejects pending RPC 1ms
+   ✓ worker transaction boundaries > blocks persistent/raw worker capabilities before module top-level execution 1ms
+   ✓ worker transaction boundaries > keeps a rejected top-level fetch violation sticky across an attempted host commit 1ms
+   ✓ permits candidate settings/data reads but rejects persistent initialization writes and remembers them 4ms
+   ✓ seals native prototype entry points before top-level plugin evaluation 1ms
+   ✓ retires via one trusted owner instead of racing remote dispose RPC against transport close 1ms
+   ✓ retries only failed owner termination without enabling the retired RPC again 1ms
+   × permits candidate broker file reads without widening roots or allowing file writes 6ms
+     → Plugin activation is not committed: readText
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  packages/plugin/src/isolation-worker.test.ts > permits candidate broker file reads without widening roots or allowing file writes
+Error: Plugin activation is not committed: readText
+ ❯ packages/plugin/src/filesystem-rpc.ts:82:22
+     80|       request.resolve(response.value)
+     81|     } else {
+     82|       request.reject(new Error(response.error?.message ?? 'Plugin file…
+       |                      ^
+     83|     }
+     84|   })
+ ❯ eventListener packages/plugin/src/filesystem-rpc.ts:189:73
+ ❯ packages/plugin/src/isolation-worker.test.ts:1027:9
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯
+
+ FAIL  packages/plugin/src/runtime.test.ts > permits candidate file reads within the approved roots while writes stay sticky-blocked
+Unknown Error: Plugin activation is not committed: readText
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/2]⎯
+
+
+ Test Files  2 failed (2)
+      Tests  2 failed | 48 passed (50)
+   Start at  09:05:03
+   Duration  1.45s (transform 858ms, setup 0ms, collect 1.52s, tests 120ms, environment 1ms, prepare 210ms)
+

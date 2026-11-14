@@ -1,0 +1,3966 @@
+{
+  "diagnosticOnly": true,
+  "mermaidTested": true,
+  "converterPrototypeTested": true,
+  "results": [
+    {
+      "task": "native-resource-guard",
+      "elapsed": 0.012401842999679502,
+      "value": {
+        "status": "blocked"
+      }
+    },
+    {
+      "task": "scan_058",
+      "sampleId": "xyChart-000-first-official-example",
+      "sourceSha256": "26b0cd5e3c3bcf2c2d0cbbc02df82376d779b0ec1893940495460009622029fe",
+      "profile": "baseline",
+      "elapsed": 0.1759094160006498,
+      "serializedBytes": 20248,
+      "diagramType": "xychart"
+    }
+  ],
+  "events": [
+    {
+      "kind": "spawn",
+      "mono": 40282.781634499,
+      "wall": 1792152670.3425956,
+      "pid": 263978,
+      "birth": "4028278",
+      "command": [
+        "/usr/bin/bwrap",
+        "--die-with-parent",
+        "--unshare-user",
+        "--unshare-pid",
+        "--unshare-ipc",
+        "--unshare-uts",
+        "--unshare-net",
+        "--clearenv",
+        "--ro-bind",
+        "/usr",
+        "/usr",
+        "--overlay-src",
+        "/usr/bin",
+        "--tmp-overlay",
+        "/usr/bin",
+        "--ro-bind",
+        "/workspace/.cloud/milkup-v2/sysroot/usr/bin/xdg-dbus-proxy",
+        "/usr/bin/xdg-dbus-proxy",
+        "--remount-ro",
+        "/usr/bin",
+        "--symlink",
+        "usr/bin",
+        "/bin",
+        "--symlink",
+        "usr/lib",
+        "/lib",
+        "--symlink",
+        "usr/lib64",
+        "/lib64",
+        "--ro-bind",
+        "/workspace/.cloud/milkup-v2/sysroot/usr/lib/x86_64-linux-gnu",
+        "/runtime/lib",
+        "--ro-bind",
+        "/workspace/.cloud/milkup-v2/sysroot/usr/share/glib-2.0/schemas",
+        "/runtime/schemas",
+        "--overlay-src",
+        "/usr/lib/x86_64-linux-gnu",
+        "--tmp-overlay",
+        "/usr/lib/x86_64-linux-gnu",
+        "--ro-bind",
+        "/workspace/.cloud/milkup-v2/sysroot/usr/lib/x86_64-linux-gnu/webkit2gtk-4.1",
+        "/usr/lib/x86_64-linux-gnu/webkit2gtk-4.1",
+        "--remount-ro",
+        "/usr/lib/x86_64-linux-gnu",
+        "--ro-bind",
+        "/etc/fonts",
+        "/etc/fonts",
+        "--ro-bind",
+        "/workspace/milkup-mermaid-engine-evidence/prototype/narrow-config/passwd",
+        "/etc/passwd",
+        "--ro-bind",
+        "/workspace/milkup-mermaid-engine-evidence/prototype/narrow-config/group",
+        "/etc/group",
+        "--ro-bind",
+        "/workspace/milkup-mermaid-engine-evidence/prototype/narrow-config/hostname",
+        "/etc/hostname",
+        "--ro-bind",
+        "/workspace/milkup-mermaid-engine-evidence/prototype/narrow-config/hosts",
+        "/etc/hosts",
+        "--ro-bind",
+        "/workspace/milkup-mermaid-engine-evidence/prototype/narrow-config/nsswitch.conf",
+        "/etc/nsswitch.conf",
+        "--ro-bind",
+        "/workspace/milkup-mermaid-engine-evidence/prototype/narrow-config/machine-id",
+        "/etc/machine-id",
+        "--ro-bind",
+        "/workspace/milkup-mermaid-engine-evidence/prototype/narrow-config/loaders.cache",
+        "/probe/loaders.cache",
+        "--ro-bind",
+        "/workspace/milkup-mermaid-engine-evidence/research/svg-converter-prototype/native-runner/target/debug/milkup-mermaid-render-probe",
+        "/probe/bin/helper",
+        "--ro-bind",
+        "/workspace/milkup-mermaid-engine-evidence/research/svg-converter-prototype/native-runner/extensions/libresource_guard.so",
+        "/probe/extensions/libresource_guard.so",
+        "--bind",
+        "/workspace/milkup-mermaid-engine-evidence/research/svg-converter-prototype/native-runner/profiles/product-converter-fourth-29",
+        "/profile",
+        "--tmpfs",
+        "/tmp",
+        "--dir",
+        "/tmp/.X11-unix",
+        "--ro-bind",
+        "/tmp/.X11-unix/X118",
+        "/tmp/.X11-unix/X118",
+        "--tmpfs",
+        "/run",
+        "--perms",
+        "0700",
+        "--dir",
+        "/run/user/1000",
+        "--dir",
+        "/sys/block",
+        "--dir",
+        "/sys/bus",
+        "--dir",
+        "/sys/class",
+        "--dir",
+        "/sys/dev",
+        "--dir",
+        "/sys/devices",
+        "--dev",
+        "/dev",
+        "--proc",
+        "/proc",
+        "--setenv",
+        "PATH",
+        "/usr/bin:/bin",
+        "--setenv",
+        "HOME",
+        "/profile/home",
+        "--setenv",
+        "XDG_CONFIG_HOME",
+        "/profile/config",
+        "--setenv",
+        "XDG_DATA_HOME",
+        "/profile/data",
+        "--setenv",
+        "XDG_CACHE_HOME",
+        "/profile/cache",
+        "--setenv",
+        "XDG_RUNTIME_DIR",
+        "/run/user/1000",
+        "--setenv",
+        "LD_LIBRARY_PATH",
+        "/runtime/lib",
+        "--setenv",
+        "WEBKIT_INJECTED_BUNDLE_PATH",
+        "/runtime/lib/webkit2gtk-4.1/injected-bundle",
+        "--setenv",
+        "GSETTINGS_SCHEMA_DIR",
+        "/runtime/schemas",
+        "--setenv",
+        "GDK_PIXBUF_MODULE_FILE",
+        "/probe/loaders.cache",
+        "--setenv",
+        "MILKUP_PROBE_EXTENSIONS",
+        "/probe/extensions",
+        "--setenv",
+        "DISPLAY",
+        ":118",
+        "--setenv",
+        "GDK_BACKEND",
+        "x11",
+        "--setenv",
+        "LIBGL_ALWAYS_SOFTWARE",
+        "1",
+        "--setenv",
+        "LANG",
+        "C.UTF-8",
+        "--setenv",
+        "LC_ALL",
+        "C.UTF-8",
+        "--setenv",
+        "TZ",
+        "UTC",
+        "--setenv",
+        "NO_AT_BRIDGE",
+        "1",
+        "--remount-ro",
+        "/",
+        "--chdir",
+        "/profile",
+        "--",
+        "/usr/bin/dbus-run-session",
+        "--",
+        "/probe/bin/helper"
+      ]
+    },
+    {
+      "kind": "process-sample",
+      "mono": 40282.928410297,
+      "wall": 1792152670.4893696,
+      "members": [
+        {
+          "pid": 263978,
+          "state": "S",
+          "ppid": 263975,
+          "pgrp": 263978,
+          "birth": "4028278",
+          "utime": 0,
+          "stime": 0,
+          "name": "bwrap"
+        },
+        {
+          "pid": 263979,
+          "state": "S",
+          "ppid": 263978,
+          "pgrp": 263978,
+          "birth": "4028278",
+          "utime": 0,
+          "stime": 0,
+          "name": "bwrap"
+        },
+        {
+          "pid": 263980,
+          "state": "S",
+          "ppid": 263979,
+          "pgrp": 263978,
+          "birth": "4028278",
+          "utime": 0,
+          "stime": 0,
+          "name": "dbus-run-sessio"
+        },
+        {
+          "pid": 263981,
+          "state": "S",
+          "ppid": 263980,
+          "pgrp": 263978,
+          "birth": "4028278",
+          "utime": 0,
+          "stime": 0,
+          "name": "dbus-daemon"
+        },
+        {
+          "pid": 263982,
+          "state": "R",
+          "ppid": 263980,
+          "pgrp": 263978,
+          "birth": "4028279",
+          "utime": 7,
+          "stime": 5,
+          "name": "helper"
+        }
+      ]
+    },
+    {
+      "kind": "received-frame",
+      "mono": 40283.004220651,
+      "wall": 1792152670.56518,
+      "frame": {
+        "allowedResources": 3,
+        "ephemeral": true,
+        "javascript": true,
+        "javascriptMarkup": true,
+        "sandbox": true,
+        "settings": "file/universal/webrtc/media/webgl/storage/dns/windows/devtools denied",
+        "tauriBridge": false,
+        "type": "native-policy",
+        "wryIpcStub": false
+      }
+    },
+    {
+      "kind": "process-sample",
+      "mono": 40283.152788079,
+      "wall": 1792152670.7137477,
+      "members": [
+        {
+          "pid": 263978,
+          "state": "S",
+          "ppid": 263975,
+          "pgrp": 263978,
+          "birth": "4028278",
+          "utime": 0,
+          "stime": 0,
+          "name": "bwrap"
+        },
+        {
+          "pid": 263979,
+          "state": "S",
+          "ppid": 263978,
+          "pgrp": 263978,
+          "birth": "4028278",
+          "utime": 0,
+          "stime": 0,
+          "name": "bwrap"
+        },
+        {
+          "pid": 263980,
+          "state": "S",
+          "ppid": 263979,
+          "pgrp": 263978,
+          "birth": "4028278",
+          "utime": 0,
+          "stime": 0,
+          "name": "dbus-run-sessio"
+        },
+        {
+          "pid": 263981,
+          "state": "S",
+          "ppid": 263980,
+          "pgrp": 263978,
+          "birth": "4028278",
+          "utime": 0,
+          "stime": 0,
+          "name": "dbus-daemon"
+        },
+        {
+          "pid": 263982,
+          "state": "S",
+          "ppid": 263980,
+          "pgrp": 263978,
+          "birth": "4028279",
+          "utime": 25,
+          "stime": 10,
+          "name": "helper"
+        },
+        {
+          "pid": 263991,
+          "state": "S",
+          "ppid": 263982,
+          "pgrp": 263978,
+          "birth": "4028294",
+          "utime": 4,
+          "stime": 3,
+          "name": "WebKitNetworkPr"
+        },
+        {
+          "pid": 264018,
+          "state": "S",
+          "ppid": 263979,
+          "pgrp": 263978,
+          "birth": "4028300",
+          "utime": 0,
+          "stime": 0,
+          "name": "at-spi-bus-laun"
+        },
+        {
+          "pid": 264024,
+          "state": "S",
+          "ppid": 264018,
+          "pgrp": 263978,
+          "birth": "4028301",
+          "utime": 0,
+          "stime": 0,
+          "name": "dbus-daemon"
+        },
+        {
+          "pid": 264025,
+          "state": "S",
+          "ppid": 263982,
+          "pgrp": 263978,
+          "birth": "4028301",
+          "utime": 0,
+          "stime": 0,
+          "name": "bwrap"
+        },
+        {
+          "pid": 264026,
+          "state": "S",
+          "ppid": 264025,
+          "pgrp": 263978,
+          "birth": "4028302",
+          "utime": 0,
+          "stime": 0,
+          "name": "bwrap"
+        },
+        {
+          "pid": 264031,
+          "state": "S",
+          "ppid": 264026,
+          "pgrp": 263978,
+          "birth": "4028302",
+          "utime": 0,
+          "stime": 0,
+          "name": "xdg-dbus-proxy"
+        },
+        {
+          "pid": 264034,
+          "state": "S",
+          "ppid": 263982,
+          "pgrp": 263978,
+          "birth": "4028303",
+          "utime": 0,
+          "stime": 0,
+          "name": "bwrap"
+        },
+        {
+          "pid": 264037,
+          "state": "S",
+          "ppid": 264034,
+          "pgrp": 263978,
+          "birth": "4028303",
+          "utime": 0,
+          "stime": 0,
+          "name": "bwrap"
+        },
+        {
+          "pid": 264039,
+          "state": "S",
+          "ppid": 264037,
+          "pgrp": 263978,
+          "birth": "4028304",
+          "utime": 5,
+          "stime": 2,
+          "name": "WebKitWebProces"
+        }
+      ]
+    },
+    {
+      "kind": "process-sample",
+      "mono": 40283.298873908,
+      "wall": 1792152670.8598332,
+      "members": [
+        {
+          "pid": 263978,
+          "state": "S",
+          "ppid": 263975,
+          "pgrp": 263978,
+          "birth": "4028278",
+          "utime": 0,
+          "stime": 0,
+          "name": "bwrap"
+        },
+        {
+          "pid": 263979,
+          "state": "S",
+          "ppid": 263978,
+          "pgrp": 263978,
+          "birth": "4028278",
+          "utime": 0,
+          "stime": 0,
+          "name": "bwrap"
+        },
+        {
+          "pid": 263980,
+          "state": "S",
+          "ppid": 263979,
+          "pgrp": 263978,
+          "birth": "4028278",
+          "utime": 0,
+          "stime": 0,
+          "name": "dbus-run-sessio"
+        },
+        {
+          "pid": 263981,
+          "state": "S",
+          "ppid": 263980,
+          "pgrp": 263978,
+          "birth": "4028278",
+          "utime": 0,
+          "stime": 0,
+          "name": "dbus-daemon"
+        },
+        {
+          "pid": 263982,
+          "state": "S",
+          "ppid": 263980,
+          "pgrp": 263978,
+          "birth": "4028279",
+          "utime": 38,
+          "stime": 11,
+          "name": "helper"
+        },
+        {
+          "pid": 263991,
+          "state": "S",
+          "ppid": 263982,
+          "pgrp": 263978,
+          "birth": "4028294",
+          "utime": 4,
+          "stime": 3,
+          "name": "WebKitNetworkPr"
+        },
+        {
+          "pid": 264018,
+          "state": "S",
+          "ppid": 263979,
+          "pgrp": 263978,
+          "birth": "4028300",
+          "utime": 0,
+          "stime": 0,
+          "name": "at-spi-bus-laun"
+        },
+        {
+          "pid": 264024,
+          "state": "S",
+          "ppid": 264018,
+          "pgrp": 263978,
+          "birth": "4028301",
+          "utime": 0,
+          "stime": 0,
+          "name": "dbus-daemon"
+        },
+        {
+          "pid": 264025,
+          "state": "S",
+          "ppid": 263982,
+          "pgrp": 263978,
+          "birth": "4028301",
+          "utime": 0,
+          "stime": 0,
+          "name": "bwrap"
+        },
+        {
+          "pid": 264026,
+          "state": "S",
+          "ppid": 264025,
+          "pgrp": 263978,
+          "birth": "4028302",
+          "utime": 0,
+          "stime": 0,
+          "name": "bwrap"
+        },
+        {
+          "pid": 264031,
+          "state": "S",
+          "ppid": 264026,
+          "pgrp": 263978,
+          "birth": "4028302",
+          "utime": 0,
+          "stime": 0,
+          "name": "xdg-dbus-proxy"
+        },
+        {
+          "pid": 264034,
+          "state": "S",
+          "ppid": 263982,
+          "pgrp": 263978,
+          "birth": "4028303",
+          "utime": 0,
+          "stime": 0,
+          "name": "bwrap"
+        },
+        {
+          "pid": 264037,
+          "state": "S",
+          "ppid": 264034,
+          "pgrp": 263978,
+          "birth": "4028303",
+          "utime": 0,
+          "stime": 0,
+          "name": "bwrap"
+        },
+        {
+          "pid": 264039,
+          "state": "S",
+          "ppid": 264037,
+          "pgrp": 263978,
+          "birth": "4028304",
+          "utime": 5,
+          "stime": 2,
+          "name": "WebKitWebProces"
+        }
+      ]
+    },
+    {
+      "kind": "process-sample",
+      "mono": 40283.442758179,
+      "wall": 1792152671.003718,
+      "members": [
+        {
+          "pid": 263978,
+          "state": "S",
+          "ppid": 263975,
+          "pgrp": 263978,
+          "birth": "4028278",
+          "utime": 0,
+          "stime": 0,
+          "name": "bwrap"
+        },
+        {
+          "pid": 263979,
+          "state": "S",
+          "ppid": 263978,
+          "pgrp": 263978,
+          "birth": "4028278",
+          "utime": 0,
+          "stime": 0,
+          "name": "bwrap"
+        },
+        {
+          "pid": 263980,
+          "state": "S",
+          "ppid": 263979,
+          "pgrp": 263978,
+          "birth": "4028278",
+          "utime": 0,
+          "stime": 0,
+          "name": "dbus-run-sessio"
+        },
+        {
+          "pid": 263981,
+          "state": "S",
+          "ppid": 263980,
+          "pgrp": 263978,
+          "birth": "4028278",
+          "utime": 0,
+          "stime": 0,
+          "name": "dbus-daemon"
+        },
+        {
+          "pid": 263982,
+          "state": "S",
+          "ppid": 263980,
+          "pgrp": 263978,
+          "birth": "4028279",
+          "utime": 47,
+          "stime": 14,
+          "name": "helper"
+        },
+        {
+          "pid": 263991,
+          "state": "S",
+          "ppid": 263982,
+          "pgrp": 263978,
+          "birth": "4028294",
+          "utime": 5,
+          "stime": 3,
+          "name": "WebKitNetworkPr"
+        },
+        {
+          "pid": 264018,
+          "state": "S",
+          "ppid": 263979,
+          "pgrp": 263978,
+          "birth": "4028300",
+          "utime": 0,
+          "stime": 0,
+          "name": "at-spi-bus-laun"
+        },
+        {
+          "pid": 264024,
+          "state": "S",
+          "ppid": 264018,
+          "pgrp": 263978,
+          "birth": "4028301",
+          "utime": 0,
+          "stime": 0,
+          "name": "dbus-daemon"
+        },
+        {
+          "pid": 264025,
+          "state": "S",
+          "ppid": 263982,
+          "pgrp": 263978,
+          "birth": "4028301",
+          "utime": 0,
+          "stime": 0,
+          "name": "bwrap"
+        },
+        {
+          "pid": 264026,
+          "state": "S",
+          "ppid": 264025,
+          "pgrp": 263978,
+          "birth": "4028302",
+          "utime": 0,
+          "stime": 0,
+          "name": "bwrap"
+        },
+        {
+          "pid": 264031,
+          "state": "S",
+          "ppid": 264026,
+          "pgrp": 263978,
+          "birth": "4028302",
+          "utime": 0,
+          "stime": 0,
+          "name": "xdg-dbus-proxy"
+        },
+        {
+          "pid": 264034,
+          "state": "S",
+          "ppid": 263982,
+          "pgrp": 263978,
+          "birth": "4028303",
+          "utime": 0,
+          "stime": 0,
+          "name": "bwrap"
+        },
+        {
+          "pid": 264037,
+          "state": "S",
+          "ppid": 264034,
+          "pgrp": 263978,
+          "birth": "4028303",
+          "utime": 0,
+          "stime": 0,
+          "name": "bwrap"
+        },
+        {
+          "pid": 264039,
+          "state": "R",
+          "ppid": 264037,
+          "pgrp": 263978,
+          "birth": "4028304",
+          "utime": 6,
+          "stime": 2,
+          "name": "WebKitWebProces"
+        }
+      ]
+    },
+    {
+      "kind": "process-sample",
+      "mono": 40283.603512734,
+      "wall": 1792152671.164472,
+      "members": [
+        {
+          "pid": 263978,
+          "state": "S",
+          "ppid": 263975,
+          "pgrp": 263978,
+          "birth": "4028278",
+          "utime": 0,
+          "stime": 0,
+          "name": "bwrap"
+        },
+        {
+          "pid": 263979,
+          "state": "S",
+          "ppid": 263978,
+          "pgrp": 263978,
+          "birth": "4028278",
+          "utime": 0,
+          "stime": 0,
+          "name": "bwrap"
+        },
+        {
+          "pid": 263980,
+          "state": "S",
+          "ppid": 263979,
+          "pgrp": 263978,
+          "birth": "4028278",
+          "utime": 0,
+          "stime": 0,
+          "name": "dbus-run-sessio"
+        },
+        {
+          "pid": 263981,
+          "state": "S",
+          "ppid": 263980,
+          "pgrp": 263978,
+          "birth": "4028278",
+          "utime": 0,
+          "stime": 0,
+          "name": "dbus-daemon"
+        },
+        {
+          "pid": 263982,
+          "state": "S",
+          "ppid": 263980,
+          "pgrp": 263978,
+          "birth": "4028279",
+          "utime": 49,
+          "stime": 17,
+          "name": "helper"
+        },
+        {
+          "pid": 263991,
+          "state": "S",
+          "ppid": 263982,
+          "pgrp": 263978,
+          "birth": "4028294",
+          "utime": 5,
+          "stime": 3,
+          "name": "WebKitNetworkPr"
+        },
+        {
+          "pid": 264018,
+          "state": "S",
+          "ppid": 263979,
+          "pgrp": 263978,
+          "birth": "4028300",
+          "utime": 0,
+          "stime": 0,
+          "name": "at-spi-bus-laun"
+        },
+        {
+          "pid": 264024,
+          "state": "S",
+          "ppid": 264018,
+          "pgrp": 263978,
+          "birth": "4028301",
+          "utime": 0,
+          "stime": 0,
+          "name": "dbus-daemon"
+        },
+        {
+          "pid": 264025,
+          "state": "S",
+          "ppid": 263982,
+          "pgrp": 263978,
+          "birth": "4028301",
+          "utime": 0,
+          "stime": 0,
+          "name": "bwrap"
+        },
+        {
+          "pid": 264026,
+          "state": "S",
+          "ppid": 264025,
+          "pgrp": 263978,
+          "birth": "4028302",
+          "utime": 0,
+          "stime": 0,
+          "name": "bwrap"
+        },
+        {
+          "pid": 264031,
+          "state": "S",
+          "ppid": 264026,
+          "pgrp": 263978,
+          "birth": "4028302",
+          "utime": 0,
+          "stime": 0,
+          "name": "xdg-dbus-proxy"
+        },
+        {
+          "pid": 264034,
+          "state": "S",
+          "ppid": 263982,
+          "pgrp": 263978,
+          "birth": "4028303",
+          "utime": 0,
+          "stime": 0,
+          "name": "bwrap"
+        },
+        {
+          "pid": 264037,
+          "state": "S",
+          "ppid": 264034,
+          "pgrp": 263978,
+          "birth": "4028303",
+          "utime": 0,
+          "stime": 0,
+          "name": "bwrap"
+        },
+        {
+          "pid": 264039,
+          "state": "R",
+          "ppid": 264037,
+          "pgrp": 263978,
+          "birth": "4028304",
+          "utime": 18,
+          "stime": 8,
+          "name": "WebKitWebProces"
+        },
+        {
+          "pid": 264067,
+          "state": "S",
+          "ppid": 263979,
+          "pgrp": 263978,
+          "birth": "4028354",
+          "utime": 0,
+          "stime": 0,
+          "name": "at-spi2-registr"
+        }
+      ]
+    },
+    {
+      "kind": "received-frame",
+      "mono": 40283.603576295,
+      "wall": 1792152671.1645348,
+      "frame": {
+        "type": "ready",
+        "value": {
+          "bootstrapMissing": true
+        }
+      }
+    },
+    {
+      "kind": "process-sample",
+      "mono": 40283.769842004,
+      "wall": 1792152671.3308015,
+      "members": [
+        {
+          "pid": 263978,
+          "state": "S",
+          "ppid": 263975,
+          "pgrp": 263978,
+          "birth": "4028278",
+          "utime": 0,
+          "stime": 0,
+          "name": "bwrap"
+        },
+        {
+          "pid": 263979,
+          "state": "S",
+          "ppid": 263978,
+          "pgrp": 263978,
+          "birth": "4028278",
+          "utime": 0,
+          "stime": 0,
+          "name": "bwrap"
+        },
+        {
+          "pid": 263980,
+          "state": "S",
+          "ppid": 263979,
+          "pgrp": 263978,
+          "birth": "4028278",
+          "utime": 0,
+          "stime": 0,
+          "name": "dbus-run-sessio"
+        },
+        {
+          "pid": 263981,
+          "state": "S",
+          "ppid": 263980,
+          "pgrp": 263978,
+          "birth": "4028278",
+          "utime": 0,
+          "stime": 0,
+          "name": "dbus-daemon"
+        },
+        {
+          "pid": 263982,
+          "state": "S",
+          "ppid": 263980,
+          "pgrp": 263978,
+          "birth": "4028279",
+          "utime": 49,
+          "stime": 17,
+          "name": "helper"
+        },
+        {
+          "pid": 263991,
+          "state": "S",
+          "ppid": 263982,
+          "pgrp": 263978,
+          "birth": "4028294",
+          "utime": 5,
+          "stime": 3,
+          "name": "WebKitNetworkPr"
+        },
+        {
+          "pid": 264018,
+          "state": "S",
+          "ppid": 263979,
+          "pgrp": 263978,
+          "birth": "4028300",
+          "utime": 0,
+          "stime": 0,
+          "name": "at-spi-bus-laun"
+        },
+        {
+          "pid": 264024,
+          "state": "S",
+          "ppid": 264018,
+          "pgrp": 263978,
+          "birth": "4028301",
+          "utime": 0,
+          "stime": 0,
+          "name": "dbus-daemon"
+        },
+        {
+          "pid": 264025,
+          "state": "S",
+          "ppid": 263982,
+          "pgrp": 263978,
+          "birth": "4028301",
+          "utime": 0,
+          "stime": 0,
+          "name": "bwrap"
+        },
+        {
+          "pid": 264026,
+          "state": "S",
+          "ppid": 264025,
+          "pgrp": 263978,
+          "birth": "4028302",
+          "utime": 0,
+          "stime": 0,
+          "name": "bwrap"
+        },
+        {
+          "pid": 264031,
+          "state": "S",
+          "ppid": 264026,
+          "pgrp": 263978,
+          "birth": "4028302",
+          "utime": 0,
+          "stime": 0,
+          "name": "xdg-dbus-proxy"
+        },
+        {
+          "pid": 264034,
+          "state": "S",
+          "ppid": 263982,
+          "pgrp": 263978,
+          "birth": "4028303",
+          "utime": 0,
+          "stime": 0,
+          "name": "bwrap"
+        },
+        {
+          "pid": 264037,
+          "state": "S",
+          "ppid": 264034,
+          "pgrp": 263978,
+          "birth": "4028303",
+          "utime": 0,
+          "stime": 0,
+          "name": "bwrap"
+        },
+        {
+          "pid": 264039,
+          "state": "R",
+          "ppid": 264037,
+          "pgrp": 263978,
+          "birth": "4028304",
+          "utime": 33,
+          "stime": 11,
+          "name": "WebKitWebProces"
+        },
+        {
+          "pid": 264067,
+          "state": "S",
+          "ppid": 263979,
+          "pgrp": 263978,
+          "birth": "4028354",
+          "utime": 0,
+          "stime": 0,
+          "name": "at-spi2-registr"
+        }
+      ]
+    },
+    {
+      "kind": "received-frame",
+      "mono": 40283.781545894,
+      "wall": 1792152671.3425045,
+      "frame": {
+        "type": "ready",
+        "value": {
+          "bootstrapMissing": true
+        }
+      }
+    },
+    {
+      "kind": "received-frame",
+      "mono": 40283.846812936,
+      "wall": 1792152671.4077718,
+      "frame": {
+        "type": "ready",
+        "value": {
+          "bootstrapMissing": true,
+          "fontPending": true
+        }
+      }
+    },
+    {
+      "kind": "received-frame",
+      "mono": 40283.867642943,
+      "wall": 1792152671.4286015,
+      "frame": {
+        "type": "ready",
+        "value": {
+          "hasTauri": false,
+          "ready": true
+        }
+      }
+    },
+    {
+      "kind": "received-frame",
+      "mono": 40283.869144185,
+      "wall": 1792152671.4301028,
+      "frame": {
+        "type": "result",
+        "value": {
+          "status": "pending"
+        }
+      }
+    },
+    {
+      "kind": "received-frame",
+      "mono": 40283.879792924,
+      "wall": 1792152671.4407513,
+      "frame": {
+        "type": "result",
+        "value": {
+          "status": "blocked"
+        }
+      }
+    },
+    {
+      "kind": "native-send",
+      "mono": 40283.927697421,
+      "wall": 1792152671.4886565,
+      "task": "scan_058",
+      "armedMono": 40283.927692606,
+      "deadlineMono": 40285.927692606,
+      "members": [
+        {
+          "pid": 263978,
+          "state": "S",
+          "ppid": 263975,
+          "pgrp": 263978,
+          "birth": "4028278",
+          "utime": 0,
+          "stime": 0,
+          "name": "bwrap"
+        },
+        {
+          "pid": 263979,
+          "state": "S",
+          "ppid": 263978,
+          "pgrp": 263978,
+          "birth": "4028278",
+          "utime": 0,
+          "stime": 0,
+          "name": "bwrap"
+        },
+        {
+          "pid": 263980,
+          "state": "S",
+          "ppid": 263979,
+          "pgrp": 263978,
+          "birth": "4028278",
+          "utime": 0,
+          "stime": 0,
+          "name": "dbus-run-sessio"
+        },
+        {
+          "pid": 263981,
+          "state": "S",
+          "ppid": 263980,
+          "pgrp": 263978,
+          "birth": "4028278",
+          "utime": 0,
+          "stime": 0,
+          "name": "dbus-daemon"
+        },
+        {
+          "pid": 263982,
+          "state": "S",
+          "ppid": 263980,
+          "pgrp": 263978,
+          "birth": "4028279",
+          "utime": 49,
+          "stime": 17,
+          "name": "helper"
+        },
+        {
+          "pid": 263991,
+          "state": "S",
+          "ppid": 263982,
+          "pgrp": 263978,
+          "birth": "4028294",
+          "utime": 5,
+          "stime": 3,
+          "name": "WebKitNetworkPr"
+        },
+        {
+          "pid": 264018,
+          "state": "S",
+          "ppid": 263979,
+          "pgrp": 263978,
+          "birth": "4028300",
+          "utime": 0,
+          "stime": 0,
+          "name": "at-spi-bus-laun"
+        },
+        {
+          "pid": 264024,
+          "state": "S",
+          "ppid": 264018,
+          "pgrp": 263978,
+          "birth": "4028301",
+          "utime": 0,
+          "stime": 0,
+          "name": "dbus-daemon"
+        },
+        {
+          "pid": 264025,
+          "state": "S",
+          "ppid": 263982,
+          "pgrp": 263978,
+          "birth": "4028301",
+          "utime": 0,
+          "stime": 0,
+          "name": "bwrap"
+        },
+        {
+          "pid": 264026,
+          "state": "S",
+          "ppid": 264025,
+          "pgrp": 263978,
+          "birth": "4028302",
+          "utime": 0,
+          "stime": 0,
+          "name": "bwrap"
+        },
+        {
+          "pid": 264031,
+          "state": "S",
+          "ppid": 264026,
+          "pgrp": 263978,
+          "birth": "4028302",
+          "utime": 0,
+          "stime": 0,
+          "name": "xdg-dbus-proxy"
+        },
+        {
+          "pid": 264034,
+          "state": "S",
+          "ppid": 263982,
+          "pgrp": 263978,
+          "birth": "4028303",
+          "utime": 0,
+          "stime": 0,
+          "name": "bwrap"
+        },
+        {
+          "pid": 264037,
+          "state": "S",
+          "ppid": 264034,
+          "pgrp": 263978,
+          "birth": "4028303",
+          "utime": 0,
+          "stime": 0,
+          "name": "bwrap"
+        },
+        {
+          "pid": 264039,
+          "state": "S",
+          "ppid": 264037,
+          "pgrp": 263978,
+          "birth": "4028304",
+          "utime": 42,
+          "stime": 11,
+          "name": "WebKitWebProces"
+        },
+        {
+          "pid": 264067,
+          "state": "S",
+          "ppid": 263979,
+          "pgrp": 263978,
+          "birth": "4028354",
+          "utime": 0,
+          "stime": 0,
+          "name": "at-spi2-registr"
+        }
+      ]
+    },
+    {
+      "kind": "process-sample",
+      "mono": 40284.083183799,
+      "wall": 1792152671.6441436,
+      "members": [
+        {
+          "pid": 263978,
+          "state": "S",
+          "ppid": 263975,
+          "pgrp": 263978,
+          "birth": "4028278",
+          "utime": 0,
+          "stime": 0,
+          "name": "bwrap"
+        },
+        {
+          "pid": 263979,
+          "state": "S",
+          "ppid": 263978,
+          "pgrp": 263978,
+          "birth": "4028278",
+          "utime": 0,
+          "stime": 0,
+          "name": "bwrap"
+        },
+        {
+          "pid": 263980,
+          "state": "S",
+          "ppid": 263979,
+          "pgrp": 263978,
+          "birth": "4028278",
+          "utime": 0,
+          "stime": 0,
+          "name": "dbus-run-sessio"
+        },
+        {
+          "pid": 263981,
+          "state": "S",
+          "ppid": 263980,
+          "pgrp": 263978,
+          "birth": "4028278",
+          "utime": 0,
+          "stime": 0,
+          "name": "dbus-daemon"
+        },
+        {
+          "pid": 263982,
+          "state": "S",
+          "ppid": 263980,
+          "pgrp": 263978,
+          "birth": "4028279",
+          "utime": 49,
+          "stime": 17,
+          "name": "helper"
+        },
+        {
+          "pid": 263991,
+          "state": "S",
+          "ppid": 263982,
+          "pgrp": 263978,
+          "birth": "4028294",
+          "utime": 5,
+          "stime": 3,
+          "name": "WebKitNetworkPr"
+        },
+        {
+          "pid": 264018,
+          "state": "S",
+          "ppid": 263979,
+          "pgrp": 263978,
+          "birth": "4028300",
+          "utime": 0,
+          "stime": 0,
+          "name": "at-spi-bus-laun"
+        },
+        {
+          "pid": 264024,
+          "state": "S",
+          "ppid": 264018,
+          "pgrp": 263978,
+          "birth": "4028301",
+          "utime": 0,
+          "stime": 0,
+          "name": "dbus-daemon"
+        },
+        {
+          "pid": 264025,
+          "state": "S",
+          "ppid": 263982,
+          "pgrp": 263978,
+          "birth": "4028301",
+          "utime": 0,
+          "stime": 0,
+          "name": "bwrap"
+        },
+        {
+          "pid": 264026,
+          "state": "S",
+          "ppid": 264025,
+          "pgrp": 263978,
+          "birth": "4028302",
+          "utime": 0,
+          "stime": 0,
+          "name": "bwrap"
+        },
+        {
+          "pid": 264031,
+          "state": "S",
+          "ppid": 264026,
+          "pgrp": 263978,
+          "birth": "4028302",
+          "utime": 0,
+          "stime": 0,
+          "name": "xdg-dbus-proxy"
+        },
+        {
+          "pid": 264034,
+          "state": "S",
+          "ppid": 263982,
+          "pgrp": 263978,
+          "birth": "4028303",
+          "utime": 0,
+          "stime": 0,
+          "name": "bwrap"
+        },
+        {
+          "pid": 264037,
+          "state": "S",
+          "ppid": 264034,
+          "pgrp": 263978,
+          "birth": "4028303",
+          "utime": 0,
+          "stime": 0,
+          "name": "bwrap"
+        },
+        {
+          "pid": 264039,
+          "state": "S",
+          "ppid": 264037,
+          "pgrp": 263978,
+          "birth": "4028304",
+          "utime": 60,
+          "stime": 14,
+          "name": "WebKitWebProces"
+        },
+        {
+          "pid": 264067,
+          "state": "S",
+          "ppid": 263979,
+          "pgrp": 263978,
+          "birth": "4028354",
+          "utime": 0,
+          "stime": 0,
+          "name": "at-spi2-registr"
+        }
+      ]
+    },
+    {
+      "kind": "received-frame",
+      "mono": 40284.083239027,
+      "wall": 1792152671.6441975,
+      "frame": {
+        "type": "result",
+        "value": {
+          "status": "pending",
+          "taskId": "conversion_1"
+        }
+      }
+    },
+    {
+      "kind": "received-frame",
+      "mono": 40284.102820462,
+      "wall": 1792152671.6637795,
+      "frame": {
+        "type": "result",
+        "value": {
+          "result": {
+            "diagramType": "xychart",
+            "elapsedMs": 129,
+            "evidenceBoundary": "No independent validator or round-trip pixels run by this entry. Original live SVG remains in helper for separately authorized observation.",
+            "id": "scan_058",
+            "image": {
+              "aspect": {
+                "align": "xMidYMid",
+                "fit": "meet"
+              },
+              "children": [
+                {
+                  "children": [],
+                  "kind": "group",
+                  "style": 1
+                },
+                {
+                  "children": [
+                    {
+                      "height": 500,
+                      "kind": "rect",
+                      "rx": 0,
+                      "ry": 0,
+                      "style": 2,
+                      "width": 700,
+                      "x": 0,
+                      "y": 0
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "kind": "textRun",
+                              "text": "Sales Revenue"
+                            }
+                          ],
+                          "kind": "text",
+                          "style": 3,
+                          "transforms": [
+                            {
+                              "kind": "matrix",
+                              "values": [
+                                1,
+                                0,
+                                0,
+                                1,
+                                392.0078125,
+                                21
+                              ]
+                            }
+                          ],
+                          "x": [
+                            {
+                              "unit": "user",
+                              "value": 0
+                            }
+                          ],
+                          "y": [
+                            {
+                              "unit": "user",
+                              "value": 0
+                            }
+                          ]
+                        }
+                      ],
+                      "kind": "group",
+                      "style": 1
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "height": 66.431923,
+                              "kind": "rect",
+                              "rx": 0,
+                              "ry": 0,
+                              "style": 4,
+                              "width": 32.299999,
+                              "x": 84.865623,
+                              "y": 400.55246
+                            },
+                            {
+                              "height": 124.856026,
+                              "kind": "rect",
+                              "rx": 0,
+                              "ry": 0,
+                              "style": 4,
+                              "width": 32.299999,
+                              "x": 137.7733,
+                              "y": 342.128357
+                            },
+                            {
+                              "height": 212.492188,
+                              "kind": "rect",
+                              "rx": 0,
+                              "ry": 0,
+                              "style": 4,
+                              "width": 32.299999,
+                              "x": 190.680969,
+                              "y": 254.492188
+                            },
+                            {
+                              "height": 253.389069,
+                              "kind": "rect",
+                              "rx": 0,
+                              "ry": 0,
+                              "style": 4,
+                              "width": 32.299999,
+                              "x": 243.588638,
+                              "y": 213.595306
+                            },
+                            {
+                              "height": 329.340393,
+                              "kind": "rect",
+                              "rx": 0,
+                              "ry": 0,
+                              "style": 4,
+                              "width": 32.299999,
+                              "x": 296.496307,
+                              "y": 137.643967
+                            },
+                            {
+                              "height": 387.764496,
+                              "kind": "rect",
+                              "rx": 0,
+                              "ry": 0,
+                              "style": 4,
+                              "width": 32.299999,
+                              "x": 349.403992,
+                              "y": 79.219864
+                            },
+                            {
+                              "height": 416.976563,
+                              "kind": "rect",
+                              "rx": 0,
+                              "ry": 0,
+                              "style": 4,
+                              "width": 32.299999,
+                              "x": 402.311646,
+                              "y": 50.007813
+                            },
+                            {
+                              "height": 370.237274,
+                              "kind": "rect",
+                              "rx": 0,
+                              "ry": 0,
+                              "style": 4,
+                              "width": 32.299999,
+                              "x": 455.21933,
+                              "y": 96.747101
+                            },
+                            {
+                              "height": 311.813171,
+                              "kind": "rect",
+                              "rx": 0,
+                              "ry": 0,
+                              "style": 4,
+                              "width": 32.299999,
+                              "x": 508.126984,
+                              "y": 155.171204
+                            },
+                            {
+                              "height": 270.91629,
+                              "kind": "rect",
+                              "rx": 0,
+                              "ry": 0,
+                              "style": 4,
+                              "width": 32.299999,
+                              "x": 561.034668,
+                              "y": 196.068085
+                            },
+                            {
+                              "height": 183.280136,
+                              "kind": "rect",
+                              "rx": 0,
+                              "ry": 0,
+                              "style": 4,
+                              "width": 32.299999,
+                              "x": 613.942322,
+                              "y": 283.704254
+                            },
+                            {
+                              "height": 124.856026,
+                              "kind": "rect",
+                              "rx": 0,
+                              "ry": 0,
+                              "style": 4,
+                              "width": 32.299999,
+                              "x": 666.849976,
+                              "y": 342.128357
+                            }
+                          ],
+                          "kind": "group",
+                          "style": 1
+                        },
+                        {
+                          "children": [
+                            {
+                              "commands": [
+                                [
+                                  "M",
+                                  101.016,
+                                  400.552
+                                ],
+                                [
+                                  "L",
+                                  153.923,
+                                  342.128
+                                ],
+                                [
+                                  "L",
+                                  206.831,
+                                  254.492
+                                ],
+                                [
+                                  "L",
+                                  259.739,
+                                  213.595
+                                ],
+                                [
+                                  "L",
+                                  312.646,
+                                  137.644
+                                ],
+                                [
+                                  "L",
+                                  365.554,
+                                  79.22
+                                ],
+                                [
+                                  "L",
+                                  418.462,
+                                  50.008
+                                ],
+                                [
+                                  "L",
+                                  471.369,
+                                  96.747
+                                ],
+                                [
+                                  "L",
+                                  524.277,
+                                  155.171
+                                ],
+                                [
+                                  "L",
+                                  577.185,
+                                  196.068
+                                ],
+                                [
+                                  "L",
+                                  630.092,
+                                  283.704
+                                ],
+                                [
+                                  "L",
+                                  683,
+                                  342.128
+                                ]
+                              ],
+                              "kind": "path",
+                              "style": 5
+                            }
+                          ],
+                          "kind": "group",
+                          "style": 1
+                        }
+                      ],
+                      "kind": "group",
+                      "style": 1
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "commands": [
+                                [
+                                  "M",
+                                  84.015625,
+                                  467.984375
+                                ],
+                                [
+                                  "L",
+                                  700,
+                                  467.984375
+                                ]
+                              ],
+                              "kind": "path",
+                              "style": 6
+                            }
+                          ],
+                          "kind": "group",
+                          "style": 1
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [
+                                {
+                                  "kind": "textRun",
+                                  "text": "jan"
+                                }
+                              ],
+                              "kind": "text",
+                              "style": 7,
+                              "transforms": [
+                                {
+                                  "kind": "matrix",
+                                  "values": [
+                                    1,
+                                    0,
+                                    0,
+                                    1,
+                                    101.015625,
+                                    478.984375
+                                  ]
+                                }
+                              ],
+                              "x": [
+                                {
+                                  "unit": "user",
+                                  "value": 0
+                                }
+                              ],
+                              "y": [
+                                {
+                                  "unit": "user",
+                                  "value": 0
+                                }
+                              ]
+                            },
+                            {
+                              "children": [
+                                {
+                                  "kind": "textRun",
+                                  "text": "feb"
+                                }
+                              ],
+                              "kind": "text",
+                              "style": 7,
+                              "transforms": [
+                                {
+                                  "kind": "matrix",
+                                  "values": [
+                                    1,
+                                    0,
+                                    0,
+                                    1,
+                                    153.9232940673828,
+                                    478.984375
+                                  ]
+                                }
+                              ],
+                              "x": [
+                                {
+                                  "unit": "user",
+                                  "value": 0
+                                }
+                              ],
+                              "y": [
+                                {
+                                  "unit": "user",
+                                  "value": 0
+                                }
+                              ]
+                            },
+                            {
+                              "children": [
+                                {
+                                  "kind": "textRun",
+                                  "text": "mar"
+                                }
+                              ],
+                              "kind": "text",
+                              "style": 7,
+                              "transforms": [
+                                {
+                                  "kind": "matrix",
+                                  "values": [
+                                    1,
+                                    0,
+                                    0,
+                                    1,
+                                    206.8309631347656,
+                                    478.984375
+                                  ]
+                                }
+                              ],
+                              "x": [
+                                {
+                                  "unit": "user",
+                                  "value": 0
+                                }
+                              ],
+                              "y": [
+                                {
+                                  "unit": "user",
+                                  "value": 0
+                                }
+                              ]
+                            },
+                            {
+                              "children": [
+                                {
+                                  "kind": "textRun",
+                                  "text": "apr"
+                                }
+                              ],
+                              "kind": "text",
+                              "style": 7,
+                              "transforms": [
+                                {
+                                  "kind": "matrix",
+                                  "values": [
+                                    1,
+                                    0,
+                                    0,
+                                    1,
+                                    259.7386474609375,
+                                    478.984375
+                                  ]
+                                }
+                              ],
+                              "x": [
+                                {
+                                  "unit": "user",
+                                  "value": 0
+                                }
+                              ],
+                              "y": [
+                                {
+                                  "unit": "user",
+                                  "value": 0
+                                }
+                              ]
+                            },
+                            {
+                              "children": [
+                                {
+                                  "kind": "textRun",
+                                  "text": "may"
+                                }
+                              ],
+                              "kind": "text",
+                              "style": 7,
+                              "transforms": [
+                                {
+                                  "kind": "matrix",
+                                  "values": [
+                                    1,
+                                    0,
+                                    0,
+                                    1,
+                                    312.64630126953125,
+                                    478.984375
+                                  ]
+                                }
+                              ],
+                              "x": [
+                                {
+                                  "unit": "user",
+                                  "value": 0
+                                }
+                              ],
+                              "y": [
+                                {
+                                  "unit": "user",
+                                  "value": 0
+                                }
+                              ]
+                            },
+                            {
+                              "children": [
+                                {
+                                  "kind": "textRun",
+                                  "text": "jun"
+                                }
+                              ],
+                              "kind": "text",
+                              "style": 7,
+                              "transforms": [
+                                {
+                                  "kind": "matrix",
+                                  "values": [
+                                    1,
+                                    0,
+                                    0,
+                                    1,
+                                    365.5539855957031,
+                                    478.984375
+                                  ]
+                                }
+                              ],
+                              "x": [
+                                {
+                                  "unit": "user",
+                                  "value": 0
+                                }
+                              ],
+                              "y": [
+                                {
+                                  "unit": "user",
+                                  "value": 0
+                                }
+                              ]
+                            },
+                            {
+                              "children": [
+                                {
+                                  "kind": "textRun",
+                                  "text": "jul"
+                                }
+                              ],
+                              "kind": "text",
+                              "style": 7,
+                              "transforms": [
+                                {
+                                  "kind": "matrix",
+                                  "values": [
+                                    1,
+                                    0,
+                                    0,
+                                    1,
+                                    418.4616394042969,
+                                    478.984375
+                                  ]
+                                }
+                              ],
+                              "x": [
+                                {
+                                  "unit": "user",
+                                  "value": 0
+                                }
+                              ],
+                              "y": [
+                                {
+                                  "unit": "user",
+                                  "value": 0
+                                }
+                              ]
+                            },
+                            {
+                              "children": [
+                                {
+                                  "kind": "textRun",
+                                  "text": "aug"
+                                }
+                              ],
+                              "kind": "text",
+                              "style": 7,
+                              "transforms": [
+                                {
+                                  "kind": "matrix",
+                                  "values": [
+                                    1,
+                                    0,
+                                    0,
+                                    1,
+                                    471.3693237304687,
+                                    478.984375
+                                  ]
+                                }
+                              ],
+                              "x": [
+                                {
+                                  "unit": "user",
+                                  "value": 0
+                                }
+                              ],
+                              "y": [
+                                {
+                                  "unit": "user",
+                                  "value": 0
+                                }
+                              ]
+                            },
+                            {
+                              "children": [
+                                {
+                                  "kind": "textRun",
+                                  "text": "sep"
+                                }
+                              ],
+                              "kind": "text",
+                              "style": 7,
+                              "transforms": [
+                                {
+                                  "kind": "matrix",
+                                  "values": [
+                                    1,
+                                    0,
+                                    0,
+                                    1,
+                                    524.2769775390625,
+                                    478.984375
+                                  ]
+                                }
+                              ],
+                              "x": [
+                                {
+                                  "unit": "user",
+                                  "value": 0
+                                }
+                              ],
+                              "y": [
+                                {
+                                  "unit": "user",
+                                  "value": 0
+                                }
+                              ]
+                            },
+                            {
+                              "children": [
+                                {
+                                  "kind": "textRun",
+                                  "text": "oct"
+                                }
+                              ],
+                              "kind": "text",
+                              "style": 7,
+                              "transforms": [
+                                {
+                                  "kind": "matrix",
+                                  "values": [
+                                    1,
+                                    0,
+                                    0,
+                                    1,
+                                    577.1846313476562,
+                                    478.984375
+                                  ]
+                                }
+                              ],
+                              "x": [
+                                {
+                                  "unit": "user",
+                                  "value": 0
+                                }
+                              ],
+                              "y": [
+                                {
+                                  "unit": "user",
+                                  "value": 0
+                                }
+                              ]
+                            },
+                            {
+                              "children": [
+                                {
+                                  "kind": "textRun",
+                                  "text": "nov"
+                                }
+                              ],
+                              "kind": "text",
+                              "style": 7,
+                              "transforms": [
+                                {
+                                  "kind": "matrix",
+                                  "values": [
+                                    1,
+                                    0,
+                                    0,
+                                    1,
+                                    630.0923461914062,
+                                    478.984375
+                                  ]
+                                }
+                              ],
+                              "x": [
+                                {
+                                  "unit": "user",
+                                  "value": 0
+                                }
+                              ],
+                              "y": [
+                                {
+                                  "unit": "user",
+                                  "value": 0
+                                }
+                              ]
+                            },
+                            {
+                              "children": [
+                                {
+                                  "kind": "textRun",
+                                  "text": "dec"
+                                }
+                              ],
+                              "kind": "text",
+                              "style": 7,
+                              "transforms": [
+                                {
+                                  "kind": "matrix",
+                                  "values": [
+                                    1,
+                                    0,
+                                    0,
+                                    1,
+                                    683,
+                                    478.984375
+                                  ]
+                                }
+                              ],
+                              "x": [
+                                {
+                                  "unit": "user",
+                                  "value": 0
+                                }
+                              ],
+                              "y": [
+                                {
+                                  "unit": "user",
+                                  "value": 0
+                                }
+                              ]
+                            }
+                          ],
+                          "kind": "group",
+                          "style": 1
+                        },
+                        {
+                          "children": [
+                            {
+                              "commands": [
+                                [
+                                  "M",
+                                  101.015625,
+                                  468.984375
+                                ],
+                                [
+                                  "L",
+                                  101.015625,
+                                  473.984375
+                                ]
+                              ],
+                              "kind": "path",
+                              "style": 6
+                            },
+                            {
+                              "commands": [
+                                [
+                                  "M",
+                                  153.92329545454544,
+                                  468.984375
+                                ],
+                                [
+                                  "L",
+                                  153.92329545454544,
+                                  473.984375
+                                ]
+                              ],
+                              "kind": "path",
+                              "style": 6
+                            },
+                            {
+                              "commands": [
+                                [
+                                  "M",
+                                  206.8309659090909,
+                                  468.984375
+                                ],
+                                [
+                                  "L",
+                                  206.8309659090909,
+                                  473.984375
+                                ]
+                              ],
+                              "kind": "path",
+                              "style": 6
+                            },
+                            {
+                              "commands": [
+                                [
+                                  "M",
+                                  259.7386363636364,
+                                  468.984375
+                                ],
+                                [
+                                  "L",
+                                  259.7386363636364,
+                                  473.984375
+                                ]
+                              ],
+                              "kind": "path",
+                              "style": 6
+                            },
+                            {
+                              "commands": [
+                                [
+                                  "M",
+                                  312.6463068181818,
+                                  468.984375
+                                ],
+                                [
+                                  "L",
+                                  312.6463068181818,
+                                  473.984375
+                                ]
+                              ],
+                              "kind": "path",
+                              "style": 6
+                            },
+                            {
+                              "commands": [
+                                [
+                                  "M",
+                                  365.55397727272725,
+                                  468.984375
+                                ],
+                                [
+                                  "L",
+                                  365.55397727272725,
+                                  473.984375
+                                ]
+                              ],
+                              "kind": "path",
+                              "style": 6
+                            },
+                            {
+                              "commands": [
+                                [
+                                  "M",
+                                  418.46164772727275,
+                                  468.984375
+                                ],
+                                [
+                                  "L",
+                                  418.46164772727275,
+                                  473.984375
+                                ]
+                              ],
+                              "kind": "path",
+                              "style": 6
+                            },
+                            {
+                              "commands": [
+                                [
+                                  "M",
+                                  471.3693181818182,
+                                  468.984375
+                                ],
+                                [
+                                  "L",
+                                  471.3693181818182,
+                                  473.984375
+                                ]
+                              ],
+                              "kind": "path",
+                              "style": 6
+                            },
+                            {
+                              "commands": [
+                                [
+                                  "M",
+                                  524.2769886363636,
+                                  468.984375
+                                ],
+                                [
+                                  "L",
+                                  524.2769886363636,
+                                  473.984375
+                                ]
+                              ],
+                              "kind": "path",
+                              "style": 6
+                            },
+                            {
+                              "commands": [
+                                [
+                                  "M",
+                                  577.184659090909,
+                                  468.984375
+                                ],
+                                [
+                                  "L",
+                                  577.184659090909,
+                                  473.984375
+                                ]
+                              ],
+                              "kind": "path",
+                              "style": 6
+                            },
+                            {
+                              "commands": [
+                                [
+                                  "M",
+                                  630.0923295454545,
+                                  468.984375
+                                ],
+                                [
+                                  "L",
+                                  630.0923295454545,
+                                  473.984375
+                                ]
+                              ],
+                              "kind": "path",
+                              "style": 6
+                            },
+                            {
+                              "commands": [
+                                [
+                                  "M",
+                                  683,
+                                  468.984375
+                                ],
+                                [
+                                  "L",
+                                  683,
+                                  473.984375
+                                ]
+                              ],
+                              "kind": "path",
+                              "style": 6
+                            }
+                          ],
+                          "kind": "group",
+                          "style": 1
+                        }
+                      ],
+                      "kind": "group",
+                      "style": 1
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "commands": [
+                                [
+                                  "M",
+                                  83.015625,
+                                  42
+                                ],
+                                [
+                                  "L",
+                                  83.015625,
+                                  466.984375
+                                ]
+                              ],
+                              "kind": "path",
+                              "style": 6
+                            }
+                          ],
+                          "kind": "group",
+                          "style": 1
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [
+                                {
+                                  "kind": "textRun",
+                                  "text": "11000"
+                                }
+                              ],
+                              "kind": "text",
+                              "style": 8,
+                              "transforms": [
+                                {
+                                  "kind": "matrix",
+                                  "values": [
+                                    1,
+                                    0,
+                                    0,
+                                    1,
+                                    72.015625,
+                                    50.0078125
+                                  ]
+                                }
+                              ],
+                              "x": [
+                                {
+                                  "unit": "user",
+                                  "value": 0
+                                }
+                              ],
+                              "y": [
+                                {
+                                  "unit": "user",
+                                  "value": 0
+                                }
+                              ]
+                            },
+                            {
+                              "children": [
+                                {
+                                  "kind": "textRun",
+                                  "text": "10500"
+                                }
+                              ],
+                              "kind": "text",
+                              "style": 8,
+                              "transforms": [
+                                {
+                                  "kind": "matrix",
+                                  "values": [
+                                    1,
+                                    0,
+                                    0,
+                                    1,
+                                    72.015625,
+                                    79.21986389160156
+                                  ]
+                                }
+                              ],
+                              "x": [
+                                {
+                                  "unit": "user",
+                                  "value": 0
+                                }
+                              ],
+                              "y": [
+                                {
+                                  "unit": "user",
+                                  "value": 0
+                                }
+                              ]
+                            },
+                            {
+                              "children": [
+                                {
+                                  "kind": "textRun",
+                                  "text": "10000"
+                                }
+                              ],
+                              "kind": "text",
+                              "style": 8,
+                              "transforms": [
+                                {
+                                  "kind": "matrix",
+                                  "values": [
+                                    1,
+                                    0,
+                                    0,
+                                    1,
+                                    72.015625,
+                                    108.43192291259766
+                                  ]
+                                }
+                              ],
+                              "x": [
+                                {
+                                  "unit": "user",
+                                  "value": 0
+                                }
+                              ],
+                              "y": [
+                                {
+                                  "unit": "user",
+                                  "value": 0
+                                }
+                              ]
+                            },
+                            {
+                              "children": [
+                                {
+                                  "kind": "textRun",
+                                  "text": "9500"
+                                }
+                              ],
+                              "kind": "text",
+                              "style": 8,
+                              "transforms": [
+                                {
+                                  "kind": "matrix",
+                                  "values": [
+                                    1,
+                                    0,
+                                    0,
+                                    1,
+                                    72.015625,
+                                    137.6439666748047
+                                  ]
+                                }
+                              ],
+                              "x": [
+                                {
+                                  "unit": "user",
+                                  "value": 0
+                                }
+                              ],
+                              "y": [
+                                {
+                                  "unit": "user",
+                                  "value": 0
+                                }
+                              ]
+                            },
+                            {
+                              "children": [
+                                {
+                                  "kind": "textRun",
+                                  "text": "9000"
+                                }
+                              ],
+                              "kind": "text",
+                              "style": 8,
+                              "transforms": [
+                                {
+                                  "kind": "matrix",
+                                  "values": [
+                                    1,
+                                    0,
+                                    0,
+                                    1,
+                                    72.015625,
+                                    166.8560333251953
+                                  ]
+                                }
+                              ],
+                              "x": [
+                                {
+                                  "unit": "user",
+                                  "value": 0
+                                }
+                              ],
+                              "y": [
+                                {
+                                  "unit": "user",
+                                  "value": 0
+                                }
+                              ]
+                            },
+                            {
+                              "children": [
+                                {
+                                  "kind": "textRun",
+                                  "text": "8500"
+                                }
+                              ],
+                              "kind": "text",
+                              "style": 8,
+                              "transforms": [
+                                {
+                                  "kind": "matrix",
+                                  "values": [
+                                    1,
+                                    0,
+                                    0,
+                                    1,
+                                    72.015625,
+                                    196.06808471679688
+                                  ]
+                                }
+                              ],
+                              "x": [
+                                {
+                                  "unit": "user",
+                                  "value": 0
+                                }
+                              ],
+                              "y": [
+                                {
+                                  "unit": "user",
+                                  "value": 0
+                                }
+                              ]
+                            },
+                            {
+                              "children": [
+                                {
+                                  "kind": "textRun",
+                                  "text": "8000"
+                                }
+                              ],
+                              "kind": "text",
+                              "style": 8,
+                              "transforms": [
+                                {
+                                  "kind": "matrix",
+                                  "values": [
+                                    1,
+                                    0,
+                                    0,
+                                    1,
+                                    72.015625,
+                                    225.28013610839844
+                                  ]
+                                }
+                              ],
+                              "x": [
+                                {
+                                  "unit": "user",
+                                  "value": 0
+                                }
+                              ],
+                              "y": [
+                                {
+                                  "unit": "user",
+                                  "value": 0
+                                }
+                              ]
+                            },
+                            {
+                              "children": [
+                                {
+                                  "kind": "textRun",
+                                  "text": "7500"
+                                }
+                              ],
+                              "kind": "text",
+                              "style": 8,
+                              "transforms": [
+                                {
+                                  "kind": "matrix",
+                                  "values": [
+                                    1,
+                                    0,
+                                    0,
+                                    1,
+                                    72.015625,
+                                    254.4921875
+                                  ]
+                                }
+                              ],
+                              "x": [
+                                {
+                                  "unit": "user",
+                                  "value": 0
+                                }
+                              ],
+                              "y": [
+                                {
+                                  "unit": "user",
+                                  "value": 0
+                                }
+                              ]
+                            },
+                            {
+                              "children": [
+                                {
+                                  "kind": "textRun",
+                                  "text": "7000"
+                                }
+                              ],
+                              "kind": "text",
+                              "style": 8,
+                              "transforms": [
+                                {
+                                  "kind": "matrix",
+                                  "values": [
+                                    1,
+                                    0,
+                                    0,
+                                    1,
+                                    72.015625,
+                                    283.7042541503906
+                                  ]
+                                }
+                              ],
+                              "x": [
+                                {
+                                  "unit": "user",
+                                  "value": 0
+                                }
+                              ],
+                              "y": [
+                                {
+                                  "unit": "user",
+                                  "value": 0
+                                }
+                              ]
+                            },
+                            {
+                              "children": [
+                                {
+                                  "kind": "textRun",
+                                  "text": "6500"
+                                }
+                              ],
+                              "kind": "text",
+                              "style": 8,
+                              "transforms": [
+                                {
+                                  "kind": "matrix",
+                                  "values": [
+                                    1,
+                                    0,
+                                    0,
+                                    1,
+                                    72.015625,
+                                    312.9162902832031
+                                  ]
+                                }
+                              ],
+                              "x": [
+                                {
+                                  "unit": "user",
+                                  "value": 0
+                                }
+                              ],
+                              "y": [
+                                {
+                                  "unit": "user",
+                                  "value": 0
+                                }
+                              ]
+                            },
+                            {
+                              "children": [
+                                {
+                                  "kind": "textRun",
+                                  "text": "6000"
+                                }
+                              ],
+                              "kind": "text",
+                              "style": 8,
+                              "transforms": [
+                                {
+                                  "kind": "matrix",
+                                  "values": [
+                                    1,
+                                    0,
+                                    0,
+                                    1,
+                                    72.015625,
+                                    342.12835693359375
+                                  ]
+                                }
+                              ],
+                              "x": [
+                                {
+                                  "unit": "user",
+                                  "value": 0
+                                }
+                              ],
+                              "y": [
+                                {
+                                  "unit": "user",
+                                  "value": 0
+                                }
+                              ]
+                            },
+                            {
+                              "children": [
+                                {
+                                  "kind": "textRun",
+                                  "text": "5500"
+                                }
+                              ],
+                              "kind": "text",
+                              "style": 8,
+                              "transforms": [
+                                {
+                                  "kind": "matrix",
+                                  "values": [
+                                    1,
+                                    0,
+                                    0,
+                                    1,
+                                    72.015625,
+                                    371.34039306640625
+                                  ]
+                                }
+                              ],
+                              "x": [
+                                {
+                                  "unit": "user",
+                                  "value": 0
+                                }
+                              ],
+                              "y": [
+                                {
+                                  "unit": "user",
+                                  "value": 0
+                                }
+                              ]
+                            },
+                            {
+                              "children": [
+                                {
+                                  "kind": "textRun",
+                                  "text": "5000"
+                                }
+                              ],
+                              "kind": "text",
+                              "style": 8,
+                              "transforms": [
+                                {
+                                  "kind": "matrix",
+                                  "values": [
+                                    1,
+                                    0,
+                                    0,
+                                    1,
+                                    72.015625,
+                                    400.5524597167969
+                                  ]
+                                }
+                              ],
+                              "x": [
+                                {
+                                  "unit": "user",
+                                  "value": 0
+                                }
+                              ],
+                              "y": [
+                                {
+                                  "unit": "user",
+                                  "value": 0
+                                }
+                              ]
+                            },
+                            {
+                              "children": [
+                                {
+                                  "kind": "textRun",
+                                  "text": "4500"
+                                }
+                              ],
+                              "kind": "text",
+                              "style": 8,
+                              "transforms": [
+                                {
+                                  "kind": "matrix",
+                                  "values": [
+                                    1,
+                                    0,
+                                    0,
+                                    1,
+                                    72.015625,
+                                    429.7644958496094
+                                  ]
+                                }
+                              ],
+                              "x": [
+                                {
+                                  "unit": "user",
+                                  "value": 0
+                                }
+                              ],
+                              "y": [
+                                {
+                                  "unit": "user",
+                                  "value": 0
+                                }
+                              ]
+                            },
+                            {
+                              "children": [
+                                {
+                                  "kind": "textRun",
+                                  "text": "4000"
+                                }
+                              ],
+                              "kind": "text",
+                              "style": 8,
+                              "transforms": [
+                                {
+                                  "kind": "matrix",
+                                  "values": [
+                                    1,
+                                    0,
+                                    0,
+                                    1,
+                                    72.015625,
+                                    458.9765625
+                                  ]
+                                }
+                              ],
+                              "x": [
+                                {
+                                  "unit": "user",
+                                  "value": 0
+                                }
+                              ],
+                              "y": [
+                                {
+                                  "unit": "user",
+                                  "value": 0
+                                }
+                              ]
+                            }
+                          ],
+                          "kind": "group",
+                          "style": 1
+                        },
+                        {
+                          "children": [
+                            {
+                              "commands": [
+                                [
+                                  "M",
+                                  82.015625,
+                                  50.0078125
+                                ],
+                                [
+                                  "L",
+                                  77.015625,
+                                  50.0078125
+                                ]
+                              ],
+                              "kind": "path",
+                              "style": 6
+                            },
+                            {
+                              "commands": [
+                                [
+                                  "M",
+                                  82.015625,
+                                  79.21986607142856
+                                ],
+                                [
+                                  "L",
+                                  77.015625,
+                                  79.21986607142856
+                                ]
+                              ],
+                              "kind": "path",
+                              "style": 6
+                            },
+                            {
+                              "commands": [
+                                [
+                                  "M",
+                                  82.015625,
+                                  108.43191964285715
+                                ],
+                                [
+                                  "L",
+                                  77.015625,
+                                  108.43191964285715
+                                ]
+                              ],
+                              "kind": "path",
+                              "style": 6
+                            },
+                            {
+                              "commands": [
+                                [
+                                  "M",
+                                  82.015625,
+                                  137.64397321428572
+                                ],
+                                [
+                                  "L",
+                                  77.015625,
+                                  137.64397321428572
+                                ]
+                              ],
+                              "kind": "path",
+                              "style": 6
+                            },
+                            {
+                              "commands": [
+                                [
+                                  "M",
+                                  82.015625,
+                                  166.85602678571428
+                                ],
+                                [
+                                  "L",
+                                  77.015625,
+                                  166.85602678571428
+                                ]
+                              ],
+                              "kind": "path",
+                              "style": 6
+                            },
+                            {
+                              "commands": [
+                                [
+                                  "M",
+                                  82.015625,
+                                  196.06808035714283
+                                ],
+                                [
+                                  "L",
+                                  77.015625,
+                                  196.06808035714283
+                                ]
+                              ],
+                              "kind": "path",
+                              "style": 6
+                            },
+                            {
+                              "commands": [
+                                [
+                                  "M",
+                                  82.015625,
+                                  225.28013392857144
+                                ],
+                                [
+                                  "L",
+                                  77.015625,
+                                  225.28013392857144
+                                ]
+                              ],
+                              "kind": "path",
+                              "style": 6
+                            },
+                            {
+                              "commands": [
+                                [
+                                  "M",
+                                  82.015625,
+                                  254.4921875
+                                ],
+                                [
+                                  "L",
+                                  77.015625,
+                                  254.4921875
+                                ]
+                              ],
+                              "kind": "path",
+                              "style": 6
+                            },
+                            {
+                              "commands": [
+                                [
+                                  "M",
+                                  82.015625,
+                                  283.70424107142856
+                                ],
+                                [
+                                  "L",
+                                  77.015625,
+                                  283.70424107142856
+                                ]
+                              ],
+                              "kind": "path",
+                              "style": 6
+                            },
+                            {
+                              "commands": [
+                                [
+                                  "M",
+                                  82.015625,
+                                  312.9162946428571
+                                ],
+                                [
+                                  "L",
+                                  77.015625,
+                                  312.9162946428571
+                                ]
+                              ],
+                              "kind": "path",
+                              "style": 6
+                            },
+                            {
+                              "commands": [
+                                [
+                                  "M",
+                                  82.015625,
+                                  342.1283482142857
+                                ],
+                                [
+                                  "L",
+                                  77.015625,
+                                  342.1283482142857
+                                ]
+                              ],
+                              "kind": "path",
+                              "style": 6
+                            },
+                            {
+                              "commands": [
+                                [
+                                  "M",
+                                  82.015625,
+                                  371.3404017857143
+                                ],
+                                [
+                                  "L",
+                                  77.015625,
+                                  371.3404017857143
+                                ]
+                              ],
+                              "kind": "path",
+                              "style": 6
+                            },
+                            {
+                              "commands": [
+                                [
+                                  "M",
+                                  82.015625,
+                                  400.5524553571429
+                                ],
+                                [
+                                  "L",
+                                  77.015625,
+                                  400.5524553571429
+                                ]
+                              ],
+                              "kind": "path",
+                              "style": 6
+                            },
+                            {
+                              "commands": [
+                                [
+                                  "M",
+                                  82.015625,
+                                  429.76450892857144
+                                ],
+                                [
+                                  "L",
+                                  77.015625,
+                                  429.76450892857144
+                                ]
+                              ],
+                              "kind": "path",
+                              "style": 6
+                            },
+                            {
+                              "commands": [
+                                [
+                                  "M",
+                                  82.015625,
+                                  458.9765625
+                                ],
+                                [
+                                  "L",
+                                  77.015625,
+                                  458.9765625
+                                ]
+                              ],
+                              "kind": "path",
+                              "style": 6
+                            }
+                          ],
+                          "kind": "group",
+                          "style": 1
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [
+                                {
+                                  "kind": "textRun",
+                                  "text": "Revenue (in $)"
+                                }
+                              ],
+                              "kind": "text",
+                              "style": 9,
+                              "transforms": [
+                                {
+                                  "kind": "matrix",
+                                  "values": [
+                                    -1.8369701987210294e-16,
+                                    -1,
+                                    1,
+                                    -1.8369701987210294e-16,
+                                    5,
+                                    254.4921875
+                                  ]
+                                }
+                              ],
+                              "x": [
+                                {
+                                  "unit": "user",
+                                  "value": 0
+                                }
+                              ],
+                              "y": [
+                                {
+                                  "unit": "user",
+                                  "value": 0
+                                }
+                              ]
+                            }
+                          ],
+                          "kind": "group",
+                          "style": 1
+                        }
+                      ],
+                      "kind": "group",
+                      "style": 1
+                    }
+                  ],
+                  "kind": "group",
+                  "style": 1
+                },
+                {
+                  "children": [],
+                  "kind": "group",
+                  "style": 1
+                }
+              ],
+              "definitions": [],
+              "height": 500,
+              "motion": "static",
+              "profile": "bounded-svg-v1",
+              "rasterBounds": [
+                0,
+                0,
+                700,
+                500
+              ],
+              "rootStyle": 0,
+              "styles": [
+                {
+                  "alignmentBaseline": "baseline",
+                  "clipRule": "nonzero",
+                  "colorInterpolation": "sRGB",
+                  "colorInterpolationFilters": "linearRGB",
+                  "dashArray": [],
+                  "dashOffset": {
+                    "unit": "px",
+                    "value": 0
+                  },
+                  "decoration": "none",
+                  "display": "inline",
+                  "dominantBaseline": "auto",
+                  "fill": {
+                    "kind": "color",
+                    "rgba": [
+                      51,
+                      51,
+                      51,
+                      1
+                    ]
+                  },
+                  "fillOpacity": 1,
+                  "fillRule": "nonzero",
+                  "filter": {
+                    "kind": "none"
+                  },
+                  "fontId": "arial-sans",
+                  "fontSize": {
+                    "unit": "px",
+                    "value": 16
+                  },
+                  "fontStyle": "normal",
+                  "fontWeight": 400,
+                  "isolation": "auto",
+                  "lineCap": "butt",
+                  "lineJoin": "miter",
+                  "miterLimit": 4,
+                  "mixBlendMode": "normal",
+                  "opacity": 1,
+                  "overflow": "hidden",
+                  "shapeRendering": "auto",
+                  "stroke": {
+                    "kind": "none"
+                  },
+                  "strokeOpacity": 1,
+                  "strokeWidth": {
+                    "unit": "px",
+                    "value": 1
+                  },
+                  "textAnchor": "start",
+                  "textTransform": "none",
+                  "visibility": "visible",
+                  "whiteSpace": "normal",
+                  "wordSpacing": {
+                    "unit": "px",
+                    "value": 0
+                  }
+                },
+                {
+                  "alignmentBaseline": "baseline",
+                  "clipRule": "nonzero",
+                  "colorInterpolation": "sRGB",
+                  "colorInterpolationFilters": "linearRGB",
+                  "dashArray": [],
+                  "dashOffset": {
+                    "unit": "px",
+                    "value": 0
+                  },
+                  "decoration": "none",
+                  "display": "inline",
+                  "dominantBaseline": "auto",
+                  "fill": {
+                    "kind": "color",
+                    "rgba": [
+                      51,
+                      51,
+                      51,
+                      1
+                    ]
+                  },
+                  "fillOpacity": 1,
+                  "fillRule": "nonzero",
+                  "filter": {
+                    "kind": "none"
+                  },
+                  "fontId": "arial-sans",
+                  "fontSize": {
+                    "unit": "px",
+                    "value": 16
+                  },
+                  "fontStyle": "normal",
+                  "fontWeight": 400,
+                  "isolation": "auto",
+                  "lineCap": "butt",
+                  "lineJoin": "miter",
+                  "miterLimit": 4,
+                  "mixBlendMode": "normal",
+                  "opacity": 1,
+                  "overflow": "visible",
+                  "shapeRendering": "auto",
+                  "stroke": {
+                    "kind": "none"
+                  },
+                  "strokeOpacity": 1,
+                  "strokeWidth": {
+                    "unit": "px",
+                    "value": 1
+                  },
+                  "textAnchor": "start",
+                  "textTransform": "none",
+                  "visibility": "visible",
+                  "whiteSpace": "normal",
+                  "wordSpacing": {
+                    "unit": "px",
+                    "value": 0
+                  }
+                },
+                {
+                  "alignmentBaseline": "baseline",
+                  "clipRule": "nonzero",
+                  "colorInterpolation": "sRGB",
+                  "colorInterpolationFilters": "linearRGB",
+                  "dashArray": [],
+                  "dashOffset": {
+                    "unit": "px",
+                    "value": 0
+                  },
+                  "decoration": "none",
+                  "display": "inline",
+                  "dominantBaseline": "auto",
+                  "fill": {
+                    "kind": "color",
+                    "rgba": [
+                      255,
+                      255,
+                      255,
+                      1
+                    ]
+                  },
+                  "fillOpacity": 1,
+                  "fillRule": "nonzero",
+                  "filter": {
+                    "kind": "none"
+                  },
+                  "fontId": "arial-sans",
+                  "fontSize": {
+                    "unit": "px",
+                    "value": 16
+                  },
+                  "fontStyle": "normal",
+                  "fontWeight": 400,
+                  "isolation": "auto",
+                  "lineCap": "butt",
+                  "lineJoin": "miter",
+                  "miterLimit": 4,
+                  "mixBlendMode": "normal",
+                  "opacity": 1,
+                  "overflow": "visible",
+                  "shapeRendering": "auto",
+                  "stroke": {
+                    "kind": "none"
+                  },
+                  "strokeOpacity": 1,
+                  "strokeWidth": {
+                    "unit": "px",
+                    "value": 1
+                  },
+                  "textAnchor": "start",
+                  "textTransform": "none",
+                  "visibility": "visible",
+                  "whiteSpace": "normal",
+                  "wordSpacing": {
+                    "unit": "px",
+                    "value": 0
+                  }
+                },
+                {
+                  "alignmentBaseline": "baseline",
+                  "clipRule": "nonzero",
+                  "colorInterpolation": "sRGB",
+                  "colorInterpolationFilters": "linearRGB",
+                  "dashArray": [],
+                  "dashOffset": {
+                    "unit": "px",
+                    "value": 0
+                  },
+                  "decoration": "none",
+                  "display": "inline",
+                  "dominantBaseline": "middle",
+                  "fill": {
+                    "kind": "color",
+                    "rgba": [
+                      19,
+                      19,
+                      0,
+                      1
+                    ]
+                  },
+                  "fillOpacity": 1,
+                  "fillRule": "nonzero",
+                  "filter": {
+                    "kind": "none"
+                  },
+                  "fontId": "arial-sans",
+                  "fontSize": {
+                    "unit": "px",
+                    "value": 20
+                  },
+                  "fontStyle": "normal",
+                  "fontWeight": 400,
+                  "isolation": "auto",
+                  "lineCap": "butt",
+                  "lineJoin": "miter",
+                  "miterLimit": 4,
+                  "mixBlendMode": "normal",
+                  "opacity": 1,
+                  "overflow": "visible",
+                  "shapeRendering": "auto",
+                  "stroke": {
+                    "kind": "none"
+                  },
+                  "strokeOpacity": 1,
+                  "strokeWidth": {
+                    "unit": "px",
+                    "value": 1
+                  },
+                  "textAnchor": "middle",
+                  "textTransform": "none",
+                  "visibility": "visible",
+                  "whiteSpace": "nowrap",
+                  "wordSpacing": {
+                    "unit": "px",
+                    "value": 0
+                  }
+                },
+                {
+                  "alignmentBaseline": "baseline",
+                  "clipRule": "nonzero",
+                  "colorInterpolation": "sRGB",
+                  "colorInterpolationFilters": "linearRGB",
+                  "dashArray": [],
+                  "dashOffset": {
+                    "unit": "px",
+                    "value": 0
+                  },
+                  "decoration": "none",
+                  "display": "inline",
+                  "dominantBaseline": "auto",
+                  "fill": {
+                    "kind": "color",
+                    "rgba": [
+                      236,
+                      236,
+                      255,
+                      1
+                    ]
+                  },
+                  "fillOpacity": 1,
+                  "fillRule": "nonzero",
+                  "filter": {
+                    "kind": "none"
+                  },
+                  "fontId": "arial-sans",
+                  "fontSize": {
+                    "unit": "px",
+                    "value": 16
+                  },
+                  "fontStyle": "normal",
+                  "fontWeight": 400,
+                  "isolation": "auto",
+                  "lineCap": "butt",
+                  "lineJoin": "miter",
+                  "miterLimit": 4,
+                  "mixBlendMode": "normal",
+                  "opacity": 1,
+                  "overflow": "visible",
+                  "shapeRendering": "auto",
+                  "stroke": {
+                    "kind": "color",
+                    "rgba": [
+                      236,
+                      236,
+                      255,
+                      1
+                    ]
+                  },
+                  "strokeOpacity": 1,
+                  "strokeWidth": {
+                    "unit": "px",
+                    "value": 0
+                  },
+                  "textAnchor": "start",
+                  "textTransform": "none",
+                  "visibility": "visible",
+                  "whiteSpace": "normal",
+                  "wordSpacing": {
+                    "unit": "px",
+                    "value": 0
+                  }
+                },
+                {
+                  "alignmentBaseline": "baseline",
+                  "clipRule": "nonzero",
+                  "colorInterpolation": "sRGB",
+                  "colorInterpolationFilters": "linearRGB",
+                  "dashArray": [],
+                  "dashOffset": {
+                    "unit": "px",
+                    "value": 0
+                  },
+                  "decoration": "none",
+                  "display": "inline",
+                  "dominantBaseline": "auto",
+                  "fill": {
+                    "kind": "none"
+                  },
+                  "fillOpacity": 1,
+                  "fillRule": "nonzero",
+                  "filter": {
+                    "kind": "none"
+                  },
+                  "fontId": "arial-sans",
+                  "fontSize": {
+                    "unit": "px",
+                    "value": 16
+                  },
+                  "fontStyle": "normal",
+                  "fontWeight": 400,
+                  "isolation": "auto",
+                  "lineCap": "butt",
+                  "lineJoin": "miter",
+                  "miterLimit": 4,
+                  "mixBlendMode": "normal",
+                  "opacity": 1,
+                  "overflow": "visible",
+                  "shapeRendering": "auto",
+                  "stroke": {
+                    "kind": "color",
+                    "rgba": [
+                      132,
+                      147,
+                      166,
+                      1
+                    ]
+                  },
+                  "strokeOpacity": 1,
+                  "strokeWidth": {
+                    "unit": "px",
+                    "value": 2
+                  },
+                  "textAnchor": "start",
+                  "textTransform": "none",
+                  "visibility": "visible",
+                  "whiteSpace": "normal",
+                  "wordSpacing": {
+                    "unit": "px",
+                    "value": 0
+                  }
+                },
+                {
+                  "alignmentBaseline": "baseline",
+                  "clipRule": "nonzero",
+                  "colorInterpolation": "sRGB",
+                  "colorInterpolationFilters": "linearRGB",
+                  "dashArray": [],
+                  "dashOffset": {
+                    "unit": "px",
+                    "value": 0
+                  },
+                  "decoration": "none",
+                  "display": "inline",
+                  "dominantBaseline": "auto",
+                  "fill": {
+                    "kind": "none"
+                  },
+                  "fillOpacity": 1,
+                  "fillRule": "nonzero",
+                  "filter": {
+                    "kind": "none"
+                  },
+                  "fontId": "arial-sans",
+                  "fontSize": {
+                    "unit": "px",
+                    "value": 16
+                  },
+                  "fontStyle": "normal",
+                  "fontWeight": 400,
+                  "isolation": "auto",
+                  "lineCap": "butt",
+                  "lineJoin": "miter",
+                  "miterLimit": 4,
+                  "mixBlendMode": "normal",
+                  "opacity": 1,
+                  "overflow": "visible",
+                  "shapeRendering": "auto",
+                  "stroke": {
+                    "kind": "color",
+                    "rgba": [
+                      19,
+                      19,
+                      0,
+                      1
+                    ]
+                  },
+                  "strokeOpacity": 1,
+                  "strokeWidth": {
+                    "unit": "px",
+                    "value": 2
+                  },
+                  "textAnchor": "start",
+                  "textTransform": "none",
+                  "visibility": "visible",
+                  "whiteSpace": "normal",
+                  "wordSpacing": {
+                    "unit": "px",
+                    "value": 0
+                  }
+                },
+                {
+                  "alignmentBaseline": "baseline",
+                  "clipRule": "nonzero",
+                  "colorInterpolation": "sRGB",
+                  "colorInterpolationFilters": "linearRGB",
+                  "dashArray": [],
+                  "dashOffset": {
+                    "unit": "px",
+                    "value": 0
+                  },
+                  "decoration": "none",
+                  "display": "inline",
+                  "dominantBaseline": "text-before-edge",
+                  "fill": {
+                    "kind": "color",
+                    "rgba": [
+                      19,
+                      19,
+                      0,
+                      1
+                    ]
+                  },
+                  "fillOpacity": 1,
+                  "fillRule": "nonzero",
+                  "filter": {
+                    "kind": "none"
+                  },
+                  "fontId": "arial-sans",
+                  "fontSize": {
+                    "unit": "px",
+                    "value": 14
+                  },
+                  "fontStyle": "normal",
+                  "fontWeight": 400,
+                  "isolation": "auto",
+                  "lineCap": "butt",
+                  "lineJoin": "miter",
+                  "miterLimit": 4,
+                  "mixBlendMode": "normal",
+                  "opacity": 1,
+                  "overflow": "visible",
+                  "shapeRendering": "auto",
+                  "stroke": {
+                    "kind": "none"
+                  },
+                  "strokeOpacity": 1,
+                  "strokeWidth": {
+                    "unit": "px",
+                    "value": 1
+                  },
+                  "textAnchor": "middle",
+                  "textTransform": "none",
+                  "visibility": "visible",
+                  "whiteSpace": "nowrap",
+                  "wordSpacing": {
+                    "unit": "px",
+                    "value": 0
+                  }
+                },
+                {
+                  "alignmentBaseline": "baseline",
+                  "clipRule": "nonzero",
+                  "colorInterpolation": "sRGB",
+                  "colorInterpolationFilters": "linearRGB",
+                  "dashArray": [],
+                  "dashOffset": {
+                    "unit": "px",
+                    "value": 0
+                  },
+                  "decoration": "none",
+                  "display": "inline",
+                  "dominantBaseline": "middle",
+                  "fill": {
+                    "kind": "color",
+                    "rgba": [
+                      19,
+                      19,
+                      0,
+                      1
+                    ]
+                  },
+                  "fillOpacity": 1,
+                  "fillRule": "nonzero",
+                  "filter": {
+                    "kind": "none"
+                  },
+                  "fontId": "arial-sans",
+                  "fontSize": {
+                    "unit": "px",
+                    "value": 14
+                  },
+                  "fontStyle": "normal",
+                  "fontWeight": 400,
+                  "isolation": "auto",
+                  "lineCap": "butt",
+                  "lineJoin": "miter",
+                  "miterLimit": 4,
+                  "mixBlendMode": "normal",
+                  "opacity": 1,
+                  "overflow": "visible",
+                  "shapeRendering": "auto",
+                  "stroke": {
+                    "kind": "none"
+                  },
+                  "strokeOpacity": 1,
+                  "strokeWidth": {
+                    "unit": "px",
+                    "value": 1
+                  },
+                  "textAnchor": "end",
+                  "textTransform": "none",
+                  "visibility": "visible",
+                  "whiteSpace": "nowrap",
+                  "wordSpacing": {
+                    "unit": "px",
+                    "value": 0
+                  }
+                },
+                {
+                  "alignmentBaseline": "baseline",
+                  "clipRule": "nonzero",
+                  "colorInterpolation": "sRGB",
+                  "colorInterpolationFilters": "linearRGB",
+                  "dashArray": [],
+                  "dashOffset": {
+                    "unit": "px",
+                    "value": 0
+                  },
+                  "decoration": "none",
+                  "display": "inline",
+                  "dominantBaseline": "text-before-edge",
+                  "fill": {
+                    "kind": "color",
+                    "rgba": [
+                      19,
+                      19,
+                      0,
+                      1
+                    ]
+                  },
+                  "fillOpacity": 1,
+                  "fillRule": "nonzero",
+                  "filter": {
+                    "kind": "none"
+                  },
+                  "fontId": "arial-sans",
+                  "fontSize": {
+                    "unit": "px",
+                    "value": 16
+                  },
+                  "fontStyle": "normal",
+                  "fontWeight": 400,
+                  "isolation": "auto",
+                  "lineCap": "butt",
+                  "lineJoin": "miter",
+                  "miterLimit": 4,
+                  "mixBlendMode": "normal",
+                  "opacity": 1,
+                  "overflow": "visible",
+                  "shapeRendering": "auto",
+                  "stroke": {
+                    "kind": "none"
+                  },
+                  "strokeOpacity": 1,
+                  "strokeWidth": {
+                    "unit": "px",
+                    "value": 1
+                  },
+                  "textAnchor": "middle",
+                  "textTransform": "none",
+                  "visibility": "visible",
+                  "whiteSpace": "nowrap",
+                  "wordSpacing": {
+                    "unit": "px",
+                    "value": 0
+                  }
+                }
+              ],
+              "type": "svg-image",
+              "viewBox": [
+                0,
+                0,
+                700,
+                500
+              ],
+              "width": 700
+            },
+            "ok": true,
+            "originalSvgBytes": 13348,
+            "over256KiB": false,
+            "profile": "baseline",
+            "renderMs": 91,
+            "serializedBytes": 20248,
+            "theme": "light"
+          },
+          "status": "complete",
+          "taskId": "conversion_1"
+        }
+      }
+    },
+    {
+      "kind": "terminate-group",
+      "mono": 40284.104681416,
+      "wall": 1792152671.66564,
+      "reason": "completed-research-cleanup",
+      "pgid": 263978,
+      "members": [
+        {
+          "pid": 263978,
+          "birth": "4028278"
+        },
+        {
+          "pid": 263979,
+          "birth": "4028278"
+        },
+        {
+          "pid": 263980,
+          "birth": "4028278"
+        },
+        {
+          "pid": 263981,
+          "birth": "4028278"
+        },
+        {
+          "pid": 263982,
+          "birth": "4028279"
+        },
+        {
+          "pid": 264018,
+          "birth": "4028300"
+        },
+        {
+          "pid": 264024,
+          "birth": "4028301"
+        },
+        {
+          "pid": 264025,
+          "birth": "4028301"
+        },
+        {
+          "pid": 264026,
+          "birth": "4028302"
+        },
+        {
+          "pid": 264031,
+          "birth": "4028302"
+        },
+        {
+          "pid": 264034,
+          "birth": "4028303"
+        },
+        {
+          "pid": 264037,
+          "birth": "4028303"
+        },
+        {
+          "pid": 264039,
+          "birth": "4028304"
+        },
+        {
+          "pid": 263991,
+          "birth": "4028294"
+        },
+        {
+          "pid": 264067,
+          "birth": "4028354"
+        }
+      ]
+    },
+    {
+      "kind": "signal-start",
+      "mono": 40284.104683644,
+      "wall": 1792152671.665642,
+      "pgid": 263978
+    },
+    {
+      "kind": "signal-return",
+      "mono": 40284.105186485,
+      "wall": 1792152671.666145,
+      "pgid": 263978
+    },
+    {
+      "kind": "escaped-descendants",
+      "mono": 40284.159576898,
+      "wall": 1792152671.720536,
+      "processes": []
+    },
+    {
+      "kind": "cleanup",
+      "mono": 40284.247801647,
+      "wall": 1792152671.8087611,
+      "reaped": [
+        {
+          "pid": 263979,
+          "status": 9
+        }
+      ],
+      "remainingGroupMembers": []
+    },
+    {
+      "kind": "completed",
+      "mono": 40284.291156245,
+      "wall": 1792152671.8521156,
+      "results": [
+        {
+          "task": "native-resource-guard",
+          "elapsed": 0.012401842999679502,
+          "value": {
+            "status": "blocked"
+          }
+        },
+        {
+          "task": "scan_058",
+          "sampleId": "xyChart-000-first-official-example",
+          "sourceSha256": "26b0cd5e3c3bcf2c2d0cbbc02df82376d779b0ec1893940495460009622029fe",
+          "profile": "baseline",
+          "elapsed": 0.1759094160006498,
+          "serializedBytes": 20248,
+          "diagramType": "xychart"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,35 @@
+from pathlib import Path
+import subprocess,json,hashlib,sys,datetime,shutil
+root=Path('/workspace/milkup'); out=Path(__file__).parent
+sha=lambda b:hashlib.sha256(b).hexdigest()
+mode=sys.argv[1]
+if mode=='before':
+ names=subprocess.check_output(['git','ls-files','-z','--cached','--others','--exclude-standard'],cwd=root).decode().split('\0')
+ roots=('apps/desktop/','packages/','plugins/','scripts/ci/','scripts/cloud/','release/','tests/helpers/','tests/native/','tests/fixtures/dom-plugin-lifecycle/')
+ names={n for n in names if n and (n.startswith(roots) or n in ['package.json','pnpm-lock.yaml','pnpm-workspace.yaml','tsconfig.json','tsconfig.base.json','.npmrc','.cargo/config.toml']) and (root/n).is_file()}
+ names.update(str(p.relative_to(root)) for p in (root/'apps/desktop/src/bundled-plugins').glob('*.milkup-plugin'))
+ names.update('plugins/diagrams/'+n for n in ['vendor/plugin-sdk.tgz','dist/milkup.diagrams-1.1.0.milkup-plugin','dist/plugin.js','dist/proof.json','dist/build-meta.json'])
+ profile=json.loads((root/'plugins/diagrams/build-dependencies.json').read_text())
+ for package in profile['packages']:
+  names.add('plugins/diagrams/'+package['root']+'/package.json')
+  for entry in package['inputs']:
+   n='plugins/diagrams/'+package['root']+'/'+entry['path'];assert sha((root/n).read_bytes())==entry['sha256'];names.add(n)
+  for notice in package['notices']:names.add('plugins/diagrams/'+package['root']+'/'+notice['path'])
+ for n in ['package.json','src/index.js']:
+  names.add('plugins/diagrams/'+str((root/'plugins/diagrams/node_modules/@milkup/plugin-sdk'/n).resolve().relative_to(root/'plugins/diagrams')))
+ rows=[]
+ for name in sorted(names):
+  p=root/name;raw=p.read_bytes();dest=out/'source'/name;dest.parent.mkdir(parents=True,exist_ok=True);dest.write_bytes(raw)
+  rows.append({'path':name,'bytes':len(raw),'sha256':sha(raw)})
+ (out/'source-before.json').write_text(json.dumps({'atUtc':datetime.datetime.now(datetime.timezone.utc).isoformat(),'files':rows},indent=2)+'\n')
+ (out/'git-status-before.txt').write_bytes(subprocess.check_output(['git','status','--short'],cwd=root))
+ (out/'git-head.txt').write_bytes(subprocess.check_output(['git','rev-parse','HEAD'],cwd=root))
+ print('Frozen source files',len(rows),'bytes',sum(x['bytes'] for x in rows))
+else:
+ before=json.loads((out/'source-before.json').read_text());changes=[]
+ for row in before['files']:
+  p=root/row['path'];actual=sha(p.read_bytes()) if p.is_file() else None
+  if actual!=row['sha256']:changes.append({'path':row['path'],'expected':row['sha256'],'actual':actual})
+ (out/'source-after.json').write_text(json.dumps({'atUtc':datetime.datetime.now(datetime.timezone.utc).isoformat(),'filesChecked':len(before['files']),'changes':changes},indent=2)+'\n')
+ assert not changes,changes
+ print('Source equality passed',len(before['files']))

@@ -1,0 +1,61 @@
+{
+  "author": "release_sdk",
+  "kind": "independent-static-implementation-review",
+  "harnessSha256": "367ae35de7fde6cb683ddb3c25259efb92bc12ee33c1b3b271a475bd7e066198",
+  "verdict": "No blocking defect found for the frozen fixture and existing ordinary/SourceDocumentView DOM contracts. Ready for the separately authorized full native run; no native acceptance is implied.",
+  "byteProof": {
+    "baselineWithNavigationReadySha256": "4d3e797a75d0377306fd3a4da5d839ad08bafaafcaa2698c51de608fda82fbc8",
+    "method": "Removed the one sampleSelectionProjection function, its before/after calls and positioning-log field; restored the one removed raw selection-array equality assertion at its original position. Reconstructed bytes exactly equal git HEAD harness.",
+    "result": "PASS",
+    "consequence": "All other assertions, fixture generation, navigation readiness, positioning geometry, error/CSP gates, matrix coverage and prior timeout/tick/reversal values remain byte-identical."
+  },
+  "syntax": {
+    "command": "node --check tests/native/tauri-mermaid-ui.mjs",
+    "exitCode": 0,
+    "qualification": "Parse-only; did not execute harness imports or runtime."
+  },
+  "implementationChecks": [
+    {
+      "topic": "Fixture offsets",
+      "finding": "markerTo=sample.from-2 and markerFrom=markerTo-marker.length are checked against actual generated fixture substring. markerLine is calculated from source prefix LF count. Ordinary/windowed share the same prefix, isolated fallbacks use their overridden named fixture; matrix reuses these same samples."
+    },
+    {
+      "topic": "Atomic DOM acquisition",
+      "finding": "One synchronous app.execute reads editor mode/windowed class, marker-intersecting mounted source rows, all editor selection overlays and cursor endpoints. No viewport/visibility filter is used, so overscan remains mounted."
+    },
+    {
+      "topic": "Ordinary projection",
+      "finding": "Requires exactly one mounted marker source row with exact from/to/fixture line. All actual range endpoints are valid and the deduplicated full-range set must equal the known marker. Missing data-line is deliberately ignored only in this ordinary branch, matching EditorView output."
+    },
+    {
+      "topic": "Windowed projection",
+      "finding": "Requires at most one marker row, and any present row must exactly match marker endpoints/line. Actual ranges require integer source line. Deduplicated actual from/to/line tuples must equal marker/row intersections. If no marker row is mounted, expected is empty and any actual selection fails; it does not accept arbitrary empty against a mounted marker."
+    },
+    {
+      "topic": "Cursor",
+      "finding": "Exact one marker-end cursor is required if the row is mounted; otherwise no cursor projection is permitted. This matches SourceDocumentView cursor omission outside loaded rows. Current ordinary fixture requires the row mounted."
+    },
+    {
+      "topic": "Evidence ordering",
+      "finding": "selection-projections.jsonl records raw atomic snapshot and expected marker coordinates before its assertions. Existing before/after probe arrays remain in positioning.jsonl as observations, no longer treated as logical invariants."
+    },
+    {
+      "topic": "Unchanged product constraints",
+      "finding": "No product/API/private state access, synthetic selection, source padding, skipped samples or error suppression. Version/dirty/saved-file bytes assertions retain original text and placement relative to their existing log."
+    }
+  ],
+  "remainingLimits": [
+    "This validates projection consistency only. When both marker and selection/cursor projection are unmounted it cannot prove the hidden logical anchor/head; separate native copy evidence supports selected-text behavior with its recorded limits.",
+    "Mounted rows are converted then filtered for numeric intersection before asserting selected row metadata. A future malformed marker row with missing/NaN endpoints could be excluded and appear unmounted; no such product output is established in the reviewed evidence. Whole-row metadata validation would be a separate hardening step.",
+    "If positioning already failed and the after-positioning projection assertion also fails, the latter currently throws before positioning.jsonl is appended, so it may obscure the earlier positioning failure. The projection snapshot is preserved first, but future triage should not assume it is always the earliest failure.",
+    "The new navigation-ready phase already reviewed separately adds its bounded30seconds to total seek; this implementation adds snapshot/file bookkeeping, not a new retry or extension to the original position10seconds/20ticks/2reversals or production deadlines.",
+    "No runtime claim that all contexts remain mounted or that repeated frames are stable. Any new first failure remains evidence."
+  ],
+  "evidenceDependencies": [
+    "research/ui08-selection-static-review.json",
+    "research/ui08-navigation-readiness-review.json",
+    "research/ui08-projection-consistency-design-review.json",
+    "research/native-ui08-selection-diagnostic-01/summary.json"
+  ],
+  "execution": "Read-only diff/source review, exact text reconstruction and node syntax check only. No files modified except this new independent report; no tests/build/browser/native runtime."
+}

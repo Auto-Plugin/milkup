@@ -1,0 +1,34 @@
+
+ RUN  v3.2.6 /workspace/milkup
+
+
+⎯⎯⎯⎯⎯⎯ Failed Suites 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  apps/desktop/src/desktop-plugin-manager-catalog.test.ts [ apps/desktop/src/desktop-plugin-manager-catalog.test.ts ]
+Error: Transform failed with 1 error:
+/workspace/milkup/apps/desktop/src/desktop-plugin-manager-catalog.test.ts:4:0: ERROR: Expected ")" but found "import"
+  Plugin: vite:esbuild
+  File: /workspace/milkup/apps/desktop/src/desktop-plugin-manager-catalog.test.ts:4:0
+  
+  Expected ")" but found "import"
+  2  |  const fileWrites=vi.hoisted(()=>vi.fn())
+  3  |  vi.mock('./plugin-file-broker',async()=>{const {createPluginFileBroker}=await import('@milkup/plugin');return {create...
+  4  |  import { ActionRegistry } from '@milkup/core'
+     |  ^
+  5  |  import type { PluginManifest, PluginPackageArchive } from '@milkup/plugin'
+  6  |  import { DesktopPluginManager } from './desktop-plugin-manager'
+  
+ ❯ failureErrorWithLog node_modules/.pnpm/esbuild@0.28.1/node_modules/esbuild/lib/main.js:1748:15
+ ❯ node_modules/.pnpm/esbuild@0.28.1/node_modules/esbuild/lib/main.js:1017:50
+ ❯ responseCallbacks.<computed> node_modules/.pnpm/esbuild@0.28.1/node_modules/esbuild/lib/main.js:884:9
+ ❯ handleIncomingPacket node_modules/.pnpm/esbuild@0.28.1/node_modules/esbuild/lib/main.js:939:12
+ ❯ Socket.readFromStdout node_modules/.pnpm/esbuild@0.28.1/node_modules/esbuild/lib/main.js:862:7
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  no tests
+   Start at  08:55:24
+   Duration  511ms (transform 15ms, setup 0ms, collect 0ms, tests 0ms, environment 0ms, prepare 80ms)
+

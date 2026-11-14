@@ -1,0 +1,34 @@
+name: Isolated remaining release-gap capabilities (no release)
+on:
+  push:
+    branches: [dot/gap-native-capabilities-20261114]
+permissions:
+  contents: read
+concurrency:
+  group: release-gap-capabilities-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  windows-capabilities:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-2025, windows-2022]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+          sparse-checkout-cone-mode: false
+          sparse-checkout: /scripts/ci/probe-windows-release-gaps.ps1
+      - name: Observe native prerequisites without changing machine policy
+        shell: pwsh
+        run: ./scripts/ci/probe-windows-release-gaps.ps1 -EvidenceDirectory "$env:RUNNER_TEMP/gap-capabilities"
+      - name: Retain exact observations including unavailable capabilities
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: release-gap-capabilities-${{ matrix.os }}-${{ github.run_id }}
+          path: ${{ runner.temp }}/gap-capabilities/
+          retention-days: 7
+          if-no-files-found: error

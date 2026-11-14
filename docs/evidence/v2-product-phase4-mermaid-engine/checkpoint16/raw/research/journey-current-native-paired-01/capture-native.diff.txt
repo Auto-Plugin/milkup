@@ -1,0 +1,11 @@
+--- reviewed-paired-main.rs
++++ capture-main.rs
+@@ -74,7 +74,7 @@
+  });
+  let loaded=events.create_proxy();native.connect_load_changed(move|view,event|{if matches!(event,webkit2gtk::LoadEvent::Finished)&&view.uri().as_deref()==Some(URL){let _=loaded.send_event(User::Loaded);}});
+  window.default_vbox().unwrap().add(&native);native.set_size_request(1100,800);native.set_zoom_level(1.0);native.show();
+- emit(json!({"type":"native-policy","sandbox":context.is_sandbox_enabled(),"ephemeral":native.is_ephemeral(),"tauriBridge":false,"wryIpcStub":false,"javascript":settings.enables_javascript(),"javascriptMarkup":settings.enables_javascript_markup(),"allowedResources":3,"settings":"file/universal/webrtc/media/webgl/storage/dns/windows/devtools denied"}));
++ emit(json!({"type":"native-policy","sandbox":context.is_sandbox_enabled(),"ephemeral":native.is_ephemeral(),"tauriBridge":false,"wryIpcStub":false,"javascript":settings.enables_javascript(),"javascriptMarkup":settings.enables_javascript_markup(),"allowedResources":6,"settings":"file/universal/webrtc/media/webgl/storage/dns/windows/devtools denied"}));
+  let input=events.create_proxy();std::thread::spawn(move||{
+   let mut reader=io::stdin().lock();
+   loop{let mut bytes=Vec::new();match reader.by_ref().take(131074).read_until(b'\n',&mut bytes){

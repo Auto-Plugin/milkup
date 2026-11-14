@@ -1,0 +1,39 @@
+{
+  "revision": 6,
+  "preparedNotRun": true,
+  "uiExecuted": false,
+  "testsRun": false,
+  "buildRun": false,
+  "runnerSHA": "9c850d057ac01e2e13c86be876c33e3c3cef85e6edbb4c2c82007768f56371bc",
+  "mainSHA": "01b69b5dbbcc7acb73426ee64c963e29d34ba16800fb72c9b441a5ea0172b546",
+  "previousRunnerSHA": "09abff37a3046c8da43a558813b2554491dbfb14df2ab7ce0a07c1e99c153aa6",
+  "formalBaselineCommit": "39fda4d51934e8681613081584cbe6e519217c26",
+  "formalSHA": "1c6e05423abf0acd304b66e03056115c333b697179fbdb2657fb4df55f837fa2",
+  "syntaxExit": 0,
+  "onlyRevision6Change": {
+    "before": "    await click(`${preferences} button[aria-label=\"保存\"]`)",
+    "after": "    await ui.ready(`${preferences} button[aria-label=\"保存\"]`)\n    await app.focus(`${preferences} button[aria-label=\"保存\"]`)\n    await click(`${preferences} button[aria-label=\"保存\"]`)"
+  },
+  "mainByteIdenticalToRevision5": true,
+  "inheritedPrefixMatchesFourExplicitChanges": true,
+  "inheritedPrefixChanges": [
+    "Four static helper imports made absolute",
+    "Four harnessSources helper URLs made absolute",
+    "details() waits for its public details control before focusing",
+    "appearance() waits for and focuses its public Save control before unchanged strict click"
+  ],
+  "strictClickUnchanged": true,
+  "budgetsUnchanged": true,
+  "fullFileBytesVersionDirtyGuardsUnchanged": true,
+  "snapshotHashes": {
+    "run-reachability.mjs": "09abff37a3046c8da43a558813b2554491dbfb14df2ab7ce0a07c1e99c153aa6",
+    "supplement-main.mjs.txt": "01b69b5dbbcc7acb73426ee64c963e29d34ba16800fb72c9b441a5ea0172b546",
+    "preparation.json": "372e19cbc3e8a80c187083f6f2a0fa3bce67fac950c142a88f00a3cb497be527",
+    "formal-to-supplement.diff": "5ea6e282c7e79f5c40bac3d9366ee2700fc75bb7d2f7d3c0843ab1001a4fc0de"
+  },
+  "limits": [
+    "Static preparation, not a rerun or native acceptance",
+    "Current repository formal harness may contain newer readiness changes; diff baseline is explicitly git39fda4d, not the mutable working file"
+  ],
+  "observedFailureContext": "Parent reported run01 ordinary/light checks passed; dark appearance Save control was below the viewport and strict pointer rejected before native click. This revision only reveals that public modal control."
+}

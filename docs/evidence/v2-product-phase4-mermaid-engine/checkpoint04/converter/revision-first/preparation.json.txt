@@ -1,0 +1,131 @@
+{
+  "status": "prepared-not-built-not-executed",
+  "nativeDeadlineSeconds": 2,
+  "separateReadinessSeconds": 10,
+  "maxFrameBytes": 262144,
+  "sourceCatalog": "/workspace/milkup-mermaid-engine-evidence/prototype/mermaid-scan-cases-light.json",
+  "sourceCatalogSha256": "0eb2a85fe383b80da3d0febab6eb7c820335b222932cf2392a72ee2b70378e3e",
+  "caseOrder": [
+    "flowchart-000-first-official-example",
+    "sequenceDiagram-000-first-official-example",
+    "userJourney-000-first-official-example",
+    "sankey-000-first-official-example",
+    "classDiagram-000-first-official-example"
+  ],
+  "security": "Same verified namespace runner and native WebKit sandbox, exact resource guard additionally permits two fixed converter modules; no image/network/frame/worker/font resource authority added.",
+  "changes": [
+    "Probe global and two fixed module resources/CSP/guard entries",
+    "Native entry engine import flattened in staged copy only",
+    "Separate output/profile/build paths and fixed original narrow-config paths",
+    "Single-case supervisor preserves conversion result before ok assertion, saves AST instead of nonexistent raw svg, unchanged 2s/256KiB"
+  ],
+  "files": [
+    {
+      "path": "/workspace/milkup-mermaid-engine-evidence/research/svg-converter-prototype/native-runner/helper/src/main.rs",
+      "sha256": "aea6da71c7e48d5b8030d47e6f272f71315d3fff6e79dfb250d6a7feda6db4c7",
+      "bytes": 9951,
+      "source": "/workspace/milkup-mermaid-engine-evidence/prototype/mermaid-helper/src/main.rs",
+      "sourceSha256": "067186d5911cf98bf54d14ba4504236ecb067b35579379ce52306b91192fedeb",
+      "byteEqual": false,
+      "diff": "/workspace/milkup-mermaid-engine-evidence/research/svg-converter-prototype/native-runner/diffs/helper/src/main.rs.diff"
+    },
+    {
+      "path": "/workspace/milkup-mermaid-engine-evidence/research/svg-converter-prototype/native-runner/helper/Cargo.toml",
+      "sha256": "31b86ce2517e72b502643c525655f78cbb5722a6930e75cfba486b0b6fbbf5e3",
+      "bytes": 248,
+      "source": "/workspace/milkup-mermaid-engine-evidence/prototype/mermaid-helper/Cargo.toml",
+      "sourceSha256": "31b86ce2517e72b502643c525655f78cbb5722a6930e75cfba486b0b6fbbf5e3",
+      "byteEqual": true
+    },
+    {
+      "path": "/workspace/milkup-mermaid-engine-evidence/research/svg-converter-prototype/native-runner/helper/Cargo.lock",
+      "sha256": "84bbcefb3868830f0c9f433f90a8b4aa8e0ae9aa269080a73fea3aef6370aca3",
+      "bytes": 50004,
+      "source": "/workspace/milkup-mermaid-engine-evidence/prototype/mermaid-helper/Cargo.lock",
+      "sourceSha256": "84bbcefb3868830f0c9f433f90a8b4aa8e0ae9aa269080a73fea3aef6370aca3",
+      "byteEqual": true
+    },
+    {
+      "path": "/workspace/milkup-mermaid-engine-evidence/research/svg-converter-prototype/native-runner/helper/assets/index.html",
+      "sha256": "fdf42c6308d9c5622fb5bd6937d2cd20a34854651464a818a28e7df02d945ec7",
+      "bytes": 164,
+      "source": "/workspace/milkup-mermaid-engine-evidence/prototype/mermaid-helper/assets/index.html",
+      "sourceSha256": "fdf42c6308d9c5622fb5bd6937d2cd20a34854651464a818a28e7df02d945ec7",
+      "byteEqual": true
+    },
+    {
+      "path": "/workspace/milkup-mermaid-engine-evidence/research/svg-converter-prototype/native-runner/helper/assets/converter.mjs",
+      "sha256": "c47f31762dd6bb262253c5cfb7d01e5f3b0aafefd226d62c7c4fdd57a549ef55",
+      "bytes": 34749,
+      "source": "/workspace/milkup-mermaid-engine-evidence/research/svg-converter-prototype/converter.mjs",
+      "sourceSha256": "c47f31762dd6bb262253c5cfb7d01e5f3b0aafefd226d62c7c4fdd57a549ef55",
+      "byteEqual": true
+    },
+    {
+      "path": "/workspace/milkup-mermaid-engine-evidence/research/svg-converter-prototype/native-runner/helper/assets/primitives.mjs",
+      "sha256": "f7c5fc1fe4aa1bc76f911268258b26887647cfacf0dca54209a17bda6d2bbb2d",
+      "bytes": 4988,
+      "source": "/workspace/milkup-mermaid-engine-evidence/research/svg-converter-prototype/primitives.mjs",
+      "sourceSha256": "f7c5fc1fe4aa1bc76f911268258b26887647cfacf0dca54209a17bda6d2bbb2d",
+      "byteEqual": true
+    },
+    {
+      "path": "/workspace/milkup-mermaid-engine-evidence/research/svg-converter-prototype/native-runner/helper/assets/entry.mjs",
+      "sha256": "3dda57daadbaa1ce7abccf5bc77cf679d8c0e042106ac3c6ca8660b635f8a676",
+      "bytes": 4770,
+      "source": "/workspace/milkup-mermaid-engine-evidence/research/svg-converter-prototype/native-entry.mjs",
+      "sourceSha256": "45d29c116d06e4d24a36ae283bd61e9cd1fd278780fac0402333ae8e8e13902c",
+      "byteEqual": false,
+      "diff": "/workspace/milkup-mermaid-engine-evidence/research/svg-converter-prototype/native-runner/diffs/helper/assets/entry.mjs.diff"
+    },
+    {
+      "path": "/workspace/milkup-mermaid-engine-evidence/research/svg-converter-prototype/native-runner/helper/assets/mermaid-full-12.2.0.mjs",
+      "sha256": "043c33385b8b41bb628872f4e419c7f20886403152b045736382db36072d8c0c",
+      "bytes": 5254581,
+      "source": "/workspace/milkup-mermaid-engine-evidence/research/native-probe/mermaid-full-12.2.0.mjs",
+      "sourceSha256": "043c33385b8b41bb628872f4e419c7f20886403152b045736382db36072d8c0c",
+      "byteEqual": true
+    },
+    {
+      "path": "/workspace/milkup-mermaid-engine-evidence/research/svg-converter-prototype/native-runner/extensions/resource_guard.c",
+      "sha256": "de65af3e33d6ee8090a84a9383f7174c77ecc7b1a2cef8241e4e7013c4e184fd",
+      "bytes": 1165,
+      "source": "/workspace/milkup-mermaid-engine-evidence/prototype/mermaid-extensions/resource_guard.c",
+      "sourceSha256": "e00f0b297ca2ff308bf812290ce0ae03047c4876bdd845759966f118243ab4cb",
+      "byteEqual": false,
+      "diff": "/workspace/milkup-mermaid-engine-evidence/research/svg-converter-prototype/native-runner/diffs/extensions/resource_guard.c.diff"
+    },
+    {
+      "path": "/workspace/milkup-mermaid-engine-evidence/research/svg-converter-prototype/native-runner/supervise.py",
+      "sha256": "d728eba53a6d0dae24b275a233665107ae1100153c3ec1854a57e8902c3c1a0e",
+      "bytes": 9160,
+      "source": "/workspace/milkup-mermaid-engine-evidence/prototype/supervise-mermaid-single.py",
+      "sourceSha256": "22ef694679bb2b5747fe5c92ba04bd8d534075777cf6b356da671bfe0eb3d012",
+      "byteEqual": false,
+      "diff": "/workspace/milkup-mermaid-engine-evidence/research/svg-converter-prototype/native-runner/diffs/supervise.py.diff"
+    },
+    {
+      "path": "/workspace/milkup-mermaid-engine-evidence/research/svg-converter-prototype/native-runner/run-single.sh",
+      "sha256": "43f2442c62589dc219492659b5a1054eacf0ae0a1694e8cc41274d77755f3f61",
+      "bytes": 3514,
+      "source": "/workspace/milkup-mermaid-engine-evidence/prototype/run-mermaid-single-narrow.sh",
+      "sourceSha256": "dcd88ee047f9f73c9a4e7b350b77e47d63a7307de3c59c59cbbcba7a3acd1507",
+      "byteEqual": false,
+      "diff": "/workspace/milkup-mermaid-engine-evidence/research/svg-converter-prototype/native-runner/diffs/run-single.sh.diff"
+    },
+    {
+      "path": "/workspace/milkup-mermaid-engine-evidence/research/svg-converter-prototype/native-runner/build.sh",
+      "sha256": "f74d3a007153dd15dcf08bbf31c38498de5ec1d7a1ffd7a52225de3038125ea1",
+      "bytes": 517,
+      "source": "/workspace/milkup-mermaid-engine-evidence/prototype/build-mermaid.sh",
+      "sourceSha256": "96a5dfd9e9ecf81fdede462b98995dc6ee397b44586ab6095897d39518657c15",
+      "byteEqual": false,
+      "diff": "/workspace/milkup-mermaid-engine-evidence/research/svg-converter-prototype/native-runner/diffs/build.sh.diff"
+    },
+    {
+      "path": "/workspace/milkup-mermaid-engine-evidence/research/svg-converter-prototype/native-runner/cases.json",
+      "sha256": "0293ed93de07d0b4fa3467fe658655a6c7d4ada6fa263c4757db43c51d0cef68",
+      "bytes": 9762
+    }
+  ]
+}

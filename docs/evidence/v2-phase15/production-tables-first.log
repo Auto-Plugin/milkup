@@ -1,0 +1,23 @@
+2026-10-13T19:01:11.399Z NATIVE_STARTUP_WINDOW 1322ms
+PASS production full table context and native cell navigation beyond header viewport
+node:internal/modules/run_main:107
+    triggerUncaughtException(
+    ^
+
+AssertionError [ERR_ASSERTION]: The expression evaluated to a falsy value:
+
+  assert(g.row.height>40)
+
+    at file:///workspace/milkup/tests/native/tauri-production-tables.mjs:24:138
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+    at async check (file:///workspace/milkup/tests/native/tauri-production-tables.mjs:10:57)
+    at async file:///workspace/milkup/tests/native/tauri-production-tables.mjs:22:2 {
+  generatedMessage: true,
+  code: 'ERR_ASSERTION',
+  actual: false,
+  expected: true,
+  operator: '==',
+  diff: 'simple'
+}
+
+Node.js v24.19.0

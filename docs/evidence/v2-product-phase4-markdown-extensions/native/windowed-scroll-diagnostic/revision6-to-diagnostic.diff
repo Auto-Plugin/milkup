@@ -1,0 +1,188 @@
+--- frozen-reachability-revision6
++++ windowed-scroll-diagnostic
+@@ -1320,6 +1320,52 @@
+   assert(geometry.caret.left >= geometry.editor.left-1 && geometry.caret.right <= geometry.editor.right+1, label + ' caret horizontally visible')
+   assert(geometry.caret.top >= geometry.editor.top-1 && geometry.caret.bottom <= geometry.editor.bottom+1, label + ' caret vertically visible')
+ }
++
++// External observation only. No DOM attributes, scroll positions or application state are written.
++const windowedScrollCollection = {diagnosticOnly:true,attempts:[],geometryCalls:[],error:null}
++async function installWindowedScrollObservation(from) {
++  await app.execute(`
++const editor=document.querySelector('.milkup-editor');
++const content=editor?.querySelector('.milkup-editor-content');
++if(!editor||!content) throw Error('Windowed content must exist before observer setup');
++if(window.__milkupWindowedScrollDiagnostic) throw Error('Fresh diagnostic page required');
++const ids=new WeakMap();let nextId=1,dropped=0;
++const nodeId=n=>{if(!n)return null;let id=ids.get(n);if(!id){id=nextId++;ids.set(n,id)}return id};
++const targetFrom=arguments[0],events=[];
++const find=()=>[...content.querySelectorAll('[data-document-presentation]')].find(p=>Number(p.dataset.presentationFrom)<=targetFrom&&Number(p.dataset.presentationTo)>targetFrom)||null;
++const state=p=>({previewNodeId:nodeId(p),connected:!!p?.isConnected,previewScrollTop:p?.scrollTop??null,
++ previewScrollLeft:p?.scrollLeft??null,rootScrollTop:editor.scrollTop,rootScrollLeft:editor.scrollLeft,
++ previewFrom:p?Number(p.dataset.presentationFrom):null,previewTo:p?Number(p.dataset.presentationTo):null});
++const add=(kind,detail)=>{events.push({kind,mono:performance.now(),timeOrigin:performance.timeOrigin,...detail});if(events.length>256){events.shift();dropped++}};
++let previous=find(),lastState=state(previous);
++add('installed',{current:lastState,contentNodeId:nodeId(content)});
++const onScroll=event=>{
++ const current=find();
++ if(event.target!==editor&&event.target!==current&&event.target!==previous)return;
++ const next=state(current);
++ add('scroll',{targetNodeId:nodeId(event.target),targetKind:event.target===editor?'editor':'preview',before:lastState,current:next});
++ lastState=next;
++};
++editor.addEventListener('scroll',onScroll,true);
++const observer=new MutationObserver(records=>{
++ const current=find();
++ const relevant=current!==previous||records.some(r=>r.target===content||r.target===previous||previous?.contains(r.target)||current?.contains(r.target));
++ if(!relevant)return;
++ const next=state(current);
++ add('childList',{replacement:current!==previous,previousNodeId:nodeId(previous),previousDetachedState:state(previous),before:lastState,current:next,mutationCount:records.length});
++ previous=current;lastState=next;
++});
++observer.observe(content,{childList:true,subtree:true});
++window.__milkupWindowedScrollDiagnostic={nodeId,snapshot:()=>({diagnosticOnly:true,targetFrom,limit:256,dropped,events:[...events],current:state(find())}),
++ stop:()=>{observer.disconnect();editor.removeEventListener('scroll',onScroll,true)}};
++`,from)
++}
++async function persistWindowedScrollObservation(stage) {
++  let browser=null,browserReadError=null
++  if(app)try{browser=await app.execute('return window.__milkupWindowedScrollDiagnostic?.snapshot()??null')}catch(error){browserReadError=String(error)}
++  await writeFile(path.join(output,stage==='caught-failure'?'windowed-scroll-observation-failure.json':'windowed-scroll-observation.json'),JSON.stringify({stage,...windowedScrollCollection,browser,browserReadError},null,2))
++}
++
+ async function caretGeometry() {
+   return app.execute(reachabilityClientGeometry + `
+ const e=document.querySelector('.milkup-editor'), c=document.querySelector('.milkup-cursor');
+@@ -1330,7 +1376,7 @@
+ async function vectorGeometry(sample, text, hitTest = false) {
+   const from = text.indexOf(sample.needle)
+   assert(from >= 0, 'Vector needle exists in the unchanged fixture')
+-  return app.execute(reachabilityClientGeometry + `
++  const result = await app.execute(reachabilityClientGeometry + `
+ const e=document.querySelector('.milkup-editor');
+ const p=[...document.querySelectorAll('[data-document-presentation]')].find(p=>
+   Number(p.dataset.presentationFrom)<=arguments[0]&&Number(p.dataset.presentationTo)>arguments[0]);
+@@ -1341,12 +1387,16 @@
+   top:Math.max(er.top,pr.top),bottom:Math.min(er.bottom,pr.bottom)};
+ const point={x:(clip.left+clip.right)/2,y:(clip.top+clip.bottom)/2};
+ const hit=arguments[1]?document.elementFromPoint(point.x,point.y):null;
+-return {editor:er,preview:pr,clip,previewFrom:Number(p.dataset.presentationFrom),
++const diagnostic=window.__milkupWindowedScrollDiagnostic;
++return {diagnosticOnly:true,mono:performance.now(),timeOrigin:performance.timeOrigin,
++  previewNodeId:diagnostic?.nodeId(p)??null,editor:er,preview:pr,clip,previewFrom:Number(p.dataset.presentationFrom),
+   previewTo:Number(p.dataset.presentationTo),previewScrollLeft:p.scrollLeft,
+   previewScrollTop:p.scrollTop,svg:s.getBoundingClientRect().toJSON(),scrollTop:e.scrollTop,
+   texts:[...s.querySelectorAll('text')].map(t=>({text:t.textContent,rect:t.getBoundingClientRect().toJSON()})),
+   wheelTarget:arguments[1]?{point,innerWidth,hitTag:hit?.tagName??null,
+     withinPreview:!!hit&&p.contains(hit),withinEditor:!!hit&&e.contains(hit)}:null};`, from, hitTest)
++  windowedScrollCollection.geometryCalls.push({hitTest,result})
++  return result
+ }
+ async function realWheel(direction, sample, text) {
+   const physical = Number(/WIDTH=(\d+)/.exec(x('getwindowgeometry', '--shell', nativeWindow))[1])
+@@ -1365,6 +1415,7 @@
+ }
+ async function revealVectorEdge(sample, text, edge) {
+   const steps = []
++  windowedScrollCollection.attempts.push({sample:sample.id,edge,steps})
+   for (let i = 0; i <= 30; i++) {
+     const g = await vectorGeometry(sample, text)
+     assert(g, 'Previously displayed vector must remain queryable during bounded wheel reveal')
+@@ -1413,65 +1464,37 @@
+   }, 'preferences and bundled renderers completed actual activation', 10000)
+   await record('SUPPLEMENTAL-ACTIVATION-READY', {requiredActive,registry:await registry(),startupWaitMs:10000,renderBudgetUnchanged:true})
+   await closeUI()
+-  for (const name of ['ordinary', 'windowed']) {
+-    const text = contents.get(name)
+-    await openDocument(name)
+-    for (const theme of ['light', 'dark']) {
+-      x('windowsize', nativeWindow, '1100', '760')
+-      await appearance(theme, 2)
+-      x('windowsize', nativeWindow, '760', '520')
+-      await app.until(async () => {const d=await observe();return Math.abs(d.width-380)<2 && Math.abs(d.height-260)<2}, 'native 200 percent narrow window')
+-      await seek('SAMPLE-ROOT', 'source')
+-      const initial = await app.probe()
+-      const markerFrom = text.indexOf('SAMPLE-ROOT')
+-      assert(markerFrom >= 0, 'Source marker exists')
+-      const markerEnd = text.indexOf('\r\n', markerFrom)
+-      assert(markerEnd > markerFrom, 'Source marker has its real CRLF boundary')
+-      const lineFrom = markerEnd + 2
+-      const lineTo = text.indexOf('\r\n', lineFrom)
+-      assert(lineTo > lineFrom && text.slice(lineFrom,lineTo).includes('\\frac'), 'Complete expected formula line follows source marker')
+-      await app.key('Right')
+-      await app.key('Down')
+-      await app.until(async () => {const p=await app.probe();return p.cursor>=lineFrom&&p.cursor<=lineTo}, 'next source line selected')
+-      await app.key('End')
+-      await app.until(async () => (await app.probe()).cursor === lineTo, 'native End reaches complete long source line')
+-      const end = await caretGeometry()
+-      assertCaretVisible(end, lineTo, 'End')
+-      assert(end.scrollLeft > 0, 'This exact long source line actually uses horizontal scrolling')
+-      await shot(`reach-${name}-${theme}-source-End`, {initial, end, lineFrom, lineTo})
+-      await app.key('Home')
+-      await app.until(async () => (await app.probe()).cursor === lineFrom, 'native Home returns to source line start')
+-      const home = await caretGeometry()
+-      assertCaretVisible(home, lineFrom, 'Home')
+-      assert(home.scrollLeft <= 26, 'Home returns horizontal reading origin')
+-      const after = await app.probe()
+-      assert.equal(after.version, initial.version)
+-      assert.equal(after.dirty, false)
+-      assert.deepEqual(await readFile(activeFile), Buffer.from(text))
+-      await shot(`reach-${name}-${theme}-source-Home`, {home, after})
+-      for (const sample of samples.filter(s => s.kind === 'vector')) {
+-        await seek(sample.marker, 'live')
+-        await assertSample(sample, 'live', text)
+-        const before = await vectorGeometry(sample, text)
+-        const bottom = await revealVectorEdge(sample, text, 'bottom')
+-        await shot(`reach-${name}-${theme}-${sample.id}-bottom`, {before, wheelSteps:bottom})
+-        const top = await revealVectorEdge(sample, text, 'top')
+-        await shot(`reach-${name}-${theme}-${sample.id}-top`, {wheelSteps:top})
+-        if(sample.id==='pie') for(const label of ['甲','乙']) {
+-          const legend=await revealLegend(sample,text,label)
+-          await shot(`reach-${name}-${theme}-pie-legend-${label}`, {wheelSteps:legend})
+-        }
+-        assert.equal((await app.probe()).version, initial.version)
+-        assert.equal((await app.probe()).dirty, false)
+-        assert.deepEqual(await readFile(activeFile), Buffer.from(text))
+-      }
+-    }
+-  }
+-  await record('SUPPLEMENTAL-REACHABILITY-COMPLETE', {formalAcceptance:false, sourceCaretCases:4, sourceCaretChecks:8, vectorCases:12, vectorEdgeChecks:24, pieLegendCases:8, nativeInput:'XTest End/Home and vertical/horizontal wheel', windowsTested:false})
+-} catch (error) {
+-  await writeFile(path.join(output, 'failure.json'), JSON.stringify({error:String(error), stack:error.stack}, null, 2))
+-  if (app) await shot('FAIL', {error:String(error)}).catch(()=>{})
++  const name='windowed',text=contents.get(name)
++  await openDocument(name)
++  x('windowsize', nativeWindow, '1100', '760')
++  await appearance('light', 2)
++  x('windowsize', nativeWindow, '760', '520')
++  await app.until(async () => {const d=await observe();return Math.abs(d.width-380)<2 && Math.abs(d.height-260)<2}, 'native 200 percent narrow window')
++  const sample=samples.find(s=>s.id==='flow')
++  await seek(sample.marker,'live')
++  await assertSample(sample,'live',text)
++  const initial=await app.probe()
++  assert.equal(initial.dirty,false)
++  assert.deepEqual(await readFile(activeFile),Buffer.from(text))
++  await installWindowedScrollObservation(text.indexOf(sample.needle))
++  const steps=await revealVectorEdge(sample,text,'bottom')
++  const after=await app.probe()
++  assert.equal(after.version,initial.version)
++  assert.equal(after.dirty,false)
++  assert.deepEqual(await readFile(activeFile),Buffer.from(text))
++  await persistWindowedScrollObservation('completed')
++  await shot('windowed-light-flow-bottom-diagnostic',{diagnosticOnly:true,steps,initial,after})
++  await record('WINDOWED-SCROLL-DIAGNOSTIC-COMPLETE',{diagnosticOnly:true,formalAcceptance:false,scope:'windowed/light/200/narrow/flow/bottom',windowsTested:false})
++} catch(error) {
++  windowedScrollCollection.error=String(error)
++  await persistWindowedScrollObservation('caught-failure').catch(()=>{})
++  await writeFile(path.join(output,'failure.json'),JSON.stringify({diagnosticOnly:true,error:String(error),stack:error.stack},null,2))
++  if(app)await shot('FAIL',{diagnosticOnly:true,error:String(error)}).catch(()=>{})
+   throw error
+ } finally {
+-  if (app) await app.close()
+-}
++  await persistWindowedScrollObservation('finally').catch(()=>{})
++  if(app){
++    await app.execute('window.__milkupWindowedScrollDiagnostic?.stop()').catch(()=>{})
++    await app.close()
++  }
++}

@@ -1,0 +1,95 @@
+{
+  "config": {
+    "argv": [
+      "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+      "/workspace/milkup/node_modules/@playwright/test/cli.js",
+      "test",
+      "tests/e2e/desktop-markdown-extensions.spec.ts",
+      "--project=desktop-msedge",
+      "--workers=1",
+      "--retries=0",
+      "--reporter=line,json",
+      "--output=/workspace/milkup-mermaid-engine-evidence/research/production-ui-window/view/21-browser-selector-after/artifacts",
+      "--grep",
+      "^search keeps the selected marker visible while asynchronous block previews settle$"
+    ],
+    "configFile": "/workspace/milkup/playwright.config.ts",
+    "rootDir": "/workspace/milkup/tests/e2e",
+    "failOnFlakyTests": false,
+    "forbidOnly": false,
+    "fullyParallel": false,
+    "globalSetup": null,
+    "globalTeardown": null,
+    "globalTimeout": 0,
+    "grep": {},
+    "grepInvert": null,
+    "maxFailures": 0,
+    "metadata": {},
+    "preserveOutput": "always",
+    "projects": [
+      {
+        "outputDir": "/workspace/milkup-mermaid-engine-evidence/research/production-ui-window/view/21-browser-selector-after/artifacts",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {},
+        "id": "playground-msedge",
+        "name": "playground-msedge",
+        "testDir": "/workspace/milkup/tests/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "/live-render\\.spec\\.ts/"
+        ],
+        "timeout": 60000
+      },
+      {
+        "outputDir": "/workspace/milkup-mermaid-engine-evidence/research/production-ui-window/view/21-browser-selector-after/artifacts",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {},
+        "id": "desktop-msedge",
+        "name": "desktop-msedge",
+        "testDir": "/workspace/milkup/tests/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "/desktop-(?:shell|visual-fixes|updates|plugin-cards|plugin-tree|plugin-forms|workspace|preferences|shortcuts|formatting|images|markdown-extensions)\\.spec\\.ts/"
+        ],
+        "timeout": 60000
+      }
+    ],
+    "quiet": false,
+    "reporter": [
+      [
+        "line"
+      ],
+      [
+        "json"
+      ]
+    ],
+    "reportSlowTests": {
+      "max": 5,
+      "threshold": 300000
+    },
+    "shard": null,
+    "tags": [],
+    "updateSnapshots": "missing",
+    "updateSourceMethod": "patch",
+    "version": "1.61.1",
+    "workers": 1,
+    "webServer": null
+  },
+  "suites": [],
+  "errors": [
+    {
+      "message": "Error: No tests found.\nMake sure that arguments are regular expressions matching test files.\nYou may need to escape symbols like \"$\" or \"*\" and quote the arguments.",
+      "stack": "Error: No tests found.\nMake sure that arguments are regular expressions matching test files.\nYou may need to escape symbols like \"$\" or \"*\" and quote the arguments."
+    }
+  ],
+  "stats": {
+    "startTime": "2026-10-16T14:50:25.050Z",
+    "duration": 5537.784000000001,
+    "expected": 0,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0
+  }
+}

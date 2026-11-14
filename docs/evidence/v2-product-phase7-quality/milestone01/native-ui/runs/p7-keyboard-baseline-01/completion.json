@@ -1,0 +1,56 @@
+{
+  "passed": false,
+  "stage": "keyboard",
+  "routes": [
+    "ordinary",
+    "windowed"
+  ],
+  "binarySha256": "f15c476a4f6e7b5f254e325692d57e9bfaa798580441dd3554f6c4fe1e9d802e",
+  "sampleCount": 24,
+  "passedSamples": 16,
+  "failedSamples": [
+    "ordinary-source-menu-Escape",
+    "ordinary-live-menu-Escape",
+    "windowed-source-Tab",
+    "windowed-source-shift-Tab",
+    "windowed-source-menu-Escape",
+    "windowed-live-Tab",
+    "windowed-live-shift-Tab",
+    "windowed-live-menu-Escape"
+  ],
+  "fixtureFailures": [],
+  "finalFiles": [
+    {
+      "file": "/workspace/milkup-p7-quality-evidence/milestone01/native-ui/runs/p7-keyboard-baseline-01/ordinary-source.md",
+      "expected": "02006fb2f1010f81aae43bf32dcbb306f1b06446ce041c339122608c3d72ac3f",
+      "actual": "02006fb2f1010f81aae43bf32dcbb306f1b06446ce041c339122608c3d72ac3f",
+      "unchanged": true
+    },
+    {
+      "file": "/workspace/milkup-p7-quality-evidence/milestone01/native-ui/runs/p7-keyboard-baseline-01/ordinary-live.md",
+      "expected": "02006fb2f1010f81aae43bf32dcbb306f1b06446ce041c339122608c3d72ac3f",
+      "actual": "02006fb2f1010f81aae43bf32dcbb306f1b06446ce041c339122608c3d72ac3f",
+      "unchanged": true
+    },
+    {
+      "file": "/workspace/milkup-p7-quality-evidence/milestone01/native-ui/runs/p7-keyboard-baseline-01/windowed-source.md",
+      "expected": "248937e2f6e0bdda72d01bd9d9517a1a5e8a4f49c68a61c9e623631352292372",
+      "actual": "248937e2f6e0bdda72d01bd9d9517a1a5e8a4f49c68a61c9e623631352292372",
+      "unchanged": true
+    },
+    {
+      "file": "/workspace/milkup-p7-quality-evidence/milestone01/native-ui/runs/p7-keyboard-baseline-01/windowed-live.md",
+      "expected": "248937e2f6e0bdda72d01bd9d9517a1a5e8a4f49c68a61c9e623631352292372",
+      "actual": "248937e2f6e0bdda72d01bd9d9517a1a5e8a4f49c68a61c9e623631352292372",
+      "unchanged": true
+    }
+  ],
+  "limitations": [
+    "Linux production WebKit/X11 only; native application zoom is not OS DPI.",
+    "X11 clipboard + native Ctrl+V is not a real IME/composition/candidate-window test.",
+    "No screen reader is exercised. DOM roles/names and visible keyboard trajectories are separate evidence.",
+    "No IPC invocation or editor model mutation; helper focus is explicitly recorded, never counted as a Tab sequence.",
+    "Bounded event observer reads trusted input/focus and two-rAF DOM proxies, not physical screen latency.",
+    "Every failing sample is retained; successful later samples do not erase earlier failures."
+  ]
+}

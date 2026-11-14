@@ -1,0 +1,12 @@
+| Cell | Hidden at init | Timer callbacks (ms) | Native dispatch→settled (ms) | Result |
+|---|---|---|---:|---|
+| A-control | true | [] | 40.686 | result |
+| C-control | false | [] | 113.961 | result |
+| A-single | true | [2] | 9.029 | result |
+| C-single | false | [0] | 10.463 | result |
+| A-double | true | [0, 0] | 8.967 | result |
+| C-double | false | [1, 1] | 9.549 | result |
+| A-class | true | — | 738.670 | result |
+| C-class | false | — | 1027.424 | result |
+
+All eight native cleanup checks and 32 discrete X11 observations passed. This single diagnostic sequence neither establishes a hidden-timer cause for historical failures nor validates a product fix.

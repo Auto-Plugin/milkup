@@ -1,0 +1,64 @@
+Run06 independent frozen wire, identity and stage audit
+
+Outcome: original strict wire audit FIRST exit 0; unchanged stage auditor FIRST exit 1 with integrityOk=true and one gap: render_6 has no App terminal. No source/script default scope was weakened and neither audit was rerun. The first commands, actual exits and complete outputs are retained under strict-wire-first and stage-first. The separate derive-local-spans.py first execution exit 0 verifies raw frozen inputs and records process-local/JS-local arithmetic without changing either original auditor.
+
+Freeze: /workspace/milkup-mermaid-engine-evidence/research/native-cold-start-diagnostic-06/run06-frozen-manifest.json SHA256 dc3ed51b01ef044a6056126cfb42eee3f34b16131f6612cc0a791cf78e48afe4. All 218 files, 17,674,262 bytes, independently read and matched in frozen-input-verification.json. No live /proc, browser, native runtime, retry, build or product edit was performed by this reviewer. This is diagnostic prefix evidence, not production/full UI acceptance and not a retrospective answer for production08 or run03.
+
+Recorded outcomes remain separate: Node cold prefix exit 0; CPU exit 2, stopReason app-terminal and failure=null; outer harness exit 1 at its samplerExitCode==0 assertion. Prefix record states coldGatePassed=true, fullUIAccepted=false, productionAcceptance=false. The CPU incompleteness is not evidence that the Node cold assertion failed. The saved exact-known cleanup audit has all 19 recorded identities absent; that is bounded known-identity cleanup evidence, not a global process survey. Driver also records a remote-inspector address-in-use warning; this review does not establish it as a cause of any phase time or missing endpoint.
+
+Exact wire/fixture association
+
+App 477590/birth9531528; guardian477722/birth9531934; helper477728/birth9531943. Instance 3a05335875b0f1851662020804a5528c26a4af571065d142. Seven wire events comprise one guardian identity plus six accepted render requests. All six full UTF8 message lengths and SHA256 match their recorded bytes. Each message.id matches its requestId, pluginId is milkup.diagrams and rendererId is diagrams.mermaid. Instance binding is provided by the native accepted record and native dispatch, not by an invented field in the wire message. All frozen driver dispatch keys exactly match the six accepted keys, once each. No native deadline trace is present; the true endpoints below, rather than absence of deadlines, establish settlement for requests1-5.
+
+The ordinary fixture SHA is a7267df165778c560a8fba59bfbff7065ae63365741e3eb87078783bc865fd4b. Its prefix contains Chinese, combining e-accent and woman/skin-tone/ZWJ/laptop emoji. Source was reconstructed using UTF16 code-unit slices, not Python code-point offsets. Full source, block and content ranges match the frozen fixture. The source membership is:
+render_1: [108,342),234 UTF16 units,950 wire bytes, block-000-first-official-example.
+render_2: [108,342),234 UTF16 units,950 wire bytes, same sample.
+render_3: [440,969),529 UTF16 units,1256 wire bytes, classDiagram-000-first-official-example.
+render_4: [108,342),234 UTF16 units,950 wire bytes, block sample.
+render_5: [440,969),529 UTF16 units,1256 wire bytes, class sample.
+render_6: [1087,1257),170 UTF16 units,882 wire bytes, entityRelationshipDiagram-000-first-official-example.
+Full hashes and nested ranges remain in strict-wire-first/stdout.json; none of these memberships identifies an internal diagram block at a historical timeout.
+
+Native identity
+
+Frozen armed record is712 bytes/SHA c217a864d33105ad2b08f00e466b4dac25b9f9ccb02cc1a4b52f4d764c5894a5; result is1097 bytes/SHA a429be8be145ba69884d1e6f0031c6c72e9b2ab82ee4be0145272e2f64eb3c0f. Both match CPU observer cached source digests and the same native instance/helper/guardian. Result held FD21, exactly one received FD, tokenMatched=true, nativeStage/nativeErrno/GError=0. The kernel fdinfo Pid is477775; NSpid is[477775,2]. The observer uses477775, not inner PID2.
+
+The frozen WebProcess proof binds477775/birth9531969 via four identity nodes:477775→477774/birth9531967→477771/birth9531967→477728/birth9531943. Before/after chain PID/birth/PPID/live fields match; second phase reads in reverse order. Exact helper/guardian boundary identities match; raw fdinfo before/after is identical and agrees with the native result. Binding argv decodes to /usr/lib/x86_64-linux-gnu/webkit2gtk-4.1/WebKitWebProcess,4,17, so this role is not inferred from bwrap parameters. This is observed bounded ancestry, not an atomic snapshot, future-exec guarantee or complete renderer tree. CPU-specific tick/coverage calculations belong to the separate CPU review. No clock/time-namespace equivalence follows from pidfd identity.
+
+Native identity local capture spans are helper preparation0.180784ms, helper receive0.075951ms and WebProcess callback0.013164ms. These are separate same-process spans; publication/serialization/hash tails excluded by their source contract remain excluded. No callback-to-helper transport latency is asserted.
+
+Stage shape, scope and overhead
+
+App has33 rows/10,357 bytes, maximum row327 bytes. Helper has108 rows/37,062 bytes, maximum row382 bytes. Both status and complete agree, final/closed=true, attempted=enqueued=written, inFlight=0, dropped/unknownOrUnadmitted/ioErrors=0. Sequence sets, exact native actors/instance, caps, detail shapes and accepted-key correlations pass the unchanged stage auditor. Limits remain per process512 events/65536 event bytes/1024 row bytes/queue32/eight requests; zero observed losses do not imply records after closure exist.
+
+App stage captureTotal0.605745ms, max0.206293ms, admission0.006992ms, writer CPU11.807156ms. Helper captureTotal1.444183ms, max0.213886ms, admission0.005785ms, collectionInclusive14.201218ms across454 collection calls, writer CPU19.216322ms. Separate full-wire captureTotal0.066673ms, max0.015262ms and writer CPU18.482246ms; reserved full wire6244 bytes. Capture excludes caller details/clock cost; helper collection includes original conversion plus diagnostic capture and overlaps it; writer CPU excludes final publication. These are not disjoint overhead totals, not zero interference and not budget deductions. JS last drained state is58 marks,0 dropped,408 drains,11938 conservative bytes,markMs0; timer quantization means markMs0 does not prove zero JS diagnostic cost.
+
+Five real App settlement endpoints
+
+The following columns are independent local spans. App values are original App dispatch→App render-settled; JS values use only that realm's performance.now marks. They must not be subtracted across columns to claim transport/CPU/overhead. Millisecond JS marks are coarse.
+
+request   App dispatch→settle ms   JS invoke→resolve ms   JS typed serialize ms   JS envelope ms
+render_1        256.553764                  244                    1                   0
+render_2        131.168135                  120                    1                   0
+render_3        587.621558                  580                    2                   1
+render_4        189.326746                  137                    1                   0
+render_5        263.589757                  256                    2                   0
+render_6        unknown                    unknown                unknown             unknown
+
+All five settled rows have ok=true and rpcId=null, exactly one per native request and no conflicting deadline. App frame-read→settle is0.675073/0.641967/1.289263/0.937130/1.246039ms respectively. Received envelope sizes agree with helper original-output sizes:23172 bytes for block requests and53390 for class requests. Success serialization phase shapes and ordering are present for these five, with output-ready. render_1 also has an observed cancel input and a second evaluate callback; the existing successful settlement is not replaced by an invented cancellation terminal.
+
+Initialization has one true activation-settled(ok=true,rpcId mvbu712a-0). App launch→activation-settled is1095.591789ms; JS-local module import378ms and activate1ms. Again these clocks are not subtracted. App settled timestamps are after original deadline validations and active clear, not final frontend delivery.
+
+Helper-local first evaluate-submit→callback durations are246.910334/121.935889/292.772827/141.864914/142.907112/82.630437ms for requests1-6. These callbacks are evaluation callbacks, not necessarily async render completion; render_3's invoke-resolve is only observed in a later drain. Helper dequeue→output collection for requests1-5 is254.341594/126.154989/584.625868/182.549592/260.529012ms. Collection→pipe complete is0.409649/0.256349/0.734073/0.276612/1.007711ms. Collection timestamp is callback entry and includes subsequent diagnostic parsing/capture before pipe output; it is not exact JS output creation time.
+
+The render_6 gap and closure boundary
+
+render_6 has full accepted wire, original App dispatch, owner-accepted, successful owner pipe completion, helper dequeue/evaluate-submit and evaluate-callback(ok=true). There is no retained App frame-read/receive/settled/deadline, helper result-drained/result-pipe-complete or JS mark for this request. Its callback success only proves that evaluate callback returned successfully; it does not prove the async renderer promise resolved. No failure, timeout, stuck function or ER-specific cause can be assigned from this absence.
+
+Both stage streams do have final records, but there is no exact monotonic close timestamp in them or finish.request. The App wire writer final timestamp is95324334286607,200.909394ms after render_6's App dispatch; it is the other recorder's final publication sample, not stage closure or request endpoint. Guardian kill-start95324375787197 and cleanup-complete95324412652968 are retained as raw lifecycle records from another process, not used to terminate an App/JS duration. The absence of a terminal may reflect the observation/close boundary or work that had not produced a retained terminal; current evidence does not distinguish these. Stage final and zero drops therefore coexist with incomplete request coverage. First stage exit1 remains the correct complete-scope result. No post-close tail is fabricated.
+
+What this supports next
+
+This run establishes useful outer-layer localization for five observed successes: the JS-local invoke interval is much longer than its adjacent typed/envelope serialization intervals. It does not separate Mermaid parsing, layout, SVG generation, font/layout waits, event-loop delay or CPU work inside that async invocation. It also does not reproduce the original 2-second failure; the largest observed successful App span is587.621558ms. Thus there is no evidence-based product fix or reason to increase budgets from this run, and no basis to label the historical production08 timeout as classDiagram or any particular library phase.
+
+If a future question specifically requires splitting the demonstrated invocation interval, bounded plugin/internal phase observation would answer a remaining attribution question, but run06 alone does not establish that another runtime or invasive inner instrumentation is necessary now. First retain this complete failure/partial classification and the independent CPU review. If future collection completeness becomes the goal, its closure contract and endpoint criterion need explicit design review; extending product budgets, silently waiting for a missing request or rerunning this case is not authorized by this audit. No next layer was implemented here.

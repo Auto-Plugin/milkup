@@ -1,0 +1,347 @@
+--- manager-before.ts
++++ packages/view-dom/src/document-presentation.ts
+@@ -11,7 +11,11 @@
+   type DocumentMathNode,
+   type DocumentSvgImage,
+ } from '@milkup/core'
+-import { createOwnedDocumentSvgImage, type OwnedDocumentSvgImage } from './document-svg-image'
++import {
++  createOwnedDocumentSvgImage,
++  imageDecodeDeadlineMs,
++  type OwnedDocumentSvgImage,
++} from './document-svg-image'
+ 
+ export interface DocumentPresentationWindow {
+   readonly sourceIdentity: object
+@@ -241,6 +245,8 @@
+   private epoch = 0
+   private stopped = false
+   private painting = false
++  private successfulImageRevision = -1
++  private referenceImagePaintPending = false
+   private scheduled = false
+   private job: Job | undefined
+   private cache:
+@@ -274,6 +280,15 @@
+   private readonly saved = new Map<HTMLElement, SavedLine>()
+   // Only the current response is retained, bounded by its validated fragment/node budgets.
+   private readonly fragmentImages = new Map<DocumentPresentationFragment, FragmentImages>()
++  // One previously decoded fragment per range, never a substitute for validating
++  // the latest response. Its deadline survives successive pending replacements.
++  private readonly previousFragmentImages = new Map<
++    string,
++    {
++      owner: FragmentImages
++      timer: ReturnType<typeof setTimeout>
++    }
++  >()
+   private imageGeneration = 0
+   private imageRevision = 0
+   private readonly observer: MutationObserver
+@@ -1220,6 +1235,29 @@
+       childLines.every((line, index) => line === this.painted!.lines[index])
+     )
+       return
++    // A successful decode can arrive after provider settlement, while the user
++    // is pressing a reference in the previous complete fragment. Reuse the
++    // native-click lease; failures and deadline expiry never take this gate.
++    if (
++      this.painted?.response === response &&
++      this.samePaintContext(this.painted.context, context) &&
++      this.painted.imageRevision !== this.imageRevision &&
++      this.successfulImageRevision === this.imageRevision &&
++      !Array.from(this.fragmentImages.values()).some((owner) => owner.failed) &&
++      this.hasReferencePointer()
++    ) {
++      if (!this.referenceImagePaintPending) {
++        const waiting = this.waitForReferencePointer()
++        if (waiting) {
++          this.referenceImagePaintPending = true
++          void waiting.then(() => {
++            this.referenceImagePaintPending = false
++            this.schedule()
++          })
++        }
++      }
++      return
++    }
+     this.painting = true
+     this.observer.disconnect()
+     const anchor = this.captureScrollAnchor(currentSelection)
+@@ -1227,40 +1265,41 @@
+     const previewScroll = this.capturePreviewScroll()
+     const retainedImages = new Set<DocumentPresentationFragment>()
+     // Responses have already passed the independent aggregate validator. Match
+-    // each range once; only fully decoded, semantically identical images can
+-    // survive a new source window. Pending owners keep no renewed deadline.
++    // each range once: identical decoded owners transfer directly; different
++    // complete old fragments may remain visible within one shared-budget layer
++    // until the new images decode. Pending replacements never renew its deadline.
+     const replacements = new Map(
+       response.result.fragments.map((fragment) => [fragmentKey(fragment), fragment]),
+     )
++    for (const [key, previous] of this.previousFragmentImages) {
++      const replacement = replacements.get(key)
++      if (
++        !replacement ||
++        replacement.status === 'error' ||
++        !this.sameImageContext(previous.owner, response, context)
++      )
++        this.disposePreviousFragmentImages(key)
++    }
+     for (const [fragment, owner] of Array.from(this.fragmentImages)) {
+-      if (
+-        owner.generation !== this.imageGeneration ||
+-        !this.samePaintContext(owner.context, context)
+-      ) {
+-        this.disposeFragmentImages(fragment)
+-        continue
+-      }
+-      if (owner.response === response) continue
++      if (owner.response === response && this.sameImageContext(owner, response, context)) continue
+       const replacement = replacements.get(fragmentKey(fragment))
+-      const previous = owner.response.request
+-      const next = response.request
+-      if (
+-        replacement &&
+-        !owner.failed &&
+-        owner.images.every((image) => image.state === 'decoded') &&
+-        previous.documentId === next.documentId &&
+-        previous.version === next.version &&
+-        previous.theme === next.theme &&
+-        previous.width === next.width &&
+-        previous.target === next.target &&
+-        JSON.stringify(owner.response.declarations) === JSON.stringify(response.declarations) &&
+-        owner.signature === JSON.stringify(replacement)
+-      ) {
+-        this.fragmentImages.delete(fragment)
+-        owner.fragment = replacement
+-        owner.response = response
+-        this.fragmentImages.set(replacement, owner)
+-      } else this.disposeFragmentImages(fragment)
++      const decoded = !owner.failed && owner.images.every((image) => image.state === 'decoded')
++      if (replacement && decoded && this.sameImageContext(owner, response, context)) {
++        if (owner.signature === JSON.stringify(replacement)) {
++          this.fragmentImages.delete(fragment)
++          owner.fragment = replacement
++          owner.response = response
++          this.fragmentImages.set(replacement, owner)
++          this.disposePreviousFragmentImages(fragmentKey(fragment))
++          continue
++        }
++        if (replacement.status !== 'error' && this.hasFragmentImages(replacement)) {
++          this.fragmentImages.delete(fragment)
++          this.retainPreviousFragmentImages(owner, response)
++          continue
++        }
++      }
++      this.disposeFragmentImages(fragment)
+     }
+     // Same-context synchronous replacement transfers the already decoded DOM.
+     // Hard restore never takes this path and always revokes staged/mounted URLs.
+@@ -1298,12 +1337,24 @@
+         if (images) {
+           retainedImages.add(fragment)
+           if (images.failed) {
++            this.disposePreviousFragmentImages(fragmentKey(fragment))
+             this.fallback('预览不可用，保留 Markdown 源码。')
+             continue
+           }
+-          if (images.images.some((image) => image.state !== 'decoded')) continue
++          if (images.images.some((image) => image.state !== 'decoded')) {
++            const previous = this.previousFragmentImages.get(fragmentKey(fragment))?.owner
++            if (!previous || previous.images.some((image) => image.state !== 'decoded')) continue
++            // Keep the entire old validated semantic tree while the independent
++            // new tree decodes. Do not combine new labels with old image bytes.
++            fragments.push(previous.fragment)
++          } else {
++            this.disposePreviousFragmentImages(fragmentKey(fragment))
++            fragments.push(fragment)
++          }
++        } else {
++          this.disposePreviousFragmentImages(fragmentKey(fragment))
++          fragments.push(fragment)
+         }
+-        fragments.push(fragment)
+         if (fragment.layout === 'block')
+           blocks.push({
+             fromLine: Number(lines[0]!.dataset.line),
+@@ -1383,9 +1434,90 @@
+     } finally {
+       for (const fragment of this.fragmentImages.keys())
+         if (!retainedImages.has(fragment)) this.disposeFragmentImages(fragment)
++      const retainedKeys = new Set(Array.from(retainedImages, fragmentKey))
++      for (const key of this.previousFragmentImages.keys())
++        if (!retainedKeys.has(key)) this.disposePreviousFragmentImages(key)
+       this.painting = false
+       this.observe()
+     }
++  }
++
++  private sameImageContext(
++    owner: FragmentImages,
++    response: DocumentPresentationResponse,
++    context: PaintContext,
++  ): boolean {
++    const previous = owner.response.request,
++      next = response.request
++    return (
++      owner.generation === this.imageGeneration &&
++      this.samePaintContext(owner.context, context) &&
++      previous.documentId === next.documentId &&
++      previous.version === next.version &&
++      previous.theme === next.theme &&
++      previous.width === next.width &&
++      previous.target === next.target &&
++      JSON.stringify(owner.response.declarations) === JSON.stringify(response.declarations)
++    )
++  }
++
++  private hasFragmentImages(fragment: DocumentPresentationFragment): boolean {
++    const visit = (node: DocumentPresentationNode): boolean =>
++      node.type === 'svg-image' ||
++      ((node.type === 'group' ||
++        node.type === 'emphasis' ||
++        node.type === 'code' ||
++        node.type === 'sup' ||
++        node.type === 'sub') &&
++        node.children.some(visit))
++    return visit(fragment.content)
++  }
++
++  private retainPreviousFragmentImages(
++    owner: FragmentImages,
++    response: DocumentPresentationResponse,
++  ): void {
++    const key = fragmentKey(owner.fragment)
++    this.disposePreviousFragmentImages(key)
++    try {
++      // Individually valid past responses do not authorize accumulating their
++      // heaviest fragments. The complete old layer shares the original budget.
++      const fragments = [
++        ...Array.from(this.previousFragmentImages.values(), (entry) => entry.owner.fragment),
++        owner.fragment,
++      ].sort((a, b) => a.from - b.from || a.to - b.to)
++      copyDocumentPresentationAggregate(
++        { fragments, complete: false },
++        response.request,
++        response.declarations,
++      )
++    } catch {
++      for (const image of owner.images) image.dispose()
++      return
++    }
++    const timer = setTimeout(() => {
++      if (this.previousFragmentImages.get(key)?.owner !== owner) return
++      this.releaseReferencePointer()
++      this.disposePreviousFragmentImages(key)
++      // A succession of distinct pending results must not renew the original
++      // replacement deadline or keep an older presentation visible forever.
++      for (const current of this.fragmentImages.values()) {
++        if (fragmentKey(current.fragment) !== key) continue
++        current.failed = true
++        for (const image of current.images) image.dispose()
++      }
++      this.imageRevision++
++      this.schedule()
++    }, imageDecodeDeadlineMs)
++    this.previousFragmentImages.set(key, { owner, timer })
++  }
++
++  private disposePreviousFragmentImages(key: string): void {
++    const previous = this.previousFragmentImages.get(key)
++    if (!previous) return
++    this.previousFragmentImages.delete(key)
++    clearTimeout(previous.timer)
++    for (const image of previous.owner.images) image.dispose()
+   }
+ 
+   private disposeFragmentImages(fragment?: DocumentPresentationFragment): void {
+@@ -1397,6 +1529,7 @@
+       for (const owner of this.fragmentImages.values())
+         for (const image of owner.images) image.dispose()
+       this.fragmentImages.clear()
++      for (const key of this.previousFragmentImages.keys()) this.disposePreviousFragmentImages(key)
+     }
+   }
+ 
+@@ -1433,6 +1566,16 @@
+     this.fragmentImages.set(fragment, owner)
+     const changed = () => {
+       const currentFragment = owner.fragment
++      const key = fragmentKey(currentFragment)
++      if (this.previousFragmentImages.get(key)?.owner === owner) {
++        if (owner.images.some((image) => image.state !== 'decoded')) {
++          this.releaseReferencePointer()
++          this.disposePreviousFragmentImages(key)
++          this.imageRevision++
++          this.schedule()
++        }
++        return
++      }
+       if (this.fragmentImages.get(currentFragment) !== owner) return
+       if (
+         this.stopped ||
+@@ -1446,6 +1589,7 @@
+         return
+       }
+       if (owner.images.some((image) => image.state === 'failed')) {
++        this.releaseReferencePointer()
+         owner.failed = true
+         for (const image of owner.images) image.dispose()
+       }
+@@ -1453,6 +1597,7 @@
+       // not hide any source; a retained failure cannot restart via observation.
+       if (owner.failed || owner.images.every((image) => image.state === 'decoded')) {
+         this.imageRevision++
++        if (!owner.failed) this.successfulImageRevision = this.imageRevision
+         this.schedule()
+       }
+     }
+@@ -1486,12 +1631,21 @@
+       sameSelection(a.selection, b.selection)
+     )
+   }
++  private displayedFragment(fragment: DocumentPresentationFragment): DocumentPresentationFragment {
++    const owner = this.fragmentImages.get(fragment)
++    return owner && !owner.failed && owner.images.some((image) => image.state !== 'decoded')
++      ? (this.previousFragmentImages.get(fragmentKey(fragment))?.owner.fragment ?? fragment)
++      : fragment
++  }
+   /** Keep offsets only within this synchronous replacement, never across documents or edits. */
+   private capturePreviewScroll(): PreviewScroll | undefined {
+     const painted = this.painted
+     if (!painted || !this.samePaintContext(painted.context, this.paintContext())) return
+     const fragments = new Map(
+-      painted.response.result.fragments.map((fragment) => [fragmentKey(fragment), fragment]),
++      painted.response.result.fragments.map((fragment) => [
++        fragmentKey(fragment),
++        this.displayedFragment(fragment),
++      ]),
+     )
+     const positions = new Map<
+       string,
+@@ -1515,7 +1669,10 @@
+   ): void {
+     if (!saved || !this.samePaintContext(saved.context, this.paintContext())) return
+     const fragments = new Map(
+-      response.result.fragments.map((fragment) => [fragmentKey(fragment), fragment]),
++      response.result.fragments.map((fragment) => [
++        fragmentKey(fragment),
++        this.displayedFragment(fragment),
++      ]),
+     )
+     for (const node of Array.from(
+       this.content.querySelectorAll<HTMLElement>('[data-document-presentation]'),
+@@ -1571,7 +1728,10 @@
+           }
+         },
+         () => {
+-          const image = this.fragmentImages.get(fragment)?.images[imageIndex++]
++          const owner =
++            this.fragmentImages.get(fragment) ??
++            this.previousFragmentImages.get(fragmentKey(fragment))?.owner
++          const image = owner?.images[imageIndex++]
+           if (!image || image.state !== 'decoded') throw new Error('SVG image is not decoded')
+           return image.element
+         },

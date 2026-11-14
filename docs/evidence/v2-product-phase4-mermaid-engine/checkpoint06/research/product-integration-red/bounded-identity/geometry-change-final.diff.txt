@@ -1,0 +1,156 @@
+--- geometry-before.ts
++++ /workspace/milkup/packages/core/src/document-svg-image-geometry.ts
+@@ -32,7 +32,10 @@
+ interface GeometryResult {
+   readonly fill: MaybeBounds
+   readonly ink: MaybeBounds
++  /** The unfiltered fill/stroke geometry is unknown, even after a hard filter clip. */
+   readonly uncertain: boolean
++  /** Output ink lacks a finite envelope. A bounded identity filter can resolve only this. */
++  readonly paintUncertain: boolean
+ }
+ interface GeometryLimits {
+   readonly surfacePixels: number
+@@ -358,9 +361,6 @@
+   if (length.unit === 'percent') return (length.value * basis) / 100
+   return length.value
+ }
+-function area(box: MaybeBounds): number {
+-  return box ? Math.max(0, box[2] - box[0]) * Math.max(0, box[3] - box[1]) : 0
+-}
+ /** Include every output pixel partly intersecting this world-space envelope. */
+ function pixelArea(box: MaybeBounds): number {
+   return box
+@@ -510,10 +510,12 @@
+     let fill: MaybeBounds = null
+     let ink: MaybeBounds = null
+     let uncertain = false
++    let paintUncertain = false
+     const add = (result: GeometryResult): void => {
+       fill = union(fill, result.fill)
+       ink = union(ink, result.ink)
+       uncertain ||= result.uncertain
++      paintUncertain ||= result.paintUncertain
+     }
+     switch (node.kind) {
+       case 'rect':
+@@ -538,10 +540,12 @@
+       case 'text':
+         // Host font availability is a prerequisite, not a proof of glyph bounds.
+         uncertain = true
++        paintUncertain = true
+         textStyles(node, context, viewport, childWorld)
+         break
+       case 'textBox':
+         uncertain = true
++        paintUncertain = true
+         fill = [node.box[0], node.box[1], node.box[0] + node.box[2], node.box[1] + node.box[3]]
+         break
+     }
+@@ -573,6 +577,7 @@
+         fill: transformBounds(result.fill, local),
+         ink: transformBounds(result.ink, local),
+         uncertain: result.uncertain,
++        paintUncertain: result.paintUncertain,
+       })
+     }
+     if (
+@@ -668,11 +673,27 @@
+ 
+     const filter = context.own.filter
+     if (filter && filter.kind !== 'none') {
+-      if (uncertain) unsupported('text bbox-dependent filter requires trusted metrics')
++      const definitionFilter =
++        filter.kind === 'definition' ? definition(filter.ref, 'dropShadowFilter') : undefined
++      // This exact existing primitive preserves SourceGraphic and clips all of
++      // its output to an explicit, geometry-independent region. The serializer
++      // writes the definition's color space on <filter>; its sole feDropShadow
++      // inherits that value, not the referencing shape's paint style.
++      const boundedIdentity =
++        definitionFilter?.units === 'userSpaceOnUse' &&
++        definitionFilter.primitiveUnits === 'userSpaceOnUse' &&
++        definitionFilter.colorInterpolation === 'sRGB' &&
++        definitionFilter.dx === 0 &&
++        definitionFilter.dy === 0 &&
++        definitionFilter.stdDeviation[0] === 0 &&
++        definitionFilter.stdDeviation[1] === 0 &&
++        definitionFilter.color[3] === 0
++      if (uncertain && !boundedIdentity)
++        unsupported('text bbox-dependent filter requires trusted metrics')
+       if (filter.kind === 'unresolved-local') {
+         // A guaranteed-absent local target leaves the unfiltered ink unchanged.
+         // Preserve non-none grouping cost; it is not a free/no-bounds token.
+-        // The uncertainty check above also covers text-containing groups.
++        // The geometry uncertainty check above also covers text-containing groups.
+         work(pixelArea(transformBounds(ink, total)), 0, instances)
+       } else if (filter.kind === 'cssDropShadow') {
+         let output = ink
+@@ -688,11 +709,15 @@
+             : null
+           output = union(output, shifted)
+           checkBounds(transformBounds(output, total))
+-          work(area(transformBounds(output, total)), shadow.blur * maximumScale(total), instances)
++          work(
++            pixelArea(transformBounds(output, total)),
++            shadow.blur * maximumScale(total),
++            instances,
++          )
+         }
+         ink = output
+       } else {
+-        const definitionFilter = definition(filter.ref, 'dropShadowFilter')
++        if (!definitionFilter) return unsupported('missing geometry filter definition')
+         const bounds = fill ?? EMPTY_BOX
+         const width = bounds[2] - bounds[0]
+         const height = bounds[3] - bounds[1]
+@@ -724,7 +749,7 @@
+         if (Math.max(bx, by) > limits.blur) invalid('resolved filter blur')
+         checkBounds(transformBounds(region, total))
+         work(
+-          area(transformBounds(region, total)),
++          pixelArea(transformBounds(region, total)),
+           Math.max(bx, by) * maximumScale(total),
+           instances,
+         )
+@@ -734,14 +759,24 @@
+           ? inflate(bounds, Math.abs(x - bounds[0]) + rw, Math.abs(y - bounds[1]) + rh)
+           : region
+         checkBounds(transformBounds(envelope, total))
+-        ink = union(ink, envelope)
++        if (boundedIdentity) {
++          // Filter Effects 1 §9.4 hard-clips the input, primitive output and
++          // intermediate surfaces to this region. With a SourceGraphic input
++          // and no primitive subregion override, that subregion is the filter
++          // region. This bounds paint, NOT the original text/object bbox.
++          // Descendant effects have already been checked by their own visits.
++          ink = region
++          paintUncertain = false
++        } else {
++          ink = union(ink, envelope)
++        }
+       }
+     }
+     // Offscreen layers are charged per element and per ancestor, including a
+     // repeated symbol instance. The shared response work counter never resets.
+     if (requiresCompositing(context.own)) {
+-      if (uncertain) unsupported('text bbox-dependent compositing requires trusted metrics')
+-      work(area(transformBounds(ink, total)), 0, instances)
++      if (paintUncertain) unsupported('text bbox-dependent compositing requires trusted metrics')
++      work(pixelArea(transformBounds(ink, total)), 0, instances)
+     }
+     // A clip cannot reduce a safety envelope. Its own geometry remains checked.
+     if (context.own.clipPath) {
+@@ -756,7 +791,12 @@
+       checkMatrix(clipWorld)
+       visit(clip, context, viewport, clipWorld, depth + 1, instances)
+     }
+-    return { fill: transformBounds(fill, local), ink: transformBounds(ink, local), uncertain }
++    return {
++      fill: transformBounds(fill, local),
++      ink: transformBounds(ink, local),
++      uncertain,
++      paintUncertain,
++    }
+   }
+ 
+   const defaults: StyleContext = { style: { fontId: 'sans' }, own: {}, font: 16, stroke: 1 }

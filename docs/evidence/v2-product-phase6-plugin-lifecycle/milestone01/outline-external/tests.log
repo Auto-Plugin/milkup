@@ -1,0 +1,28 @@
+
+ RUN  v3.2.6 /tmp/milkup-p6-outline-external
+
+ ✓ src/plugin.test.ts (21 tests) 6420ms
+   ✓ complete paged outline index > ignores delayed echoes of the last returned slice rather than oscillating between old and prepared ranges  355ms
+   ✓ complete paged outline index > stops following the old active heading immediately and keeps the newest scroll request during storage reads  352ms
+   ✓ complete paged outline index > indexes every contiguous range, preserves the full hierarchy and does not rescan when navigating  306ms
+   ✓ complete paged outline index > folds subtrees across scan boundaries, highlights ancestors and restores a navigated child  360ms
+   ✓ complete paged outline index > uses source identity for duplicate titles and rejects stale version actions immediately  307ms
+   ✓ complete paged outline index > discards old scans after quick document changes and disposes each temporary index  325ms
+   ✓ complete paged outline index > invalidates cached visible ancestors when a later range adds their first child  304ms
+   ✓ complete paged outline index > shows a partial index honestly, supports cancellation/retry and does not reuse cancelled identities  304ms
+   ✓ complete paged outline index > supports empty documents and reports storage capability or quota failures explicitly  303ms
+   ✓ complete paged outline index > does not silently complete after invalidated, truncated or interrupted scans  454ms
+   ✓ complete paged outline index > keeps every indexed title available beyond 16384 lines while rendering no more than 500 rows  579ms
+   ✓ complete paged outline index > bounds persisted pages for worst-case escaped labels while preserving folds  345ms
+   ✓ complete paged outline index > does not accept a delayed old-document navigation as current selection  355ms
+   ✓ debounces rapid edits/undo-redo and waits for old temporary-store disposal before indexing the newest version  363ms
+   ✓ cancels a debounced startup before allocating a store and can retry normally  302ms
+ ✓ src/outline-index.test.ts (3 tests) 1234ms
+   ✓ matches an independent hierarchy oracle for 8775 headings and sparse/global folds  525ms
+   ✓ matches an independent hierarchy oracle for 18000 headings and sparse/global folds  635ms
+
+ Test Files  2 passed (2)
+      Tests  24 passed (24)
+   Start at  07:26:18
+   Duration  8.35s (transform 156ms, setup 0ms, collect 181ms, tests 7.65s, environment 1ms, prepare 150ms)
+

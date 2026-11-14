@@ -1,0 +1,15 @@
+from pathlib import Path
+import difflib
+R=Path(__file__).resolve().parent
+base=R.parent/'product-raster-native-edge/sankey-scroll-v2/run-paired-integer.sh'
+s=base.read_text();s=s.replace(str(base.parent),str(R))
+s=s.replace('run=${1:?fresh diagnostic name required}', '''phase=${1:?capture or paint}
+[[ "$phase" == capture || "$phase" == paint ]]
+run="$phase-first01"''')
+s=s.replace('set -euo pipefail','set -euo pipefail\nsource /workspace/.cloud/milkup-v2/env.sh',1)
+s=s.replace('X118','X128').replace(':118',':128')
+s=s.replace('supervise-paired-integer.py','supervise.py').replace('--case-index "${2:?case index required}"','--phase "$phase"')
+s=s.replace('"$root/target/debug/milkup-mermaid-snapshot-probe"','"$root/bin/$phase"')
+s=s.replace('# PREPARED ONLY. Separate execution approval required; never invokes the old runner.','# Research only; invoked by exact-owned display launcher after separate runtime GO.')
+(R/'run-namespace.sh').write_text(s)
+(R/'namespace-wrapper.diff').write_text(''.join(difflib.unified_diff(base.read_text().splitlines(True),s.splitlines(True),fromfile=str(base),tofile='run-namespace.sh')))

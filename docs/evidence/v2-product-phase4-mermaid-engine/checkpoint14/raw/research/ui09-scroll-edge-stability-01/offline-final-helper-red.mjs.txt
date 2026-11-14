@@ -1,0 +1,69 @@
+import assert from 'node:assert/strict'
+import {readFileSync} from 'node:fs'
+function visible(rect, dom) {
+  return (
+    rect.bottom > Math.max(0, dom.editor.top) &&
+    rect.top < Math.min(dom.height, dom.editor.bottom) &&
+    rect.right > Math.max(0, dom.editor.left) &&
+    rect.left < Math.min(dom.width, dom.editor.right)
+  )
+}
+function assertCapturedPreview(dom, expected, stage) {
+  const actual = dom.previews.find((item) => item.from === expected.from && item.to === expected.to)
+  assert(actual && visible(actual.rect, dom), stage + ': same range remains visible')
+  assert.equal(actual.inlineSvg, 0, stage + ': no injected inline SVG')
+  assert.equal(actual.images.length, expected.images.length, stage + ': all images remain mounted')
+  assert(
+    actual.images.every(
+      (item) =>
+        item.src.startsWith('blob:') &&
+        item.complete &&
+        item.naturalWidth > 0 &&
+        item.naturalHeight > 0,
+    ),
+    stage + ': same range remains fully decoded',
+  )
+}
+
+function assertCapturedScrollEdge(dom, expected, stage) {
+  assert(expected.after, stage + ': reached corner snapshot exists')
+  assert.equal(expected.after.from, expected.from, stage + ': expected range start')
+  assert.equal(expected.after.to, expected.to, stage + ': expected range end')
+  assertCapturedPreview(dom, expected.after, stage)
+  const actual = dom.previews.find((item) => item.from === expected.from && item.to === expected.to)
+  assert(
+    actual.images.length > 0 && actual.images.every((item) => item.width > 0 && item.height > 0),
+    stage + ': mounted image dimensions remain positive',
+  )
+  assert(['bottom-right', 'top-left'].includes(expected.corner), stage + ': known corner')
+  for (const [axis, extent, client] of [
+    ['left', 'scrollWidth', 'clientWidth'],
+    ['top', 'scrollHeight', 'clientHeight'],
+  ]) {
+    for (const snapshot of [expected.after, actual]) {
+      assert(
+        [snapshot[axis], snapshot[extent], snapshot[client]].every(Number.isFinite) &&
+          snapshot[client] > 0 &&
+          snapshot[extent] > 0,
+        stage + ': finite positive scroll geometry ' + axis,
+      )
+    }
+    const previousMax = Math.max(0, expected.after[extent] - expected.after[client])
+    const currentMax = Math.max(0, actual[extent] - actual[client])
+    assert(
+      previousMax <= 1 || currentMax > 1,
+      stage + ': previously overflowing axis remains scrollable ' + axis,
+    )
+    const corner = expected.corner === 'bottom-right' ? currentMax : 0
+    const clamped = Math.min(currentMax, Math.max(0, expected.after[axis]))
+    assert(
+      Math.abs(actual[axis] - corner) <= 1,
+      stage + ': remains at ' + expected.corner + ' ' + axis,
+    )
+    assert(Math.abs(actual[axis] - clamped) <= 1, stage + ': preserves reached offset ' + axis)
+  }
+}
+const record=JSON.parse(readFileSync(new URL('./ui09-fixed-record.json',import.meta.url),'utf8'))
+const expected={from:record.after.from,to:record.after.to,corner:'bottom-right',after:record.after}
+console.log(JSON.stringify({name:record.name,expected:{left:record.after.left,top:record.after.top},observed:record.dom.previews.filter(x=>x.from===expected.from).map(x=>({left:x.left,top:x.top,maxLeft:x.scrollWidth-x.clientWidth,maxTop:x.scrollHeight-x.clientHeight}))}))
+assertCapturedScrollEdge(record.dom,expected,'after screenshot')

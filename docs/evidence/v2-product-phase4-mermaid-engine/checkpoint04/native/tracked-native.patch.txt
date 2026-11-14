@@ -1,0 +1,203 @@
+diff --git a/apps/desktop/src-tauri/Cargo.lock b/apps/desktop/src-tauri/Cargo.lock
+index 3b15bfc..92cf84d 100644
+--- a/apps/desktop/src-tauri/Cargo.lock
++++ b/apps/desktop/src-tauri/Cargo.lock
+@@ -1833,17 +1833,21 @@ version = "2.0.0-beta.1"
+ dependencies = [
+  "base64 0.22.1",
+  "fs2",
++ "gtk",
+  "image",
++ "javascriptcore-rs",
+  "libc",
+  "semver",
+  "serde",
+  "serde_json",
+  "sha2",
++ "soup3",
+  "tauri",
+  "tauri-build",
+  "tauri-plugin-dialog",
+  "tauri-plugin-updater",
+  "tokio",
++ "webkit2gtk",
+ ]
+ 
+ [[package]]
+diff --git a/apps/desktop/src-tauri/Cargo.toml b/apps/desktop/src-tauri/Cargo.toml
+index 43d9a57..af91e5d 100644
+--- a/apps/desktop/src-tauri/Cargo.toml
++++ b/apps/desktop/src-tauri/Cargo.toml
+@@ -27,6 +27,12 @@ semver = "1"
+ [target.'cfg(unix)'.dependencies]
+ libc = "=0.2.186"
+ 
++[target.'cfg(target_os = "linux")'.dependencies]
++gtk = "=0.18.2"
++webkit2gtk = { version = "=2.0.2", features = ["v2_40"] }
++soup = { package = "soup3", version = "=0.5.0" }
++javascriptcore-rs = "=1.1.2"
++
+ [dev-dependencies]
+ tauri = { version = "2.9.5", features = ["test"] }
+ base64 = "0.22"
+diff --git a/apps/desktop/src-tauri/build.rs b/apps/desktop/src-tauri/build.rs
+index a119085..735e16a 100644
+--- a/apps/desktop/src-tauri/build.rs
++++ b/apps/desktop/src-tauri/build.rs
+@@ -1,4 +1,5 @@
+ fn main() {
++    build_dom_guard();
+     println!("cargo:rerun-if-changed=../../../package.json");
+     println!("cargo:rerun-if-changed=../package.json");
+     println!("cargo:rerun-if-changed=windows-app.manifest");
+@@ -38,3 +39,46 @@ fn main() {
+         tauri_build::build()
+     }
+ }
++
++// Embed the native WebProcess request guard. It is extracted only into an owned
++// private directory, never resolved from a plugin package or system search path.
++fn build_dom_guard() {
++    println!("cargo:rerun-if-changed=src/plugin_dom_guard.c");
++    println!("cargo:rerun-if-changed=src/plugin_dom_bootstrap.js");
++    if std::env::var("CARGO_CFG_TARGET_OS").as_deref() != Ok("linux") {
++        return;
++    }
++    let flags = std::process::Command::new("pkg-config")
++        .args(["--cflags", "--libs", "webkit2gtk-web-extension-4.1"])
++        .output()
++        .expect("pkg-config is required for the native DOM resource guard");
++    assert!(
++        flags.status.success(),
++        "WebKitGTK extension development files unavailable: {}",
++        String::from_utf8_lossy(&flags.stderr)
++    );
++    let output =
++        std::path::PathBuf::from(std::env::var_os("OUT_DIR").expect("Cargo output directory"))
++            .join("libmilkup_dom_guard.so");
++    let status = std::process::Command::new(std::env::var_os("CC").unwrap_or_else(|| "cc".into()))
++        .args([
++            "-shared",
++            "-fPIC",
++            "-O2",
++            "-Wl,-z,relro,-z,now",
++            "src/plugin_dom_guard.c",
++            "-o",
++        ])
++        .arg(output)
++        .args(
++            String::from_utf8(flags.stdout)
++                .expect("pkg-config UTF-8")
++                .split_whitespace(),
++        )
++        .status()
++        .expect("compile native DOM resource guard");
++    assert!(
++        status.success(),
++        "Native DOM resource guard compilation failed"
++    );
++}
+diff --git a/apps/desktop/src-tauri/src/lib.rs b/apps/desktop/src-tauri/src/lib.rs
+index 692c71c..18f6145 100644
+--- a/apps/desktop/src-tauri/src/lib.rs
++++ b/apps/desktop/src-tauri/src/lib.rs
+@@ -21,6 +21,7 @@ use tauri::{AppHandle, Emitter, Manager, State, Window};
+ 
+ mod native_search;
+ mod piece_tree;
++pub mod plugin_dom;
+ mod plugin_icon;
+ mod plugin_sidecar;
+ use plugin_sidecar::{SidecarEvent, SidecarRegistry, SidecarStarted};
+@@ -466,19 +467,28 @@ fn install_plugin_package_file(
+ }
+ 
+ #[tauri::command]
+-fn remove_installed_plugin_package(app: AppHandle, plugin_id: String) -> Result<bool, String> {
+-    validate_plugin_id(&plugin_id)?;
+-    let root = app
+-        .path()
+-        .app_data_dir()
+-        .map_err(|error| error.to_string())?
+-        .join("plugins")
+-        .join(plugin_id);
+-
+-    if root.exists() {
+-        fs::remove_dir_all(root).map_err(|error| error.to_string())?;
+-    }
+-    Ok(true)
++async fn remove_installed_plugin_package(
++    app: AppHandle,
++    plugin_id: String,
++) -> Result<bool, String> {
++    tauri::async_runtime::spawn_blocking(move || {
++        validate_plugin_id(&plugin_id)?;
++        app.state::<plugin_dom::DomRegistry>()
++            .stop_plugin(&plugin_id)?;
++        let root = app
++            .path()
++            .app_data_dir()
++            .map_err(|error| error.to_string())?
++            .join("plugins")
++            .join(plugin_id);
++
++        if root.exists() {
++            fs::remove_dir_all(root).map_err(|error| error.to_string())?;
++        }
++        Ok(true)
++    })
++    .await
++    .map_err(|error| error.to_string())?
+ }
+ 
+ #[tauri::command]
+@@ -985,6 +995,7 @@ pub fn run() {
+     tauri::Builder::default()
+         .manage(WatchRegistry(Mutex::new(HashMap::new())))
+         .manage(SidecarRegistry::default())
++        .manage(plugin_dom::DomRegistry::default())
+         .manage(LargeFileRegistry(Mutex::new(HashMap::new())))
+         .manage(native_search::NativeSearchRegistry::default())
+         .manage(updates::UpdateService::default())
+@@ -1073,6 +1084,11 @@ pub fn run() {
+             flush_large_text_file,
+             flush_large_text_file_as,
+             close_large_text_file,
++            plugin_dom::prepare_plugin_dom_module,
++            plugin_dom::release_plugin_dom_module,
++            plugin_dom::start_plugin_dom_process,
++            plugin_dom::send_plugin_dom_message,
++            plugin_dom::stop_plugin_dom_process,
+             start_plugin_sidecar_process,
+             send_plugin_sidecar_message,
+             stop_plugin_sidecar_process,
+@@ -1080,8 +1096,13 @@ pub fn run() {
+             watch_markdown_file,
+             unwatch_markdown_file
+         ])
+-        .run(tauri::generate_context!())
+-        .expect("failed to run milkup desktop app");
++        .build(tauri::generate_context!())
++        .expect("failed to build milkup desktop app")
++        .run(|app, event| {
++            if matches!(event, tauri::RunEvent::Exit) {
++                app.state::<plugin_dom::DomRegistry>().stop_all();
++            }
++        });
+ }
+ 
+ fn snapshot_hash(text: &str) -> String {
+diff --git a/apps/desktop/src-tauri/src/main.rs b/apps/desktop/src-tauri/src/main.rs
+index ae9c4ff..6256079 100644
+--- a/apps/desktop/src-tauri/src/main.rs
++++ b/apps/desktop/src-tauri/src/main.rs
+@@ -1,5 +1,8 @@
+ #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
+ 
+ fn main() {
++    if milkup_desktop_lib::plugin_dom::run_helper_if_requested() {
++        return;
++    }
+     milkup_desktop_lib::run()
+ }

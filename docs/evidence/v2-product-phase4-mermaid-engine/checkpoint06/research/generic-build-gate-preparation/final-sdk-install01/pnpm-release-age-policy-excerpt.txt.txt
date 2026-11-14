@@ -1,0 +1,46 @@
+Source: /workspace/.cache/corepack/v1/pnpm/11.7.0/dist/pnpm.mjs
+Source SHA256: d3a7f4bde2f32c5acc5f012d1edc24c24ea247c2f6c8823146f8cd69ed70b22f
+Lines 194273-194315; confirms generated exception only for MINIMUM_RELEASE_AGE_VIOLATION_CODE:
+194273:         if (patch == null)
+194274:           continue;
+194275:         for (const [key, value] of Object.entries(patch)) {
+194276:           if (value == null)
+194277:             continue;
+194278:           merged[key] = value;
+194279:           any = true;
+194280:         }
+194281:       }
+194282:       return any ? merged : void 0;
+194283:     }
+194284:   };
+194285: }
+194286: function createMinimumReleaseAgeHandler(opts3) {
+194287:   if (!opts3.minimumReleaseAge)
+194288:     return void 0;
+194289:   const strictMode = opts3.minimumReleaseAgeStrict === true;
+194290:   const persistenceEnabled = opts3.save !== false;
+194291:   const inCi = opts3.ci ?? import_ci_info2.isCI;
+194292:   const canPrompt = !inCi && Boolean(process.stdin.isTTY);
+194293:   return {
+194294:     handleResolutionPolicyViolations: async (violations) => {
+194295:       if (!strictMode)
+194296:         return;
+194297:       const immature = filterImmatureViolations(violations);
+194298:       if (immature.length === 0)
+194299:         return;
+194300:       if (!persistenceEnabled) {
+194301:         throw new PnpmError("STRICT_MIN_RELEASE_AGE_REQUIRES_SAVE", "minimumReleaseAgeStrict cannot be combined with --no-save: approval would require writing to minimumReleaseAgeExclude in pnpm-workspace.yaml, which --no-save prevents.", {
+194302:           hint: "Drop --no-save so the exclude list can be persisted, or set minimumReleaseAgeStrict: false to let the install proceed without prompting (the lockfile would still trigger the auto-collect on the next normal install)."
+194303:         });
+194304:       }
+194305:       if (canPrompt) {
+194306:         await promptForApproval(immature);
+194307:       } else {
+194308:         throw failOnImmature(immature);
+194309:       }
+194310:     },
+194311:     pickManifestUpdates: (violations) => {
+194312:       const entries = pickImmatureEntries(violations, strictMode);
+194313:       return entries ? { addedMinimumReleaseAgeExcludes: entries } : void 0;
+194314:     }
+194315:   };

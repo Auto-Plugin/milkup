@@ -1,0 +1,35 @@
+$ tauri build --bundles deb
+        Info Looking up installed tauri packages to check mismatched versions...
+     Running beforeBuildCommand `pnpm build`
+$ vite build
+vite v7.3.6 building client environment for production...
+transforming...
+✓ 1978 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/index.html                                  0.67 kB │ gzip:     0.39 kB
+dist/assets/large-search-worker-BwuKh3LS.js      1.32 kB
+dist/assets/worker-file-plugin-C6Pu6mbd.js       2.79 kB
+dist/assets/plugin-supervisor-DMXL0hVw.js       28.73 kB
+dist/assets/plugin-worker-xkEhFf5X.js          125.84 kB
+dist/assets/index-RroQuXw8.css                  39.90 kB │ gzip:     8.41 kB
+dist/assets/index-lBcCbJoJ.js                    0.29 kB │ gzip:     0.18 kB
+dist/assets/event-BK_86lmQ.js                    1.41 kB │ gzip:     0.68 kB
+dist/assets/core-DhEqZVGG.js                     2.44 kB │ gzip:     0.98 kB
+dist/assets/webview-Dd-2IzEi.js                  3.36 kB │ gzip:     1.15 kB
+dist/assets/window-6lX1olBp.js                  14.16 kB │ gzip:     3.57 kB
+dist/assets/index-7CeN93Gy.js                7,389.36 kB │ gzip: 1,961.54 kB
+
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+✓ built in 5.42s
+   Compiling milkup-desktop v2.0.0-beta.1 (/workspace/milkup/apps/desktop/src-tauri)
+    Finished `release` profile [optimized] target(s) in 1m 13s
+       Built application at: /workspace/milkup/apps/desktop/src-tauri/target/release/milkup-desktop
+        Info Patching /workspace/milkup/apps/desktop/src-tauri/target/release/milkup-desktop with bundle type information: deb
+    Bundling milkup_2.0.0-beta.1_amd64.deb (/workspace/milkup/apps/desktop/src-tauri/target/release/bundle/deb/milkup_2.0.0-beta.1_amd64.deb)
+    Finished 1 bundle at:
+        /workspace/milkup/apps/desktop/src-tauri/target/release/bundle/deb/milkup_2.0.0-beta.1_amd64.deb
+

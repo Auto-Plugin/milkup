@@ -1,0 +1,12 @@
+NOT EXECUTED. Run only after the parent grants a CPU/build slot.
+No package installation, root lock mutation, Rust build, or native/UI action here.
+
+source /workspace/.cloud/milkup-v2/env.sh
+MILKUP_EAGER_BUILD_APPROVED=1 node /workspace/milkup-mermaid-engine-evidence/research/mermaid-eager-load-candidate-01/build-fixtures.mjs
+
+Expected artifacts: fixtures/A-module.js, B-module.js, A/B-metafile.json,
+index.json and build-result.json. A source/dependency guard failure stops; preserve
+partial artifacts as first failure. Do not overwrite/retry the same output silently.
+
+The native test fragment/build/runtime command is separately prepared by owners
+under harness/ and native/. This command does not compile or launch those.

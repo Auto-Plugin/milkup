@@ -1,0 +1,39 @@
+
+ RUN  v3.2.6 /workspace/milkup/packages/view-dom
+
+ ❯ src/__tests__/document-presentation-viewport.test.ts (6 tests | 1 failed) 290ms
+   ✓ reports actual visible source instead of overscan or a remote editing selection 39ms
+   ✓ refreshes priority when scrolling inside the same overscan source window 36ms
+   ✓ cancels a stale viewport job without changing source or selection 28ms
+   ✓ maps the bottom of a tall preview to its complete collapsed source block 89ms
+   ✓ keeps a complete response when only visible priority changes inside its source window 24ms
+   × cancels a superseded window job when returning to an already complete cached window 73ms
+     → expected false to be true // Object.is equality
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/__tests__/document-presentation-viewport.test.ts > cancels a superseded window job when returning to an already complete cached window
+AssertionError: expected false to be true // Object.is equality
+
+- Expected
++ Received
+
+- true
++ false
+
+ ❯ src/__tests__/document-presentation-viewport.test.ts:230:35
+    228|   f.scroll(40)
+    229|   await settle()
+    230|   expect(obsolete.signal.aborted).toBe(true)
+       |                                   ^
+    231|   obsolete.finish()
+    232|   await settle()
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 5 passed (6)
+   Start at  14:42:52
+   Duration  2.32s (transform 509ms, setup 0ms, collect 589ms, tests 290ms, environment 613ms, prepare 86ms)
+

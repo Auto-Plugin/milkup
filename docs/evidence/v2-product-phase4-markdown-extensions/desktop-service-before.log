@@ -1,0 +1,27 @@
+
+ RUN  v3.2.6 /workspace/milkup
+
+
+⎯⎯⎯⎯⎯⎯ Failed Suites 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  apps/desktop/src/document-presentation-service.test.ts [ apps/desktop/src/document-presentation-service.test.ts ]
+Error: Cannot find module './document-presentation-service' imported from '/workspace/milkup/apps/desktop/src/document-presentation-service.test.ts'
+ ❯ apps/desktop/src/document-presentation-service.test.ts:3:1
+      1| import { describe, expect, it } from 'vitest'
+      2| import { MemoryDocumentSource, MemoryTextDocument, type DocumentPresen…
+      3| import { createDesktopDocumentPresentationService } from './document-p…
+       | ^
+      4| 
+      5| function fixture(text = 'Hello $x$\n') {
+
+Caused by: Error: Failed to load url ./document-presentation-service (resolved id: ./document-presentation-service) in /workspace/milkup/apps/desktop/src/document-presentation-service.test.ts. Does the file exist?
+ ❯ loadAndTransform node_modules/.pnpm/vite@7.3.6_@types+node@24.13.2/node_modules/vite/dist/node/chunks/config.js:22739:33
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  no tests
+   Start at  11:36:46
+   Duration  577ms (transform 164ms, setup 0ms, collect 0ms, tests 0ms, environment 0ms, prepare 78ms)
+

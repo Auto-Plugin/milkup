@@ -1,0 +1,45 @@
+# Read-only comparison of already-resolved lock records; never resolves or writes a lock.
+from pathlib import Path
+import json,yaml,hashlib,collections
+base=Path('/workspace/milkup-mermaid-engine-evidence/research');npm_path=base/'offline/package-lock.json';pnpm_path=Path('/workspace/milkup/plugins/diagrams/pnpm-lock.yaml')
+npm=json.loads(npm_path.read_text());pnpm=yaml.safe_load(pnpm_path.read_text());np=npm['packages'];pp=pnpm['packages'];snap=pnpm['snapshots']
+def npm_name(key,value):return value.get('name') or key.rsplit('node_modules/',1)[-1]
+def npm_reach(roots):
+ seen=set();missing=[];todo=[('root',name,'') for name in roots]
+ while todo:
+  parent,name,location=todo.pop();at=location;resolved=None
+  while True:
+   candidate=(at+'/' if at else '')+'node_modules/'+name
+   if candidate in np:resolved=candidate;break
+   if not at:break
+   at=at.rsplit('/node_modules/',1)[0] if '/node_modules/' in at else ''
+  if resolved is None:missing.append({'from':parent,'name':name});continue
+  if resolved in seen:continue
+  seen.add(resolved);value=np[resolved]
+  for dep in {**value.get('dependencies',{}),**value.get('optionalDependencies',{}),**value.get('peerDependencies',{})}:todo.append((resolved,dep,resolved))
+ return seen,missing
+def pnpm_reach(roots):
+ seen=set();missing=[];todo=list(roots)
+ while todo:
+  key=todo.pop()
+  if key in seen:continue
+  if key not in snap:missing.append(key);continue
+  seen.add(key);value=snap[key] or {}
+  for name,version in {**value.get('dependencies',{}),**value.get('optionalDependencies',{})}.items():todo.append(name+'@'+str(version))
+ return seen,missing
+def pnpm_ident(key):
+ plain=key.split('(',1)[0]
+ return plain.rsplit('@',1)
+def npm_versions(keys):
+ v=collections.defaultdict(set)
+ for k in keys:v[npm_name(k,np[k])].add(np[k]['version'])
+ return {k:sorted(v[k]) for k in sorted(v)}
+def pnpm_versions(keys):
+ v=collections.defaultdict(set)
+ for k in keys:
+  name,version=pnpm_ident(k);v[name].add(version)
+ return {k:sorted(v[k]) for k in sorted(v)}
+def diff(a,b):return {'versionDifferences':[{'package':k,'research':a[k],'development':b[k]} for k in sorted(a.keys()&b.keys()) if a[k]!=b[k]],'researchOnly':[{'package':k,'versions':a[k]} for k in sorted(a.keys()-b.keys())],'developmentOnly':[{'package':k,'versions':b[k]} for k in sorted(b.keys()-a.keys())]}
+imp=pnpm['importers']['.'];npm_runtime,npm_miss=npm_reach(np['']['dependencies']);pnpm_runtime,pnpm_miss=pnpm_reach([k+'@'+str(v['version']) for k,v in imp['dependencies'].items()]);npm_build,nbmiss=npm_reach(np['']['devDependencies']);pnpm_build,pbmiss=pnpm_reach([k+'@'+str(v['version']) for k,v in imp['devDependencies'].items()])
+result={'scope':'read-only research npm locked graph versus final authored pnpm lock after explicit cytoscape 3.34.4 pin; schema retains development field labels for comparison continuity','researchLockSha256':hashlib.sha256(npm_path.read_bytes()).hexdigest(),'developmentLockSha256':hashlib.sha256(pnpm_path.read_bytes()).hexdigest(),'recordCounts':{'researchPackages':len(np)-1,'developmentPackages':len(pp),'developmentSnapshots':len(snap)},'all':diff(npm_versions(k for k in np if k),pnpm_versions(pp)),'runtime':{'researchResolvedNodes':len(npm_runtime),'developmentResolvedSnapshots':len(pnpm_runtime),**diff(npm_versions(npm_runtime),pnpm_versions(pnpm_runtime))},'build':{'researchRoots':np['']['devDependencies'],'developmentRoots':{k:v['specifier'] for k,v in imp['devDependencies'].items()},**diff(npm_versions(npm_build),pnpm_versions(pnpm_build))},'unmappedEdges':{'researchRuntime':npm_miss,'developmentRuntime':pnpm_miss,'researchBuild':nbmiss,'developmentBuild':pbmiss}}
+out=base/'generic-build-gate-preparation/final-sdk-install01/lock-comparison-after-cytoscape-pin.json';out.write_text(json.dumps(result,indent=2)+'\n');print(json.dumps({'counts':result['recordCounts'],'runtime':result['runtime'],'allVersionDifferences':result['all']['versionDifferences'],'additionalBuildPackages':len(result['all']['developmentOnly']),'unmappedEdges':result['unmappedEdges']},indent=2))

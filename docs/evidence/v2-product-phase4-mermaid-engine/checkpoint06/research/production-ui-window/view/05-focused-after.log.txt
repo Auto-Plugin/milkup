@@ -1,0 +1,82 @@
+
+ RUN  v3.2.6 /workspace/milkup/packages/view-dom
+
+ ✓ src/__tests__/document-presentation-preparation.test.ts (17 tests) 111ms
+ ❯ src/__tests__/document-presentation-boundaries.test.ts (4 tests | 2 failed) 344ms
+   × includes an initially visible complete long fence within the input budget (ordinary) 133ms
+     → expected 'MARKER\n```generic\nnode 0\nnode 1\nn…' to contain 'node 59\n```'
+   × includes an initially visible complete long fence within the input budget (windowed) 33ms
+     → expected 'MARKER\n```generic\nnode 0\nnode 1\nn…' to contain 'node 59\n```'
+   ✓ keeps an oversized complete fence literal at the lines budget 121ms
+   ✓ keeps an oversized complete fence literal at the characters budget 56ms
+stdout | src/__tests__/document-presentation-pointer.test.ts > keeps a settled response waiting when a new primary gesture replaces the released lease
+pointer-handoff {"originalConnected":true,"sameButton":true,"activeLease":true,"provided":2,"navigationCalls":0}
+
+ ✓ src/__tests__/document-presentation-pointer.test.ts (23 tests) 300ms
+ ✓ src/__tests__/document-svg-image.test.ts (38 tests) 2051ms
+ ✓ src/__tests__/document-presentation-anchor-guards.test.ts (24 tests) 317ms
+ ✓ src/__tests__/document-presentation.test.ts (70 tests) 3790ms
+ ✓ src/__tests__/document-presentation-viewport.test.ts (4 tests) 173ms
+
+ Test Files  1 failed | 6 passed (7)
+      Tests  2 failed | 178 passed (180)
+   Start at  13:54:32
+   Duration  7.83s (transform 2.38s, setup 0ms, collect 5.24s, tests 7.09s, environment 5.83s, prepare 1.37s)
+
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/__tests__/document-presentation-boundaries.test.ts > includes an initially visible complete long fence within the input budget (ordinary)
+ FAIL  src/__tests__/document-presentation-boundaries.test.ts > includes an initially visible complete long fence within the input budget (windowed)
+AssertionError: expected 'MARKER\n```generic\nnode 0\nnode 1\nn…' to contain 'node 59\n```'
+
+- Expected
++ Received
+
+- node 59
+- ```
++ MARKER
++ ```generic
++ node 0
++ node 1
++ node 2
++ node 3
++ node 4
++ node 5
++ node 6
++ node 7
++ node 8
++ node 9
++ node 10
++ node 11
++ node 12
++ node 13
++ node 14
++ node 15
++ node 16
++ node 17
++ node 18
++ node 19
++ node 20
++ node 21
++ node 22
++ node 23
++ node 24
++ node 25
++ node 26
++ node 27
++ node 28
++ node 29
++ node 30
++ node 31
+
+ ❯ src/__tests__/document-presentation-boundaries.test.ts:28:28
+     26|     const request=calls.at(-1)!
+     27|     expect(request).toBeDefined()
+     28|     expect(request.source).toContain('node 59\n```')
+       |                            ^
+     29|     expect(request.toLine).toBeGreaterThanOrEqual(63)
+     30|     expect(request.toLine-request.fromLine+1).toBeLessThanOrEqual(256)
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯
+

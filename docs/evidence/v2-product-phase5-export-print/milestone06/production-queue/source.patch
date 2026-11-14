@@ -1,0 +1,470 @@
+diff --git a/apps/desktop/src-tauri/src/plugin_dom.rs b/apps/desktop/src-tauri/src/plugin_dom.rs
+index edd4ee9e..54c05e05 100644
+--- a/apps/desktop/src-tauri/src/plugin_dom.rs
++++ b/apps/desktop/src-tauri/src/plugin_dom.rs
+@@ -537,8 +537,31 @@ fn opaque_id() -> Result<String, String> {
+     }
+ }
+ #[cfg(target_os = "linux")]
++fn native_diagnostics_enabled() -> bool {
++    std::env::var_os("MILKUP_DOM_DIAGNOSTICS").as_deref() == Some(std::ffi::OsStr::new("1"))
++}
++#[cfg(target_os = "linux")]
+ fn native_trace(phase: &str, instance_id: Option<&str>, request_id: Option<&str>) {
+-    if std::env::var_os("MILKUP_DOM_DIAGNOSTICS").as_deref() != Some(std::ffi::OsStr::new("1")) {
++    native_trace_fields(phase, instance_id, request_id, None);
++}
++#[cfg(target_os = "linux")]
++fn render_trace_fields(message: &Value) -> Value {
++    let request = &message["payload"]["request"];
++    json!({
++        "target": request["target"].as_str().filter(|s| matches!(*s, "screen" | "export")),
++        "version": request["version"].as_u64(),
++        "from": request["from"].as_u64(),
++        "to": request["to"].as_u64(),
++    })
++}
++#[cfg(target_os = "linux")]
++fn native_trace_fields(
++    phase: &str,
++    instance_id: Option<&str>,
++    request_id: Option<&str>,
++    fields: Option<Value>,
++) {
++    if !native_diagnostics_enabled() {
+         return;
+     }
+     let mut now = libc::timespec {
+@@ -563,7 +586,11 @@ fn native_trace(phase: &str, instance_id: Option<&str>, request_id: Option<&str>
+             });
+         tx
+     });
+-    let _ = sender.try_send(format!("DOM_NATIVE_TIMING {}", json!({"phase":phase,"instanceId":instance_id.or(inherited.as_deref()),"requestId":request_id,"pid":std::process::id(),"monotonicNs":(now.tv_sec as u64)*1_000_000_000+now.tv_nsec as u64})));
++    let mut record = json!({"phase":phase,"instanceId":instance_id.or(inherited.as_deref()),"requestId":request_id,"pid":std::process::id(),"monotonicNs":(now.tv_sec as u64)*1_000_000_000+now.tv_nsec as u64});
++    if let Some(fields) = fields {
++        record["request"] = fields;
++    }
++    let _ = sender.try_send(format!("DOM_NATIVE_TIMING {record}"));
+ }
+ 
+ pub fn run_helper_if_requested() -> bool {
+@@ -591,6 +618,24 @@ pub(crate) fn supervise_native_output(renderer: fn()) -> Result<(), String> {
+ mod tests {
+     use super::*;
+     use std::fs;
++    #[test]
++    fn render_diagnostics_include_only_fixed_non_content_fields_without_mutating_input() {
++        let input = json!({"payload":{"request":{"target":"export", "version":7,
++            "from":2,"to":90,"source":"private text","documentId":"private identity",
++            "selection":{"anchor":4,"head":8}}}});
++        let original = input.clone();
++        assert_eq!(
++            render_trace_fields(&input),
++            json!({"target":"export","version":7,"from":2,"to":90})
++        );
++        assert_eq!(input, original);
++        assert_eq!(
++            render_trace_fields(&json!({"payload":{"request":{
++                "target":"private arbitrary text","version":"private","from":{},"to":-1
++            }}})),
++            json!({"target":null,"version":null,"from":null,"to":null})
++        );
++    }
+     fn manifest() -> Value {
+         json!({"id":"test.dom", "name":"DOM fixture", "version":"1.0.0", "host":"dom", "main":"./dist/main.js", "permissions":["document:read"], "contributes":{"documentRenderers":[{"id":"test.renderer", "contexts":["fence"], "fenceLanguages":["test"]}]}})
+     }
+diff --git a/apps/desktop/src-tauri/src/plugin_dom_helper.rs b/apps/desktop/src-tauri/src/plugin_dom_helper.rs
+index 1bba6d13..147ec28b 100644
+--- a/apps/desktop/src-tauri/src/plugin_dom_helper.rs
++++ b/apps/desktop/src-tauri/src/plugin_dom_helper.rs
+@@ -255,6 +255,7 @@ fn run_inner() -> Result<(), String> {
+     let busy = Rc::new(Cell::new(false));
+     let native = view.clone();
+     let dispatch_token = serde_json::to_string(&token).map_err(|e| e.to_string())?;
++    let diagnostics = native_diagnostics_enabled();
+     glib::timeout_add_local(Duration::from_millis(5), move || {
+         if !ready.get() {
+             if loaded.get() && guard_ready.get() && !init_started.replace(true) {
+@@ -279,12 +280,19 @@ fn run_inner() -> Result<(), String> {
+         if busy.get() {
+             return glib::ControlFlow::Continue;
+         }
++        let mut traced_request = None;
+         let script = match receiver.try_recv() {
+             Ok(Some(bytes)) => {
+                 let Ok(message) = std::str::from_utf8(&bytes) else {
+                     gtk::main_quit();
+                     return glib::ControlFlow::Break;
+                 };
++                if diagnostics {
++                    traced_request = trace_render_id(message, "render").map(str::to_owned);
++                    if let Some(id) = traced_request.as_deref() {
++                        native_trace("helper-dequeued", None, Some(id));
++                    }
++                }
+                 format!("this.__milkupDom({dispatch_token},{message})")
+             }
+             Ok(None) => {
+@@ -300,12 +308,18 @@ fn run_inner() -> Result<(), String> {
+         busy.set(true);
+         let busy = busy.clone();
+         let output = output.clone();
++        if let Some(id) = traced_request.as_deref() {
++            native_trace("helper-eval-submitted", None, Some(id));
++        }
+         native.evaluate_javascript(
+             &script,
+             None,
+             None,
+             None::<&gio::Cancellable>,
+             move |result| {
++                if let Some(id) = traced_request.as_deref() {
++                    native_trace("helper-eval-callback", None, Some(id));
++                }
+                 busy.set(false);
+                 let result = result
+                     .ok()
+@@ -314,6 +328,14 @@ fn run_inner() -> Result<(), String> {
+                 match result {
+                     Some(Value::Null) => {}
+                     Some(Value::String(message)) if message.len() <= OUTPUT_WIRE_LIMIT => {
++                        // Do not trace empty polls. This records only a render result,
++                        // with no plugin output or document text in the trace.
++                        let traced_result = diagnostics
++                            .then(|| trace_render_id(&message, "result"))
++                            .flatten();
++                        if let Some(id) = traced_result {
++                            native_trace("helper-result-drained", None, Some(id));
++                        }
+                         let mut output = output.borrow_mut();
+                         if output
+                             .write_all(message.as_bytes())
+@@ -322,6 +344,8 @@ fn run_inner() -> Result<(), String> {
+                             .is_err()
+                         {
+                             gtk::main_quit();
++                        } else if let Some(id) = traced_result {
++                            native_trace("helper-frame-forwarded", None, Some(id));
+                         }
+                     }
+                     _ => gtk::main_quit(),
+@@ -334,3 +358,54 @@ fn run_inner() -> Result<(), String> {
+     gtk::main();
+     Ok(())
+ }
++
++// A read-only diagnostic parser. Unknown envelope data is skipped rather than
++// cloned; a diagnostic parse failure never changes dispatch/forwarding behavior.
++fn trace_render_id<'a>(message: &'a str, expected_type: &str) -> Option<&'a str> {
++    #[derive(Deserialize)]
++    struct Envelope<'a> {
++        protocol: &'a str,
++        #[serde(rename = "type")]
++        kind: &'a str,
++        id: &'a str,
++    }
++    let envelope = serde_json::from_str::<Envelope<'_>>(message).ok()?;
++    (envelope.protocol == RENDER_PROTOCOL
++        && envelope.kind == expected_type
++        && !envelope.id.is_empty()
++        && envelope.id.len() <= 80
++        && envelope
++            .id
++            .bytes()
++            .all(|b| b.is_ascii_alphanumeric() || b == b'_' || b == b'-'))
++    .then_some(envelope.id)
++}
++
++#[cfg(test)]
++mod diagnostic_tests {
++    use super::*;
++    #[test]
++    fn diagnostic_envelope_read_is_content_free_and_never_authorizes_messages() {
++        let message = json!({"protocol":RENDER_PROTOCOL,"type":"render","id":"render_1",
++            "payload":{"request":{"source":"private source","documentId":"private"}}})
++        .to_string();
++        let original = message.clone();
++        assert_eq!(trace_render_id(&message, "render"), Some("render_1"));
++        assert_eq!(trace_render_id(&message, "result"), None);
++        assert_eq!(message, original);
++        for input in [
++            "null",
++            "broken",
++            r#"{"protocol":"other","type":"render","id":"render_1"}"#,
++            r#"{"protocol":"milkup.plugin.document-render.v1","type":"result","id":"private text"}"#,
++        ] {
++            assert_eq!(trace_render_id(input, "result"), None);
++        }
++        // Diagnostic parsing can ignore malformed business payloads, but its
++        // return is used only for trace identity, never dispatch or settlement.
++        let result = json!({"protocol":RENDER_PROTOCOL,"type":"result","id":"render_1",
++            "value":{"private":"ignored"}})
++        .to_string();
++        assert_eq!(trace_render_id(&result, "result"), Some("render_1"));
++    }
++}
+diff --git a/apps/desktop/src-tauri/src/plugin_dom_process.rs b/apps/desktop/src-tauri/src/plugin_dom_process.rs
+index 1241d8af..a4d34a96 100644
+--- a/apps/desktop/src-tauri/src/plugin_dom_process.rs
++++ b/apps/desktop/src-tauri/src/plugin_dom_process.rs
+@@ -282,6 +282,18 @@ impl Instance {
+                 _ => return Err("Unsupported DOM message".into()),
+             }
+         }
++        if native_diagnostics_enabled()
++            && message["protocol"] == RENDER_PROTOCOL
++            && message["type"] == "render"
++        {
++            // Metadata collection never holds the watchdog control lock.
++            native_trace_fields(
++                "render-request",
++                Some(&self.id),
++                valid_id(&message),
++                Some(render_trace_fields(&message)),
++            );
++        }
+         let result = (|| {
+             let mut ready = self.input_ready.lock().map_err(|e| e.to_string())?;
+             while !*ready {
+@@ -310,6 +322,9 @@ impl Instance {
+         result
+     }
+     fn receive(&self, message: Value) {
++        if message["protocol"] == RENDER_PROTOCOL && message["type"] == "result" {
++            native_trace("owner-frame-received", Some(&self.id), valid_id(&message));
++        }
+         // All child parsing and payload sizing precede the final monotonic
+         // settlement decision; no expensive serialization owns control.
+         let oversized = message
+@@ -378,6 +393,9 @@ impl Instance {
+         }
+         self.wake.notify_all();
+         drop(control);
++        if message["protocol"] == RENDER_PROTOCOL {
++            native_trace("owner-result-accepted", Some(&self.id), valid_id(&message));
++        }
+         (self.emit)(self.event("message", Some(message), None, None));
+     }
+     fn watch(&self) {
+diff --git a/apps/desktop/src/document-presentation-service.test.ts b/apps/desktop/src/document-presentation-service.test.ts
+index 2c21892a..b7c2a8e2 100644
+--- a/apps/desktop/src/document-presentation-service.test.ts
++++ b/apps/desktop/src/document-presentation-service.test.ts
+@@ -404,6 +404,33 @@ describe('viewport-prioritized bounded fence presentation', () => {
+     expect(response.result.fragments).toHaveLength(1)
+     expect(response.result.complete).toBe(false)
+   })
++  it.each([undefined, 8_000])(
++    'shares one absolute preparation deadline across every fence (supplied: %s)',
++    async (supplied) => {
++      const f = threeFences()
++      let now = 100
++      vi.spyOn(performance, 'now').mockImplementation(() => now)
++      const deadlines: number[] = []
++      const signal = new AbortController().signal
++      const service = createDesktopDocumentPresentationService({
++        current: () => ({ source: f.source, identity: f.doc }),
++        theme: () => 'light',
++        renderers: () => [fenceDeclaration],
++        async render(_plugin, _renderer, request, operation) {
++          expect(operation.signal).toBe(signal)
++          deadlines.push(operation.deadline)
++          now += 1_000
++          return fenceResult(request, false)
++        },
++      })
++      const response = await service.provide(f.window, {
++        signal,
++        ...(supplied === undefined ? {} : { deadline: supplied }),
++      })
++      expect(response.result.complete).toBe(true)
++      expect(deadlines).toEqual(Array(3).fill(supplied ?? 10_100))
++    },
++  )
+   it('does not impose a fixed two-fence limit on fast small results', async () => {
+     const f = threeFences()
+     const render = vi.fn(async (_p: string, _r: string, request: DocumentPresentationRequest) =>
+diff --git a/apps/desktop/src/document-presentation-service.ts b/apps/desktop/src/document-presentation-service.ts
+index dbd226bb..a7046b57 100644
+--- a/apps/desktop/src/document-presentation-service.ts
++++ b/apps/desktop/src/document-presentation-service.ts
+@@ -25,7 +25,7 @@ export interface DesktopDocumentPresentationOptions {
+     pluginId: string,
+     rendererId: string,
+     request: DocumentPresentationRequest,
+-    options: { readonly signal: AbortSignal },
++    options: { readonly signal: AbortSignal; readonly deadline: number },
+   ) => Promise<DocumentPresentationResult>
+ }
+ 
+@@ -133,7 +133,10 @@ export function createDesktopDocumentPresentationService(
+           throw new DocumentPresentationError('revoked')
+       }
+       assertRendererActive()
+-      const value = await options.render(declaration.pluginId, declaration.id, input, operation)
++      const value = await options.render(declaration.pluginId, declaration.id, input, {
++        ...operation,
++        deadline,
++      })
+       assertCurrent()
+       assertRendererActive()
+       return copyDocumentPresentationResult(value, input, declaration)
+diff --git a/apps/desktop/src/output-presentations.test.ts b/apps/desktop/src/output-presentations.test.ts
+index 9ccc05ea..0bd0224e 100644
+--- a/apps/desktop/src/output-presentations.test.ts
++++ b/apps/desktop/src/output-presentations.test.ts
+@@ -1,12 +1,11 @@
+ import { afterEach, describe, expect, it, vi } from 'vitest'
+-import {
+-  DOCUMENT_PRESENTATION_LIMITS,
+-  type DocumentPresentationRequest,
+-  type DocumentPresentationResult,
+-} from '@milkup/core'
++import type { DocumentPresentationRequest, DocumentPresentationResult } from '@milkup/core'
+ import { collectOutputPresentations } from './output-presentations'
+ 
+-afterEach(() => vi.useRealTimers())
++afterEach(() => {
++  vi.useRealTimers()
++  vi.restoreAllMocks()
++})
+ const textRenderer = { pluginId: 'generic-text', id: 'text', contexts: ['text'] as const }
+ const fenceRenderer = {
+   pluginId: 'generic-fence',
+@@ -96,15 +95,26 @@ describe('frozen output presentation collection', () => {
+     })
+     await expect(collectOutputPresentations(input)).rejects.toThrow('stale capture')
+   })
+-  it('settles an unresponsive renderer within the existing timeout and warns', async () => {
++  it('bounds an unresponsive host by the existing preparation window and warns', async () => {
+     vi.useFakeTimers()
+     const input = options()
+     input.render.mockImplementation(() => new Promise(() => {}))
+     const pending = collectOutputPresentations(input)
+-    await vi.advanceTimersByTimeAsync(DOCUMENT_PRESENTATION_LIMITS.timeoutMs + 1)
++    await vi.advanceTimersByTimeAsync(10_001)
+     const result = await pending
+     expect(result.warnings.some((w) => w.code === 'presentation-timeout')).toBe(true)
+   })
++  it('rejects a result past the preparation deadline even before its timer callback runs', async () => {
++    const clock = vi.spyOn(performance, 'now').mockReturnValue(0)
++    const input = options()
++    input.render.mockImplementation(async () => {
++      clock.mockReturnValue(10_000)
++      return { complete: true, fragments: [] }
++    })
++    const result = await collectOutputPresentations(input)
++    expect(result.presentations.every((batch) => !batch.result.complete)).toBe(true)
++    expect(result.warnings.some((warning) => warning.code === 'presentation-timeout')).toBe(true)
++  })
+   it('warns for selection context without guessing a full-document opening state', async () => {
+     const input = options('```diagram\nfake\n```')
+     const result = await collectOutputPresentations({
+diff --git a/apps/desktop/src/output-presentations.ts b/apps/desktop/src/output-presentations.ts
+index 197adca5..ad278fbd 100644
+--- a/apps/desktop/src/output-presentations.ts
++++ b/apps/desktop/src/output-presentations.ts
+@@ -116,12 +116,18 @@ export async function collectOutputPresentations(options: OutputPresentationOpti
+     theme: () => 'light',
+     target: 'export',
+     renderers: options.renderers,
+-    async render(pluginId, rendererId, request) {
++    async render(pluginId, rendererId, request, preparation) {
+       guard()
+       const controller = new AbortController()
+       let timer: ReturnType<typeof setTimeout> | undefined
+       let abort: (() => void) | undefined
+       try {
++        // The isolated owner starts its unchanged 2s execution watchdog at
++        // dispatch. This outer bound covers queueing and result delivery under
++        // the service's existing absolute preparation deadline. Starting another
++        // 2s timer here would charge an export for earlier editor work.
++        const remaining = preparation.deadline - performance.now()
++        if (remaining <= 0) throw new DocumentPresentationError('timeout')
+         const cancellation = new Promise<never>((_resolve, reject) => {
+           abort = () => {
+             controller.abort()
+@@ -129,9 +135,9 @@ export async function collectOutputPresentations(options: OutputPresentationOpti
+           }
+           options.signal.addEventListener('abort', abort, { once: true })
+           timer = setTimeout(() => {
+-            controller.abort()
+             reject(new DocumentPresentationError('timeout'))
+-          }, DOCUMENT_PRESENTATION_LIMITS.timeoutMs)
++            controller.abort()
++          }, remaining)
+         })
+         const result = await Promise.race([
+           options.render(pluginId, rendererId, absoluteLines(request), {
+@@ -140,6 +146,12 @@ export async function collectOutputPresentations(options: OutputPresentationOpti
+           cancellation,
+         ])
+         guard()
++        // A blocked frontend can deliver a result before its overdue timer task.
++        // Never accept it beyond the same preparation deadline or renew the budget.
++        if (performance.now() >= preparation.deadline) {
++          controller.abort()
++          throw new DocumentPresentationError('timeout')
++        }
+         if (!result.complete || result.fragments.some((fragment) => fragment.status === 'error'))
+           warn(
+             'presentation-incomplete',
+diff --git a/apps/desktop/src/output-service.ts b/apps/desktop/src/output-service.ts
+index 56c4d04b..f4bd3284 100644
+--- a/apps/desktop/src/output-service.ts
++++ b/apps/desktop/src/output-service.ts
+@@ -14,7 +14,7 @@ import {
+   type PluginOutputOperationOptions,
+ } from '@milkup/plugin'
+ import type { DesktopDocumentPresentationOptions } from './document-presentation-service'
+-import { collectOutputPresentations } from './output-presentations'
++import { collectOutputPresentations, type OutputPresentationOptions } from './output-presentations'
+ 
+ export interface DesktopOutputCurrent {
+   readonly source: EditorDocumentSource
+@@ -29,7 +29,7 @@ export interface DesktopOutputServiceOptions {
+   readonly current: () => DesktopOutputCurrent | undefined
+   readonly invoke: (command: string, args: Record<string, unknown>) => Promise<unknown>
+   readonly renderers: DesktopDocumentPresentationOptions['renderers']
+-  readonly render: DesktopDocumentPresentationOptions['render']
++  readonly render: OutputPresentationOptions['render']
+ }
+ interface Captured {
+   readonly metadata: PluginOutputSnapshot
+diff --git a/tests/native/tauri-p5-output.mjs b/tests/native/tauri-p5-output.mjs
+index 5852b17b..9349b6d2 100644
+--- a/tests/native/tauri-p5-output.mjs
++++ b/tests/native/tauri-p5-output.mjs
+@@ -41,10 +41,22 @@ const rich =
+   process.env.MILKUP_P5_PAPER_LAYOUT !== '1'
+ const bundledRich = rich && process.env.MILKUP_P5_BUNDLED_RICH === '1'
+ const diagramArchive =
++  process.env.MILKUP_P5_DIAGRAM_ARCHIVE ||
+   '/workspace/milkup-mermaid-engine-evidence/research/renderer-exact-memo-product-integration-01/artifacts/milkup.diagrams-1.1.1.milkup-plugin'
+-const diagramSha256 = '2351692438a2083a72bcb8cddce28c7a530a8557734926992a3a2e3120c68a19'
++const diagramSha256 =
++  process.env.MILKUP_P5_DIAGRAM_ARCHIVE_SHA256 ||
++  '2351692438a2083a72bcb8cddce28c7a530a8557734926992a3a2e3120c68a19'
++const diagramVersion = process.env.MILKUP_P5_DIAGRAM_VERSION || '1.1.1'
++if (process.env.MILKUP_P5_DIAGRAM_ARCHIVE)
++  assert(process.env.MILKUP_P5_DIAGRAM_ARCHIVE_SHA256 && process.env.MILKUP_P5_DIAGRAM_VERSION)
+ if (rich && !bundledRich)
+   assert.equal(hash(await readFile(diagramArchive)), diagramSha256, 'Reviewed renderer archive')
++if (rich && !bundledRich) {
++  const candidate = JSON.parse(await readFile(diagramArchive, 'utf8'))
++  assert.equal(candidate.manifest.id, 'milkup.diagrams')
++  assert.equal(candidate.manifest.version, diagramVersion)
++  assert(!diagramArchive.startsWith(path.resolve('plugins') + path.sep))
++}
+ await mkdir(output, { recursive: true })
+ const fixture = await readFile(
+   new URL('../fixtures/p5-output/rich-document.md', import.meta.url),
+@@ -95,7 +107,7 @@ const plan = {
+   rendererMode: rich
+     ? bundledRich
+       ? 'bundled 1.1.0 (independent 1.1.1 failure tracked separately)'
+-      : 'independent 1.1.1'
++      : `independent ${diagramVersion}`
+     : 'disabled fallback',
+   richRenderers: rich
+     ? {

@@ -1,0 +1,21 @@
+{
+  "id": "milkup.footnotes",
+  "name": "Milkup Footnotes",
+  "version": "1.0.0",
+  "description": "有界脚注索引、定义与引用导航；编辑时保留 Markdown 源文。",
+  "host": "worker",
+  "main": "./dist/plugin.js",
+  "engines": {
+    "milkup": "^2.0.0-0",
+    "pluginSdk": ">=0.3.3 <0.4.0"
+  },
+  "permissions": ["document:read"],
+  "contributes": {
+    "documentRenderers": [
+      {
+        "id": "footnotes",
+        "contexts": ["text"]
+      }
+    ]
+  }
+}

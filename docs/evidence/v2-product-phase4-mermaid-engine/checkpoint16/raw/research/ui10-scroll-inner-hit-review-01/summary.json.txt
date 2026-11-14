@@ -1,0 +1,149 @@
+{
+  "status": "read-only design; no test or product change; no new runtime",
+  "sources": [
+    {
+      "path": "/workspace/milkup-mermaid-engine-evidence/product-ui-runs/runs/mermaid-ui-corner-smoke-01/results.json",
+      "bytes": 51569,
+      "sha256": "41c9d13632c89ba4da4db2917f7e1f0722217f9a0a327ae506c36d1f5fa4466a"
+    },
+    {
+      "path": "/workspace/milkup-mermaid-engine-evidence/product-ui-runs/runs/mermaid-ui-corner-smoke-01/failure.json",
+      "bytes": 539,
+      "sha256": "818898315945ce8a9b697a2b9b361a67069536edce80df37f3e73f76af915ad5"
+    },
+    {
+      "path": "/workspace/milkup/tests/native/tauri-mermaid-ui.mjs",
+      "bytes": 56579,
+      "sha256": "d150a401ee07227f9bd0bbb74ef13e28834f234b5150580d95ab77cffa5848a1"
+    }
+  ],
+  "failure": {
+    "error": "AssertionError [ERR_ASSERTION]: Wheel reaches diagram left bottom-right",
+    "stack": "AssertionError [ERR_ASSERTION]: Wheel reaches diagram left bottom-right\n    at scrollEdges (file:///workspace/milkup-mermaid-engine-evidence/research/native-corner-alignment-smoke-01/native/corner-smoke.mjs:1240:7)\n    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)\n    at async file:///workspace/milkup-mermaid-engine-evidence/research/native-corner-alignment-smoke-01/native/corner-smoke.mjs:1331:7"
+  },
+  "facts": {
+    "completedCorners": 0,
+    "failureBeforeAlignment": true,
+    "range": [
+      440,
+      969
+    ],
+    "sameCapturedBlob": true,
+    "before": {
+      "top": 0,
+      "left": 0,
+      "clientRect": {
+        "left": 26,
+        "width": 328,
+        "right": 354,
+        "top": 100.5,
+        "height": 169,
+        "bottom": 269.5
+      }
+    },
+    "after": {
+      "top": 125,
+      "left": 0,
+      "clientRect": {
+        "left": 26,
+        "width": 328,
+        "right": 354,
+        "top": -120.3125,
+        "height": 169,
+        "bottom": 48.6875
+      },
+      "maxTop": 125,
+      "maxLeft": 69
+    },
+    "clientTopDelta": -220.8125,
+    "remainingVisibleHeight": 11.6875,
+    "documentBefore": {
+      "message": "\u5b57\u9762\u5339\u914d \u00b7 \u5ffd\u7565\u5927\u5c0f\u5199 \u00b7 \u5ffd\u7565\u67e5\u8be2\u9996\u5c3e\u7a7a\u767d",
+      "query": "MERMAID-SAMPLE-classDiagram-000-first-official-example",
+      "mode": "live",
+      "count": "0/0",
+      "searching": false,
+      "selection": [
+        {
+          "from": 384,
+          "to": 438,
+          "line": null
+        },
+        {
+          "from": 384,
+          "to": 438,
+          "line": null
+        }
+      ],
+      "path": "/workspace/milkup-mermaid-engine-evidence/product-ui-runs/runs/mermaid-ui-corner-smoke-01/ordinary.md",
+      "saving": false,
+      "notice": "\u5c31\u7eea",
+      "dirty": false,
+      "cursor": 438,
+      "url": "tauri://localhost",
+      "replaceDisabled": true,
+      "savedVersion": 0,
+      "replacing": false,
+      "loading": "ready",
+      "version": 0
+    },
+    "documentAfter": {
+      "message": "\u5b57\u9762\u5339\u914d \u00b7 \u5ffd\u7565\u5927\u5c0f\u5199 \u00b7 \u5ffd\u7565\u67e5\u8be2\u9996\u5c3e\u7a7a\u767d",
+      "query": "MERMAID-SAMPLE-classDiagram-000-first-official-example",
+      "mode": "live",
+      "count": "0/0",
+      "searching": false,
+      "selection": [
+        {
+          "from": 384,
+          "to": 438,
+          "line": null
+        },
+        {
+          "from": 384,
+          "to": 438,
+          "line": null
+        }
+      ],
+      "path": "/workspace/milkup-mermaid-engine-evidence/product-ui-runs/runs/mermaid-ui-corner-smoke-01/ordinary.md",
+      "saving": false,
+      "notice": "\u5c31\u7eea",
+      "dirty": false,
+      "cursor": 438,
+      "url": "tauri://localhost",
+      "replaceDisabled": true,
+      "savedVersion": 0,
+      "replacing": false,
+      "loading": "ready",
+      "version": 0
+    },
+    "errors": {
+      "errors": [],
+      "cspViolations": []
+    },
+    "originalTargetIfStartSnapshotHadSameGeometry": {
+      "x": 190.0,
+      "y": 164.75
+    }
+  },
+  "codeFacts": [
+    "scrollEdges establishes pointer once per corner before iterating both vertical and horizontal axes.",
+    "Each axis can perform30 batches; each batch emits3 wheel events70ms apart then delays120ms.",
+    "Neither axis transition nor batch transition recomputes the pointer hit.",
+    "alignScrollCorner is called only after both axes meet their original target; this failure cannot be caused by the newly added outer alignment loop."
+  ],
+  "causalLimits": [
+    "No middle-of-wheel pointer/event records exist. The computed old target is conditional on the previously recorded geometry, not a claim about the exact dispatched coordinate.",
+    "Same blob and same dimensions do not prove node identity; no stable node IDs were recorded.",
+    "Final geometry proves movement and stale-hit susceptibility, not whether wheel chaining, native scroll anchoring or another view update moved it.",
+    "Cannot yet attribute this failure to product overscroll, image reset or a particular wheel event."
+  ],
+  "minimalProposedChange": {
+    "scope": "tests/native/tauri-mermaid-ui.mjs only after root approval. No product/CSS/state changes.",
+    "sampling": "For each axis, record initial public DOM/target/max. Before each existing batch that is needed, obtain one fresh observe snapshot; compute positive clientRect intersection with measured editorViewport; require exact range mounted and decoded; hit-test elementFromPoint against exact range preview; real XTest mousemove to current center. Record requested CSS point, native scale/window geometry and actual xdotool getmouselocation.",
+    "dispatch": "Keep exactly existing step<30 bound, three clicks with70ms spacing, and120ms delay. After each batch read current preview geometry/offset and append observation. A next batch must reacquire target; no blind reuse of an earlier axis point. If fully offscreen or missing, fail immediately rather than scroll/focus/reseek to recover.",
+    "preservation": "Per-axis try/finally writes bounded inner-wheel.jsonl entry including before/after, observations and first error, even if original endpoint assertion fails. Keep original target values and original reached-offset/corner/screenshot assertions.",
+    "noInputNeeded": "An axis already at its target records that fact without synthetic movement/clicks.",
+    "limitations": "Fresh hit before a batch does not prove all3 events within that batch hit the same target if it moves between events. Do not claim per-event hit proof. If root requires this stronger contract, replace each3-event batch with3 explicitly checked single events without increasing total90 events/axis, but this is a separately approved larger timing change."
+  }
+}

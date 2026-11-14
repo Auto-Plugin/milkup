@@ -1,0 +1,194 @@
+{
+  "status": "PASS",
+  "cases": [
+    {
+      "case": "old-children-ENOENT-red-new-proc-table-green",
+      "status": "PASS",
+      "detail": {
+        "oldOutcome": "guardian-bind-not-unique-or-missing",
+        "newOutcome": "accepted",
+        "baselineRedIsExpected": true
+      }
+    },
+    {
+      "case": "one-table-shared-across-descendant-tree",
+      "status": "PASS",
+      "detail": {
+        "oneSharedTable": true,
+        "ownedIdentityCount": 3
+      }
+    },
+    {
+      "case": "numeric-pid-cap-no-partial-accept",
+      "status": "PASS",
+      "detail": {
+        "outcome": "proc-pid-limit",
+        "rowsNotAccepted": true,
+        "readCount": 4097
+      }
+    },
+    {
+      "case": "directory-entry-cap-no-partial-accept",
+      "status": "PASS",
+      "detail": {
+        "outcome": "proc-entry-limit",
+        "rowsNotAccepted": true,
+        "readCount": 1
+      }
+    },
+    {
+      "case": "wall-cap-no-partial-accept",
+      "status": "PASS",
+      "detail": {
+        "outcome": "proc-scan-wall-limit",
+        "durationNs": 60000000,
+        "boundaryOvershootExplicit": true
+      }
+    },
+    {
+      "case": "direct-child-cap",
+      "status": "PASS",
+      "detail": {
+        "outcome": "child-candidate-discovery-limit",
+        "scanCount": 1,
+        "tableRecords": 1
+      }
+    },
+    {
+      "case": "candidate-pid-reuse",
+      "status": "PASS",
+      "detail": {
+        "outcome": "guardian-bind-not-unique-or-missing",
+        "scanCount": 1,
+        "tableRecords": 1
+      }
+    },
+    {
+      "case": "owner-birth-change-after-table",
+      "status": "PASS",
+      "detail": {
+        "outcome": "guardian-bind-not-unique-or-missing",
+        "scanCount": 1,
+        "tableRecords": 1
+      }
+    },
+    {
+      "case": "argv-rejected",
+      "status": "PASS",
+      "detail": {
+        "outcome": "guardian-bind-not-unique-or-missing",
+        "scanCount": 1,
+        "tableRecords": 1
+      }
+    },
+    {
+      "case": "env-rejected",
+      "status": "PASS",
+      "detail": {
+        "outcome": "guardian-bind-not-unique-or-missing",
+        "scanCount": 1,
+        "tableRecords": 1
+      }
+    },
+    {
+      "case": "env-duplicate-rejected",
+      "status": "PASS",
+      "detail": {
+        "outcome": "guardian-bind-not-unique-or-missing",
+        "scanCount": 1,
+        "tableRecords": 1
+      }
+    },
+    {
+      "case": "global-stat-EACCES-fail-closed",
+      "status": "PASS",
+      "detail": {
+        "outcome": "proc-stat-read-or-parse",
+        "scanCount": 1,
+        "tableRecords": 1
+      }
+    },
+    {
+      "case": "vanished-unrelated-entry-counted",
+      "status": "PASS",
+      "detail": {
+        "outcome": "accepted",
+        "scanCount": 1,
+        "tableRecords": 1
+      }
+    },
+    {
+      "case": "owned-parent-change-rejected",
+      "status": "PASS",
+      "detail": {
+        "outcome": "guardian-bind-not-unique-or-missing",
+        "scanCount": 1,
+        "tableRecords": 1
+      }
+    },
+    {
+      "case": "final-birth-change-rejected",
+      "status": "PASS",
+      "detail": {
+        "outcome": "guardian-bind-not-unique-or-missing",
+        "scanCount": 1,
+        "tableRecords": 1
+      }
+    },
+    {
+      "case": "multiple-guardians-rejected",
+      "status": "PASS",
+      "detail": {
+        "outcome": "guardian-bind-not-unique-or-missing",
+        "scanCount": 1,
+        "tableRecords": 1
+      }
+    },
+    {
+      "case": "summary-and-output-hard-bound",
+      "status": "PASS",
+      "detail": {
+        "64ScanRecordsCombinedBytes": 2007932,
+        "oversizeWrites": 0
+      }
+    },
+    {
+      "case": "tail-window-scan-admission",
+      "status": "PASS",
+      "detail": {
+        "remaining49999999Ns": "skip; no proc reads; known identities preserved",
+        "remaining50000000Ns": "scan admitted",
+        "lateInitialBinding": "explicit incomplete, no reanchor",
+        "runAndSampleMethodsUnchanged": true
+      }
+    },
+    {
+      "case": "maximum-summary-fails-closed",
+      "status": "PASS",
+      "detail": {
+        "scanRecords": 64,
+        "candidateRecords": 128,
+        "knownIdentities": 128,
+        "errorRecords": 32,
+        "outcome": "summary-reserve-exceeded",
+        "outputsWritten": 0,
+        "budgetUnchanged": true
+      }
+    }
+  ],
+  "astIdenticalMethods": [
+    "argv",
+    "await_dispatch",
+    "bounded_read",
+    "cgroup",
+    "emit",
+    "error",
+    "read_root",
+    "role",
+    "run",
+    "sample"
+  ],
+  "baseSha256": "aee036fb54b038aff82c160618618baf933d86530ac408e06269b385c4e9779b",
+  "samplerSha256": "f109f8ee86061e9f37b1e561a7964e3b4c830bb58957832acfc480d06d2089f0",
+  "qualification": "Finite in-memory tests, not full process-race proof; baseline red is an expected old-tool result, not a failed test."
+}

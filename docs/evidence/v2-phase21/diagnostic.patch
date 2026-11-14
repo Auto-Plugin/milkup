@@ -1,0 +1,77 @@
+diff --git a/apps/desktop/src-tauri/src/lib.rs b/apps/desktop/src-tauri/src/lib.rs
+index 3261991..778b330 100644
+--- a/apps/desktop/src-tauri/src/lib.rs
++++ b/apps/desktop/src-tauri/src/lib.rs
+@@ -598,7 +598,9 @@ fn read_bounded_large_line_window(
+     to_line: usize,
+     max_text_length: Option<usize>,
+ ) -> Result<LargeFileLineWindowResult, String> {
++    let span = Phase21Span::new("read-window");
+     let mut stores = registry.lock().map_err(|error| error.to_string())?;
++    span.mark("locked");
+     let store = stores
+         .get_mut(&document_id)
+         .ok_or_else(|| format!("Unknown large text file: {document_id}"))?;
+@@ -651,7 +653,9 @@ fn apply_large_text_file_changes_in_registry(
+     expected_version: usize,
+     changes: Vec<LargeFileTextChange>,
+ ) -> Result<LargeFileSnapshotResult, String> {
++    let span = Phase21Span::new("apply");
+     let mut stores = registry.lock().map_err(|error| error.to_string())?;
++    span.mark("locked");
+     let store = stores
+         .get_mut(&document_id)
+         .ok_or_else(|| format!("Unknown large text file: {document_id}"))?;
+@@ -2870,3 +2874,10 @@ mod search_profile_baseline {
+         }
+     }
+ }
++
++pub(crate) struct Phase21Span { start: std::time::Instant, name: &'static str }
++impl Phase21Span {
++ pub(crate) fn new(name: &'static str)->Self { let s=Self{start:std::time::Instant::now(),name};s.mark("begin");s }
++ pub(crate) fn mark(&self,stage:&str) { eprintln!("PHASE21 {} {:?} {} {} {:.3}",std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_micros(),std::thread::current().id(),self.name,stage,self.start.elapsed().as_secs_f64()*1000.0); }
++}
++impl Drop for Phase21Span { fn drop(&mut self) { self.mark("end"); } }
+diff --git a/apps/desktop/src-tauri/src/piece_tree.rs b/apps/desktop/src-tauri/src/piece_tree.rs
+index 09ebbe5..ebe8844 100644
+--- a/apps/desktop/src-tauri/src/piece_tree.rs
++++ b/apps/desktop/src-tauri/src/piece_tree.rs
+@@ -237,6 +237,7 @@ impl PieceTree {
+     }
+ 
+     pub(crate) fn write_to(&self, path: &Path) -> Result<(), String> {
++        let span = crate::Phase21Span::new("write");
+         if let Some(parent) = path.parent() {
+             fs::create_dir_all(parent).map_err(|error| error.to_string())?;
+         }
+@@ -274,6 +275,7 @@ impl PieceTree {
+             }
+         }
+         output.flush().map_err(|error| error.to_string())?;
++        span.mark("flushed");
+         output
+             .get_ref()
+             .sync_all()
+diff --git a/apps/desktop/src-tauri/src/recovery.rs b/apps/desktop/src-tauri/src/recovery.rs
+index 33697e4..f40f6d2 100644
+--- a/apps/desktop/src-tauri/src/recovery.rs
++++ b/apps/desktop/src-tauri/src/recovery.rs
+@@ -396,7 +396,9 @@ fn checkpoint_native_with_after_write(
+     after_write: impl FnOnce() -> Result<(), String>,
+ ) -> Result<Record, String> {
+     let native_version = input.native_version.ok_or("Missing native version")?;
++    let span = crate::Phase21Span::new("checkpoint-registry");
+     let stores = files.0.lock().map_err(err)?;
++    span.mark("locked");
+     let source = stores
+         .get(&input.document_id)
+         .ok_or("Document no longer open")?;
+@@ -425,6 +427,7 @@ fn checkpoint_native_with_after_write(
+             // Hashing/publication keep the recovery gate and storage lock, but must
+             // not block unrelated reads, edits, saves or source destruction.
+             drop(stores);
++            span.mark("unlocked");
+             written
+         },
+         after_write,

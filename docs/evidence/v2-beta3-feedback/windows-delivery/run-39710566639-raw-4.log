@@ -1,0 +1,26 @@
+﻿2026-10-22T02:18:05.0636588Z ##[group]Run $ErrorActionPreference = 'Stop'
+2026-10-22T02:18:05.0637077Z [36;1m$ErrorActionPreference = 'Stop'[0m
+2026-10-22T02:18:05.0637627Z [36;1mif ((git rev-parse HEAD).Trim() -cne $env:GITHUB_SHA) { throw 'Source SHA mismatch' }[0m
+2026-10-22T02:18:05.0638219Z [36;1mgit merge-base --is-ancestor 32b55aa4dfd2806433a649eca2c9d7ad2262d3bc HEAD[0m
+2026-10-22T02:18:05.0638750Z [36;1mif ($LASTEXITCODE -ne 0) { throw 'Wrong validated baseline' }[0m
+2026-10-22T02:18:05.0639390Z [36;1mforeach ($file in @('update_handoff.rs','update_identity.rs','update_transaction.rs','update_health_contract.rs')) {[0m
+2026-10-22T02:18:05.0640169Z [36;1m  if (Test-Path "apps/desktop/src-tauri/src/$file") { throw 'Unaccepted experiment in product candidate' }[0m
+2026-10-22T02:18:05.0640661Z [36;1m}[0m
+2026-10-22T02:18:05.0641088Z [36;1mif (Test-Path tests/native/windows-debug-handoff) { throw 'Debug prototype must not enter candidate' }[0m
+2026-10-22T02:18:05.0641675Z [36;1mif (git status --porcelain) { throw 'Dirty candidate' }[0m
+2026-10-22T02:18:05.0642066Z [36;1mnode scripts/check-versions.mjs[0m
+2026-10-22T02:18:05.0642391Z [36;1mif ($LASTEXITCODE -ne 0) { throw 'Version mismatch' }[0m
+2026-10-22T02:18:05.0642956Z [36;1mif ((Get-Content package.json -Raw | ConvertFrom-Json).version -cne '2.0.0-beta.3') { throw 'Wrong beta' }[0m
+2026-10-22T02:18:06.3258344Z shell: C:\Program Files\PowerShell\7\pwsh.EXE -command ". '{0}'"
+2026-10-22T02:18:06.3258948Z env:
+2026-10-22T02:18:06.3259214Z   CARGO_BUILD_JOBS: 2
+2026-10-22T02:18:06.3259518Z   CARGO_INCREMENTAL: 0
+2026-10-22T02:18:06.3259833Z   CARGO_PROFILE_DEV_DEBUG: 0
+2026-10-22T02:18:06.3260252Z   CARGO_PROFILE_RELEASE_DEBUG: 0
+2026-10-22T02:18:06.3260773Z   CARGO_TERM_COLOR: never
+2026-10-22T02:18:06.3261122Z   PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: 1
+2026-10-22T02:18:06.3261512Z   GIT_CONFIG_COUNT: 1
+2026-10-22T02:18:06.3262209Z   GIT_CONFIG_KEY_0: core.longpaths
+2026-10-22T02:18:06.3262580Z   GIT_CONFIG_VALUE_0: true
+2026-10-22T02:18:06.3262910Z ##[endgroup]
+2026-10-22T02:18:13.1168070Z Application 2.0.0-beta.3; SDK 0.3.8; outline 1.3.3

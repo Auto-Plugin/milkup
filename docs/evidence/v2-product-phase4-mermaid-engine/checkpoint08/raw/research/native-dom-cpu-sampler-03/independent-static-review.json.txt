@@ -1,0 +1,22 @@
+{
+  "reviewer": "release_sdk",
+  "scope": "Independent static review only; no sampler import/execution, tests, live proc reads, UI, build or product edits",
+  "decision": "no blocking finding for the planned single controlled observation",
+  "preparationSha256": "c9f5ef97dd7735351559b4d9fa79552e73814d8877335ac3b5df43f84b027f21",
+  "samplerSha256": "f109f8ee86061e9f37b1e561a7964e3b4c830bb58957832acfc480d06d2089f0",
+  "verifiedManifestInputs": 13,
+  "findings": [
+    "One bounded numeric PID table per discovery supplies candidates, not ownership authority. Fresh birth/PPID checks, owner birth checks before/after traversal, exact argv/environment and unique guardian matching remain required. Unrelated stat payload is not emitted.",
+    "Directory/PID/candidate/known/scan-record/output limits fail closed. Vanished PID entries are counted; other scan errors do not authorize a partial table.",
+    "Remaining window below 50ms skips discovery without reads or re-anchoring; binding then reports incomplete, later discovery preserves known identities. Original run/sample/await_dispatch methods are AST-identical to sampler02.",
+    "Final owner-produced 19-case finite synthetic result was reviewed, not rerun. Maximum-shape summary test deliberately fails closed without increasing the output budget."
+  ],
+  "limits": [
+    "A proc scan is not an atomic process-tree snapshot; short-lived or reparented processes may be missed. Fresh identity checks reduce incorrect acceptance without claiming complete observation.",
+    "50ms is checked around synchronous reads, not a preemptive syscall deadline. The retained 33.655747ms capability measurement is one observation, not a runtime cost guarantee.",
+    "Summary reserve exhaustion may leave no summary; caller must retain nonzero exit and stderr.",
+    "Self cgroup readability does not prove future target cgroup access. Keep requested cgroup observation enabled and report access failures; shared cumulative cpu.stat cannot attribute CPU to the DOM instance.",
+    "The retained sampler02 ENOENT evidence is specific to that run. This static review supplies no CPU result and does not establish the cause of earlier renderer deadlines."
+  ],
+  "blockers": []
+}

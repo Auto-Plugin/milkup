@@ -1,0 +1,15 @@
+--- candidate01/renderer.test.ts
++++ candidate02/renderer.test.ts
+@@ -442,9 +442,9 @@
+     expect(mocked.render).toHaveBeenCalledTimes(6)
+   })
+   it('accounts for both serialized keys and values in the 2MiB UTF-16 byte cap', async () => {
+-    const input = { ...staticRequest(), documentId: 'd'.repeat(120_000) }
+-    mocked.convert.mockImplementation(() => ({ ...image(), title: 'x'.repeat(180_000) }))
+-    // Each entry >600KB UTF-16: four cannot coexist even though each output
++    const input = { ...staticRequest(), documentId: 'd'.repeat(220_000) }
++    mocked.convert.mockImplementation(() => ({ ...image(), title: 'x'.repeat(90_000) }))
++    // Each entry >800KB UTF-16: four cannot coexist even though each output
+     // remains under the existing 262144-byte UTF-8 result envelope limit.
+     for (let version = 0; version < 4; version++) await renderDocuments({ ...input, version }, options())
+     await renderDocuments({ ...input, version: 3 }, options())

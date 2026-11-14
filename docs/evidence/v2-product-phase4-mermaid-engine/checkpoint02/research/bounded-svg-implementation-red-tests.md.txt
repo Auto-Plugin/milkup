@@ -1,0 +1,139 @@
+# 封闭 AST 实施前红测说明与预算估算
+
+当前草案 `bounded-svg-schema-proposal.ts` 是独立研究文件，不是SDK产品接口。基线仍为只读审计的 d3851430；没有改repo、安装依赖或运行UI/测试。遵循父端最新决策：第一版静态输出，**有效动画拒绝并保留源码**，错误为 `unsupported-animation`，与主动URL/脚本的 `unsafe-output` 不混用。普通16图型、渐变、阴影、文本必须保真，不能用配置掩盖缺失实现。
+
+## 当前文件与结果
+
+- 封闭schema：`bounded-svg-schema-proposal.ts`。
+- 可重复的轻量静态projection脚本：`estimate-svg-ast.py`。
+- 34样本逐项估算与原SVG SHA：`official-svg-ast-sizing.json`。
+- 实样字段清单：`official-svg-profile-inventory.json`。
+- 初版必要能力解释：`official-svg-profile-revision.md`。
+
+现有 classic+tspan 对照目录尚未有 results 时本轮只读检查为空，因此**未依据该配置缩减journey/filter能力**。对照完成后再选标准外观与标签策略；当前schema保留两种能力，避免先删功能再称广覆盖。
+
+## 静态估算（不是通过validator的最终AST）
+
+34成功SVG均做完整path词法消费、隐式重复命令展开（M第二组变L）、polyline/polygon points拆分；现有7项computed visual style按内容去重。其他属性暂以pendingTypedAttributes保存，未伪造“已正确转换”。原style stylesheet不直接算入输出；尚缺filter/blend/opacity等computed项，需后续完整转换再测。
+
+| 项目 | 结果 |
+| --- | --- |
+| style表projection体积 | 4,012–80,380 bytes |
+| projected charged nodes | 51–1,723 |
+| projected tree depth | 最大11 |
+| 最大图sankey | 80,380 bytes，755 charged，82 style entries；若style重复附到元素则138,266 bytes |
+| sequence autonumber | 46,308 bytes，1,723 charged，1,587 path commands，16 style entries |
+| sequence box group | 42,445 bytes，1,698 charged，1,587 path commands，14 style entries |
+| 当前projection与原budget | 全部低于256KiB/4096/depth64，**仅估算** |
+
+计数保守地保留原SVG的defs/foreignObject/div；实际textBox会压缩14 div，但typed textRuns/完整styles/definition包装也会增加条目。部分definition引用展开尚未模拟，表中不含循环/复用导致的展开成本。完整输出再验证，不能从这里推断所有官方复杂图一定通过配额。样本中的外部a和有效动画虽然也估算体积，但**不计为static profile可接受输出**。
+
+## 验证器可直接实施的不变量
+
+1. **封闭数据**：每variant exact keys，own data properties/plain object，不接受原型/访问器/函数/任意attrs；字段缺失/未知分支拒绝。不可把snake/camel字段模糊拼写当别名。深度在任何递归前计数。
+2. **预算共享**：result内全部fragments共256KiB UTF-8、4096 charged nodes、depth64、fragment128。不得为每张图重置预算。
+   - 一个图/shape/group/textRun/tspan/textBox/definition/stop/style entry为一个charged node；
+   - 每path command、point tuple、transform operation再各计一个；不是只计path根元素；
+   - 数字/字符串和引用数组同时受最终bytes限制；对未知超长输入须先按输入容器长度上限拒绝，不能先构造巨大的规范副本。
+   - styleId合法整数且在本图style表内；不允许跨图/跨文档表引用。只按规范值去重，不用哈希碰撞替代相等。
+3. **坐标/几何**：finite，逻辑尺寸1..8192，坐标原范围±8192先保留；百分比/em由typed units表达。矩阵系数不是普通像素坐标，需独立有限域；组合变换/blur/filter region的有效绘制区域还要限制，超限整图错误，不能clamp。负viewBox原点合法。Path arity/arc flags严格，省略命令按SVG规范展开，逗号/指数/符号紧邻都完整消费。
+4. **引用图**：图内LocalId表完整收集再验证；ID只小型ASCII token，输出全部按host局部前缀重命名；引用不接受url文本。paint只能指gradient，marker只能指marker，filter只能指dropShadowFilter，clip只能指clipPath，use只能指已许可symbol/图形定义。
+   - DFS三色标记拒绝循环；引用深度也≤64。
+   - 按实际引用乘数累计展开成本，超过4096立即拒绝，递归达到限值即停止（不先展开指数结构）。defs本身存储成本与绘制展开成本分别限制；两者都不超过现4096，不为引用开新无限配额。
+   - marker实际重复绘制次数与path segments关联；marker-mid不能只算一次。滤镜不能引用外部image或新fetch能力。
+5. **样式**：helper完整解析CSS/cascade后输出typed final values，保留tree层级；parent opacity/filter/mixBlendMode/isolation不能下推成每子节点重复效果。继承的font/fill可按computed值去重，但非继承opacity要留在原group上。根默认样式规范明确，不能靠浏览器当前主题猜色。
+   - 保留 SVG filter 与 CSS drop-shadow 的独立typed语义；CSS blur radius和SVG stdDeviation不可误等价。
+   - blend仅先收敛实际必要normal/multiply，未知其他blend明确unsupported；sankey普通样例不能因此漏multiply。
+   - 无效CSS声明如原样本的undefined;;;undefined，只有经CSS解析证明浏览器无效、无作用才规范忽略；未知但有效视觉属性不能静默删。
+6. **字体和文本**：fontId映射固定离线字体与fallback序列，确认测量和img呈现一致；目前journey备用Open Sans和主支Arial不能互换。text/tspan严格混合子节点顺序，xml:space与em长度保留；文本不插markup。textBox只固定table/table-cell/纯文本结构，不接任意XHTML元素/类/事件。
+7. **动画**：检查有效元素computed animation及实际相关keyframes/SMIL；通用stylesheet内未匹配的动画规则可以证明无作用后丢弃。active animation、transition或SMIL遇到时不得输出motion:static；返回unsupported-animation及可见原因。此状态不当作恶意插件自动禁用，也不计static-ready覆盖。
+8. **失败分类**：
+   - unsafe-output：script/event/activeURL/任意资源请求等安全越界；
+   - unsupported-animation：已解析的有效动态效果超静态profile；
+   - unsupported-feature：有效但profile未表达的正常构造；
+   - limit-exceeded：输出/展开/几何/字体成本超配额；
+   - font-unavailable：无法保证规定测量字体；
+   - invalid-output：结构、引用类型、path语法等无效。
+   所有失败整片源码保留，原因可见；不出“剩一半图”的ready。
+9. **消费**：validate→canonical stringify SVG→host-owned Blob→img；不innerHTML、任意URL、object/iframe、bindFunctions。每个规范属性值由typed数值/枚举/文本编码构造。schema中从不接受CSS选择器、rawSVG、任意字符串属性表、serialized blob URL。
+
+## 可直接转为红测的公开输入/结果
+
+| 公开fixture / 变更 | 必须观察到的结果 |
+| --- | --- |
+| 原journey七textBox/switch | 7主标签完整、文字位置/字体/颜色一致，不双渲染备用文字；source/live及原文bytes不变 |
+| journey主支文本改为中文+emoji+长句/显式换行 | 正确换行/垂直居中，foreignObject区域不裁首尾；不是改用较小备用字体 |
+| sankey 68gradients + multiply | 两端颜色与重叠色保持；相同字体/尺寸截图对照 |
+| sequence drop-shadow refs / neo CSSdrop-shadow | 两种阴影都存在且边界不裁，参数/units无误 |
+| sequence symbol带scale(.5)、evenodd | 图标的孔洞与尺寸保持；use样本需新增真实官方actor图标证明，当前defs存在不算绘制已验证 |
+| style表同值不同排序/一值变化 | 同值规范去重，一值变化不可错误共享；导出颜色一致 |
+| group opacity0.5下两个重叠shape | 整组层合成，与每shape各0.5的错误结果可区分 |
+| root非零/负viewBox，text y=-0.1em、dy1.1em | 画面完整、baseline正确；不可parseFloat丢单位 |
+| 添加未知合法SVG效果 | unsupported-feature，完整源码；不能删未知节点再ready |
+| animated-edge官方20s dash | unsupported-animation，完整原文及明确原因；未匹配通用动画CSS的普通flow仍ready |
+| 外部a/href、script/onload、url(data/file/https)、CSS escape URL | unsafe-output；无fetch/导航/脚本，父文档无变化 |
+| 文本含</div><img onerror=...> | 显示纯文本或明确输入错误；不产生HTML元素 |
+| styleId越界/负数/NaN；localId悬空/重复/跨类型 | invalid-output；无部分挂载 |
+| A→B→A symbol；重复引用乘数达到4097 | 有界失败，无指数内存/时间增长 |
+| 多fragment各合法但合计4097nodes/262145bytes | shared limit-exceeded，不逐图重置 |
+| path隐式命令/指数/紧邻负数 vs错误arcflag/残余字符 | 合法精确展开；错误不修复、不截断 |
+| config/selection/version/source identity变化时decode迟到 | 不挂旧图，资源释放、focus不抢；普通和windowed同规 |
+| equivalent刷新/换窗后innerTop/Left非零 | 保留内部阅读位置，不重复换窗反馈 |
+| helper同步死循环、取消后不合作 | 独立2秒终止；编辑器可继续输入；输出profile不是超时豁免 |
+
+## 尚需实证后冻结的选择
+
+classic+tspan输出对照可用于选择明确、公开的标准外观；必须仍支持合法自定义style、普通阴影/渐变。若classic只是消除了默认neo阴影，不能据此把所有filter变unsupported而宣称保留自定义样式。若官方tspan选项真的让journey完全使用SVG且字体/尺寸明确可接受，可减少固定textBox实现；目前尚未有本轮结果，不提前删schema。任何未验证的配置不改变这份能力下限。
+
+## 追加红测：inline SVG → image 的真实绘制边界
+
+这是独立于“AST字段齐全”的验收条件。原inline根节点的overflow行为、编辑器容器裁剪与img自身图像viewport不能混为一谈。原viewBox四元组不必覆盖全部可见墨迹，getBBox也不能单独证明marker、stroke、filter阴影、文本外延均包含。**不得仅据getBBox或节点坐标宣称转成img无损。**
+
+需要保留三种边界的区别：
+1. 原图明确的局部clipPath/filter region/overflow裁剪：必须保留，不能为了显示所有geometry而移除。
+2. 原inline根允许overflow而实际绘制到viewBox外的内容：img如果按原viewBox解码会额外裁掉，需有证据的输出viewport扩展或明确unsupported，不能ready后缺边。
+3. 页面preview滚动视口：只是可达性窗口，不应永久删除图像中可通过滚动看到的内容。
+
+若必须扩展输出viewport，应保持原坐标和单位到CSS像素的映射；在已有aspect ratio/root viewport变换下计算四侧扩展与新的逻辑width/height，不是扩大viewBox却维持原width而把整图缩小。不能插入任意固定“多加10px”掩盖较大阴影。辅助程序可提交typed绘制外延数据，但宿主仍要检查finite/尺寸/像素预算；该数据本身不是保真证明。filter绘制限于其规定region，blur外延和阴影位移应与真实浏览器输出对照，不依赖无界高斯近似。若无法可靠界定必要范围，保留原文而非伪造精确bounds。
+
+### 必须新增的实际像素/解码对照
+
+| 构造 | 红测观察与通过条件 |
+| --- | --- |
+| shape位于根viewBox右/下边、stroke一半在框外，原根overflow:visible | 原inline可见外半stroke与img解码后一致；不能只有中心线或几何bbox通过 |
+| 箭头marker越过端点、markerUnits=strokeWidth、auto旋转、非零refX/refY | 起点/终点/中间marker完整，朝向和尺寸不变；覆盖四个根边界 |
+| 左上负位移及右下正位移drop-shadow；不同stdDeviation/blur | 阴影四侧和最淡外沿未因img新增裁剪而消失；保留原filter region的有意裁剪 |
+| root overflow:hidden 与相同图 overflow:visible成对 | 两者按原语义分别匹配，不可一律扩展/一律hidden |
+| group transform＋局部clipPath＋filter | 不把局部clip扩大，不把裁剪后的bbox误当未裁阴影范围 |
+| 文本italic/重音/组合字符/CJK/emoji位于四边 | 字形墨迹外延和基线完整；字体ready后测量，非仅文本advance宽 |
+| 非零/负viewBox原点，宽高比不一致，meet/slice | 位置、letterbox或有意slice保持；不能扩大viewBox后意外缩放 |
+| 图像decode后naturalWidth/Height与预留逻辑尺寸 | decode完成的实际img像素完整；error/零尺寸/迟到decode不能留下空白ready片段 |
+| 100/125/150/200%窄窗和宽窗 | 不同像素舍入下四侧边线/marker/阴影完整；真实横纵滚动达到边缘，不只DOM rect相交 |
+| source/version/config在decode过程中变化 | 不挂迟到旧图，撤销URL并回原文；锚点/history/bytes不变 |
+
+oracle是在同一引擎、同字体、同逻辑比例下实际绘制的官方inline输出（包括根外可见区域）与候选img解码输出。分别保存原始截图、viewport/clip策略和外延测量；原inline截图若自身已截断，也不能当完整oracle。不要用DOM截图裁剪掉边界后得到“像素一致”。
+
+## 追加红测：有效 CSS 覆盖完整性与 transform 唯一应用
+
+固定computed字段列表只是采样工具，不是converter允许忽略其他有效属性的理由。converter需对实际匹配规则、inline声明、presentation attributes及继承形成**覆盖账本**：每个会影响绘制的有效属性都有明确typed表达/等价归一化，或明确错误。仅出现在未匹配规则、被cascade覆盖、CSS语法本身无效的内容可经证明忽略。浏览器computed默认数百属性不要求全部复制，但不能把用户classDef里生效的新属性当UA默认丢掉。
+
+普通合法样式首先考虑实现，而非把常用classDef误归安全攻击。尚未表达时用unsupported-feature，不是unsafe-output；两者都不得返回残缺ready。
+
+| 属性/场景 | 必须结果 |
+| --- | --- |
+| classDef text-transform:uppercase/lowercase/capitalize | 文字视觉转换保留（typed textTransform或有证明的等价文本布局）；未实现明确unsupported，不按原大小写ready |
+| CSS x/y/width/height/rx/ry/r/cx/cy覆盖SVG属性 | 使用最终有效geometry、保留单位；例如attr rx=0+class rx=8px不得方角ready |
+| classDef stroke-dashoffset/paint-order/vector-effect/writing-mode | 已表达则精确保留；未表达的有效属性整图unsupported，不能仅采fill/stroke漏掉 |
+| CSS变更font-variant/letter-spacing/direction/unicode-bidi | 排版确实受影响时不能静默遗漏；覆盖文字方向与CJK组合样本 |
+| attr transform=translate(10) + CSS transform=translateX(20px) | 按真实cascade只应用最终自身变换一次；不得拼成30 |
+| ancestor translate(50) + own CSS translate(20) | 保留树时局部20、父50各一次；不能把getCTM全链70再挂父节点造成120 |
+| transform-origin百分比 + transform-box + rotate | 原点/参考box明确解析后与原图一致；不能仅取computed matrix丢origin |
+| 原始无效style undefined;;;undefined +合法fill | 浏览器无效声明可记录忽略，合法fill仍保留；不能因substring未知拒所有普通样例 |
+| 生效未知CSS与activeURL混合 | URL安全拒绝优先；不可剥掉URL再对剩余样式ready |
+| 未匹配通用动画规则 vs匹配animated-edge | 前者不阻普通图；后者unsupported-animation，不能静态化成功 |
+
+实现可选择完整的“局部有效matrix + 原树”或“全局matrix + 有证明的结构扁平化”，不可混用。推荐保留原树，转换自身transform一次；CSS transform与SVG transform属性是cascade关系，不是两个独立串联的操作。若使用getCTM/getScreenCTM作为辅助观测，必须分离祖先/root viewBox/页面缩放，不能直接当局部transform序列化。CSS origin应保留typed origin/box或准确折算为局部矩阵，折算后不得再应用第二次origin。
+
+下一轮完整helper采样应在此前字段之外增加上述geometry、textTransform、transform/transformOrigin/transformBox及有效声明覆盖账本；**不启动新UI，仅作为后续已协调验收要求。**
+
+

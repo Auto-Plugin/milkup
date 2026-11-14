@@ -1,0 +1,29 @@
+// Build step only; does not launch native UI. Requires separately authorized CPU slot.
+import assert from 'node:assert/strict'
+import {createRequire} from 'node:module'
+import {readFile,writeFile} from 'node:fs/promises'
+import {fileURLToPath} from 'node:url'
+import path from 'node:path'
+import {createHash} from 'node:crypto'
+const root=path.dirname(fileURLToPath(import.meta.url))
+const plugin='/workspace/milkup-mermaid-engine-evidence/diagrams-gate07/standalone/plugin'
+const require=createRequire(path.join(plugin,'package.json'))
+const {build}=require('esbuild')
+const pkg=JSON.parse(await readFile(path.join(plugin,'node_modules/mermaid/package.json'),'utf8'))
+assert.equal(pkg.version,'12.2.0')
+const profile=JSON.parse(await readFile(path.join(root,'source/plugin-inputs/build-dependencies.json'),'utf8'))
+assert.equal(profile.target,'es2024');assert.equal(profile.minify,true)
+for(const dependency of profile.packages)for(const input of dependency.inputs){
+ const b=await readFile(path.join(plugin,dependency.root,input.path))
+ assert.equal(createHash('sha256').update(b).digest('hex'),input.sha256,'Reviewed dependency input changed')
+}
+
+const result=await build({entryPoints:[path.join(root,'capture-entry.ts')],outfile:path.join(root,'capture-helper/assets/entry.mjs'),bundle:true,format:'esm',platform:'browser',target:'es2024',nodePaths:[path.join(plugin,'node_modules')],metafile:true,minify:true,legalComments:'eof',logLevel:'info'})
+await writeFile(path.join(root,'capture-bundle-meta.json'),JSON.stringify(result.metafile,null,2)+'\n')
+await build({entryPoints:[path.join(root,'source/core/document-presentation.ts')],outfile:path.join(root,'current-core.mjs'),bundle:true,format:'esm',platform:'node',target:'node20',metafile:false,logLevel:'info'})
+const rows=[]
+for(const input of Object.keys(result.metafile.inputs)) {
+ const p=path.resolve(input),b=await readFile(p)
+ rows.push({path:p,bytes:b.length,sha256:createHash('sha256').update(b).digest('hex')})
+}
+await writeFile(path.join(root,'actual-bundle-inputs.json'),JSON.stringify(rows,null,2)+'\n')

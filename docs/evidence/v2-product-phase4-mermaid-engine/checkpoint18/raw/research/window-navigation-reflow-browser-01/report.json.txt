@@ -1,0 +1,155 @@
+{
+  "config": {
+    "argv": [
+      "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+      "/workspace/milkup/node_modules/@playwright/test/cli.js",
+      "test",
+      "--config=/workspace/milkup-mermaid-engine-evidence/research/window-navigation-reflow-browser-01/playwright.config.ts",
+      "--project=desktop-msedge",
+      "--workers=1",
+      "--retries=0",
+      "--reporter=line,json"
+    ],
+    "configFile": "/workspace/milkup-mermaid-engine-evidence/research/window-navigation-reflow-browser-01/playwright.config.ts",
+    "rootDir": "/workspace/milkup/tests/e2e",
+    "failOnFlakyTests": false,
+    "forbidOnly": false,
+    "fullyParallel": false,
+    "globalSetup": null,
+    "globalTeardown": null,
+    "globalTimeout": 0,
+    "grep": {},
+    "grepInvert": null,
+    "maxFailures": 0,
+    "metadata": {
+      "actualWorkers": 1
+    },
+    "preserveOutput": "always",
+    "projects": [
+      {
+        "outputDir": "/workspace/milkup-mermaid-engine-evidence/research/window-navigation-reflow-browser-01/artifacts",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "desktop-msedge",
+        "name": "desktop-msedge",
+        "testDir": "/workspace/milkup/tests/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "/desktop-window-navigation-reflow\\.spec\\.ts/"
+        ],
+        "timeout": 60000
+      }
+    ],
+    "quiet": false,
+    "reporter": [
+      [
+        "line"
+      ],
+      [
+        "json"
+      ]
+    ],
+    "reportSlowTests": {
+      "max": 5,
+      "threshold": 300000
+    },
+    "shard": null,
+    "tags": [],
+    "updateSnapshots": "missing",
+    "updateSourceMethod": "patch",
+    "version": "1.61.1",
+    "workers": 1,
+    "webServer": null
+  },
+  "suites": [
+    {
+      "title": "desktop-window-navigation-reflow.spec.ts",
+      "file": "desktop-window-navigation-reflow.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "windowed navigation retains mounted marker through controlled image shrink after selection assignment",
+          "ok": false,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "desktop-msedge",
+              "projectName": "desktop-msedge",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "failed",
+                  "duration": 7704,
+                  "error": {
+                    "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeGreaterThanOrEqual\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nExpected: >= \u001b[32m37\u001b[39m\nReceived:    \u001b[31m36.78125\u001b[39m",
+                    "stack": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeGreaterThanOrEqual\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nExpected: >= \u001b[32m37\u001b[39m\nReceived:    \u001b[31m36.78125\u001b[39m\n    at /workspace/milkup/tests/e2e/desktop-window-navigation-reflow.spec.ts:339:38",
+                    "location": {
+                      "file": "/workspace/milkup/tests/e2e/desktop-window-navigation-reflow.spec.ts",
+                      "column": 38,
+                      "line": 339
+                    },
+                    "snippet": "  337 |     expect(result.final.selection).toMatchObject({ anchor: result.from, head: result.to })\n  338 |     expect(result.final.marker).not.toBeNull()\n> 339 |     expect(result.final.marker!.top).toBeGreaterThanOrEqual(result.final.viewport!.top)\n      |                                      ^\n  340 |     expect(result.final.marker!.bottom).toBeLessThanOrEqual(result.final.viewport!.bottom)\n  341 |     expect(result.final.overlays.length).toBeGreaterThan(0)\n  342 |     expect("
+                  },
+                  "errors": [
+                    {
+                      "location": {
+                        "file": "/workspace/milkup/tests/e2e/desktop-window-navigation-reflow.spec.ts",
+                        "column": 38,
+                        "line": 339
+                      },
+                      "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeGreaterThanOrEqual\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nExpected: >= \u001b[32m37\u001b[39m\nReceived:    \u001b[31m36.78125\u001b[39m\n\n  337 |     expect(result.final.selection).toMatchObject({ anchor: result.from, head: result.to })\n  338 |     expect(result.final.marker).not.toBeNull()\n> 339 |     expect(result.final.marker!.top).toBeGreaterThanOrEqual(result.final.viewport!.top)\n      |                                      ^\n  340 |     expect(result.final.marker!.bottom).toBeLessThanOrEqual(result.final.viewport!.bottom)\n  341 |     expect(result.final.overlays.length).toBeGreaterThan(0)\n  342 |     expect(\n    at /workspace/milkup/tests/e2e/desktop-window-navigation-reflow.spec.ts:339:38"
+                    }
+                  ],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-16T23:37:41.709Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "error-context",
+                      "contentType": "text/markdown",
+                      "path": "/workspace/milkup-mermaid-engine-evidence/research/window-navigation-reflow-browser-01/artifacts/desktop-window-navigation--56a9e--after-selection-assignment-desktop-msedge/error-context.md"
+                    },
+                    {
+                      "name": "trace",
+                      "contentType": "application/zip",
+                      "path": "/workspace/milkup-mermaid-engine-evidence/research/window-navigation-reflow-browser-01/artifacts/desktop-window-navigation--56a9e--after-selection-assignment-desktop-msedge/trace.zip"
+                    }
+                  ],
+                  "errorLocation": {
+                    "file": "/workspace/milkup/tests/e2e/desktop-window-navigation-reflow.spec.ts",
+                    "column": 38,
+                    "line": 339
+                  }
+                }
+              ],
+              "status": "unexpected"
+            }
+          ],
+          "id": "257bd2dc32e37b412ed8-1306b5c370e31105090a",
+          "file": "desktop-window-navigation-reflow.spec.ts",
+          "line": 5,
+          "column": 1
+        }
+      ]
+    }
+  ],
+  "errors": [],
+  "stats": {
+    "startTime": "2026-10-16T23:37:35.780Z",
+    "duration": 14674.453,
+    "expected": 0,
+    "skipped": 0,
+    "unexpected": 1,
+    "flaky": 0
+  }
+}

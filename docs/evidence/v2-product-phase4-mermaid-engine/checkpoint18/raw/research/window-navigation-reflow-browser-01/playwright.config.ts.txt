@@ -1,0 +1,12 @@
+import { defineConfig } from '/workspace/milkup/node_modules/@playwright/test/index.mjs'
+import base from '/workspace/milkup/playwright.config'
+export default defineConfig({
+  ...base,
+  testDir: '/workspace/milkup/tests/e2e',
+  outputDir: '/workspace/milkup-mermaid-engine-evidence/research/window-navigation-reflow-browser-01/artifacts',
+  workers: 1,
+  retries: 0,
+  use: { ...base.use, trace: 'on' },
+  projects: [{ ...base.projects![1], testMatch: /desktop-window-navigation-reflow\.spec\.ts/ }],
+  webServer: (base.webServer as Array<object>).map(server => ({ ...server, cwd: '/workspace/milkup' })),
+})

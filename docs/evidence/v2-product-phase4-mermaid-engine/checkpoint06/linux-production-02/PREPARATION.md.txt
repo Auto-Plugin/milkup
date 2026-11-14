@@ -1,0 +1,94 @@
+# Production-02: static preparation only
+
+No build, artifact freeze or native case has been executed for production-02.
+Root must finish current product gates and explicitly grant the exclusive CPU/UI
+slot before any command below runs. Production-01 and all fourteen previous cases
+remain untouched. Production-02 is required because the trusted desktop document
+service and view fence scheduling changed; the generic lifecycle fixture exercises
+that same fence path even though its Rust/SDK/plugin bundle did not change.
+
+## Build and freeze, after explicit root GO
+
+Run sequentially; stop on the first failure, preserve the exact original evidence,
+and do not overwrite a build/source/artifact attempt.
+
+```sh
+python3 /workspace/milkup-mermaid-engine-evidence/linux-production-02/capture.py before
+python3 /workspace/milkup-mermaid-engine-evidence/linux-production-02/build.py
+python3 /workspace/milkup-mermaid-engine-evidence/linux-production-02/freeze-build.py
+```
+
+`build.py` executes the production-01 verified command:
+
+```sh
+source /workspace/.cloud/milkup-v2/env.sh
+unset CARGO_TARGET_X86_64_UNKNOWN_LINUX_GNU_RUNNER PROOT_NO_SECCOMP
+bash scripts/cloud/pnpm.sh --filter @milkup/desktop tauri build --bundles deb
+```
+
+Freeze verifies all captured source bytes stayed unchanged during build, copies the
+actual deb, extracts the executable, and requires exact complete byte equality with
+the Cargo target after the sole unique `UNK`→`DEB` bundle marker replacement. It
+records both full hashes, sizes, offset, exact three-byte difference and ELF build
+IDs. It resolves the unique native guard from the Cargo dependency file, requires
+its existing reviewed hash and embedded complete byte occurrence, and freezes the
+frontend, archive, SDK, build records and runtime script/environment hashes.
+No post-bundle target executable is used for testing.
+
+The expected official archive remains diagrams 1.1.0, SHA256
+`27db9bdefb9b241b03da2f3536f7e50d334117f928f963cfe290543f650b6239`;
+SDK 0.3.4 SHA256 remains
+`1717c0114aa165fa3e48a1bfa7687ffd0d9b2e5392d33e99d8b2dc59a1f3ad4f`.
+Do not reuse the production-01 executable hash for the new binary. Launch and
+harness scripts obtain the production-02 exact path/hash from its future
+`provenance.json`, which does not exist during preparation.
+
+## Five sequential lifecycle cases, after freeze and native slot confirmation
+
+The final repository harness is used with `startProduction(...,{diagnostics:false})`
+(no Worker wrapping). `MILKUP_DOM_DIAGNOSTICS=1` remains enabled for native phase
+observation. The launcher snapshots every native/helper/fixture test source before
+each run, matching the build's source freeze; the harness runner verifies those
+snapshots again before execution. A test-only change requires an explicit new
+snapshot mapping or attempt, never silent reuse of a prior run's identity.
+
+Planned unique names:
+
+- `lifecycle-p02-timeout-01 timeout`
+- `lifecycle-p02-disable-01 disable`
+- `lifecycle-p02-remove-01 remove`
+- `lifecycle-p02-wm-close-01 wm-close`
+- `lifecycle-p02-app-sigkill-01 app-sigkill`
+
+For each pair `RUN CASE`, use separate approved tool sessions, sequentially:
+
+```sh
+python3 /workspace/milkup-mermaid-engine-evidence/linux-production-02/launch-driver-reaping.py RUN CASE
+python3 /workspace/milkup-mermaid-engine-evidence/linux-production-02/run-case.py RUN CASE
+# Only after the case's product verdict and observer evidence are fixed:
+python3 /workspace/milkup-mermaid-engine-evidence/linux-production-02/stop-driver.py RUN
+```
+
+All profiles/logs/control/runs live under `linux-production-02/lifecycle`; names
+cannot collide with production-01. Display :126 and ports 4626/4627 may be reused
+only after root confirms the other UI agent has released its exact sessions.
+Xvfb ownership must be inspected before reuse or replacement. No blanket process
+cleanup or port takeover is authorized by these scripts.
+
+The driver retains the previously approved narrow bwrap mapping: system readonly,
+workspace/tmp writable, exact readonly WebKit helper and xdg-dbus-proxy mappings,
+short private XDG runtime directory, and native WebKit sandbox enabled. The outer
+harness/observer is launched in the approved namespace that can read the exact
+owned `/proc` identities, sharing the driver's PID namespace. The launcher is the
+previous reviewed wait-only subreaper, generalized to all five cases. It performs
+only natural waitid/waitpid duties, sends no descendant signals and deletes no
+private directories. The explicit post-verdict stop command only signals the
+verified owned driver group.
+
+SIGKILL must retain the final exact guardian PID/birth natural exit0 contract and
+strict 4.5s PID/directory disappearance checks. An absent best-effort terminal trace
+has no invented ECHILD timestamp: natural exit gives an upper bound. Timeout must
+retain the original render request and native 2s deadline across editor input and
+source-version cancellation. Input→DOM/2RAF samples, instrumented heartbeat gaps,
+phase times relative to original dispatch, and every first failure are reported
+separately. No production-02 outcome is assumed from production-01.

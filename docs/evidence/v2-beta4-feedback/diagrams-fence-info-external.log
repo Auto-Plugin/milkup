@@ -1,0 +1,50 @@
+Progress: resolved 0, reused 0, downloaded 1, added 0
+
+   ╭──────────────────────────────────────────╮
+   │                                          │
+   │   Update available! 11.25.0 → 12.14.0.   │
+   │   Changelog: https://pnpm.io/v/12.14.0   │
+   │     To update, run: pnpm self-update     │
+   │                                          │
+   ╰──────────────────────────────────────────╯
+
+Progress: resolved 3, reused 0, downloaded 3, added 0
+Progress: resolved 4, reused 0, downloaded 3, added 0
+Progress: resolved 13, reused 0, downloaded 6, added 0
+Progress: resolved 52, reused 0, downloaded 19, added 0
+Progress: resolved 54, reused 0, downloaded 27, added 0
+Progress: resolved 105, reused 0, downloaded 47, added 0
+Packages: +55
++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+Packages are hard linked from the content-addressable store to the virtual store.
+  Content-addressable store is at: /tmp/milkup-beta4-diagrams-worker-external-infofix/.pnpm-store/v11
+  Virtual store is at:             node_modules/.pnpm
+Progress: resolved 130, reused 0, downloaded 55, added 55, done
+.../esbuild@0.25.12/node_modules/esbuild postinstall$ node install.js
+.../esbuild@0.28.2/node_modules/esbuild postinstall$ node install.js
+.../esbuild@0.28.2/node_modules/esbuild postinstall: Done
+.../esbuild@0.25.12/node_modules/esbuild postinstall: Done
+
+devDependencies:
++ @milkup/plugin-sdk 0.3.8
++ esbuild 0.25.12 (0.28.2 is available)
++ typescript 5.9.3 (7.0.2 is available)
++ vitest 3.2.7 (5.0.5 is available)
+
+Done in 10.4s using pnpm v11.25.0
+$ tsc --noEmit
+$ tsc --noEmit && node scripts/build.mjs
+Built dist/plugin.js and dist/milkup.diagrams-1.2.0.milkup-plugin
+$ vitest run --config vitest.config.ts
+
+ RUN  v3.2.7 /tmp/milkup-beta4-diagrams-worker-external-infofix
+
+ ✓ src/renderer.test.ts (17 tests) 55ms
+ ✓ src/compiler.test.ts (39 tests) 67ms
+
+ Test Files  2 passed (2)
+      Tests  56 passed (56)
+   Start at  06:18:03
+   Duration  808ms (transform 315ms, setup 0ms, collect 574ms, tests 123ms, environment 0ms, prepare 240ms)
+
+Independent limited diagrams Worker plugin verified: /tmp/milkup-beta4-diagrams-worker-external-infofix

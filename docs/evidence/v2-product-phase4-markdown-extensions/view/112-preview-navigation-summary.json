@@ -1,0 +1,32 @@
+{
+  "scope": "Ordinary and windowed live preview → input proxy → native Shift+Tab return; no forced focus or DOM/tab-order changes",
+  "baseline": {
+    "log": "108-last-reference-tab-data-before.log",
+    "dataDirectory": "108-last-reference-tab-data-before",
+    "failures": 2,
+    "bothViews": {
+      "removedLeadingSpaces": 2,
+      "version": [0, 1],
+      "undoCount": [0, 1],
+      "editCount": [0, 1],
+      "selection": [2, 0]
+    }
+  },
+  "fixtureCorrection": "106 had an incorrect ordinary plain-line Tab expectation after removing all indentation; 107 corrected guard to 2→4→2 spaces, with 2 real failures and 2 passing guards. 108 preserves standalone exact before/after JSON.",
+  "after": {
+    "browserLog": "109-last-reference-tab-after.log",
+    "browserTests": 12,
+    "unitLog": "111-preview-navigation-focused.log",
+    "unitTests": 238,
+    "typecheckLog": "110-preview-navigation-types.log",
+    "combinedBrowserLog": "113-navigation-and-preparation-browser.log",
+    "combinedBrowserTests": 21,
+    "screenshotsLog": "114-last-reference-screenshots.log",
+    "screenshotsTests": 2,
+    "screenshotsDirectory": "114-last-reference-screenshots"
+  },
+  "pending": "Production WebKit/native candidate08 verification; no remaining focused browser or view unit/typecheck failures.",
+  "nativeObservation": "remotekeys01 confirms connected reference Tab→textarea focusin→ShiftTab on textarea, unchanged version; capture/microtask defaultPrevented=false is NOT claimed to observe final bubbling/default status.",
+  "productFocusFrozen": true,
+  "evidenceCorrection": "109 stores passing before/after JSON only. Passing Chromium focus screenshots are explicitly saved under114;108 holds failing screenshots and data."
+}

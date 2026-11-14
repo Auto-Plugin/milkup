@@ -1,0 +1,137 @@
+
+ RUN  v3.2.6 /workspace/milkup/packages/view-dom
+
+ ❯ src/__tests__/document-presentation.test.ts (65 tests | 4 failed) 2105ms
+   × keeps the reader's inner diagram position through provider refresh (false) 162ms
+     → expected { top: +0, left: +0 } to deeply equal { top: 120, left: 90 }
+   ✓ does not carry a prior diagram position across identity replacement (false) 32ms
+   ✓ does not carry a prior diagram position across version replacement (false) 27ms
+   ✓ does not carry a prior diagram position across config replacement (false) 22ms
+   ✓ does not carry a prior diagram position across semantic-content replacement (false) 32ms
+   ✓ keeps preview keyboard focus when the view refreshes its source DOM (false) 107ms
+   ✓ anchors an asynchronously growing preview above the visible selection (false) 86ms
+   ✓ refreshes selection-dependent third-party output without repaint loops (false) 122ms
+   ✓ cancels the old selection job and discards its late output (false) 43ms
+   ✓ uses real MathML, retains mapped source and reveals on selection (false) 21ms
+   ✓ keeps source literal and disable restores source without a transaction (false) 28ms
+   ✓ excludes preview text from mapped offsets, coalesces and invalidates (false) 27ms
+   ✓ mounts a multiline block once and restores every original line (false) 26ms
+   ✓ renders the native CRLF matrix range without consuming its line ending (false) 46ms
+   ✓ uses accessible references without editing or swallowing keyboard activation (false) 13ms
+   ✓ preserves an ordinary task control alongside inline presentation (false) 15ms
+   ✓ rejects protected and malformed output while preserving editable source (false) 16ms
+   ✓ bounds requests before invoking a provider on a huge line (false) 18ms
+   ✓ discards old-document results while a fresh document remains editable (false) 24ms
+   ✓ discards an asynchronous result after disable (false) 15ms
+   × keeps the reader's inner diagram position through source-window refresh (true) 54ms
+     → expected { top: +0, left: +0 } to deeply equal { top: 120, left: 90 }
+   × keeps the reader's inner diagram position through provider refresh (true) 80ms
+     → expected { top: +0, left: +0 } to deeply equal { top: 120, left: 90 }
+   ✓ does not carry a prior diagram position across identity replacement (true) 34ms
+   ✓ does not carry a prior diagram position across version replacement (true) 29ms
+   ✓ does not carry a prior diagram position across config replacement (true) 23ms
+   ✓ does not carry a prior diagram position across semantic-content replacement (true) 19ms
+   ✓ does not carry a diagram position across a version change on the same source object 29ms
+   × keeps a reader diagram mounted across repeated same-position editor scroll events 73ms
+     → expected <span …(8)>…(1)</span> to be <span …(8)>…(1)</span> // Object.is equality
+
+If it should pass with deep equality, replace "toBe" with "toStrictEqual"
+
+Expected: <span …(8)>…(1)</span>
+Received: serializes to the same string
+
+   ✓ loads a genuinely moved editor viewport after duplicate scroll notifications 83ms
+   ✓ keeps preview keyboard focus when the view refreshes its source DOM (true) 22ms
+   ✓ anchors an asynchronously growing preview above the visible selection (true) 24ms
+   ✓ refreshes selection-dependent third-party output without repaint loops (true) 61ms
+   ✓ cancels the old selection job and discards its late output (true) 31ms
+   ✓ uses real MathML, retains mapped source and reveals on selection (true) 18ms
+   ✓ keeps source literal and disable restores source without a transaction (true) 21ms
+   ✓ excludes preview text from mapped offsets, coalesces and invalidates (true) 22ms
+   ✓ mounts a multiline block once and restores every original line (true) 26ms
+   ✓ renders the native CRLF matrix range without consuming its line ending (true) 50ms
+   ✓ uses accessible references without editing or swallowing keyboard activation (true) 12ms
+   ✓ preserves an ordinary task control alongside inline presentation (true) 13ms
+   ✓ rejects protected and malformed output while preserving editable source (true) 18ms
+   ✓ bounds requests before invoking a provider on a huge line (true) 12ms
+   ✓ discards old-document results while a fresh document remains editable (true) 33ms
+   ✓ discards an asynchronous result after disable (true) 14ms
+   ✓ constructs inert SVG and maps only validated MathML attribute names 2ms
+   ✓ checks the host navigation lease after asynchronous viewport loading 4ms
+   ✓ checks the host navigation assertion before changing selection 2ms
+   ✓ measures collapsed block continuation lines as zero and restores their heights 21ms
+   ✓ allows bounded host snapshot preparation beyond the renderer worker deadline 7ms
+   ✓ cancels a slow host preparation without waiting for its deadline 3ms
+   ✓ rejects a completed job if selection changed before the next synchronization 12ms
+   ✓ preserves the correct viewport anchor during preview growth (visible) 8ms
+   ✓ preserves the correct viewport anchor during preview growth (scrolled-away) 7ms
+   ✓ preserves the correct viewport anchor during preview growth (source) 7ms
+   ✓ preserves block focus across a viewport job without stealing a later external focus 62ms
+   ✓ preserves reference focus across a viewport job without stealing a later external focus 62ms
+   ✓ retains validated block during background refresh and clears failed or revoked results 59ms
+   ✓ retains validated reference during background refresh and clears failed or revoked results 56ms
+   ✓ preserves the pre-replacement selected-line anchor when a window reinstalls source DOM 16ms
+   ✓ preserves the pre-replacement reader-position anchor when a window reinstalls source DOM 15ms
+   ✓ preserves the pre-replacement new-document anchor when a window reinstalls source DOM 12ms
+   ✓ preserves the pre-replacement new-version anchor when a window reinstalls source DOM 14ms
+   ✓ preserves the pre-replacement source-mode anchor when a window reinstalls source DOM 15ms
+   ✓ preserves the pre-replacement missing-line anchor when a window reinstalls source DOM 14ms
+   ✓ publishes the source window range before measuring replacement preview lines 19ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 4 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/__tests__/document-presentation.test.ts > keeps the reader's inner diagram position through provider refresh (false)
+ FAIL  src/__tests__/document-presentation.test.ts > keeps the reader's inner diagram position through source-window refresh (true)
+ FAIL  src/__tests__/document-presentation.test.ts > keeps the reader's inner diagram position through provider refresh (true)
+AssertionError: expected { top: +0, left: +0 } to deeply equal { top: 120, left: 90 }
+
+- Expected
++ Received
+
+  {
+-   "left": 90,
+-   "top": 120,
++   "left": 0,
++   "top": 0,
+  }
+
+ ❯ src/__tests__/document-presentation.test.ts:159:64
+    157|       await settle()
+    158|       const after = readingPreview(view)
+    159|       expect({ top: after.scrollTop, left: after.scrollLeft }).toEqual…
+       |                                                                ^
+    160|       expect(document.activeElement).toBe(outside)
+    161|       expect(view instanceof SourceDocumentView ? view.selection.main …
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/4]⎯
+
+ FAIL  src/__tests__/document-presentation.test.ts > keeps a reader diagram mounted across repeated same-position editor scroll events
+AssertionError: expected <span …(8)>…(1)</span> to be <span …(8)>…(1)</span> // Object.is equality
+
+If it should pass with deep equality, replace "toBe" with "toStrictEqual"
+
+Expected: <span …(8)>…(1)</span>
+Received: serializes to the same string
+
+
+Compared values have no visual difference.
+
+ ❯ src/__tests__/document-presentation.test.ts:301:21
+    299|       }
+    300|       const after = readingPreview(view)
+    301|       expect(after).toBe(before)
+       |                     ^
+    302|       expect({ top: after.scrollTop, left: after.scrollLeft }).toEqual…
+    303|       expect(read.mock.calls.length).toBe(reads)
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/4]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  4 failed | 61 passed (65)
+   Start at  07:39:58
+   Duration  4.49s (transform 882ms, setup 0ms, collect 1.16s, tests 2.11s, environment 778ms, prepare 130ms)
+
+undefined
+/workspace/milkup/packages/view-dom:
+[ERR_PNPM_RECURSIVE_EXEC_FIRST_FAIL] Command failed with exit code 1: vitest run src/__tests__/document-presentation.test.ts

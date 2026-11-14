@@ -1,0 +1,97 @@
+{
+  "recordedAt": "2026-10-16T03:18:09.083911+00:00",
+  "classification": "GTK native crash / installation-blocked; environment-vs-product cause unconfirmed",
+  "harnessExitCode": 1,
+  "completed": ["installed distribution", "external math install", "math enabled"],
+  "notReached": ["document semantics", "64x6 matrix", "data preservation", "all-disabled recovery"],
+  "gtkSequence": [
+    "03:12:29 widget realized critical",
+    "03:12:30 tree model critical",
+    "03:12:42 statfs Bad address",
+    "03:12:43 image-missing.svg decode assertion abort"
+  ],
+  "independentDecode": {
+    "passed": true,
+    "sameProotBind": true,
+    "sameNoSeccompCompat": true,
+    "sameSysrootCacheAndModuleDir": true,
+    "limitations": "Headless isolated GdkPixbuf decode; not repeated GTK chooser lifecycle."
+  },
+  "environmentEvidence": "Launch scripts captured; dead app environ unavailable; driver /proc/environ denied EACCES, not bypassed. No claim to capture full actual application environment.",
+  "cleanup": [
+    {
+      "pid": 73479,
+      "argv": [
+        "/workspace/.cloud/milkup-v2/sysroot/usr/bin/WebKitWebDriver",
+        "--port=4619",
+        "--host=127.0.0.1"
+      ],
+      "action": "SIGTERM"
+    },
+    {
+      "pid": 73478,
+      "argv": [
+        "/workspace/.cargo/bin/tauri-driver",
+        "--port",
+        "4618",
+        "--native-port",
+        "4619",
+        "--native-driver",
+        "/workspace/.cloud/milkup-v2/sysroot/usr/bin/WebKitWebDriver"
+      ],
+      "action": "SIGTERM"
+    }
+  ],
+  "files": [
+    {
+      "path": "/workspace/milkup-markdown-extensions-phase4-evidence/native/environment/run-env-candidate08.sh",
+      "bytes": 1763,
+      "sha256": "21cbe9d881be1a671b6a85b28bb4c44f8992a8c3dbb6e0d3613ac62da2cdbef6"
+    },
+    {
+      "path": "/workspace/milkup-markdown-extensions-phase4-evidence/native/environment/driver-candidate08.sh",
+      "bytes": 509,
+      "sha256": "f23fbf47a34ac0bf7b938e75d926fc941c7c68982e11fcb4512ddb17a0e3d55b"
+    },
+    {
+      "path": "/workspace/milkup-markdown-extensions-phase4-evidence/native/environment/pixbuf-preflight.sh",
+      "bytes": 669,
+      "sha256": "877f3b71407377012ae27aa4012c1fb0dfdf0cc5e125b6fadc74d5a91bd0be47"
+    },
+    {
+      "path": "/workspace/milkup-markdown-extensions-phase4-evidence/native/environment/loaders-sysroot.cache",
+      "bytes": 3337,
+      "sha256": "494443c7c0baaf901b95d76bad96a140f3364688ad46d7e2d5230ca6dc7fffae"
+    },
+    {
+      "path": "/workspace/milkup-markdown-extensions-phase4-evidence/native/candidate08-run01-pixbuf-readonly-probe.log",
+      "bytes": 305,
+      "sha256": "bacdc475118e2268c7ebbbfbcda490baca25089582a73700ccb9149198bfa89f"
+    },
+    {
+      "path": "/workspace/milkup-markdown-extensions-phase4-evidence/native/candidate08-svg-loader-ldd.txt",
+      "bytes": 5488,
+      "sha256": "76d1c5cfcf28e5b9f61c168185569e2bf0d6d12ab9eb33e7a1092eca8bfb668b"
+    },
+    {
+      "path": "/workspace/milkup-markdown-extensions-phase4-evidence/native/driver-candidate08-run01.log",
+      "bytes": 4395,
+      "sha256": "aad5e54d5b4806e0b89cf33f2575e19fdacc406039c3bf36b4db667dda0767cb"
+    },
+    {
+      "path": "/workspace/milkup-markdown-extensions-phase4-evidence/native/candidate08-run01.log",
+      "bytes": 1002,
+      "sha256": "eecb3a666036460248f9fccbe851091ad89995fda488fd728bde21423f8c544b"
+    },
+    {
+      "path": "/usr/share/icons/Adwaita/scalable/status/image-missing.svg",
+      "bytes": 1331,
+      "sha256": "af6b1fbc74b1dec2431352153b747e8cd584b11fcb762d97b1563dc03a2b6a18"
+    },
+    {
+      "path": "/workspace/.cloud/milkup-v2/sysroot/usr/lib/x86_64-linux-gnu/gdk-pixbuf-2.0/2.10.0/loaders/libpixbufloader_svg.so",
+      "bytes": 362728,
+      "sha256": "aa38987a21cc86f1f75da10b22e1d32a7dc45544dda24adf7b06ef7c853f8c79"
+    }
+  ]
+}

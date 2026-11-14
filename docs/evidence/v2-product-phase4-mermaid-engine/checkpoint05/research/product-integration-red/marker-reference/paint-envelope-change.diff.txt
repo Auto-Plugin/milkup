@@ -1,0 +1,26 @@
+--- /workspace/milkup-mermaid-engine-evidence/research/product-integration-red/marker-reference/paint-envelope-before.ts.txt
++++ plugins/diagrams/src/paint-envelope.ts
+@@ -559,11 +559,11 @@
+         if (!id || !count[key]) continue
+         const marker = definition(id, 'marker')
+         const markerViewport: DocumentSvgBox = marker.viewBox ?? [0, 0, marker.width, marker.height]
+-        const markerContext = styleFor(marker, context, markerViewport)
++        const markerContext = styleFor(marker, rootContext, markerViewport)
+         const mapping = marker.viewBox
+           ? viewportMatrix(marker.viewBox, marker.width, marker.height)
+           : IDENTITY
+-        const result = visit(marker, context, markerViewport, depth + 1)
++        const result = visit(marker, rootContext, markerViewport, depth + 1)
+         const box = transformBounds(result.ink, mapping)
+         if (!box) continue
+         const refX = cssLength(marker.refX, markerContext.font, markerViewport[2])
+@@ -657,6 +657,9 @@
+     ...(image.rootStyle === undefined ? {} : { style: image.rootStyle }),
+     children: image.children,
+   }
++  // Marker definitions inherit from the root/defs tree, not their referencing
++  // shape. markerUnits alone still uses that shape's resolved stroke width.
++  const rootContext = styleFor(root, defaults, image.viewBox)
+   const result = visit(root, defaults, image.viewBox)
+   const css = checked(
+     transformBounds(

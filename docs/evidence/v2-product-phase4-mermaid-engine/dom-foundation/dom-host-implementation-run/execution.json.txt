@@ -1,0 +1,157 @@
+[
+  {
+    "name": "01-plugin-focused",
+    "command": [
+      "pnpm",
+      "--filter",
+      "@milkup/plugin",
+      "exec",
+      "vitest",
+      "run",
+      "src/manifest-dom.test.ts",
+      "src/package-dom.test.ts",
+      "src/registry-dom.test.ts",
+      "src/manifest.test.ts",
+      "src/package.test.ts",
+      "src/registry.test.ts",
+      "--maxWorkers=2",
+      "--minWorkers=1"
+    ],
+    "started": "2026-10-16T10:20:33.604101+00:00",
+    "finished": "2026-10-16T10:20:36.122423+00:00",
+    "exitCode": 0
+  },
+  {
+    "name": "02-desktop-focused-before-bundled-fix",
+    "command": [
+      "pnpm",
+      "--filter",
+      "@milkup/desktop",
+      "exec",
+      "vitest",
+      "run",
+      "src/desktop-plugin-manager-dom.test.ts",
+      "src/desktop-plugin-manager.test.ts",
+      "src/bundled-plugins.test.ts",
+      "--maxWorkers=2",
+      "--minWorkers=1"
+    ],
+    "started": "2026-10-16T10:20:36.123410+00:00",
+    "finished": "2026-10-16T10:20:39.179436+00:00",
+    "exitCode": 1
+  },
+  {
+    "name": "03-desktop-focused-green",
+    "command": [
+      "pnpm",
+      "--filter",
+      "@milkup/desktop",
+      "exec",
+      "vitest",
+      "run",
+      "src/desktop-plugin-manager-dom.test.ts",
+      "src/desktop-plugin-manager.test.ts",
+      "src/bundled-plugins.test.ts",
+      "--maxWorkers=2",
+      "--minWorkers=1"
+    ],
+    "started": "2026-10-16T10:21:00.638324+00:00",
+    "finished": "2026-10-16T10:21:03.525719+00:00",
+    "exitCode": 0
+  },
+  {
+    "name": "04-plugin-types",
+    "command": [
+      "pnpm",
+      "--filter",
+      "@milkup/plugin",
+      "typecheck"
+    ],
+    "started": "2026-10-16T10:21:03.526318+00:00",
+    "finished": "2026-10-16T10:21:08.163000+00:00",
+    "exitCode": 2
+  },
+  {
+    "name": "05-desktop-types",
+    "command": [
+      "pnpm",
+      "--filter",
+      "@milkup/desktop",
+      "typecheck"
+    ],
+    "started": "2026-10-16T10:21:08.164104+00:00",
+    "finished": "2026-10-16T10:21:14.895144+00:00",
+    "exitCode": 0
+  },
+  {
+    "name": "06-plugin-fixture-corrected",
+    "command": [
+      "pnpm",
+      "--filter",
+      "@milkup/plugin",
+      "exec",
+      "vitest",
+      "run",
+      "src/manifest-dom.test.ts",
+      "--maxWorkers=2",
+      "--minWorkers=1"
+    ],
+    "started": "2026-10-16T10:21:42.305798+00:00",
+    "finished": "2026-10-16T10:21:43.699523+00:00",
+    "exitCode": 0
+  },
+  {
+    "name": "07-plugin-types-green",
+    "command": [
+      "pnpm",
+      "--filter",
+      "@milkup/plugin",
+      "typecheck"
+    ],
+    "started": "2026-10-16T10:21:43.699983+00:00",
+    "finished": "2026-10-16T10:21:47.784246+00:00",
+    "exitCode": 0
+  },
+  {
+    "name": "08-owned-format",
+    "command": [
+      "pnpm",
+      "exec",
+      "prettier",
+      "--write",
+      "packages/plugin/src/manifest.ts",
+      "packages/plugin/src/package.ts",
+      "packages/plugin/src/registry.ts",
+      "packages/plugin/src/manifest-dom.test.ts",
+      "packages/plugin/src/package-dom.test.ts",
+      "packages/plugin/src/registry-dom.test.ts",
+      "apps/desktop/src/desktop-plugin-manager.ts",
+      "apps/desktop/src/desktop-plugin-manager-dom.test.ts",
+      "apps/desktop/src/bundled-plugins.test.ts"
+    ],
+    "started": "2026-10-16T10:21:47.784769+00:00",
+    "finished": "2026-10-16T10:21:49.183168+00:00",
+    "exitCode": 0
+  },
+  {
+    "name": "09-owned-format-check",
+    "command": [
+      "pnpm",
+      "exec",
+      "prettier",
+      "--check",
+      "packages/plugin/src/manifest.ts",
+      "packages/plugin/src/package.ts",
+      "packages/plugin/src/registry.ts",
+      "packages/plugin/src/manifest-dom.test.ts",
+      "packages/plugin/src/package-dom.test.ts",
+      "packages/plugin/src/registry-dom.test.ts",
+      "apps/desktop/src/desktop-plugin-manager.ts",
+      "apps/desktop/src/desktop-plugin-manager-dom.test.ts",
+      "apps/desktop/src/bundled-plugins.test.ts"
+    ],
+    "started": "2026-10-16T10:21:49.183544+00:00",
+    "finished": "2026-10-16T10:21:50.563292+00:00",
+    "exitCode": 0
+  }
+]

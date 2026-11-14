@@ -1,0 +1,96 @@
+{
+  "status": "planned only; capture after root gate, before compilation",
+  "root": "/workspace/milkup",
+  "sourceFreeze": {
+    "selection": "git ls-files -z --cached --others --exclude-standard, existing regular files only, selected roots below; preserve relative paths and bytes outside repo",
+    "roots": [
+      "apps/desktop",
+      "packages",
+      "plugins",
+      "scripts/ci",
+      "scripts/cloud",
+      "release",
+      "tests/helpers",
+      "tests/native",
+      "tests/fixtures/dom-plugin-lifecycle"
+    ],
+    "rootFiles": [
+      "package.json",
+      "pnpm-lock.yaml",
+      "pnpm-workspace.yaml",
+      "tsconfig.json",
+      "tsconfig.base.json",
+      ".npmrc",
+      ".cargo/config.toml"
+    ],
+    "missingOptionalFiles": "record absent; never synthesize",
+    "requiredExtraIgnoredFiles": [
+      "apps/desktop/src/bundled-plugins/*.milkup-plugin",
+      "plugins/diagrams/vendor/plugin-sdk.tgz",
+      "plugins/diagrams/dist/milkup.diagrams-1.1.0.milkup-plugin",
+      "plugins/diagrams/dist/plugin.js",
+      "plugins/diagrams/dist/proof.json",
+      "plugins/diagrams/dist/build-meta.json"
+    ],
+    "approvedDependencyClosure": [
+      "plugins/diagrams/build-dependencies.json",
+      "plugins/diagrams/dependency-provenance.json",
+      "plugins/diagrams/THIRD-PARTY-NOTICES.txt",
+      "plugins/diagrams/pnpm-lock.yaml"
+    ],
+    "installedInputs": "Capture exact resolved package.json and input files named in build-dependencies.json, plus installed public SDK package.json/src/index.js. Compare hashes with approved closure; do not snapshot arbitrary node_modules or caches.",
+    "requiredOutputsPerFile": [
+      "path",
+      "bytes",
+      "sha256",
+      "snapshotPath"
+    ],
+    "integrity": "pre-build and post-build SHA equality for source, staged archives, dependency inputs, configs and wrappers; new/removed source paths fail equality. Generated frontend is a separate post-build manifest."
+  },
+  "archiveHardGate": {
+    "expected": {
+      "id": "milkup.diagrams",
+      "version": "1.1.0",
+      "host": "dom",
+      "main": "./dist/plugin.js",
+      "permissions": [
+        "document:read"
+      ]
+    },
+    "staged": "apps/desktop/src/bundled-plugins/milkup.diagrams-1.1.0.milkup-plugin",
+    "localDist": "plugins/diagrams/dist/milkup.diagrams-1.1.0.milkup-plugin",
+    "external": "exact successful standalone frozen public-build artifact path supplied by plugin_cards; no guessed current path",
+    "assertions": [
+      "Exactly one staged archive with manifest id milkup.diagrams; no old diagrams-1.0.0 remains",
+      "Whole archive SHA256 equality: standalone external, staged and localDist if localDist is claimed as same current build",
+      "All archive file paths/encodings and decoded content hashes frozen; declared main decoded bytes equal dist/plugin.js and build proof",
+      "SDK version 0.3.4 and vendor tarball SHA equal reviewed build-dependencies.json; resource bytes/provenance preserved",
+      "UI installed package manifest identity/profile and decoded main/resources hash equal the frozen archive; JSON serialization may differ so retain actual manifest bytes separately"
+    ],
+    "observationBeforeFinalStaging": "Old 1.0.0 archives are still present during static preparation. This is a pending hard gate, not accepted production input."
+  },
+  "postBuildArtifacts": [
+    "Exact complete build argv/cwd/environment whitelist/tool versions/UTC start/end/exit/raw logs",
+    "Post-bundle target binary SHA256 and bytes",
+    "Completed .deb bytes/SHA256/dpkg-deb listing; extracted executable SHA equal post-bundle target",
+    "Exact selected release Cargo build-script output/fingerprint and OUT_DIR libmilkup_dom_guard.so bytes/SHA; confirm embedded sequence in extracted executable, no stale debug selection",
+    "apps/desktop/dist entire tree bytes/SHA (HTML/CSS/chunks/worker assets), native Tauri config/capabilities/icons/resources",
+    "Source pre/post equality proof and source snapshot",
+    "WebKitVersion.h, webkit2gtk-4.1.pc, relevant WebKit libs/driver/tauri-driver hashes and wrapper/loader cache inputs",
+    "Linux deb and extracted binary retained externally; small archive omits large binary bodies but retains exact paths/SHA"
+  ],
+  "runtime": {
+    "binary": "Frozen extracted executable outside shared target, same absolute path inside/outside namespace",
+    "profile": "All three XDG paths preserved unchanged by bwrap /workspace bind; compare real App /proc/environ where harness supports it",
+    "caseOrder": [
+      "timeout",
+      "disable",
+      "remove",
+      "wm-close",
+      "app-sigkill"
+    ],
+    "caseEnvironment": "new profile/log/output and driver per case; diagnostics:false in page helper, MILKUP_DOM_DIAGNOSTICS=1 native timing",
+    "firstFailure": "retain raw first failure and stop for diagnosis; no automatic retry",
+    "currentStatus": "not run; no build or native UI launched"
+  }
+}

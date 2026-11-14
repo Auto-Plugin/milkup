@@ -1,0 +1,41 @@
+
+ RUN  v3.2.6 /workspace/milkup/apps/desktop
+
+ ❯ src/catalog-legacy-baseline-red.test.ts (2 tests | 2 failed) 13ms
+   × baseline must reject duplicate legacy plugin records before authority restore 11ms
+     → expected [Function] to throw an error
+   × baseline must reject malformed record approvals before authority restore 1ms
+     → expected [Function] to throw an error
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/catalog-legacy-baseline-red.test.ts > baseline must reject duplicate legacy plugin records before authority restore
+AssertionError: expected [Function] to throw an error
+ ❯ src/catalog-legacy-baseline-red.test.ts:6:98
+      4| it('baseline must reject duplicate legacy plugin records before author…
+      5|   const row = { manifest: { id: 'test.catalog', name: 'Catalog', versi…
+      6|   expect(() => parsePluginRegistrySnapshot(JSON.stringify({ version: 1…
+       |                                                                                                  ^
+      7| })
+      8| it('baseline must reject malformed record approvals before authority r…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯
+
+ FAIL  src/catalog-legacy-baseline-red.test.ts > baseline must reject malformed record approvals before authority restore
+AssertionError: expected [Function] to throw an error
+ ❯ src/catalog-legacy-baseline-red.test.ts:9:123
+      7| })
+      8| it('baseline must reject malformed record approvals before authority r…
+      9|   expect(() => parsePluginRegistrySnapshot(JSON.stringify({ version: 1…
+       |                                                                                                                           ^
+     10| })
+     11| 
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/2]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  2 failed (2)
+   Start at  08:32:01
+   Duration  467ms (transform 128ms, setup 0ms, collect 151ms, tests 13ms, environment 0ms, prepare 72ms)
+

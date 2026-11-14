@@ -1,0 +1,28 @@
+$ vitest run --config scripts/ci/outline-tests.config.ts
+
+ RUN  v3.2.6 /workspace/milkup
+
+ ✓ plugins/outline/src/outline-index.test.ts (3 tests) 1634ms
+   ✓ matches an independent hierarchy oracle for 8775 headings and sparse/global folds  640ms
+   ✓ matches an independent hierarchy oracle for 18000 headings and sparse/global folds  931ms
+ ✓ plugins/outline/src/plugin.test.ts (21 tests) 6659ms
+   ✓ complete paged outline index > ignores delayed echoes of the last returned slice rather than oscillating between old and prepared ranges  381ms
+   ✓ complete paged outline index > stops following the old active heading immediately and keeps the newest scroll request during storage reads  329ms
+   ✓ complete paged outline index > indexes every contiguous range, preserves the full hierarchy and does not rescan when navigating  305ms
+   ✓ complete paged outline index > folds subtrees across scan boundaries, highlights ancestors and restores a navigated child  357ms
+   ✓ complete paged outline index > uses source identity for duplicate titles and rejects stale version actions immediately  304ms
+   ✓ complete paged outline index > discards old scans after quick document changes and disposes each temporary index  322ms
+   ✓ complete paged outline index > invalidates cached visible ancestors when a later range adds their first child  305ms
+   ✓ complete paged outline index > shows a partial index honestly, supports cancellation/retry and does not reuse cancelled identities  303ms
+   ✓ complete paged outline index > supports empty documents and reports storage capability or quota failures explicitly  304ms
+   ✓ complete paged outline index > does not silently complete after invalidated, truncated or interrupted scans  454ms
+   ✓ complete paged outline index > keeps every indexed title available beyond 16384 lines while rendering no more than 500 rows  872ms
+   ✓ complete paged outline index > does not accept a delayed old-document navigation as current selection  356ms
+   ✓ debounces rapid edits/undo-redo and waits for old temporary-store disposal before indexing the newest version  367ms
+   ✓ cancels a debounced startup before allocating a store and can retry normally  302ms
+
+ Test Files  2 passed (2)
+      Tests  24 passed (24)
+   Start at  01:19:35
+   Duration  7.74s (transform 570ms, setup 0ms, collect 464ms, tests 8.29s, environment 0ms, prepare 748ms)
+

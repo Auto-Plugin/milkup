@@ -1,0 +1,37 @@
+# Sampler02 bounded binding diagnostics — static draft
+
+This independent tool keeps sampler01 v03 unchanged. It targets the same frozen stage helper (8041da503dac6cc0ff5d45d4c11982ca4b6a898930f3e4ecc3442d8cb1e4d140). It records why the existing single guardian-binding pass accepted or rejected candidates. The previous failure remains unexplained; these new fields cannot reconstruct its missing observations.
+
+## Unchanged contract
+
+CLI: `python3 cpu_sampler.py --output NEW_OUTPUT --app-log EXACT_NATIVE_LOG --cgroup-cpu-stat`, stdin one bounded JSON line `{pid,birth,argv}`. The exact binary, App identity, direct-child PPID/birth, exact two-item argv, exactly one matching instance environment key, final same birth and unique guardian requirements remain. There is no additional scan, retry, acceptance route, process signal, cleanup, product IPC, page observer or native change.
+
+The first retained exact-App dispatch must still be render_1. It is a client-local counter and asynchronous diagnostics can be lost; this does not establish the true first App dispatch. The original 10-second anchor is not moved. Original 30-second waits, 50ms sampling, 250ms discovery, 201 periodic limit, 128 identities/candidates, 1024-task cap, bounded reads and 2MiB total output with 128KiB summary reserve remain unchanged. Existing errors and exit status are preserved. No observer or synthetic test has run in this preparation.
+
+## Additional summary record
+
+`guardianBinding` is null if binding is not reached. Otherwise it contains one attempt's monotonic startedNs/endedNs, three owner checks from the original reads, taskCountObserved, rawChildCount (unique child IDs), retainedDirectChildCount, matchingCount, discoveryOutcome and outcome. Start/end bracket binding including existing optional cgroup-path setup, not only candidate matching. A zero count means observed/retained zero, not proof that no process existed. discoveryOutcome distinguishes an owner or directory-read failure from completed empty enumeration. Null counts and not-completed outcome mean that a prior error stopped that stage.
+
+At most 128 candidates retain PID and identity-read PID/birth/PPID/state; fixed rejection reasons distinguish vanished/unreadable stat, parent or older-birth rejection, argv rejection, missing/duplicate/mismatched instance key, final identity rejection, read error and acceptance. The original final identity read is preserved separately; final-birth-rejected alone is broad, and its nested readStatus/birthMatches distinguishes disappearance/unreadability/change. An accepted candidate is only a predicate match; multiple matches still fail binding.
+
+Only argv count and expected-path/helper-argument/exact-vector booleans are recorded. Only instance-key occurrence count and exact-value-match boolean are recorded. No argv contents, environment values, raw proc records or exception text are added. Read failures retain fixed stage, exception class and numeric errno/null; at most 32 aggregate details plus exact total/omitted counts. Existing diagnostic errors retain their original behavior.
+
+All diagnostics attach to existing reads. They add bounded Python allocation, two clock observations and serialization overhead; this is not zero-cost and is not subtracted. Later descendant discovery has no new binding records. The candidate map refers to the same bounded record objects. The existing summary-size check remains fail-closed: no oversized summary is written. Maximum synthetic serialization and differential branch checks below are planned, not yet executed; this draft does not claim their pass.
+
+## Finite synthetic test plan (not executed)
+
+Use isolated mocked proc reads/scandir/clock/output, never live /proc, UI, IPC or signals. Compare frozen v03 and sampler02 accept/reject/error decisions and ordered read calls on identical finite fixtures; only diagnostics may differ. Import/test execution requires the next explicit gate.
+
+1. Completed zero-child enumeration; raw candidates but zero retained direct children. Check counts distinguish both.
+2. Candidate stat ENOENT, EACCES, malformed stat; wrong parent and older birth. Preserve original global-error behavior and bounded errno details.
+3. Wrong executable, wrong helper flag, extra argv item, exact argv. Check expectedPathMatches/helperArgumentMatches/exactArgvMatches and that rejected argv causes no environment read.
+4. Environment key absent, duplicate, wrong value, one exact value; invalid UTF-8/read error. Check key count/match/reason and original gate. Include unrelated secret and wrong-value sentinels; assert neither occurs in serialized diagnostics.
+5. Matching candidate's final identity changes birth/disappears/is unreadable; owner changes before tasks, after tasks, after candidates. Check original exclusion and precise observed read fields.
+6. Exactly one match versus two matches; accepted facts remain separate from unique binding. Verify original ambiguity error unchanged.
+7. 1025 observed tasks, 129 unique child candidates, overlong child list/read: original bounded failures occur at same reads. Verify no extra candidate insertion or scan.
+8. More than 32 read failures: retain 32 aggregate details, count omitted; candidate limit stays 128. Check 128-candidate summary shapes (ambiguity, one accepted plus 127 rejects, read failures) and combined maximum known-identity/error/cgroup summary against unchanged 128KiB reserve and 2MiB total. Oversize remains failure, never partial evidence labeled complete.
+9. First-retained render_2, missed entire window, terminal Z/X/x and normal sample schedule: unchanged AST regions plus mocked differential behavior. Confirm no reanchor, window extension or added retry.
+
+## Review and execution gates
+
+Deliver cpu_sampler.py, base-v03.py, sampler02.patch, static-checks.json and preparation.json for Root and independent review. Transport may freeze this SHA into its separate single-cold preparation after review. No old sampler/batch/provenance changes. Next cold run, if authorized, is one attempt, retaining tool failure and product result separately. Low CPU or successful binding is not proof of a product scheduling cause; shared cgroup counters are not DOM-exclusive.

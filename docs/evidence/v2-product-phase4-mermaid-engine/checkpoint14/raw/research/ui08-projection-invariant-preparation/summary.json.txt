@@ -1,0 +1,28 @@
+{
+  "preparedAt": "2026-10-16T21:01:40.820593+00:00",
+  "baselineCommit": "83d5593bddb6bb25bd6342df06b57c5c7c27d2ea",
+  "baselineHarnessSha256": "4d3e797a75d0377306fd3a4da5d839ad08bafaafcaa2698c51de608fda82fbc8",
+  "candidateHarnessSha256": "439232d486fa4a29858924412f23cc09a87023236739cf5bcd3892b7d51f280b",
+  "change": "Replace before/after mounted selection array equality with exact public projection consistency adapted separately to ordinary EditorView and windowed SourceDocumentView. Keep complete marker navigation readiness. Atomic snapshots of rows/overlays/cursors are written before validation; invalid row metadata fails. Preserve earlier positioning failure if secondary projection also fails.",
+  "why": "Frozen independent native diagnostic copied the same exact marker before and after pure wheel unmount/remount, while projection became empty when its row unmounted. Its final complete-projection assertion remains first RED. Raw projections are not a logical selection getter.",
+  "preserved": [
+    "Version/dirty/full-file-byte invariants",
+    "All original diagram/image checks",
+    "source/live save/undo/redo and mapped selection",
+    "31 ordinary and31windowed cases",
+    "64 combinations with five samples plus scroll edges",
+    "All page error/CSP assertions",
+    "Product2s/10s budgets and positioning10s/20ticks/2reversals"
+  ],
+  "limits": [
+    "This validates observable projection consistency; no claim of continuous hidden logical anchor/head preservation",
+    "Independent clipboard probe verifies exact selected contents only at two moments",
+    "Full UI09 has not yet run",
+    "No product change, rebuild unnecessary; actual production06 binary remains exact"
+  ],
+  "checks": [
+    "node --check PASS",
+    "target prettier PASS",
+    "git diff --check PASS"
+  ]
+}

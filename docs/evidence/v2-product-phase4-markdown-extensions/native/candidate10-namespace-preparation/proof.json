@@ -1,0 +1,28 @@
+{
+  "preparedNotRun": true,
+  "runName": "candidate10-namespace-run01",
+  "binary": {
+    "path": "/workspace/milkup-markdown-extensions-phase4-evidence/native/install-candidate10/usr/bin/milkup-desktop",
+    "sha256": "12fe5aa449d3e650b2c89da593330d52fc3b72851397014bb6529bf211526995"
+  },
+  "harnessSha256": "1c6e05423abf0acd304b66e03056115c333b697179fbdb2657fb4df55f837fa2",
+  "environmentChanges": [
+    "unsetPROOT_NO_SECCOMP only; other application/profile/SDKarchive/loader variables identical",
+    "replace proot bind with bwrap privateuser/mountnamespace,temporary /usr/lib overlay,read-only WebKit helper bind+remount; no persistent host file changes"
+  ],
+  "artifacts": {
+    "run-env-candidate10-namespace.sh": "751d6ca162811d4c7716e84a208a3f082755a0b8b5ec002a25dc097577be4f2e",
+    "driver-candidate10-namespace.sh": "a3099e062151d9158acd6d403386fea801cdee8a66548e24a2056dc658a0871a"
+  },
+  "launchRequirement": "Parent GO then exec_command require_escalated auto_review for namespace support; no WebKit sandbox setting changed",
+  "preflight": [
+    "freshprofile/output/log do not already exist",
+    "LD_PRELOAD/MILKUP_GTK_THREAD_TRACE/MILKUP_GTK_TRACE_APP absent; no tracer",
+    "binary andharness SHAmatch",
+    "originalbudgets/assertions, firstfailurestop, noautoretry"
+  ],
+  "limitations": [
+    "Prior proot GTK fatal remains unexplained; environment comparison does not prove cause.",
+    "This is original formal harness in explicitly different execution wrapper, not retroactive pass of prior runs."
+  ]
+}

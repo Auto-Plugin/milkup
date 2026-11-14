@@ -1,0 +1,281 @@
+===== public-api: /workspace/milkup/plugins/diagrams/node_modules/mermaid/dist/mermaid.d.ts:80-87 =====
+80: /**
+81:  * Used to register external diagram types.
+82:  * @param diagrams - Array of {@link ExternalDiagramDefinition}.
+83:  * @param opts - If opts.lazyLoad is false, the diagrams will be loaded immediately.
+84:  */
+85: declare const registerExternalDiagrams: (diagrams: ExternalDiagramDefinition[], { lazyLoad, }?: {
+86:     lazyLoad?: boolean;
+87: }) => Promise<void>;
+
+===== builtin-registration: /workspace/milkup/plugins/diagrams/node_modules/mermaid/dist/mermaid.core.mjs:752-827 =====
+752: var addDiagrams = /* @__PURE__ */ __name(() => {
+753:   if (hasLoadedDiagrams) {
+754:     return;
+755:   }
+756:   hasLoadedDiagrams = true;
+757:   registerDiagram("error", errorDiagram_default, (text) => {
+758:     return text.toLowerCase().trim() === "error";
+759:   });
+760:   registerDiagram(
+761:     "---",
+762:     // --- diagram type may appear if YAML front-matter is not parsed correctly
+763:     {
+764:       db: {
+765:         clear: /* @__PURE__ */ __name(() => {
+766:         }, "clear")
+767:       },
+768:       styles: {},
+769:       // should never be used
+770:       renderer: {
+771:         draw: /* @__PURE__ */ __name(() => {
+772:         }, "draw")
+773:       },
+774:       parser: {
+775:         parse: /* @__PURE__ */ __name(() => {
+776:           throw new Error(
+777:             "Diagrams beginning with --- are not valid. If you were trying to use a YAML front-matter, please ensure that you've correctly opened and closed the YAML front-matter with un-indented `---` blocks"
+778:           );
+779:         }, "parse")
+780:       },
+781:       init: /* @__PURE__ */ __name(() => null, "init")
+782:       // no op
+783:     },
+784:     (text) => {
+785:       return text.toLowerCase().trimStart().startsWith("---");
+786:     }
+787:   );
+788:   if (true) {
+789:     registerLazyLoadedDiagrams(detector_default2, detector_default4, architectureDetector_default);
+790:   }
+791:   registerLazyLoadedDiagrams(
+792:     afDetector_default,
+793:     c4Detector_default,
+794:     detector_default5,
+795:     classDetector_V2_default,
+796:     erDetector_default,
+797:     ganttDetector_default,
+798:     info,
+799:     pie,
+800:     requirementDetector_default,
+801:     sequenceDetector_default,
+802:     detector_default,
+803:     flowDetector_v2_default,
+804:     detector_default3,
+805:     gitGraphDetector_default,
+806:     stateDetector_V2_default,
+807:     journeyDetector_default,
+808:     quadrantDetector_default,
+809:     sankeyDetector_default,
+810:     packet,
+811:     xychartDetector_default,
+812:     blockDetector_default,
+813:     detector_default7,
+814:     detector_default6,
+815:     radar,
+816:     ishikawa,
+817:     treemap,
+818:     railroad,
+819:     railroadEbnf,
+820:     railroadAbnf,
+821:     railroadPeg,
+822:     vennDetector_default,
+823:     wardleyDetector_default,
+824:     cynefin,
+825:     usecase
+826:   );
+827: }, "addDiagrams");
+
+===== load-all: /workspace/milkup/plugins/diagrams/node_modules/mermaid/dist/mermaid.core.mjs:830-859 =====
+830: var loadRegisteredDiagrams = /* @__PURE__ */ __name(async () => {
+831:   log.debug(`Loading registered diagrams`);
+832:   const results = await Promise.allSettled(
+833:     Object.entries(detectors).map(async ([key, { detector: detector38, loader: loader38 }]) => {
+834:       if (!loader38) {
+835:         return;
+836:       }
+837:       try {
+838:         getDiagram(key);
+839:       } catch {
+840:         try {
+841:           const { diagram: diagram2, id: id38 } = await loader38();
+842:           registerDiagram(id38, diagram2, detector38);
+843:         } catch (err) {
+844:           log.error(`Failed to load external diagram with key ${key}. Removing from detectors.`);
+845:           delete detectors[key];
+846:           throw err;
+847:         }
+848:       }
+849:     })
+850:   );
+851:   const failed = results.filter((result) => result.status === "rejected");
+852:   if (failed.length > 0) {
+853:     log.error(`Failed to load ${failed.length} external diagrams`);
+854:     for (const res of failed) {
+855:       log.error(res);
+856:     }
+857:     throw new Error(`Failed to load ${failed.length} external diagrams`);
+858:   }
+859: }, "loadRegisteredDiagrams");
+
+===== public-call-and-auto-start: /workspace/milkup/plugins/diagrams/node_modules/mermaid/dist/mermaid.core.mjs:1590-1613 =====
+1590: var registerExternalDiagrams = /* @__PURE__ */ __name(async (diagrams, {
+1591:   lazyLoad = true
+1592: } = {}) => {
+1593:   addDiagrams();
+1594:   registerLazyLoadedDiagrams(...diagrams);
+1595:   if (lazyLoad === false) {
+1596:     await loadRegisteredDiagrams();
+1597:   }
+1598: }, "registerExternalDiagrams");
+1599: var contentLoaded = /* @__PURE__ */ __name(function() {
+1600:   if (mermaid.startOnLoad) {
+1601:     const { startOnLoad } = mermaidAPI.getConfig();
+1602:     if (startOnLoad) {
+1603:       mermaid.run().catch((err) => log.error("Mermaid failed to initialize", err));
+1604:     }
+1605:   }
+1606: }, "contentLoaded");
+1607: if (typeof document !== "undefined") {
+1608:   window.addEventListener("load", contentLoaded, false);
+1609: }
+1610: var setParseErrorHandler = /* @__PURE__ */ __name(function(parseErrorHandler) {
+1611:   mermaid.parseError = parseErrorHandler;
+1612: }, "setParseErrorHandler");
+1613: var executionQueue = [];
+
+===== style-registration: /workspace/milkup/plugins/diagrams/node_modules/mermaid/dist/chunks/mermaid.core/chunk-DSNLSHJZ.mjs:5688-5692 =====
+5688: var addStylesForDiagram = /* @__PURE__ */ __name((type, diagramTheme) => {
+5689:   if (diagramTheme !== void 0) {
+5690:     themes[type] = diagramTheme;
+5691:   }
+5692: }, "addStylesForDiagram");
+
+===== diagram-registration: /workspace/milkup/plugins/diagrams/node_modules/mermaid/dist/chunks/mermaid.core/chunk-DSNLSHJZ.mjs:5740-5759 =====
+5740: var registerDiagram = /* @__PURE__ */ __name((id, diagram, detector) => {
+5741:   if (diagrams[id]) {
+5742:     log2.warn(`Diagram with id ${id} already registered. Overwriting.`);
+5743:   }
+5744:   diagrams[id] = diagram;
+5745:   if (detector) {
+5746:     addDetector(id, detector);
+5747:   }
+5748:   addStylesForDiagram(id, diagram.styles);
+5749:   diagram.injectUtils?.(
+5750:     log2,
+5751:     setLogLevel2,
+5752:     getConfig2,
+5753:     sanitizeText3,
+5754:     setupGraphViewbox2,
+5755:     getCommonDb(),
+5756:     () => {
+5757:     }
+5758:   );
+5759: }, "registerDiagram");
+
+===== layout-still-lazy: /workspace/milkup/plugins/diagrams/node_modules/mermaid/dist/chunks/mermaid.core/chunk-EJLWFMJV.mjs:65-110 =====
+65: var elkLayoutLoaders = /* @__PURE__ */ __name(() => {
+66:   const loader = /* @__PURE__ */ __name(async () => await import("./elk-QONTBCTQ.mjs"), "loader");
+67:   return [
+68:     { name: "elk", loader, algorithm: "elk.layered" },
+69:     ...ELK_ALGORITHMS.map((algorithm) => ({ name: algorithm, loader, algorithm }))
+70:   ];
+71: }, "elkLayoutLoaders");
+72: var registerDefaultLayoutLoaders = /* @__PURE__ */ __name(() => {
+73:   registerLayoutLoaders([
+74:     {
+75:       name: "dagre",
+76:       loader: /* @__PURE__ */ __name(async () => await import("./dagre-NK4GIZVX.mjs"), "loader")
+77:     },
+78:     {
+79:       name: "swimlane",
+80:       loader: /* @__PURE__ */ __name(async () => await import("./swimlanes-B3ENRKFQ.mjs"), "loader")
+81:     },
+82:     // elkjs is ~1.6 MB of source, so it is excluded from the tiny build along
+83:     // with the other large features. `getRegisteredLayoutAlgorithm` then falls
+84:     // back to dagre for diagrams that ask for an ELK layout there.
+85:     ...true ? [
+86:       {
+87:         name: "cose-bilkent",
+88:         loader: /* @__PURE__ */ __name(async () => await import("./cose-bilkent-JH36ORCC.mjs"), "loader")
+89:       },
+90:       ...elkLayoutLoaders()
+91:     ] : []
+92:   ]);
+93: }, "registerDefaultLayoutLoaders");
+94: registerDefaultLayoutLoaders();
+95: var render = /* @__PURE__ */ __name(async (data4Layout, svg) => {
+96:   if (!Object.hasOwn(layoutAlgorithms, data4Layout.layoutAlgorithm)) {
+97:     throw new Error(`Unknown layout algorithm: ${data4Layout.layoutAlgorithm}`);
+98:   }
+99:   if (data4Layout.diagramId) {
+100:     for (const node of data4Layout.nodes) {
+101:       const originalDomId = node.domId || node.id;
+102:       node.domId = `${data4Layout.diagramId}-${originalDomId}`;
+103:     }
+104:   }
+105:   const layoutDefinition = layoutAlgorithms[data4Layout.layoutAlgorithm];
+106:   const layoutRenderer = await layoutDefinition.loader();
+107:   insertLookDefs(svg, data4Layout.config);
+108:   return layoutRenderer.render(data4Layout, svg, internalHelpers, {
+109:     algorithm: layoutDefinition.algorithm
+110:   });
+
+===== current-product-preparation: /workspace/milkup/plugins/diagrams/src/renderer.ts:1-13 =====
+1: import mermaid from 'mermaid'
+2: import type {
+3:   SdkDocumentRenderer,
+4:   SdkDocumentPresentationFragment,
+5:   SdkDocumentPresentationResult,
+6: } from '@milkup/plugin-sdk'
+7: import { convertSvgElement, ConversionError } from './svg-converter'
+8: 
+9: // Preparation waits for installed fonts but never parses a document. The
+10: // independent native host owns activation and execution deadlines.
+11: export async function prepareRenderer(): Promise<void> {
+12:   await document.fonts.ready
+13: }
+
+===== current-product-config: /workspace/milkup/plugins/diagrams/src/renderer.ts:108-149 =====
+108:           mermaid.initialize({
+109:             startOnLoad: false,
+110:             securityLevel: 'strict',
+111:             htmlLabels: false,
+112:             suppressErrorRendering: true,
+113:             maxTextSize: 50_000,
+114:             maxEdges: 500,
+115:             deterministicIds: true,
+116:             deterministicIDSeed: 'milkup-offline',
+117:             arrowMarkerAbsolute: false,
+118:             fontFamily: 'Arial, sans-serif',
+119:             legacyMathML: false,
+120:             forceLegacyMathML: false,
+121:             theme: request.theme === 'dark' ? 'dark' : 'default',
+122:             darkMode: request.theme === 'dark',
+123:             secure: [
+124:               'secure',
+125:               'securityLevel',
+126:               'startOnLoad',
+127:               'maxTextSize',
+128:               'maxEdges',
+129:               'suppressErrorRendering',
+130:               'htmlLabels',
+131:               'fontFamily',
+132:               'themeCSS',
+133:               'legacyMathML',
+134:               'forceLegacyMathML',
+135:               'look',
+136:               'textPlacement',
+137:               'theme',
+138:               'darkMode',
+139:               'dompurifyConfig',
+140:               'arrowMarkerAbsolute',
+141:               'deterministicIds',
+142:               'deterministicIDSeed',
+143:             ],
+144:           })
+145:           sequence = (sequence + 1) % 0x1_0000_0000
+146:           const rendered = await mermaid.render(`milkup_graph_${sequence}`, input, container)
+147:           cancelled(signal)
+148:           // Markup is inspected only inside the isolated helper. It never
+149:           // becomes editor markup, and bindFunctions is never invoked.

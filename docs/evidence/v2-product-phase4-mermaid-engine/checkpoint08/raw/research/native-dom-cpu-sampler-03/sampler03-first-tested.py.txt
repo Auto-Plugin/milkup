@@ -1,0 +1,649 @@
+#!/usr/bin/env python3
+"""Bounded external observer. No signals, cleanup, product IPC or page hooks."""
+import argparse
+import hashlib
+from itertools import islice
+import json
+import math
+import os
+from pathlib import Path
+import re
+import resource
+import select
+import sys
+import time
+
+EXPECTED_BINARY = Path('/workspace/milkup-mermaid-engine-evidence/research/native-dom-stage-candidate-01/install/usr/bin/milkup-desktop')
+EXPECTED_SHA256 = '8041da503dac6cc0ff5d45d4c11982ca4b6a898930f3e4ecc3442d8cb1e4d140'
+PERIOD_NS = 50_000_000
+DISCOVERY_NS = 250_000_000
+WINDOW_NS = 10_000_000_000
+WAIT_NS = 30_000_000_000
+MAX_PERIODIC = 201
+MAX_IDENTITIES = 128
+MAX_TASKS = 1024
+MAX_CHILD_CANDIDATES = 128
+MAX_PROC_ENTRIES = 8192
+MAX_PROC_PIDS = 4096
+MAX_PROC_SCAN_NS = 50_000_000
+MAX_SCAN_RECORDS = 64
+TOTAL_BYTES = 2 * 1024 * 1024
+SUMMARY_RESERVE = 128 * 1024
+MAX_LOG_BYTES = 32 * 1024 * 1024
+MAX_LINE_BYTES = 16 * 1024
+
+
+def mono():
+    return time.clock_gettime_ns(time.CLOCK_MONOTONIC)
+
+
+class ObservationError(Exception):
+    pass
+
+
+class Sampler:
+    def __init__(self, args):
+        self.args = args
+        self.out = Path(args.output)
+        self.out.mkdir(parents=True, exist_ok=False)
+        self.started = mono()
+        self.start_usage = resource.getrusage(resource.RUSAGE_SELF)
+        self.errors = []
+        self.error_count = 0
+        self.rows = []
+        self.row_bytes = 0
+        self.truncated = False
+        self.known = {}
+        self.previous = {}
+        self.live_deltas = {}
+        self.app = None
+        self.guardian = None
+        self.anchor = None
+        self.observed_dispatch = None
+        self.first_sample = None
+        self.last_sample = None
+        self.app_exit_observed = None
+        self.skipped_slots = 0
+        self.periodic_count = 0
+        self.discovery_count = 0
+        self.discovery_times = []
+        self.cgroup_path = None
+        self.cgroup_before = None
+        self.cgroup_after = None
+        self.guardian_binding = None
+        self.binding_candidates = {}
+        self.proc_scans = []
+
+    def error(self, category, pid=None, detail=None):
+        self.error_count += 1
+        if len(self.errors) < 32:
+            self.errors.append({'monoNs': mono(), 'category': category,
+                                'pid': pid, 'detail': str(detail)[:160] if detail is not None else None})
+
+    def bounded_read(self, path, limit):
+        with Path(path).open('rb') as stream:
+            raw = stream.read(limit + 1)
+        if len(raw) > limit:
+            raise ObservationError('bounded-read-limit')
+        return raw
+
+    def identity(self, pid, required=False, diagnostic=None):
+        try:
+            raw = self.bounded_read(Path('/proc', str(pid), 'stat'), 4096).decode()
+            assert int(raw.split('(', 1)[0]) == pid
+            fields = raw.rsplit(')', 1)[1].split()
+            row = {'pid': pid, 'birth': int(fields[19]), 'parent': int(fields[1]),
+                    'group': int(fields[2]), 'state': fields[0],
+                    'userTicks': int(fields[11]), 'systemTicks': int(fields[12]),
+                    'name': raw[raw.find('(') + 1:raw.rfind(')')][:64]}
+            if diagnostic is not None:
+                diagnostic.update({key: row[key] for key in ('pid', 'birth', 'parent', 'state')})
+                diagnostic['readStatus'] = 'ok'
+            return row
+        except FileNotFoundError as exc:
+            if diagnostic is not None:
+                diagnostic.update({'pid': pid, 'readStatus': 'vanished', 'errno': exc.errno})
+                self.binding_read_error('stat', exc)
+            if required:
+                raise ObservationError('required-process-missing')
+        except (OSError, ValueError, IndexError, AssertionError, ObservationError) as exc:
+            if diagnostic is not None:
+                diagnostic.update({'pid': pid, 'readStatus': 'unreadable',
+                                   'errorClass': type(exc).__name__, 'errno': getattr(exc, 'errno', None)})
+                self.binding_read_error('stat', exc)
+            self.error('identity-read', pid, type(exc).__name__)
+            if required:
+                raise ObservationError('required-identity-unreadable') from exc
+        return None
+
+    def same(self, expected, diagnostic=None):
+        row = self.identity(expected['pid'], diagnostic=diagnostic)
+        if diagnostic is not None:
+            diagnostic['expectedBirth'] = expected['birth']
+            diagnostic['birthMatches'] = bool(row and row['birth'] == expected['birth'])
+        return row if row and row['birth'] == expected['birth'] else None
+
+    def argv(self, pid):
+        raw = self.bounded_read(Path('/proc', str(pid), 'cmdline'), 16384)
+        return raw.decode().split('\0')[:-1] if raw.endswith(b'\0') else raw.decode().split('\0')
+
+    def binding_read_error(self, stage, exc):
+        # Only the one binding pass is observed; no exception text/path/env value.
+        binding = self.guardian_binding
+        binding['readErrorCount'] += 1
+        if len(binding['readErrors']) < 32:
+            binding['readErrors'].append({'stage': stage, 'errorClass': type(exc).__name__,
+                                          'errno': getattr(exc, 'errno', None)})
+        else:
+            binding['omittedReadErrorCount'] += 1
+
+    def proc_table(self, owner):
+        """One bounded stat-only table; unrelated process data never reaches output."""
+        started = mono()
+        record = {'startedNs': started, 'endedNs': None, 'durationNs': None,
+                  'entriesObserved': 0, 'numericPidsObserved': 0,
+                  'statParsed': 0, 'vanished': 0, 'outcome': 'not-completed',
+                  'ownerBefore': {}, 'ownerAfter': {}}
+        if len(self.proc_scans) >= MAX_SCAN_RECORDS:
+            raise ObservationError('proc-scan-record-limit')
+        self.proc_scans.append(record)
+        deadline = started + MAX_PROC_SCAN_NS
+        if self.anchor:
+            deadline = min(deadline, self.anchor['monotonicNs'] + WINDOW_NS)
+
+        def check_time():
+            if mono() >= deadline:
+                raise ObservationError('proc-scan-wall-limit')
+
+        def same_owner(key):
+            row = self.identity(owner['pid'])
+            record[key] = {'pid': owner['pid'], 'expectedBirth': owner['birth'],
+                           'birthMatches': bool(row and row['birth'] == owner['birth'])}
+            if row:
+                record[key].update({field: row[field] for field in ('birth', 'parent', 'state')})
+            return row if row and row['birth'] == owner['birth'] else None
+
+        try:
+            if not same_owner('ownerBefore'):
+                record['outcome'] = 'owner-not-matching-before'
+                return {}
+            table = {}
+            with os.scandir('/proc') as entries:
+                for entry in islice(entries, MAX_PROC_ENTRIES + 1):
+                    check_time()
+                    record['entriesObserved'] += 1
+                    if record['entriesObserved'] > MAX_PROC_ENTRIES:
+                        raise ObservationError('proc-entry-limit')
+                    if not entry.name.isascii() or not entry.name.isdecimal():
+                        continue
+                    record['numericPidsObserved'] += 1
+                    if record['numericPidsObserved'] > MAX_PROC_PIDS:
+                        raise ObservationError('proc-pid-limit')
+                    # Never read unrelated cmdline/environ or retain names/CPU.
+                    try:
+                        raw = self.bounded_read(Path('/proc', entry.name, 'stat'), 4096).decode()
+                    except FileNotFoundError:
+                        record['vanished'] += 1
+                        check_time()
+                        continue
+                    pid = int(entry.name)
+                    if int(raw.split('(', 1)[0]) != pid:
+                        raise ObservationError('proc-stat-pid-mismatch')
+                    fields = raw.rsplit(')', 1)[1].split()
+                    table[pid] = {'pid': pid, 'parent': int(fields[1]), 'birth': int(fields[19])}
+                    record['statParsed'] += 1
+                    check_time()
+            check_time()
+            if not same_owner('ownerAfter'):
+                record['outcome'] = 'owner-not-matching-after'
+                self.error('owner-changed-during-proc-scan', owner['pid'])
+                return {}
+            check_time()
+            record['outcome'] = 'completed'
+            return table
+        except (OSError, UnicodeError, ValueError, IndexError, ObservationError) as exc:
+            record.update({'outcome': 'failed', 'errorClass': type(exc).__name__,
+                           'errno': getattr(exc, 'errno', None),
+                           'failure': str(exc) if isinstance(exc, ObservationError) else 'proc-stat-read-or-parse'})
+            raise ObservationError(record['failure']) from exc
+        finally:
+            record['endedNs'] = mono()
+            record['durationNs'] = record['endedNs'] - started
+
+    def children(self, owner, table, binding=None):
+        """Filter a shared table; recheck each owned candidate before accepting it."""
+        before = binding['ownerBefore'] if binding is not None else None
+        if not self.same(owner, diagnostic=before):
+            if binding is not None:
+                binding['discoveryOutcome'] = 'owner-not-matching-before'
+            return []
+        candidates = []
+        for row in table.values():
+            if row['parent'] == owner['pid']:
+                if len(candidates) >= MAX_CHILD_CANDIDATES:
+                    raise ObservationError('child-candidate-discovery-limit')
+                candidates.append(row)
+        if binding is not None:
+            binding['rawChildCount'] = len(candidates)
+        rows = []
+        for observed in sorted(candidates, key=lambda row: row['pid']):
+            candidate = None
+            if binding is not None:
+                candidate = {'pid': observed['pid'], 'identity': {}, 'reason': 'stat-pending'}
+                binding['candidates'].append(candidate)
+                self.binding_candidates[observed['pid']] = candidate
+            diagnostic = candidate['identity'] if candidate is not None else None
+            row = self.same(observed, diagnostic=diagnostic)
+            if row and row['parent'] == owner['pid'] and row['birth'] >= owner['birth']:
+                rows.append(row)
+                if candidate is not None:
+                    candidate['reason'] = 'direct-child'
+            elif candidate is not None:
+                candidate['reason'] = ('identity-rejected' if not row
+                                       else 'parent-rejected' if row['parent'] != owner['pid']
+                                       else 'older-birth-rejected')
+        after = binding['ownerAfterCandidates'] if binding is not None else None
+        owner_matches = self.same(owner, diagnostic=after)
+        if binding is not None:
+            binding['retainedDirectChildCount'] = len(rows) if owner_matches else 0
+            binding['discoveryOutcome'] = ('completed' if owner_matches
+                                           else 'owner-not-matching-after-candidates')
+        return rows if owner_matches else []
+
+    def read_root(self):
+        deadline = mono() + WAIT_NS
+        raw = b''
+        while b'\n' not in raw:
+            remaining = deadline - mono()
+            if remaining <= 0 or not select.select([sys.stdin], [], [], remaining / 1e9)[0]:
+                raise ObservationError('root-handshake-timeout')
+            chunk = os.read(sys.stdin.fileno(), min(4096, MAX_LINE_BYTES + 1 - len(raw)))
+            if not chunk:
+                raise ObservationError('root-handshake-eof')
+            raw += chunk
+            if len(raw) > MAX_LINE_BYTES:
+                raise ObservationError('root-handshake-size')
+        if not raw.endswith(b'\n') or raw.count(b'\n') != 1:
+            raise ObservationError('invalid-root-handshake-frame')
+        request = json.loads(raw)
+        pid = request['pid']
+        if type(pid) is not int or pid <= 0:
+            raise ObservationError('invalid-root-pid')
+        expected_argv = list(request['argv'])
+        if expected_argv and expected_argv[-1] == '':
+            expected_argv.pop()
+        if not expected_argv or expected_argv[0] != str(EXPECTED_BINARY):
+            raise ObservationError('root-binary-path-mismatch')
+        row = self.identity(pid, required=True)
+        if row['birth'] != int(request['birth']) or self.argv(pid) != expected_argv:
+            raise ObservationError('root-identity-mismatch')
+        if not self.same(row):
+            raise ObservationError('root-changed-during-handshake')
+        self.app = dict(row, argv=expected_argv)
+        with EXPECTED_BINARY.open('rb') as stream:
+            digest = hashlib.file_digest(stream, 'sha256').hexdigest()
+        if digest != EXPECTED_SHA256:
+            raise ObservationError('frozen-binary-hash-mismatch')
+        self.emit({'event': 'armed', 'monoNs': mono(), 'app': self.app,
+                   'clockTicks': os.sysconf('SC_CLK_TCK'),
+                   'pidNamespace': os.readlink('/proc/self/ns/pid'),
+                   'targetSha256': digest})
+
+    def await_dispatch(self):
+        wait_started = mono()
+        cursor = 0
+        buffer = b''
+        log_identity = None
+        path = Path(self.args.app_log)
+        while mono() - wait_started < WAIT_NS:
+            if not self.same(self.app):
+                raise ObservationError('app-exited-before-dispatch-observation')
+            try:
+                with path.open('rb') as stream:
+                    st = os.fstat(stream.fileno())
+                    identity = (st.st_dev, st.st_ino)
+                    if log_identity is not None and identity != log_identity:
+                        raise ObservationError('native-log-replaced')
+                    log_identity = identity
+                    if st.st_size < cursor or st.st_size > MAX_LOG_BYTES:
+                        raise ObservationError('native-log-size-or-truncation')
+                    stream.seek(cursor)
+                    chunk = stream.read(min(65536, MAX_LOG_BYTES - cursor))
+                    cursor += len(chunk)
+                buffer += chunk
+                while b'\n' in buffer:
+                    line, buffer = buffer.split(b'\n', 1)
+                    if len(line) > MAX_LINE_BYTES:
+                        raise ObservationError('native-log-line-limit')
+                    if not line.startswith(b'DOM_NATIVE_TIMING '):
+                        continue
+                    try:
+                        row = json.loads(line[len(b'DOM_NATIVE_TIMING '):])
+                    except (ValueError, UnicodeError):
+                        self.error('native-log-invalid-json')
+                        continue
+                    if row.get('phase') != 'dispatch' or row.get('pid') != self.app['pid']:
+                        continue
+                    instance = row.get('instanceId')
+                    ns = row.get('monotonicNs')
+                    if not isinstance(instance, str) or not re.fullmatch('[a-f0-9]{48}', instance):
+                        raise ObservationError('invalid-dispatch-instance')
+                    if type(ns) is not int or ns <= 0 or ns > mono():
+                        raise ObservationError('invalid-dispatch-clock')
+                    # Select only the first retained exact-App dispatch; never skip forward or re-anchor.
+                    self.anchor = row
+                    self.observed_dispatch = mono()
+                    self.log_read = {'path': str(path), 'device': st.st_dev, 'inode': st.st_ino,
+                                     'bytesReadThroughObservation': cursor,
+                                     'waitStartedNs': wait_started,
+                                     'observedNs': self.observed_dispatch,
+                                     'readObservationDelayNs': self.observed_dispatch - ns}
+                    if row.get('requestId') != 'render_1':
+                        raise ObservationError('first-observed-dispatch-not-render-one')
+                    return
+                if len(buffer) > MAX_LINE_BYTES:
+                    raise ObservationError('native-log-partial-line-limit')
+            except FileNotFoundError:
+                pass
+            time.sleep(0.02)
+        raise ObservationError('first-observed-dispatch-wait-timeout')
+
+    def bind_guardian(self):
+        self.guardian_binding = {
+            'startedNs': mono(), 'endedNs': None,
+            'ownerBefore': {}, 'ownerAfterCandidates': {},
+            'procScanIndex': None, 'rawChildCount': 0, 'retainedDirectChildCount': 0,
+            'discoveryOutcome': 'not-started', 'matchingCount': None,
+            'outcome': 'not-completed', 'candidates': [],
+            'readErrorCount': 0, 'readErrors': [], 'omittedReadErrorCount': 0,
+        }
+        try:
+            self.bind_guardian_once()
+        finally:
+            self.guardian_binding['endedNs'] = mono()
+
+    def bind_guardian_once(self):
+        if mono() >= self.anchor['monotonicNs'] + WINDOW_NS:
+            raise ObservationError('entire-dispatch-window-already-missed')
+        matches = []
+        self.guardian_binding['procScanIndex'] = len(self.proc_scans)
+        table = self.proc_table(self.app)
+        for row in self.children(self.app, table, binding=self.guardian_binding):
+            candidate = self.binding_candidates[row['pid']]
+            stage = 'argv'
+            try:
+                argv = self.argv(row['pid'])
+                exact_argv = argv == [str(EXPECTED_BINARY), '--milkup-internal-dom-helper']
+                candidate.update({'argvCount': len(argv),
+                                  'expectedPathMatches': bool(argv and argv[0] == str(EXPECTED_BINARY)),
+                                  'helperArgumentMatches': bool(len(argv) > 1 and argv[1] == '--milkup-internal-dom-helper'),
+                                  'exactArgvMatches': exact_argv})
+                if not exact_argv:
+                    candidate['reason'] = 'argv-rejected'
+                    continue
+                stage = 'instance-environment'
+                env = self.bounded_read(Path('/proc', str(row['pid']), 'environ'), 1024 * 1024).split(b'\0')
+                values = [v.split(b'=', 1)[1].decode() for v in env
+                          if v.startswith(b'MILKUP_INTERNAL_DOM_INSTANCE_ID=')]
+                exact_instance = values == [self.anchor['instanceId']]
+                candidate['instanceKeyCount'] = len(values)
+                candidate['instanceValueMatches'] = exact_instance
+                if exact_instance:
+                    candidate['finalIdentity'] = {}
+                    if self.same(row, diagnostic=candidate['finalIdentity']):
+                        matches.append(row)
+                        candidate['reason'] = 'accepted'
+                    else:
+                        candidate['reason'] = 'final-birth-rejected'
+                else:
+                    candidate['reason'] = ('instance-key-missing' if not values
+                                           else 'instance-key-duplicate' if len(values) > 1
+                                           else 'instance-value-rejected')
+            except (OSError, UnicodeError, ObservationError) as exc:
+                candidate.update({'reason': 'read-error', 'readStage': stage,
+                                  'errorClass': type(exc).__name__, 'errno': getattr(exc, 'errno', None)})
+                self.binding_read_error(stage, exc)
+                self.error('guardian-bind-read', row['pid'], type(exc).__name__)
+        self.guardian_binding['matchingCount'] = len(matches)
+        self.guardian_binding['outcome'] = (
+            'unique-match' if len(matches) == 1 else 'multiple-matches' if len(matches) > 1
+            else 'zero-discovered' if not self.guardian_binding['rawChildCount']
+            else 'zero-retained-direct-children' if not self.guardian_binding['retainedDirectChildCount']
+            else 'no-exact-match')
+        if len(matches) != 1:
+            raise ObservationError('guardian-bind-not-unique-or-missing')
+        self.guardian = dict(matches[0], instanceId=self.anchor['instanceId'])
+        self.known[(self.guardian['pid'], self.guardian['birth'])] = dict(
+            self.guardian, firstSeenNs=mono(), role='guardian')
+        if self.args.cgroup_cpu_stat:
+            entries = self.bounded_read(Path('/proc', str(self.app['pid']), 'cgroup'), 16384).decode().splitlines()
+            unified = [entry[3:] for entry in entries if entry.startswith('0::')]
+            if len(unified) == 1:
+                candidate = Path('/sys/fs/cgroup') / unified[0].lstrip('/') / 'cpu.stat'
+                resolved = candidate.resolve()
+                if resolved.is_relative_to(Path('/sys/fs/cgroup')):
+                    self.cgroup_path = resolved
+            if self.cgroup_path is None:
+                self.error('cgroup-v2-path-unavailable')
+
+    def role(self, row):
+        # Labels are assigned only after parent/birth ownership was established.
+        try:
+            command = self.argv(row['pid'])
+            if command == [str(EXPECTED_BINARY), '--milkup-internal-dom-helper']:
+                return 'helper'
+            name = Path(command[0]).name if command else ''
+            return {'WebKitWebProcess': 'webkit-web', 'WebKitNetworkProcess': 'webkit-network'}.get(name, 'other-owned')
+        except (OSError, UnicodeError, ObservationError):
+            return 'other-owned'
+
+    def discover(self):
+        start = mono()
+        # One table per discovery, shared by every already-proven parent.
+        table = self.proc_table(self.guardian)
+        work = list(self.known.values())
+        visited = set()
+        while work:
+            if self.anchor and mono() >= self.anchor['monotonicNs'] + WINDOW_NS:
+                break
+            parent = work.pop()
+            key = (parent['pid'], parent['birth'])
+            if key in visited:
+                continue
+            visited.add(key)
+            for row in self.children(parent, table):
+                child_key = (row['pid'], row['birth'])
+                if child_key in self.known:
+                    continue
+                if len(self.known) >= MAX_IDENTITIES:
+                    raise ObservationError('identity-cap-reached')
+                role = self.role(row)
+                if not self.same(row):
+                    continue
+                self.known[child_key] = dict(row, firstSeenNs=mono(), role=role)
+                work.append(row)
+        self.discovery_count += 1
+        self.discovery_times.append(mono() - start)
+
+    def cgroup(self):
+        if not self.cgroup_path:
+            return None
+        observed = mono()
+        try:
+            result = {}
+            for line in self.bounded_read(self.cgroup_path, 8192).decode().splitlines():
+                key, value = line.split()
+                if re.fullmatch('[a-z_]{1,64}', key):
+                    result[key] = int(value)
+            return {'monoNs': observed, 'values': result}
+        except (OSError, ValueError, UnicodeError, ObservationError) as exc:
+            self.error('cgroup-read', detail=type(exc).__name__)
+            return None
+
+    def sample(self, label):
+        start = mono()
+        app_row = self.same(self.app)
+        app_live = bool(app_row and app_row['state'] not in ['Z', 'X', 'x'])
+        if not app_live and self.app_exit_observed is None:
+            self.app_exit_observed = start
+        members = []
+        for key, origin in sorted(self.known.items()):
+            row = self.same(origin)
+            if row is None:
+                members.append({'pid': key[0], 'birth': key[1], 'status': 'absent-or-reused'})
+                self.previous.pop(key, None)
+                continue
+            row['observedNs'] = mono()
+            terminated = row['state'] in ['Z', 'X', 'x']
+            before = self.previous.get(key)
+            delta = None
+            in_window = bool(before and self.anchor and
+                             self.anchor['monotonicNs'] <= before['observedNs'] <= row['observedNs'] <=
+                             self.anchor['monotonicNs'] + WINDOW_NS)
+            if in_window and not terminated and before['state'] not in ['Z', 'X', 'x']:
+                delta = row['userTicks'] + row['systemTicks'] - before['userTicks'] - before['systemTicks']
+                if delta < 0:
+                    self.error('nonmonotonic-ticks', key[0])
+                    delta = None
+                else:
+                    self.live_deltas[key] = self.live_deltas.get(key, 0) + delta
+            members.append(dict(row, role=origin['role'], status='terminated' if terminated else 'observed-live',
+                                liveDeltaTicks=delta, intervalWhollyInsideWindow=in_window))
+            self.previous[key] = row
+        usage = resource.getrusage(resource.RUSAGE_SELF)
+        record = {'label': label, 'monoNs': start, 'wall': time.time(), 'appLive': app_live,
+                  'appState': app_row['state'] if app_row else None,
+                  'members': members, 'samplingDurationNs': mono() - start,
+                  'selfUserSeconds': usage.ru_utime, 'selfSystemSeconds': usage.ru_stime}
+        encoded = json.dumps(record, separators=(',', ':')) + '\n'
+        size = len(encoded.encode())
+        if self.row_bytes + size > TOTAL_BYTES - SUMMARY_RESERVE:
+            self.truncated = True
+            return
+        self.rows.append(encoded)
+        self.row_bytes += size
+        if self.first_sample is None:
+            self.first_sample = start
+        self.last_sample = start
+
+    def run(self):
+        self.read_root()
+        self.await_dispatch()
+        self.bind_guardian()
+        self.discover()
+        start = self.anchor['monotonicNs']
+        end = start + WINDOW_NS
+        if mono() >= end:
+            raise ObservationError('entire-window-missed-during-binding')
+        self.cgroup_before = self.cgroup()
+        self.sample('initial')
+        slot = max(1, math.ceil((mono() - start) / PERIOD_NS))
+        next_discovery = mono() + DISCOVERY_NS
+        while mono() < end and self.periodic_count < MAX_PERIODIC:
+            due = start + slot * PERIOD_NS
+            if due >= end:
+                time.sleep(max(0, (end - mono()) / 1e9))
+                break
+            delay = due - mono()
+            if delay > 0:
+                time.sleep(min(delay / 1e9, 0.05))
+                continue
+            if mono() >= next_discovery:
+                self.discover()
+                next_discovery = mono() + DISCOVERY_NS
+            if mono() >= end:
+                break
+            self.sample('periodic')
+            self.periodic_count += 1
+            next_slot = max(slot + 1, math.ceil((mono() - start) / PERIOD_NS))
+            self.skipped_slots += next_slot - slot - 1
+            slot = next_slot
+        self.cgroup_after = self.cgroup()
+        self.sample('final')
+
+    def emit(self, value):
+        print(json.dumps(value), flush=True)
+
+    def finish(self, failure=None):
+        usage = resource.getrusage(resource.RUSAGE_SELF)
+        end = self.anchor['monotonicNs'] + WINDOW_NS if self.anchor else None
+        cgroup_delta = None
+        if self.cgroup_before and self.cgroup_after:
+            cgroup_delta = {k: v - self.cgroup_before['values'][k]
+                            for k, v in self.cgroup_after['values'].items()
+                            if k in self.cgroup_before['values']}
+        summary = {'status': 'incomplete' if failure else 'completed-window',
+                   'failure': failure, 'startedNs': self.started, 'finishedNs': mono(),
+                   'app': self.app, 'guardian': self.guardian, 'dispatch': self.anchor,
+                   'logObservation': getattr(self, 'log_read', None),
+                   'guardianBinding': self.guardian_binding,
+                   'procScans': self.proc_scans,
+                   'procDiscoveryLimits': {'entries': MAX_PROC_ENTRIES, 'numericPids': MAX_PROC_PIDS,
+                                           'scanWallNs': MAX_PROC_SCAN_NS, 'scanRecords': MAX_SCAN_RECORDS},
+                   'anchorSelection': 'first observed retained exact-App dispatch from log beginning; render_1 required; no re-anchor',
+                   'anchorUncertainty': {
+                       'diagnosticsBestEffort': True,
+                       'earlierOtherClientDispatchMayBeUnobserved': True,
+                       'requestSequenceScope': 'createDocumentRenderRpcClient-local; assigned before queue/cancellation',
+                       'requestSequenceOneObserved': bool(self.anchor and self.anchor.get('requestId') == 'render_1'),
+                       'completeAppFirstTenSecondsProven': False,
+                   },
+                   'windowEndNs': end, 'firstSampleNs': self.first_sample,
+                   'lastSampleNs': self.last_sample,
+                   'firstSampleLateGapNs': self.first_sample - self.anchor['monotonicNs'] if self.first_sample and self.anchor else None,
+                   'appExitObservedNs': self.app_exit_observed,
+                   'appExitedBeforeWindowEnd': bool(end and self.app_exit_observed and self.app_exit_observed < end),
+                   'clockTicks': os.sysconf('SC_CLK_TCK'),
+                   'periodNs': PERIOD_NS, 'discoveryPeriodNs': DISCOVERY_NS,
+                   'periodicCount': self.periodic_count, 'retainedSampleCount': len(self.rows),
+                   'skippedSlots': self.skipped_slots, 'discoveryCount': self.discovery_count,
+                   'discoveryDurationNs': self.discovery_times[:64],
+                   'knownIdentities': list(self.known.values()),
+                   'observedLiveCpuTicks': [{'pid': pid, 'birth': birth, 'ticks': ticks}
+                                            for (pid, birth), ticks in sorted(self.live_deltas.items())],
+                   'errors': self.errors, 'errorCount': self.error_count,
+                   'sampleBytes': self.row_bytes, 'truncated': self.truncated,
+                   'selfCpuSeconds': {'user': usage.ru_utime - self.start_usage.ru_utime,
+                                      'system': usage.ru_stime - self.start_usage.ru_stime},
+                   'cgroup': {'path': str(self.cgroup_path) if self.cgroup_path else None,
+                              'before': self.cgroup_before, 'after': self.cgroup_after,
+                              'rawDelta': cgroup_delta,
+                              'scope': 'Shared cgroup counters, not DOM-exclusive; actual read timestamps retained'},
+                   'limits': ['No signal, cleanup, product IPC or page observer.',
+                              'Initial/lost/terminal CPU intervals are not reconstructed; zombie ticks are not active CPU.',
+                              '250ms discovery can miss short-lived previously unseen descendants.',
+                              'Stat tables are not atomic; vanished entries and PID races are not reconstructed.',
+                              'Global stat scanning adds measured overhead; non-owned stat rows are never output.',
+                              'Scan wall limit is checked between operations, not a preemptive kernel-read deadline.',
+                              'High CPU does not identify the request; low CPU does not prove a scheduler defect.',
+                              'Sampling overhead is retained, not subtracted; asynchronous traces may be lost.']}
+        raw = json.dumps(summary, indent=2) + '\n'
+        if len(raw.encode()) > SUMMARY_RESERVE:
+            raise ObservationError('summary-reserve-exceeded')
+        (self.out / 'samples.ndjson').write_text(''.join(self.rows))
+        (self.out / 'summary.json').write_text(raw)
+        self.emit({'event': 'finished', 'status': summary['status'], 'failure': failure,
+                   'summary': str(self.out / 'summary.json'), 'sampleBytes': self.row_bytes})
+
+
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--output', required=True)
+    parser.add_argument('--app-log', required=True)
+    parser.add_argument('--cgroup-cpu-stat', action='store_true')
+    sampler = Sampler(parser.parse_args())
+    failure = None
+    try:
+        sampler.run()
+        if sampler.error_count or sampler.truncated:
+            failure = 'observation-errors-or-truncation'
+    except (ObservationError, OSError, ValueError, KeyError, TypeError, AssertionError) as exc:
+        failure = str(exc)[:160] if isinstance(exc, ObservationError) else type(exc).__name__
+        sampler.error('terminal-observation-error', detail=failure)
+    finally:
+        sampler.finish(failure)
+    return 2 if failure else 0
+
+
+if __name__ == '__main__':
+    raise SystemExit(main())

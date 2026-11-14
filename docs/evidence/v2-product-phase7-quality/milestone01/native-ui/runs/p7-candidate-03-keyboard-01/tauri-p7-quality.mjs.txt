@@ -1,0 +1,938 @@
+// P7 production keyboard/appearance acceptance; root owns serial native execution.
+// No IPC/private editor calls. execute() reads DOM or installs bounded readonly
+// event listeners. focus() is setup assistance and is recorded apart from Tab.
+// Required env: TAURI_APP_PATH, MILKUP_NATIVE_EXPECTED_BINARY_SHA256,
+// MILKUP_NATIVE_EVIDENCE_DIR. Runtime also requires dedicated profile/display/driver.
+// MILKUP_P7_CASE=keyboard|matrix; MILKUP_P7_ROUTE=ordinary|windowed|both (default both).
+// --preflight writes frozen fixtures/inputs only; it never starts a native session.
+import assert from 'node:assert/strict'
+import { createHash } from 'node:crypto'
+import { mkdir, readFile, realpath, writeFile } from 'node:fs/promises'
+import path from 'node:path'
+import { fileURLToPath } from 'node:url'
+import { startProduction } from '../helpers/native-production.mjs'
+import { ownNativeClipboard } from '../helpers/native-clipboard.mjs'
+import { nativeFixture, action, x } from '../helpers/native-updates-fixture.mjs'
+
+const required = (name) => (assert(process.env[name], `Set ${name}`), process.env[name])
+const sha = (bytes) => createHash('sha256').update(bytes).digest('hex')
+const output = path.resolve(required('MILKUP_NATIVE_EVIDENCE_DIR'))
+const stage = process.env.MILKUP_P7_CASE || 'keyboard'
+const route = process.env.MILKUP_P7_ROUTE || 'both'
+assert(['keyboard', 'matrix'].includes(stage))
+assert(['ordinary', 'windowed', 'both'].includes(route))
+const routes = route === 'both' ? ['ordinary', 'windowed'] : [route]
+const binary = await realpath(required('TAURI_APP_PATH'))
+const binarySha256 = sha(await readFile(binary))
+assert.equal(binarySha256, required('MILKUP_NATIVE_EXPECTED_BINARY_SHA256'))
+assert(!binary.includes('/target/'), 'Use a frozen production binary copy')
+assert(!process.env.WEBKIT_DISABLE_SANDBOX_THIS_IS_DANGEROUS && !process.env.LD_PRELOAD)
+await mkdir(output, { recursive: true })
+await writeFile(path.join(output, 'p7-run.lock'), new Date().toISOString(), { flag: 'wx' })
+const json = (name, value) =>
+  writeFile(path.join(output, name + '.json'), JSON.stringify(value, null, 2) + '\n')
+const fixtureLines = [
+  'P7 plain paragraph 中文 ABC é 👩🏽‍💻 𠮷 — keyboard selection stays here.',
+  '',
+  '# P7 visual quality',
+  '',
+  '| L | C | R |',
+  '| :--- | :---: | ---: |',
+  '| identifier_without_breaks_ABCDEFGHIJKLMNOPQRSTUVWXYZ_0123456789 | 完成 | 123.45 |',
+  '',
+  '**粗体中的 *斜体*** 后文正常 P7-NORMAL-TAIL。 **English *中文 italic*** 正常 END。',
+  '',
+  '- [ ] P7 unchecked task 中文',
+  '- [x] P7 checked task English',
+  '',
+  '```javascript',
+  'console.log("P7-LONG-CODE-' + 'ABCDEFGHIJKLMNOPQRSTUVWXYZ_0123456789'.repeat(12) + '");',
+  '```',
+  '',
+  'P7 after code 中文 é 𠮷 👩🏽‍💻.',
+]
+while (fixtureLines.length < 59) fixtureLines.push(`P7 ordinary line ${fixtureLines.length + 1}`)
+const base = fixtureLines.join('\n') + '\n'
+assert.equal(base.split('\n').length, 60)
+const fixtures = []
+for (const kind of routes) {
+  const text = kind === 'windowed' ? base + '\n\n大文档中文行 P7-LARGE-LINE\n'.repeat(60000) : base
+  assert.equal(text.split('\n').length, kind === 'windowed' ? 180060 : 60)
+  // Separate files keep one failed mode's edit history from contaminating another.
+  for (const mode of ['source', 'live']) {
+    const file = path.join(output, `${kind}-${mode}.md`)
+    const bytes = Buffer.from(text)
+    await writeFile(file, bytes, { flag: 'wx' })
+    fixtures.push({
+      kind,
+      mode,
+      file,
+      bytes,
+      text,
+      sha256: sha(bytes),
+      lines: text.split('\n').length,
+      utf16: text.length,
+    })
+  }
+}
+const inputs = []
+for (const url of [
+  import.meta.url,
+  new URL('../helpers/native-production.mjs', import.meta.url),
+  new URL('../helpers/native-startup.mjs', import.meta.url),
+  new URL('../helpers/native-updates-fixture.mjs', import.meta.url),
+  new URL('../helpers/native-clipboard.mjs', import.meta.url),
+  new URL('../../apps/desktop/src/desktop-open-policy.ts', import.meta.url),
+  new URL('../../packages/core/src/store/large-file-policy.ts', import.meta.url),
+]) {
+  const file = fileURLToPath(url),
+    bytes = await readFile(file)
+  if (path.basename(file) === 'desktop-open-policy.ts')
+    assert.match(bytes.toString('utf8'), /defaultNativeLargeFileBytes = 256 \* 1024/)
+  if (path.basename(file) === 'large-file-policy.ts')
+    assert.match(bytes.toString('utf8'), /performanceBytes: 128 \* 1024/)
+  const frozen = path.basename(file) + '.txt'
+  await writeFile(path.join(output, frozen), bytes, { flag: 'wx' })
+  inputs.push({ file, frozen, sha256: sha(bytes) })
+}
+const preflight = {
+  stage,
+  routes,
+  binary,
+  binarySha256,
+  inputs,
+  fixtures: fixtures.map(({ bytes, text, ...item }) => ({ ...item, bytes: bytes.length })),
+  openPolicy: {
+    performanceBytes: 128 * 1024,
+    nativeLargeFileBytes: 256 * 1024,
+    proof:
+      'frozen shipped policy sources + exact file bytes + shipped open-stage DOM diagnostics; SourceDocumentView class alone is insufficient',
+  },
+  preparedOnly: process.argv.includes('--preflight'),
+  matrix: {
+    themes: ['light', 'dark'],
+    nativeZoom: [1, 1.25, 1.5, 2],
+    sizes: [
+      [1280, 800],
+      [760, 520],
+    ],
+    modes: ['source', 'live'],
+  },
+  boundaries: [
+    'Linux production WebKit/X11 only; native application zoom is not OS DPI.',
+    'X11 clipboard + native Ctrl+V is not a real IME/composition/candidate-window test.',
+    'No screen reader is exercised. DOM roles/names and visible keyboard trajectories are separate evidence.',
+    'No IPC invocation or editor model mutation; helper focus is explicitly recorded, never counted as a Tab sequence.',
+    'Bounded event observer reads trusted input/focus and two-rAF DOM proxies, not physical screen latency.',
+    'Every failing sample is retained; successful later samples do not erase earlier failures.',
+  ],
+}
+await json('preflight', preflight)
+if (preflight.preparedOnly) {
+  console.log('P7 PREPARED; no native application or driver started')
+  process.exit(0)
+}
+assert.equal(required('MILKUP_NATIVE_EXCLUSIVE_DISPLAY'), '1')
+assert.equal(required('MILKUP_P7_BINARY_CONFIRMED'), '1')
+required('DISPLAY')
+required('TAURI_DRIVER_URL')
+const profile = path.resolve(required('MILKUP_NATIVE_PROFILE_ROOT'))
+for (const name of ['XDG_DATA_HOME', 'XDG_CONFIG_HOME', 'XDG_CACHE_HOME']) {
+  assert(
+    path.resolve(required(name)).startsWith(profile + path.sep),
+    `${name} must be inside the dedicated profile`,
+  )
+}
+let app, fixture, activeSample, fatal
+const samples = [],
+  operations = []
+const ui = nativeFixture(() => app)
+const editor = '.milkup-input-proxy'
+const rectScript = `const rect=e=>{if(!e)return null;const r=e.getBoundingClientRect();return {left:r.left,top:r.top,right:r.right,bottom:r.bottom,width:r.width,height:r.height}};
+const describe=e=>{if(!e)return null;const s=getComputedStyle(e);return {tag:e.tagName,id:e.id,class:e.className,role:e.getAttribute('role'),name:e.getAttribute('aria-label'),data:{...e.dataset},tabIndex:e.tabIndex,rect:rect(e),visible:!!e.getClientRects().length&&s.visibility!=='hidden',focusVisible:e.matches(':focus-visible'),outline:s.outline,boxShadow:s.boxShadow,color:s.color,background:s.backgroundColor}};`
+async function snapshot() {
+  return {
+    document: await app.probe(),
+    dom: await app.execute(
+      rectScript +
+        `
+    const content=document.querySelector('.milkup-editor-content'),ed=document.querySelector('.milkup-editor');
+    return {focused:describe(document.activeElement),editor:describe(ed),content:describe(content),
+      sourceDocumentView:!!document.querySelector('.milkup-source-document-view'),
+      openDetails:{documentId:document.querySelector('[data-stat="document-id"]')?.textContent,scaleMode:document.querySelector('[data-stat="scale-mode"]')?.textContent,renderStrategy:document.querySelector('[data-stat="render-strategy"]')?.textContent,timings:document.querySelector('[data-stat="open-timings"]')?.textContent},
+      renderedLines:[...document.querySelectorAll('.milkup-editor-content [data-line]')].slice(0,512).map(e=>({line:Number(e.dataset.line),from:Number(e.dataset.from),to:Number(e.dataset.to),rect:rect(e)})),
+      cursor:describe(document.querySelector('.milkup-cursor')),selections:[...document.querySelectorAll('.milkup-selection')].map(e=>({from:Number(e.dataset.from),to:Number(e.dataset.to),rect:rect(e)})),
+      menuOpen:!!document.querySelector('[data-app-menu]')?.getClientRects().length,
+      theme:document.documentElement.dataset.theme,zoom:Number(document.querySelector('#app')?.dataset.appearanceZoom),viewport:{width:innerWidth,height:innerHeight},
+      recovery:{phase:document.querySelector('#app')?.dataset.recoveryPhase,version:document.querySelector('#app')?.dataset.recoveryVersion},
+      events:window.__p7ReadonlyEvents??null};`,
+    ),
+    diskSha256: sha(await readFile(fixture.file)),
+  }
+}
+function check(condition, message, detail) {
+  const item = { passed: !!condition, message, ...(detail === undefined ? {} : { detail }) }
+  activeSample.checks.push(item)
+  return item.passed
+}
+async function sample(name, callback) {
+  const row = {
+    name,
+    fixture: { kind: fixture.kind, mode: fixture.mode, file: fixture.file },
+    startedAt: new Date().toISOString(),
+    checks: [],
+  }
+  activeSample = row
+  try {
+    row.before = await snapshot()
+    await callback(row)
+  } catch (error) {
+    row.error = String(error)
+    row.stack = error.stack
+  }
+  try {
+    row.after = await snapshot()
+  } catch (error) {
+    row.observationError = String(error)
+  }
+  try {
+    await app.shot(name)
+    row.screenshot = name + '.png'
+  } catch (error) {
+    row.screenshotError = String(error)
+  }
+  const observedKeys = (row.after?.dom.events?.events ?? []).filter(
+    (event) => event.sequence > (row.before?.dom.events?.total ?? 0) && event.type === 'keydown',
+  )
+  row.trustedKeyObservation = {
+    count: observedKeys.length,
+    allTrusted: observedKeys.every((event) => event.trusted),
+  }
+  row.checks.push({
+    passed: observedKeys.length > 0 && row.trustedKeyObservation.allTrusted,
+    message: 'nonempty observed keyboard events are trusted native input',
+  })
+  row.passed =
+    !row.error &&
+    !row.observationError &&
+    !row.screenshotError &&
+    row.checks.length > 0 &&
+    row.checks.every((item) => item.passed)
+  samples.push(row)
+  await json('samples', samples)
+  await json('operations', operations)
+  return row
+}
+async function setupFocus(selector) {
+  operations.push({ at: new Date().toISOString(), kind: 'helper-focus-not-tab', selector })
+  await app.focus(selector)
+}
+async function key(value) {
+  operations.push({ at: new Date().toISOString(), kind: 'native-key', value })
+  await app.key(value)
+}
+async function closeOverlays() {
+  for (let i = 0; i < 3; i++) {
+    const visible = await app.execute(
+      'return !!document.querySelector("[data-app-menu]")?.getClientRects().length || !!document.querySelector(".plugin-ui-modal")',
+    )
+    if (!visible) break
+    await key('Escape')
+  }
+}
+async function saved(expected = fixture.sha256) {
+  await key('ctrl+s')
+  await app.until(
+    async () => !(await app.probe()).dirty && sha(await readFile(fixture.file)) === expected,
+    'exact saved fixture bytes',
+    30000,
+  )
+}
+async function restoreBaseline() {
+  await closeOverlays()
+  if (!(await app.probe()).dirty && sha(await readFile(fixture.file)) === fixture.sha256) return
+  await setupFocus(editor)
+  // Only reverse this sample's possible native edit, preserving its prior evidence.
+  for (let i = 0; i < 4; i++) {
+    await key('ctrl+z')
+    await key('ctrl+s')
+    try {
+      await app.until(
+        async () =>
+          !(await app.probe()).dirty && sha(await readFile(fixture.file)) === fixture.sha256,
+        'UI undo restored baseline',
+        3000,
+      )
+      return
+    } catch {}
+  }
+  throw Error(
+    'Cannot restore exact baseline through UI undo; stop this fixture, retain bytes and continue other fixture',
+  )
+}
+async function positionPlain(select = true) {
+  await closeOverlays()
+  await setupFocus(editor)
+  await key('ctrl+Home')
+  await app.until(async () => (await app.probe()).cursor === 0, 'first source position')
+  if (select) {
+    for (let i = 0; i < 8; i++) await key('shift+Right')
+    await app.until(
+      async () => (await app.probe()).selection.some((range) => range.from === 0 && range.to === 8),
+      'native first-paragraph selection',
+    )
+  }
+}
+const selectionIdentity = (state) =>
+  JSON.stringify({
+    cursor: state.cursor,
+    ranges: state.selection.map(({ from, to }) => [from, to]),
+  })
+async function routeCheck() {
+  const state = await snapshot(),
+    dom = state.dom
+  const lines = dom.renderedLines.filter(
+    (line) =>
+      Number.isInteger(line.line) && Number.isInteger(line.from) && Number.isInteger(line.to),
+  )
+  check(
+    dom.sourceDocumentView === (fixture.kind === 'windowed'),
+    'windowed view class matches requested structure (not sole backend proof)',
+    dom.sourceDocumentView,
+  )
+  check(lines.length > 0, 'nonempty exact DOM line/offset metrics', lines.length)
+  if (fixture.kind === 'windowed') {
+    check(
+      fixture.bytes.length >= preflight.openPolicy.nativeLargeFileBytes,
+      'frozen bytes exceed shipped native threshold',
+      fixture.bytes.length,
+    )
+    check(
+      dom.openDetails.scaleMode === 'performance' &&
+        dom.openDetails.documentId?.startsWith('desktop-large-') &&
+        dom.openDetails.timings?.includes('native-line-window'),
+      'shipped open diagnostics confirm actual native backend rather than memory-windowed fallback',
+      dom.openDetails,
+    )
+    check(dom.content?.data.virtualized === 'true', 'windowed content is virtualized')
+    const from = Number(dom.content?.data.fromLine),
+      to = Number(dom.content?.data.toLine)
+    check(
+      Number.isInteger(from) && Number.isInteger(to) && to > from && to - from < fixture.lines,
+      'finite nonempty native window bounds',
+      { from, to, total: fixture.lines },
+    )
+  }
+  if (fixture.kind === 'ordinary')
+    check(
+      fixture.bytes.length < preflight.openPolicy.performanceBytes &&
+        dom.openDetails.scaleMode === 'full',
+      'ordinary bytes and shipped policy confirm full memory route',
+      dom.openDetails,
+    )
+  await setupFocus(editor)
+  await key('ctrl+End')
+  await app.until(
+    async () => (await app.probe()).cursor === fixture.utf16,
+    'exact untruncated document end',
+    30000,
+  )
+  check(
+    (await app.probe()).cursor === fixture.utf16,
+    'full UTF16 document length reachable',
+    fixture.utf16,
+  )
+  await key('ctrl+Home')
+}
+async function keyboard() {
+  const prefix = `${fixture.kind}-${fixture.mode}`
+  await sample(prefix + '-route', routeCheck)
+  for (const value of ['Tab', 'shift+Tab']) {
+    await sample(prefix + '-' + value.replace('+', '-'), async (row) => {
+      await positionPlain(false)
+      const before = await app.probe()
+      await key(value)
+      await app.delay(180)
+      const after = await snapshot()
+      check(
+        after.document.version === before.version && !after.document.dirty,
+        'plain paragraph Tab traversal does not edit or indent',
+        { before, after: after.document },
+      )
+      check(
+        !after.dom.focused?.class?.includes('milkup-input-proxy') &&
+          !after.dom.focused?.class?.split(' ').includes('milkup-editor'),
+        'focus leaves the editor through native Tab traversal',
+        after.dom.focused,
+      )
+      check(
+        after.dom.focused?.visible && after.dom.focused.tag !== 'BODY',
+        'Tab lands on a visible control',
+        after.dom.focused,
+      )
+      check(
+        after.dom.focused?.focusVisible,
+        'Tab target exposes keyboard focus-visible state; screenshot records actual focus paint',
+        after.dom.focused,
+      )
+      row.traversal = { key: value, focused: after.dom.focused }
+    })
+    await restoreBaseline()
+  }
+  await sample(prefix + '-F6', async () => {
+    await positionPlain()
+    const before = await app.probe()
+    await key('F6')
+    const away = await snapshot()
+    check(
+      !away.dom.focused?.class?.includes('milkup-input-proxy'),
+      'F6 moves to another workspace region',
+      away.dom.focused,
+    )
+    await key('shift+F6')
+    const returned = await snapshot()
+    check(
+      returned.dom.focused?.class?.includes('milkup-input-proxy'),
+      'Shift+F6 returns to editor',
+      returned.dom.focused,
+    )
+    check(
+      selectionIdentity(returned.document) === selectionIdentity(before),
+      'F6 round trip preserves exact selection',
+      { before, after: returned.document },
+    )
+  })
+  await restoreBaseline()
+  await sample(prefix + '-menu-Escape', async (row) => {
+    await positionPlain()
+    const before = await app.probe()
+    await setupFocus('[data-menu-toggle]')
+    await key('Return')
+    await app.until(
+      () =>
+        app.execute('return !!document.querySelector("[data-app-menu]")?.getClientRects().length'),
+      'native menu opened',
+    )
+    row.menuTrajectory = []
+    for (const value of ['Tab', 'Tab', 'shift+Tab', 'shift+Tab']) {
+      await key(value)
+      row.menuTrajectory.push({ key: value, focus: (await snapshot()).dom.focused })
+    }
+    await key('Escape')
+    const after = await snapshot()
+    check(!after.dom.menuOpen, 'Escape closes menu')
+    check(
+      Object.hasOwn(after.dom.focused?.data || {}, 'menuToggle'),
+      'Escape restores the actual menu opener',
+      after.dom.focused,
+    )
+    check(
+      selectionIdentity(after.document) === selectionIdentity(before),
+      'menu round trip preserves exact editor selection',
+      { before, after: after.document },
+    )
+  })
+  await restoreBaseline()
+  await sample(prefix + '-Unicode-history-save', async (row) => {
+    await positionPlain(false)
+    const text = 'P7 剪贴板中英 ABC é 👩🏽‍💻 𠮷\n'
+    const edited = sha(Buffer.concat([Buffer.from(text), fixture.bytes]))
+    const release = await ownNativeClipboard(text)
+    try {
+      await key('ctrl+v')
+      await app.until(
+        async () => (await app.probe()).cursor === text.length && (await app.probe()).dirty,
+        'real X11 Unicode paste',
+      )
+    } finally {
+      release()
+    }
+    row.history = []
+    for (const [operation, value, expected] of [
+      ['paste', null, edited],
+      ['undo', 'ctrl+z', fixture.sha256],
+      ['redo', 'ctrl+shift+z', edited],
+      ['restore', 'ctrl+z', fixture.sha256],
+    ]) {
+      if (value) await key(value)
+      await saved(expected)
+      const state = await snapshot()
+      row.history.push({ operation, expected, actual: state.diskSha256, document: state.document })
+      check(
+        state.diskSha256 === expected && !state.document.dirty,
+        operation + ' saved exact UTF8 bytes',
+      )
+    }
+    row.inputMethod = 'X11 GTK clipboard ownership + trusted native Ctrl+V; not IME'
+  })
+  await restoreBaseline()
+}
+
+async function activatePreferences() {
+  const id = 'milkup.preferences'
+  await ui.details(id)
+  const candidate = async (kind) => {
+    const scoped = '.plugin-candidate ' + action(kind, id)
+    return (await ui.exists(scoped)) ? scoped : action(kind, id)
+  }
+  const approve = await candidate('approve')
+  if (await ui.exists(approve)) {
+    const review = await app.execute(
+      'const e=document.querySelector(arguments[0]);return {fingerprint:e.dataset.pluginFingerprint,revision:Number(e.dataset.pluginEntryRevision),text:document.querySelector("[data-plugin-manager]")?.textContent}',
+      approve,
+    )
+    assert.match(review.fingerprint, /^[a-f0-9]{64}$/)
+    assert(Number.isInteger(review.revision) && review.revision >= 0)
+    operations.push({ kind: 'UI-preferences-capability-review', ...review })
+    await ui.click(approve)
+    await app.until(async () => !(await ui.exists(approve)), 'preference approval acknowledged')
+  }
+  const enable = await candidate('enable')
+  if (await ui.exists(enable)) await ui.click(enable)
+  await ui.ready(action('disable', id))
+  await ui.ready(action('open-ui', id))
+}
+async function setTheme(theme) {
+  await activatePreferences()
+  await ui.click(action('open-ui', 'milkup.preferences'))
+  const panel = '[data-plugin-ui="milkup.preferences:preferences-panel"]'
+  const control = panel + ' [data-plugin-field-control="appearance.theme"]'
+  await ui.ready(control)
+  await setupFocus(control)
+  const options = await app.execute(
+    'return [...document.querySelector(arguments[0]).options].map(o=>o.value)',
+    control,
+  )
+  const index = options.indexOf(theme)
+  assert(index >= 0)
+  await key('Home')
+  for (let i = 0; i < index; i++) await key('Down')
+  await key('Tab')
+  await app.until(
+    () =>
+      app.execute(
+        'return document.querySelector(arguments[0])?.value===arguments[1]',
+        control,
+        theme,
+      ),
+    'native theme selection',
+  )
+  await setupFocus(panel + ' button[aria-label="保存"]')
+  await key('Return')
+  await app.until(
+    () =>
+      app.execute(
+        'return document.querySelector(arguments[0])?.textContent.includes("偏好已保存")',
+        panel,
+      ),
+    'preferences saved',
+  )
+  await ui.click(panel + ' .plugin-ui-close')
+  await app.until(
+    () => app.execute('return document.documentElement.dataset.theme===arguments[0]', theme),
+    'theme applied by preferences UI',
+  )
+  await closeOverlays()
+}
+async function nativeZoom(zoom, width, height) {
+  await closeOverlays()
+  await setupFocus(editor)
+  await key('ctrl+0')
+  await app.until(
+    () => app.execute('return Number(document.querySelector("#app").dataset.appearanceZoom)===1'),
+    'native zoom reset',
+  )
+  for (let i = 0; i < 8; i++) {
+    const value = await app.execute(
+      'return Number(document.querySelector("#app").dataset.appearanceZoom)',
+    )
+    if (value === zoom) break
+    assert(value < zoom)
+    await key('ctrl+equal')
+    await app.until(
+      () =>
+        app.execute(
+          'return Number(document.querySelector("#app").dataset.appearanceZoom)!==arguments[0]',
+          value,
+        ),
+      'native zoom increment',
+    )
+  }
+  x('windowsize', ui.windowId(), String(width), String(height))
+  await app.until(
+    () =>
+      app.execute(
+        'return Number(document.querySelector("#app").dataset.appearanceZoom)===arguments[0]&&Math.abs(innerWidth*arguments[0]-arguments[1])<=2&&Math.abs(innerHeight*arguments[0]-arguments[2])<=2',
+        zoom,
+        width,
+        height,
+      ),
+    'real zoom and OS window dimensions',
+  )
+  operations.push({
+    kind: 'native-window-geometry',
+    zoom,
+    width,
+    height,
+    geometry: x('getwindowgeometry', '--shell', ui.windowId()),
+  })
+}
+async function visiblePoint(selector) {
+  return app.execute(
+    `const e=document.querySelector(arguments[0]);if(!e)return null;
+    const r=e.getBoundingClientRect(),ed=document.querySelector('.milkup-editor').getBoundingClientRect();
+    const left=Math.max(r.left,ed.left,0),right=Math.min(r.right,ed.right,innerWidth),top=Math.max(r.top,ed.top,0),bottom=Math.min(r.bottom,ed.bottom,innerHeight);
+    if(right-left<2||bottom-top<2)return null;const x=(left+right)/2,y=(top+bottom)/2,hit=document.elementFromPoint(x,y);
+    return {x,y,visibleHeight:bottom-top,hit:e===hit||e.contains(hit),rect:{left:r.left,right:r.right,top:r.top,bottom:r.bottom},viewport:{width:innerWidth,height:innerHeight}}`,
+    selector,
+  )
+}
+async function revealLine(line) {
+  await setupFocus(editor)
+  await key('ctrl+Home')
+  await app.until(async () => (await app.probe()).cursor === 0, 'source start before native scroll')
+  const selector = `.milkup-line[data-line="${line}"]`
+  // Native wheel scroll preserves the caret outside rendered syntax, unlike
+  // script scrollIntoView or a private revealSelection call.
+  for (let i = 0; i < 60; i++) {
+    const point = await visiblePoint(selector)
+    if (point?.hit && point.visibleHeight >= Math.min(32, point.rect.bottom - point.rect.top) - 1)
+      return selector
+    const view = await app.execute(
+      'const r=document.querySelector(".milkup-editor").getBoundingClientRect();return {x:(r.left+r.right)/2,y:Math.min(innerHeight-30,r.bottom-30),width:innerWidth}',
+    )
+    const win = ui.windowId(),
+      scale = Number(/WIDTH=(\d+)/.exec(x('getwindowgeometry', '--shell', win))[1]) / view.width
+    x(
+      'mousemove',
+      '--window',
+      win,
+      String(Math.round(view.x * scale)),
+      String(Math.round(view.y * scale)),
+      'click',
+      '5',
+    )
+    operations.push({ kind: 'native-wheel-down', targetLine: line })
+    await app.delay(70)
+  }
+  throw Error('Native scroll did not reveal line ' + line)
+}
+async function nativeClick(selector) {
+  const point = await visiblePoint(selector)
+  assert(point?.hit, 'Target has a visible hit-tested native point: ' + selector)
+  const win = ui.windowId(),
+    scale =
+      Number(/WIDTH=(\d+)/.exec(x('getwindowgeometry', '--shell', win))[1]) / point.viewport.width
+  x(
+    'windowfocus',
+    '--sync',
+    win,
+    'mousemove',
+    '--window',
+    win,
+    String(Math.round(point.x * scale)),
+    String(Math.round(point.y * scale)),
+    'click',
+    '1',
+  )
+  operations.push({ kind: 'native-mouse-click', selector, point, scale })
+}
+function cursorInside(state) {
+  const r = state.dom.cursor?.rect,
+    e = state.dom.editor?.rect,
+    v = state.dom.viewport
+  return (
+    r &&
+    e &&
+    r.width > 0 &&
+    r.height > 0 &&
+    r.left >= Math.max(0, e.left) - 2 &&
+    r.right <= Math.min(v.width, e.right) + 2 &&
+    r.top >= Math.max(0, e.top) - 2 &&
+    r.bottom <= Math.min(v.height, e.bottom) + 2
+  )
+}
+async function matrix() {
+  const prefix = `${fixture.kind}-${fixture.mode}`
+  await sample(prefix + '-matrix-route', routeCheck)
+  for (const theme of ['light', 'dark']) {
+    const configured = await sample(prefix + '-theme-' + theme, async () => {
+      await nativeZoom(1, 1280, 800)
+      await setTheme(theme)
+      check((await snapshot()).dom.theme === theme, 'theme persisted through actual preferences UI')
+    })
+    if (!configured.passed) continue
+    for (const [width, height] of [
+      [1280, 800],
+      [760, 520],
+    ]) {
+      for (const zoom of [1, 1.25, 1.5, 2]) {
+        const name = `${prefix}-${theme}-${width}x${height}-${zoom * 100}`
+        const geometry = await sample(name + '-selection', async () => {
+          await nativeZoom(zoom, width, height)
+          await positionPlain()
+          const state = await snapshot()
+          check(
+            state.dom.theme === theme && state.dom.zoom === zoom,
+            'theme and real application zoom match cell',
+          )
+          check(
+            cursorInside(state),
+            'selected paragraph caret lies within editor and viewport',
+            state.dom.cursor,
+          )
+          check(
+            state.document.selection.some((range) => range.from === 0 && range.to === 8),
+            'exact source selection survives display changes',
+          )
+          check(
+            state.dom.selections.some((item) => item.rect.width > 0 && item.rect.height > 0),
+            'nonempty painted selection',
+          )
+          check(
+            state.diskSha256 === fixture.sha256 && !state.document.dirty,
+            'display changes preserve exact source bytes',
+          )
+        })
+        if (!geometry.passed && geometry.error) continue
+        await sample(name + '-table', async (row) => {
+          const selector = await revealLine(6)
+          row.table = await app.execute(
+            rectScript +
+              `const line=document.querySelector(arguments[0]);return {line:describe(line),cells:[...line.querySelectorAll('.milkup-table-cell')].map(e=>{const s=getComputedStyle(e),range=document.createRange();range.selectNodeContents(e);return {text:e.textContent,rect:rect(e),align:s.textAlign,overflowWrap:s.overflowWrap,textRects:[...range.getClientRects()].map(r=>({left:r.left,right:r.right,top:r.top,bottom:r.bottom}))}})}`,
+            selector,
+          )
+          check(!!row.table.line?.visible, 'table source row has visible geometry')
+          if (fixture.mode === 'live') {
+            check(
+              JSON.stringify(row.table.cells.map((cell) => cell.align)) ===
+                JSON.stringify(['left', 'center', 'right']),
+              'live table delimiter alignment applied',
+              row.table.cells,
+            )
+            check(
+              row.table.cells.length === 3 &&
+                row.table.cells.every(
+                  (cell) =>
+                    cell.textRects.length > 0 &&
+                    cell.textRects.every(
+                      (r) => r.left >= cell.rect.left - 2 && r.right <= cell.rect.right + 2,
+                    ),
+                ),
+              'long unspaced cell text stays inside its own column',
+              row.table.cells,
+            )
+          }
+        })
+        await sample(name + '-emphasis', async (row) => {
+          const selector = await revealLine(8)
+          row.emphasis = await app.execute(
+            rectScript +
+              `const line=document.querySelector(arguments[0]),nodes=[];const walk=document.createTreeWalker(line,NodeFilter.SHOW_TEXT);while(walk.nextNode()){const n=walk.currentNode,e=n.parentElement,r=document.createRange();r.selectNodeContents(n);if(r.getClientRects().length)nodes.push({text:n.textContent,fontStyle:getComputedStyle(e).fontStyle,fontWeight:getComputedStyle(e).fontWeight})}return {line:describe(line),strong:line.querySelectorAll('.milkup-inline-strong').length,emphasis:line.querySelectorAll('.milkup-inline-emphasis').length,nodes}`,
+            selector,
+          )
+          check(!!row.emphasis.line?.visible, 'emphasis row has visible geometry')
+          if (fixture.mode === 'live') {
+            check(
+              row.emphasis.strong > 0 && row.emphasis.emphasis > 0,
+              'nested strong/emphasis rendered',
+            )
+            check(
+              row.emphasis.nodes.some(
+                (node) => node.text.includes('P7-NORMAL-TAIL') && node.fontStyle === 'normal',
+              ),
+              'following text does not inherit unintended italic',
+              row.emphasis.nodes,
+            )
+            check(
+              !row.emphasis.nodes.some((node) => node.text.includes('*')),
+              'inactive nested emphasis leaves no visible star markers',
+              row.emphasis.nodes,
+            )
+          }
+        })
+        await sample(name + '-task', async (row) => {
+          const selector = await revealLine(10)
+          row.task = await app.execute(
+            rectScript +
+              `const line=document.querySelector(arguments[0]);return {line:describe(line),controls:[...line.querySelectorAll('.milkup-task-marker')].map(e=>({description:describe(e),checked:e.getAttribute('aria-checked'),role:e.getAttribute('role')})),visibleBullets:[...line.querySelectorAll('.milkup-list-marker')].filter(e=>e.getClientRects().length&&getComputedStyle(e).display!=='none').map(e=>e.textContent)}`,
+            selector,
+          )
+          check(!!row.task.line?.visible, 'task row has visible geometry')
+          if (fixture.mode === 'live') {
+            check(
+              row.task.controls.length === 1 && row.task.controls[0].role === 'checkbox',
+              'single semantic checkbox rendered',
+            )
+            check(
+              row.task.visibleBullets.length === 0,
+              'task does not also show a list bullet',
+              row.task.visibleBullets,
+            )
+            await nativeClick(selector + ' .milkup-task-marker')
+            await saved(
+              sha(Buffer.from(fixture.text.replace('- [ ] P7 unchecked', '- [x] P7 unchecked'))),
+            )
+            row.checkedState = await snapshot()
+            await app.shot(name + '-task-checked')
+            check(
+              row.checkedState.document.dirty === false,
+              'native checkbox click edits and saves exact Markdown',
+            )
+            await setupFocus(editor)
+            await key('ctrl+z')
+            await saved()
+            check(
+              sha(await readFile(fixture.file)) === fixture.sha256,
+              'checkbox edit undo restores exact source',
+            )
+          }
+        })
+        await restoreBaseline()
+        await sample(name + '-code-End', async (row) => {
+          const selector = await revealLine(14)
+          await nativeClick(selector)
+          await key('End')
+          const end = fixtureLines.slice(0, 15).join('\n').length
+          await app.until(
+            async () => (await app.probe()).cursor === end,
+            'long code logical End source offset',
+          )
+          const state = await snapshot()
+          row.code = await app.execute(
+            rectScript +
+              'const e=document.querySelector(arguments[0]);return {line:describe(e),scrollLeft:e.scrollLeft,scrollWidth:e.scrollWidth,clientWidth:e.clientWidth}',
+            selector,
+          )
+          check(cursorInside(state), 'End caret of long code stays inside visible viewport', {
+            cursor: state.dom.cursor,
+            code: row.code,
+          })
+          if (fixture.mode === 'live')
+            check(
+              row.code.scrollWidth <= row.code.clientWidth + 1 || row.code.scrollLeft > 0,
+              'long live code scroll follows caret',
+              row.code,
+            )
+          await saved()
+          check(
+            sha(await readFile(fixture.file)) === fixture.sha256,
+            'matrix cell leaves complete source byte-exact',
+          )
+        })
+        await restoreBaseline()
+      }
+    }
+  }
+}
+
+async function installReadonlyObserver() {
+  await app.execute(`
+    window.__p7ReadonlyEvents={events:[],total:0,dropped:0};
+    const identify=e=>e instanceof Element?{tag:e.tagName,id:e.id,class:e.className,role:e.getAttribute('role'),name:e.getAttribute('aria-label'),data:{...e.dataset}}:null;
+    for(const type of ['keydown','keyup','focusin','beforeinput','input','paste','compositionstart','compositionupdate','compositionend']) {
+      document.addEventListener(type,event=>{
+        const log=window.__p7ReadonlyEvents,item={type,time:performance.now(),trusted:event.isTrusted,key:event.key??null,inputType:event.inputType??null,isComposing:event.isComposing??false,dataLength:typeof event.data==='string'?event.data.length:0,target:identify(event.target)};
+        log.total++;item.sequence=log.total;log.events.push(item);if(log.events.length>128){log.events.shift();log.dropped++}
+        queueMicrotask(()=>{item.defaultPrevented=event.defaultPrevented});
+        if(type==='keydown'||type==='input') requestAnimationFrame(()=>requestAnimationFrame(()=>{
+          item.twoFrame={time:performance.now(),cursor:Number(document.querySelector('.milkup-cursor')?.dataset.position),version:Number(document.querySelector('[data-stat="version"]')?.textContent)};
+        }));
+      },{capture:true,passive:true});
+    }
+  `)
+}
+const fixtureFailures = []
+try {
+  fixture = fixtures[0]
+  app = await startProduction(fixture.file, output, { diagnostics: false })
+  const rawFocus = app.focus
+  app.focus = async (selector) => {
+    operations.push({ at: new Date().toISOString(), kind: 'helper-focus-not-tab', selector })
+    await rawFocus(selector)
+  }
+  app.click = async (selector) => {
+    await app.focus(selector)
+    await key('Return')
+  }
+  await installReadonlyObserver()
+  x('windowsize', ui.windowId(), '1280', '800')
+  for (const current of fixtures) {
+    fixture = current
+    try {
+      if ((await app.probe()).path !== fixture.file) {
+        await closeOverlays()
+        operations.push({
+          kind: 'native-GTK-open',
+          path: fixture.file,
+          at: new Date().toISOString(),
+        })
+        await key('ctrl+o')
+        await ui.picker(fixture.file)
+      }
+      await app.until(
+        async () => {
+          const state = await app.probe()
+          return state.path === fixture.file && state.loading === 'ready'
+        },
+        'fixture ready',
+        45000,
+      )
+      await setupFocus(editor)
+      await key(fixture.mode === 'source' ? 'ctrl+1' : 'ctrl+2')
+      await app.until(async () => (await app.probe()).mode === fixture.mode, 'requested mode')
+      if (stage === 'keyboard') await keyboard()
+      else await matrix()
+    } catch (error) {
+      fixtureFailures.push({ file: fixture.file, error: String(error), stack: error.stack })
+      await json('fixture-failures', fixtureFailures)
+      await app.shot(`${fixture.kind}-${fixture.mode}-fixture-failure`).catch(() => {})
+      // Do not overwrite failed product bytes from Node. Opening the next fixture
+      // remains a normal user operation; close-confirm failure remains explicit.
+    }
+  }
+} catch (error) {
+  fatal = { error: String(error), stack: error.stack }
+} finally {
+  const finalFiles = []
+  for (const current of fixtures) {
+    const bytes = await readFile(current.file)
+    finalFiles.push({
+      file: current.file,
+      expected: current.sha256,
+      actual: sha(bytes),
+      unchanged: sha(bytes) === current.sha256,
+    })
+  }
+  const passed =
+    !fatal &&
+    fixtureFailures.length === 0 &&
+    samples.length > 0 &&
+    samples.every((row) => row.passed) &&
+    finalFiles.every((row) => row.unchanged)
+  await json('operations', operations)
+  await json('completion', {
+    passed,
+    stage,
+    routes,
+    binarySha256,
+    sampleCount: samples.length,
+    passedSamples: samples.filter((row) => row.passed).length,
+    failedSamples: samples.filter((row) => !row.passed).map((row) => row.name),
+    fixtureFailures,
+    fatal,
+    finalFiles,
+    limitations: preflight.boundaries,
+  })
+  if (app) await app.close()
+  console.log(
+    JSON.stringify({
+      passed,
+      samples: samples.length,
+      failed: samples.filter((row) => !row.passed).map((row) => row.name),
+      fixtureFailures,
+      fatal,
+    }),
+  )
+  if (!passed) process.exitCode = 1
+}

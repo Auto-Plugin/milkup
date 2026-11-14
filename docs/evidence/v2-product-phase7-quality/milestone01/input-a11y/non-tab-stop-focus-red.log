@@ -1,0 +1,46 @@
+
+ RUN  v3.2.6 /workspace/milkup/apps/desktop
+
+ ❯ src/desktop-focus.test.ts (5 tests | 1 failed) 276ms
+   ✓ desktop focus after editor or modal operations > follows visible forward and reverse tab order without changing textarea selection 204ms
+   ✓ desktop focus after editor or modal operations > respects positive tabindex and wraps within the desktop document 23ms
+   ✓ desktop focus after editor or modal operations > returns to a connected invoker and uses fallback when it becomes unavailable 8ms
+   ✓ desktop focus after editor or modal operations > uses fallback when a visible prior element cannot actually receive focus 8ms
+   × desktop focus after editor or modal operations > uses the DOM position of a programmatically focused non-tab-stop container 32ms
+     → expected <button id="last"></button> to be <button id="first"></button> // Object.is equality
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/desktop-focus.test.ts > desktop focus after editor or modal operations > uses the DOM position of a programmatically focused non-tab-stop container
+AssertionError: expected <button id="last"></button> to be <button id="first"></button> // Object.is equality
+
+- Expected
++ Received
+
+  <button
+-   id="first"
++   id="last"
+  >
+-   Menu
++   Last
+  </button>
+
+ ❯ src/desktop-focus.test.ts:77:36
+     75|     container.focus()
+     76|     moveDesktopFocus(container, true)
+     77|     expect(document.activeElement).toBe(first)
+       |                                    ^
+     78|     container.focus()
+     79|     moveDesktopFocus(container, false)
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 4 passed (5)
+   Start at  11:05:54
+   Duration  1.53s (transform 82ms, setup 0ms, collect 62ms, tests 276ms, environment 663ms, prepare 115ms)
+
+undefined
+/workspace/milkup/apps/desktop:
+[ERR_PNPM_RECURSIVE_EXEC_FIRST_FAIL] Command failed with exit code 1: vitest run src/desktop-focus.test.ts '--maxWorkers=1'

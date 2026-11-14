@@ -1,0 +1,91 @@
+{
+  "recordType": "owner-reported metadata for completed first executions",
+  "owner": "dom_transport",
+  "newExecution": false,
+  "environmentDate": "2026-10-16",
+  "environmentTimezone": "Etc/UTC",
+  "timingLimitations": "No shell wall-clock start/end timestamps were captured. Only the Vitest log contains its Start at clock time and duration; no missing timestamps have been reconstructed.",
+  "scope": "JSDOM view ownership, lifecycle, source fallback, fractional layout declarations, existing document-presentation regressions, strict TypeScript and formatting. Image decode and Blob URL boundaries are mocked in the image tests. This is not real browser image-decoding, pixel-equivalence, native-isolation or product-acceptance proof.",
+  "executions": [
+    {
+      "name": "format-owned-files",
+      "cwd": "/workspace/milkup",
+      "command": "node node_modules/prettier/bin/prettier.cjs --write packages/view-dom/src/document-presentation.ts packages/view-dom/src/document-svg-image.ts packages/view-dom/src/__tests__/document-svg-image.test.ts > /tmp/milkup-svg-view-format-first.log 2>&1",
+      "exitCode": 0,
+      "exitCodeSource": "tools.write_stdin completion session 51711, chunk 8f2548",
+      "originalLogPath": "/tmp/milkup-svg-view-format-first.log",
+      "archivedLog": "milkup-svg-view-format-first.log"
+    },
+    {
+      "name": "focused-image-and-existing-presentation-tests-first-run",
+      "cwd": "/workspace/milkup/packages/view-dom",
+      "command": "node ../../node_modules/vitest/vitest.mjs run src/__tests__/document-svg-image.test.ts src/__tests__/document-presentation.test.ts --maxWorkers=1 > /tmp/milkup-svg-view-focused-first.log 2>&1",
+      "exitCode": 0,
+      "exitCodeSource": "tools.write_stdin completion session 46506, chunk b18698",
+      "originalLogPath": "/tmp/milkup-svg-view-focused-first.log",
+      "archivedLog": "milkup-svg-view-focused-first.log",
+      "result": "2 files passed, 104 tests passed: 34 image tests and 70 existing document-presentation tests. No first-run failure or rerun.",
+      "logReportedStartTime": "11:17:40",
+      "logReportedDuration": "8.77s"
+    },
+    {
+      "name": "view-dom-strict-typecheck-first-run",
+      "cwd": "/workspace/milkup/packages/view-dom",
+      "command": "node ../../node_modules/typescript/bin/tsc -p tsconfig.json --noEmit > /tmp/milkup-svg-view-typecheck-first.log 2>&1",
+      "exitCode": 0,
+      "exitCodeSource": "tools.write_stdin completion session 54665, chunk 8bc5bc",
+      "originalLogPath": "/tmp/milkup-svg-view-typecheck-first.log",
+      "archivedLog": "milkup-svg-view-typecheck-first.log",
+      "result": "Strict project typecheck passed with no output. No compiler flag changes."
+    },
+    {
+      "name": "diff-whitespace-check",
+      "cwd": "/workspace/milkup",
+      "command": "git diff --check -- packages/view-dom/src/document-presentation.ts packages/view-dom/src/document-svg-image.ts packages/view-dom/src/__tests__/document-svg-image.test.ts",
+      "exitCode": 0,
+      "exitCodeSource": "tools.exec_command completion chunk 0ec250",
+      "logPath": null,
+      "result": "No output. Git diff check covers tracked changes; new files were formatted and typechecked."
+    }
+  ],
+  "sourceFiles": [
+    {
+      "path": "packages/view-dom/src/document-presentation.ts",
+      "bytes": 59245,
+      "sha256": "83b2125ad3b0d66d3a57a04581c3ffedb713007eb9e92d711f1ac16cd9b1bad4"
+    },
+    {
+      "path": "packages/view-dom/src/document-svg-image.ts",
+      "bytes": 2717,
+      "sha256": "5223eac86ea4dbaaad72f1fec4c0688c173a1648f644e3c67e4f3c00c3f7018a"
+    },
+    {
+      "path": "packages/view-dom/src/__tests__/document-svg-image.test.ts",
+      "bytes": 17938,
+      "sha256": "cc67ca0c4032d76e118ae13a77771d6a806fda0770523606136648f777657db7"
+    }
+  ],
+  "rawLogs": [
+    {
+      "originalPath": "/tmp/milkup-svg-view-format-first.log",
+      "archivedPath": "/workspace/milkup-mermaid-engine-evidence/research/product-view-integration/milkup-svg-view-format-first.log",
+      "bytes": 167,
+      "sha256": "953160cd6385eabcd82473f87124e912d2b0f0dcf21fc1ae69be267a259439db",
+      "verifiedByteIdentical": true
+    },
+    {
+      "originalPath": "/tmp/milkup-svg-view-focused-first.log",
+      "archivedPath": "/workspace/milkup-mermaid-engine-evidence/research/product-view-integration/milkup-svg-view-focused-first.log",
+      "bytes": 372,
+      "sha256": "1cb1f4fd03bbdfb49360b2b64b4827dca71f284145999e341eeb03332b47b7cf",
+      "verifiedByteIdentical": true
+    },
+    {
+      "originalPath": "/tmp/milkup-svg-view-typecheck-first.log",
+      "archivedPath": "/workspace/milkup-mermaid-engine-evidence/research/product-view-integration/milkup-svg-view-typecheck-first.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "verifiedByteIdentical": true
+    }
+  ]
+}

@@ -1,0 +1,429 @@
+#!/usr/bin/env python3
+"""External read-only cold observer. No global proc scan, signals or product IPC.
+Process CPU is process-wide. schedstat is ONLY the thread-group leader.
+"""
+import argparse
+from collections import deque
+import hashlib
+from itertools import islice
+import json
+import os
+from pathlib import Path
+import re
+import select
+import sys
+import time
+
+SAMPLE_NS = 250_000_000
+DISCOVERY_NS = 500_000_000
+SAMPLE_BUDGET_NS = 10_000_000
+DISCOVERY_BUDGET_NS = 5_000_000  # cooperative bound between reads, not kernel preemption
+MAX_IDENTITIES = 64
+MAX_TASKS = 128  # total task entries per discovery round, across owned parents
+MAX_CHILDREN = 128
+MAX_EVENTS = 256
+MAX_ERRORS = 32
+MAX_SAMPLE_BYTES = 2 * 1024 * 1024
+MAX_SECONDS = 60
+LINE_LIMIT = 16384
+INSTANCE = re.compile(r'[a-f0-9]{48}')
+
+
+def stat_parse(raw, pid):
+    s = raw.decode('ascii'); left, right = s.find('('), s.rfind(')')
+    if left < 1 or right <= left or int(s[:left]) != pid:
+        raise ValueError('stat-pid')
+    w = s[right + 1:].split()
+    row = dict(pid=pid, birth=int(w[19]), parent=int(w[1]), state=w[0],
+               userTicks=int(w[11]), systemTicks=int(w[12]))
+    if min(row[k] for k in ('birth', 'userTicks', 'systemTicks')) < 0:
+        raise ValueError('negative-stat')
+    return row
+
+
+def sched_parse(raw):
+    w = raw.split()
+    if len(w) != 3: raise ValueError('schedstat-fields')
+    v = list(map(int, w))
+    if min(v) < 0: raise ValueError('schedstat-negative')
+    return dict(runtimeNs=v[0], runqueueWaitNs=v[1], timeslices=v[2])
+
+
+class Files:
+    def read(self, path, limit):
+        with open(path, 'rb') as f: raw = f.read(limit + 1)
+        if len(raw) > limit: raise ValueError('read-size-limit')
+        return raw
+
+    def tasks(self, pid, limit):
+        # This is the ONLY enumeration: task directory of an exact owned PID.
+        with os.scandir(f'/proc/{pid}/task') as entries:
+            values = [e.name for e in islice(entries, limit + 1)]
+        if len(values) > limit: raise ValueError('round-task-limit')
+        if any(not v.isascii() or not v.isdecimal() for v in values):
+            raise ValueError('task-id')
+        return values
+
+
+class Observer:
+    def __init__(self, binary, fs=None, now=None):
+        self.binary = binary; self.fs = fs or Files(); self.now = now or time.monotonic_ns
+        self.started = self.now(); self.self_cpu_started = time.process_time_ns()
+        self.app = None; self.known = {}; self.guardians = {}; self.terminal = set()
+        self.events = []; self.event_drops = 0; self.errors = []; self.error_count = 0
+        self.rows = deque(); self.row_bytes = 0; self.evicted_rows = 0
+        self.read_count = 0; self.read_total_ns = 0; self.read_max_ns = 0
+        self.sample_count = 0; self.sample_incomplete=0; self.sample_total_ns = 0; self.sample_max_ns = 0
+        self.discovery_count = 0; self.discovery_total_ns = 0; self.discovery_max_ns = 0
+        self.discovery_incomplete = 0; self.discovery_task_count = 0
+        self.children_interface_gaps=[];self.children_interface_gap_count=0
+        self.late_max_ns = 0; self.skipped_slots = 0; self.stop_reason = None
+        self.log_identity = None; self.log_offset = 0; self.log_pending = b''
+        self.log_read_ns = 0; self.log_bytes = 0
+        self.identity_offset=0;self.identity_pending=b'';self.identity_file=None
+        self.identity_skipping=False;self.payload_lines_skipped=0;self.identity_read_ns=0
+        self.binding_events=[];self.waiting_cpu_ns=None;self.native_identity_source=None
+
+    def error(self, stage, exc):
+        self.error_count += 1
+        if len(self.errors) < MAX_ERRORS:
+            self.errors.append(dict(monoNs=self.now(), stage=stage, error=type(exc).__name__, detail=str(exc)[:120]))
+
+    def read(self, path, limit):
+        start = self.now()
+        try: return self.fs.read(path, limit)
+        finally:
+            duration = self.now() - start
+            self.read_count += 1; self.read_total_ns += duration; self.read_max_ns = max(self.read_max_ns, duration)
+
+    def identity(self, pid): return stat_parse(self.read(f'/proc/{pid}/stat', 4096), pid)
+
+    def same(self, origin):
+        row = self.identity(origin['pid'])
+        if row['birth'] != origin['birth']: raise ValueError('birth-mismatch-no-rebind')
+        return row
+
+    def argv(self, pid): return self.read(f'/proc/{pid}/cmdline', 16384).rstrip(b'\0').decode().split('\0')
+
+    def add(self, row, role, instance=None, parent=None):
+        key = (row['pid'], row['birth'])
+        if key in self.known: return
+        if len(self.known) >= MAX_IDENTITIES: raise ValueError('identity-limit')
+        # First sight is a lower coverage boundary, never retroactive CPU ownership.
+        self.known[key] = dict(row, role=role, instanceId=instance, parentIdentity=parent,
+                               firstSeenNs=self.now(), firstSampleNs=None)
+
+    def bind_app(self, request):
+        if self.app is not None: raise ValueError('app-rebind-forbidden')
+        pid = request['pid']; birth = int(request['birth']); argv = list(request['argv'])
+        if type(pid) is not int or pid <= 0 or birth < 0: raise ValueError('app-identity-format')
+        if argv and argv[-1] == '': argv.pop()
+        if not argv or argv[0] != self.binary: raise ValueError('binary-path-mismatch')
+        row = self.identity(pid)
+        if row['birth'] != birth or self.argv(pid) != argv: raise ValueError('app-binding-mismatch')
+        self.same(row)
+        self.app = dict(row, argv=argv, boundNs=self.now())
+        self.add(row, 'App')
+
+    def children(self, owner, budget):
+        self.same(owner)
+        tids = self.fs.tasks(owner['pid'], budget['tasksLeft'])
+        budget['tasksLeft'] -= len(tids); self.discovery_task_count += len(tids)
+        pids = set()
+        for tid in tids:
+            self.check_budget(budget)
+            path=f'/proc/{owner["pid"]}/task/{tid}/children';read_start=self.now()
+            try: words = self.read(path, 4096).split()
+            except FileNotFoundError as exc:
+                self.children_interface_gap_count+=1
+                if len(self.children_interface_gaps)<MAX_ERRORS:
+                    self.children_interface_gaps.append(dict(ownerPid=owner['pid'],ownerBirth=owner['birth'],
+                        tid=int(tid),path=path,errno=exc.errno,errorClass='FileNotFoundError',
+                        readStartNs=read_start,readEndNs=self.now(),
+                        qualification='Missing children interface or disappearing task; not an empty child list.'))
+                raise ValueError('children-interface-unavailable-coverage-incomplete') from exc
+            for word in words:
+                pid = int(word)
+                if pid <= 0: raise ValueError('child-pid')
+                pids.add(pid)
+                if len(pids) > MAX_CHILDREN: raise ValueError('children-limit')
+        rows = []
+        for pid in sorted(pids):
+            self.check_budget(budget)
+            try:
+                row = self.identity(pid)
+                if row['parent'] == owner['pid'] and row['birth'] >= owner['birth']:
+                    self.same(row); rows.append(row)
+            except FileNotFoundError: continue
+        self.same(owner)
+        return rows
+
+    def check_budget(self, budget):
+        if self.now() >= budget['end']: raise TimeoutError('discovery-wall-budget')
+
+    def bind_identity_event(self, event, native_record_proof=None):
+        if event.get('kind') != 'guardian-spawn': return
+        if self.native_identity_source is None or native_record_proof != self.native_identity_source:
+            raise ValueError('guardian-native-creation-proof-required')
+        if event.get('schema') != 'milkup.cold-accepted-wire.v1':
+            raise ValueError('guardian-native-schema')
+        ns=event.get('monotonicNs')
+        if type(ns) is not int or not self.started <= ns <= self.now():
+            raise ValueError('identity-event-outside-observer-lifetime')
+        owner_pid=event['ownerPid'];owner_birth=event['ownerBirth']
+        guardian_pid=event['guardianPid'];guardian_birth=event['guardianBirth'];instance=event['instanceId']
+        if any(type(v) is not int or v<=0 for v in [owner_pid,owner_birth,guardian_pid,guardian_birth]):
+            raise ValueError('identity-event-incomplete-birth')
+        if not isinstance(instance,str) or not INSTANCE.fullmatch(instance): raise ValueError('identity-instance')
+        if self.app is None:
+            argv=self.argv(owner_pid)
+            if argv != [self.binary] and (len(argv)!=2 or argv[0]!=self.binary or argv[1].startswith('--')):
+                raise ValueError('owner-argv-not-app')
+            self.bind_app(dict(pid=owner_pid,birth=owner_birth,argv=argv))
+        elif (self.app['pid'],self.app['birth'])!=(owner_pid,owner_birth):
+            raise ValueError('owner-rebind-forbidden')
+        self.same(self.app)
+        row=self.identity(guardian_pid)
+        if row['birth']!=guardian_birth or row['parent']!=owner_pid or row['birth']<owner_birth:
+            raise ValueError('guardian-identity-parent')
+        if self.argv(guardian_pid)!=[self.binary,'--milkup-internal-dom-helper']:
+            raise ValueError('guardian-argv')
+        environment_check={'status':'matched'}
+        try:
+            env=self.read(f'/proc/{guardian_pid}/environ',65536).split(b'\0')
+            vals=[x.split(b'=',1)[1] for x in env if x.startswith(b'MILKUP_INTERNAL_DOM_INSTANCE_ID=')]
+            if vals != [instance.encode('ascii')]: raise ValueError('guardian-instance-environment')
+        except PermissionError as exc:
+            # Instance comes ONLY from the App-owned native creation record.
+            # Missing optional environment access never supplies or guesses it.
+            environment_check={'status':'unavailable','errorClass':'PermissionError','errno':exc.errno}
+        if self.same(row)['parent'] != owner_pid: raise ValueError('guardian-parent-changed')
+        self.same(self.app)
+        previous=self.guardians.get(instance)
+        if previous and (previous['pid'],previous['birth'])!=(guardian_pid,guardian_birth):
+            raise ValueError('ambiguous-guardian-instance')
+        self.guardians[instance]=row
+        self.add(row,'guardian',instance,dict(pid=owner_pid,birth=owner_birth))
+        if len(self.binding_events)<MAX_IDENTITIES:
+            self.binding_events.append(dict(pid=guardian_pid,birth=guardian_birth,instanceId=instance,
+                                            sourceMonoNs=ns,observedMonoNs=self.now(),
+                                            instanceEnvironmentMatched=True if environment_check['status']=='matched' else None,
+                                            instanceEnvironmentCheck=environment_check,nativeCreationProof=dict(native_record_proof)))
+
+    def poll_identity_log(self,path):
+        start=self.now()
+        try:
+            with open(path,'rb') as f:
+                st=os.fstat(f.fileno());ident=(st.st_dev,st.st_ino)
+                if self.identity_file is not None and self.identity_file!=ident:raise ValueError('identity-log-replaced')
+                self.identity_file=ident
+                self.native_identity_source=dict(path=str(path),device=st.st_dev,inode=st.st_ino,kind='configured-app-owned-native-sink')
+                if st.st_size<self.identity_offset:raise ValueError('identity-log-truncated')
+                f.seek(self.identity_offset);raw=f.read(65536);self.identity_offset+=len(raw)
+            # Request wire payloads belong to request audit, not CPU sampling. Skip
+            # oversized lines without retaining payload or breaking stream framing.
+            for part in raw.splitlines(keepends=True):
+                newline=part.endswith(b'\n')
+                if not self.identity_skipping:
+                    self.identity_pending+=part
+                    if len(self.identity_pending)>LINE_LIMIT:
+                        if not re.search(rb'(?<!\\)"kind"\s*:\s*"render-accepted"',self.identity_pending[:LINE_LIMIT]):
+                            raise ValueError('oversize-non-request-capture-line')
+                        self.identity_pending=b'';self.identity_skipping=True;self.payload_lines_skipped+=1
+                if newline:
+                    if not self.identity_skipping:self.bind_identity_event(json.loads(self.identity_pending),self.native_identity_source)
+                    self.identity_pending=b'';self.identity_skipping=False
+        except FileNotFoundError:pass
+        finally:self.identity_read_ns+=self.now()-start
+
+    def discover(self):
+        start = self.now(); budget = dict(end=start + DISCOVERY_BUDGET_NS, tasksLeft=MAX_TASKS)
+        try:
+            # Native App-owned identity records bind guardian; never scan App siblings.
+            self.same(self.app)
+            work = [v for k,v in self.known.items() if v['role'] != 'App' and k not in self.terminal]
+            seen = set()
+            while work:
+                self.check_budget(budget); owner = work.pop(0); key = (owner['pid'], owner['birth'])
+                if key in seen: continue
+                seen.add(key)
+                try: children = self.children(owner, budget)
+                except FileNotFoundError: continue
+                for child in children:
+                    k = (child['pid'], child['birth'])
+                    if k in self.known: continue
+                    role = 'renderer-descendant'
+                    try:
+                        command = self.argv(child['pid'])
+                        if command == [self.binary, '--milkup-internal-dom-helper'] and owner['role'] == 'guardian': role = 'renderer-leader'
+                        elif command and Path(command[0]).name == 'WebKitWebProcess': role = 'webkit-web'
+                        elif command and Path(command[0]).name == 'WebKitNetworkProcess': role = 'webkit-network'
+                        self.same(child); self.same(owner)
+                    except FileNotFoundError: continue
+                    self.add(child, role, owner['instanceId'], dict(pid=owner['pid'], birth=owner['birth']))
+                    work.append(self.known[k])
+        except (OSError, ValueError, UnicodeError) as exc:
+            self.discovery_incomplete += 1; self.error('discovery-incomplete', exc)
+        finally:
+            duration = self.now() - start
+            self.discovery_count += 1; self.discovery_total_ns += duration; self.discovery_max_ns = max(self.discovery_max_ns, duration)
+
+    def sample(self, scheduled):
+        start = self.now(); self.late_max_ns = max(self.late_max_ns, max(0, start - scheduled)); members=[]
+        for key, origin in self.known.items():
+            if key in self.terminal: continue
+            if self.now()-start>=SAMPLE_BUDGET_NS:
+                self.sample_incomplete+=1;self.error('sample-incomplete',TimeoutError('sample-wall-budget'));break
+            before = self.now()
+            try:
+                row = self.same(origin)
+                if row['state'] in ('Z','X','x'):
+                    self.terminal.add(key); members.append(dict(pid=key[0],birth=key[1],status='terminal',state=row['state']))
+                    continue
+                sched = None; sched_status = 'sample'
+                try: sched = sched_parse(self.read(f'/proc/{key[0]}/schedstat', 4096))
+                except (OSError, ValueError) as exc:
+                    sched_status='missing'; self.error('leader-schedstat',exc)
+                self.same(origin)  # brackets stat/schedstat against PID reuse
+                after = self.now()
+                if origin['firstSampleNs'] is None: origin['firstSampleNs'] = before
+                members.append(dict(row, role=origin['role'], instanceId=origin['instanceId'], status='sample',
+                                    readStartNs=before, readEndNs=after, leaderSchedstat=sched,
+                                    leaderSchedstatStatus=sched_status))
+            except (OSError, ValueError) as exc:
+                self.terminal.add(key); members.append(dict(pid=key[0],birth=key[1],status='missing-or-identity-changed',error=type(exc).__name__))
+                self.error('identity-terminal',exc)
+        duration = self.now() - start
+        record=dict(monoNs=start,scheduledNs=scheduled,lateNs=max(0,start-scheduled),durationNs=duration,members=members)
+        raw=json.dumps(record,separators=(',',':'))+'\n'; size=len(raw.encode())
+        while self.rows and self.row_bytes + size > MAX_SAMPLE_BYTES:
+            self.row_bytes -= len(self.rows.popleft().encode()); self.evicted_rows += 1
+        if size > MAX_SAMPLE_BYTES: self.error('sample-size',ValueError('sample-too-large'))
+        else: self.rows.append(raw); self.row_bytes += size
+        self.sample_count += 1; self.sample_total_ns += duration; self.sample_max_ns=max(self.sample_max_ns,duration)
+
+    def native_event(self, event):
+        if not self.app or event.get('pid') != self.app['pid']: return
+        instance=event.get('instanceId'); ns=event.get('monotonicNs')
+        if not isinstance(instance,str) or not INSTANCE.fullmatch(instance): return
+        if type(ns) is not int or not self.app['birth'] * 1_000_000_000 // os.sysconf('SC_CLK_TCK') <= ns <= self.now():
+            raise ValueError('native-event-clock')
+        if event.get('phase') not in ('dispatch','deadline-observed','control-emitted','cleanup-confirmed'): return
+        if event.get('phase') in ('dispatch','deadline-observed') and not isinstance(event.get('requestId'),str): raise ValueError('request-id')
+        # Any actual request ID is retained; no assumed render_1 or re-anchoring.
+        row=dict(event,observedMonoNs=self.now(),observedDelayNs=self.now()-ns,
+                 appBirth=self.app['birth'],guardianBound=instance in self.guardians)
+        if len(self.events)<MAX_EVENTS: self.events.append(row)
+        else: self.event_drops+=1
+        if event['phase']=='deadline-observed': self.stop_reason='native-deadline-observed'
+
+    def poll_log(self,path):
+        started=self.now()
+        try:
+            with open(path,'rb') as f:
+                st=os.fstat(f.fileno()); ident=(st.st_dev,st.st_ino)
+                if self.log_identity is not None and self.log_identity!=ident: raise ValueError('log-replaced')
+                self.log_identity=ident
+                if st.st_size<self.log_offset: raise ValueError('log-truncated')
+                f.seek(self.log_offset); raw=f.read(65536);self.log_offset+=len(raw);self.log_bytes+=len(raw)
+            self.log_pending+=raw
+            while b'\n' in self.log_pending:
+                line,self.log_pending=self.log_pending.split(b'\n',1)
+                if len(line)>LINE_LIMIT:raise ValueError('log-line-limit')
+                if line.startswith(b'DOM_NATIVE_TIMING '):self.native_event(json.loads(line[18:]))
+            if len(self.log_pending)>LINE_LIMIT:raise ValueError('log-buffer-limit')
+        except FileNotFoundError:pass
+        finally:self.log_read_ns+=self.now()-started
+
+    def summary(self):
+        return dict(schema='milkup.cold-owned-cpu.v1',startedMonoNs=self.started,finishedMonoNs=self.now(),
+                    stopReason=self.stop_reason,app=self.app,knownIdentities=list(self.known.values()),
+                    samplePeriodNs=SAMPLE_NS,discoveryPeriodNs=DISCOVERY_NS,
+                    clockTicksPerSecond=os.sysconf('SC_CLK_TCK'),nativeEvents=self.events,
+                    eventDrops=self.event_drops,logBytes=self.log_bytes,logReadNs=self.log_read_ns,
+                    guardianBindingEvents=self.binding_events,
+                    environmentUnavailableBindings=sum(e['instanceEnvironmentCheck']['status']=='unavailable' for e in self.binding_events),identityLogBytes=self.identity_offset,
+                    requestPayloadLinesSkipped=self.payload_lines_skipped,identityLogReadNs=self.identity_read_ns,
+                    sampleCount=self.sample_count,sampleIncomplete=self.sample_incomplete,retainedSamples=len(self.rows),evictedRows=self.evicted_rows,
+                    skippedSlots=self.skipped_slots,maxLateNs=self.late_max_ns,
+                    discoveryCount=self.discovery_count,discoveryIncomplete=self.discovery_incomplete,
+                    descendantCoverage=dict(status='incomplete' if self.children_interface_gap_count else 'no-recorded-interface-gap-not-completeness-proof',
+                        childrenInterfaceGapCount=self.children_interface_gap_count,childrenInterfaceGapExamples=self.children_interface_gaps,
+                        pidfdDirectChildCoverage='not-implemented',fullRendererTreeCoverage=False),
+                    discoveryTasks=self.discovery_task_count,
+                    overhead=dict(observerOwnCpuNs=time.process_time_ns()-self.self_cpu_started,
+                                  prelaunchHashCpuNs=None if self.waiting_cpu_ns is None else self.waiting_cpu_ns-self.self_cpu_started,
+                                  afterReadyCpuNs=None if self.waiting_cpu_ns is None else time.process_time_ns()-self.waiting_cpu_ns,
+                                  procReads=self.read_count,readTotalNs=self.read_total_ns,readMaxNs=self.read_max_ns,
+                                  sampleTotalNs=self.sample_total_ns,sampleMaxNs=self.sample_max_ns,
+                                  discoveryTotalNs=self.discovery_total_ns,discoveryMaxNs=self.discovery_max_ns),
+                    errors=self.errors,errorCount=self.error_count,
+                    limits=dict(identities=MAX_IDENTITIES,tasksPerDiscovery=MAX_TASKS,childrenPerParent=MAX_CHILDREN,
+                                discoveryWallBudgetNs=DISCOVERY_BUDGET_NS,sampleWallBudgetNs=SAMPLE_BUDGET_NS,sampleBytes=MAX_SAMPLE_BYTES,maxSeconds=MAX_SECONDS),
+                    qualifications=['Guardian environ PermissionError is an explicit optional-check gap; native creation proof plus live exact identities remain required.',
+                                    'Oversized render-accepted payload lines are intentionally skipped; this is not an identity-loss counter.',
+                                    'Process CPU is own process utime/stime; guardian and App separate from renderer tree.',
+                                    'schedstat is leader-thread only, not process-wide; zero may mean accounting unavailable.',
+                                    'Short-lived and pre-discovery CPU is not reconstructed; parent linkage is not atomic.',
+                                    'No shared cgroup CPU included in renderer totals. No interval interpolation.',
+                                    'Asynchronous native events can be lost; requestIds are observed, never presumed.',
+                                    'Discovery time budget is cooperative; individual kernel reads cannot be preempted.',
+                                    'Sample loop overhead includes polling/discovery; perturbation is measured, not subtracted.'])
+
+
+def main():
+    p=argparse.ArgumentParser();p.add_argument('--output',required=True);p.add_argument('--app-log',required=True);p.add_argument('--identity-log',required=True)
+    p.add_argument('--binary',required=True);p.add_argument('--binary-sha256',required=True);args=p.parse_args()
+    out=Path(args.output);out.mkdir(parents=True,exist_ok=False)
+    observer=Observer(args.binary);failure=None;input_buffer=b'';app_deadline=time.monotonic_ns()+30_000_000_000
+    # Hash before driver/App launch; waiting-app is the readiness acknowledgment.
+    try:
+        with open(args.binary,'rb') as f:digest=hashlib.file_digest(f,'sha256').hexdigest()
+        if digest!=args.binary_sha256:raise ValueError('binary-sha256-mismatch')
+        observer.waiting_cpu_ns=time.process_time_ns()
+        print(json.dumps(dict(event='waiting-app',pid=os.getpid(),monoNs=time.monotonic_ns())),flush=True)
+        next_sample=next_discovery=next_identity_poll=0
+        while not observer.stop_reason:
+            now=time.monotonic_ns()
+            if now-observer.started>=MAX_SECONDS*1_000_000_000:observer.stop_reason='duration-limit';break
+            if observer.app is None and now>=app_deadline:raise TimeoutError('app-handshake-timeout')
+            timeout=0.05 if observer.app is None else max(0,min(0.05,(next_sample-now)/1e9))
+            if select.select([sys.stdin],[],[],timeout)[0]:
+                chunk=os.read(sys.stdin.fileno(),4096)
+                if not chunk:observer.stop_reason='controller-eof';break
+                input_buffer+=chunk
+                if len(input_buffer)>LINE_LIMIT:raise ValueError('stdin-frame-limit')
+                while b'\n' in input_buffer:
+                    line,input_buffer=input_buffer.split(b'\n',1);request=json.loads(line)
+                    if request.get('event')=='stop':observer.stop_reason='controller-stop';break
+                    observer.bind_app(request);next_sample=next_discovery=time.monotonic_ns()
+                    print(json.dumps(dict(event='app-bound',pid=observer.app['pid'],birth=observer.app['birth'])),flush=True)
+            before_app=observer.app
+            if not observer.stop_reason and time.monotonic_ns()>=next_identity_poll:
+                observer.poll_identity_log(args.identity_log)
+                next_identity_poll=time.monotonic_ns()+(SAMPLE_NS if observer.app else 50_000_000)
+            if before_app is None and observer.app is not None:
+                next_sample=next_discovery=time.monotonic_ns()
+                print(json.dumps(dict(event='app-bound',pid=observer.app['pid'],birth=observer.app['birth'])),flush=True)
+            if observer.app is None or observer.stop_reason:continue
+            now=time.monotonic_ns()
+            if now>=next_sample:
+                observer.poll_log(args.app_log)
+                if observer.stop_reason:break
+                observer.sample(next_sample)
+                if (observer.app['pid'],observer.app['birth']) in observer.terminal:observer.stop_reason='app-terminal';break
+                ended=time.monotonic_ns();skips=max(0,(ended-next_sample)//SAMPLE_NS)
+                observer.skipped_slots+=skips;next_sample+= (skips+1)*SAMPLE_NS
+            if time.monotonic_ns()>=next_discovery and not observer.stop_reason:
+                observer.discover();next_discovery=time.monotonic_ns()+DISCOVERY_NS
+    except (OSError,ValueError,KeyError,TypeError,UnicodeError) as exc:
+        failure=type(exc).__name__+': '+str(exc)[:120];observer.error('terminal',exc);observer.stop_reason='observer-error'
+    finally:
+        (out/'samples.ndjson').write_text(''.join(observer.rows))
+        summary=observer.summary();summary['failure']=failure
+        (out/'summary.json').write_text(json.dumps(summary,indent=2)+'\n')
+        print(json.dumps(dict(event='finished',stopReason=observer.stop_reason,failure=failure)),flush=True)
+    return 2 if failure or observer.children_interface_gap_count else 0
+
+
+if __name__=='__main__':raise SystemExit(main())

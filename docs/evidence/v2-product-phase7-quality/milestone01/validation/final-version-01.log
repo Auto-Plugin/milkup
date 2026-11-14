@@ -1,0 +1,26 @@
+$ pnpm version:check
+Scope: all 15 workspace projects
+[ENOENT] ENOENT: no such file or directory, mkdir '/home/agent/.local/share/pnpm'
+
+pnpm: ENOENT: no such file or directory, mkdir '/home/agent/.local/share/pnpm'
+    at async Object.mkdir (node:internal/fs/promises:916:10)
+    at async createNewStoreController (file:///opt/codex/runtimes/codex-primary-runtime/dependencies/node/node_modules/pnpm/dist/pnpm.mjs:185789:5)
+    at async installDeps (file:///opt/codex/runtimes/codex-primary-runtime/dependencies/node/node_modules/pnpm/dist/pnpm.mjs:224851:17)
+    at async Object.handler5 (file:///opt/codex/runtimes/codex-primary-runtime/dependencies/node/node_modules/pnpm/dist/pnpm.mjs:225946:3)
+    at async file:///opt/codex/runtimes/codex-primary-runtime/dependencies/node/node_modules/pnpm/dist/pnpm.mjs:328619:19
+    at async main4 (file:///opt/codex/runtimes/codex-primary-runtime/dependencies/node/node_modules/pnpm/dist/pnpm.mjs:328587:30)
+    at async runPnpm (file:///opt/codex/runtimes/codex-primary-runtime/dependencies/node/node_modules/pnpm/dist/pnpm.mjs:328883:5)
+    at async file:///opt/codex/runtimes/codex-primary-runtime/dependencies/node/node_modules/pnpm/dist/pnpm.mjs:328876:3
+[ERROR] Command failed with exit code 254: /opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node /opt/codex/runtimes/codex-primary-runtime/dependencies/node/node_modules/pnpm/bin/pnpm.mjs install
+
+pnpm: Command failed with exit code 254: /opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node /opt/codex/runtimes/codex-primary-runtime/dependencies/node/node_modules/pnpm/bin/pnpm.mjs install
+    at getFinalError (file:///opt/codex/runtimes/codex-primary-runtime/dependencies/node/node_modules/pnpm/dist/pnpm.mjs:89986:14)
+    at makeError (file:///opt/codex/runtimes/codex-primary-runtime/dependencies/node/node_modules/pnpm/dist/pnpm.mjs:92293:21)
+    at getSyncResult (file:///opt/codex/runtimes/codex-primary-runtime/dependencies/node/node_modules/pnpm/dist/pnpm.mjs:94137:10)
+    at spawnSubprocessSync (file:///opt/codex/runtimes/codex-primary-runtime/dependencies/node/node_modules/pnpm/dist/pnpm.mjs:94097:14)
+    at execaCoreSync (file:///opt/codex/runtimes/codex-primary-runtime/dependencies/node/node_modules/pnpm/dist/pnpm.mjs:94027:23)
+    at callBoundExeca (file:///opt/codex/runtimes/codex-primary-runtime/dependencies/node/node_modules/pnpm/dist/pnpm.mjs:96555:23)
+    at boundExeca (file:///opt/codex/runtimes/codex-primary-runtime/dependencies/node/node_modules/pnpm/dist/pnpm.mjs:96532:49)
+    at sync2 (file:///opt/codex/runtimes/codex-primary-runtime/dependencies/node/node_modules/pnpm/dist/pnpm.mjs:96691:10)
+    at runPnpmCli (file:///opt/codex/runtimes/codex-primary-runtime/dependencies/node/node_modules/pnpm/dist/pnpm.mjs:276904:5)
+    at runDepsStatusCheck (file:///opt/codex/runtimes/codex-primary-runtime/dependencies/node/node_modules/pnpm/dist/pnpm.mjs:278122:7)

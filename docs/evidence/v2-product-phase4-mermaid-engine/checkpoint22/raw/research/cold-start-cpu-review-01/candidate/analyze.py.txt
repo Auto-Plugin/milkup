@@ -1,0 +1,50 @@
+#!/usr/bin/env python3
+"""Offline exact whole-sample interval joins; no interpolation or runtime actions."""
+import json
+from pathlib import Path
+import sys
+
+
+def analyze(summary, rows):
+    dispatches={}; requests=[]; hz=summary['clockTicksPerSecond']
+    for e in summary['nativeEvents']:
+        key=(e['instanceId'],e.get('requestId'))
+        if e['phase']=='dispatch':
+            if key in dispatches: raise ValueError('duplicate-dispatch-key')
+            dispatches[key]=e
+        if e['phase']!='deadline-observed':continue
+        d=dispatches.get(key)
+        result=dict(instanceId=key[0],requestId=key[1],dispatchNs=None if d is None else d['monotonicNs'],
+                    deadlineNs=e['monotonicNs'],processes=[],qualification='whole read-bracket intervals only; initial/terminal/partial CPU unmeasured')
+        requests.append(result)
+        if d is None:result['status']='missing-dispatch';continue
+        start,end=d['monotonicNs'],e['monotonicNs'];result['status']='observed-deadline'
+        grouped={}
+        for sample in rows:
+            for m in sample['members']:
+                if m.get('instanceId') not in (None,key[0]):continue
+                grouped.setdefault((m['pid'],m['birth']),[]).append(m)
+        for ident,values in grouped.items():
+            intervals=[]
+            for a,b in zip(values,values[1:]):
+                if a.get('status')!='sample' or b.get('status')!='sample':continue
+                if not start<=a['readStartNs']<=a['readEndNs']<=b['readStartNs']<=b['readEndNs']<=end:continue
+                cpu=(b['userTicks']+b['systemTicks'])-(a['userTicks']+a['systemTicks'])
+                if cpu<0:raise ValueError('nonmonotonic-process-cpu')
+                sched=None
+                if a.get('leaderSchedstat') is not None and b.get('leaderSchedstat') is not None:
+                    sched={k:b['leaderSchedstat'][k]-v for k,v in a['leaderSchedstat'].items()}
+                    if min(sched.values())<0:raise ValueError('nonmonotonic-leader-schedstat')
+                intervals.append(dict(firstReadStartNs=a['readStartNs'],lastReadEndNs=b['readEndNs'],
+                                      ownCpuTicks=cpu,ownCpuSeconds=cpu/hz,leaderSchedstatDelta=sched))
+            result['processes'].append(dict(pid=ident[0],birth=ident[1],role=values[0].get('role'),
+                                            intervals=intervals,observedWholeIntervalCpuSeconds=sum(i['ownCpuSeconds'] for i in intervals)))
+    return dict(requests=requests,qualifications=['App/guardian/renderer roles kept separate; no tree completeness guarantee.',
+                                                'Leader schedstat is not whole-process scheduler time; zero is not proof accounting enabled.',
+                                                'No CPU-derived causal claim about deadline. No per-request interpolation.'])
+
+
+if __name__=='__main__':
+    p=Path(sys.argv[1]);s=json.loads((p/'summary.json').read_text())
+    rows=[json.loads(l) for l in (p/'samples.ndjson').read_text().splitlines()]
+    print(json.dumps(analyze(s,rows),indent=2))

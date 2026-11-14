@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- filename: pinyin.xml -->
+<component>
+	<name>org.freedesktop.IBus.Libpinyin</name>
+	<description>Libpinyin Component</description>
+	<exec>/tmp/milkup-v2-phase12/ime/engine.sh</exec>
+	<version>1.15.8</version>
+	<author>Peng Wu &lt;alexepico@gmail.com&gt;</author>
+	<license>GPL</license>
+	<homepage>https://github.com/libpinyin/ibus-libpinyin</homepage>
+	<textdomain>ibus-libpinyin</textdomain>
+
+	<engines>
+		<engine>
+			<name>libpinyin</name>
+			<language>zh_CN</language>
+			<license>GPL</license>
+			<author>
+                        Peng Wu &lt;alexepico@gmail.com&gt;
+                        Peng Huang &lt;shawn.p.huang@gmail.com&gt;
+                        BYVoid &lt;byvoid1@gmail.com&gt;
+                        </author>
+			<icon>/usr/share/ibus-libpinyin/icons/ibus-pinyin.svg</icon>
+			<layout>default</layout>
+			<longname>Intelligent Pinyin</longname>
+			<description>Intelligent Pinyin input method</description>
+			<rank>99</rank>
+			<symbol>&#x62FC;</symbol>
+			<icon_prop_key>InputMode</icon_prop_key>
+			<setup>/usr/libexec/ibus-setup-libpinyin libpinyin</setup>
+			<textdomain>ibus-libpinyin</textdomain>
+		</engine>
+		<engine>
+			<name>libbopomofo</name>
+			<language>zh_TW</language>
+			<license>GPL</license>
+			<author>
+                        Peng Wu &lt;alexepico@gmail.com&gt;
+                        Peng Huang &lt;shawn.p.huang@gmail.com&gt;
+                        BYVoid &lt;byvoid1@gmail.com&gt;
+                        </author>
+			<icon>/usr/share/ibus-libpinyin/icons/ibus-bopomofo.svg</icon>
+			<layout>default</layout>
+			<longname>Bopomofo</longname>
+			<description>Bopomofo input method</description>
+			<rank>98</rank>
+			<symbol>&#x3109;</symbol>
+			<icon_prop_key>InputMode</icon_prop_key>
+			<setup>/usr/libexec/ibus-setup-libpinyin libbopomofo</setup>
+			<textdomain>ibus-libpinyin</textdomain>
+		</engine>
+	</engines>
+</component>

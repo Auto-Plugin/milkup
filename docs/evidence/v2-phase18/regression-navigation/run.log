@@ -1,0 +1,23 @@
+2026-10-14T00:06:13.787Z NATIVE_STARTUP_WINDOW 1224ms
+PASS native find keyboard loop, literal queries, focus and disk edit at selected hit
+PASS native Unicode replacement, case switch, all deletion and isolated undo on real disk
+PASS native edit refresh preserves insertion point and document switch discards old results
+PASS native outline hierarchy, heading rename, keyboard activation and document switch
+PASS native narrow window search layout and repeated source/live inline-code styles
+FAIL diagnostics {
+  keys: null,
+  cursor: '660031',
+  active: '<textarea class="milkup-input-proxy" aria-label="Markdown 编辑器" autocomplete="off" spellcheck="false" tabindex="0" style="left: 26px; top: 1260089px; height: 14px;"></textarea>',
+  text: 'body linebody linebody linebody linebody linebody linebody linebody linebody linebody linebody linebody linebody linebody linebody linebody linebody linebody linebody linebody linebody linebody line# Distantİ changed 😀body linebody linebody linebody linebody linebody linebody linebody linebody linebody linebody linebody linebody linebody linebody linebody linebody linebody linebody linebody linebody linebody linebody linebody linebody linebody linebody linebody linebody linebody linebody linebody linebody linebody linebody linebody linebody linebody linebody linebody linebody linebody linebody linebody linebody linebody linebody linebody linebody linebody linebody linebody linebody linebody linebody linebody linebody line'
+}
+file:///workspace/milkup/tests/native/tauri-navigation.mjs:54
+  throw Error(`Timeout: ${label}`)
+        ^
+
+Error: Timeout: outline cursor exact line
+    at until (file:///workspace/milkup/tests/native/tauri-navigation.mjs:54:9)
+    at async file:///workspace/milkup/tests/native/tauri-navigation.mjs:536:7
+    at async check (file:///workspace/milkup/tests/native/tauri-navigation.mjs:170:5)
+    at async file:///workspace/milkup/tests/native/tauri-navigation.mjs:500:3
+
+Node.js v24.19.0

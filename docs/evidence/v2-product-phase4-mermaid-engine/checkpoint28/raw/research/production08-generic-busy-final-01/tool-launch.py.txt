@@ -1,0 +1,40 @@
+"""Call this through a require_escalated tool, once per role, only after Root GO."""
+import datetime
+import json
+import os
+import subprocess
+import sys
+from pathlib import Path
+
+base = Path(__file__).resolve().parent
+assert len(sys.argv) == 3 and sys.argv[1] in ('driver', 'harness')
+role, case = sys.argv[1:]
+run='lifecycle-p08-candidate-'+case+'-01'
+subprocess.run([sys.executable, str(base / 'verify-go.py'),case], check=True)
+namespaces = {}
+for name in ('user', 'pid', 'mnt', 'time', 'time_for_children'):
+    try:
+        namespaces[name] = {'status': 'read', 'value': os.readlink('/proc/self/ns/' + name)}
+    except OSError as error:
+        namespaces[name] = {'status': 'error', 'errno': error.errno, 'error': repr(error)}
+record = {'role': role + '-launch-tool', 'requiredSandboxPermissions': 'require_escalated',
+          'utc': datetime.datetime.now(datetime.timezone.utc).isoformat(), 'pid': os.getpid(),
+          'namespaces': namespaces,
+          'scope': 'Self-only snapshot in the actual launch tool before exec; no environment dump. Outer time namespace is not WebProcess time namespace proof.'}
+for name, field in (('uid_map', 'uidMap'), ('gid_map', 'gidMap')):
+    try:
+        record[field] = Path('/proc/self', name).read_text()
+    except OSError as error:
+        record[field] = {'status': 'error', 'errno': error.errno, 'error': repr(error)}
+with (base / (run + '-' + role + '-tool-context.json')).open('x') as output:
+    output.write(json.dumps(record, indent=2) + '\n')
+if role == 'harness':
+    import urllib.request,stat
+    owner=json.loads((base/'lifecycle/control'/(run+'-driver-owner.json')).read_text())
+    words=Path('/proc',str(owner['pid']),'stat').read_text().rsplit(')',1)[1].split()
+    assert words[19]==owner['birth'] and int(words[2])==owner['group']==owner['pid']
+    with urllib.request.urlopen('http://127.0.0.1:4626/status',timeout=2) as r: status=json.load(r)
+    assert status['value']['ready'] is True and status['value']['message']=='No sessions'
+    log=base/'lifecycle/logs'/(run+'-driver.log');m=log.lstat();assert stat.S_ISREG(m.st_mode) and m.st_uid==os.geteuid()
+entry = 'launch-driver-reaping.py' if role == 'driver' else 'run-case.py'
+os.execv(sys.executable,[sys.executable,str(base/entry),run,case])

@@ -1,0 +1,31 @@
+{
+  "status": "PREPARED_ONLY_ROOT_GO_REQUIRED",
+  "change": "execution environment only; new run/profile/output paths for immutable evidence",
+  "driverCall": {
+    "cmd": "python3 /workspace/milkup-mermaid-engine-evidence/research/native-cold-start-diagnostic-03/launch-driver-reaping.py",
+    "cwd": "/workspace/milkup",
+    "sandbox_permissions": "require_escalated"
+  },
+  "harnessCall": {
+    "cmd": "python3 /workspace/milkup-mermaid-engine-evidence/research/native-cold-start-diagnostic-03/run-harness.py",
+    "cwd": "/workspace/milkup",
+    "sandbox_permissions": "require_escalated"
+  },
+  "expectedOuterUserNamespace": "user:[4026531837]",
+  "requirement": "Both tools must use the same escalated outer execution context; Node and CPU inherit harness context. Original product bwrap and WebKit sandbox remain unchanged. If review rejects, stop and retain exact rejection; no fallback context or weakening profile assertion.",
+  "unchanged": {
+    "binary": {
+      "path": "/workspace/milkup-mermaid-engine-evidence/research/native-cold-start-diagnostic-02/diagnostic-binary/milkup-desktop",
+      "sha256": "a5fce05f06805931d9e55c2cddc80f1b9e0e4f31c5a756f2bc8eab3b185c0ac8"
+    },
+    "harness": {
+      "path": "/workspace/milkup-mermaid-engine-evidence/research/native-cold-start-diagnostic-02/native/cold-prefix.mjs",
+      "sha256": "cd83f4b29035605e919d8d1287620dd4ee1a5d63acdf9cb392839deacfde996c"
+    },
+    "sampler": {
+      "path": "/workspace/milkup-mermaid-engine-evidence/research/cold-start-cpu-review-01/candidate-v02/cpu_sampler.py",
+      "sha256": "a24e8ad9b7548350eb5d08e074770ff544e279abb9c3b86257e3c2f093596e6e"
+    },
+    "budgets": "original2s render/10s init; original cold assertions/profile check"
+  }
+}

@@ -1,0 +1,40 @@
+{
+  "atUtc": "2026-10-16T23:38:32.783803+00:00",
+  "scope": "Read-only review of new browser regression; reviewer did not execute tests/browser or edit owner file",
+  "test": {
+    "path": "/workspace/milkup/tests/e2e/desktop-window-navigation-reflow.spec.ts",
+    "bytes": 13621,
+    "sha256": "b04579f774949c6c11419409b8e3a71c98079a1d5800dbfaf47f24c399285184"
+  },
+  "review": "No static blocker for this one controlled first attempt after syntax-stack guard added",
+  "checks": [
+    {
+      "condition": "Logical selection assigned before held read",
+      "evidence": "Gate requires exact view.selection anchor/head plus mounted marker; stack must include renderSingleLiveLine, otherwise setup throws."
+    },
+    {
+      "condition": "Navigation target initially visible",
+      "evidence": "After gate, marker top/bottom must lie completely within actual view rect; invalid setup throws before changing provider."
+    },
+    {
+      "condition": "Real provider/image reflow",
+      "evidence": "Initial600px image actually decoded; public refresh changes valid same-fence SVG height to80; release provider, wait actual naturalHeight80, twelve real RAF frames. No post-start scrollTop assignment or dispatchEvent."
+    },
+    {
+      "condition": "Public navigation contract",
+      "evidence": "revealSelection called without signal/assertCurrent, matching desktop search; retains logical target, exact mounted overlays, final viewport containment and unchanged source/version."
+    },
+    {
+      "condition": "Preserve first result",
+      "evidence": "Raw result/phase/read/scroll traces and PNG saved before final expectation assertions; finally captures fixture failure trace and destroys ownedview."
+    }
+  ],
+  "limits": [
+    "Controlled Chromium public-view test, not a reproduction of native historical timing or proof of Escape cancellation.",
+    "Public refresh deliberately changes provider output; actual native failure did not establish that exact height transition.",
+    "Fixed12 RAF checkpoints test one schedule and cannot prove long-term stability or exclude later asynchronous changes.",
+    "This case does not test intentional user wheel/reverse navigation, document/source replacement, or version change. Those semantics must be retained by any later product fix; this case alone cannot justify permanently forcing a target visible.",
+    "Stack guard refuses a competing non-syntax read as fixture setup failure; such a failure is not product navigation RED."
+  ],
+  "previousSuggestion": "Initial gate could select any concurrent read; owner added explicit renderSingleLiveLine stack guard. Reviewer did not alter test."
+}

@@ -1,0 +1,327 @@
+$ vitest run src/__tests__/block-keyboard.test.ts
+
+ RUN  v3.2.6 /workspace/milkup/packages/view-dom
+
+ ❯ src/__tests__/block-keyboard.test.ts (28 tests | 24 failed) 457ms
+   × source daily block keyboard > exits an empty -  item without another marker 95ms
+     → expected '- parent\n- \n- ' to be '- parent\n' // Object.is equality
+   × source daily block keyboard > exits an empty 1.  item without another marker 10ms
+     → expected '- parent\n1. \n2. ' to be '- parent\n' // Object.is equality
+   × source daily block keyboard > exits an empty - [ ]  item without another marker 8ms
+     → expected '- parent\n- [ ] \n- [ ] ' to be '- parent\n' // Object.is equality
+   × source daily block keyboard > outdents an empty nested item before exiting the list 20ms
+     → expected '- parent\n  - \n  - ' to be '- parent\n- ' // Object.is equality
+   ✓ source daily block keyboard > continues ordered and task items 21ms
+   × source daily block keyboard > does not duplicate a marker when splitting before it 13ms
+     → expected '\n- - item' to be '\n- item' // Object.is equality
+   × source daily block keyboard > Tab and Shift+Tab nest a list while preserving caret and undo 8ms
+     → expected false to be true // Object.is equality
+   × source daily block keyboard > indents a reversed multiline selection without swallowing its text 15ms
+     → expected '- a\n- b\nend' to be '  - a\n  - b\nend' // Object.is equality
+   × source daily block keyboard > does not indent the next line when selection ends at its start 13ms
+     → expected '- a\n- b' to be '  - a\n- b' // Object.is equality
+   × source daily block keyboard > Backspace at list content start removes structure one level at a time 11ms
+     → expected '  -item' to be '- item' // Object.is equality
+   × source daily block keyboard > keeps list-looking text literal inside a fenced code block 10ms
+     → expected '```\n- literal\n- \n```' to be '```\n- literal\n\n```' // Object.is equality
+   × source daily block keyboard > preserves code indentation and blank lines 9ms
+     → expected '```js\n  value\n\n```' to be '```js\n  value\n  \n```' // Object.is equality
+   × source daily block keyboard > Tab indents code, Backspace removes one indent step, and closing fence exits normally 5ms
+     → expected '```\nvalue\n```' to be '```\n  value\n```' // Object.is equality
+   ✓ source daily block keyboard > selection Backspace removes only the selection, even in a list 12ms
+   × live daily block keyboard > exits an empty -  item without another marker 25ms
+     → expected '- parent\n- \n- ' to be '- parent\n' // Object.is equality
+   × live daily block keyboard > exits an empty 1.  item without another marker 16ms
+     → expected '- parent\n1. \n2. ' to be '- parent\n' // Object.is equality
+   × live daily block keyboard > exits an empty - [ ]  item without another marker 21ms
+     → expected '- parent\n- [ ] \n- [ ] ' to be '- parent\n' // Object.is equality
+   × live daily block keyboard > outdents an empty nested item before exiting the list 17ms
+     → expected '- parent\n  - \n  - ' to be '- parent\n- ' // Object.is equality
+   ✓ live daily block keyboard > continues ordered and task items 13ms
+   × live daily block keyboard > does not duplicate a marker when splitting before it 12ms
+     → expected '\n- - item' to be '\n- item' // Object.is equality
+   × live daily block keyboard > Tab and Shift+Tab nest a list while preserving caret and undo 6ms
+     → expected false to be true // Object.is equality
+   × live daily block keyboard > indents a reversed multiline selection without swallowing its text 15ms
+     → expected '- a\n- b\nend' to be '  - a\n  - b\nend' // Object.is equality
+   × live daily block keyboard > does not indent the next line when selection ends at its start 14ms
+     → expected '- a\n- b' to be '  - a\n- b' // Object.is equality
+   × live daily block keyboard > Backspace at list content start removes structure one level at a time 33ms
+     → expected '  -item' to be '- item' // Object.is equality
+   × live daily block keyboard > keeps list-looking text literal inside a fenced code block 5ms
+     → expected '```\n- literal\n- \n```' to be '```\n- literal\n\n```' // Object.is equality
+   × live daily block keyboard > preserves code indentation and blank lines 4ms
+     → expected '```js\n  value\n\n```' to be '```js\n  value\n  \n```' // Object.is equality
+   × live daily block keyboard > Tab indents code, Backspace removes one indent step, and closing fence exits normally 2ms
+     → expected '```\nvalue\n```' to be '```\n  value\n```' // Object.is equality
+   ✓ live daily block keyboard > selection Backspace removes only the selection, even in a list 18ms
+
+⎯⎯⎯⎯⎯⎯ Failed Tests 24 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/__tests__/block-keyboard.test.ts > source daily block keyboard > exits an empty -  item without another marker
+ FAIL  src/__tests__/block-keyboard.test.ts > live daily block keyboard > exits an empty -  item without another marker
+AssertionError: expected '- parent\n- \n- ' to be '- parent\n' // Object.is equality
+
+- Expected
++ Received
+
+  - parent
+-
++ - 
++ - 
+
+ ❯ src/__tests__/block-keyboard.test.ts:32:26
+     30|         const s = setup(`- parent\n${marker}`, mode)
+     31|         s.key('Enter')
+     32|         expect(s.text()).toBe('- parent\n')
+       |                          ^
+     33|         s.undo()
+     34|         expect(s.text()).toBe(`- parent\n${marker}`)
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/24]⎯
+
+ FAIL  src/__tests__/block-keyboard.test.ts > source daily block keyboard > exits an empty 1.  item without another marker
+ FAIL  src/__tests__/block-keyboard.test.ts > live daily block keyboard > exits an empty 1.  item without another marker
+AssertionError: expected '- parent\n1. \n2. ' to be '- parent\n' // Object.is equality
+
+- Expected
++ Received
+
+  - parent
+-
++ 1. 
++ 2. 
+
+ ❯ src/__tests__/block-keyboard.test.ts:32:26
+     30|         const s = setup(`- parent\n${marker}`, mode)
+     31|         s.key('Enter')
+     32|         expect(s.text()).toBe('- parent\n')
+       |                          ^
+     33|         s.undo()
+     34|         expect(s.text()).toBe(`- parent\n${marker}`)
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/24]⎯
+
+ FAIL  src/__tests__/block-keyboard.test.ts > source daily block keyboard > exits an empty - [ ]  item without another marker
+ FAIL  src/__tests__/block-keyboard.test.ts > live daily block keyboard > exits an empty - [ ]  item without another marker
+AssertionError: expected '- parent\n- [ ] \n- [ ] ' to be '- parent\n' // Object.is equality
+
+- Expected
++ Received
+
+  - parent
+-
++ - [ ] 
++ - [ ] 
+
+ ❯ src/__tests__/block-keyboard.test.ts:32:26
+     30|         const s = setup(`- parent\n${marker}`, mode)
+     31|         s.key('Enter')
+     32|         expect(s.text()).toBe('- parent\n')
+       |                          ^
+     33|         s.undo()
+     34|         expect(s.text()).toBe(`- parent\n${marker}`)
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/24]⎯
+
+ FAIL  src/__tests__/block-keyboard.test.ts > source daily block keyboard > outdents an empty nested item before exiting the list
+ FAIL  src/__tests__/block-keyboard.test.ts > live daily block keyboard > outdents an empty nested item before exiting the list
+AssertionError: expected '- parent\n  - \n  - ' to be '- parent\n- ' // Object.is equality
+
+- Expected
++ Received
+
+  - parent
+- - 
++   - 
++   - 
+
+ ❯ src/__tests__/block-keyboard.test.ts:40:24
+     38|       const s = setup('- parent\n  - ', mode)
+     39|       s.key('Enter')
+     40|       expect(s.text()).toBe('- parent\n- ')
+       |                        ^
+     41|       s.key('Enter')
+     42|       expect(s.text()).toBe('- parent\n')
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/24]⎯
+
+ FAIL  src/__tests__/block-keyboard.test.ts > source daily block keyboard > does not duplicate a marker when splitting before it
+ FAIL  src/__tests__/block-keyboard.test.ts > live daily block keyboard > does not duplicate a marker when splitting before it
+AssertionError: expected '\n- - item' to be '\n- item' // Object.is equality
+
+- Expected
++ Received
+
+
+- - item
++ - - item
+
+ ❯ src/__tests__/block-keyboard.test.ts:56:24
+     54|       const s = setup('- item', mode, Selection.cursor(0))
+     55|       s.key('Enter')
+     56|       expect(s.text()).toBe('\n- item')
+       |                        ^
+     57|     })
+     58|     it('Tab and Shift+Tab nest a list while preserving caret and undo'…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/24]⎯
+
+ FAIL  src/__tests__/block-keyboard.test.ts > source daily block keyboard > Tab and Shift+Tab nest a list while preserving caret and undo
+ FAIL  src/__tests__/block-keyboard.test.ts > live daily block keyboard > Tab and Shift+Tab nest a list while preserving caret and undo
+AssertionError: expected false to be true // Object.is equality
+
+- Expected
++ Received
+
+- true
++ false
+
+ ❯ src/__tests__/block-keyboard.test.ts:60:28
+     58|     it('Tab and Shift+Tab nest a list while preserving caret and undo'…
+     59|       const s = setup('- item', mode)
+     60|       expect(s.key('Tab')).toBe(true)
+       |                            ^
+     61|       expect(s.text()).toBe('  - item')
+     62|       expect(s.view.state.selection.main.head).toBe(8)
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/24]⎯
+
+ FAIL  src/__tests__/block-keyboard.test.ts > source daily block keyboard > indents a reversed multiline selection without swallowing its text
+ FAIL  src/__tests__/block-keyboard.test.ts > live daily block keyboard > indents a reversed multiline selection without swallowing its text
+AssertionError: expected '- a\n- b\nend' to be '  - a\n  - b\nend' // Object.is equality
+
+- Expected
++ Received
+
+-   - a
++ - a
+-   - b
++ - b
+  end
+
+ ❯ src/__tests__/block-keyboard.test.ts:75:24
+     73|       const s = setup('- a\n- b\nend', mode, Selection.range(7, 0))
+     74|       s.key('Tab')
+     75|       expect(s.text()).toBe('  - a\n  - b\nend')
+       |                        ^
+     76|       expect([s.view.state.selection.main.anchor, s.view.state.selecti…
+     77|         11, 2,
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[7/24]⎯
+
+ FAIL  src/__tests__/block-keyboard.test.ts > source daily block keyboard > does not indent the next line when selection ends at its start
+ FAIL  src/__tests__/block-keyboard.test.ts > live daily block keyboard > does not indent the next line when selection ends at its start
+AssertionError: expected '- a\n- b' to be '  - a\n- b' // Object.is equality
+
+- Expected
++ Received
+
+-   - a
++ - a
+  - b
+
+ ❯ src/__tests__/block-keyboard.test.ts:89:24
+     87|       const s = setup('- a\n- b', mode, Selection.range(0, 4))
+     88|       s.key('Tab')
+     89|       expect(s.text()).toBe('  - a\n- b')
+       |                        ^
+     90|     })
+     91|     it('Backspace at list content start removes structure one level at…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[8/24]⎯
+
+ FAIL  src/__tests__/block-keyboard.test.ts > source daily block keyboard > Backspace at list content start removes structure one level at a time
+ FAIL  src/__tests__/block-keyboard.test.ts > live daily block keyboard > Backspace at list content start removes structure one level at a time
+AssertionError: expected '  -item' to be '- item' // Object.is equality
+
+Expected: "- item"
+Received: "  -item"
+
+ ❯ src/__tests__/block-keyboard.test.ts:94:24
+     92|       const s = setup('  - item', mode, Selection.cursor(4))
+     93|       s.key('Backspace')
+     94|       expect(s.text()).toBe('- item')
+       |                        ^
+     95|       expect(s.view.state.selection.main.head).toBe(2)
+     96|       s.key('Backspace')
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[9/24]⎯
+
+ FAIL  src/__tests__/block-keyboard.test.ts > source daily block keyboard > keeps list-looking text literal inside a fenced code block
+ FAIL  src/__tests__/block-keyboard.test.ts > live daily block keyboard > keeps list-looking text literal inside a fenced code block
+AssertionError: expected '```\n- literal\n- \n```' to be '```\n- literal\n\n```' // Object.is equality
+
+- Expected
++ Received
+
+  ```
+  - literal
+-
++ - 
+  ```
+
+ ❯ src/__tests__/block-keyboard.test.ts:105:24
+    103|       const s = setup(text, mode, Selection.cursor(text.lastIndexOf('\…
+    104|       s.key('Enter')
+    105|       expect(s.text()).toBe('```\n- literal\n\n```')
+       |                        ^
+    106|       s.undo()
+    107|       expect(s.text()).toBe(text)
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[10/24]⎯
+
+ FAIL  src/__tests__/block-keyboard.test.ts > source daily block keyboard > preserves code indentation and blank lines
+ FAIL  src/__tests__/block-keyboard.test.ts > live daily block keyboard > preserves code indentation and blank lines
+AssertionError: expected '```js\n  value\n\n```' to be '```js\n  value\n  \n```' // Object.is equality
+
+- Expected
++ Received
+
+  ```js
+    value
+-   
++
+  ```
+
+ ❯ src/__tests__/block-keyboard.test.ts:113:24
+    111|       const s = setup(text, mode, Selection.cursor(text.lastIndexOf('\…
+    112|       s.key('Enter')
+    113|       expect(s.text()).toBe('```js\n  value\n  \n```')
+       |                        ^
+    114|       s.key('Enter')
+    115|       expect(s.text()).toBe('```js\n  value\n  \n  \n```')
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[11/24]⎯
+
+ FAIL  src/__tests__/block-keyboard.test.ts > source daily block keyboard > Tab indents code, Backspace removes one indent step, and closing fence exits normally
+ FAIL  src/__tests__/block-keyboard.test.ts > live daily block keyboard > Tab indents code, Backspace removes one indent step, and closing fence exits normally
+AssertionError: expected '```\nvalue\n```' to be '```\n  value\n```' // Object.is equality
+
+- Expected
++ Received
+
+  ```
+-   value
++ value
+  ```
+
+ ❯ src/__tests__/block-keyboard.test.ts:123:24
+    121|       const s = setup(text, mode, Selection.cursor(4))
+    122|       s.key('Tab')
+    123|       expect(s.text()).toBe('```\n  value\n```')
+       |                        ^
+    124|       s.key('Backspace')
+    125|       expect(s.text()).toBe(text)
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[12/24]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  24 failed | 4 passed (28)
+   Start at  09:47:33
+   Duration  4.29s (transform 1.02s, setup 0ms, collect 1.29s, tests 457ms, environment 1.71s, prepare 199ms)
+
+/workspace/milkup/packages/view-dom:
+[ERR_PNPM_RECURSIVE_RUN_FIRST_FAIL] @milkup/view-dom@0.0.0 test: `vitest run src/__tests__/block-keyboard.test.ts`
+Exit status 1

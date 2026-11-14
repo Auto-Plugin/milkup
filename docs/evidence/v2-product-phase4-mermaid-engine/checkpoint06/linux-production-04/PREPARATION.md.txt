@@ -1,0 +1,89 @@
+# Production-04 — static workflow preparation
+
+No product source has been captured for this directory. No build, artifact freeze,
+profile creation, driver launch or native case has run. The decoded-fragment atomic replacement
+fix, browser checks, repository gates05 and root's explicit CPU/UI GO are prerequisites.
+Production-03's complete artifacts and five lifecycle successes remain immutable.
+Its UI03 class failure is a separate product rendering issue. No production04 claim
+is inferred from production03 lifecycle results.
+
+The ten prepared scripts reuse production03's verified driver/build mechanics and
+current successful GTK/WM harness contracts. Evidence paths and unique run prefixes
+are new. Historical production03 post-freeze overrides and retry-specific success
+names are removed: production04 must capture the final current harness (including
+the GTK observer) as ordinary build inputs, and require exact equality thereafter.
+Any later approved correction needs a new named attempt and explicit qualification.
+Python AST and bash syntax checks passed; no script was executed for build/runtime.
+`preparation.json` freezes only these scripts, not product source.
+
+## After final source/gates and explicit root GO
+
+Inspect exact Xvfb :126 ownership and ports4626/4627 before reuse. The display may
+still belong to the preceding UI suite; do not start while another agent owns the
+slot or take over an occupied port. Then run each command sequentially:
+
+```sh
+python3 /workspace/milkup-mermaid-engine-evidence/linux-production-04/capture.py before
+python3 /workspace/milkup-mermaid-engine-evidence/linux-production-04/build.py
+python3 /workspace/milkup-mermaid-engine-evidence/linux-production-04/freeze-build.py
+```
+
+The build is the real Linux production `tauri build --bundles deb` with cloud env
+loaded and the historical proot Cargo runner unset. Freeze requires complete source
+byte equality, extracts the actual deb executable, proves the only target/deb binary
+difference is the unique three-byte bundle marker, checks equal ELF build IDs,
+resolves and checks the embedded native guard, and saves frontend/SDK/archive hashes.
+It refuses overwriting prior source/build/artifact evidence.
+
+Expected unchanged guard SHA256:
+`5b1082768123b9ac1923eb8ef3f6f8c0bd05ffd5d66b8b2a023f75b69106c44c`.
+Expected diagrams 1.1.0 archive SHA256:
+`27db9bdefb9b241b03da2f3536f7e50d334117f928f963cfe290543f650b6239`.
+Expected SDK0.3.4 SHA256:
+`1717c0114aa165fa3e48a1bfa7687ffd0d9b2e5392d33e99d8b2dc59a1f3ad4f`.
+If any expected scope changes, stop and record it; do not silently loosen checks.
+The new executable path/hash must come from production-04's future provenance,
+never from production-01/02/03.
+
+## Five fresh lifecycle cases
+
+Use these new identities in order, after freeze and continued exclusive UI ownership:
+
+| Run | Case |
+| --- | --- |
+| lifecycle-p04-timeout-01 | timeout |
+| lifecycle-p04-disable-01 | disable |
+| lifecycle-p04-remove-01 | remove |
+| lifecycle-p04-wm-close-01 | wm-close |
+| lifecycle-p04-app-sigkill-01 | app-sigkill |
+
+For each pair, launch the driver in its own approved tool session, execute the
+outer approved harness, and stop only after the recorded product verdict:
+
+```sh
+python3 /workspace/milkup-mermaid-engine-evidence/linux-production-04/launch-driver-reaping.py RUN CASE
+python3 /workspace/milkup-mermaid-engine-evidence/linux-production-04/run-case.py RUN CASE
+python3 /workspace/milkup-mermaid-engine-evidence/linux-production-04/stop-driver.py RUN
+```
+
+Profiles/control/runs/logs are isolated under `linux-production-04/lifecycle`.
+Every run snapshots its final test source and wrappers against the new build freeze.
+The production harness disables Worker monkeypatching, retains real public UI/XTest,
+and observes strict exact PID/birth/private-directory cleanup before outer teardown.
+The reviewed ancestor only reaps naturally exited children; it sends no descendant
+signals or deletes private directories. Native WebKit sandbox and exact readonly
+WebKit/proxy mappings stay enabled. No security-disabling environment is permitted.
+
+Stop at a first failure and retain the original command/logs/verdict; do not retry
+a whole case automatically. A diagnostic or harness correction requires a distinct
+recorded attempt. SIGKILL requires natural exact-guardian exit0 and strict cleanup;
+a missing asynchronous ECHILD trace has unknown exact time and natural exit as an
+upper bound. WM close uses exact guardian kill-start plus exact App PID/instance
+successful Child wait confirmation as the cleanup upper bound when the terminal
+trace is absent; all owned identities/private-directory/App-exit assertions remain. Timeout keeps the original render request/deadline despite source
+cancellation. Input-to-two-rAF measurements and heartbeat gaps are separate claims.
+
+If all five first attempts pass, `finalize.py` verifies artifacts and final source,
+then writes the five-case summary. Stop the last exact driver, release CPU/UI to
+root, and perform remaining static documentation/audit separately. Official Mermaid
+UI rendering acceptance on the new binary remains the next distinct gate.

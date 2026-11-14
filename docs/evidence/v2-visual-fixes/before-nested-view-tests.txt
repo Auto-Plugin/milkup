@@ -1,0 +1,71 @@
+
+ RUN  v3.2.6 /workspace/milkup/packages/view-dom
+
+ ❯ src/__tests__/live-controls.test.ts (22 tests | 3 failed) 802ms
+   ✓ ordinary live controls > applies left, center and right alignment to header and body cells 45ms
+   ✓ ordinary live controls > replaces the task bullet with one accessible checkbox, retaining normal bullets 27ms
+   ✓ ordinary live controls > click toggles only the source marker, preserves reversed Unicode selection, and isolates history 37ms
+   ✓ ordinary live controls > Space toggles uppercase X and read-only rejects further activation 8ms
+   ✓ windowed live controls > applies left, center and right alignment to header and body cells 165ms
+   ✓ windowed live controls > replaces the task bullet with one accessible checkbox, retaining normal bullets 29ms
+   ✓ windowed live controls > click toggles only the source marker, preserves reversed Unicode selection, and isolates history 73ms
+   ✓ windowed live controls > Space toggles uppercase X and read-only rejects further activation 56ms
+   ✓ ordinary End scrolls the inner code line and a manual scroll refreshes overlays 13ms
+   ✓ windowed End scrolls the inner code line and a manual scroll refreshes overlays 76ms
+   ✓ ordinary checkbox activation keeps adjacent typing in separate undo steps 11ms
+   ✓ ordinary ignores repeated keydown and composition-time checkbox activation 7ms
+   ✓ ordinary keeps code literal, including inline markup and task-looking text 2ms
+   × windowed checkbox activation keeps adjacent typing in separate undo steps 76ms
+     → expected false to be true // Object.is equality
+   ✓ windowed ignores repeated keydown and composition-time checkbox activation 22ms
+   ✓ windowed keeps code literal, including inline markup and task-looking text 16ms
+   ✓ windowed rejects a queued checkbox click after a document switch 28ms
+   ✓ windowed ignores a stale marker while text input is queued 34ms
+   ✓ ordinary clips code selection/search to the inner viewport and preserves scroll on rerender 15ms
+   ✓ windowed clips code selection/search to the inner viewport and preserves scroll on rerender 39ms
+   × ordinary renders nested inline children and hides their delimiters outside selection 8ms
+     → expected undefined to be 'italic' // Object.is equality
+   × windowed renders nested inline children and hides their delimiters outside selection 14ms
+     → expected undefined to be 'italic' // Object.is equality
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 3 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/__tests__/live-controls.test.ts > windowed checkbox activation keeps adjacent typing in separate undo steps
+AssertionError: expected false to be true // Object.is equality
+
+- Expected
++ Received
+
+- true
++ false
+
+ ❯ src/__tests__/live-controls.test.ts:112:78
+    110|     expect(s.current().undo().doc.text).toBe('- [ ] ab')
+    111|     expect(s.current().undo().undo().doc.text).toBe('- [ ] a')
+    112|     expect(document.activeElement?.classList.contains('milkup-task-mar…
+       |                                                                              ^
+    113|   })
+    114|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/3]⎯
+
+ FAIL  src/__tests__/live-controls.test.ts > ordinary renders nested inline children and hides their delimiters outside selection
+ FAIL  src/__tests__/live-controls.test.ts > windowed renders nested inline children and hides their delimiters outside selection
+AssertionError: expected undefined to be 'italic' // Object.is equality
+
+- Expected:
+"italic"
+
++ Received:
+undefined
+
+ ❯ src/__tests__/live-controls.test.ts:172:95
+
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/3]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  3 failed | 19 passed (22)
+   Start at  08:10:57
+   Duration  2.80s (transform 983ms, setup 0ms, collect 1.28s, tests 802ms, environment 440ms, prepare 80ms)

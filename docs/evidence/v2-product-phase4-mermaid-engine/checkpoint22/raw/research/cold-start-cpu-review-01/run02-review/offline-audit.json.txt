@@ -1,0 +1,121 @@
+{
+  "scope": "completed artifacts only; no live /proc or native operations",
+  "issues": [],
+  "fileHashes": {
+    "cpu-observer/summary.json": {
+      "bytes": 4432,
+      "sha256": "e93b91da7b93c0d55c5f6ddf371bde64b901c6a11d89381047431741aa03daa7"
+    },
+    "cpu-observer/samples.ndjson": {
+      "bytes": 7011,
+      "sha256": "00d602ff8208bee9ff9dd32335122384cb18883f33debc42ee274c53d479158b"
+    },
+    "native-capture/events.jsonl": {
+      "bytes": 2228,
+      "sha256": "33223b7a9cf8080e4d0676a8d9136a746367f636436cb6a4bde2619e383fc282"
+    },
+    "native-capture/status.json": {
+      "bytes": 832,
+      "sha256": "2d2dfafcc12990080eee2bed938eee84f3094f4c9f9d66b94f66771485842f0f"
+    },
+    "native-capture/complete.json": {
+      "bytes": 832,
+      "sha256": "2d2dfafcc12990080eee2bed938eee84f3094f4c9f9d66b94f66771485842f0f"
+    },
+    "driver.log": {
+      "bytes": 1171,
+      "sha256": "d3e35071816cc3d4c963c12a46a09466fd8cf5e9880a8c643aba89d40b1edbe1"
+    }
+  },
+  "app": {
+    "pid": 468107,
+    "birth": 8843827,
+    "parent": 468070,
+    "state": "S",
+    "userTicks": 57,
+    "systemTicks": 70,
+    "argv": [
+      "/workspace/milkup-mermaid-engine-evidence/research/native-cold-start-diagnostic-02/diagnostic-binary/milkup-desktop",
+      "/workspace/milkup-mermaid-engine-evidence/research/native-cold-start-diagnostic-02/runtime/mermaid-ui-cold-diag-02/evidence/ordinary.md"
+    ],
+    "boundNs": 88442410256602
+  },
+  "stopReason": "controller-stop",
+  "knownIdentities": [
+    {
+      "pid": 468107,
+      "birth": 8843827,
+      "parent": 468070,
+      "state": "S",
+      "userTicks": 57,
+      "systemTicks": 70,
+      "role": "App",
+      "instanceId": null,
+      "parentIdentity": null,
+      "firstSeenNs": 88442410260764,
+      "firstSampleNs": 88442410518612
+    },
+    {
+      "pid": 468234,
+      "birth": 8844239,
+      "parent": 468107,
+      "state": "R",
+      "userTicks": 0,
+      "systemTicks": 0,
+      "role": "guardian",
+      "instanceId": "998dcdc23765fdbd58a4214ae17f312649c6b5872adbd35c",
+      "parentIdentity": {
+        "pid": 468107,
+        "birth": 8843827
+      },
+      "firstSeenNs": 88442410370050,
+      "firstSampleNs": 88442410570823
+    }
+  ],
+  "sampleStatusCounts": {
+    "sample": 18
+  },
+  "cpuOverhead": {
+    "observerOwnCpuNs": 42828916,
+    "prelaunchHashCpuNs": 18766340,
+    "afterReadyCpuNs": 24064660,
+    "procReads": 83,
+    "readTotalNs": 1686432,
+    "readMaxNs": 181284,
+    "sampleTotalNs": 2196269,
+    "sampleMaxNs": 622579,
+    "discoveryTotalNs": 857985,
+    "discoveryMaxNs": 294540
+  },
+  "cpuQuality": {
+    "sampleCount": 9,
+    "sampleIncomplete": 0,
+    "evictedRows": 0,
+    "skippedSlots": 0,
+    "maxLateNs": 8880474,
+    "discoveryCount": 4,
+    "discoveryIncomplete": 0,
+    "discoveryTasks": 7,
+    "errorCount": 0,
+    "errors": [],
+    "requestPayloadLinesSkipped": 0
+  },
+  "retainedSampleDurationSumNs": 2196269,
+  "retainedSampleDurationMaxNs": 622579,
+  "nativeCaptureOverhead": {
+    "writerThreadCpuNs": 7596874,
+    "writerCpuScope": "App-owned background writer thread through last status checkpoint, excludes final status/complete serialization; included in App own CPU",
+    "captureTotalNs": 21444,
+    "captureMaxNs": 15486,
+    "incompleteTiming": 0
+  },
+  "requests": [],
+  "qualifications": [
+    "No cgroup data is collected by this candidate; do not infer shared cgroup CPU.",
+    "CPU sum without valid intervals is null, not 0. Per-PID and per-role coverage differ.",
+    "Leader schedstat does not cover other threads; nonzero wait is limited to those observed leader intervals.",
+    "Native writerThreadCpuNs is already part of App CPU; captureTotalNs is elapsed duration, not CPU. Do not sum these as additive CPU.",
+    "Observer overhead fields are nested/overlapping and cannot all be summed; real perturbation remains counterfactual.",
+    "Partial, initial, missing and terminal edges are not interpolated. No CPU cause is inferred."
+  ]
+}

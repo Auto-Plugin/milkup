@@ -1,0 +1,84 @@
+{
+  "at": "2026-10-16T20:14:13.288845+00:00",
+  "reviewer": "root",
+  "classification": "ACTUAL_BROWSER_CONTROLLED_RESIZE_RED_GREEN_REVIEW",
+  "baselineError": [
+    "ResizeObserver loop completed with undelivered notifications."
+  ],
+  "green": {
+    "settled": {
+      "initialHeight": 40,
+      "height": 80,
+      "width": 360,
+      "widths": [
+        300,
+        360
+      ],
+      "text": "中文😀 é source",
+      "selection": {
+        "anchor": 0,
+        "head": 2
+      },
+      "errors": []
+    },
+    "destroyCount": 1,
+    "afterDestroy": {
+      "layouts": 5,
+      "requests": 2,
+      "text": "中文😀 é source"
+    },
+    "final": {
+      "layouts": 5,
+      "requests": 2,
+      "text": "中文😀 é source"
+    },
+    "errors": []
+  },
+  "stats": {
+    "startTime": "2026-10-16T20:13:23.220Z",
+    "duration": 11882.628,
+    "expected": 1,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0
+  },
+  "testDifference": "GREEN strengthens destroy baseline capture immediately inside destroy callback, and formats the test. Original finite responsive layout/error assertions remain.",
+  "limits": [
+    "Controlled DocumentPresentation layout mechanism, not direct capture of UI07 exact callback stack.",
+    "Selection is unchanged supplied snapshot, not real editor selection/edit history coverage.",
+    "Browser is Linux Chromium under desktop-msedge project; not native WebKit or Windows.",
+    "Full file and new production native verification pending."
+  ],
+  "evidence": [
+    {
+      "path": "/workspace/milkup-mermaid-engine-evidence/research/resize-observer-loop-01/baseline-proof.json",
+      "bytes": 628,
+      "sha256": "aea8a332f28fccb3336d20eff4e5fd46b41cc3b1116113911e4d4601d2164b89"
+    },
+    {
+      "path": "/workspace/milkup-mermaid-engine-evidence/research/resize-observer-loop-01/baseline-geometry.json",
+      "bytes": 614,
+      "sha256": "7d044c339914fa771ab77259e4c9626711e82a864a8dc7351a7aeec75083251f"
+    },
+    {
+      "path": "/workspace/milkup-mermaid-engine-evidence/research/resize-observer-loop-01/baseline.log",
+      "bytes": 3466,
+      "sha256": "c5516a6d8f16900607166b93f59c7e3dba8d15916d97dcd81529530ce2c72f7a"
+    },
+    {
+      "path": "/workspace/milkup-mermaid-engine-evidence/research/resize-observer-loop-01/green-targeted-results.json",
+      "bytes": 4710,
+      "sha256": "cc1e6cc77f0cd9ad5f35ac653850e72080d9e41f606c6244f107dc18a6c93c8a"
+    },
+    {
+      "path": "/workspace/milkup-mermaid-engine-evidence/research/resize-observer-loop-01/green-input-manifest.json",
+      "bytes": 401,
+      "sha256": "cee2afe654bb17a01dc12104958354703636a9aee9d2acbae1f4ddbee29766d5"
+    },
+    {
+      "path": "/workspace/milkup-mermaid-engine-evidence/research/resize-observer-loop-01/manager-raf-fix.patch",
+      "bytes": 2124,
+      "sha256": "11786b4a345a1f3cec1469246ac9522c2e9028847c869a22aeed6fce18f83723"
+    }
+  ]
+}

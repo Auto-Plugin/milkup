@@ -1,0 +1,178 @@
+
+ RUN  v3.2.6 /workspace/milkup/packages/view-dom
+
+ ❯ src/__tests__/document-presentation.test.ts (42 tests | 2 failed) 1127ms
+   × keeps preview keyboard focus when the view refreshes its source DOM (false) 90ms
+     → Invalid editor presentation
+   ✓ anchors an asynchronously growing preview above the visible selection (false) 42ms
+   ✓ refreshes selection-dependent third-party output without repaint loops (false) 87ms
+   ✓ cancels the old selection job and discards its late output (false) 33ms
+   ✓ uses real MathML, retains mapped source and reveals on selection (false) 19ms
+   ✓ keeps source literal and disable restores source without a transaction (false) 21ms
+   ✓ excludes preview text from mapped offsets, coalesces and invalidates (false) 24ms
+   ✓ mounts a multiline block once and restores every original line (false) 27ms
+   ✓ renders the native CRLF matrix range without consuming its line ending (false) 43ms
+   ✓ uses accessible references without editing or swallowing keyboard activation (false) 13ms
+   ✓ preserves an ordinary task control alongside inline presentation (false) 13ms
+   ✓ rejects protected and malformed output while preserving editable source (false) 15ms
+   ✓ bounds requests before invoking a provider on a huge line (false) 13ms
+   ✓ discards old-document results while a fresh document remains editable (false) 22ms
+   ✓ discards an asynchronous result after disable (false) 14ms
+   × keeps preview keyboard focus when the view refreshes its source DOM (true) 33ms
+     → expected <body><main>…(1)</main></body> to be <span …(8)><math>…(1)</math></span> // Object.is equality
+   ✓ anchors an asynchronously growing preview above the visible selection (true) 59ms
+   ✓ refreshes selection-dependent third-party output without repaint loops (true) 86ms
+   ✓ cancels the old selection job and discards its late output (true) 39ms
+   ✓ uses real MathML, retains mapped source and reveals on selection (true) 26ms
+   ✓ keeps source literal and disable restores source without a transaction (true) 26ms
+   ✓ excludes preview text from mapped offsets, coalesces and invalidates (true) 29ms
+   ✓ mounts a multiline block once and restores every original line (true) 29ms
+   ✓ renders the native CRLF matrix range without consuming its line ending (true) 66ms
+   ✓ uses accessible references without editing or swallowing keyboard activation (true) 12ms
+   ✓ preserves an ordinary task control alongside inline presentation (true) 14ms
+   ✓ rejects protected and malformed output while preserving editable source (true) 16ms
+   ✓ bounds requests before invoking a provider on a huge line (true) 11ms
+   ✓ discards old-document results while a fresh document remains editable (true) 25ms
+   ✓ discards an asynchronous result after disable (true) 15ms
+   ✓ constructs inert SVG and maps only validated MathML attribute names 3ms
+   ✓ checks the host navigation lease after asynchronous viewport loading 4ms
+   ✓ checks the host navigation assertion before changing selection 2ms
+   ✓ measures collapsed block continuation lines as zero and restores their heights 20ms
+   ✓ allows bounded host snapshot preparation beyond the renderer worker deadline 7ms
+   ✓ cancels a slow host preparation without waiting for its deadline 3ms
+   ✓ rejects a completed job if selection changed before the next synchronization 12ms
+   ✓ preserves the correct viewport anchor during preview growth (visible) 8ms
+   ✓ preserves the correct viewport anchor during preview growth (scrolled-away) 7ms
+   ✓ preserves the correct viewport anchor during preview growth (source) 8ms
+   ✓ preserves block focus across a viewport job without stealing a later external focus 45ms
+   ✓ preserves reference focus across a viewport job without stealing a later external focus 42ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/__tests__/document-presentation.test.ts > keeps preview keyboard focus when the view refreshes its source DOM (false)
+RangeError: Invalid editor presentation
+ ❯ validatePresentation src/presentation.ts:31:11
+     29|     !['spaces-2', 'spaces-4', 'tabs'].includes(value.indentation)
+     30|   ) {
+     31|     throw new RangeError('Invalid editor presentation')
+       |           ^
+     32|   }
+     33|   return Object.freeze({ ...value })
+ ❯ EditorView.setPresentation src/editor-view.ts:325:18
+ ❯ src/__tests__/document-presentation.test.ts:102:15
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯
+
+ FAIL  src/__tests__/document-presentation.test.ts > keeps preview keyboard focus when the view refreshes its source DOM (true)
+AssertionError: expected <body><main>…(1)</main></body> to be <span …(8)><math>…(1)</math></span> // Object.is equality
+
+- Expected
++ Received
+
+@@ -1,5 +1,35 @@
++ <body>
++   <main>
++     <div
++       class="milkup-editor milkup-source-document-view"
++       data-editable="false"
++       data-mode="live"
++       tabindex="0"
++     >
++       <div
++         aria-multiline="true"
++         class="milkup-editor-content"
++         contenteditable="false"
++         data-from-line="1"
++         data-render-mode="live"
++         data-to-line="1"
++         data-virtualized="true"
++         role="textbox"
++       >
++         <div
++           class="milkup-virtual-spacer"
++           data-spacer="top"
++           style="height: 0px;"
++         />
++         <div
++           class="milkup-line milkup-line-live"
++           data-from="0"
++           data-line="1"
++           data-to="15"
++           style="min-height: 1em;"
++         >
+            <span
+              aria-label="fraction"
+              class="milkup-document-presentation"
+              data-document-presentation="block"
+              data-presentation-from="0"
+@@ -17,5 +47,50 @@
+                    b
+                  </mi>
+                </mfrac>
+              </math>
+            </span>
++           <span
++             data-from="5"
++             data-to="15"
++           >
++             <span
++               class="milkup-inline milkup-inline-text"
++               data-from="5"
++               data-status="valid"
++               data-syntax-visible="true"
++               data-to="15"
++             >
++               <span
++                 class="milkup-inline-content"
++                 data-from="5"
++                 data-to="15"
++               >
++                  中文😀 tail
++               </span>
++             </span>
++           </span>
++         </div>
++         <div
++           class="milkup-virtual-spacer"
++           data-spacer="bottom"
++           style="height: 0px;"
++         />
++       </div>
++       <div
++         class="milkup-search-layer"
++       />
++       <div
++         class="milkup-selection-layer"
++       />
++       <div
++         class="milkup-cursor-layer"
++       />
++       <textarea
++         aria-label="Markdown 编辑器"
++         autocomplete="off"
++         class="milkup-input-proxy"
++         tabindex="0"
++       />
++     </div>
++   </main>
++ </body>
+
+ ❯ src/__tests__/document-presentation.test.ts:104:36
+    102|     else view.setPresentation({fontFamily:'monospace',fontSize:16,line…
+    103|     await settle()
+    104|     expect(document.activeElement).toBe(view.contentDOM.querySelector(…
+       |                                    ^
+    105|   })
+    106|   it(`anchors an asynchronously growing preview above the visible sele…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/2]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  2 failed | 40 passed (42)
+   Start at  13:37:28
+   Duration  3.08s (transform 783ms, setup 0ms, collect 960ms, tests 1.13s, environment 608ms, prepare 174ms)
+
+undefined
+/workspace/milkup/packages/view-dom:
+[ERR_PNPM_RECURSIVE_EXEC_FIRST_FAIL] Command failed with exit code 1: vitest run src/__tests__/document-presentation.test.ts '--maxWorkers=2'

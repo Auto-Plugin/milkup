@@ -1,0 +1,142 @@
+# Canonical source for .github/workflows/v2-windows-standard-delivery.yml.
+# One explicitly approved user-trial artifact; no cache, Release or paid runner.
+name: Windows v2 standard delivery
+on:
+  push:
+    branches: [dot/milkup-v2-windows-delivery]
+    paths:
+      - .github/workflows/v2-windows-standard-delivery.yml
+      - scripts/ci/windows-v2-standard-request.json
+permissions:
+  contents: read
+concurrency:
+  group: windows-v2-standard-delivery
+  cancel-in-progress: false
+jobs:
+  package:
+    if: >-
+      github.repository == 'Auto-Plugin/milkup' &&
+      github.ref == 'refs/heads/dot/milkup-v2-windows-delivery' &&
+      github.event.repository.private == false &&
+      github.event.deleted == false &&
+      (contains(github.event.head_commit.message, '[windows-v2-standard-delivery]') ||
+       contains(github.event.head_commit.message, '[windows-v2-standard-validation]'))
+    runs-on: windows-2025
+    timeout-minutes: 45
+    defaults:
+      run:
+        shell: pwsh
+    env:
+      CARGO_BUILD_JOBS: '3'
+      CARGO_INCREMENTAL: '0'
+      CARGO_PROFILE_DEV_DEBUG: '0'
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Check explicit request and exact source
+        id: request
+        env:
+          UPLOAD_COMMIT_MESSAGE: ${{ github.event.head_commit.message }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $request = Get-Content scripts/ci/windows-v2-standard-request.json -Raw | ConvertFrom-Json
+          $validationOnly = $request.deliveryMode -eq 'validation-only-no-artifacts'
+          if ($request.enabled -ne $true -or $request.uploadConsumed -ne $false -or $request.publicArtifactsAccepted -ne $true -or
+              $request.unsignedTestPackageAccepted -ne $true -or
+              (-not $validationOnly -and $request.deliveryMode -ne 'user-trial-package') -or
+              $request.artifactLimitBytes -ne 52428800 -or
+              $request.artifactRetentionDays -ne 1 -or
+              $request.maxExtraStorageCostUsd -ne 0.01) {
+            throw 'User-trial delivery request is not approved; no build or upload is authorized.'
+          }
+          if ($validationOnly) {
+            if ($request.storageBudgetApproved -ne $false -or -not $env:UPLOAD_COMMIT_MESSAGE.Contains('[windows-v2-standard-validation]')) { throw 'Invalid no-upload validation request' }
+            'uploadApproved=false' >> $env:GITHUB_OUTPUT
+          } else {
+            if ($request.storageBudgetApproved -ne $true) { throw 'New storage budget has not been approved' }
+            if ($env:GITHUB_RUN_ATTEMPT -ne '1') { throw 'Single upload budget: do not rerun this request' }
+            if (-not $env:UPLOAD_COMMIT_MESSAGE.Contains('[upload:' + $request.requestId + ']')) { throw 'Commit does not authorize this upload request' }
+            'uploadApproved=true' >> $env:GITHUB_OUTPUT
+          }
+          if ($request.baselineSha -ne '3162d56f8adbf66fbd4c5631a8e71e8ad8723a51') { throw 'Unexpected baseline' }
+          if ((git rev-parse HEAD).Trim() -ne $env:GITHUB_SHA) { throw 'Checkout SHA mismatch' }
+          git merge-base --is-ancestor $request.baselineSha HEAD
+          if ($LASTEXITCODE -ne 0) { throw 'Source does not descend from the reviewed baseline' }
+          if (git status --porcelain) { throw 'Dirty checkout' }
+          "MILKUP_PACKAGE_OUTPUT=$env:RUNNER_TEMP\milkup-v2-package" >> $env:GITHUB_ENV
+          'approved=true' >> $env:GITHUB_OUTPUT
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 24.19.0
+      - name: Install pinned build tools
+        run: |
+          $ErrorActionPreference = 'Stop'
+          npm install --global pnpm@11.7.0 --ignore-scripts
+          if ($LASTEXITCODE -ne 0) { throw 'pnpm install failed' }
+          rustup toolchain install 1.99.0 --profile minimal --component rustfmt
+          if ($LASTEXITCODE -ne 0) { throw 'Rust toolchain install failed' }
+          'RUSTUP_TOOLCHAIN=1.99.0' >> $env:GITHUB_ENV
+      - name: Build unsigned NSIS for user manual trial
+        run: ./scripts/ci/build-windows-v2-package.ps1 -OutputDirectory $env:MILKUP_PACKAGE_OUTPUT -ExpectedCommit $env:GITHUB_SHA -UserTrialPackage -BundledPlugins
+      - name: Record bounded validation results in logs only
+        if: ${{ always() && steps.request.outputs.approved == 'true' }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          foreach ($name in @('build-result.json', 'build-tree.json', 'binary-comparison.json', 'installation-result.json', 'installed-smoke.json', 'smoke-stderr.log', 'driver.log', 'native-driver.log', 'application.log', 'minimal-control-result.json', 'minimal-control-startup.json', 'product-failure-startup.json')) {
+            $path = Join-Path $env:MILKUP_PACKAGE_OUTPUT "evidence/$name"
+            if (Test-Path -LiteralPath $path) {
+              Write-Output "VALIDATION EVIDENCE: $name"
+              $text = [System.IO.File]::ReadAllText($path)
+              if ($name -eq 'native-driver.log') {
+                Write-Output $text.Substring([Math]::Max(0, $text.Length - 65536))
+              } else {
+                Write-Output $text.Substring(0, [Math]::Min($text.Length, 65536))
+              }
+            }
+          }
+          'User-trial build. Automated installation/startup/editing acceptance is not a delivery prerequisite and remains unverified.' >> $env:GITHUB_STEP_SUMMARY
+      - name: Enforce one small delivery payload
+        id: payload
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $directory = Join-Path $env:MILKUP_PACKAGE_OUTPUT 'deliverable'
+          $files = @(Get-ChildItem -LiteralPath $directory -File)
+          if ($files.Count -ne 5 -or (Get-ChildItem -LiteralPath $directory -Directory)) { throw 'Unexpected delivery payload' }
+          $expected = @("milkup-v2-test-windows-x64-$env:GITHUB_SHA.exe", 'manifest.json', 'SHA256SUMS.txt', 'README.txt', 'milkup.outline-1.2.0.milkup-plugin')
+          if (@($files | Where-Object Name -NotIn $expected).Count -ne 0) { throw 'Unapproved payload file' }
+          $bytes = ($files | Measure-Object Length -Sum).Sum
+          # Reserve 1 MiB for ZIP metadata/framing; upload five files once.
+          if ($bytes -gt 49MB) { throw 'Payload exceeds the approved total 50 MiB upload budget' }
+          $manifest = Get-Content (Join-Path $directory 'manifest.json') -Raw | ConvertFrom-Json
+          $installer = Join-Path $directory $manifest.installer.deliveredName
+          if ($manifest.status -ne 'built-for-user-trial' -or $manifest.commitSha -ne $env:GITHUB_SHA) { throw 'Unexpected candidate manifest' }
+          if ((Get-FileHash $installer -Algorithm SHA256).Hash.ToLowerInvariant() -ne $manifest.installer.sha256) { throw 'Installer changed after build' }
+          $plugin = Join-Path $directory $manifest.bundledPlugin.name
+          if ((Get-FileHash $plugin -Algorithm SHA256).Hash.ToLowerInvariant() -ne $manifest.bundledPlugin.sha256) { throw 'Plugin changed after build' }
+          "Verified candidate payload: $bytes bytes; upload authorized: ${{ steps.request.outputs.uploadApproved }}."
+          "directory=$directory" >> $env:GITHUB_OUTPUT
+      - name: Upload the approved user-trial package once
+        if: ${{ steps.request.outputs.uploadApproved == 'true' }}
+        id: upload
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: milkup-v2-test-windows-x64-${{ github.sha }}
+          path: ${{ steps.payload.outputs.directory }}/*
+          if-no-files-found: error
+          retention-days: 1
+          compression-level: 0
+          overwrite: false
+          include-hidden-files: false
+      - name: Record download link
+        if: ${{ steps.request.outputs.uploadApproved == 'true' }}
+        env:
+          ARTIFACT_URL: ${{ steps.upload.outputs.artifact-url }}
+          ARTIFACT_ID: ${{ steps.upload.outputs.artifact-id }}
+          ARTIFACT_DIGEST: ${{ steps.upload.outputs.artifact-digest }}
+        run: |
+          "Download (GitHub login required): $env:ARTIFACT_URL" >> $env:GITHUB_STEP_SUMMARY
+          "Artifact ID: $env:ARTIFACT_ID; ZIP SHA-256: $env:ARTIFACT_DIGEST" >> $env:GITHUB_STEP_SUMMARY
+          'Unsigned Windows x64 NSIS for user manual trial; startup/editing acceptance unverified. Automatic expiry: 1 day.' >> $env:GITHUB_STEP_SUMMARY

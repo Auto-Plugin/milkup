@@ -1,0 +1,17 @@
+{"step": "list continuation", "disk": "exact", "saveAndQueueMs": 123}
+{"step": "list indent", "disk": "exact", "saveAndQueueMs": 121}
+{"step": "empty nested exit", "disk": "exact", "saveAndQueueMs": 121}
+{"step": "empty list exit", "disk": "exact", "saveAndQueueMs": 121}
+{"step": "list undo", "disk": "exact", "saveAndQueueMs": 121}
+{"step": "list undo", "disk": "exact", "saveAndQueueMs": 121}
+Traceback (most recent call last):
+  File "/workspace/milkup/tests/native/x11-windowed-blocks.py", line 103, in <module>
+    check(mode+': list continuation, nested exit and undo caret',lists)
+  File "/workspace/milkup/tests/native/x11-windowed-blocks.py", line 80, in check
+    action()
+  File "/workspace/milkup/tests/native/x11-windowed-blocks.py", line 98, in lists
+    for expected in [continued,nested,continued,original]: shortcut('z');saved(expected,'list undo')
+                                                                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/milkup/tests/native/x11-windowed-blocks.py", line 72, in saved
+    raise AssertionError(f'{label}: disk mismatch; actual={len(actual)} chars, expected={len(expected)}')
+AssertionError: list undo: disk mismatch; actual=1056627 chars, expected=1056625

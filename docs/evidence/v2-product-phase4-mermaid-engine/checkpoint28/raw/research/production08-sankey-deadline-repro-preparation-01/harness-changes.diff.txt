@@ -1,0 +1,295 @@
+--- /workspace/milkup-mermaid-engine-evidence/research/production08-targeted-sankey-native-01/native/tauri-mermaid-ui-targeted.mjs
++++ /workspace/milkup-mermaid-engine-evidence/research/production08-sankey-deadline-repro-preparation-01/native/sankey-short-sequence.mjs
+@@ -1,4 +1,4 @@
+-// Targeted research copy of the frozen production UI harness; 32 live combinations, not full64.
++// PREPARATION: one diagnostic windowed dark200 narrow Sankey corner sequence; not production acceptance.
+ // Reuses P4 GTK/XTest startup and controls; page execution observes public DOM or
+ // focuses public controls. No editor/plugin internals, raw SVG or IPC are injected.
+ import assert from 'node:assert/strict'
+@@ -87,30 +87,14 @@
+     return { ...sample, name, from: prefix.length, to: prefix.length + fence.length }
+   })
+ assert.equal(isolatedFallbacks.length, 0, 'Targeted scope excludes the four previously tested fallbacks')
++assert.equal(sha256(Buffer.from(contents.get('windowed'))), '46f4863e8c1842930984dd6cb3f1aa006b66ea3dfddfd935657471c3bb602470', 'Preserve exact prior five-case windowed fixture')
+ for (const [name, text] of contents) await writeFile(path.join(output, name + '.md'), text)
+-const matrixSamples = samples.filter((sample) => sample.matrix === true)
++const matrixSamples = samples.filter((sample) => sample.id === 'sankey-000-first-official-example')
+ assert.equal(samples.length, 5)
+-assert.deepEqual(matrixSamples.map((sample) => sample.id), [
+-  'sankey-000-first-official-example',
+-  'sankey-author-layout-1200x900',
+-])
+-const contrastSamples = samples.filter((sample) => ['sequenceDiagram-016-box-group', 'flowchart-107-style'].includes(sample.id))
+-assert.equal(contrastSamples.length, 2)
+-const matrix = []
+-for (const view of ['ordinary', 'windowed'])
+-  for (const mode of ['live'])
+-    for (const theme of ['light', 'dark'])
+-      for (const zoom of [1, 1.25, 1.5, 2])
+-        for (const narrow of [false, true])
+-          matrix.push({
+-            view,
+-            mode,
+-            theme,
+-            zoom,
+-            narrow,
+-            key: `${view}-${mode}-${theme}-${zoom * 100}-${narrow ? 'narrow' : 'wide'}`,
+-          })
+-assert.equal(matrix.length, 32)
++assert.equal(matrixSamples.length, 1)
++const contrastSamples = []
++const matrix = [{ view: 'windowed', mode: 'live', theme: 'dark', zoom: 2, narrow: true,
++  key: 'windowed-live-dark-200-narrow' }]
+ const plan = {
+   preparedOnly: process.argv.includes('--preflight'),
+   archive: { path: archivePath, sha256: sha256(archiveBytes), manifest: archive.manifest },
+@@ -120,9 +104,9 @@
+   matrix,
+   contrastSamples,
+   scope:
+-    'Targeted production08 image decoding and UI behavior: 32 live combinations, two Sankey matrix samples plus 16 contrast shots, 16 Sankey corner shots; not a new full64 acceptance. Screenshots require separate visual review; geometry is not pixel fidelity proof.',
++    'One diagnostic short sequence using the unchanged five-case windowed document: original Sankey bottom-right then top-left. Fresh startup is not the historical warmed render1037 state. Screenshots require separate visual review; geometry is not pixel fidelity proof.',
+   excludes: [
+-    'source-mode matrix (previous full acceptance); source/live history retained',
++    'all other matrix, history and selection checks; only this short sequence runs',
+     'four isolated fallback cases (previous full acceptance)',
+     'Journey (existing paired evidence reused; no new run)',
+     'native process lifetime/timeout audit (separate harness)',
+@@ -133,7 +117,7 @@
+ }
+ await writeFile(path.join(output, 'plan.json'), JSON.stringify(plan, null, 2) + '\n')
+ if (process.argv.includes('--preflight')) {
+-  console.log('PREPARED ONLY: catalog hashes, source fixtures and 32-combination targeted plan; no UI launched')
++  console.log('PREPARED ONLY: catalog hashes, byte-identical windowed fixture and one short sequence; no UI launched')
+   process.exit(0)
+ }
+ assert.equal(
+@@ -179,7 +163,7 @@
+         enabled: true,
+         log: process.env.MILKUP_NATIVE_APP_LOG,
+         overhead:
+-          'Native monotonic clock reads and bounded try_send to an asynchronous diagnostic thread; observations can add scheduling overhead. Page Worker diagnostics remain disabled.',
++          'Research native accepted-wire/lifecycle capture and bounded frontend queue serialization add timing/scheduling overhead; independent native/frontend clocks retained. Page Worker diagnostics remain disabled.',
+       },
+       harness: await Promise.all(
+         [
+@@ -1391,9 +1375,131 @@
+   }
+ }
+ 
++async function finishNativeCapture() {
++  const capture = process.env.MILKUP_COLD_REQUEST_OUTPUT_DIR
++  const state = { requested: false, complete: false, deadlineMs: 1000 }
++  try {
++    assert(capture, 'Native cold capture directory is required')
++    await writeFile(path.join(capture, 'finish.request'), 'sankey-short-final\n', { flag: 'wx' })
++    state.requested = true
++    const end = Date.now() + state.deadlineMs
++    while (Date.now() < end) {
++      try {
++        const value = JSON.parse(await readFile(path.join(capture, 'complete.json'), 'utf8'))
++        if (value.final === true) {
++          state.sinkFinalObserved = true
++          state.completion = value
++          const drops = ['queueFull', 'disconnected', 'oversize', 'capped']
++          state.complete = value.ownerBirth != null && value.inFlight === 0 &&
++            value.ioErrors === 0 && value.incompleteTiming === 0 &&
++            drops.every(key => value[key] === 0) && value.written === value.enqueued &&
++            value.attempted === value.enqueued + drops.reduce((sum, key) => sum + value[key], 0)
++          if (!state.complete) state.incomplete = 'native sink finalized but counters or identity are incomplete'
++          break
++        }
++      } catch (error) {
++        if (error.code !== 'ENOENT' && !(error instanceof SyntaxError)) throw error
++      }
++      await new Promise(resolve => setTimeout(resolve, 50))
++    }
++    if (!state.sinkFinalObserved) state.incomplete = 'native completion was not observed within 1000ms'
++  } catch (error) { state.incomplete = String(error) }
++  await writeFile(path.join(output, 'capture-finalization.json'), JSON.stringify(state, null, 2) + '\n')
++}
++
++// Post-outcome only: observe already-recorded ledgers; never retry UI or cancel work.
++async function drainRecordedRequests() {
++  const started = process.hrtime.bigint(), elapsed = () => Number(process.hrtime.bigint() - started) / 1e6
++  const state = {budgetMs:5000,intervalMs:100,idleObserved:false,observations:[],clock:'controller hrtime; never subtracted from frontend/native clocks'}
++  let stable, stableCount = 0
++  while (elapsed() < 5000) {
++    const row = {controllerStartNs:process.hrtime.bigint().toString()}
++    try {
++      const front = await app.execute(`const s=window.__milkupRenderQueueTrace; return s ? {
++        events:s.events.map(e=>({client:e.client,phase:e.phase,requestId:e.requestId,nativeInstanceId:e.nativeInstanceId,frontendMs:e.frontendMs})),
++        clients:s.clients,bytes:s.bytes,dropped:s.dropped,errors:s.errors,frontendMs:performance.now(),timeOriginMs:performance.timeOrigin
++      } : null`)
++      assert(front && Array.isArray(front.events) && front.events.length <= 1024)
++      const capture = process.env.MILKUP_COLD_REQUEST_OUTPUT_DIR
++      assert(capture)
++      const [bytes, statusBytes] = await Promise.all([
++        readFile(path.join(capture, 'events.jsonl')), readFile(path.join(capture, 'status.json')),
++      ])
++      assert(bytes.length <= 32 * 1024 * 1024, 'Bounded encoded native ledger read')
++      const text = bytes.toString('utf8'), tailComplete = !text || text.endsWith('\n')
++      const lines = text.split('\n'); if (!tailComplete) lines.pop()
++      const native = lines.filter(Boolean).map(line => JSON.parse(line))
++      assert(native.length <= 256)
++      const status = JSON.parse(statusBytes)
++      const frontJobs = new Map(), frontTerminals = new Set(), disposed = new Set()
++      for (const e of front.events) {
++        const key = `${e.client}:${e.requestId}`
++        if (e.phase === 'queued' || e.phase === 'dispatch') frontJobs.set(key,e)
++        if (['remote-settled','trusted-timeout','post-failed','cancel-queued'].includes(e.phase)) frontTerminals.add(key)
++        if (e.phase === 'dispose') disposed.add(e.client)
++      }
++      const frontendOpen = [...frontJobs].filter(([key,e]) => !frontTerminals.has(key) && !disposed.has(e.client)).map(([key])=>key)
++      const accepted = new Set(), terminals = new Set(), identityErrors = []
++      for (const e of native) {
++        if (!e.kind?.startsWith('render-')) continue
++        if (!e.ownerPid || e.ownerBirth == null || !e.instanceId || !(e.eventMonotonicNs > 0)) identityErrors.push(e.sequence ?? null)
++        if (e.requestId == null) continue
++        const key = JSON.stringify([e.ownerPid,e.ownerBirth,e.instanceId,e.requestId])
++        if (e.kind === 'render-accepted') accepted.add(key)
++        if (['render-settled','render-deadline','render-failed','render-stop'].includes(e.kind)) terminals.add(key)
++      }
++      const nativeOpen = [...accepted].filter(key=>!terminals.has(key))
++      const countersClean = ['queueFull','disconnected','oversize','capped','ioErrors','incompleteTiming'].every(k=>status[k]===0)
++        && status.ownerBirth != null && status.inFlight===0 && status.attempted===status.enqueued && status.enqueued===status.written
++        && status.written===native.length && tailComplete
++      row.frontend = {count:front.events.length,clients:front.clients,bytes:front.bytes,dropped:front.dropped,errors:front.errors,frontendMs:front.frontendMs,timeOriginMs:front.timeOriginMs,open:frontendOpen}
++      row.native = {count:native.length,accepted:accepted.size,terminalKeys:terminals.size,open:nativeOpen,status,tailComplete,identityErrors}
++      const clean = countersClean && !identityErrors.length && front.dropped===0 && front.errors===0
++      const signature = JSON.stringify([front.events.length,front.bytes,native.length,status.attempted,status.written,frontendOpen,nativeOpen])
++      stableCount = clean && !frontendOpen.length && !nativeOpen.length && signature===stable ? stableCount+1 : 0
++      stable = clean && !frontendOpen.length && !nativeOpen.length ? signature : undefined
++      row.stableCount = stableCount
++      if (stableCount >= 1 && elapsed() < 5000) state.idleObserved = true
++    } catch (error) { row.error=String(error); stableCount=0; stable=undefined }
++    row.controllerEndNs=process.hrtime.bigint().toString();row.elapsedMs=elapsed();state.observations.push(row)
++    if (state.idleObserved || elapsed() >= 5000) break
++    await new Promise(resolve=>setTimeout(resolve,Math.min(100,5000-elapsed())))
++  }
++  state.elapsedMs=elapsed();state.timedOut=!state.idleObserved;state.transportOverrun=state.elapsedMs>5100
++  if (!state.idleObserved) state.incomplete='Dual recorded ledgers did not reach stable empty state within5s; no UI retry'
++  await writeFile(path.join(output,'capture-ledger-drain.json'),JSON.stringify(state,null,2)+'\n')
++}
++
++async function exportFrontendCapture(name = 'frontend-queue-trace.json') {
++  const state = {controllerStartNs:process.hrtime.bigint().toString(),complete:false}
++  try {
++    state.frontend = await app.execute(`return {
++      frontendMs:performance.now(),timeOriginMs:performance.timeOrigin,dateNowMs:Date.now(),
++      sink:window.__milkupRenderQueueTrace ?? null
++    }`)
++    const sink = state.frontend.sink
++    state.complete = !!sink && Array.isArray(sink.events) && sink.dropped === 0 && sink.errors === 0
++    if (!state.complete) state.incomplete = 'Missing frontend sink or nonzero dropped/errors'
++  } catch (error) { state.incomplete = String(error) }
++  state.controllerEndNs = process.hrtime.bigint().toString()
++  await writeFile(path.join(output, name), JSON.stringify(state, null, 2) + '\n')
++}
++
++
+ try {
+-  activeFile = path.join(output, 'ordinary.md')
++  activeFile = path.join(output, 'windowed.md')
+   app = await startProduction(activeFile, output, { diagnostics: false })
++  const sinkStartControllerNs = process.hrtime.bigint().toString()
++  const sinkStart = await app.execute(`
++    const sink = window.__milkupRenderQueueTrace;
++    if (!sink || !Array.isArray(sink.events)) throw new Error('Module-initialized research queue sink is missing');
++    return {frontendMs:performance.now(),timeOriginMs:performance.timeOrigin,dateNowMs:Date.now(),
++      initialCounts:{events:sink.events.length,clients:sink.clients,bytes:sink.bytes,dropped:sink.dropped,errors:sink.errors}};
++  `)
++  await writeFile(path.join(output, 'frontend-trace-start.json'), JSON.stringify({
++    sinkStartControllerNs, sinkEndControllerNs:process.hrtime.bigint().toString(), frontend:sinkStart,
++    scope:'Read-only check of module-initialized sink after startProduction; all earlier recorded events retained, no reset',
++  }, null, 2) + '\n')
+   const runtimeUrl = new URL(await app.execute('return location.href'))
+   assert(
+     (runtimeUrl.protocol === 'tauri:' && runtimeUrl.hostname === 'localhost') ||
+@@ -1427,53 +1533,25 @@
+     `window.__productionDiagnostics={errors:[],cspViolations:[]};addEventListener('error',e=>window.__productionDiagnostics.errors.push(e.message));addEventListener('unhandledrejection',e=>window.__productionDiagnostics.errors.push(String(e.reason)));addEventListener('securitypolicyviolation',e=>window.__productionDiagnostics.cspViolations.push({directive:e.violatedDirective,blocked:e.blockedURI}));`,
+   )
+   nativeWindow = ui.windowId()
+-  x('windowsize', nativeWindow, '1100', '760')
+-  await coldBundledWindow()
+   await install()
+-  for (const sample of isolatedFallbacks) await isolatedFallback(sample)
+-  for (const name of ['ordinary', 'windowed']) {
+-    await openDocument(name)
+-    await appearance('light', 1)
+-    for (const sample of samples) {
+-      await seek(sample, 'live')
+-      await shot(`coverage-${name}-${sample.id}`, {
+-        sample: sample.id,
+-        ...(await assertSample(sample, 'live')),
+-      })
+-    }
+-    await sourceSelection(
+-      name,
+-      matrixSamples.find((sample) => sample.expected === 'ready'),
+-    )
+-    for (const mode of ['source', 'live']) await history(name, mode)
+-  }
+-  for (const combination of matrix) {
+-    const { view, mode, theme, zoom, narrow, key } = combination
+-    await openDocument(view)
+-    x('windowsize', nativeWindow, narrow ? '760' : '1100', narrow ? '520' : '760')
+-    await appearance(theme, zoom)
+-    const before = await app.probe()
+-    const combinationSamples = (zoom === 1 && !narrow) || (zoom === 2 && narrow)
+-      ? [...matrixSamples, ...contrastSamples] : matrixSamples
+-    for (const sample of combinationSamples) {
+-      await seek(sample, mode)
+-      await shot(`${sample.matrix ? 'matrix' : 'contrast'}-${key}-${sample.id}`, {
+-        combination,
+-        sample: sample.id,
+-        ...(await assertSample(sample, mode)),
+-      })
+-      if (mode === 'live' && zoom === 2 && narrow && sample.expected === 'ready' &&
+-          ['sankey-000-first-official-example', 'sankey-author-layout-1200x900'].includes(sample.id))
+-        await scrollEdges(sample, key)
+-    }
+-    assert.equal((await app.probe()).version, before.version)
+-    assert.deepEqual(await readFile(activeFile), Buffer.from(contents.get(view)))
+-    assert.deepEqual((await observe()).diagnostics.errors, [])
+-    await record('matrix-complete-' + key, {
+-      combination,
+-      exactFileSha256: sha256(await readFile(activeFile)),
+-    })
+-  }
++  const combination = matrix[0]
++  const { view, mode, theme, zoom, key } = combination
++  x('windowsize', nativeWindow, '760', '520')
++  await appearance(theme, zoom)
++  assert.equal((await observe()).windowed, true)
++  const before = await app.probe()
++  const sample = matrixSamples[0]
++  await seek(sample, mode)
++  await shot(`matrix-${key}-${sample.id}`, {
++    combination, sample: sample.id, ...(await assertSample(sample, mode)),
++  })
++  await scrollEdges(sample, key)
++  assert.equal((await app.probe()).version, before.version)
++  assert.deepEqual(await readFile(activeFile), Buffer.from(contents.get(view)))
++  assert.deepEqual((await observe()).diagnostics.errors, [])
++  await record('matrix-complete-' + key, {
++    combination, exactFileSha256: sha256(await readFile(activeFile)),
++  })
+   assert.equal(sha256(await readFile(binary)), process.env.MILKUP_MERMAID_BINARY_SHA256)
+   assert.equal(sha256(await readFile(archivePath)), process.env.MILKUP_MERMAID_ARCHIVE_SHA256)
+   await record('PASS', {
+@@ -1490,5 +1568,12 @@
+   if (app) await shot('FAIL', { error: String(error) }).catch(() => {})
+   throw error
+ } finally {
+-  if (app) await app.close()
+-}
++  if (app) {
++    // Post-outcome diagnostics: never change the original interaction failure.
++    await exportFrontendCapture('frontend-queue-trace-before-drain.json').catch(error => console.error('Frontend before-drain export failed', error))
++    await drainRecordedRequests().catch(error => console.error('Dual-ledger drain failed', error))
++    await exportFrontendCapture().catch(error => console.error('Frontend after-drain export failed', error))
++    await finishNativeCapture().catch(error => console.error('Native capture finalization failed', error))
++    await app.close()
++  }
++}

@@ -1,0 +1,58 @@
+{
+  "candidateSha": "0e3912db3f2cc4d77dd73513ce73d5440ec36f54",
+  "binarySha256": "3c94ccaed3ada935e890691eadbdf1b8caa241deefc5b9a68776292321b8ac42",
+  "startedAt": "2026-11-03T14:35:31.512Z",
+  "status": "failed",
+  "inputs": [
+    {
+      "kind": "XTest-pointer",
+      "selector": ".plugin-summary-card[data-plugin-id=\"milkup.diagrams\"] [role=\"switch\"]",
+      "at": "2026-11-03T14:35:37.143Z"
+    }
+  ],
+  "scope": "One fresh profile, enabled decoded Mermaid, real Alt+F4 under existing xfwm4, observed child exit status before session cleanup",
+  "forbiddenCloseSubstitutesUsed": false,
+  "fixture": {
+    "path": "/tmp/milkup-mermaid-normal-close-dzxupo7u/evidence/normal-close.md",
+    "bytes": 131,
+    "sha256": "6f24e76bcb1a0ba1202bf82560664cea5a61adbf3732a0ec024c4fbae8ec0ff2"
+  },
+  "harnessSha256": "4746edc9dca863ee58e7cb5755c452d437348d74c1a4164eb057b532cd695110",
+  "wm": {
+    "rootProperty": "_NET_SUPPORTING_WM_CHECK(WINDOW): window id # 0x400032",
+    "name": "_NET_WM_NAME(UTF8_STRING) = \"Xfwm4\""
+  },
+  "owner": {
+    "pid": 98,
+    "argv": [
+      "/tmp/milkup-mermaid-normal-close-dzxupo7u/binary/milkup-desktop",
+      "/tmp/milkup-mermaid-normal-close-dzxupo7u/evidence/normal-close.md",
+      ""
+    ],
+    "birth": "1139775"
+  },
+  "launcher": {
+    "binary": "/tmp/milkup-mermaid-normal-close-dzxupo7u/binary/milkup-desktop",
+    "binarySha256": "3c94ccaed3ada935e890691eadbdf1b8caa241deefc5b9a68776292321b8ac42",
+    "pid": 98,
+    "birth": "1139775",
+    "argv": [
+      "/tmp/milkup-mermaid-normal-close-dzxupo7u/binary/milkup-desktop",
+      "/tmp/milkup-mermaid-normal-close-dzxupo7u/evidence/normal-close.md"
+    ],
+    "observerPid": 88,
+    "startedMonotonicNs": 11397757865073,
+    "terminationRequestedByObserver": false
+  },
+  "window": {
+    "id": "6291470",
+    "pidProperty": "_NET_WM_PID(CARDINAL) = 98"
+  },
+  "failure": {
+    "message": "Error: Timeout: application menu closed",
+    "stack": "Error: Timeout: application menu closed\n    at Object.until (file:///workspace/milkup-mermaid-rebuild/tests/helpers/native-production.mjs:46:11)\n    at async Object.closeMenu (file:///workspace/milkup-mermaid-rebuild/tests/helpers/native-updates-fixture.mjs:250:5)\n    at async file:///workspace/mermaid-rebuild-evidence/linux-close-0e3912db/normal-close-reproduction/normal-close.mjs:85:3"
+  },
+  "normalExitProvedBeforeSessionCleanup": false,
+  "sessionCleanupSkipped": "No successful normal exit; outer owned namespace cleanup only",
+  "finishedAt": "2026-11-03T14:35:53.542Z"
+}

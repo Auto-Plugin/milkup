@@ -1,0 +1,19 @@
+from pathlib import Path
+import json,datetime,subprocess
+base=Path(__file__).parent
+executions=[json.loads((base/name/'execution.json').read_text()) for name in ['old-red','fixed-full-green']]
+groups={e['processGroup'] for e in executions}
+owned=[]; related=[]
+for path in Path('/proc').iterdir():
+ if not path.name.isdecimal():continue
+ try:
+  stat=(path/'stat').read_text(); fields=stat[stat.rfind(')')+2:].split(); state=fields[0];pgid=int(fields[2]);ppid=int(fields[1]);birth=int(fields[19]);raw=(path/'cmdline').read_bytes();args=raw.replace(b'\0',b' ').decode(errors='replace')
+ except (FileNotFoundError,PermissionError,ProcessLookupError):continue
+ row={'pid':int(path.name),'state':state,'ppid':ppid,'pgid':pgid,'birth':birth,'argv':args}
+ if pgid in groups:owned.append(row)
+ if any(term in args for term in ['/usr/lib/chromium/chromium','/usr/bin/chromium','@playwright/test/cli.js','/vite/bin/vite.js']):related.append(row)
+ports=subprocess.run(['ss','-H','-ltnp','( sport = :1420 or sport = :5174 )'],capture_output=True,text=True)
+report={'at':datetime.datetime.now(datetime.timezone.utc).isoformat(),'processGroups':sorted(groups),'ownedProcesses':owned,'activeOwned':[r for r in owned if r['state']!='Z'],'relatedProcesses':related,'activeRelated':[r for r in related if r['state']!='Z'],'ports':{'exit':ports.returncode,'stdout':ports.stdout,'stderr':ports.stderr},'scope':'Read-only /proc snapshots using exact runner PGID plus executable markers; zombies reported but not running. No processes signalled by this audit.'}
+(base/'cleanup.json').write_text(json.dumps(report,indent=2)+'\n')
+print(json.dumps({'activeOwned':len(report['activeOwned']),'activeRelated':len(report['activeRelated']),'portsFree':ports.returncode==0 and not ports.stdout.strip()},indent=2))
+if report['activeOwned'] or report['activeRelated'] or ports.returncode or ports.stdout.strip():raise SystemExit(1)

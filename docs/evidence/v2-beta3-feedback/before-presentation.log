@@ -1,0 +1,158 @@
+
+ RUN  v3.2.6 /tmp/milkup-windows-manual-candidate
+
+1:32:07 AM [vite] (ssr) warning: The following expression is not returned because of an automatically-inserted semicolon
+2  |  
+3  |  export function recoveryStatusText(status: RecoveryStatus): string {
+4  |    return
+   |          ^
+5  |      status.phase === 'error'
+6  |        ? '恢复点未更新'
+
+  Plugin: vite:esbuild
+  File: /tmp/milkup-windows-manual-candidate/apps/desktop/src/recovery-status-presentation.ts
+ ❯ apps/desktop/src/feedback-presentation.test.ts (10 tests | 7 failed) 17ms
+   × beta3 display paths > formats only known extended path prefixes: \\?\C:\笔记\文档.md 7ms
+     → expected '//?/C:/笔记/文档.md' to be 'C:/笔记/文档.md' // Object.is equality
+   × beta3 display paths > formats only known extended path prefixes: \\?\UNC\server\share\文档.md 1ms
+     → expected '//?/UNC/server/share/文档.md' to be '//server/share/文档.md' // Object.is equality
+   × beta3 display paths > formats only known extended path prefixes: //?/UNC/server/share/file.md 1ms
+     → expected '//?/UNC/server/share/file.md' to be '//server/share/file.md' // Object.is equality
+   × beta3 display paths > formats only known extended path prefixes: //?/c:/notes/file.md 0ms
+     → expected '//?/c:/notes/file.md' to be 'c:/notes/file.md' // Object.is equality
+   ✓ beta3 display paths > formats only known extended path prefixes: \\server\share\file.md 0ms
+   ✓ beta3 display paths > formats only known extended path prefixes: /tmp/../file.md 0ms
+   ✓ beta3 display paths > formats only known extended path prefixes: //?/Volume{abc}/file.md 0ms
+   × beta3 display paths > does not truncate long paths 1ms
+     → expected '//?/C:/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/…' to be 'C:/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目…' // Object.is equality
+   × beta3 recovery presentation > hides ordinary internal revision status 3ms
+     → expected undefined to be '' // Object.is equality
+   × beta3 recovery presentation > keeps unbacked edits and failures visible without version labels 1ms
+     → expected undefined to be '尚未生成恢复备份' // Object.is equality
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 7 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  apps/desktop/src/feedback-presentation.test.ts > beta3 display paths > formats only known extended path prefixes: \\?\C:\笔记\文档.md
+AssertionError: expected '//?/C:/笔记/文档.md' to be 'C:/笔记/文档.md' // Object.is equality
+
+Expected: "C:/笔记/文档.md"
+Received: "//?/C:/笔记/文档.md"
+
+ ❯ apps/desktop/src/feedback-presentation.test.ts:16:39
+     14|   ])('formats only known extended path prefixes: %s', (native, display…
+     15|     const original = native
+     16|     expect(formatDisplayPath(native)).toBe(display)
+       |                                       ^
+     17|     expect(native).toBe(original)
+     18|   })
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/7]⎯
+
+ FAIL  apps/desktop/src/feedback-presentation.test.ts > beta3 display paths > formats only known extended path prefixes: \\?\UNC\server\share\文档.md
+AssertionError: expected '//?/UNC/server/share/文档.md' to be '//server/share/文档.md' // Object.is equality
+
+Expected: "//server/share/文档.md"
+Received: "//?/UNC/server/share/文档.md"
+
+ ❯ apps/desktop/src/feedback-presentation.test.ts:16:39
+     14|   ])('formats only known extended path prefixes: %s', (native, display…
+     15|     const original = native
+     16|     expect(formatDisplayPath(native)).toBe(display)
+       |                                       ^
+     17|     expect(native).toBe(original)
+     18|   })
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/7]⎯
+
+ FAIL  apps/desktop/src/feedback-presentation.test.ts > beta3 display paths > formats only known extended path prefixes: //?/UNC/server/share/file.md
+AssertionError: expected '//?/UNC/server/share/file.md' to be '//server/share/file.md' // Object.is equality
+
+Expected: "//server/share/file.md"
+Received: "//?/UNC/server/share/file.md"
+
+ ❯ apps/desktop/src/feedback-presentation.test.ts:16:39
+     14|   ])('formats only known extended path prefixes: %s', (native, display…
+     15|     const original = native
+     16|     expect(formatDisplayPath(native)).toBe(display)
+       |                                       ^
+     17|     expect(native).toBe(original)
+     18|   })
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/7]⎯
+
+ FAIL  apps/desktop/src/feedback-presentation.test.ts > beta3 display paths > formats only known extended path prefixes: //?/c:/notes/file.md
+AssertionError: expected '//?/c:/notes/file.md' to be 'c:/notes/file.md' // Object.is equality
+
+Expected: "c:/notes/file.md"
+Received: "//?/c:/notes/file.md"
+
+ ❯ apps/desktop/src/feedback-presentation.test.ts:16:39
+     14|   ])('formats only known extended path prefixes: %s', (native, display…
+     15|     const original = native
+     16|     expect(formatDisplayPath(native)).toBe(display)
+       |                                       ^
+     17|     expect(native).toBe(original)
+     18|   })
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/7]⎯
+
+ FAIL  apps/desktop/src/feedback-presentation.test.ts > beta3 display paths > does not truncate long paths
+AssertionError: expected '//?/C:/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/…' to be 'C:/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目…' // Object.is equality
+
+Expected: "C:/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/文档.md"
+Received: "//?/C:/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/目录/文档.md"
+
+ ❯ apps/desktop/src/feedback-presentation.test.ts:21:49
+     19|   it('does not truncate long paths', () => {
+     20|     const tail = '目录/'.repeat(300) + '文档.md'
+     21|     expect(formatDisplayPath('//?/C:/' + tail)).toBe('C:/' + tail)
+       |                                                 ^
+     22|   })
+     23| })
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/7]⎯
+
+ FAIL  apps/desktop/src/feedback-presentation.test.ts > beta3 recovery presentation > hides ordinary internal revision status
+AssertionError: expected undefined to be '' // Object.is equality
+
+- Expected: 
+""
+
++ Received: 
+undefined
+
+ ❯ apps/desktop/src/feedback-presentation.test.ts:27:66
+     25| describe('beta3 recovery presentation', () => {
+     26|   it('hides ordinary internal revision status', () => {
+     27|     expect(recoveryStatusText({ phase: 'ready', version: 123 })).toBe(…
+       |                                                                  ^
+     28|     expect(recoveryStatusText({ phase: 'idle' })).toBe('')
+     29|   })
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/7]⎯
+
+ FAIL  apps/desktop/src/feedback-presentation.test.ts > beta3 recovery presentation > keeps unbacked edits and failures visible without version labels
+AssertionError: expected undefined to be '尚未生成恢复备份' // Object.is equality
+
+- Expected: 
+"尚未生成恢复备份"
+
++ Received: 
+undefined
+
+ ❯ apps/desktop/src/feedback-presentation.test.ts:31:54
+     29|   })
+     30|   it('keeps unbacked edits and failures visible without version labels…
+     31|     expect(recoveryStatusText({ phase: 'pending' })).toBe('尚未生成恢复备份')
+       |                                                      ^
+     32|     expect(recoveryStatusText({ phase: 'pending', version: 123 })).toB…
+     33|     expect(recoveryStatusText({ phase: 'error', version: 123 })).toBe(…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[7/7]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  7 failed | 3 passed (10)
+   Start at  01:32:07
+   Duration  499ms (transform 67ms, setup 0ms, collect 65ms, tests 17ms, environment 0ms, prepare 70ms)
+

@@ -1,0 +1,20 @@
+--- revision01/multirow.spec.ts
++++ revision02/multirow.spec.ts
+@@ -1,7 +1,7 @@
+ import { readFile, writeFile } from 'node:fs/promises'
+ import { expect, test } from '/workspace/milkup/node_modules/@playwright/test/index.mjs'
+ 
+-const directory = '/workspace/milkup-mermaid-engine-evidence/research/window-navigation-multirow-browser-01'
++const directory = '/workspace/milkup-mermaid-engine-evidence/research/window-navigation-multirow-browser-02'
+ 
+ test('public navigation across a 77-line collapsed fence retains target projection while new selection provider waits', async ({ page }, info) => {
+   const errors: string[] = []
+@@ -131,7 +131,7 @@
+       }
+       const frame = () => new Promise<void>(resolve => requestAnimationFrame(() => resolve()))
+       await view.revealSelection(316, Selection.range(initial.from, initial.to))
+-      await wait(() => [...view.contentDOM.querySelectorAll('img')].some(image => image.complete && image.naturalHeight === 407), 'initial image decoded')
++      await wait(() => [...view.contentDOM.querySelectorAll('img')].some(image => image.complete && image.naturalWidth === 600 && image.naturalHeight > 0), 'initial image decoded')
+       await frame(); await frame()
+       const initialState = snapshot('initial-navigation-settled-and-decoded')
+       if (initialState.fence.mounted !== 77 || initialState.fence.collapsed < 76)

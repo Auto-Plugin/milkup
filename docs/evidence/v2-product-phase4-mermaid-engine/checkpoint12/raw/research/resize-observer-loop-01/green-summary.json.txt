@@ -1,0 +1,55 @@
+{
+  "classification": "CHROMIUM_REAL_RESIZE_OBSERVER_CONTROLLED_RED_GREEN_AND_EXISTING_FILE_REGRESSION_NOT_NATIVE",
+  "baselineExit": 1,
+  "baselineError": "ResizeObserver loop completed with undelivered notifications.",
+  "targetedGreenExit": 0,
+  "fullFileExit": 0,
+  "fullFileStats": {
+    "startTime": "2026-10-16T20:13:52.255Z",
+    "duration": 449518.76,
+    "expected": 35,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0
+  },
+  "testCount": 35,
+  "attemptCount": 35,
+  "allPassedNoRetries": true,
+  "inputs": [
+    {
+      "path": "packages/view-dom/src/document-presentation.ts",
+      "bytes": 72119,
+      "sha256": "07cbcfb4d576ff148585a397195edb691ab8780fe539c2fad52e246b081462b7",
+      "formatChanged": false,
+      "afterSha256": "07cbcfb4d576ff148585a397195edb691ab8780fe539c2fad52e246b081462b7",
+      "unchanged": true
+    },
+    {
+      "path": "tests/e2e/desktop-markdown-extensions.spec.ts",
+      "bytes": 61999,
+      "sha256": "cea39aac8dd8ab1893c99db75443b0ed216781f172960d961d53083ea661e656",
+      "formatChanged": true,
+      "afterSha256": "cea39aac8dd8ab1893c99db75443b0ed216781f172960d961d53083ea661e656",
+      "unchanged": true
+    }
+  ],
+  "cleanup": {
+    "checkedAt": "2026-10-16T20:21:46.756737+00:00",
+    "listeners1420And5174": "",
+    "knownManagedServerPids": {
+      "386777": true,
+      "386790": true,
+      "387080": true,
+      "387093": true
+    },
+    "activeMatchingProcesses": [],
+    "scope": "Read-only verification; Playwright managed browser/server shutdown after exit0. No broad process termination.",
+    "knownManagedServerProcessDetails": "    PID    PPID STAT                  STARTED COMMAND\n 386777       1 Z    Fri Oct 16 20:13:22 2026 [MainThread] <defunct>\n 386790       1 Z    Fri Oct 16 20:13:23 2026 [MainThread] <defunct>\n 387080       1 Z    Fri Oct 16 20:13:51 2026 [MainThread] <defunct>\n 387093       1 Z    Fri Oct 16 20:13:52 2026 [MainThread] <defunct>\n",
+    "note": "All four known server PIDs are PPID1 zombies (Z), with no running workload; retained /proc entries are not described as gone. Cannot reap non-child zombies; no signal attempted."
+  },
+  "limitations": [
+    "Controlled finite responsive layout reproduces real browser ResizeObserver delivery error; does not establish exact UI07 native animated-edge causal chain.",
+    "New fixture selection is a snapshot closure, not an independent real editor selection/history or disk-save claim. Existing file retains its real view/history assertions.",
+    "No native or Windows execution; full project/suite was not run."
+  ]
+}

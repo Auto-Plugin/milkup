@@ -1,0 +1,124 @@
+
+ RUN  v3.2.6 /tmp/milkup-windows-manual-candidate/packages/view-dom
+
+ ✓ src/__tests__/document-presentation-anchor-guards.test.ts (30 tests) 302ms
+ ✓ src/__tests__/document-presentation-boundaries.test.ts (16 tests) 1600ms
+stdout | src/__tests__/document-presentation-pointer.test.ts > keeps a settled response waiting when a new primary gesture replaces the released lease
+pointer-handoff {"originalConnected":true,"sameButton":true,"activeLease":true,"provided":2,"navigationCalls":0}
+
+ ✓ src/__tests__/document-presentation-pointer.test.ts (23 tests) 378ms
+ ✓ src/__tests__/document-presentation-restore.test.ts (18 tests) 317ms
+ ❯ src/__tests__/document-presentation.test.ts (70 tests | 2 failed) 2944ms
+   ✓ keeps the reader's inner diagram position through provider refresh (false) 176ms
+   ✓ does not carry a prior diagram position across identity replacement (false) 55ms
+   ✓ does not carry a prior diagram position across version replacement (false) 48ms
+   ✓ does not carry a prior diagram position across config replacement (false) 48ms
+   ✓ does not carry a prior diagram position across semantic-content replacement (false) 44ms
+   ✓ resets a prior diagram reading position after mode changes (false) 41ms
+   ✓ resets a prior diagram reading position after selection changes (false) 51ms
+   ✓ keeps preview keyboard focus when the view refreshes its source DOM (false) 53ms
+   ✓ anchors an asynchronously growing preview above the visible selection (false) 52ms
+   ✓ refreshes selection-dependent third-party output without repaint loops (false) 77ms
+   ✓ cancels the old selection job and discards its late output (false) 42ms
+   ✓ uses real MathML, retains mapped source and reveals on selection (false) 22ms
+   ✓ keeps source literal and disable restores source without a transaction (false) 28ms
+   ✓ excludes preview text from mapped offsets, coalesces and invalidates (false) 34ms
+   × mounts a multiline block once and restores every original line (false) 58ms
+     → expected Element{ …(2) } to be null
+   ✓ renders the native CRLF matrix range without consuming its line ending (false) 72ms
+   ✓ uses accessible references without editing or swallowing keyboard activation (false) 17ms
+   ✓ preserves an ordinary task control alongside inline presentation (false) 17ms
+   ✓ rejects protected and malformed output while preserving editable source (false) 22ms
+   ✓ bounds requests before invoking a provider on a huge line (false) 21ms
+   ✓ discards old-document results while a fresh document remains editable (false) 29ms
+   ✓ discards an asynchronous result after disable (false) 21ms
+   ✓ keeps the reader's inner diagram position through source-window refresh (true) 47ms
+   ✓ keeps the reader's inner diagram position through provider refresh (true) 77ms
+   ✓ does not carry a prior diagram position across identity replacement (true) 31ms
+   ✓ does not carry a prior diagram position across version replacement (true) 28ms
+   ✓ does not carry a prior diagram position across config replacement (true) 29ms
+   ✓ does not carry a prior diagram position across semantic-content replacement (true) 28ms
+   ✓ does not carry a diagram position across a version change on the same source object 32ms
+   ✓ keeps a reader diagram mounted across repeated same-position editor scroll events 66ms
+   ✓ retries an anchor-owned failed navigation read on the next same-position scroll 130ms
+   ✓ loads a genuinely moved editor viewport after duplicate scroll notifications 124ms
+   ✓ resets a prior diagram reading position after mode changes (true) 36ms
+   ✓ resets a prior diagram reading position after selection changes (true) 34ms
+   ✓ keeps preview keyboard focus when the view refreshes its source DOM (true) 31ms
+   ✓ anchors an asynchronously growing preview above the visible selection (true) 50ms
+   ✓ refreshes selection-dependent third-party output without repaint loops (true) 136ms
+   ✓ cancels the old selection job and discards its late output (true) 74ms
+   ✓ uses real MathML, retains mapped source and reveals on selection (true) 23ms
+   ✓ keeps source literal and disable restores source without a transaction (true) 26ms
+   ✓ excludes preview text from mapped offsets, coalesces and invalidates (true) 27ms
+   × mounts a multiline block once and restores every original line (true) 53ms
+     → expected Element{ …(2) } to be null
+   ✓ renders the native CRLF matrix range without consuming its line ending (true) 102ms
+   ✓ uses accessible references without editing or swallowing keyboard activation (true) 20ms
+   ✓ preserves an ordinary task control alongside inline presentation (true) 19ms
+   ✓ rejects protected and malformed output while preserving editable source (true) 19ms
+   ✓ bounds requests before invoking a provider on a huge line (true) 15ms
+   ✓ discards old-document results while a fresh document remains editable (true) 34ms
+   ✓ discards an asynchronous result after disable (true) 25ms
+   ✓ constructs inert SVG and maps only validated MathML attribute names 3ms
+   ✓ checks the host navigation lease after asynchronous viewport loading 7ms
+   ✓ checks the host navigation assertion before changing selection 4ms
+   ✓ measures collapsed block continuation lines as zero and restores their heights 42ms
+   ✓ allows bounded host snapshot preparation beyond the renderer worker deadline 10ms
+   ✓ cancels a slow host preparation without waiting for its deadline 5ms
+   ✓ rejects a completed job if selection changed before the next synchronization 12ms
+   ✓ preserves the correct viewport anchor during preview growth (visible) 10ms
+   ✓ preserves the correct viewport anchor during preview growth (scrolled-away) 8ms
+   ✓ preserves the correct viewport anchor during preview growth (source) 7ms
+   ✓ preserves block focus across a viewport job without stealing a later external focus 70ms
+   ✓ preserves reference focus across a viewport job without stealing a later external focus 91ms
+   ✓ retains validated block during background refresh and clears failed or revoked results 73ms
+   ✓ retains validated reference during background refresh and clears failed or revoked results 74ms
+   ✓ preserves the pre-replacement selected-line anchor when a window reinstalls source DOM 34ms
+   ✓ preserves the pre-replacement reader-position anchor when a window reinstalls source DOM 32ms
+   ✓ preserves the pre-replacement new-document anchor when a window reinstalls source DOM 33ms
+   ✓ preserves the pre-replacement new-version anchor when a window reinstalls source DOM 18ms
+   ✓ preserves the pre-replacement source-mode anchor when a window reinstalls source DOM 21ms
+   ✓ preserves the pre-replacement missing-line anchor when a window reinstalls source DOM 16ms
+   ✓ publishes the source window range before measuring replacement preview lines 26ms
+ ✓ src/__tests__/document-presentation-viewport.test.ts (6 tests) 330ms
+ ✓ src/__tests__/document-presentation-preparation.test.ts (17 tests) 96ms
+ ✓ src/__tests__/document-presentation-hot-focus.test.ts (4 tests) 348ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/__tests__/document-presentation.test.ts > mounts a multiline block once and restores every original line (false)
+ FAIL  src/__tests__/document-presentation.test.ts > mounts a multiline block once and restores every original line (true)
+AssertionError: expected Element{ …(2) } to be null
+
+- Expected: 
+null
+
++ Received: 
+<math>
+  <mfrac>
+    <mi>
+      a
+    </mi>
+    <mi>
+      b
+    </mi>
+  </mfrac>
+</math>
+
+ ❯ src/__tests__/document-presentation.test.ts:678:51
+    676|     else view.updateState(view.state.applyTransaction({ selection: Sel…
+    677|     await settle()
+    678|     expect(view.contentDOM.querySelector('math')).toBeNull()
+       |                                                   ^
+    679|     expect(view.contentDOM.querySelectorAll('[data-presentation-collap…
+    680|     expect(view.contentDOM.textContent).toContain('a+b')
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯
+
+
+ Test Files  1 failed | 7 passed (8)
+      Tests  2 failed | 182 passed (184)
+   Start at  08:20:36
+   Duration  6.17s (transform 1.16s, setup 0ms, collect 3.43s, tests 6.31s, environment 5.22s, prepare 728ms)
+

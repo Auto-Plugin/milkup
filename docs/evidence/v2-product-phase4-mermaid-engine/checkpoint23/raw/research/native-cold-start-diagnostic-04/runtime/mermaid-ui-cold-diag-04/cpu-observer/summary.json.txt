@@ -1,0 +1,1931 @@
+{
+  "schema": "milkup.cold-owned-cpu.v1",
+  "startedMonoNs": 90480025917910,
+  "finishedMonoNs": 90489911397221,
+  "stopReason": "controller-stop",
+  "app": {
+    "pid": 471101,
+    "birth": 9048074,
+    "parent": 471050,
+    "state": "R",
+    "userTicks": 49,
+    "systemTicks": 86,
+    "argv": [
+      "/workspace/milkup-mermaid-engine-evidence/research/native-cold-start-diagnostic-02/diagnostic-binary/milkup-desktop",
+      "/workspace/milkup-mermaid-engine-evidence/research/native-cold-start-diagnostic-04/runtime/mermaid-ui-cold-diag-04/evidence/ordinary.md"
+    ],
+    "boundNs": 90484935469115
+  },
+  "knownIdentities": [
+    {
+      "pid": 471101,
+      "birth": 9048074,
+      "parent": 471050,
+      "state": "R",
+      "userTicks": 49,
+      "systemTicks": 86,
+      "role": "App",
+      "instanceId": null,
+      "parentIdentity": null,
+      "firstSeenNs": 90484935473558,
+      "firstSampleNs": 90484935868846
+    },
+    {
+      "pid": 471230,
+      "birth": 9048492,
+      "parent": 471101,
+      "state": "R",
+      "userTicks": 0,
+      "systemTicks": 0,
+      "role": "guardian",
+      "instanceId": "95dc66282a839dd15baf4f1cc4e26ea61af30a9d0c007bab",
+      "parentIdentity": {
+        "pid": 471101,
+        "birth": 9048074
+      },
+      "firstSeenNs": 90484935761132,
+      "firstSampleNs": 90484935919463
+    },
+    {
+      "pid": 471235,
+      "birth": 9048502,
+      "parent": 471230,
+      "state": "S",
+      "userTicks": 11,
+      "systemTicks": 6,
+      "role": "renderer-leader",
+      "instanceId": "95dc66282a839dd15baf4f1cc4e26ea61af30a9d0c007bab",
+      "parentIdentity": {
+        "pid": 471230,
+        "birth": 9048492
+      },
+      "firstSeenNs": 90485487361819,
+      "firstSampleNs": 90485686244926,
+      "discoveryMethod": "pidfd-direct-child",
+      "pidfdProof": {
+        "ownerPid": 471230,
+        "ownerBirth": 9048492,
+        "fd": 0,
+        "pidFields": {
+          "pid": 471235,
+          "nspid": [
+            471235
+          ]
+        },
+        "firstReadStartNs": 90485487105319,
+        "firstReadEndNs": 90485487115502,
+        "secondReadStartNs": 90485487213069,
+        "secondReadEndNs": 90485487221937,
+        "fdinfoBefore": "pos:\t0\nflags:\t02000002\nmnt_id:\t4\nino:\t475868\nPid:\t471235\nNSpid:\t471235\n",
+        "fdinfoAfter": "pos:\t0\nflags:\t02000002\nmnt_id:\t4\nino:\t475868\nPid:\t471235\nNSpid:\t471235\n",
+        "targetBefore": {
+          "pid": 471235,
+          "birth": 9048502,
+          "parent": 471230,
+          "state": "S",
+          "userTicks": 11,
+          "systemTicks": 6
+        },
+        "targetAfter": {
+          "pid": 471235,
+          "birth": 9048502,
+          "parent": 471230,
+          "state": "S",
+          "userTicks": 11,
+          "systemTicks": 6
+        },
+        "ownerBefore": {
+          "pid": 471230,
+          "birth": 9048492,
+          "parent": 471101,
+          "state": "S",
+          "userTicks": 5,
+          "systemTicks": 4
+        },
+        "ownerAfter": {
+          "pid": 471230,
+          "birth": 9048492,
+          "parent": 471101,
+          "state": "S",
+          "userTicks": 5,
+          "systemTicks": 4
+        },
+        "scope": "exact held-pidfd direct child; no full descendant tree or cross-namespace guarantee"
+      },
+      "argvEvidence": {
+        "rawHex": "2f776f726b73706163652f6d696c6b75702d6d65726d6169642d656e67696e652d65766964656e63652f72657365617263682f6e61746976652d636f6c642d73746172742d646961676e6f737469632d30322f646961676e6f737469632d62696e6172792f6d696c6b75702d6465736b746f70002d2d6d696c6b75702d696e7465726e616c2d646f6d2d68656c70657200",
+        "parsed": [
+          "/workspace/milkup-mermaid-engine-evidence/research/native-cold-start-diagnostic-02/diagnostic-binary/milkup-desktop",
+          "--milkup-internal-dom-helper"
+        ],
+        "readStartNs": 90485487187266,
+        "readEndNs": 90485487204106,
+        "byteLimit": 4096,
+        "scope": "binding-time argv only; later exec is not monitored"
+      }
+    },
+    {
+      "pid": 471238,
+      "birth": 9048508,
+      "parent": 471235,
+      "state": "S",
+      "userTicks": 6,
+      "systemTicks": 2,
+      "role": "webkit-network",
+      "instanceId": "95dc66282a839dd15baf4f1cc4e26ea61af30a9d0c007bab",
+      "parentIdentity": {
+        "pid": 471235,
+        "birth": 9048502
+      },
+      "firstSeenNs": 90485489142316,
+      "firstSampleNs": 90485686327086,
+      "discoveryMethod": "pidfd-direct-child",
+      "pidfdProof": {
+        "ownerPid": 471235,
+        "ownerBirth": 9048502,
+        "fd": 13,
+        "pidFields": {
+          "pid": 471238,
+          "nspid": [
+            471238
+          ]
+        },
+        "firstReadStartNs": 90485488154702,
+        "firstReadEndNs": 90485488162934,
+        "secondReadStartNs": 90485488311600,
+        "secondReadEndNs": 90485488325315,
+        "fdinfoBefore": "pos:\t0\nflags:\t02000002\nmnt_id:\t4\nino:\t475871\nPid:\t471238\nNSpid:\t471238\n",
+        "fdinfoAfter": "pos:\t0\nflags:\t02000002\nmnt_id:\t4\nino:\t475871\nPid:\t471238\nNSpid:\t471238\n",
+        "targetBefore": {
+          "pid": 471238,
+          "birth": 9048508,
+          "parent": 471235,
+          "state": "S",
+          "userTicks": 6,
+          "systemTicks": 2
+        },
+        "targetAfter": {
+          "pid": 471238,
+          "birth": 9048508,
+          "parent": 471235,
+          "state": "S",
+          "userTicks": 6,
+          "systemTicks": 2
+        },
+        "ownerBefore": {
+          "pid": 471235,
+          "birth": 9048502,
+          "parent": 471230,
+          "state": "S",
+          "userTicks": 11,
+          "systemTicks": 6
+        },
+        "ownerAfter": {
+          "pid": 471235,
+          "birth": 9048502,
+          "parent": 471230,
+          "state": "S",
+          "userTicks": 11,
+          "systemTicks": 6
+        },
+        "scope": "exact held-pidfd direct child; no full descendant tree or cross-namespace guarantee"
+      },
+      "argvEvidence": {
+        "rawHex": "2f7573722f6c69622f7838365f36342d6c696e75782d676e752f7765626b69743267746b2d342e312f5765624b69744e6574776f726b50726f63657373003100313000",
+        "parsed": [
+          "/usr/lib/x86_64-linux-gnu/webkit2gtk-4.1/WebKitNetworkProcess",
+          "1",
+          "10"
+        ],
+        "readStartNs": 90485488223363,
+        "readEndNs": 90485488239863,
+        "byteLimit": 4096,
+        "scope": "binding-time argv only; later exec is not monitored"
+      }
+    },
+    {
+      "pid": 471277,
+      "birth": 9048524,
+      "parent": 471235,
+      "state": "S",
+      "userTicks": 0,
+      "systemTicks": 0,
+      "role": "renderer-descendant",
+      "instanceId": "95dc66282a839dd15baf4f1cc4e26ea61af30a9d0c007bab",
+      "parentIdentity": {
+        "pid": 471235,
+        "birth": 9048502
+      },
+      "firstSeenNs": 90485489202593,
+      "firstSampleNs": 90485686385336,
+      "discoveryMethod": "pidfd-direct-child",
+      "pidfdProof": {
+        "ownerPid": 471235,
+        "ownerBirth": 9048502,
+        "fd": 26,
+        "pidFields": {
+          "pid": 471277,
+          "nspid": [
+            471277
+          ]
+        },
+        "firstReadStartNs": 90485488647753,
+        "firstReadEndNs": 90485488656647,
+        "secondReadStartNs": 90485488849102,
+        "secondReadEndNs": 90485488866808,
+        "fdinfoBefore": "pos:\t0\nflags:\t02000002\nmnt_id:\t4\nino:\t475910\nPid:\t471277\nNSpid:\t471277\n",
+        "fdinfoAfter": "pos:\t0\nflags:\t02000002\nmnt_id:\t4\nino:\t475910\nPid:\t471277\nNSpid:\t471277\n",
+        "targetBefore": {
+          "pid": 471277,
+          "birth": 9048524,
+          "parent": 471235,
+          "state": "S",
+          "userTicks": 0,
+          "systemTicks": 0
+        },
+        "targetAfter": {
+          "pid": 471277,
+          "birth": 9048524,
+          "parent": 471235,
+          "state": "S",
+          "userTicks": 0,
+          "systemTicks": 0
+        },
+        "ownerBefore": {
+          "pid": 471235,
+          "birth": 9048502,
+          "parent": 471230,
+          "state": "S",
+          "userTicks": 11,
+          "systemTicks": 6
+        },
+        "ownerAfter": {
+          "pid": 471235,
+          "birth": 9048502,
+          "parent": 471230,
+          "state": "S",
+          "userTicks": 11,
+          "systemTicks": 6
+        },
+        "scope": "exact held-pidfd direct child; no full descendant tree or cross-namespace guarantee"
+      },
+      "argvEvidence": {
+        "rawHex": "2f7573722f62696e2f6277726170002d2d61726773003235002d2d002f7573722f6c69622f7838365f36342d6c696e75782d676e752f7765626b69743267746b2d342e312f5765624b697457656250726f63657373003400313600",
+        "parsed": [
+          "/usr/bin/bwrap",
+          "--args",
+          "25",
+          "--",
+          "/usr/lib/x86_64-linux-gnu/webkit2gtk-4.1/WebKitWebProcess",
+          "4",
+          "16"
+        ],
+        "readStartNs": 90485488688418,
+        "readEndNs": 90485488777008,
+        "byteLimit": 4096,
+        "scope": "binding-time argv only; later exec is not monitored"
+      }
+    },
+    {
+      "pid": 471272,
+      "birth": 9048522,
+      "parent": 471235,
+      "state": "S",
+      "userTicks": 0,
+      "systemTicks": 0,
+      "role": "renderer-descendant",
+      "instanceId": "95dc66282a839dd15baf4f1cc4e26ea61af30a9d0c007bab",
+      "parentIdentity": {
+        "pid": 471235,
+        "birth": 9048502
+      },
+      "firstSeenNs": 90485489205106,
+      "firstSampleNs": 90485686420151,
+      "discoveryMethod": "pidfd-direct-child",
+      "pidfdProof": {
+        "ownerPid": 471235,
+        "ownerBirth": 9048502,
+        "fd": 30,
+        "pidFields": {
+          "pid": 471272,
+          "nspid": [
+            471272
+          ]
+        },
+        "firstReadStartNs": 90485488935891,
+        "firstReadEndNs": 90485488945871,
+        "secondReadStartNs": 90485489080292,
+        "secondReadEndNs": 90485489093700,
+        "fdinfoBefore": "pos:\t0\nflags:\t02000002\nmnt_id:\t4\nino:\t475905\nPid:\t471272\nNSpid:\t471272\n",
+        "fdinfoAfter": "pos:\t0\nflags:\t02000002\nmnt_id:\t4\nino:\t475905\nPid:\t471272\nNSpid:\t471272\n",
+        "targetBefore": {
+          "pid": 471272,
+          "birth": 9048522,
+          "parent": 471235,
+          "state": "S",
+          "userTicks": 0,
+          "systemTicks": 0
+        },
+        "targetAfter": {
+          "pid": 471272,
+          "birth": 9048522,
+          "parent": 471235,
+          "state": "S",
+          "userTicks": 0,
+          "systemTicks": 0
+        },
+        "ownerBefore": {
+          "pid": 471235,
+          "birth": 9048502,
+          "parent": 471230,
+          "state": "S",
+          "userTicks": 11,
+          "systemTicks": 6
+        },
+        "ownerAfter": {
+          "pid": 471235,
+          "birth": 9048502,
+          "parent": 471230,
+          "state": "S",
+          "userTicks": 11,
+          "systemTicks": 6
+        },
+        "scope": "exact held-pidfd direct child; no full descendant tree or cross-namespace guarantee"
+      },
+      "argvEvidence": {
+        "rawHex": "2f7573722f62696e2f6277726170002d2d61726773003239002d2d002f7573722f62696e2f7864672d646275732d70726f7879002d2d617267733d323500",
+        "parsed": [
+          "/usr/bin/bwrap",
+          "--args",
+          "29",
+          "--",
+          "/usr/bin/xdg-dbus-proxy",
+          "--args=25"
+        ],
+        "readStartNs": 90485489014047,
+        "readEndNs": 90485489056273,
+        "byteLimit": 4096,
+        "scope": "binding-time argv only; later exec is not monitored"
+      }
+    }
+  ],
+  "samplePeriodNs": 250000000,
+  "discoveryPeriodNs": 500000000,
+  "clockTicksPerSecond": 100,
+  "nativeEvents": [
+    {
+      "instanceId": "95dc66282a839dd15baf4f1cc4e26ea61af30a9d0c007bab",
+      "monotonicNs": 90486591075833,
+      "phase": "dispatch",
+      "pid": 471101,
+      "requestId": "render_1",
+      "observedMonoNs": 90486690598274,
+      "observedDelayNs": 99522534,
+      "appBirth": 9048074,
+      "guardianBound": true
+    },
+    {
+      "instanceId": "95dc66282a839dd15baf4f1cc4e26ea61af30a9d0c007bab",
+      "monotonicNs": 90486854903696,
+      "phase": "dispatch",
+      "pid": 471101,
+      "requestId": "render_2",
+      "observedMonoNs": 90486936196359,
+      "observedDelayNs": 81292766,
+      "appBirth": 9048074,
+      "guardianBound": true
+    },
+    {
+      "instanceId": "95dc66282a839dd15baf4f1cc4e26ea61af30a9d0c007bab",
+      "monotonicNs": 90487048728597,
+      "phase": "dispatch",
+      "pid": 471101,
+      "requestId": "render_3",
+      "observedMonoNs": 90487186098860,
+      "observedDelayNs": 137370360,
+      "appBirth": 9048074,
+      "guardianBound": true
+    },
+    {
+      "instanceId": "95dc66282a839dd15baf4f1cc4e26ea61af30a9d0c007bab",
+      "monotonicNs": 90489020087452,
+      "phase": "dispatch",
+      "pid": 471101,
+      "requestId": "render_4",
+      "observedMonoNs": 90489186094300,
+      "observedDelayNs": 166006944,
+      "appBirth": 9048074,
+      "guardianBound": true
+    },
+    {
+      "instanceId": "95dc66282a839dd15baf4f1cc4e26ea61af30a9d0c007bab",
+      "monotonicNs": 90489232492446,
+      "phase": "dispatch",
+      "pid": 471101,
+      "requestId": "render_5",
+      "observedMonoNs": 90489436263761,
+      "observedDelayNs": 203771390,
+      "appBirth": 9048074,
+      "guardianBound": true
+    },
+    {
+      "instanceId": "95dc66282a839dd15baf4f1cc4e26ea61af30a9d0c007bab",
+      "monotonicNs": 90489654299727,
+      "phase": "dispatch",
+      "pid": 471101,
+      "requestId": "render_6",
+      "observedMonoNs": 90489686147916,
+      "observedDelayNs": 31848259,
+      "appBirth": 9048074,
+      "guardianBound": true
+    }
+  ],
+  "eventDrops": 0,
+  "logBytes": 1847,
+  "logReadNs": 2982555,
+  "guardianBindingEvents": [
+    {
+      "pid": 471230,
+      "birth": 9048492,
+      "instanceId": "95dc66282a839dd15baf4f1cc4e26ea61af30a9d0c007bab",
+      "sourceMonoNs": 90484927937931,
+      "observedMonoNs": 90484935763999,
+      "instanceEnvironmentMatched": true,
+      "instanceEnvironmentCheck": {
+        "status": "matched"
+      },
+      "nativeCreationProof": {
+        "path": "/workspace/milkup-mermaid-engine-evidence/research/native-cold-start-diagnostic-04/runtime/mermaid-ui-cold-diag-04/native-capture/events.jsonl",
+        "device": 27,
+        "inode": 707236,
+        "kind": "configured-app-owned-native-sink"
+      }
+    }
+  ],
+  "environmentUnavailableBindings": 0,
+  "identityLogBytes": 11296,
+  "requestPayloadLinesSkipped": 0,
+  "identityLogReadNs": 8283051,
+  "sampleCount": 20,
+  "sampleIncomplete": 0,
+  "retainedSamples": 20,
+  "evictedRows": 0,
+  "skippedSlots": 0,
+  "maxLateNs": 4839344,
+  "discoveryCount": 10,
+  "discoveryIncomplete": 10,
+  "descendantCoverage": {
+    "status": "incomplete",
+    "childrenInterfaceGapCount": 44,
+    "childrenInterfaceGapExamples": [
+      {
+        "ownerPid": 471230,
+        "ownerBirth": 9048492,
+        "tid": 471230,
+        "path": "/proc/471230/task/471230/children",
+        "errno": 2,
+        "errorClass": "FileNotFoundError",
+        "readStartNs": 90484936303289,
+        "readEndNs": 90484936327984,
+        "qualification": "Missing children interface or disappearing task; not an empty child list."
+      },
+      {
+        "ownerPid": 471230,
+        "ownerBirth": 9048492,
+        "tid": 471230,
+        "path": "/proc/471230/task/471230/children",
+        "errno": 2,
+        "errorClass": "FileNotFoundError",
+        "readStartNs": 90485486996954,
+        "readEndNs": 90485487028819,
+        "qualification": "Missing children interface or disappearing task; not an empty child list."
+      },
+      {
+        "ownerPid": 471235,
+        "ownerBirth": 9048502,
+        "tid": 471235,
+        "path": "/proc/471235/task/471235/children",
+        "errno": 2,
+        "errorClass": "FileNotFoundError",
+        "readStartNs": 90485487532465,
+        "readEndNs": 90485487543373,
+        "qualification": "Missing children interface or disappearing task; not an empty child list."
+      },
+      {
+        "ownerPid": 471238,
+        "ownerBirth": 9048508,
+        "tid": 471238,
+        "path": "/proc/471238/task/471238/children",
+        "errno": 2,
+        "errorClass": "FileNotFoundError",
+        "readStartNs": 90485489362815,
+        "readEndNs": 90485489380777,
+        "qualification": "Missing children interface or disappearing task; not an empty child list."
+      },
+      {
+        "ownerPid": 471230,
+        "ownerBirth": 9048492,
+        "tid": 471230,
+        "path": "/proc/471230/task/471230/children",
+        "errno": 2,
+        "errorClass": "FileNotFoundError",
+        "readStartNs": 90486037444242,
+        "readEndNs": 90486037475130,
+        "qualification": "Missing children interface or disappearing task; not an empty child list."
+      },
+      {
+        "ownerPid": 471235,
+        "ownerBirth": 9048502,
+        "tid": 471235,
+        "path": "/proc/471235/task/471235/children",
+        "errno": 2,
+        "errorClass": "FileNotFoundError",
+        "readStartNs": 90486037814400,
+        "readEndNs": 90486037822099,
+        "qualification": "Missing children interface or disappearing task; not an empty child list."
+      },
+      {
+        "ownerPid": 471238,
+        "ownerBirth": 9048508,
+        "tid": 471238,
+        "path": "/proc/471238/task/471238/children",
+        "errno": 2,
+        "errorClass": "FileNotFoundError",
+        "readStartNs": 90486038687633,
+        "readEndNs": 90486038695871,
+        "qualification": "Missing children interface or disappearing task; not an empty child list."
+      },
+      {
+        "ownerPid": 471277,
+        "ownerBirth": 9048524,
+        "tid": 471277,
+        "path": "/proc/471277/task/471277/children",
+        "errno": 2,
+        "errorClass": "FileNotFoundError",
+        "readStartNs": 90486039060375,
+        "readEndNs": 90486039087653,
+        "qualification": "Missing children interface or disappearing task; not an empty child list."
+      },
+      {
+        "ownerPid": 471272,
+        "ownerBirth": 9048522,
+        "tid": 471272,
+        "path": "/proc/471272/task/471272/children",
+        "errno": 2,
+        "errorClass": "FileNotFoundError",
+        "readStartNs": 90486039460768,
+        "readEndNs": 90486039467876,
+        "qualification": "Missing children interface or disappearing task; not an empty child list."
+      },
+      {
+        "ownerPid": 471230,
+        "ownerBirth": 9048492,
+        "tid": 471230,
+        "path": "/proc/471230/task/471230/children",
+        "errno": 2,
+        "errorClass": "FileNotFoundError",
+        "readStartNs": 90486587874507,
+        "readEndNs": 90486587902903,
+        "qualification": "Missing children interface or disappearing task; not an empty child list."
+      },
+      {
+        "ownerPid": 471235,
+        "ownerBirth": 9048502,
+        "tid": 471235,
+        "path": "/proc/471235/task/471235/children",
+        "errno": 2,
+        "errorClass": "FileNotFoundError",
+        "readStartNs": 90486588325702,
+        "readEndNs": 90486588334386,
+        "qualification": "Missing children interface or disappearing task; not an empty child list."
+      },
+      {
+        "ownerPid": 471238,
+        "ownerBirth": 9048508,
+        "tid": 471238,
+        "path": "/proc/471238/task/471238/children",
+        "errno": 2,
+        "errorClass": "FileNotFoundError",
+        "readStartNs": 90486591170732,
+        "readEndNs": 90486591480218,
+        "qualification": "Missing children interface or disappearing task; not an empty child list."
+      },
+      {
+        "ownerPid": 471277,
+        "ownerBirth": 9048524,
+        "tid": 471277,
+        "path": "/proc/471277/task/471277/children",
+        "errno": 2,
+        "errorClass": "FileNotFoundError",
+        "readStartNs": 90486591820054,
+        "readEndNs": 90486591826789,
+        "qualification": "Missing children interface or disappearing task; not an empty child list."
+      },
+      {
+        "ownerPid": 471272,
+        "ownerBirth": 9048522,
+        "tid": 471272,
+        "path": "/proc/471272/task/471272/children",
+        "errno": 2,
+        "errorClass": "FileNotFoundError",
+        "readStartNs": 90486591950956,
+        "readEndNs": 90486591955939,
+        "qualification": "Missing children interface or disappearing task; not an empty child list."
+      },
+      {
+        "ownerPid": 471230,
+        "ownerBirth": 9048492,
+        "tid": 471230,
+        "path": "/proc/471230/task/471230/children",
+        "errno": 2,
+        "errorClass": "FileNotFoundError",
+        "readStartNs": 90487139436810,
+        "readEndNs": 90487139468464,
+        "qualification": "Missing children interface or disappearing task; not an empty child list."
+      },
+      {
+        "ownerPid": 471235,
+        "ownerBirth": 9048502,
+        "tid": 471235,
+        "path": "/proc/471235/task/471235/children",
+        "errno": 2,
+        "errorClass": "FileNotFoundError",
+        "readStartNs": 90487139913208,
+        "readEndNs": 90487139923402,
+        "qualification": "Missing children interface or disappearing task; not an empty child list."
+      },
+      {
+        "ownerPid": 471238,
+        "ownerBirth": 9048508,
+        "tid": 471238,
+        "path": "/proc/471238/task/471238/children",
+        "errno": 2,
+        "errorClass": "FileNotFoundError",
+        "readStartNs": 90487141314955,
+        "readEndNs": 90487141329233,
+        "qualification": "Missing children interface or disappearing task; not an empty child list."
+      },
+      {
+        "ownerPid": 471277,
+        "ownerBirth": 9048524,
+        "tid": 471277,
+        "path": "/proc/471277/task/471277/children",
+        "errno": 2,
+        "errorClass": "FileNotFoundError",
+        "readStartNs": 90487141815783,
+        "readEndNs": 90487141825305,
+        "qualification": "Missing children interface or disappearing task; not an empty child list."
+      },
+      {
+        "ownerPid": 471272,
+        "ownerBirth": 9048522,
+        "tid": 471272,
+        "path": "/proc/471272/task/471272/children",
+        "errno": 2,
+        "errorClass": "FileNotFoundError",
+        "readStartNs": 90487142066135,
+        "readEndNs": 90487142075386,
+        "qualification": "Missing children interface or disappearing task; not an empty child list."
+      },
+      {
+        "ownerPid": 471230,
+        "ownerBirth": 9048492,
+        "tid": 471230,
+        "path": "/proc/471230/task/471230/children",
+        "errno": 2,
+        "errorClass": "FileNotFoundError",
+        "readStartNs": 90487686512821,
+        "readEndNs": 90487686537613,
+        "qualification": "Missing children interface or disappearing task; not an empty child list."
+      },
+      {
+        "ownerPid": 471235,
+        "ownerBirth": 9048502,
+        "tid": 471235,
+        "path": "/proc/471235/task/471235/children",
+        "errno": 2,
+        "errorClass": "FileNotFoundError",
+        "readStartNs": 90487686813031,
+        "readEndNs": 90487686819827,
+        "qualification": "Missing children interface or disappearing task; not an empty child list."
+      },
+      {
+        "ownerPid": 471238,
+        "ownerBirth": 9048508,
+        "tid": 471238,
+        "path": "/proc/471238/task/471238/children",
+        "errno": 2,
+        "errorClass": "FileNotFoundError",
+        "readStartNs": 90487687882249,
+        "readEndNs": 90487687891148,
+        "qualification": "Missing children interface or disappearing task; not an empty child list."
+      },
+      {
+        "ownerPid": 471277,
+        "ownerBirth": 9048524,
+        "tid": 471277,
+        "path": "/proc/471277/task/471277/children",
+        "errno": 2,
+        "errorClass": "FileNotFoundError",
+        "readStartNs": 90487688339940,
+        "readEndNs": 90487688348647,
+        "qualification": "Missing children interface or disappearing task; not an empty child list."
+      },
+      {
+        "ownerPid": 471272,
+        "ownerBirth": 9048522,
+        "tid": 471272,
+        "path": "/proc/471272/task/471272/children",
+        "errno": 2,
+        "errorClass": "FileNotFoundError",
+        "readStartNs": 90487688501788,
+        "readEndNs": 90487688507468,
+        "qualification": "Missing children interface or disappearing task; not an empty child list."
+      },
+      {
+        "ownerPid": 471230,
+        "ownerBirth": 9048492,
+        "tid": 471230,
+        "path": "/proc/471230/task/471230/children",
+        "errno": 2,
+        "errorClass": "FileNotFoundError",
+        "readStartNs": 90488240283817,
+        "readEndNs": 90488240307138,
+        "qualification": "Missing children interface or disappearing task; not an empty child list."
+      },
+      {
+        "ownerPid": 471235,
+        "ownerBirth": 9048502,
+        "tid": 471235,
+        "path": "/proc/471235/task/471235/children",
+        "errno": 2,
+        "errorClass": "FileNotFoundError",
+        "readStartNs": 90488240777653,
+        "readEndNs": 90488240789777,
+        "qualification": "Missing children interface or disappearing task; not an empty child list."
+      },
+      {
+        "ownerPid": 471238,
+        "ownerBirth": 9048508,
+        "tid": 471238,
+        "path": "/proc/471238/task/471238/children",
+        "errno": 2,
+        "errorClass": "FileNotFoundError",
+        "readStartNs": 90488241803639,
+        "readEndNs": 90488241813674,
+        "qualification": "Missing children interface or disappearing task; not an empty child list."
+      },
+      {
+        "ownerPid": 471277,
+        "ownerBirth": 9048524,
+        "tid": 471277,
+        "path": "/proc/471277/task/471277/children",
+        "errno": 2,
+        "errorClass": "FileNotFoundError",
+        "readStartNs": 90488242158612,
+        "readEndNs": 90488242165530,
+        "qualification": "Missing children interface or disappearing task; not an empty child list."
+      },
+      {
+        "ownerPid": 471272,
+        "ownerBirth": 9048522,
+        "tid": 471272,
+        "path": "/proc/471272/task/471272/children",
+        "errno": 2,
+        "errorClass": "FileNotFoundError",
+        "readStartNs": 90488242289139,
+        "readEndNs": 90488242293993,
+        "qualification": "Missing children interface or disappearing task; not an empty child list."
+      },
+      {
+        "ownerPid": 471230,
+        "ownerBirth": 9048492,
+        "tid": 471230,
+        "path": "/proc/471230/task/471230/children",
+        "errno": 2,
+        "errorClass": "FileNotFoundError",
+        "readStartNs": 90488787053757,
+        "readEndNs": 90488787087543,
+        "qualification": "Missing children interface or disappearing task; not an empty child list."
+      },
+      {
+        "ownerPid": 471235,
+        "ownerBirth": 9048502,
+        "tid": 471235,
+        "path": "/proc/471235/task/471235/children",
+        "errno": 2,
+        "errorClass": "FileNotFoundError",
+        "readStartNs": 90488787535101,
+        "readEndNs": 90488787558118,
+        "qualification": "Missing children interface or disappearing task; not an empty child list."
+      },
+      {
+        "ownerPid": 471238,
+        "ownerBirth": 9048508,
+        "tid": 471238,
+        "path": "/proc/471238/task/471238/children",
+        "errno": 2,
+        "errorClass": "FileNotFoundError",
+        "readStartNs": 90488789068272,
+        "readEndNs": 90488789086538,
+        "qualification": "Missing children interface or disappearing task; not an empty child list."
+      }
+    ],
+    "pidfdDirectChildCoverage": "limited-verified-direct-children",
+    "pidfdTargetIdentities": [
+      {
+        "pid": 471235,
+        "birth": 9048502
+      },
+      {
+        "pid": 471238,
+        "birth": 9048508
+      },
+      {
+        "pid": 471272,
+        "birth": 9048522
+      },
+      {
+        "pid": 471277,
+        "birth": 9048524
+      }
+    ],
+    "pidfdGapCount": 2,
+    "fullRendererTreeCoverage": false
+  },
+  "discoveryTasks": 304,
+  "pidfdReadAttempts": 555,
+  "pidfdStatusCounts": {
+    "not-pidfd": 483,
+    "verified-direct-child": 36,
+    "pidfd-owner-scan-incomplete": 2
+  },
+  "pidfdRecords": [
+    {
+      "status": "verified-direct-child",
+      "ownerPid": 471230,
+      "ownerBirth": 9048492,
+      "monoNs": 90485487253426,
+      "coverageGap": false,
+      "fd": 0,
+      "path": "/proc/471230/fdinfo/0",
+      "pidFields": {
+        "pid": 471235,
+        "nspid": [
+          471235
+        ]
+      },
+      "firstReadStartNs": 90485487105319,
+      "firstReadEndNs": 90485487115502,
+      "targetPid": 471235,
+      "targetBirth": 9048502,
+      "role": "renderer-leader"
+    },
+    {
+      "status": "verified-direct-child",
+      "ownerPid": 471235,
+      "ownerBirth": 9048502,
+      "monoNs": 90485488362630,
+      "coverageGap": false,
+      "fd": 13,
+      "path": "/proc/471235/fdinfo/13",
+      "pidFields": {
+        "pid": 471238,
+        "nspid": [
+          471238
+        ]
+      },
+      "firstReadStartNs": 90485488154702,
+      "firstReadEndNs": 90485488162934,
+      "targetPid": 471238,
+      "targetBirth": 9048508,
+      "role": "webkit-network"
+    },
+    {
+      "status": "verified-direct-child",
+      "ownerPid": 471235,
+      "ownerBirth": 9048502,
+      "monoNs": 90485488917177,
+      "coverageGap": false,
+      "fd": 26,
+      "path": "/proc/471235/fdinfo/26",
+      "pidFields": {
+        "pid": 471277,
+        "nspid": [
+          471277
+        ]
+      },
+      "firstReadStartNs": 90485488647753,
+      "firstReadEndNs": 90485488656647,
+      "targetPid": 471277,
+      "targetBirth": 9048524,
+      "role": "renderer-descendant"
+    },
+    {
+      "status": "verified-direct-child",
+      "ownerPid": 471235,
+      "ownerBirth": 9048502,
+      "monoNs": 90485489134082,
+      "coverageGap": false,
+      "fd": 30,
+      "path": "/proc/471235/fdinfo/30",
+      "pidFields": {
+        "pid": 471272,
+        "nspid": [
+          471272
+        ]
+      },
+      "firstReadStartNs": 90485488935891,
+      "firstReadEndNs": 90485488945871,
+      "targetPid": 471272,
+      "targetBirth": 9048522,
+      "role": "renderer-descendant"
+    },
+    {
+      "status": "pidfd-owner-scan-incomplete",
+      "ownerPid": 471238,
+      "ownerBirth": 9048508,
+      "monoNs": 90485496248967,
+      "coverageGap": true,
+      "errno": null,
+      "errorClass": "TimeoutError",
+      "detail": "discovery-wall-budget"
+    },
+    {
+      "status": "verified-direct-child",
+      "ownerPid": 471230,
+      "ownerBirth": 9048492,
+      "monoNs": 90486037670776,
+      "coverageGap": false,
+      "fd": 0,
+      "path": "/proc/471230/fdinfo/0",
+      "pidFields": {
+        "pid": 471235,
+        "nspid": [
+          471235
+        ]
+      },
+      "firstReadStartNs": 90486037563341,
+      "firstReadEndNs": 90486037573435,
+      "targetPid": 471235,
+      "targetBirth": 9048502,
+      "role": "renderer-leader"
+    },
+    {
+      "status": "verified-direct-child",
+      "ownerPid": 471235,
+      "ownerBirth": 9048502,
+      "monoNs": 90486038281233,
+      "coverageGap": false,
+      "fd": 13,
+      "path": "/proc/471235/fdinfo/13",
+      "pidFields": {
+        "pid": 471238,
+        "nspid": [
+          471238
+        ]
+      },
+      "firstReadStartNs": 90486038168348,
+      "firstReadEndNs": 90486038174639,
+      "targetPid": 471238,
+      "targetBirth": 9048508,
+      "role": "webkit-network"
+    },
+    {
+      "status": "verified-direct-child",
+      "ownerPid": 471235,
+      "ownerBirth": 9048502,
+      "monoNs": 90486038573221,
+      "coverageGap": false,
+      "fd": 26,
+      "path": "/proc/471235/fdinfo/26",
+      "pidFields": {
+        "pid": 471277,
+        "nspid": [
+          471277
+        ]
+      },
+      "firstReadStartNs": 90486038498600,
+      "firstReadEndNs": 90486038504517,
+      "targetPid": 471277,
+      "targetBirth": 9048524,
+      "role": "renderer-descendant"
+    },
+    {
+      "status": "verified-direct-child",
+      "ownerPid": 471235,
+      "ownerBirth": 9048502,
+      "monoNs": 90486038650349,
+      "coverageGap": false,
+      "fd": 30,
+      "path": "/proc/471235/fdinfo/30",
+      "pidFields": {
+        "pid": 471272,
+        "nspid": [
+          471272
+        ]
+      },
+      "firstReadStartNs": 90486038583972,
+      "firstReadEndNs": 90486038589890,
+      "targetPid": 471272,
+      "targetBirth": 9048522,
+      "role": "renderer-descendant"
+    },
+    {
+      "status": "verified-direct-child",
+      "ownerPid": 471230,
+      "ownerBirth": 9048492,
+      "monoNs": 90486588172753,
+      "coverageGap": false,
+      "fd": 0,
+      "path": "/proc/471230/fdinfo/0",
+      "pidFields": {
+        "pid": 471235,
+        "nspid": [
+          471235
+        ]
+      },
+      "firstReadStartNs": 90486588041879,
+      "firstReadEndNs": 90486588053812,
+      "targetPid": 471235,
+      "targetBirth": 9048502,
+      "role": "renderer-leader"
+    },
+    {
+      "status": "verified-direct-child",
+      "ownerPid": 471235,
+      "ownerBirth": 9048502,
+      "monoNs": 90486590070570,
+      "coverageGap": false,
+      "fd": 13,
+      "path": "/proc/471235/fdinfo/13",
+      "pidFields": {
+        "pid": 471238,
+        "nspid": [
+          471238
+        ]
+      },
+      "firstReadStartNs": 90486589878005,
+      "firstReadEndNs": 90486589886323,
+      "targetPid": 471238,
+      "targetBirth": 9048508,
+      "role": "webkit-network"
+    },
+    {
+      "status": "verified-direct-child",
+      "ownerPid": 471235,
+      "ownerBirth": 9048502,
+      "monoNs": 90486590395427,
+      "coverageGap": false,
+      "fd": 26,
+      "path": "/proc/471235/fdinfo/26",
+      "pidFields": {
+        "pid": 471277,
+        "nspid": [
+          471277
+        ]
+      },
+      "firstReadStartNs": 90486590304294,
+      "firstReadEndNs": 90486590310399,
+      "targetPid": 471277,
+      "targetBirth": 9048524,
+      "role": "renderer-descendant"
+    },
+    {
+      "status": "verified-direct-child",
+      "ownerPid": 471235,
+      "ownerBirth": 9048502,
+      "monoNs": 90486591100823,
+      "coverageGap": false,
+      "fd": 30,
+      "path": "/proc/471235/fdinfo/30",
+      "pidFields": {
+        "pid": 471272,
+        "nspid": [
+          471272
+        ]
+      },
+      "firstReadStartNs": 90486590407951,
+      "firstReadEndNs": 90486590415274,
+      "targetPid": 471272,
+      "targetBirth": 9048522,
+      "role": "renderer-descendant"
+    },
+    {
+      "status": "pidfd-owner-scan-incomplete",
+      "ownerPid": 471272,
+      "ownerBirth": 9048522,
+      "monoNs": 90486592832905,
+      "coverageGap": true,
+      "errno": null,
+      "errorClass": "TimeoutError",
+      "detail": "discovery-wall-budget"
+    },
+    {
+      "status": "verified-direct-child",
+      "ownerPid": 471230,
+      "ownerBirth": 9048492,
+      "monoNs": 90487139705490,
+      "coverageGap": false,
+      "fd": 0,
+      "path": "/proc/471230/fdinfo/0",
+      "pidFields": {
+        "pid": 471235,
+        "nspid": [
+          471235
+        ]
+      },
+      "firstReadStartNs": 90487139557950,
+      "firstReadEndNs": 90487139573161,
+      "targetPid": 471235,
+      "targetBirth": 9048502,
+      "role": "renderer-leader"
+    },
+    {
+      "status": "verified-direct-child",
+      "ownerPid": 471235,
+      "ownerBirth": 9048502,
+      "monoNs": 90487140623297,
+      "coverageGap": false,
+      "fd": 13,
+      "path": "/proc/471235/fdinfo/13",
+      "pidFields": {
+        "pid": 471238,
+        "nspid": [
+          471238
+        ]
+      },
+      "firstReadStartNs": 90487140463247,
+      "firstReadEndNs": 90487140473003,
+      "targetPid": 471238,
+      "targetBirth": 9048508,
+      "role": "webkit-network"
+    },
+    {
+      "status": "verified-direct-child",
+      "ownerPid": 471235,
+      "ownerBirth": 9048502,
+      "monoNs": 90487141125718,
+      "coverageGap": false,
+      "fd": 26,
+      "path": "/proc/471235/fdinfo/26",
+      "pidFields": {
+        "pid": 471277,
+        "nspid": [
+          471277
+        ]
+      },
+      "firstReadStartNs": 90487140994873,
+      "firstReadEndNs": 90487141007308,
+      "targetPid": 471277,
+      "targetBirth": 9048524,
+      "role": "renderer-descendant"
+    },
+    {
+      "status": "verified-direct-child",
+      "ownerPid": 471235,
+      "ownerBirth": 9048502,
+      "monoNs": 90487141262951,
+      "coverageGap": false,
+      "fd": 30,
+      "path": "/proc/471235/fdinfo/30",
+      "pidFields": {
+        "pid": 471272,
+        "nspid": [
+          471272
+        ]
+      },
+      "firstReadStartNs": 90487141145671,
+      "firstReadEndNs": 90487141155509,
+      "targetPid": 471272,
+      "targetBirth": 9048522,
+      "role": "renderer-descendant"
+    },
+    {
+      "status": "verified-direct-child",
+      "ownerPid": 471230,
+      "ownerBirth": 9048492,
+      "monoNs": 90487686678932,
+      "coverageGap": false,
+      "fd": 0,
+      "path": "/proc/471230/fdinfo/0",
+      "pidFields": {
+        "pid": 471235,
+        "nspid": [
+          471235
+        ]
+      },
+      "firstReadStartNs": 90487686588752,
+      "firstReadEndNs": 90487686598284,
+      "targetPid": 471235,
+      "targetBirth": 9048502,
+      "role": "renderer-leader"
+    },
+    {
+      "status": "verified-direct-child",
+      "ownerPid": 471235,
+      "ownerBirth": 9048502,
+      "monoNs": 90487687236374,
+      "coverageGap": false,
+      "fd": 13,
+      "path": "/proc/471235/fdinfo/13",
+      "pidFields": {
+        "pid": 471238,
+        "nspid": [
+          471238
+        ]
+      },
+      "firstReadStartNs": 90487687135828,
+      "firstReadEndNs": 90487687142328,
+      "targetPid": 471238,
+      "targetBirth": 9048508,
+      "role": "webkit-network"
+    },
+    {
+      "status": "verified-direct-child",
+      "ownerPid": 471235,
+      "ownerBirth": 9048502,
+      "monoNs": 90487687770541,
+      "coverageGap": false,
+      "fd": 26,
+      "path": "/proc/471235/fdinfo/26",
+      "pidFields": {
+        "pid": 471277,
+        "nspid": [
+          471277
+        ]
+      },
+      "firstReadStartNs": 90487687691240,
+      "firstReadEndNs": 90487687697031,
+      "targetPid": 471277,
+      "targetBirth": 9048524,
+      "role": "renderer-descendant"
+    },
+    {
+      "status": "verified-direct-child",
+      "ownerPid": 471235,
+      "ownerBirth": 9048502,
+      "monoNs": 90487687848343,
+      "coverageGap": false,
+      "fd": 30,
+      "path": "/proc/471235/fdinfo/30",
+      "pidFields": {
+        "pid": 471272,
+        "nspid": [
+          471272
+        ]
+      },
+      "firstReadStartNs": 90487687782391,
+      "firstReadEndNs": 90487687788437,
+      "targetPid": 471272,
+      "targetBirth": 9048522,
+      "role": "renderer-descendant"
+    },
+    {
+      "status": "verified-direct-child",
+      "ownerPid": 471230,
+      "ownerBirth": 9048492,
+      "monoNs": 90488240556056,
+      "coverageGap": false,
+      "fd": 0,
+      "path": "/proc/471230/fdinfo/0",
+      "pidFields": {
+        "pid": 471235,
+        "nspid": [
+          471235
+        ]
+      },
+      "firstReadStartNs": 90488240367040,
+      "firstReadEndNs": 90488240377375,
+      "targetPid": 471235,
+      "targetBirth": 9048502,
+      "role": "renderer-leader"
+    },
+    {
+      "status": "verified-direct-child",
+      "ownerPid": 471235,
+      "ownerBirth": 9048502,
+      "monoNs": 90488241369500,
+      "coverageGap": false,
+      "fd": 13,
+      "path": "/proc/471235/fdinfo/13",
+      "pidFields": {
+        "pid": 471238,
+        "nspid": [
+          471238
+        ]
+      },
+      "firstReadStartNs": 90488241252039,
+      "firstReadEndNs": 90488241258541,
+      "targetPid": 471238,
+      "targetBirth": 9048508,
+      "role": "webkit-network"
+    },
+    {
+      "status": "verified-direct-child",
+      "ownerPid": 471235,
+      "ownerBirth": 9048502,
+      "monoNs": 90488241657717,
+      "coverageGap": false,
+      "fd": 26,
+      "path": "/proc/471235/fdinfo/26",
+      "pidFields": {
+        "pid": 471277,
+        "nspid": [
+          471277
+        ]
+      },
+      "firstReadStartNs": 90488241583899,
+      "firstReadEndNs": 90488241589474,
+      "targetPid": 471277,
+      "targetBirth": 9048524,
+      "role": "renderer-descendant"
+    },
+    {
+      "status": "verified-direct-child",
+      "ownerPid": 471235,
+      "ownerBirth": 9048502,
+      "monoNs": 90488241767739,
+      "coverageGap": false,
+      "fd": 30,
+      "path": "/proc/471235/fdinfo/30",
+      "pidFields": {
+        "pid": 471272,
+        "nspid": [
+          471272
+        ]
+      },
+      "firstReadStartNs": 90488241668927,
+      "firstReadEndNs": 90488241674957,
+      "targetPid": 471272,
+      "targetBirth": 9048522,
+      "role": "renderer-descendant"
+    },
+    {
+      "status": "verified-direct-child",
+      "ownerPid": 471230,
+      "ownerBirth": 9048492,
+      "monoNs": 90488787336740,
+      "coverageGap": false,
+      "fd": 0,
+      "path": "/proc/471230/fdinfo/0",
+      "pidFields": {
+        "pid": 471235,
+        "nspid": [
+          471235
+        ]
+      },
+      "firstReadStartNs": 90488787178580,
+      "firstReadEndNs": 90488787193091,
+      "targetPid": 471235,
+      "targetBirth": 9048502,
+      "role": "renderer-leader"
+    },
+    {
+      "status": "verified-direct-child",
+      "ownerPid": 471235,
+      "ownerBirth": 9048502,
+      "monoNs": 90488788234009,
+      "coverageGap": false,
+      "fd": 13,
+      "path": "/proc/471235/fdinfo/13",
+      "pidFields": {
+        "pid": 471238,
+        "nspid": [
+          471238
+        ]
+      },
+      "firstReadStartNs": 90488788055121,
+      "firstReadEndNs": 90488788073273,
+      "targetPid": 471238,
+      "targetBirth": 9048508,
+      "role": "webkit-network"
+    },
+    {
+      "status": "verified-direct-child",
+      "ownerPid": 471235,
+      "ownerBirth": 9048502,
+      "monoNs": 90488788677464,
+      "coverageGap": false,
+      "fd": 26,
+      "path": "/proc/471235/fdinfo/26",
+      "pidFields": {
+        "pid": 471277,
+        "nspid": [
+          471277
+        ]
+      },
+      "firstReadStartNs": 90488788553362,
+      "firstReadEndNs": 90488788562813,
+      "targetPid": 471277,
+      "targetBirth": 9048524,
+      "role": "renderer-descendant"
+    },
+    {
+      "status": "verified-direct-child",
+      "ownerPid": 471235,
+      "ownerBirth": 9048502,
+      "monoNs": 90488788959868,
+      "coverageGap": false,
+      "fd": 30,
+      "path": "/proc/471235/fdinfo/30",
+      "pidFields": {
+        "pid": 471272,
+        "nspid": [
+          471272
+        ]
+      },
+      "firstReadStartNs": 90488788754181,
+      "firstReadEndNs": 90488788771038,
+      "targetPid": 471272,
+      "targetBirth": 9048522,
+      "role": "renderer-descendant"
+    },
+    {
+      "status": "verified-direct-child",
+      "ownerPid": 471230,
+      "ownerBirth": 9048492,
+      "monoNs": 90489337562344,
+      "coverageGap": false,
+      "fd": 0,
+      "path": "/proc/471230/fdinfo/0",
+      "pidFields": {
+        "pid": 471235,
+        "nspid": [
+          471235
+        ]
+      },
+      "firstReadStartNs": 90489337364109,
+      "firstReadEndNs": 90489337415551,
+      "targetPid": 471235,
+      "targetBirth": 9048502,
+      "role": "renderer-leader"
+    },
+    {
+      "status": "verified-direct-child",
+      "ownerPid": 471235,
+      "ownerBirth": 9048502,
+      "monoNs": 90489338396087,
+      "coverageGap": false,
+      "fd": 13,
+      "path": "/proc/471235/fdinfo/13",
+      "pidFields": {
+        "pid": 471238,
+        "nspid": [
+          471238
+        ]
+      },
+      "firstReadStartNs": 90489338233330,
+      "firstReadEndNs": 90489338242843,
+      "targetPid": 471238,
+      "targetBirth": 9048508,
+      "role": "webkit-network"
+    },
+    {
+      "status": "verified-direct-child",
+      "ownerPid": 471235,
+      "ownerBirth": 9048502,
+      "monoNs": 90489338855843,
+      "coverageGap": false,
+      "fd": 26,
+      "path": "/proc/471235/fdinfo/26",
+      "pidFields": {
+        "pid": 471277,
+        "nspid": [
+          471277
+        ]
+      },
+      "firstReadStartNs": 90489338739050,
+      "firstReadEndNs": 90489338747937,
+      "targetPid": 471277,
+      "targetBirth": 9048524,
+      "role": "renderer-descendant"
+    },
+    {
+      "status": "verified-direct-child",
+      "ownerPid": 471235,
+      "ownerBirth": 9048502,
+      "monoNs": 90489339126568,
+      "coverageGap": false,
+      "fd": 30,
+      "path": "/proc/471235/fdinfo/30",
+      "pidFields": {
+        "pid": 471272,
+        "nspid": [
+          471272
+        ]
+      },
+      "firstReadStartNs": 90489338873490,
+      "firstReadEndNs": 90489338882527,
+      "targetPid": 471272,
+      "targetBirth": 9048522,
+      "role": "renderer-descendant"
+    },
+    {
+      "status": "verified-direct-child",
+      "ownerPid": 471230,
+      "ownerBirth": 9048492,
+      "monoNs": 90489887830798,
+      "coverageGap": false,
+      "fd": 0,
+      "path": "/proc/471230/fdinfo/0",
+      "pidFields": {
+        "pid": 471235,
+        "nspid": [
+          471235
+        ]
+      },
+      "firstReadStartNs": 90489887685647,
+      "firstReadEndNs": 90489887698794,
+      "targetPid": 471235,
+      "targetBirth": 9048502,
+      "role": "renderer-leader"
+    },
+    {
+      "status": "verified-direct-child",
+      "ownerPid": 471235,
+      "ownerBirth": 9048502,
+      "monoNs": 90489888897080,
+      "coverageGap": false,
+      "fd": 13,
+      "path": "/proc/471235/fdinfo/13",
+      "pidFields": {
+        "pid": 471238,
+        "nspid": [
+          471238
+        ]
+      },
+      "firstReadStartNs": 90489888732750,
+      "firstReadEndNs": 90489888740959,
+      "targetPid": 471238,
+      "targetBirth": 9048508,
+      "role": "webkit-network"
+    },
+    {
+      "status": "verified-direct-child",
+      "ownerPid": 471235,
+      "ownerBirth": 9048502,
+      "monoNs": 90489889432413,
+      "coverageGap": false,
+      "fd": 26,
+      "path": "/proc/471235/fdinfo/26",
+      "pidFields": {
+        "pid": 471277,
+        "nspid": [
+          471277
+        ]
+      },
+      "firstReadStartNs": 90489889288919,
+      "firstReadEndNs": 90489889298216,
+      "targetPid": 471277,
+      "targetBirth": 9048524,
+      "role": "renderer-descendant"
+    },
+    {
+      "status": "verified-direct-child",
+      "ownerPid": 471235,
+      "ownerBirth": 9048502,
+      "monoNs": 90489889565732,
+      "coverageGap": false,
+      "fd": 30,
+      "path": "/proc/471235/fdinfo/30",
+      "pidFields": {
+        "pid": 471272,
+        "nspid": [
+          471272
+        ]
+      },
+      "firstReadStartNs": 90489889456003,
+      "firstReadEndNs": 90489889465885,
+      "targetPid": 471272,
+      "targetBirth": 9048522,
+      "role": "renderer-descendant"
+    }
+  ],
+  "pidfdRecordDrops": 0,
+  "discoveryRounds": [
+    {
+      "startedNs": 90484936101501,
+      "endedNs": 90484936589100,
+      "durationNs": 485266,
+      "incomplete": true,
+      "taskEntries": 1,
+      "fdCandidates": 8,
+      "fdinfoReadAttempts": 8
+    },
+    {
+      "startedNs": 90485486781286,
+      "endedNs": 90485496264979,
+      "durationNs": 9479359,
+      "incomplete": true,
+      "taskEntries": 31,
+      "fdCandidates": 47,
+      "fdinfoReadAttempts": 44
+    },
+    {
+      "startedNs": 90486037280004,
+      "endedNs": 90486039616289,
+      "durationNs": 2335139,
+      "incomplete": true,
+      "taskEntries": 34,
+      "fdCandidates": 59,
+      "fdinfoReadAttempts": 63
+    },
+    {
+      "startedNs": 90486587494941,
+      "endedNs": 90486592840016,
+      "durationNs": 5342969,
+      "incomplete": true,
+      "taskEntries": 34,
+      "fdCandidates": 59,
+      "fdinfoReadAttempts": 62
+    },
+    {
+      "startedNs": 90487139246463,
+      "endedNs": 90487142247677,
+      "durationNs": 2998804,
+      "incomplete": true,
+      "taskEntries": 34,
+      "fdCandidates": 59,
+      "fdinfoReadAttempts": 63
+    },
+    {
+      "startedNs": 90487686449305,
+      "endedNs": 90487688653280,
+      "durationNs": 2202699,
+      "incomplete": true,
+      "taskEntries": 34,
+      "fdCandidates": 59,
+      "fdinfoReadAttempts": 63
+    },
+    {
+      "startedNs": 90488240070123,
+      "endedNs": 90488242397133,
+      "durationNs": 2325690,
+      "incomplete": true,
+      "taskEntries": 34,
+      "fdCandidates": 59,
+      "fdinfoReadAttempts": 63
+    },
+    {
+      "startedNs": 90488786736308,
+      "endedNs": 90488789912846,
+      "durationNs": 3174362,
+      "incomplete": true,
+      "taskEntries": 34,
+      "fdCandidates": 59,
+      "fdinfoReadAttempts": 63
+    },
+    {
+      "startedNs": 90489336934619,
+      "endedNs": 90489341160098,
+      "durationNs": 4223643,
+      "incomplete": true,
+      "taskEntries": 34,
+      "fdCandidates": 59,
+      "fdinfoReadAttempts": 63
+    },
+    {
+      "startedNs": 90489887332851,
+      "endedNs": 90489890511271,
+      "durationNs": 3176694,
+      "incomplete": true,
+      "taskEntries": 34,
+      "fdCandidates": 59,
+      "fdinfoReadAttempts": 63
+    }
+  ],
+  "discoveryRoundRecordDrops": 0,
+  "overhead": {
+    "observerOwnCpuNs": 82223314,
+    "prelaunchHashCpuNs": 25281424,
+    "afterReadyCpuNs": 56945087,
+    "procReads": 1694,
+    "readTotalNs": 23882614,
+    "readMaxNs": 6330800,
+    "sampleTotalNs": 5780106,
+    "sampleMaxNs": 435706,
+    "discoveryTotalNs": 35744625,
+    "discoveryMaxNs": 9479359
+  },
+  "errors": [
+    {
+      "monoNs": 90484936337839,
+      "stage": "children-discovery-incomplete",
+      "error": "ValueError",
+      "detail": "children-interface-unavailable-coverage-incomplete"
+    },
+    {
+      "monoNs": 90485487039327,
+      "stage": "children-discovery-incomplete",
+      "error": "ValueError",
+      "detail": "children-interface-unavailable-coverage-incomplete"
+    },
+    {
+      "monoNs": 90485487546573,
+      "stage": "children-discovery-incomplete",
+      "error": "ValueError",
+      "detail": "children-interface-unavailable-coverage-incomplete"
+    },
+    {
+      "monoNs": 90485489387584,
+      "stage": "children-discovery-incomplete",
+      "error": "ValueError",
+      "detail": "children-interface-unavailable-coverage-incomplete"
+    },
+    {
+      "monoNs": 90485496258733,
+      "stage": "discovery-incomplete",
+      "error": "TimeoutError",
+      "detail": "discovery-wall-budget"
+    },
+    {
+      "monoNs": 90486037483274,
+      "stage": "children-discovery-incomplete",
+      "error": "ValueError",
+      "detail": "children-interface-unavailable-coverage-incomplete"
+    },
+    {
+      "monoNs": 90486037824812,
+      "stage": "children-discovery-incomplete",
+      "error": "ValueError",
+      "detail": "children-interface-unavailable-coverage-incomplete"
+    },
+    {
+      "monoNs": 90486038698793,
+      "stage": "children-discovery-incomplete",
+      "error": "ValueError",
+      "detail": "children-interface-unavailable-coverage-incomplete"
+    },
+    {
+      "monoNs": 90486039090081,
+      "stage": "children-discovery-incomplete",
+      "error": "ValueError",
+      "detail": "children-interface-unavailable-coverage-incomplete"
+    },
+    {
+      "monoNs": 90486039470110,
+      "stage": "children-discovery-incomplete",
+      "error": "ValueError",
+      "detail": "children-interface-unavailable-coverage-incomplete"
+    },
+    {
+      "monoNs": 90486587912363,
+      "stage": "children-discovery-incomplete",
+      "error": "ValueError",
+      "detail": "children-interface-unavailable-coverage-incomplete"
+    },
+    {
+      "monoNs": 90486588337520,
+      "stage": "children-discovery-incomplete",
+      "error": "ValueError",
+      "detail": "children-interface-unavailable-coverage-incomplete"
+    },
+    {
+      "monoNs": 90486591487810,
+      "stage": "children-discovery-incomplete",
+      "error": "ValueError",
+      "detail": "children-interface-unavailable-coverage-incomplete"
+    },
+    {
+      "monoNs": 90486591828808,
+      "stage": "children-discovery-incomplete",
+      "error": "ValueError",
+      "detail": "children-interface-unavailable-coverage-incomplete"
+    },
+    {
+      "monoNs": 90486591957576,
+      "stage": "children-discovery-incomplete",
+      "error": "ValueError",
+      "detail": "children-interface-unavailable-coverage-incomplete"
+    },
+    {
+      "monoNs": 90487139477537,
+      "stage": "children-discovery-incomplete",
+      "error": "ValueError",
+      "detail": "children-interface-unavailable-coverage-incomplete"
+    },
+    {
+      "monoNs": 90487139926866,
+      "stage": "children-discovery-incomplete",
+      "error": "ValueError",
+      "detail": "children-interface-unavailable-coverage-incomplete"
+    },
+    {
+      "monoNs": 90487141334381,
+      "stage": "children-discovery-incomplete",
+      "error": "ValueError",
+      "detail": "children-interface-unavailable-coverage-incomplete"
+    },
+    {
+      "monoNs": 90487141828203,
+      "stage": "children-discovery-incomplete",
+      "error": "ValueError",
+      "detail": "children-interface-unavailable-coverage-incomplete"
+    },
+    {
+      "monoNs": 90487142078429,
+      "stage": "children-discovery-incomplete",
+      "error": "ValueError",
+      "detail": "children-interface-unavailable-coverage-incomplete"
+    },
+    {
+      "monoNs": 90487686543906,
+      "stage": "children-discovery-incomplete",
+      "error": "ValueError",
+      "detail": "children-interface-unavailable-coverage-incomplete"
+    },
+    {
+      "monoNs": 90487686822073,
+      "stage": "children-discovery-incomplete",
+      "error": "ValueError",
+      "detail": "children-interface-unavailable-coverage-incomplete"
+    },
+    {
+      "monoNs": 90487687894149,
+      "stage": "children-discovery-incomplete",
+      "error": "ValueError",
+      "detail": "children-interface-unavailable-coverage-incomplete"
+    },
+    {
+      "monoNs": 90487688351249,
+      "stage": "children-discovery-incomplete",
+      "error": "ValueError",
+      "detail": "children-interface-unavailable-coverage-incomplete"
+    },
+    {
+      "monoNs": 90487688508926,
+      "stage": "children-discovery-incomplete",
+      "error": "ValueError",
+      "detail": "children-interface-unavailable-coverage-incomplete"
+    },
+    {
+      "monoNs": 90488240314458,
+      "stage": "children-discovery-incomplete",
+      "error": "ValueError",
+      "detail": "children-interface-unavailable-coverage-incomplete"
+    },
+    {
+      "monoNs": 90488240793468,
+      "stage": "children-discovery-incomplete",
+      "error": "ValueError",
+      "detail": "children-interface-unavailable-coverage-incomplete"
+    },
+    {
+      "monoNs": 90488241816847,
+      "stage": "children-discovery-incomplete",
+      "error": "ValueError",
+      "detail": "children-interface-unavailable-coverage-incomplete"
+    },
+    {
+      "monoNs": 90488242167518,
+      "stage": "children-discovery-incomplete",
+      "error": "ValueError",
+      "detail": "children-interface-unavailable-coverage-incomplete"
+    },
+    {
+      "monoNs": 90488242295213,
+      "stage": "children-discovery-incomplete",
+      "error": "ValueError",
+      "detail": "children-interface-unavailable-coverage-incomplete"
+    },
+    {
+      "monoNs": 90488787097258,
+      "stage": "children-discovery-incomplete",
+      "error": "ValueError",
+      "detail": "children-interface-unavailable-coverage-incomplete"
+    },
+    {
+      "monoNs": 90488787563851,
+      "stage": "children-discovery-incomplete",
+      "error": "ValueError",
+      "detail": "children-interface-unavailable-coverage-incomplete"
+    }
+  ],
+  "errorCount": 45,
+  "limits": {
+    "identities": 64,
+    "tasksPerDiscovery": 128,
+    "childrenPerParent": 128,
+    "fdinfoReadsPerOwner": 32,
+    "fdinfoReadsPerRound": 128,
+    "fdinfoCandidatesPerOwner": 32,
+    "fdinfoCandidatesPerRound": 128,
+    "discoveryWallBudgetNs": 5000000,
+    "sampleWallBudgetNs": 10000000,
+    "sampleBytes": 2097152,
+    "maxSeconds": 60
+  },
+  "qualifications": [
+    "Guardian environ PermissionError is an explicit optional-check gap; native creation proof plus live exact identities remain required.",
+    "Oversized render-accepted payload lines are intentionally skipped; this is not an identity-loss counter.",
+    "Process CPU is own process utime/stime; guardian and App separate from renderer tree.",
+    "schedstat is leader-thread only, not process-wide; zero may mean accounting unavailable.",
+    "Short-lived and pre-discovery CPU is not reconstructed; parent linkage is not atomic.",
+    "No shared cgroup CPU included in renderer totals. No interval interpolation.",
+    "Asynchronous native events can be lost; requestIds are observed, never presumed.",
+    "Discovery time budget is cooperative; individual kernel reads cannot be preempted.",
+    "Sample loop overhead includes polling/discovery; perturbation is measured, not subtracted."
+  ],
+  "failure": null
+}

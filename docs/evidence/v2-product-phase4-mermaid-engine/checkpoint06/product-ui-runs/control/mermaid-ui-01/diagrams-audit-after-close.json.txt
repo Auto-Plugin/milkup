@@ -1,0 +1,127 @@
+{
+  "source": "Read-only SQLite ItemTable persisted public plugin registry after app close",
+  "snapshots": [
+    {
+      "path": "/workspace/milkup-mermaid-engine-evidence/product-ui-runs/control/mermaid-ui-01/postclose-tauri_localhost_0.localstorage",
+      "sha256": "352a9bb23c329c5a9bf235baf56917358b5b64b03f1a11d261fadae9c3cdb721"
+    },
+    {
+      "path": "/workspace/milkup-mermaid-engine-evidence/product-ui-runs/control/mermaid-ui-01/postclose-tauri_localhost_0.localstorage-wal",
+      "sha256": "3c6e0048736c344fd122e7e53e9662adb08eb235431814ceca898fad3e67e25f"
+    },
+    {
+      "path": "/workspace/milkup-mermaid-engine-evidence/product-ui-runs/control/mermaid-ui-01/postclose-tauri_localhost_0.localstorage-shm",
+      "sha256": "fbc24cfdac54a0cfb701768df457233f48c96945cddbbc492419f94dd788e496"
+    }
+  ],
+  "audit": [
+    {
+      "pluginId": "milkup.diagrams",
+      "operation": "install",
+      "at": 1792157884106,
+      "atUtc": "2026-10-16T13:38:04.106000+00:00"
+    },
+    {
+      "pluginId": "milkup.diagrams",
+      "operation": "approval",
+      "at": 1792157884109,
+      "detail": "approved",
+      "atUtc": "2026-10-16T13:38:04.109000+00:00"
+    },
+    {
+      "pluginId": "milkup.diagrams",
+      "operation": "enable",
+      "at": 1792157885829,
+      "atUtc": "2026-10-16T13:38:05.829000+00:00"
+    },
+    {
+      "pluginId": "milkup.diagrams",
+      "operation": "enable",
+      "at": 1792157889158,
+      "detail": "Document renderer exceeded its execution deadline; manually enable to retry",
+      "denied": true,
+      "atUtc": "2026-10-16T13:38:09.158000+00:00"
+    },
+    {
+      "pluginId": "milkup.diagrams",
+      "operation": "remove",
+      "at": 1792157889361,
+      "atUtc": "2026-10-16T13:38:09.361000+00:00"
+    },
+    {
+      "pluginId": "milkup.diagrams",
+      "operation": "install",
+      "at": 1792157896992,
+      "atUtc": "2026-10-16T13:38:16.992000+00:00"
+    },
+    {
+      "pluginId": "milkup.diagrams",
+      "operation": "approval",
+      "at": 1792157898007,
+      "detail": "approved",
+      "atUtc": "2026-10-16T13:38:18.007000+00:00"
+    },
+    {
+      "pluginId": "milkup.diagrams",
+      "operation": "enable",
+      "at": 1792157899386,
+      "atUtc": "2026-10-16T13:38:19.386000+00:00"
+    }
+  ],
+  "current": [
+    {
+      "manifest": {
+        "id": "milkup.diagrams",
+        "name": "Milkup Diagrams",
+        "version": "1.1.0",
+        "host": "dom",
+        "main": "./dist/plugin.js",
+        "resources": [
+          "THIRD-PARTY-NOTICES.txt",
+          "dependency-provenance.json"
+        ],
+        "description": "使用完整官方 Mermaid 引擎离线呈现图表；无法安全呈现的内容保留完整源码。",
+        "engines": {
+          "milkup": "^2.0.0-0",
+          "pluginSdk": ">=0.3.4 <0.4.0"
+        },
+        "permissions": [
+          "document:read"
+        ],
+        "contributes": {
+          "documentRenderers": [
+            {
+              "id": "diagrams.mermaid",
+              "contexts": [
+                "fence"
+              ],
+              "fenceLanguages": [
+                "mermaid"
+              ]
+            }
+          ]
+        }
+      },
+      "manifestPath": "/workspace/milkup-mermaid-engine-evidence/product-ui-runs/profiles/mermaid-ui-01/data/app.milkup.desktop/plugins/milkup.diagrams/package/plugin.json",
+      "rootPath": "/workspace/milkup-mermaid-engine-evidence/product-ui-runs/profiles/mermaid-ui-01/data/app.milkup.desktop/plugins/milkup.diagrams/package",
+      "sourcePath": "/workspace/milkup-mermaid-engine-evidence/research/generic-build-gate-preparation/final-build01/standalone/plugin/dist/milkup.diagrams-1.1.0.milkup-plugin",
+      "state": "enabled",
+      "enabled": true,
+      "installedAt": 1792157896991,
+      "updatedAt": 1792157899386,
+      "trust": "development",
+      "dataRoot": "/workspace/milkup-mermaid-engine-evidence/product-ui-runs/profiles/mermaid-ui-01/data/app.milkup.desktop/plugins/milkup.diagrams/data",
+      "storageRoot": "/workspace/milkup-mermaid-engine-evidence/product-ui-runs/profiles/mermaid-ui-01/data/app.milkup.desktop/plugins/milkup.diagrams/storage",
+      "approvals": {
+        "permissions": [
+          "document:read"
+        ],
+        "hosts": [
+          "dom"
+        ]
+      },
+      "errors": []
+    }
+  ],
+  "timingBoundary": "Enable-to-deadline interval is not active render duration; request start was not captured."
+}

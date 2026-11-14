@@ -1,0 +1,236 @@
+"""Finite memory-only contracts; no real process/cgroup/native loop reads."""
+import importlib.util
+from pathlib import Path
+import sys
+import unittest
+sys.dont_write_bytecode = True
+spec = importlib.util.spec_from_file_location('app_cpu_ring', Path(__file__).with_name('app_cpu_ring.py'))
+m = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(m)
+
+
+def proc_stat(pid=123, birth=456, state='S', utime=10, stime=20, rss=30):
+    words = [state] + ['0'] * 23
+    for index, value in [(11, utime), (12, stime), (19, birth), (21, rss)]:
+        words[index] = str(value)
+    return (str(pid) + ' (name with ) paren) ' + ' '.join(words) + '\n').encode()
+
+
+class FakeClock:
+    def __init__(self):
+        self.value = 100_000_000_000
+    def now(self):
+        return self.value
+    def cpu(self):
+        return self.value // 1000
+    def advance(self, value):
+        self.value += value
+
+
+class FakeFiles:
+    def __init__(self, clock):
+        self.clock = clock
+        self.data = {
+            '/proc/123/stat': proc_stat(), '/proc/123/cmdline': b'/exact/app\0/file.md\0',
+            '/proc/self/cgroup': b'0::/\n', '/proc/123/cgroup': b'0::/\n',
+            '/proc/self/mountinfo': b'1 2 0:24 /.. /sys/fs/cgroup ro - cgroup2 cgroup2 rw\n',
+            '/sys/fs/cgroup/cpu.stat': b'usage_usec 500\nuser_usec 300\nsystem_usec 200\nnr_throttled 4\n',
+            '/sys/fs/cgroup/cpu.max': b'400000 100000\n',
+            '/sys/fs/cgroup/memory.events': b'low 0\nhigh 0\nmax 9\noom 0\noom_kill 0\n',
+        }
+        self.links = {'/proc/self/ns/cgroup': 'cgroup:[11]', '/proc/123/ns/cgroup': 'cgroup:[11]'}
+        self.log = b''
+        self.log_id = (1, 2)
+        self.reads = []
+        self.log_reads = []
+    def read(self, path, limit):
+        self.reads.append((path, limit))
+        self.clock.advance(100)
+        value = self.data[path]
+        if isinstance(value, Exception):
+            raise value
+        if callable(value):
+            value = value()
+        if len(value) > limit:
+            raise ValueError('file-byte-limit')
+        return value
+    def link(self, path):
+        return self.links[path]
+    def log_chunk(self, path, offset, limit):
+        assert path == '/fixed/app.log'
+        assert limit <= 8192
+        self.log_reads.append((offset, limit))
+        self.clock.advance(100)
+        return b'' if offset is None else self.log[offset:offset + limit], len(self.log), self.log_id
+
+
+class Contracts(unittest.TestCase):
+    def setUp(self):
+        self.clock = FakeClock()
+        self.fs = FakeFiles(self.clock)
+        self.s = m.Sampler(self.fs, self.clock, 100, 4096, '/fixed/app.log')
+        self.expected = {'pid': 123, 'birth': '456', 'argv': ['/exact/app', '/file.md', '']}
+    def bind(self):
+        self.s.bind(self.expected)
+    def trace(self, pid=123, mono=None, instance='a'*48, request='render_9'):
+        return b'DOM_NATIVE_TIMING ' + m.encoded({'pid': pid, 'phase': 'deadline-observed',
+            'instanceId': instance, 'requestId': request,
+            'monotonicNs': self.clock.now() - 10 if mono is None else mono}) + b'\n'
+
+    def test_bind_exact_and_scope(self):
+        self.bind()
+        self.assertTrue(self.s.bound)
+        self.assertTrue(self.s.scope['sameAppGroupConfirmed'])
+        self.assertEqual(self.s.identity['argv'], ['/exact/app', '/file.md'])
+    def test_normalize_only_one_trailing_empty(self):
+        self.assertEqual(m.normalize_argv(['x', '', '']), ['x', ''])
+    def test_identity_boolean_rejected(self):
+        self.expected['pid'] = True
+        with self.assertRaises(ValueError): self.bind()
+    def test_identity_argv_mismatch(self):
+        self.fs.data['/proc/123/cmdline'] = b'/other\0/file.md\0'
+        with self.assertRaisesRegex(ValueError, 'argv-mismatch'): self.bind()
+    def test_identity_birth_race(self):
+        values = iter([proc_stat(), proc_stat(birth=457)])
+        self.fs.data['/proc/123/stat'] = lambda: next(values)
+        with self.assertRaisesRegex(ValueError, 'changed-during-bind'): self.bind()
+    def test_identity_no_rebind(self):
+        self.bind()
+        with self.assertRaisesRegex(ValueError, 'rebind'): self.bind()
+    def test_initial_terminal_rejected(self):
+        self.fs.data['/proc/123/stat'] = proc_stat(state='Z')
+        with self.assertRaises(ValueError): self.bind()
+    def test_stat_fields_not_children(self):
+        self.bind(); self.s.tick()
+        row = self.s.app.rows[-1][0]
+        self.assertEqual((row['utime'], row['stime'], row['rssBytes']), (10, 20, 122880))
+        self.assertEqual(row['readNs'], 100)
+        self.assertNotIn('cutime', row)
+        self.assertNotIn('cstime', row)
+    def test_reused_pid_is_terminal_no_rebind_or_second_read(self):
+        self.bind(); self.fs.data['/proc/123/stat'] = proc_stat(birth=999)
+        self.s.tick(); count = len(self.fs.reads)
+        self.clock.advance(m.APP_PERIOD_NS); self.s.tick()
+        self.assertEqual(self.s.app.rows[-1][0]['status'], 'terminal-not-reread')
+        self.assertEqual(len(self.fs.reads), count)
+        self.assertFalse(self.s.finish('harness-final')['ok'])
+    def test_missing_is_not_zero(self):
+        self.bind(); self.fs.data['/proc/123/stat'] = FileNotFoundError('gone')
+        self.s.tick(); row = self.s.app.rows[-1][0]
+        self.assertEqual(row['status'], 'missing')
+        self.assertNotIn('utime', row); self.assertNotIn('rssBytes', row)
+    def test_transient_read_failure_does_not_rebind(self):
+        self.bind(); self.fs.data['/proc/123/stat'] = PermissionError('blocked')
+        self.s.tick(); self.fs.data['/proc/123/stat'] = proc_stat(utime=11)
+        self.clock.advance(m.APP_PERIOD_NS); self.s.tick()
+        self.assertEqual(self.s.app.rows[-1][0]['utime'], 11)
+        self.assertFalse(self.s.finish('harness-final')['ok'])
+    def test_all_terminal_states(self):
+        for state in 'ZXx':
+            self.setUp(); self.bind(); self.fs.data['/proc/123/stat'] = proc_stat(state=state)
+            self.s.tick(); row = self.s.app.rows[-1][0]
+            self.assertEqual(row['status'], 'terminal'); self.assertNotIn('utime', row)
+    def test_no_catchup_burst_and_missing_slots(self):
+        self.bind(); self.clock.advance(3_000_000_000); self.s.tick()
+        self.assertEqual(self.s.cycles, 1)
+        self.assertGreaterEqual(self.s.app_missed_slots, 6)
+        self.s.tick(); self.assertEqual(self.s.cycles, 1)
+    def test_sixty_second_window_and_counts(self):
+        self.bind()
+        for _ in range(150): self.s.tick(); self.clock.advance(m.APP_PERIOD_NS)
+        result = self.s.finish('harness-final')
+        self.assertLessEqual(len(result['app']['samples']), 121)
+        self.assertLessEqual(len(result['cgroup']['samples']), 61)
+        self.assertTrue(all(x['monoNs'] >= self.clock.now()-m.WINDOW_NS for x in result['app']['samples']))
+        self.assertLessEqual(len(m.encoded(result['cgroup']['samples'])), m.CG_BYTES)
+        self.assertLess(len(m.encoded(result)), m.TOTAL_BYTES)
+    def test_cgroup_file_limit_missing(self):
+        self.bind(); self.fs.data['/sys/fs/cgroup/cpu.stat'] = b'x'*4097
+        self.s.tick(); row = self.s.cg.rows[-1][0]['files']['cpu.stat']
+        self.assertEqual(row['status'], 'missing'); self.assertNotIn('values', row)
+    def test_cgroup_fixed_keys(self):
+        self.assertEqual(m.numeric_cgroup('cpu.stat', b'usage_usec 1\nuser_usec 1\nsystem_usec 0\nunknown 9\n'), {'usage_usec':1,'user_usec':1,'system_usec':0})
+    def test_cgroup_required_missing_and_duplicate(self):
+        for raw in [b'usage_usec 1\n', b'usage_usec 1\nusage_usec 2\nuser_usec 1\nsystem_usec 0\n']:
+            with self.assertRaises(ValueError): m.numeric_cgroup('cpu.stat', raw)
+    def test_cpu_max_unlimited_not_zero(self):
+        value = m.numeric_cgroup('cpu.max', b'max 100000\n')
+        self.assertIsNone(value['quotaUsec']); self.assertTrue(value['unlimited'])
+    def test_different_cgroup_explicit_partial_scope(self):
+        self.fs.data['/proc/123/cgroup'] = b'0::/other\n'; self.bind()
+        self.assertFalse(self.s.scope['sameAppGroupConfirmed'])
+        self.assertIn('Observer group only', self.s.scope['qualification'])
+    def test_mount_unverified_error(self):
+        self.fs.data['/proc/self/mountinfo'] = b'no cgroup2 mount\n'; self.bind()
+        self.assertFalse(self.s.finish('harness-final')['ok'])
+    def test_error_metadata_is_bounded(self):
+        for i in range(1000): self.s.error('stage'+str(i), ValueError('x'*1000))
+        self.assertLessEqual(len(self.s.error_counts), 33)
+        self.assertEqual(len(self.s.error_examples), 32)
+        self.assertLessEqual(len(self.s.error_examples[0]['message']), 160)
+    def test_byte_ring_evicts_explicitly(self):
+        r = m.Ring(10, 200)
+        for i in range(9):r.add({'monoNs':i, 'payload':'x'*80}, i)
+        self.assertGreater(r.evicted['bytes'], 0)
+        self.assertLessEqual(r.bytes, 200)
+    def test_duration_and_cycle_stop(self):
+        self.bind(); self.clock.advance(m.MAX_SECONDS*1_000_000_000)
+        self.assertEqual(self.s.tick(), 'duration-or-cycle-limit')
+        self.setUp(); self.bind(); self.s.cycles = m.MAX_CYCLES
+        self.assertEqual(self.s.tick(), 'duration-or-cycle-limit')
+        self.assertFalse(self.s.finish('duration-or-cycle-limit')['ok'])
+    def test_finish_and_eof(self):
+        self.bind(); self.s.tick()
+        self.assertTrue(self.s.finish('harness-final')['ok'])
+        self.assertTrue(self.s.finish('EOF')['ok'])
+    def test_seek_end_does_not_read_old_deadline(self):
+        self.fs.log = self.trace(); self.bind(); self.s.tick()
+        self.assertIsNone(self.s.deadline)
+        self.assertEqual(self.s.log['initialHistorySkippedBytes'], len(self.fs.log))
+    def test_non_owned_deadline_rejected(self):
+        self.bind(); self.fs.log += self.trace(pid=124); self.s.tick()
+        self.assertIsNone(self.s.deadline)
+    def test_owned_deadline_freezes(self):
+        self.bind(); self.fs.log += self.trace()
+        self.assertEqual(self.s.tick(), 'native-deadline-observed')
+        result = self.s.finish('native-deadline-observed')
+        self.assertTrue(result['ok']); self.assertTrue(result['firstDeadline']['identityVerified'])
+    def test_partial_line_split(self):
+        self.bind(); line = self.trace(); self.fs.log += line[:40]; self.s.tick()
+        self.assertIsNone(self.s.deadline)
+        self.fs.log += line[40:]; self.clock.advance(m.APP_PERIOD_NS)
+        self.assertEqual(self.s.tick(), 'native-deadline-observed')
+    def test_deadline_gone_freezes_partial(self):
+        self.bind(); self.fs.log += self.trace(); self.fs.data['/proc/123/stat'] = FileNotFoundError('gone')
+        self.assertEqual(self.s.tick(), 'native-deadline-observed')
+        self.assertFalse(self.s.finish('native-deadline-observed')['ok'])
+    def test_deadline_changed_birth_freezes_partial(self):
+        self.bind(); self.fs.log += self.trace(); self.fs.data['/proc/123/stat'] = proc_stat(birth=999)
+        self.assertEqual(self.s.tick(), 'native-deadline-observed')
+        self.assertFalse(self.s.deadline['identityVerified'])
+    def test_log_long_line_and_backlog_bounded(self):
+        self.bind(); self.fs.log += b'x'*20000+b'\n'; self.s.tick()
+        self.assertEqual(self.s.log['bytesRead'], 8192)
+        self.assertLessEqual(len(self.s.log_pending), 4096)
+        self.assertGreater(self.s.log['maxBacklogBytes'], 0)
+        self.assertFalse(self.s.finish('harness-final')['ok'])
+    def test_log_replaced_and_truncated(self):
+        for change in ('replace', 'truncate'):
+            self.setUp(); self.fs.log=b'old\n'; self.bind()
+            if change=='replace':self.fs.log_id=(1,3)
+            else:self.fs.log=b''
+            self.s.tick(); self.assertIsNone(self.s.log_identity)
+            self.assertFalse(self.s.finish('harness-final')['ok'])
+    def test_invalid_deadline_fields_do_not_bind(self):
+        self.bind(); self.fs.log += self.trace(instance='not-instance')
+        self.s.tick(); self.assertIsNone(self.s.deadline)
+        self.assertFalse(self.s.finish('harness-final')['ok'])
+    def test_no_global_discovery_paths(self):
+        self.bind()
+        for _ in range(3):self.s.tick(); self.clock.advance(m.APP_PERIOD_NS)
+        self.assertEqual(set(path for path, _ in self.fs.reads), set(self.fs.data))
+        self.assertFalse(any('/task/' in p or p == '/proc' for p, _ in self.fs.reads))
+
+
+if __name__ == '__main__':
+    unittest.main(verbosity=2)

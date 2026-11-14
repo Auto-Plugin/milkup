@@ -1,0 +1,138 @@
+{
+  "schema": "milkup.cold-owned-cpu.v1",
+  "startedMonoNs": 88437706801814,
+  "finishedMonoNs": 88444472813482,
+  "stopReason": "controller-stop",
+  "app": {
+    "pid": 468107,
+    "birth": 8843827,
+    "parent": 468070,
+    "state": "S",
+    "userTicks": 57,
+    "systemTicks": 70,
+    "argv": [
+      "/workspace/milkup-mermaid-engine-evidence/research/native-cold-start-diagnostic-02/diagnostic-binary/milkup-desktop",
+      "/workspace/milkup-mermaid-engine-evidence/research/native-cold-start-diagnostic-02/runtime/mermaid-ui-cold-diag-02/evidence/ordinary.md"
+    ],
+    "boundNs": 88442410256602
+  },
+  "knownIdentities": [
+    {
+      "pid": 468107,
+      "birth": 8843827,
+      "parent": 468070,
+      "state": "S",
+      "userTicks": 57,
+      "systemTicks": 70,
+      "role": "App",
+      "instanceId": null,
+      "parentIdentity": null,
+      "firstSeenNs": 88442410260764,
+      "firstSampleNs": 88442410518612
+    },
+    {
+      "pid": 468234,
+      "birth": 8844239,
+      "parent": 468107,
+      "state": "R",
+      "userTicks": 0,
+      "systemTicks": 0,
+      "role": "guardian",
+      "instanceId": "998dcdc23765fdbd58a4214ae17f312649c6b5872adbd35c",
+      "parentIdentity": {
+        "pid": 468107,
+        "birth": 8843827
+      },
+      "firstSeenNs": 88442410370050,
+      "firstSampleNs": 88442410570823
+    }
+  ],
+  "samplePeriodNs": 250000000,
+  "discoveryPeriodNs": 500000000,
+  "clockTicksPerSecond": 100,
+  "nativeEvents": [
+    {
+      "instanceId": "998dcdc23765fdbd58a4214ae17f312649c6b5872adbd35c",
+      "monotonicNs": 88444154045536,
+      "phase": "dispatch",
+      "pid": 468107,
+      "requestId": "render_1",
+      "observedMonoNs": 88444160687515,
+      "observedDelayNs": 6642084,
+      "appBirth": 8843827,
+      "guardianBound": true
+    }
+  ],
+  "eventDrops": 0,
+  "logBytes": 1007,
+  "logReadNs": 890642,
+  "guardianBindingEvents": [
+    {
+      "pid": 468234,
+      "birth": 8844239,
+      "instanceId": "998dcdc23765fdbd58a4214ae17f312649c6b5872adbd35c",
+      "sourceMonoNs": 88442395131186,
+      "observedMonoNs": 88442410372978,
+      "instanceEnvironmentMatched": null,
+      "instanceEnvironmentCheck": {
+        "status": "unavailable",
+        "errorClass": "PermissionError",
+        "errno": 13
+      },
+      "nativeCreationProof": {
+        "path": "/workspace/milkup-mermaid-engine-evidence/research/native-cold-start-diagnostic-02/runtime/mermaid-ui-cold-diag-02/native-capture/events.jsonl",
+        "device": 27,
+        "inode": 706500,
+        "kind": "configured-app-owned-native-sink"
+      }
+    }
+  ],
+  "environmentUnavailableBindings": 1,
+  "identityLogBytes": 2228,
+  "requestPayloadLinesSkipped": 0,
+  "identityLogReadNs": 8871195,
+  "sampleCount": 9,
+  "sampleIncomplete": 0,
+  "retainedSamples": 9,
+  "evictedRows": 0,
+  "skippedSlots": 0,
+  "maxLateNs": 8880474,
+  "discoveryCount": 4,
+  "discoveryIncomplete": 0,
+  "discoveryTasks": 7,
+  "overhead": {
+    "observerOwnCpuNs": 42828916,
+    "prelaunchHashCpuNs": 18766340,
+    "afterReadyCpuNs": 24064660,
+    "procReads": 83,
+    "readTotalNs": 1686432,
+    "readMaxNs": 181284,
+    "sampleTotalNs": 2196269,
+    "sampleMaxNs": 622579,
+    "discoveryTotalNs": 857985,
+    "discoveryMaxNs": 294540
+  },
+  "errors": [],
+  "errorCount": 0,
+  "limits": {
+    "identities": 64,
+    "tasksPerDiscovery": 128,
+    "childrenPerParent": 128,
+    "discoveryWallBudgetNs": 5000000,
+    "sampleWallBudgetNs": 10000000,
+    "sampleBytes": 2097152,
+    "maxSeconds": 60
+  },
+  "qualifications": [
+    "Guardian environ PermissionError is an explicit optional-check gap; native creation proof plus live exact identities remain required.",
+    "Oversized render-accepted payload lines are intentionally skipped; this is not an identity-loss counter.",
+    "Process CPU is own process utime/stime; guardian and App separate from renderer tree.",
+    "schedstat is leader-thread only, not process-wide; zero may mean accounting unavailable.",
+    "Short-lived and pre-discovery CPU is not reconstructed; parent linkage is not atomic.",
+    "No shared cgroup CPU included in renderer totals. No interval interpolation.",
+    "Asynchronous native events can be lost; requestIds are observed, never presumed.",
+    "Discovery time budget is cooperative; individual kernel reads cannot be preempted.",
+    "Sample loop overhead includes polling/discovery; perturbation is measured, not subtracted."
+  ],
+  "failure": null
+}

@@ -1,0 +1,158 @@
+# Instructions
+
+- Following Playwright test failed.
+- Explain why, be concise, respect Playwright best practices.
+- Provide a snippet of code with the fix, if possible.
+
+# Test info
+
+- Name: desktop-floating-toolbar.spec.ts >> floating toolbar returns after closing the application menu without another editor event
+- Location: tests/e2e/desktop-floating-toolbar.spec.ts:342:1
+
+# Error details
+
+```
+Error: expect(locator).toBeVisible() failed
+
+Locator:  locator('[data-plugin-slot="document-toolbar"]')
+Expected: visible
+Received: hidden
+Timeout:  5000ms
+
+Call log:
+  - Expect "toBeVisible" with timeout 5000ms
+  - waiting for locator('[data-plugin-slot="document-toolbar"]')
+    14 × locator resolved to <div hidden="" role="toolbar" aria-label="文档上下文操作" data-plugin-slot="document-toolbar" class="plugin-toolbar-slot floating-document-toolbar">…</div>
+       - unexpected value "hidden"
+
+```
+
+```yaml
+- main:
+  - button "菜单"
+  - heading "sample" [level=1]
+  - paragraph: D:/notes
+  - button "最小化"
+  - button "最大化"
+  - button "关闭窗口"
+  - textbox
+  - textbox "Markdown 编辑器"
+  - button "侧栏"
+  - button "源码"
+  - text: Markdown 8613 字符 已保存
+```
+
+# Test source
+
+```ts
+  275 |     await expect(page.locator(`.milkup-line[data-line="${tableRow + 1}"]`)).toHaveText('')
+  276 |     await enterTable(page)
+  277 |     await page.getByRole('button', { name: '菜单', exact: true }).click()
+  278 |     await page.getByRole('button', { name: '插件', exact: true }).click()
+  279 |     const toggle = page.locator(
+  280 |       '.plugin-summary-card[data-plugin-id="milkup.formatting"] [role="switch"]',
+  281 |     )
+  282 |     await toggle.click()
+  283 |     await expect(toggle).toHaveAttribute('aria-checked', 'false')
+  284 |     await expect(toolbar(page).locator('button')).toHaveCount(0)
+  285 |     await expect(toolbar(page)).toBeHidden()
+  286 |     await toggle.click()
+  287 |     await expect(toggle).toHaveAttribute('aria-checked', 'true')
+  288 |     await expect(toggle).not.toHaveAttribute('aria-busy', 'true')
+  289 |     await page.locator('[data-menu-close]').click()
+  290 |     await enterTable(page)
+  291 |     await page.keyboard.press('Control+n')
+  292 |     const discard = page.getByRole('button', { name: '不保存并新建文档', exact: true })
+  293 |     if (await discard.isVisible()) await discard.click()
+  294 |     await expect(toolbar(page).locator('button')).toHaveCount(0)
+  295 |     await expect(toolbar(page)).toBeHidden()
+  296 |     await input(page).focus()
+  297 |     await page.keyboard.insertText('新文档保留😀')
+  298 |     await expect(page.locator('.milkup-line[data-line="1"]')).toHaveText('新文档保留😀')
+  299 |     await expect(toolbar(page)).toBeHidden()
+  300 |   })
+  301 | 
+  302 | for (const windowed of [false, true])
+  303 |   test(`floating toolbar ${windowed ? 'windowed' : 'ordinary'} live table keeps layout and editing after mouse command`, async ({
+  304 |     page,
+  305 |   }, info) => {
+  306 |     await openDocument(page, windowed, 'dark')
+  307 |     await page.setViewportSize({ width: 600, height: 400 })
+  308 |     await page.keyboard.press('Control+2')
+  309 |     const before = await geometry(page)
+  310 |     const cell = page.locator(`.milkup-line[data-line="${tableRow}"] .milkup-table-cell`).first()
+  311 |     await expect(cell).toHaveText('x')
+  312 |     await cell.click()
+  313 |     const addRow = toolbar(page).getByRole('button', { name: '下方加行', exact: true })
+  314 |     await expect(addRow).toBeEnabled()
+  315 |     await expect(toolbar(page)).toBeVisible()
+  316 |     const entered = await geometry(page)
+  317 |     await writeFile(
+  318 |       info.outputPath('live-layout-before-and-after.json'),
+  319 |       JSON.stringify({ before, entered }, null, 2),
+  320 |     )
+  321 |     expectSameLayout(before, entered)
+  322 |     expectBounded(entered)
+  323 |     await page.screenshot({ path: info.outputPath('live-floating-toolbar.png') })
+  324 |     await addRow.click()
+  325 |     await expect(
+  326 |       page.locator(`.milkup-line[data-line="${tableRow + 1}"] .milkup-table-cell`),
+  327 |     ).toHaveCount(2)
+  328 |     await expect(input(page)).toBeFocused()
+  329 |     await page.keyboard.insertText('Live新😀')
+  330 |     await expect(
+  331 |       page.locator(`.milkup-line[data-line="${tableRow + 1}"] .milkup-table-cell`).first(),
+  332 |     ).toContainText('Live新😀')
+  333 |     await page.keyboard.press('Control+z')
+  334 |     await page.keyboard.press('Control+z')
+  335 |     await expect(cell).toHaveText('x')
+  336 |     await expect(
+  337 |       page.locator(`.milkup-line[data-line="${tableRow + 1}"] .milkup-table-cell`),
+  338 |     ).toHaveCount(0)
+  339 |     expectSameLayout(before, await geometry(page))
+  340 |   })
+  341 | 
+  342 | test('floating toolbar returns after closing the application menu without another editor event', async ({
+  343 |   page,
+  344 | }, info) => {
+  345 |   await openDocument(page, false)
+  346 |   await enterTable(page)
+  347 |   await expect(toolbar(page).locator('[data-ui-state="ready"]')).toBeVisible()
+  348 |   // Let the current Worker notification and paint settle before opening the
+  349 |   // menu; no selection, scrolling or viewport event is injected to revive it.
+  350 |   await page.waitForTimeout(200)
+  351 |   const snapshot = () =>
+  352 |     page.evaluate(() => {
+  353 |       const slot = document.querySelector<HTMLElement>('[data-plugin-slot="document-toolbar"]')!
+  354 |       const editor = document.querySelector<HTMLElement>('.milkup-editor')!
+  355 |       const active = document.activeElement as HTMLElement | null
+  356 |       return {
+  357 |         toolbarHidden: slot.hidden,
+  358 |         toolbarState: slot.querySelector<HTMLElement>('[data-ui-state]')?.dataset.uiState,
+  359 |         buttonCount: slot.querySelectorAll('button').length,
+  360 |         editorInert: Boolean(editor.closest('[inert]')),
+  361 |         active: {
+  362 |           tag: active?.tagName,
+  363 |           label: active?.getAttribute('aria-label'),
+  364 |           className: active?.className,
+  365 |         },
+  366 |         cursorPosition: editor.querySelector<HTMLElement>('.milkup-cursor')?.dataset.position,
+  367 |       }
+  368 |     })
+  369 |   const before = await snapshot()
+  370 |   await page.getByRole('button', { name: '菜单', exact: true }).click()
+  371 |   await expect(toolbar(page)).toBeHidden()
+  372 |   await page.locator('[data-menu-close]').click()
+  373 |   await expect(page.locator('[data-app-menu]')).toBeHidden()
+  374 |   try {
+> 375 |     await expect(toolbar(page)).toBeVisible()
+      |                                 ^ Error: expect(locator).toBeVisible() failed
+  376 |   } finally {
+  377 |     await writeFile(
+  378 |       info.outputPath('application-menu-toolbar-state.json'),
+  379 |       JSON.stringify({ before, after: await snapshot() }, null, 2),
+  380 |     )
+  381 |   }
+  382 | })
+  383 | 
+```

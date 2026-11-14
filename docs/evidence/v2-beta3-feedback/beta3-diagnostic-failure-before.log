@@ -1,0 +1,62 @@
+
+ RUN  v3.2.6 /tmp/milkup-windows-manual-candidate
+
+ ❯ apps/desktop/src/desktop-plugin-manager.test.ts (32 tests | 1 failed | 30 skipped) 77ms
+   ↓ DesktopPluginManager > exposes a stable read-only renderer generation that changes across disable and re-enable
+   ↓ DesktopPluginManager > rejects a temporary-store plugin on SDK 0.1.0 before executing its module
+   ↓ DesktopPluginManager > rejects incompatible upgrade {"pluginSdk":"^9.0.0"} before writing or changing the enabled installation
+   ↓ DesktopPluginManager > rejects incompatible upgrade {"milkup":"^9.0.0"} before writing or changing the enabled installation
+   ↓ DesktopPluginManager > does not create files, directories or registry records for a new incompatible archive
+   ↓ DesktopPluginManager > does not create files, directories or registry records for a new incompatible manifest
+   ↓ DesktopPluginManager > cleans temporary stores on disable and close, and permits a fresh activation after close fails
+   ↓ DesktopPluginManager > loads a relative entry from the plugin root and cleans runtime resources on disable
+   ↓ DesktopPluginManager > reports error Worker startup failure and releases the Worker
+   ↓ DesktopPluginManager > reports silent Worker startup failure and releases the Worker
+   ↓ DesktopPluginManager > reports transport Worker startup failure and releases the Worker
+   ↓ DesktopPluginManager > reactivates persisted enabled plugins during startup
+   ↓ DesktopPluginManager > exports a validated local development package with its entry and resources
+   ↓ DesktopPluginManager > exports installed PNG icons as base64 and preserves them when reinstalling the archive
+   ↓ DesktopPluginManager > keeps invalid manifests visible as install failures without damaging installed records
+   ↓ DesktopPluginManager > honors keymap when contexts and exposes conflicts in manager markup
+   ↓ DesktopPluginManager > runs ChatGPT-style importers and returns generated Markdown without a source file identity
+   ↓ DesktopPluginManager > requires explicit approval for file capabilities and revokes enabled resources
+   ↓ DesktopPluginManager > gates workspace scope creation on explicit approval and revokes captured brokers before unload
+   ↓ DesktopPluginManager > keeps sidecar plugins disabled until their host is explicitly approved
+   ↓ DesktopPluginManager > provides document scan capabilities to plugins with document read permission
+   ↓ DesktopPluginManager > permits explicit retry after a render timeout while keeping the old broker revoked
+   ↓ DesktopPluginManager > ignores a retired worker timeout callback after a new activation
+   ↓ DesktopPluginManager > records a host failure distinctly and permits explicit retry without reviving its old callbacks
+   ↓ DesktopPluginManager > preserves host failure provenance across restart for explicit retry
+   ↓ DesktopPluginManager > waits for timed-out activation cleanup before publishing a replacement
+   ↓ resolvePluginEntryPath > resolves package entries and rejects paths outside the package
+   ↓ P6 lifecycle failure boundaries > attempts every cleanup after an independent service rejects and revokes the old epoch
+   ↓ P6 lifecycle failure boundaries > keeps a usable in-memory result when mirror quota fails
+   ↓ P6 lifecycle failure boundaries > retains corrupt legacy bytes for native migration diagnostics rather than deleting evidence
+   × beta3 activation failure diagnostics without native catalog > preserves the matching runtime activation message instead of stringifying its typed record 66ms
+     → expected '[object Object]' to contain 'fixture activation failed'
+   ✓ beta3 activation failure diagnostics without native catalog > does not extract another owner, wrong phase, or arbitrary accessor diagnostics 10ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  apps/desktop/src/desktop-plugin-manager.test.ts > beta3 activation failure diagnostics without native catalog > preserves the matching runtime activation message instead of stringifying its typed record
+AssertionError: expected '[object Object]' to contain 'fixture activation failed'
+
+Expected: "fixture activation failed"
+Received: "[object Object]"
+
+ ❯ apps/desktop/src/desktop-plugin-manager.test.ts:1102:37
+    1100|     const failed = await manager.enable('example-tools')
+    1101|     expect(failed.state).toBe('failed')
+    1102|     expect(failed.errors.join(' ')).toContain('fixture activation fail…
+       |                                     ^
+    1103|     expect(failed.errors.join(' ')).not.toContain('[object Object]')
+    1104|   })
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 1 passed | 30 skipped (32)
+   Start at  01:37:57
+   Duration  2.77s (transform 1.52s, setup 0ms, collect 2.02s, tests 77ms, environment 0ms, prepare 164ms)
+

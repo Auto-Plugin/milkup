@@ -1,0 +1,74 @@
+#!/usr/bin/env python3
+"""Read/hash and process/listener identity checks only; no App/driver/sampler launch."""
+import argparse
+import hashlib
+import json
+import os
+import socket
+import time
+from pathlib import Path
+
+BASE = Path('/workspace/milkup-mermaid-engine-evidence/research/native-cold-cpu-single-03')
+OLD = BASE.parent / 'native-cold-cpu-batch-01'
+
+
+def record(path):
+    data = path.read_bytes()
+    return {'path': str(path), 'bytes': len(data), 'sha256': hashlib.sha256(data).hexdigest()}
+
+
+def verify(path, expected, size=None):
+    row = record(path)
+    assert row['sha256'] == expected, str(path)
+    if size is not None:
+        assert row['bytes'] == size, str(path)
+    return row
+
+
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--output', required=True)
+    args = parser.parse_args()
+    manifest = json.loads((BASE / 'prepared-inputs.json').read_text())
+    inputs = [verify(Path(row['path']), row['sha256'], row['bytes']) for row in manifest['inputs']]
+    prior_summary = OLD / 'summary.json'
+    history = [verify(prior_summary, 'f06714a024ab8c6f684aef23040ffd5ad90a6486242070331048e5ba3f2a029c')]
+    for row in json.loads(prior_summary.read_text())['manifest']:
+        history.append(verify(OLD / row['path'], row['sha256'], row['bytes']))
+    prior02 = BASE.parent / 'native-cold-cpu-single-02'
+    history.append(verify(prior02 / 'summary.json', 'cfe674d2e5a7200cd4651e34b41cfdcc052d63a58f87c2067c31ee751f6ff552'))
+    for row in json.loads((prior02 / 'summary.json').read_text())['manifest']:
+        history.append(verify(prior02 / row['path'], row['sha256'], row['bytes']))
+    formal = []
+    for path, sha in json.loads((OLD / 'historical-after.json').read_text())['files'].items():
+        formal.append(verify(Path(path), sha))
+    for key in ['LD_PRELOAD', 'WEBKIT_DISABLE_SANDBOX_THIS_IS_DANGEROUS', 'MILKUP_GTK_THREAD_TRACE',
+                'PROOT_NO_SECCOMP', 'CARGO_TARGET_X86_64_UNKNOWN_LINUX_GNU_RUNNER']:
+        assert not os.environ.get(key), 'Forbidden inherited setting: ' + key
+    proc = Path('/proc/288383')
+    argv = proc.joinpath('cmdline').read_bytes().decode().split('\0')
+    birth = int(proc.joinpath('stat').read_text().rsplit(')', 1)[1].split()[19])
+    assert birth == 4366483 and argv == ['Xvfb', ':126', '-screen', '0', '1600x1100x24', '-nolisten', 'tcp', '']
+    assert Path('/tmp/.X11-unix/X126').is_socket()
+    for port in [4626, 4627]:
+        with socket.socket() as connection:
+            assert connection.connect_ex(('127.0.0.1', port)) != 0, 'Active driver port'
+    fresh = [BASE / 'run', BASE / 'native-driver-first.log', BASE / 'harness-first.log',
+             Path('/workspace/milkup-mermaid-engine-evidence/product-ui-runs/profiles/mermaid-ui-cold-cpu-single-03'),
+             Path('/tmp/milkup-runtime-mermaid-ui-cold-cpu-single-03')]
+    for path in fresh:
+        assert not path.exists(), 'Never reuse/retry: ' + str(path)
+    report = {'time': time.time(), 'classification': 'READ_ONLY_PREFLIGHT_NOT_RUNTIME_GO',
+              'manifest': record(BASE / 'prepared-inputs.json'), 'inputs': inputs,
+              'oldColdBatchEvidence': history, 'formalUI04History': formal,
+              'xvfb': {'pid': 288383, 'birth': birth, 'argv': argv}, 'portsFree': [4626, 4627],
+              'freshPaths': [str(path) for path in fresh], 'forbiddenSettingsUnset': True,
+              'runtimeLaunched': False, 'samplerExecuted': False}
+    with Path(args.output).open('x') as output:
+        json.dump(report, output, indent=2)
+        output.write('\n')
+    print(json.dumps({'output': args.output, 'inputs': len(inputs), 'oldEvidence': len(history), 'formalHistory': len(formal)}))
+
+
+if __name__ == '__main__':
+    main()

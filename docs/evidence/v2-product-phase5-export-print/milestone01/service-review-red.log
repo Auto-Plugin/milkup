@@ -1,0 +1,115 @@
+
+ RUN  v3.2.6 /workspace/milkup/apps/desktop
+
+ ❯ src/output-service.test.ts (14 tests | 4 failed) 85ms
+   ✓ controlled desktop output > writes a complete immutable captured version after subsequent edits 15ms
+   ✓ controlled desktop output > rejects a document version change during capture before allocating a native job 1ms
+   ✓ controlled desktop output > aborts owned jobs on disposal and isolates plugin handles 2ms
+   ✓ controlled desktop output > reports committed writes when cancellation arrives after native commit 2ms
+   ✓ controlled desktop output > rejects oversized source before reads and preserves native outputs on cancelled chooser 14ms
+   ✓ controlled desktop output > preserves CRLF, Unicode and blank lines across bounded source windows 22ms
+   ✓ controlled desktop output > keeps a selected absolute range and warns about unavailable rich context 1ms
+   ✓ controlled desktop output > cleans a late native preparation when capture was cancelled 1ms
+   ✓ controlled desktop output > makes unavailable and remote images visible without network requests 2ms
+   ✓ controlled desktop output > does not allocate a target on chooser cancellation or write afterwards 1ms
+   × controlled desktop output > captures adjacent long lines without exceeding the per-read budget 9ms
+     → Output operation failed: too-large
+   × controlled desktop output > preserves a final bare CR instead of silently truncating source metadata 4ms
+     → expected 6 to be 7 // Object.is equality
+   × controlled desktop output > maps native rejection after cancellation to aborted while retaining the success contract 5ms
+     → expected 'Output cancelled' to match object { code: 'aborted' }
+   × controlled desktop output > rejects HTML above the native transfer budget before asking for a destination 3ms
+     → promise resolved "{ …(8) }" instead of rejecting
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 4 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/output-service.test.ts > controlled desktop output > captures adjacent long lines without exceeding the per-read budget
+PluginOutputError: Output operation failed: too-large
+ ❯ fail src/output-service.ts:41:9
+     39| }
+     40| const fail = (code: ConstructorParameters<typeof PluginOutputError>[0]…
+     41|   throw new PluginOutputError(code)
+       |         ^
+     42| }
+     43| const clean = (value: string, max = 256) => value.replace(/[\x00-\x1f]…
+ ❯ src/output-service.ts:167:53
+ ❯ operation src/output-service.ts:84:18
+ ❯ src/output-service.test.ts:196:22
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/4]⎯
+
+ FAIL  src/output-service.test.ts > controlled desktop output > preserves a final bare CR instead of silently truncating source metadata
+AssertionError: expected 6 to be 7 // Object.is equality
+
+- Expected
++ Received
+
+- 7
++ 6
+
+ ❯ src/output-service.test.ts:202:25
+    200|     const f = setup('ending\r')
+    201|     const snapshot = await f.service.adapterForPlugin('a').adapter.cap…
+    202|     expect(snapshot.to).toBe(7)
+       |                         ^
+    203|   })
+    204|   it('maps native rejection after cancellation to aborted while retain…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/4]⎯
+
+ FAIL  src/output-service.test.ts > controlled desktop output > maps native rejection after cancellation to aborted while retaining the success contract
+AssertionError: expected 'Output cancelled' to match object { code: 'aborted' }
+
+- Expected: 
+{
+  "code": "aborted",
+}
+
++ Received: 
+"Output cancelled"
+
+ ❯ src/output-service.test.ts:214:5
+    212|       return true
+    213|     })
+    214|     await expect(adapter.write(target.id, { signal: controller.signal …
+       |     ^
+    215|   })
+    216|   it('rejects HTML above the native transfer budget before asking for …
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/4]⎯
+
+ FAIL  src/output-service.test.ts > controlled desktop output > rejects HTML above the native transfer budget before asking for a destination
+AssertionError: promise resolved "{ …(8) }" instead of rejecting
+
+- Expected
++ Received
+
+- Error {
+-   "message": "rejected promise",
++ {
++   "documentId": "doc",
++   "from": 0,
++   "id": "55a2c65105084df98e01cfd0260c312b",
++   "lineCount": 3,
++   "title": "笔记.md",
++   "to": 15,
++   "version": 4,
++   "warnings": [],
+  }
+
+ ❯ src/output-service.test.ts:220:76
+    218|     try {
+    219|       const f = setup()
+    220|       await expect(f.service.adapterForPlugin('a').adapter.capture(req…
+       |                                                                            ^
+    221|       expect(f.calls).toEqual([])
+    222|     } finally { render.mockRestore() }
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/4]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  4 failed | 10 passed (14)
+   Start at  02:23:57
+   Duration  1.44s (transform 763ms, setup 0ms, collect 1.02s, tests 85ms, environment 0ms, prepare 75ms)
+

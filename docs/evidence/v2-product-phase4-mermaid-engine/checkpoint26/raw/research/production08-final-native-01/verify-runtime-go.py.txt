@@ -1,0 +1,17 @@
+import hashlib
+import json
+from pathlib import Path
+
+base = Path(__file__).resolve().parent
+manifest = base / 'runtime-inputs.json'
+go = json.loads((base / 'root-runtime-go.json').read_text())
+assert go['authorized'] is True
+assert go['runtimeInputsSha256'] == hashlib.sha256(manifest.read_bytes()).hexdigest()
+inputs = json.loads(manifest.read_text())
+assert inputs['run'] == 'mermaid-ui-production08-final-01'
+assert inputs['classification'] == 'ONE_PRODUCTION08_FULL_NATIVE_UI_ACCEPTANCE'
+assert inputs['binary']['sha256'] == 'cd0f892d274bb363ee663e8b36aead93cbee31a4464bdef26ac849f5018cb304'
+for row in inputs['files']:
+    path = Path(row['path'])
+    assert path.stat().st_size == row['bytes']
+    assert hashlib.sha256(path.read_bytes()).hexdigest() == row['sha256'], str(path)

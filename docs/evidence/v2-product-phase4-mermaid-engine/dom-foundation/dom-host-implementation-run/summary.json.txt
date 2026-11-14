@@ -1,0 +1,83 @@
+{
+  "status": "focused implementation checks passed; not full application/native acceptance",
+  "firstRed": "../dom-host-red-run: plugin28fail/10pass, desktop9fail because DOM host unsupported/profile absent",
+  "checks": {
+    "pluginNewAndExistingFocused": 114,
+    "desktopNewAndExistingAndBundledFocused": 50,
+    "correctedManifestFocused": 32,
+    "pluginTypecheck": "PASS",
+    "desktopTypecheck": "PASS",
+    "ownedFileFormatting": "9 files PASS"
+  },
+  "preservedFailures": [
+    {
+      "log": "02-desktop-focused-before-bundled-fix.log",
+      "result": "3 failed / 47 passed; existing Worker-only distribution guard prevented valid DOM installation"
+    },
+    {
+      "log": "04-plugin-types.log",
+      "result": "TS2345: permissions array rows were expanded as it.each positional arguments; corrected to object rows. Original green runtime cases did not faithfully exercise the intended arrays; corrected manifest 32/32 rerun is authoritative."
+    }
+  ],
+  "scope": [
+    "Strict DOM manifest and package profile",
+    "Registry host changes do not preserve enabled state or transfer host approval",
+    "Discriminated native lease preparation and direct DOM loader routing",
+    "No DOM broker creation in enable or runtime provider callbacks",
+    "Generic read-only bundled DOM installation and unavailable-backend containment",
+    "No Worker nesting, budget changes, native/main/core/SDK changes"
+  ],
+  "remaining": "Integration/native tests belong to respective owners; this focused slot does not establish DOM sandbox or final product acceptance",
+  "files": [
+    {
+      "path": "01-plugin-focused.log",
+      "bytes": 495,
+      "sha256": "638d1f1fe96c193c0d29b9c52d6dd6eec8d4a6177baaa25141528178ebbd8459"
+    },
+    {
+      "path": "02-desktop-focused-before-bundled-fix.log",
+      "bytes": 5203,
+      "sha256": "d677205e33cee0025128dfc20b602dcd433a8f30ca3f67c39d73f4da0e3f0cf6"
+    },
+    {
+      "path": "03-desktop-focused-green.log",
+      "bytes": 399,
+      "sha256": "584dba49dc9dcd3ed045c5d16e177edf02370f1b0821457ac90a99524167dc6d"
+    },
+    {
+      "path": "04-plugin-types.log",
+      "bytes": 686,
+      "sha256": "8ec124462b2f3aac08865b2d293ec1de0a366e50950bb7639bacb73dfcb7c7cb"
+    },
+    {
+      "path": "05-desktop-types.log",
+      "bytes": 32,
+      "sha256": "38ac890c60e7f38d59ddfb410325cdfb5fca83c9411765c5481754e01c021630"
+    },
+    {
+      "path": "06-plugin-fixture-corrected.log",
+      "bytes": 278,
+      "sha256": "1d284025cc1a0e1d5d860c16255aa67ac0ef01971d6e6f9a77b915f2789b9426"
+    },
+    {
+      "path": "07-plugin-types-green.log",
+      "bytes": 32,
+      "sha256": "38ac890c60e7f38d59ddfb410325cdfb5fca83c9411765c5481754e01c021630"
+    },
+    {
+      "path": "08-owned-format.log",
+      "bytes": 410,
+      "sha256": "d31e968df77c42298b2b6459ba53f6e83bd54b7fb4d7d55af001491f4492f5a9"
+    },
+    {
+      "path": "09-owned-format-check.log",
+      "bytes": 66,
+      "sha256": "17aa973d3f004560237d9a95171210b0671deff23d61628eecf7322ff5938f20"
+    },
+    {
+      "path": "execution.json",
+      "bytes": 4009,
+      "sha256": "1a85919082bcef24e520ede0652dad8ffdf3572c13af18211252b8065b22ba3f"
+    }
+  ]
+}

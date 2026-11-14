@@ -1,0 +1,413 @@
+// Drives the built application through system keys; observations use shipped DOM.
+// No Vite transform or private editor state is injected into production assets.
+import assert from 'node:assert/strict'
+import { execFileSync } from 'node:child_process'
+import { writeFile } from 'node:fs/promises'
+import path from 'node:path'
+import {
+  beginNativeStartup,
+  waitForNativeWindow,
+  cleanupNativeApplication,
+  nativeRequestTimeout,
+} from './native-startup.mjs'
+export function unwrapWebDriverValue(data) {
+  return Object.prototype.hasOwnProperty.call(data, 'value') ? data.value : data
+}
+export async function startProduction(file, output, { diagnostics = true } = {}) {
+  const application = path.resolve(
+    process.env.TAURI_APP_PATH ?? 'apps/desktop/src-tauri/target/release/milkup-desktop',
+  )
+  let sid
+  const request = async (method, route, body) => {
+    const response = await fetch(
+      (process.env.TAURI_DRIVER_URL ?? 'http://127.0.0.1:4444') + route,
+      {
+        method,
+        headers: { 'content-type': 'application/json' },
+        body: body === undefined ? undefined : JSON.stringify(body),
+        signal: AbortSignal.timeout(nativeRequestTimeout(method, route)),
+      },
+    )
+    const data = await response.json()
+    if (!response.ok || (data.value?.error && !('ok' in data.value)))
+      throw Error(JSON.stringify(data))
+    return unwrapWebDriverValue(data)
+  }
+  const execute = (script, ...args) =>
+    request('POST', `/session/${sid}/execute/sync`, { script, args })
+  const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms))
+  const until = async (fn, label, limit = 15000) => {
+    const at = Date.now()
+    while (Date.now() - at < limit) {
+      const result = await fn()
+      if (result) return result
+      await delay(80)
+    }
+    throw Error('Timeout: ' + label)
+  }
+  const env = { ...process.env, DISPLAY: process.env.DISPLAY ?? ':99' }
+  const key = async (value) => {
+    execFileSync('xdotool', ['key', '--clearmodifiers', value], { env })
+  }
+  const text = async (value) => {
+    if (/^[\x20-\x7e]*$/.test(value)) {
+      execFileSync('xdotool', ['type', '--clearmodifiers', '--delay', '2', '--', value], { env })
+      return
+    }
+    await request('POST', `/session/${sid}/actions`, {
+      actions: [
+        {
+          type: 'key',
+          id: 'unicode-keyboard',
+          actions: [...value].flatMap((value) => [
+            { type: 'keyDown', value },
+            { type: 'keyUp', value },
+          ]),
+        },
+      ],
+    })
+  }
+  const focus = (selector) => execute('document.querySelector(arguments[0]).focus()', selector)
+  const click = async (selector) => {
+    await focus(selector)
+    await key('Return')
+  }
+  const originalProbeScript = `const t=s=>document.querySelector(s)?.textContent;const app=document.querySelector('#app');return {url:location.href,path:t('[data-stat="path"]')??(t('[data-title-path]')+'/'+t('[data-title]')+'.md'),loading:app?.dataset.loading,saving:app?.dataset.saving==='true',version:Number(t('[data-stat="version"]')),savedVersion:Number(t('[data-stat="saved"]')),dirty:document.querySelector('[data-save-dot]')?.classList.contains('is-dirty'),notice:t('[data-notice]'),mode:document.querySelector('.milkup-editor')?.dataset.mode,query:document.querySelector('[data-search-input]')?.value,count:t('[data-search-result-count]'),searching:!document.querySelector('[data-search-loading]')?.hidden,message:t('[data-search-message]'),replacing:!document.querySelector('[data-replace-cancel]')?.hidden,replaceDisabled:document.querySelector('[data-replace-all]')?.disabled,cursor:Number(document.querySelector('.milkup-cursor')?.dataset.position),selection:Array.from(document.querySelectorAll('.milkup-selection')).map(e=>({from:Number(e.dataset.from),to:Number(e.dataset.to),line:Number(e.dataset.line)}))}`
+  const probe = (navigation) =>
+    navigation
+      ? execute(
+          originalProbeScript.replace('return {', 'const result = {') +
+            ';result.navigation=(' +
+            navigationSnapshot.toString() +
+            ')(arguments[0],result);return result',
+          navigation,
+        )
+      : execute(originalProbeScript)
+  const shot = async (name) => {
+    await delay(200)
+    await writeFile(
+      path.join(output, name + '.png'),
+      Buffer.from(await request('GET', `/session/${sid}/screenshot`), 'base64'),
+    )
+  }
+  const close = async () => {
+    if (sid) await request('DELETE', `/session/${sid}`).catch(() => {})
+    cleanupNativeApplication(application)
+  }
+  try {
+    const started = beginNativeStartup(),
+      pending = request('POST', '/session', {
+        capabilities: { alwaysMatch: { 'tauri:options': { application, args: [file] } } },
+      })
+    pending.catch(() => {})
+    await waitForNativeWindow(started)
+    sid = (await pending).sessionId
+    await until(
+      async () => {
+        const state = await probe()
+        return state.path === file && state.loading === 'ready'
+      },
+      'production CLI open',
+      20000,
+    )
+    const windows = execFileSync(
+      'xdotool',
+      ['search', '--onlyvisible', '--class', 'milkup-desktop'],
+      {
+        encoding: 'utf8',
+        env,
+      },
+    )
+      .trim()
+      .split('\n')
+    execFileSync('xdotool', ['windowfocus', '--sync', windows.at(-1)], { env })
+    const initial = await execute(
+      `return {url:location.href,origin:location.origin,csp:document.querySelector('meta[http-equiv="Content-Security-Policy"]')?.content??null,scripts:Array.from(document.scripts).map(s=>s.src).filter(Boolean),styles:Array.from(document.querySelectorAll('link[rel="stylesheet"]')).map(e=>e.href),developmentProbe:typeof window.__searchProbe}`,
+    )
+    assert.equal(initial.developmentProbe, 'undefined')
+    assert(!/^https?:\/\/127\.0\.0\.1:1420/.test(initial.url))
+    assert(
+      initial.scripts.every(
+        (url) =>
+          new URL(url).protocol === new URL(initial.url).protocol &&
+          new URL(url).host === new URL(initial.url).host,
+      ),
+    )
+    await writeFile(path.join(output, 'production-origin.json'), JSON.stringify(initial, null, 2))
+    if (diagnostics)
+      await execute(
+        `window.__productionDiagnostics={workers:[],errors:[],cspViolations:[]};const NativeWorker=window.Worker;window.Worker=class extends NativeWorker{constructor(...args){super(...args);const item={url:String(args[0]),options:args[1],messages:0,errors:[]};window.__productionDiagnostics.workers.push(item);this.addEventListener('message',()=>item.messages++);this.addEventListener('error',e=>item.errors.push(e.message));}};addEventListener('error',e=>window.__productionDiagnostics.errors.push(e.message));addEventListener('unhandledrejection',e=>window.__productionDiagnostics.errors.push(String(e.reason)));addEventListener('securitypolicyviolation',e=>window.__productionDiagnostics.cspViolations.push({directive:e.violatedDirective,blocked:e.blockedURI}));`,
+      )
+    return {
+      application,
+      request,
+      execute,
+      until,
+      delay,
+      key,
+      text,
+      focus,
+      click,
+      probe,
+      shot,
+      close,
+    }
+  } catch (error) {
+    if (sid) {
+      await writeFile(
+        path.join(output, 'startup-failure.json'),
+        JSON.stringify(
+          {
+            error: String(error),
+            state: await probe().catch(() => null),
+            document: await execute(
+              'return {url:location.href,title:document.title,body:document.body.innerText.slice(0,3000),html:document.documentElement.outerHTML.slice(0,2000)}',
+            ).catch(() => null),
+          },
+          null,
+          2,
+        ),
+      )
+      await shot('startup-failure').catch(() => {})
+    }
+    await close()
+    throw error
+  }
+}
+
+// Diagnostic-only public DOM snapshot; called within the existing probe task.
+export function navigationSnapshot(meta, base) {
+  const started = performance.now()
+  const number = (value) =>
+    value !== undefined && value !== '' && Number.isFinite(Number(value)) ? Number(value) : null
+  const rect = (element) => {
+    if (!element) return null
+    const r = element.getBoundingClientRect()
+    return {
+      left: r.left,
+      top: r.top,
+      right: r.right,
+      bottom: r.bottom,
+      width: r.width,
+      height: r.height,
+    }
+  }
+  const editor = document.querySelector('.milkup-editor')
+  const content = editor?.querySelector('.milkup-editor-content')
+  const data = (element) =>
+    element && {
+      line: number(element.dataset.line),
+      from: number(element.dataset.from),
+      to: number(element.dataset.to),
+      presentationOwner: element.dataset.presentationOwner?.slice(0, 128) ?? null,
+      presentationBlockFrom: number(element.dataset.presentationBlockFrom),
+      presentationBlockTo: number(element.dataset.presentationBlockTo),
+      hidden: element.hidden,
+      rect: rect(element),
+    }
+  const edges = (first) => {
+    const found = []
+    let node = first ? content?.firstElementChild : content?.lastElementChild,
+      steps = 0
+    while (node && steps++ < 12 && found.length < 2) {
+      if (node.matches('.milkup-line')) found.push(data(node))
+      node = first ? node.nextElementSibling : node.previousElementSibling
+    }
+    return { rows: found, boundedWalkEndedEarly: !!node && found.length < 2 }
+  }
+  const targets = []
+  const previewNodes = []
+  for (let line = meta.markerLine - 2; line <= meta.markerLine + 2; line++) {
+    const row = content?.querySelector('.milkup-line[data-line="' + line + '"]')
+    targets.push({ requestedLine: line, row: data(row) ?? null })
+    const preview =
+      row?.querySelector('[data-document-presentation]') ??
+      row?.closest('[data-document-presentation]')
+    if (preview && !previewNodes.includes(preview) && previewNodes.length < 6)
+      previewNodes.push(preview)
+  }
+  const bounded = (selector, cap, convert) => {
+    const rows = []
+    let node = editor?.querySelector(selector),
+      steps = 0
+    // Overlay layers expose sibling nodes; bounded direct siblings avoid collecting all rows.
+    while (node && steps++ <= cap) {
+      if (node.matches(selector)) rows.push(convert(node))
+      if (rows.length > cap) break
+      node = node.nextElementSibling
+    }
+    return { rows: rows.slice(0, cap), truncated: rows.length > cap || !!node }
+  }
+  const cursor = bounded('.milkup-cursor', 8, (e) => ({
+    position: number(e.dataset.position),
+    line: number(e.dataset.line),
+    rect: rect(e),
+  }))
+  const selections = bounded('.milkup-selection', 8, data)
+  const active = document.activeElement
+  const root = rect(editor)
+  const client = root && {
+    left: root.left + editor.clientLeft,
+    top: root.top + editor.clientTop,
+    width: editor.clientWidth,
+    height: editor.clientHeight,
+  }
+  if (client) {
+    client.right = client.left + client.width
+    client.bottom = client.top + client.height
+  }
+  const snapshot = {
+    timeOrigin: performance.timeOrigin,
+    now: started,
+    target: { markerFrom: meta.markerFrom, markerTo: meta.markerTo, markerLine: meta.markerLine },
+    editor: editor
+      ? {
+          rect: root,
+          client,
+          scrollTop: editor.scrollTop,
+          scrollHeight: editor.scrollHeight,
+          clientHeight: editor.clientHeight,
+          viewport: {
+            left: Math.max(0, client.left),
+            top: Math.max(0, client.top),
+            right: Math.min(innerWidth, client.right),
+            bottom: Math.min(innerHeight, client.bottom),
+          },
+        }
+      : null,
+    content: content
+      ? {
+          fromLine: number(content.dataset.fromLine),
+          toLine: number(content.dataset.toLine),
+          rect: rect(content),
+        }
+      : null,
+    first: edges(true),
+    last: edges(false),
+    targets,
+    selections,
+    cursors: cursor,
+    spacers: ['top', 'bottom'].map((side) => {
+      const e = content?.querySelector('[data-spacer="' + side + '"]')
+      return {
+        side,
+        present: !!e,
+        rect: rect(e),
+        styleHeight: e?.style.height ?? null,
+        offsetHeight: e?.offsetHeight ?? null,
+      }
+    }),
+    previews: previewNodes.map((e) => ({
+      from: number(e.dataset.presentationFrom),
+      to: number(e.dataset.presentationTo),
+      rect: rect(e),
+      top: e.scrollTop,
+      left: e.scrollLeft,
+      images: [],
+      imageScope: 'first descendant image only',
+    })),
+    focus: {
+      tag: active?.tagName ?? null,
+      role: active?.getAttribute('role')?.slice(0, 64) ?? null,
+      search: !!active?.matches('[data-search-input]'),
+      inputProxy: !!active?.matches('.milkup-input-proxy'),
+    },
+    probe: {
+      query: typeof base.query === 'string' ? base.query.slice(0, 512) : null,
+      count: base.count?.slice(0, 128) ?? null,
+      searching: base.searching,
+      loading: base.loading,
+      mode: base.mode,
+      path: base.path?.slice(0, 2048) ?? null,
+      version: base.version,
+      savedVersion: base.savedVersion,
+      dirty: base.dirty,
+      cursor: Number.isFinite(base.cursor) ? base.cursor : null,
+      selection: base.selection.slice(0, 8),
+      selectionTruncated: base.selection.length > 8,
+    },
+  }
+  for (let index = 0; index < previewNodes.length; index++) {
+    const firstImage = previewNodes[index].querySelector('img')
+    snapshot.previews[index].images = firstImage
+      ? [
+          {
+            complete: firstImage.complete,
+            naturalWidth: firstImage.naturalWidth,
+            naturalHeight: firstImage.naturalHeight,
+            rect: rect(firstImage),
+          },
+        ]
+      : []
+    snapshot.previews[index].imageScope = 'first descendant image only'
+  }
+  snapshot.readMs = performance.now() - started
+  return snapshot
+}
+
+export function createNavigationRing() {
+  const MAX = 262144,
+    COUNT = 128,
+    ROW = 16384
+  const state = {
+    rows: [],
+    incomplete: [],
+    evicted: 0,
+    duplicates: 0,
+    recordCalls: 0,
+    observedSnapshots: 0,
+    captureMs: 0,
+    maxCaptureMs: 0,
+    limits: { bytes: MAX, rows: COUNT, rowBytes: ROW },
+    lastProbe: null,
+  }
+  let signature = null
+  const counted = new WeakSet()
+  const size = (value) => Buffer.byteLength(JSON.stringify(value))
+  const record = (phase, snapshot, key = false) => {
+    state.recordCalls++
+    if (!snapshot) {
+      if (!state.incomplete.includes('missing-snapshot')) state.incomplete.push('missing-snapshot')
+      return
+    }
+    if (!counted.has(snapshot)) {
+      counted.add(snapshot)
+      state.observedSnapshots++
+      state.captureMs += snapshot.readMs || 0
+      state.maxCaptureMs = Math.max(state.maxCaptureMs, snapshot.readMs || 0)
+    }
+    const { timeOrigin, now, readMs, ...stable } = snapshot
+    const next = JSON.stringify(stable)
+    state.lastProbe = { phase, timeOrigin, now }
+    if (!key && next === signature) {
+      state.duplicates++
+      return
+    }
+    signature = next
+    let row = { phase, key, receivedAt: Date.now(), snapshot }
+    if (size(row) > ROW) {
+      row = {
+        phase,
+        key,
+        receivedAt: Date.now(),
+        omitted: 'snapshot-row-cap',
+        originalBytes: size(row),
+        timeOrigin,
+        now,
+      }
+      if (!state.incomplete.includes('row-cap')) state.incomplete.push('row-cap')
+    }
+    state.rows.push(row)
+    while (state.rows.length > COUNT || size(state) + 1 > MAX) {
+      const index = state.rows.findIndex((r) => !r.key)
+      if (index < 0) {
+        state.rows.pop()
+        if (!state.incomplete.includes('key-cap')) state.incomplete.push('key-cap')
+        break
+      }
+      state.rows.splice(index, 1)
+      state.evicted++
+    }
+  }
+  return { state, record }
+}

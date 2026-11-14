@@ -1,0 +1,21 @@
+{
+  "run": "mermaid-ui-sankey-candidate-repro-01",
+  "driverCall": {
+    "cmd": "python3 /workspace/milkup-mermaid-engine-evidence/research/sankey-candidate-native-01/tool-launch.py driver",
+    "workdir": "/workspace/milkup",
+    "sandbox_permissions": "require_escalated"
+  },
+  "harnessCall": {
+    "cmd": "python3 /workspace/milkup-mermaid-engine-evidence/research/sankey-candidate-native-01/tool-launch.py harness",
+    "workdir": "/workspace/milkup",
+    "sandbox_permissions": "require_escalated"
+  },
+  "stopDriverCall": {
+    "cmd": "python3 /workspace/milkup-mermaid-engine-evidence/research/sankey-candidate-native-01/stop-driver.py",
+    "workdir": "/workspace/milkup",
+    "sandbox_permissions": "require_escalated"
+  },
+  "scope": "One diagnosticwindowed dark200 narrow originalSankey bottomright→topleft;same5casefixture;modulev03 trace+nativeacceptedwire/lifecycle;noCPU;noUIretry",
+  "selfContext": "Actual launcher records self user/pid/mnt/time/time_for_children/uid_map/gid_map before same PID exec; actual permission mode comes from tool call. Missing/error retained.",
+  "outcomes": "UI firstoutcome independent fromcapture completeness;postoutcome dualledger5spoll withactualtransportoverrun retained,wirefinal1s thenApp.close. Bothactualtoolsrequire_escalated;rootseparateGO."
+}

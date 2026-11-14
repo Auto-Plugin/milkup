@@ -1,0 +1,199 @@
+# Instructions
+
+- Following Playwright test failed.
+- Explain why, be concise, respect Playwright best practices.
+- Provide a snippet of code with the fix, if possible.
+
+# Test info
+
+- Name: desktop-markdown-extensions.spec.ts >> windowed asynchronous navigation reflow >> windowed navigation keeps its selected marker mounted while a collapsed fence restores during an asynchronous syntax read
+- Location: tests/e2e/desktop-markdown-extensions.spec.ts:1637:3
+
+# Error details
+
+```
+Error: expect(received).not.toBeNull()
+
+Received: null
+```
+
+# Page snapshot
+
+```yaml
+- generic [ref=e1]:
+  - main [ref=e3]:
+    - generic [ref=e4]:
+      - button "菜单" [ref=e5] [cursor=pointer]:
+        - img [ref=e6]
+      - generic [ref=e7]:
+        - heading "未命名" [level=1] [ref=e8]
+        - paragraph [ref=e9]: 未保存
+      - generic "窗口控制" [ref=e10]:
+        - button "最小化" [ref=e11] [cursor=pointer]
+        - button "最大化" [ref=e13] [cursor=pointer]
+        - button "关闭窗口" [ref=e15] [cursor=pointer]
+    - generic [ref=e19]:
+      - text: 写点什么吧...
+      - generic [ref=e20]:
+        - textbox [ref=e21]
+        - textbox "Markdown 编辑器" [active]
+    - generic [ref=e23]:
+      - generic [ref=e24]:
+        - button "侧栏" [ref=e25] [cursor=pointer]:
+          - img [ref=e26]
+        - button "实时" [ref=e28] [cursor=pointer]:
+          - img [ref=e29]
+      - generic [ref=e32]:
+        - generic [ref=e33]: Markdown
+        - generic [ref=e34]: 0 字符
+        - generic [ref=e37]: 已保存
+  - main [ref=e38]
+```
+
+# Test source
+
+```ts
+  1982 |               events,
+  1983 |               phases,
+  1984 |               drops,
+  1985 |               snapshot,
+  1986 |               release,
+  1987 |               cleanup: () => {
+  1988 |                 observer?.disconnect()
+  1989 |                 releaseSource('cleanup')
+  1990 |                 release('cleanup')
+  1991 |                 view.destroy()
+  1992 |               },
+  1993 |             },
+  1994 |           })
+  1995 |           const wait = async (predicate: () => boolean, label: string) => {
+  1996 |             const deadline = performance.now() + 5000
+  1997 |             while (!predicate()) {
+  1998 |               if (performance.now() >= deadline) throw Error(`Fixture phase not reached: ${label}`)
+  1999 |               await new Promise((resolve) => setTimeout(resolve, 10))
+  2000 |             }
+  2001 |           }
+  2002 |           const frame = () => new Promise<void>((resolve) => requestAnimationFrame(() => resolve()))
+  2003 |           await view.revealSelection(316, Selection.range(initial.from, initial.to))
+  2004 |           await wait(
+  2005 |             () =>
+  2006 |               [...view.contentDOM.querySelectorAll('img')].some(
+  2007 |                 (image) => image.complete && image.naturalWidth === 600 && image.naturalHeight > 0,
+  2008 |               ),
+  2009 |             'initial image decoded',
+  2010 |           )
+  2011 |           await frame()
+  2012 |           await frame()
+  2013 |           const initialState = snapshot('initial-navigation-settled-and-decoded')
+  2014 |           if (initialState.fence.mounted !== 77 || initialState.fence.collapsed < 76)
+  2015 |             throw Error('Invalid fixture: the full 77-row collapsed fence is not mounted')
+  2016 |           observer = new MutationObserver(() => {
+  2017 |             if (armed) snapshot('mutation')
+  2018 |           })
+  2019 |           observer.observe(view.contentDOM, {
+  2020 |             childList: true,
+  2021 |             subtree: true,
+  2022 |             attributes: true,
+  2023 |             attributeFilter: ['style', 'data-presentation-collapsed'],
+  2024 |           })
+  2025 |           armed = true
+  2026 |           navigationState = 'pending'
+  2027 |           const navigation = view
+  2028 |             .revealSelection(398, Selection.range(marker.from, marker.to))
+  2029 |             .then(
+  2030 |               () => {
+  2031 |                 navigationState = 'resolved'
+  2032 |                 snapshot('navigation-resolved')
+  2033 |               },
+  2034 |               (error) => {
+  2035 |                 navigationState = 'rejected'
+  2036 |                 throw error
+  2037 |               },
+  2038 |             )
+  2039 |           await wait(() => pending, 'new selection provider gate')
+  2040 |           if (!sourceGated)
+  2041 |             throw Error('Fixture phase not reached: qualified target syntax source gate')
+  2042 |           for (let i = 0; i < 8; i++) {
+  2043 |             await frame()
+  2044 |             snapshot(`provider-held-frame-${i}`)
+  2045 |           }
+  2046 |           release('eight-observed-frames')
+  2047 |           await navigation
+  2048 |           for (let i = 0; i < 16; i++) {
+  2049 |             await frame()
+  2050 |             snapshot(`settled-frame-${i}`)
+  2051 |           }
+  2052 |           observer.disconnect()
+  2053 |           return {
+  2054 |             reads,
+  2055 |             events,
+  2056 |             phases,
+  2057 |             drops,
+  2058 |             initialState,
+  2059 |             final: snapshot('final'),
+  2060 |             from: marker.from,
+  2061 |             to: marker.to,
+  2062 |             unchanged: (await store.readLineWindow(1, store.lineCount)).text === text,
+  2063 |             version: store.version,
+  2064 |           }
+  2065 |         },
+  2066 |         {
+  2067 |           text: await readFile(resolve('tests/fixtures/window-navigation-multirow.txt'), 'utf8'),
+  2068 |           viewModule: `/@fs${resolve('packages/view-dom/src/index.ts')}`,
+  2069 |           coreModule: `/@fs${resolve('packages/core/src/index.ts')}`,
+  2070 |         },
+  2071 |       )
+  2072 |       await writeFile(
+  2073 |         info.outputPath('result.json'),
+  2074 |         JSON.stringify({ ...result, errors }, null, 2),
+  2075 |       )
+  2076 |       await page.screenshot({ path: info.outputPath('result.png') })
+  2077 |       expect(result.final.sourceGateFrames).toBe(2)
+  2078 |       expect(errors).toEqual([])
+  2079 |       expect(result.unchanged).toBe(true)
+  2080 |       expect(result.version).toBe(0)
+  2081 |       expect(result.final.selection).toMatchObject({ anchor: result.from, head: result.to })
+> 2082 |       expect(result.final.marker).not.toBeNull()
+       |                                       ^ Error: expect(received).not.toBeNull()
+  2083 |       const viewport = result.final.editor!
+  2084 |       expect(result.final.marker!.rect!.bottom).toBeGreaterThan(viewport.top)
+  2085 |       expect(result.final.marker!.rect!.top).toBeLessThan(viewport.bottom)
+  2086 |       const projections = result.final.overlays.filter(
+  2087 |         (node: any) => Number(node.from) === result.from && Number(node.to) === result.to,
+  2088 |       )
+  2089 |       expect(projections.length).toBeGreaterThan(0)
+  2090 |       expect(
+  2091 |         projections.some(
+  2092 |           (node: any) => node.rect.bottom > viewport.top && node.rect.top < viewport.bottom,
+  2093 |         ),
+  2094 |       ).toBe(true)
+  2095 |       expect(
+  2096 |         result.final.cursors.some(
+  2097 |           (node: any) =>
+  2098 |             Number(node.position) === result.to &&
+  2099 |             Number(node.line) === 398 &&
+  2100 |             node.rect.bottom > viewport.top &&
+  2101 |             node.rect.top < viewport.bottom,
+  2102 |         ),
+  2103 |       ).toBe(true)
+  2104 |     } finally {
+  2105 |       const trace = await page.evaluate(() => {
+  2106 |         const p = (window as any).multirowStudy
+  2107 |         return p
+  2108 |           ? {
+  2109 |               reads: p.reads,
+  2110 |               events: p.events,
+  2111 |               phases: p.phases,
+  2112 |               drops: p.drops,
+  2113 |               final: p.snapshot('finally'),
+  2114 |             }
+  2115 |           : null
+  2116 |       })
+  2117 |       await writeFile(info.outputPath('trace.json'), JSON.stringify({ ...trace, errors }, null, 2))
+  2118 |       await page.screenshot({ path: info.outputPath('final.png') })
+  2119 |       await page.evaluate(() => (window as any).multirowStudy?.cleanup())
+  2120 |     }
+  2121 |   })
+  2122 | })
+  2123 | 
+```

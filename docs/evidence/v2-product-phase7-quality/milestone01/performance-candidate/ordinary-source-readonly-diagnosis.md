@@ -1,0 +1,36 @@
+# Ordinary Source candidate02: six failures are real; causal regression unproven
+
+Read-only comparison of `native-ui/runs/p7-{baseline,candidate-02}-ordinary-source-01/{samples,diagnostics}.json` and preserved harness/source. No UI, tests, build, instrumentation or product changes. Candidate02 ELF SHA: `8deacbf470f699ad9b0a6c2c2937adbfc7ef6194c38e8f61e707a70bdfc5f9b2`.
+
+Both runs have 143 records, the same 65,555-byte fixture SHA, 20 rounds, ordinary **EditorView** (`backend=false`), Source mode, 1,026 rendered lines, 1100×760 viewport/DPR1. The preserved latency harness is byte-identical. Baseline has zero violations; candidate has six. This is an observed acceptance regression in this run and must remain a failure. It is not yet evidence that a particular product change caused the regression.
+
+| Candidate round (zero-based) | Action | Keydown→DOM ms | DOM→two-rAF ms | Total ms | Prior Home completion→action start ms |
+| --- | --- | ---: | ---: | ---: | ---: |
+| 0 | input | 304 | 68 | 372 | 371 |
+| 1 | delete | 155 | 68 | 223 | 512 |
+| 4 | input | 129 | 203 | 332 | 194 |
+| 5 | delete | 170 | 117 | 287 | 479 |
+| 12 | input | 302 | 55 | 357 | 342 |
+| 19 | input | 234 | 34 | 268 | 368 |
+
+Failures occur in early, middle and final rounds, not only a cold first edit or monotonically growing tail. Three input misses already exceed 200 ms at DOM observation (rounds 0,12,19). Input round4 and both delete misses cross 200 ms only after the two-rAF proxy. Frame-gap records overlap these intervals: e.g. round4 includes a 200 ms gap after target DOM; rounds0/12 include 316/320 ms gaps approaching target DOM. The evidence therefore contains both pre-DOM and post-DOM delays. No function-level CPU attribution follows from those frame gaps.
+
+Every edit round, including passing ones, runs End→Home→input→delete. The six misses follow Home completion by 194–512 ms; they do not uniquely identify documentEnd or immediate plugin refresh. Main's new explicit-edge branch calls `updateViewport()` after selection-only documentStart/documentEnd transactions; it is fire-and-forget. Its completion, active mounts, renderer request times and any overlap with subsequent input are not recorded. It is a code-path hypothesis worth a controlled comparison if authorized, not a demonstrated explanation. Both runs record no newly observed Worker activity/errors/CSP violations; the diagnostic wrapper starts after initial startup, so empty Worker records do not prove no previously created plugin Worker existed.
+
+Recovery is `pending` at **all 20 inputs and all 20 deletes in both runs**, including all passes. All twenty post-idle checkpoint samples are `ready` in both. No recovery I/O timing is available. Thus `pending` does not distinguish the six failures and cannot justify disabling or changing recovery.
+
+The ordinary Source path still updates Markdown parse state on document changes and then renders changed lines; the candidate parse cache is not restricted to Live mode. There are no parser-stage or GC records. Harness `runnerMemory` describes the Node harness, not the WebKit JS heap; its fluctuations cannot establish editor GC. Long-task observation is unsupported in both runs. Candidate maxTimerGap1189 vs baseline584 is a whole-run aggregate, not a timestamped attribution to these edits.
+
+Cgroup CPU observations also do not prove contention as root cause. From cycle0 to cycle19, both runs have **zero added throttling events/time**; candidate uses 50.22 s aggregate cgroup CPU vs baseline36.37 s, across different-duration runs and all cgroup processes. Whole-run throttling increases are baseline4 events/56,319 µs and candidate1 event/4,299 µs. The first five failures' resource brackets have zero throttling increments; the final failure's broad cycle19→complete bracket contains that single 4,299 µs increment and does not isolate it to the action. Candidate load averages are higher, but are neither per-process nor per-sample evidence. Memory pressure/OOM event counters do not change. Do not label unrelated load, CPU throttling, recovery, GC, parsing or plugin refresh as the established cause.
+
+Decision supported now: retain ordinary Source candidate failure and avoid declaring the complete performance matrix green. Ordinary Live's separate improvement does not cancel this result. Existing evidence is insufficient to select a targeted product fix or prove a reproducible causal regression. Finish the already-running matrix; if further investigation is authorized, compare the same frozen artifact/protocol before changing code, then isolate the explicit-navigation refresh path only if the failures reproduce. Do not weaken budgets, omit slow samples or bypass recovery/safety to make the result pass.
+
+## Additional memory Source first-search anomaly
+
+`native-ui/runs/p7-candidate-02-memory-source-01` records trusted `A`, query/count `A`/`1/1`, cursor1, version40, recovery idle, 76 rendered lines. DOM completes after301 ms; two-rAF completion is1628 ms, leaving1327 ms after target DOM. This is the memory-windowed SourceDocumentView route, distinct from ordinary EditorView above.
+
+The continuous frame probe independently corroborates delayed callbacks: last prior frame42822; keydown42948; target DOM43249; next frame44414 (1592 ms gap); following frame44575 (161 ms gap); measurement completes44576. About1165 ms passes from target DOM to that next frame, followed by another162 ms to final measurement. The callback timestamps are measured inside the page; WebDriver's later polling does not manufacture this1327 ms interval. The maxTimerGap is813 ms, a whole-run maximum without timer-gap event timestamps; it does not identify the cause or establish one continuous1327 ms main-thread task.
+
+Event matching requires exact key `A`, then query value, loading hidden, count1/1 and cursor1. The recorded event is trusted and the control value matches, so no evidence of a wrong input event or mismatched result is present. The key listener does not itself constrain target identity, and this search sample's target class is empty; that is not sufficient to infer wrong focus. The search predicate also does not assert cursor geometry as the other action predicates do. No `visibilityState`, `document.hasFocus`, window minimization/occlusion timeline or rAF visibility-throttle diagnosis is recorded. Two-rAF is only a callback/presentation proxy, not physical presentation proof.
+
+The broad cycle19→complete resource bracket covers about5.0 seconds, including save/search and other work: cgroup CPU11.18 seconds aggregate, one throttling increment48,088 µs, unchanged memory-event counters. This is neither action-isolated CPU attribution nor evidence explaining the1.3-second callback interval. The memory sampler lists application/WebKit network/WebKit web process identities and RSS, not per-thread CPU or GC. Runtime config records DISPLAY:127 and expected binary identity, not per-frame window visibility. Existing errors/Worker/CSP lists are empty and long-task observation is unsupported. No GC, background-thread, unrelated-load or window-occlusion cause is established. Keep this first-search failure intact; existing evidence supports a post-DOM frame-callback delay, not a search-scan bottleneck.

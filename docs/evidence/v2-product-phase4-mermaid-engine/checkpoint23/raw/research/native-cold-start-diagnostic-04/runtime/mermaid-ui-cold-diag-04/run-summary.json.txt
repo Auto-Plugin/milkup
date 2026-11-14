@@ -1,0 +1,278 @@
+{
+  "atUtc": "2026-10-17T02:09:42.376510+00:00",
+  "run": "mermaid-ui-cold-diag-04",
+  "classification": "DIAGNOSTIC_PREFIX_STOP_COLD_GATE_PASS_CPU_COVERAGE_INCOMPLETE",
+  "coldGateExecuted": true,
+  "coldGatePassed": true,
+  "fullUIAccepted": false,
+  "productionAcceptance": false,
+  "historicalProduction08DeadlineClosed": false,
+  "harnessExitCode": 0,
+  "samplerExitCode": 2,
+  "wrapperExitCode": 1,
+  "wrapperFailure": "unchanged samplerExitCode == 0 assertion; not a Node cold assertion failure",
+  "nativeCaptureFinal": {
+    "attempted": 7,
+    "capped": 0,
+    "captureMaxNs": 20852,
+    "captureTotalNs": 108538,
+    "diagnosticClosed": true,
+    "disconnected": 0,
+    "enqueued": 7,
+    "final": true,
+    "inFlight": 0,
+    "incompleteTiming": 0,
+    "ioErrors": 0,
+    "limits": {
+      "events": 256,
+      "queue": 8,
+      "totalWireBytes": 16777216,
+      "wireBytes": 1048576
+    },
+    "monotonicNs": 90489855285842,
+    "oversize": 0,
+    "ownerBirth": 9048074,
+    "ownerPid": 471101,
+    "qualification": "Final only after external finish.request closes observation and drains queue. Future product requests continue unobserved. Missing final or identity or any drops/errors means incomplete.",
+    "queueFull": 0,
+    "reservedWireBytes": 6244,
+    "schema": "milkup.cold-accepted-wire-status.v1",
+    "writerCpuScope": "App-owned background writer thread through last status checkpoint, excludes final status/complete serialization; included in App own CPU",
+    "writerThreadCpuNs": 20752323,
+    "written": 7
+  },
+  "cpu": {
+    "stopReason": "controller-stop",
+    "failure": null,
+    "sampleCount": 20,
+    "sampleIncomplete": 0,
+    "knownIdentities": [
+      {
+        "pid": 471101,
+        "birth": 9048074,
+        "parent": 471050,
+        "role": "App",
+        "firstSeenNs": 90484935473558,
+        "firstSampleNs": 90484935868846,
+        "bindingArgv": null
+      },
+      {
+        "pid": 471230,
+        "birth": 9048492,
+        "parent": 471101,
+        "role": "guardian",
+        "firstSeenNs": 90484935761132,
+        "firstSampleNs": 90484935919463,
+        "bindingArgv": null
+      },
+      {
+        "pid": 471235,
+        "birth": 9048502,
+        "parent": 471230,
+        "role": "renderer-leader",
+        "firstSeenNs": 90485487361819,
+        "firstSampleNs": 90485686244926,
+        "bindingArgv": [
+          "/workspace/milkup-mermaid-engine-evidence/research/native-cold-start-diagnostic-02/diagnostic-binary/milkup-desktop",
+          "--milkup-internal-dom-helper"
+        ]
+      },
+      {
+        "pid": 471238,
+        "birth": 9048508,
+        "parent": 471235,
+        "role": "webkit-network",
+        "firstSeenNs": 90485489142316,
+        "firstSampleNs": 90485686327086,
+        "bindingArgv": [
+          "/usr/lib/x86_64-linux-gnu/webkit2gtk-4.1/WebKitNetworkProcess",
+          "1",
+          "10"
+        ]
+      },
+      {
+        "pid": 471277,
+        "birth": 9048524,
+        "parent": 471235,
+        "role": "renderer-descendant",
+        "firstSeenNs": 90485489202593,
+        "firstSampleNs": 90485686385336,
+        "bindingArgv": [
+          "/usr/bin/bwrap",
+          "--args",
+          "25",
+          "--",
+          "/usr/lib/x86_64-linux-gnu/webkit2gtk-4.1/WebKitWebProcess",
+          "4",
+          "16"
+        ]
+      },
+      {
+        "pid": 471272,
+        "birth": 9048522,
+        "parent": 471235,
+        "role": "renderer-descendant",
+        "firstSeenNs": 90485489205106,
+        "firstSampleNs": 90485686420151,
+        "bindingArgv": [
+          "/usr/bin/bwrap",
+          "--args",
+          "29",
+          "--",
+          "/usr/bin/xdg-dbus-proxy",
+          "--args=25"
+        ]
+      }
+    ],
+    "coverage": {
+      "status": "incomplete",
+      "childrenInterfaceGapCount": 44,
+      "pidfdDirectChildCoverage": "limited-verified-direct-children",
+      "pidfdGapCount": 2,
+      "fullRendererTreeCoverage": false
+    },
+    "pidfdStatusCounts": {
+      "not-pidfd": 483,
+      "verified-direct-child": 36,
+      "pidfd-owner-scan-incomplete": 2
+    },
+    "discoveryIncomplete": 10,
+    "overhead": {
+      "observerOwnCpuNs": 82223314,
+      "prelaunchHashCpuNs": 25281424,
+      "afterReadyCpuNs": 56945087,
+      "procReads": 1694,
+      "readTotalNs": 23882614,
+      "readMaxNs": 6330800,
+      "sampleTotalNs": 5780106,
+      "sampleMaxNs": 435706,
+      "discoveryTotalNs": 35744625,
+      "discoveryMaxNs": 9479359
+    },
+    "coverageQualification": "Exact helper, NetworkProcess and two bwrap identities were discovered. One bwrap argv includes a WebProcess command but is not a separately bound WebProcess; no webkit-web role exists. Binding-time labels only, no complete tree/CPU causality inference."
+  },
+  "cleanup": {
+    "atUtc": "2026-10-17T02:09:42.376122+00:00",
+    "knownIdentityPostState": [
+      {
+        "pid": 471031,
+        "expectedBirth": null,
+        "observed": null
+      },
+      {
+        "pid": 471033,
+        "expectedBirth": "9046135",
+        "observed": null
+      },
+      {
+        "pid": 471047,
+        "expectedBirth": "9046160",
+        "observed": null
+      },
+      {
+        "pid": 471048,
+        "expectedBirth": "9046161",
+        "observed": null
+      },
+      {
+        "pid": 471049,
+        "expectedBirth": "9046161",
+        "observed": null
+      },
+      {
+        "pid": 471050,
+        "expectedBirth": "9046161",
+        "observed": null
+      },
+      {
+        "pid": 471071,
+        "expectedBirth": null,
+        "observed": null
+      },
+      {
+        "pid": 471074,
+        "expectedBirth": null,
+        "observed": null
+      },
+      {
+        "pid": 471075,
+        "expectedBirth": "9048005",
+        "observed": null
+      },
+      {
+        "pid": 471101,
+        "expectedBirth": "9048074",
+        "observed": null
+      },
+      {
+        "pid": 471112,
+        "expectedBirth": "9048091",
+        "observed": null
+      },
+      {
+        "pid": 471118,
+        "expectedBirth": "9048091",
+        "observed": null
+      },
+      {
+        "pid": 471125,
+        "expectedBirth": "9048093",
+        "observed": null
+      },
+      {
+        "pid": 471131,
+        "expectedBirth": "9048096",
+        "observed": null
+      },
+      {
+        "pid": 471164,
+        "expectedBirth": "9048106",
+        "observed": null
+      },
+      {
+        "pid": 471230,
+        "expectedBirth": "9048492",
+        "observed": null
+      },
+      {
+        "pid": 471235,
+        "expectedBirth": "9048502",
+        "observed": null
+      },
+      {
+        "pid": 471238,
+        "expectedBirth": "9048508",
+        "observed": null
+      },
+      {
+        "pid": 471272,
+        "expectedBirth": "9048522",
+        "observed": null
+      },
+      {
+        "pid": 471277,
+        "expectedBirth": "9048524",
+        "observed": null
+      }
+    ],
+    "allKnownPidsAbsent": true,
+    "dedicatedPortsListeners": [],
+    "ancestorReaps": 11,
+    "method": "Original App session close; exact driver PID/birth/PGID + No sessions; existing owned group SIGTERM; wait-only subreaper",
+    "qualification": "Known identities only, not global process enumeration or full descendant-tree proof."
+  },
+  "inputFilesChecked": 174,
+  "inputDrift": [],
+  "sourceFilesChecked": 2913,
+  "sourceDrift": [],
+  "frontendFilesChecked": 12,
+  "frontendDrift": [],
+  "originalProduction08BinarySha256": "cd0f892d274bb363ee663e8b36aead93cbee31a4464bdef26ac849f5018cb304",
+  "repositoryStatus": "",
+  "noAutomaticRetryOrFullWorkflow": true,
+  "screenshots": [
+    "/workspace/milkup-mermaid-engine-evidence/research/native-cold-start-diagnostic-04/runtime/mermaid-ui-cold-diag-04/evidence/preinstalled-cold-window-webview.png",
+    "/workspace/milkup-mermaid-engine-evidence/research/native-cold-start-diagnostic-04/runtime/mermaid-ui-cold-diag-04/evidence/preinstalled-cold-window-x11.png"
+  ],
+  "visualReview": "pending independent root inspection"
+}

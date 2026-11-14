@@ -1,0 +1,17 @@
+$ node tests/native/tauri-windowed-blocks.mjs
+2026-10-13T13:13:04.622Z POST /session
+2026-10-13T13:13:32.460Z X11_STARTUP_QUERY_TIMEOUT
+2026-10-13T13:14:05.063Z POST /session/c75d909d-1231-411e-8b75-4a28fa8964f7/execute/sync localStorage.removeItem("milkup.desktop.nativeTestPaths")
+2026-10-13T13:14:05.364Z DELETE /session/c75d909d-1231-411e-8b75-4a28fa8964f7
+2026-10-13T13:14:05.634Z NATIVE_APPLICATION_CLEANUP 85363
+file:///workspace/milkup/tests/helpers/native-startup.mjs:42
+  throw Error('Native startup did not produce one owned Milkup window within 60000ms; editing assertions were not started')
+        ^
+
+Error: Native startup did not produce one owned Milkup window within 60000ms; editing assertions were not started
+    at waitForNativeWindow (file:///workspace/milkup/tests/helpers/native-startup.mjs:42:9)
+    at async start (file:///workspace/milkup/tests/native/tauri-windowed-blocks.mjs:180:3)
+    at async file:///workspace/milkup/tests/native/tauri-windowed-blocks.mjs:255:3
+
+Node.js v24.19.0
+[ELIFECYCLE] Command failed with exit code 1.

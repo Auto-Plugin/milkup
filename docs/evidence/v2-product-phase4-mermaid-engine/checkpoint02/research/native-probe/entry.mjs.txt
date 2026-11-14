@@ -1,0 +1,160 @@
+// External research probe only. Native owner provides network isolation and the sole deadline.
+import mermaid from './mermaid-full-12.2.0.mjs';
+
+export const styleFields = Object.freeze([
+  'color','fill','fill-opacity','fill-rule','stroke','stroke-opacity','opacity',
+  'stroke-width','stroke-dasharray','stroke-dashoffset','stroke-linecap','stroke-linejoin','stroke-miterlimit',
+  'filter','color-interpolation-filters','mix-blend-mode','isolation',
+  'font-family','font-size','font-weight','font-style','line-height','letter-spacing','word-spacing',
+  'text-anchor','dominant-baseline','alignment-baseline','width','height',
+  'padding-top','padding-right','padding-bottom','padding-left',
+  'margin-top','margin-right','margin-bottom','margin-left',
+  'border-top-width','border-right-width','border-bottom-width','border-left-width',
+  'border-top-color','border-right-color','border-bottom-color','border-left-color',
+  'border-top-style','border-right-style','border-bottom-style','border-left-style',
+  'background-color','background-image','white-space','word-break','overflow','overflow-x','overflow-y',
+  'text-align','vertical-align','box-sizing','transform','transform-origin','display','visibility','clip-path',
+  'animation-name','animation-duration','animation-timing-function','animation-iteration-count',
+  'animation-delay','animation-direction','animation-fill-mode','animation-play-state',
+]);
+const baseConfig = {
+  startOnLoad:false,securityLevel:'strict',htmlLabels:false,suppressErrorRendering:true,
+  maxTextSize:50000,maxEdges:500,deterministicIds:true,deterministicIDSeed:'offline-audit',
+  fontFamily:'Arial, sans-serif',legacyMathML:false,forceLegacyMathML:false,
+  secure:['secure','securityLevel','startOnLoad','maxTextSize','maxEdges','suppressErrorRendering',
+    'htmlLabels','fontFamily','themeCSS','legacyMathML','forceLegacyMathML','look','textPlacement','theme','darkMode'],
+};
+let prepared;
+let preparationState={status:'idle'};
+let busy = false;
+let lastHost;
+let serial = 0;
+const tasks = new Map();
+const encoder = new TextEncoder();
+const byteSize = value => encoder.encode(JSON.stringify(value)).length;
+const errorText = error => String(error instanceof Error ? error.message : error).slice(0,4096);
+
+// Module import has already completed. This only waits for existing document fonts;
+// it never parses, initializes or renders a Mermaid document.
+export function prepare() {
+  if(prepared)return prepared;
+  preparationState={status:'pending'};
+  prepared=Promise.resolve(document.fonts?.ready).then(() => {
+    const result={ready:true,engine:'mermaid',version:'12.2.0',prepareOnly:true,
+      fontStatus:document.fonts?.status ?? 'unavailable',userAgent:navigator.userAgent};
+    preparationState={status:'ready',result};return result;
+  },error=>{preparationState={status:'error',error:errorText(error)};throw error;});
+  return prepared;
+}
+function readiness(){return preparationState;}
+
+function validate(request) {
+  if(!request || typeof request!=='object' || Array.isArray(request)) throw Error('invalid request');
+  if(Object.keys(request).some(k=>!['id','source','profile','theme'].includes(k))) throw Error('unknown request field');
+  if(typeof request.id!=='string' || !/^[A-Za-z0-9_-]{1,96}$/.test(request.id)) throw Error('invalid id');
+  if(typeof request.source!=='string' || request.source.length>50000) throw Error('source limit');
+  if(!['baseline','classic-tspan'].includes(request.profile)) throw Error('invalid profile');
+  if(!['light','dark'].includes(request.theme)) throw Error('invalid theme');
+}
+function bbox(node) {
+  try { const b=node.getBBox(); return {x:b.x,y:b.y,width:b.width,height:b.height}; }
+  catch { return null; }
+}
+function attachSize(result) {
+  result.serializedBytes=0;result.over256KiB=false;
+  for(let i=0;i<8;i++) {
+    const n=byteSize(result),over=n>262144;
+    if(n===result.serializedBytes && over===result.over256KiB) break;
+    result.serializedBytes=n;result.over256KiB=over;
+  }
+  return result;
+}
+export async function run(request) {
+  validate(request);
+  if(busy) throw Error('busy: one graph at a time');
+  busy=true;
+  const started=performance.now();
+  let renderMs;
+  let host;
+  try {
+    await prepare();
+    lastHost?.remove();lastHost=undefined;
+    host=document.createElement('div');host.id='mermaid-native-probe-host';host.style.width='1000px';
+    document.body.append(host);lastHost=host;
+    const config={...baseConfig,...(request.theme==='dark'?{theme:'dark',darkMode:true}:{}),
+      ...(request.profile==='classic-tspan'?{look:'classic',journey:{textPlacement:'tspan'}}:{})};
+    mermaid.initialize(config);
+    const {svg,diagramType}=await mermaid.render('native_'+request.id,request.source,host);
+    renderMs=performance.now()-started;
+    // Fixed local research engine output; native helper must block network/navigation.
+    // This is observation, not a safe production SVG validator.
+    host.innerHTML=svg;
+    const root=host.querySelector('svg');
+    const elements=Array.from(host.querySelectorAll('*'));
+    const paths=new WeakMap();
+    function walk(parent,prefix) {
+      Array.from(parent.children).forEach((child,index)=>{
+        const path=prefix?prefix+'/'+index:String(index);paths.set(child,path);walk(child,path);
+      });
+    }
+    walk(host,'');
+    const styleTable=[],styleIds=new Map(),nodes=[],urls=[],texts=[],activeAnimations=[],foreignObjects=[];
+    const tags={},attributes={};
+    for(const node of elements) {
+      const treePath=paths.get(node),style=getComputedStyle(node);
+      const values=styleFields.map(field=>style.getPropertyValue(field));
+      const styleKey=JSON.stringify(values);
+      let styleId=styleIds.get(styleKey);
+      if(styleId===undefined){styleId=styleTable.length;styleIds.set(styleKey,styleId);styleTable.push(values);}
+      nodes.push({treePath,tag:node.localName,namespace:node.namespaceURI,styleId});
+      tags[node.localName]=(tags[node.localName]??0)+1;
+      for(const attribute of Array.from(node.attributes)) {
+        attributes[attribute.name]=(attributes[attribute.name]??0)+1;
+        if(/href|src/i.test(attribute.name)||/url\(/i.test(attribute.value))
+          urls.push({treePath,tag:node.localName,name:attribute.name,value:attribute.value});
+      }
+      for(const property of ['fill','stroke','filter','clip-path','background-image']) {
+        const value=style.getPropertyValue(property);
+        if(/url\(/i.test(value)) urls.push({treePath,tag:node.localName,computed:property,value});
+      }
+      if(node.localName==='text')texts.push({treePath,text:node.textContent,bbox:bbox(node)});
+      if(node.localName.toLowerCase()==='foreignobject')foreignObjects.push(treePath);
+      if(style.animationName && style.animationName!=='none') {
+        let animationData;
+        try {animationData=typeof node.getAnimations==='function'?node.getAnimations().map(a=>({keyframes:a.effect?.getKeyframes?.()??null,timing:a.effect?.getTiming?.()??null})):null;}
+        catch(e){animationData={error:errorText(e)};}
+        activeAnimations.push({treePath,styleId,animations:animationData});
+      }
+    }
+    const rect=root?.getBoundingClientRect();
+    return attachSize({ok:true,id:request.id,profile:request.profile,theme:request.theme,diagramType,
+      svg,svgBytes:encoder.encode(svg).length,geometry:{viewBox:root?.getAttribute('viewBox')??null,
+        rect:rect?{width:rect.width,height:rect.height}:null,text:texts},
+      styleFields,styleTable,nodes,urls,activeAnimations,foreignObjects,
+      counts:{nodes:elements.length,styles:styleTable.length,tags,attributes},
+      renderMs,elapsedMs:performance.now()-started,
+      limitNote:'256KiB is observation only; oversize is reported without truncation or raising product limits.'});
+  } catch(error) {
+    return attachSize({ok:false,id:request.id,profile:request.profile,theme:request.theme,error:errorText(error),
+      renderMs:renderMs??null,elapsedMs:performance.now()-started});
+  } finally {busy=false;}
+}
+function start(request) {
+  validate(request);
+  if(preparationState.status!=='ready')throw Error('prepare must complete before start');
+  if(busy || [...tasks.values()].some(x=>x.status==='pending'))throw Error('busy: one graph at a time');
+  const taskId='probe_'+(++serial);
+  while(tasks.size>=2)tasks.delete(tasks.keys().next().value);
+  tasks.set(taskId,{status:'pending'});
+  Promise.resolve().then(()=>run(request)).then(
+    result=>tasks.set(taskId,{status:'complete',result}),
+    error=>tasks.set(taskId,{status:'error',error:errorText(error)}));
+  return {taskId,status:'pending'};
+}
+function poll(taskId) {return tasks.get(taskId)??{status:'unknown'};}
+function clear(taskId) {
+  if(tasks.get(taskId)?.status==='pending')throw Error('pending task cannot be cleared; native owner must terminate on deadline');
+  tasks.delete(taskId);
+  if(!busy){lastHost?.remove();lastHost=undefined;}
+}
+window.__milkupMermaidProbe=Object.freeze({ready:prepare,readiness,run,start,poll,clear});

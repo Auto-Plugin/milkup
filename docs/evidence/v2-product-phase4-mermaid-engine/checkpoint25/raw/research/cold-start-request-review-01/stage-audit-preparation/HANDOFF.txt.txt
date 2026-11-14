@@ -1,0 +1,14 @@
+Frozen offline auditor handoff
+
+PLAN.txt is the earlier preparation record and is retained unchanged. Implementation now follows native-cold-stage-candidate-01/source-freeze-final.json SHA256 beca9ee9c3d40f1e46b0c700f966439ec410e970f037ef4f97473bb3f786dc2a. No owner source is modified.
+
+Root authorized the first pure-memory 12-case execution. prepared-manifest.json was exclusively created before execution. synthetic-first/execution.json records exact argv/cwd/environment override, actual exit 0 and unchanged input hashes; stdout.log/stderr.log retain the first output. No tests were rerun. The original strict wire auditor remains pinned and unchanged.
+
+Future frozen-only CLI:
+python3 audit-stages.py --freeze-manifest <frozen-manifest.json> --stage-root <frozen-stage-directory> --capture-dir <native-capture> --native-log <full-driver-native-log> --fixture <ordinary.md> --fixture-sha256 <exact-sha256> --plan <frozen-plan.json> --cpu-summary <frozen-independent-identity-summary.json>
+
+Preserve the separate original strict auditor first command/exit/output on actual evidence. This supplementary tool calls its unchanged audit function and retains its full result, but does not replace the independent first invocation. All driver keys remain in scope. Inputs must already appear in a frozen manifest and match size/SHA; the tool does not generate or repair freezes.
+
+ok requires both integrity checks and no identified gaps. integrityOk alone does not prove complete stage coverage or product success. A native deadline with absent buffered JS can retain valid partial evidence without locating the stall. Loss and malformed input may fail conservatively; no auto-repair/retry. Event sequence/file order is not forced globally; only defined local request boundaries are ordered. JS clocks and different processes are not subtracted from one another. final is not an exact closure timestamp or full lifecycle claim.
+
+Test coverage includes exact-key/guardian mismatch, failed wire audit retention, conflicting terminals, missing successful JS phase, JS/native clock separation, null request misuse, cumulative drop/reset, stalled JS, native queue/final/row caps and valid sender-pipe-after-settlement/reordered App emission. These are focused checks, not an exhaustive fuzzer or proof of future full native integration.

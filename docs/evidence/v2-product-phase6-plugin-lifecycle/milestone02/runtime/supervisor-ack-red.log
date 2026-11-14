@@ -1,0 +1,53 @@
+
+ RUN  v3.2.6 /workspace/milkup
+
+ ❯ packages/plugin/src/worker-supervisor.test.ts (14 tests | 2 failed) 42ms
+   ✓ trusted Worker render supervision > reports child startup failure distinctly and revokes pending startup 9ms
+   ✓ trusted Worker render supervision > does not re-timeout a supervised result whose main delivery was delayed 4ms
+   ✓ trusted Worker render supervision > does not let a structural property disable the original watchdog 2ms
+   ✓ trusted Worker render supervision > does not promote child control lookalikes into authority 1ms
+   ✓ trusted Worker render supervision > keeps the supervisor deadline after cancellation and kills before notifying 2ms
+   ✓ trusted Worker render supervision > settles one render, keeps the activation alive, then supervises the next 2ms
+   ✓ trusted Worker render supervision > revokes queued and active work, ignores late responses and cannot revive a retired endpoint 2ms
+   ✓ trusted Worker render supervision > never disarms for a malformed error that the main RPC would reject 1ms
+   ✓ trusted Worker render supervision > constructs a revoked isolation host safely from an already closed endpoint 2ms
+   ✓ trusted Worker render supervision > uses monotonic elapsed time despite wall-clock changes 2ms
+   ✓ trusted Worker render supervision > rejects a late result even if its task runs before the expired timer 1ms
+   ✓ terminates the child and detaches supervisor even when child listener cleanup throws 1ms
+   × does not finish retirement until trusted supervisor acknowledges child teardown 11ms
+     → expected undefined to be an instance of Promise
+   × reports missing child-teardown acknowledgement instead of claiming a fully reaped supervisor 1ms
+     → You must provide a Promise to expect() when using .rejects, not 'undefined'.
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  packages/plugin/src/worker-supervisor.test.ts > does not finish retirement until trusted supervisor acknowledges child teardown
+AssertionError: expected undefined to be an instance of Promise
+ ❯ packages/plugin/src/worker-supervisor.test.ts:346:22
+    344|   const wire = channel(), endpoint = createSupervisedPluginWorkerEndpo…
+    345|   const retirement = endpoint.terminate?.()
+    346|   expect(retirement).toBeInstanceOf(Promise)
+       |                      ^
+    347|   let complete = false
+    348|   const finished = Promise.resolve(retirement).then(() => { complete =…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯
+
+ FAIL  packages/plugin/src/worker-supervisor.test.ts > reports missing child-teardown acknowledgement instead of claiming a fully reaped supervisor
+TypeError: You must provide a Promise to expect() when using .rejects, not 'undefined'.
+ ❯ packages/plugin/src/worker-supervisor.test.ts:361:37
+    359|   const wire = channel(), endpoint = createSupervisedPluginWorkerEndpo…
+    360|   const retirement = endpoint.terminate?.()
+    361|   const rejected = expect(retirement).rejects.toThrow('not confirmed')
+       |                                     ^
+    362|   await vi.advanceTimersByTimeAsync(1000)
+    363|   await rejected
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/2]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  2 failed | 12 passed (14)
+   Start at  08:52:01
+   Duration  1.28s (transform 569ms, setup 0ms, collect 735ms, tests 42ms, environment 0ms, prepare 77ms)
+

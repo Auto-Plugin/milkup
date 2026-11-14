@@ -1,0 +1,31 @@
+import fs from 'node:fs';
+import path from 'node:path';
+import crypto from 'node:crypto';
+const base=path.dirname(new URL(import.meta.url).pathname);
+const sha=s=>crypto.createHash('sha256').update(s).digest('hex');
+const lines=fs.readFileSync(path.join(base,'native-driver-first.log'),'utf8').split('\n');
+const traces=lines.flatMap((line,index)=>line.startsWith('DOM_NATIVE_TIMING ')?[{line:index+1,...JSON.parse(line.slice(18))}]:[]);
+const plan=JSON.parse(fs.readFileSync(path.join(base,'run/plan.json')));
+const files=fs.readdirSync(path.join(base,'run')).filter(n=>n==='ordinary.md').map(name=>({name,text:fs.readFileSync(path.join(base,'run',name),'utf8')}));
+const groups=new Map();
+for(const t of traces){if(!t.requestId)continue;const key=t.instanceId+':'+t.requestId;let g=groups.get(key);if(!g)groups.set(key,g={instanceId:t.instanceId,requestId:t.requestId,traces:[]});g.traces.push(t);}
+const requests=[];
+for(const g of groups.values()){
+ const dispatch=g.traces.find(t=>t.phase==='dispatch');if(!dispatch)continue;
+ const meta=g.traces.find(t=>t.phase==='request-meta')?.details;
+ const candidates=meta?files.flatMap(f=>{const slice=f.text.slice(meta.from,meta.to);return Buffer.byteLength(slice)===meta.source_bytes&&sha(slice)===meta.source_sha256?[{file:f.name,fullDocumentSha256:sha(f.text),from:meta.from,to:meta.to,sourceBytes:Buffer.byteLength(slice),sourceSha256:sha(slice),source:slice}]:[]}):[];
+ for(const c of candidates){const s=plan.samples.find(s=>c.source==='```mermaid\n'+s.source+'```'||c.source==='```mermaid\n'+s.source+'\n```');c.sampleId=s?.id??null;c.family=s?.family??null;}
+ const first=(phase,kind)=>g.traces.find(t=>t.phase===phase&&(!kind||t.details?.message?.kind===kind));
+ const frame=phase=>first(phase,'render');
+ const response=phase=>first(phase,'result');
+ const points={dispatch:dispatch.monotonicNs,pipeWrite:frame('pipe-write-complete')?.monotonicNs,dequeued:frame('helper-frame-dequeued')?.monotonicNs,evaluateSubmitted:frame('helper-evaluate-submitted')?.monotonicNs,evaluateCallbackEntry:frame('helper-evaluate-callback')?.details?.callback_entry_monotonic_ns,evaluateCallbackLogged:frame('helper-evaluate-callback')?.monotonicNs,resultDrained:response('helper-result-drained')?.monotonicNs,resultWrite:response('helper-result-write-complete')?.monotonicNs,receiveEntry:response('receive-entry')?.details?.entry_monotonic_ns,matchingResult:response('matching-result-received')?.monotonicNs,settled:response('result-settled')?.monotonicNs};
+ const intervals={};const keys=Object.keys(points);for(let i=1;i<keys.length;i++){const a=keys[i-1],b=keys[i];intervals[a+'To'+b[0].toUpperCase()+b.slice(1)+'Ms']=points[a]!=null&&points[b]!=null?(points[b]-points[a])/1e6:null;}
+ const settled=response('result-settled');requests.push({...g,meta:meta??null,selection:'unknown: native request-meta does not record selection',sourceCandidates:candidates,points,intervals,dispatchToSettledMs:settled?(settled.monotonicNs-dispatch.monotonicNs)/1e6:null,ok:settled?.details?.ok??null,cancelObserved:g.traces.some(t=>t.details?.message?.kind==='cancel'),cancelPhases:g.traces.filter(t=>t.details?.message?.kind==='cancel'),complete:Object.values(points).every(v=>v!=null)});
+}
+const phaseCounts={};for(const t of traces)phaseCounts[t.phase]=(phaseCounts[t.phase]??0)+1;
+const top10=requests.filter(r=>r.complete).sort((a,b)=>b.dispatchToSettledMs-a.dispatchToSettledMs).slice(0,10);
+const summary={classification:'DIAGNOSTIC ONLY, not formal UI acceptance',traceCount:traces.length,phaseCounts,requestCount:requests.length,completeCount:requests.filter(r=>r.complete).length,unmatchedSourceCount:requests.filter(r=>!r.sourceCandidates.length).length,deadlineRecords:traces.filter(t=>t.phase.includes('deadline')),cancelledRequestCount:requests.filter(r=>r.cancelObserved).length,settledOk:requests.filter(r=>r.ok===true).length,settledFalse:requests.filter(r=>r.ok===false).length,limits:['Intervals are observed monotonic wall time, not helper CPU execution time.','helper-frame-dequeued timestamp includes diagnostic metadata parsing; callback entry is separately recorded before callback metadata.','Trace performs diagnostic hashing/serialization/queueing and has a bounded nonblocking channel; unobserved records cannot prove absence. No overhead subtraction.','Source matching uses JavaScript UTF-16 slice, exact UTF-8 bytes and SHA-256 on actual opened ordinary/fallback files. Windowed file was not opened.','No selection in native metadata; no reconstruction from later UI snapshot.','No payload attribution to historical formal UI04 render_68.'],top10};
+fs.writeFileSync(path.join(base,'parsed-trace.json'),JSON.stringify(traces,null,2)+'\n',{flag:'wx'});
+fs.writeFileSync(path.join(base,'request-mapping.json'),JSON.stringify(requests,null,2)+'\n',{flag:'wx'});
+fs.writeFileSync(path.join(base,'trace-summary.json'),JSON.stringify(summary,null,2)+'\n',{flag:'wx'});
+console.log(JSON.stringify({...summary,top10:top10.map(({instanceId,requestId,meta,sourceCandidates,intervals,dispatchToSettledMs,ok,cancelObserved})=>({instanceId,requestId,meta,sources:sourceCandidates.map(({file,sampleId,family})=>({file,sampleId,family})),intervals,dispatchToSettledMs,ok,cancelObserved}))},null,2));

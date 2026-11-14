@@ -1,0 +1,151 @@
+diff --git a/apps/desktop/src-tauri/src/plugin_dom_process.rs b/apps/desktop/src-tauri/src/plugin_dom_process.rs
+index 43a1f1da..b3a492e6 100644
+--- a/apps/desktop/src-tauri/src/plugin_dom_process.rs
++++ b/apps/desktop/src-tauri/src/plugin_dom_process.rs
+@@ -29,6 +29,8 @@ pub(super) struct Instance {
+     control: Mutex<Control>,
+     wake: Condvar,
+     owned: Mutex<HashMap<i32, u64>>,
++    #[cfg(test)]
++    sample_owned_calls: std::sync::atomic::AtomicUsize,
+     emit: Emit,
+     extension: helper::PrivateDirectory,
+ }
+@@ -147,6 +149,8 @@ impl Instance {
+             }),
+             wake: Condvar::new(),
+             owned: Mutex::new(HashMap::from([(pid, birth)])),
++            #[cfg(test)]
++            sample_owned_calls: std::sync::atomic::AtomicUsize::new(0),
+             emit,
+             extension,
+         });
+@@ -486,6 +490,9 @@ impl Instance {
+         self.kill_owned()
+     }
+     fn sample_owned(&self) {
++        #[cfg(test)]
++        self.sample_owned_calls
++            .fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+         let table = proc_table();
+         let Ok(mut owned) = self.owned.lock() else {
+             return;
+@@ -746,6 +753,7 @@ fn validate_render(message: &Value, plugin_id: &str, manifest: &Value) -> Result
+ #[cfg(test)]
+ mod tests {
+     use super::*;
++    use std::os::unix::ffi::OsStrExt;
+     #[test]
+     fn strict_settlement_rejects_forged_late_shape_and_wrong_id() {
+         let valid =
+@@ -841,6 +849,7 @@ mod tests {
+                 (pid, birth),
+                 (descendant, proc_stat(descendant).unwrap().birth),
+             ])),
++            sample_owned_calls: std::sync::atomic::AtomicUsize::new(0),
+             emit: Arc::new(move |e| {
+                 let _ = tx.send(e);
+             }),
+@@ -972,7 +981,7 @@ export default { activate(context) {
+             Arc::new(move |event| {
+                 let _ = tx.send(event);
+             }),
+-            executable,
++            executable.clone(),
+         )
+         .unwrap();
+         struct Cleanup(Arc<Instance>);
+@@ -989,6 +998,7 @@ export default { activate(context) {
+             activation.message.unwrap()["value"]["documentRenderers"],
+             json!(["test.renderer"])
+         );
++        let mut observed_descendants = Vec::new();
+         for (id, source) in [
+             ("r1", "bbox"),
+             ("r2", "guard"),
+@@ -996,6 +1006,69 @@ export default { activate(context) {
+             ("r4", "rebind"),
+             ("r5", "loop"),
+         ] {
++            if source == "loop" {
++                // Observe the real tree independently of the parent's optional
++                // sampling cache. This remains meaningful without that cache.
++                let table = proc_table();
++                assert!(table
++                    .get(&instance.pid)
++                    .is_some_and(|p| p.birth == instance.birth));
++                let mut selected = HashSet::from([instance.pid]);
++                loop {
++                    let children: Vec<_> = table
++                        .iter()
++                        .filter(|(pid, p)| !selected.contains(pid) && selected.contains(&p.parent))
++                        .map(|(pid, _)| *pid)
++                        .collect();
++                    if children.is_empty() {
++                        break;
++                    }
++                    selected.extend(children);
++                }
++                let mut observed_helper = false;
++                let mut observed_webkit = false;
++                for pid in selected {
++                    let observed = &table[&pid];
++                    let current = proc_stat(pid).expect("observed native process remains alive");
++                    assert_eq!(current.birth, observed.birth);
++                    assert_eq!(current.parent, observed.parent);
++                    let raw = std::fs::read(format!("/proc/{pid}/cmdline")).unwrap();
++                    let mut arguments: Vec<_> = raw.split(|byte| *byte == 0).collect();
++                    if arguments.last() == Some(&b"".as_slice()) {
++                        arguments.pop();
++                    }
++                    let direct_helper = current.parent == instance.pid
++                        && arguments.len() == 2
++                        && arguments[0] == executable.as_os_str().as_bytes()
++                        && arguments[1] == b"--milkup-internal-dom-helper";
++                    let webkit = arguments.first().is_some_and(|argument| {
++                        std::path::Path::new(std::ffi::OsStr::from_bytes(argument)).file_name()
++                            == Some(std::ffi::OsStr::new("WebKitWebProcess"))
++                    });
++                    let rechecked = proc_stat(pid).expect("observed identity survives role read");
++                    assert_eq!(rechecked.birth, observed.birth);
++                    assert_eq!(rechecked.parent, observed.parent);
++                    observed_helper |= direct_helper;
++                    observed_webkit |= webkit;
++                    let role = if pid == instance.pid {
++                        "guardian"
++                    } else if direct_helper {
++                        "helper"
++                    } else if webkit {
++                        "webkit-web"
++                    } else {
++                        "other-owned"
++                    };
++                    eprintln!(
++                        "DOM_NATIVE_PROBE observed_role={role} pid={pid} birth={}",
++                        observed.birth
++                    );
++                    observed_descendants.push((pid, observed.birth));
++                }
++                assert!(observed_helper, "expected exact direct GTK helper");
++                assert!(observed_webkit, "expected owned WebKit web process");
++                eprintln!("DOM_NATIVE_PROBE independently_observed={observed_descendants:?}");
++            }
+             let before = Instant::now();
+             instance.send(json!({"protocol":RENDER_PROTOCOL,"type":"render","id":id,"payload":{"pluginId":"test.dom","rendererId":"test.renderer","request":{"source":source}}})).unwrap();
+             let event = rx.recv_timeout(Duration::from_secs(6)).unwrap();
+@@ -1022,8 +1095,14 @@ export default { activate(context) {
+                 }
+             }
+         }
+-        for (pid, birth) in instance.owned.lock().unwrap().iter() {
++        for (pid, birth) in &observed_descendants {
+             assert!(!proc_stat(*pid).is_some_and(|p| p.birth == *birth));
+         }
++        instance.stop().unwrap();
++        let scans = instance
++            .sample_owned_calls
++            .load(std::sync::atomic::Ordering::Relaxed);
++        eprintln!("DOM_NATIVE_PROBE production_parent_sample_owned_calls={scans}");
++        assert_eq!(scans, 0, "guardian-backed production instances must not scan all processes in a background worker");
+     }
+ }

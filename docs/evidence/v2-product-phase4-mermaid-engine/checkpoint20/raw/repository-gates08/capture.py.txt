@@ -1,0 +1,55 @@
+# Preparation only: copy beside run.py in repository-gates08 after final-source GO.
+from pathlib import Path
+import datetime
+import hashlib
+import json
+import subprocess
+import sys
+
+root = Path('/workspace/milkup')
+out = Path(__file__).resolve().parent
+assert out.name == 'repository-gates08', 'Do not capture unfinished source in the preparation directory'
+mode = sys.argv[1]
+assert mode in ('before', 'after')
+target = out / ('inputs-' + mode + '.json')
+assert not target.exists(), 'Never overwrite source evidence'
+sha = lambda raw: hashlib.sha256(raw).hexdigest()
+names = sorted(set(name for name in subprocess.check_output(
+    ['git', 'ls-files', '-z', '--cached', '--others', '--exclude-standard'], cwd=root
+).decode().split('\0') if name and (root / name).is_file()))
+rows = []
+for name in names:
+    raw = (root / name).read_bytes()
+    rows.append({'path': name, 'bytes': len(raw), 'sha256': sha(raw)})
+archive_paths = [
+    root / 'apps/desktop/src/bundled-plugins/milkup.diagrams-1.1.0.milkup-plugin',
+    root / 'plugins/diagrams/dist/milkup.diagrams-1.1.0.milkup-plugin',
+    Path('/workspace/milkup-mermaid-engine-evidence/diagrams-gate07/standalone/plugin/dist/milkup.diagrams-1.1.0.milkup-plugin'),
+]
+archives = []
+for path in archive_paths:
+    raw = path.read_bytes()
+    archives.append({'path': str(path), 'bytes': len(raw), 'sha256': sha(raw)})
+value = {
+    'atUtc': datetime.datetime.now(datetime.timezone.utc).isoformat(),
+    'head': subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=root).decode().strip(),
+    'scope': 'All existing tracked/nonignored untracked regular files; generated ignored artifacts separate',
+    'files': rows,
+    'reusedOfficialArchive': archives,
+}
+if mode == 'after':
+    before = json.loads((out / 'inputs-before.json').read_text())
+    old = {row['path']: row for row in before['files']}
+    new = {row['path']: row for row in rows}
+    value['changes'] = [{'path': name, 'before': old.get(name), 'after': new.get(name)}
+                        for name in sorted(set(old) | set(new)) if old.get(name) != new.get(name)]
+    value['archiveChanges'] = before['reusedOfficialArchive'] != archives
+with target.open('x') as stream:
+    stream.write(json.dumps(value, indent=2) + '\n')
+if mode == 'before':
+    with (out / 'source-before.diff').open('xb') as stream:
+        stream.write(subprocess.check_output(['git', 'diff', 'HEAD', '--'], cwd=root))
+assert all(row['sha256'] == '9889f1796f9080ff230a1c51147522e83e065bc191a258035208f69403a327df' for row in archives), 'Official archive must remain gate07 bytes; do not rebuild it silently'
+if mode == 'after':
+    assert not value['changes'] and not value['archiveChanges'], 'Source changed; retain raw diff and qualify it before declaring gates complete'
+print(json.dumps({'mode': mode, 'files': len(rows), 'output': str(target), 'sha256': sha(target.read_bytes())}))

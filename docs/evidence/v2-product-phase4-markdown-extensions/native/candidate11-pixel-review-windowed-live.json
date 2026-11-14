@@ -1,0 +1,1452 @@
+{
+  "reviewer": "release_sdk",
+  "runDirectory": "/workspace/milkup-markdown-extensions-phase4-evidence/native/run-candidate11-namespace-run01",
+  "scope": "candidate11 windowed/live: all 16 completed combinations, six targets each, plus eight paired WebView originals",
+  "method": "Direct visual inspection through view_image of each listed original PNG. Completion JSON was used only to authorize reading completed groups; DOM/geometry/results were not used as a substitute for pixel inspection. No UI, test, build, or image transformation was run.",
+  "combinationCount": 16,
+  "x11ImagesViewed": 96,
+  "webviewImagesViewed": 8,
+  "classificationDefinition": "targetComplete means the selected target's rendered semantic content and diagram geometry are visible in this captured viewport. partial means some target content/geometry is outside an editor or inner-preview clipping boundary. The SAMPLE marker and neighbouring targets are excluded from target completeness; marker visibility is separately described. These are screenshot visibility classifications, not functional pass/fail or scroll-reachability assertions.",
+  "targetComplete": 76,
+  "partial": 20,
+  "coverage": {
+    "themes": ["light", "dark"],
+    "zoomsPercent": [100, 125, 150, 200],
+    "widths": ["wide", "narrow"],
+    "targets": ["root", "matrix", "flow", "sequence", "pie", "footnotes"],
+    "webviewSampling": [
+      "matrix-windowed-live-light-100-narrow-pie-webview.png",
+      "matrix-windowed-live-light-125-wide-sequence-webview.png",
+      "matrix-windowed-live-light-150-narrow-pie-webview.png",
+      "matrix-windowed-live-light-200-narrow-flow-webview.png",
+      "matrix-windowed-live-dark-100-narrow-pie-webview.png",
+      "matrix-windowed-live-dark-125-wide-sequence-webview.png",
+      "matrix-windowed-live-dark-150-narrow-pie-webview.png",
+      "matrix-windowed-live-dark-200-narrow-flow-webview.png"
+    ]
+  },
+  "findings": [
+    "All 96 target frames were actually viewed; 76 target contents were complete in the captured viewport and 20 partial. No blank target preview or missing-glyph boxes were observed in these frames.",
+    "Root formula and matrix content were fully visible in all 16 combinations. Chinese text, mathematical fractions/roots/integrals, matrix parentheses and entries remained legible; 100% formula glyphs are small but distinguishable.",
+    "Flow content was partial at 150% narrow and 200% wide/narrow in both themes: 150% narrow completion node falls below editor edge; 200% wide completion label remains visible but lower outline is clipped; 200% narrow decision/completion extend below editor viewport.",
+    "Sequence content was partial only at 200% narrow in both themes: actor/service and forward request arrow are visible, but return arrow and lower lifelines are below the viewport.",
+    "Pie content was partial in 12 frames: all except 100% wide and 125% wide in each theme. At 100% narrow, 125% narrow and 150% wide, lower circle is clipped while legends are complete. At 150% narrow legend percentages/right tails are also clipped; 200% wide has clipped legend endings; 200% narrow legends are outside the captured viewport. Visible scrollbars were recorded but not operated.",
+    "Footnote references, all three return links and complete definition were visible in all 16 target frames. Narrow 150/200% definitions wrap; at 200% narrow the SAMPLE marker is above the visible viewport, while reference/definition content is fully visible.",
+    "Dark theme uses light text and pale-blue diagram/link accents against a dark background; light theme uses dark text and green accents. Selected SAMPLE markers remain distinguishable where shown. Static selection highlighting is not proof of keyboard focus.",
+    "Status/header UI scales with zoom. At 200% narrow the line-count status is ellipsized, while saved-state text remains visible; this is not a text-data-loss finding.",
+    "All eight actual paired WebView inspections agreed with the corresponding X11 target appearance and clipping boundaries. Black outside the X11 application rectangle is desktop background."
+  ],
+  "uncovered": [
+    "No scroll, End/Home, pointer hit, keyboard focus, navigation or editing action was performed by this pixel reviewer.",
+    "Partial viewport content does not prove inability to reach that content, nor absence or data loss. Supplemental 200% narrow reachability tests, if separately completed, must not be generalized to every matrix zoom/width.",
+    "Only eight WebView counterparts were inspected; the remaining 88 WebView counterparts were not visually reviewed here.",
+    "This review does not evaluate the concurrent all-disabled/recovery steps, overall native completion, dynamic redraw stability, or noncaptured states."
+  ],
+  "overallNativePassClaimed": false,
+  "reviewStatus": "all scoped original images visually inspected; viewport completeness classified; no overall native PASS claim",
+  "combinations": [
+    {
+      "key": "windowed-live-light-100-wide",
+      "x11ImagesViewed": 6,
+      "targetComplete": 6,
+      "partial": 0,
+      "observation": "Light background, dark text, green diagram/link accents. Current viewport only; no inference of scroll reachability.",
+      "images": [
+        {
+          "file": "matrix-windowed-live-light-100-wide-root-x11.png",
+          "kind": "x11",
+          "sample": "root",
+          "actuallyViewed": true,
+          "method": "view_image of original PNG; direct pixel inspection",
+          "targetVisibility": "targetComplete",
+          "finding": "Root marker selected; inline fraction/cube-root and integral render with Chinese prose, all visible.",
+          "bytes": 38199,
+          "sha256": "86d86cd2657f5d834725bf939fbf670aad068ebd5edb3c803890ecab245af156"
+        },
+        {
+          "file": "matrix-windowed-live-light-100-wide-matrix-x11.png",
+          "kind": "x11",
+          "sample": "matrix",
+          "actuallyViewed": true,
+          "method": "view_image of original PNG; direct pixel inspection",
+          "targetVisibility": "targetComplete",
+          "finding": "Matrix marker selected; centered 2×2 matrix and parentheses fully visible.",
+          "bytes": 35376,
+          "sha256": "38eada51e05c55b75eb8426eafb0050e1db0d4eee0fc20a39138fc40fea4ed6f"
+        },
+        {
+          "file": "matrix-windowed-live-light-100-wide-flow-x11.png",
+          "kind": "x11",
+          "sample": "flow",
+          "actuallyViewed": true,
+          "method": "view_image of original PNG; direct pixel inspection",
+          "targetVisibility": "targetComplete",
+          "finding": "Flow marker selected; full start/decision/end geometry, arrowheads and Chinese labels visible.",
+          "bytes": 33569,
+          "sha256": "68e166e49f4a179063f9bf26c386b918c39973f907e02e9c45eba84030433100"
+        },
+        {
+          "file": "matrix-windowed-live-light-100-wide-sequence-x11.png",
+          "kind": "x11",
+          "sample": "sequence",
+          "actuallyViewed": true,
+          "method": "view_image of original PNG; direct pixel inspection",
+          "targetVisibility": "targetComplete",
+          "finding": "Sequence marker selected; actor 用户, 服务 box, dashed lifelines and 请求/返回 arrows fully visible.",
+          "bytes": 40188,
+          "sha256": "bedb43411f3322eab7bdb739da90b7f5be64c2833a87904b6fee9f379fab9699"
+        },
+        {
+          "file": "matrix-windowed-live-light-100-wide-pie-x11.png",
+          "kind": "x11",
+          "sample": "pie",
+          "actuallyViewed": true,
+          "method": "view_image of original PNG; direct pixel inspection",
+          "targetVisibility": "targetComplete",
+          "finding": "Pie marker selected; full two-sector circle, numeric labels, 分布 title and both complete legend entries visible.",
+          "bytes": 54219,
+          "sha256": "f742e713dc9edd2044bc3cd4657771133ed7077fe5a4e4fbf901cf6c5469cde0"
+        },
+        {
+          "file": "matrix-windowed-live-light-100-wide-footnotes-x11.png",
+          "kind": "x11",
+          "sample": "footnotes",
+          "actuallyViewed": true,
+          "method": "view_image of original PNG; direct pixel inspection",
+          "targetVisibility": "targetComplete",
+          "finding": "Footnotes marker selected; two superscript 1 references, definition [1], three green return links, bold 强调 and Chinese definition visible. Below-target unsupported syntax stays literal; no missing-glyph boxes observed.",
+          "bytes": 80100,
+          "sha256": "b255de70cff14b13c3a71d225e16675a51dba275daacd784a57e6bd595633773"
+        }
+      ],
+      "completionRecord": {
+        "name": "matrix-complete-windowed-live-light-100-wide",
+        "at": "2026-10-16T08:40:32.918Z"
+      }
+    },
+    {
+      "key": "windowed-live-light-100-narrow",
+      "x11ImagesViewed": 6,
+      "targetComplete": 5,
+      "partial": 1,
+      "observation": "Light background, dark text, green diagram/link accents. Current viewport only; no inference of scroll reachability.",
+      "images": [
+        {
+          "file": "matrix-windowed-live-light-100-narrow-root-x11.png",
+          "kind": "x11",
+          "sample": "root",
+          "actuallyViewed": true,
+          "method": "view_image of original PNG; direct pixel inspection",
+          "targetVisibility": "targetComplete",
+          "finding": "Root marker selected; inline fraction/cube-root and integral render with Chinese prose, all visible.",
+          "bytes": 29995,
+          "sha256": "fccb7971c98dd46d3812f484af3bfbc161a83cb0579548180f3bbee2d81b6194"
+        },
+        {
+          "file": "matrix-windowed-live-light-100-narrow-matrix-x11.png",
+          "kind": "x11",
+          "sample": "matrix",
+          "actuallyViewed": true,
+          "method": "view_image of original PNG; direct pixel inspection",
+          "targetVisibility": "targetComplete",
+          "finding": "Matrix marker selected; centered 2×2 matrix and parentheses fully visible.",
+          "bytes": 27410,
+          "sha256": "277bd0d267537b56e589f87f73387ab34c31011d5d178cdd3b40528b63bb2cbe"
+        },
+        {
+          "file": "matrix-windowed-live-light-100-narrow-flow-x11.png",
+          "kind": "x11",
+          "sample": "flow",
+          "actuallyViewed": true,
+          "method": "view_image of original PNG; direct pixel inspection",
+          "targetVisibility": "targetComplete",
+          "finding": "Flow marker selected; full start/decision/end geometry, arrowheads and Chinese labels visible.",
+          "bytes": 26487,
+          "sha256": "979306235c8134fe4f0c9d8bb3d9be0198045752404fdb62143d53db53995d71"
+        },
+        {
+          "file": "matrix-windowed-live-light-100-narrow-sequence-x11.png",
+          "kind": "x11",
+          "sample": "sequence",
+          "actuallyViewed": true,
+          "method": "view_image of original PNG; direct pixel inspection",
+          "targetVisibility": "targetComplete",
+          "finding": "Sequence marker selected; actor 用户, 服务 box, dashed lifelines and 请求/返回 arrows fully visible.",
+          "bytes": 30283,
+          "sha256": "53331195ece4a1dffff038d0c9ecff634f319ae9b1724743e27c1c80d1c30656"
+        },
+        {
+          "file": "matrix-windowed-live-light-100-narrow-pie-x11.png",
+          "kind": "x11",
+          "sample": "pie",
+          "actuallyViewed": true,
+          "method": "view_image of original PNG; direct pixel inspection",
+          "targetVisibility": "partial",
+          "finding": "Selected pie marker and 分布 title visible; both complete legends visible. Circle bottom is clipped by the preview's lower edge; horizontal and vertical preview scrollbars visible. No claim of full-circle reachability from this frame.",
+          "bytes": 32984,
+          "sha256": "13840c6a63019ea112c0abc4b37713395b65f883751a05d91f4feecf2d46058e"
+        },
+        {
+          "file": "matrix-windowed-live-light-100-narrow-footnotes-x11.png",
+          "kind": "x11",
+          "sample": "footnotes",
+          "actuallyViewed": true,
+          "method": "view_image of original PNG; direct pixel inspection",
+          "targetVisibility": "targetComplete",
+          "finding": "Footnotes marker selected; two superscript 1 references, definition [1], three green return links, bold 强调 and Chinese definition visible. Below-target unsupported syntax stays literal; no missing-glyph boxes observed.",
+          "bytes": 49146,
+          "sha256": "102b0009ef1020cc6b6141ae5784e0a4a9a2db6e79a4f1a53a4ad212d33c2628"
+        },
+        {
+          "file": "matrix-windowed-live-light-100-narrow-pie-webview.png",
+          "kind": "webview",
+          "sample": "pie",
+          "actuallyViewed": true,
+          "method": "view_image of original PNG; direct pixel inspection",
+          "targetVisibility": "partial",
+          "finding": "Selected pie marker and 分布 title visible; both complete legends visible. Circle bottom is clipped by the preview's lower edge; horizontal and vertical preview scrollbars visible. No claim of full-circle reachability from this frame.",
+          "bytes": 27977,
+          "sha256": "7c66b0f22a039063b8730e71c4a8c70bef9f2cc3d5d8c3870b4af5a6d593ce36"
+        }
+      ],
+      "completionRecord": {
+        "name": "matrix-complete-windowed-live-light-100-narrow",
+        "at": "2026-10-16T08:41:40.762Z"
+      }
+    },
+    {
+      "key": "windowed-live-light-125-wide",
+      "x11ImagesViewed": 6,
+      "targetComplete": 6,
+      "partial": 0,
+      "observation": "Light background, dark text, green diagram/link accents. Current viewport only; no inference of scroll reachability.",
+      "images": [
+        {
+          "file": "matrix-windowed-live-light-125-wide-root-x11.png",
+          "kind": "x11",
+          "sample": "root",
+          "actuallyViewed": true,
+          "method": "view_image of original PNG; direct pixel inspection",
+          "targetVisibility": "targetComplete",
+          "finding": "Root marker selected; inline fraction/cube-root and integral render with Chinese prose, all visible.",
+          "bytes": 42465,
+          "sha256": "b031c06d3f224985c89ab64154d216df4b0691634d6456de8b50fb73bef7bb12"
+        },
+        {
+          "file": "matrix-windowed-live-light-125-wide-matrix-x11.png",
+          "kind": "x11",
+          "sample": "matrix",
+          "actuallyViewed": true,
+          "method": "view_image of original PNG; direct pixel inspection",
+          "targetVisibility": "targetComplete",
+          "finding": "Matrix marker selected; centered 2×2 matrix and parentheses fully visible.",
+          "bytes": 40525,
+          "sha256": "97e92d4d4da2273a5f17134d7e213b838c95e1adc3fbcde6c34655183c3b562f"
+        },
+        {
+          "file": "matrix-windowed-live-light-125-wide-flow-x11.png",
+          "kind": "x11",
+          "sample": "flow",
+          "actuallyViewed": true,
+          "method": "view_image of original PNG; direct pixel inspection",
+          "targetVisibility": "targetComplete",
+          "finding": "Flow marker selected; full start/decision/end geometry, arrowheads and Chinese labels visible.",
+          "bytes": 39023,
+          "sha256": "31cf622b0865a398175bb5fd7820ebfc21aa96224cfcae503e0db84563906354"
+        },
+        {
+          "file": "matrix-windowed-live-light-125-wide-sequence-x11.png",
+          "kind": "x11",
+          "sample": "sequence",
+          "actuallyViewed": true,
+          "method": "view_image of original PNG; direct pixel inspection",
+          "targetVisibility": "targetComplete",
+          "finding": "Sequence marker selected; actor 用户, 服务 box, dashed lifelines and 请求/返回 arrows fully visible.",
+          "bytes": 44314,
+          "sha256": "c30e031211f4c8fca732ada4d9d8c91fecdf87c64ef79f91b32ceb39264d5036"
+        },
+        {
+          "file": "matrix-windowed-live-light-125-wide-pie-x11.png",
+          "kind": "x11",
+          "sample": "pie",
+          "actuallyViewed": true,
+          "method": "view_image of original PNG; direct pixel inspection",
+          "targetVisibility": "targetComplete",
+          "finding": "Selected pie marker, full two-sector circle, numeric labels, title and both complete legends visible. A vertical preview scrollbar is visible; content outside frame not tested.",
+          "bytes": 49474,
+          "sha256": "4a8e94a276be864c38d4b278c421ea055b45e2c5eaaf5c0d60608e12a6a21187"
+        },
+        {
+          "file": "matrix-windowed-live-light-125-wide-footnotes-x11.png",
+          "kind": "x11",
+          "sample": "footnotes",
+          "actuallyViewed": true,
+          "method": "view_image of original PNG; direct pixel inspection",
+          "targetVisibility": "targetComplete",
+          "finding": "Footnotes marker selected; two superscript 1 references, definition [1], three green return links, bold 强调 and Chinese definition visible. Below-target unsupported syntax stays literal; no missing-glyph boxes observed.",
+          "bytes": 82596,
+          "sha256": "9ad1027c71322d8f464faeb88270e59c0b81900a003daba1ea5242c84dcb5403"
+        },
+        {
+          "file": "matrix-windowed-live-light-125-wide-sequence-webview.png",
+          "kind": "webview",
+          "sample": "sequence",
+          "actuallyViewed": true,
+          "method": "view_image of original PNG; direct pixel inspection",
+          "targetVisibility": "targetComplete",
+          "finding": "Sequence marker selected; actor 用户, 服务 box, dashed lifelines and 请求/返回 arrows fully visible.",
+          "bytes": 41131,
+          "sha256": "033a4c9da48b93d2a5b2c18730c094eba1222c11825a12393690efe05311ea65"
+        }
+      ],
+      "completionRecord": {
+        "name": "matrix-complete-windowed-live-light-125-wide",
+        "at": "2026-10-16T08:43:22.609Z"
+      }
+    },
+    {
+      "key": "windowed-live-light-125-narrow",
+      "x11ImagesViewed": 6,
+      "targetComplete": 5,
+      "partial": 1,
+      "observation": "Light background, dark text, green diagram/link accents. Current viewport only; no inference of scroll reachability.",
+      "images": [
+        {
+          "file": "matrix-windowed-live-light-125-narrow-root-x11.png",
+          "kind": "x11",
+          "sample": "root",
+          "actuallyViewed": true,
+          "method": "view_image of original PNG; direct pixel inspection",
+          "targetVisibility": "targetComplete",
+          "finding": "Root marker selected; inline fraction/cube-root and integral render with Chinese prose, all visible.",
+          "bytes": 34763,
+          "sha256": "35c6d5fbaee9b76f0a91631edd6125c6f0f3d03046a7dd549aa37b60e30399aa"
+        },
+        {
+          "file": "matrix-windowed-live-light-125-narrow-matrix-x11.png",
+          "kind": "x11",
+          "sample": "matrix",
+          "actuallyViewed": true,
+          "method": "view_image of original PNG; direct pixel inspection",
+          "targetVisibility": "targetComplete",
+          "finding": "Matrix marker selected; centered 2×2 matrix and parentheses fully visible.",
+          "bytes": 32801,
+          "sha256": "3cb1bdd5b5b907e32b1d725e1615d1f3ce566c2cb36288a6bd414f200b8567b1"
+        },
+        {
+          "file": "matrix-windowed-live-light-125-narrow-flow-x11.png",
+          "kind": "x11",
+          "sample": "flow",
+          "actuallyViewed": true,
+          "method": "view_image of original PNG; direct pixel inspection",
+          "targetVisibility": "targetComplete",
+          "finding": "Flow marker selected; full start/decision/end geometry, arrowheads and Chinese labels visible. Vertical preview scrollbar visible.",
+          "bytes": 29949,
+          "sha256": "800671c85f4cada406ff68ca439628c845ce66e711f46970f82cc98bc33e478b"
+        },
+        {
+          "file": "matrix-windowed-live-light-125-narrow-sequence-x11.png",
+          "kind": "x11",
+          "sample": "sequence",
+          "actuallyViewed": true,
+          "method": "view_image of original PNG; direct pixel inspection",
+          "targetVisibility": "targetComplete",
+          "finding": "Sequence marker selected; actor 用户, 服务 box, dashed lifelines and 请求/返回 arrows fully visible.",
+          "bytes": 30743,
+          "sha256": "09e62119e761fc948f182bae2a1f6d4ef8ed7559ef8da7b8683d5e2bb7da77d1"
+        },
+        {
+          "file": "matrix-windowed-live-light-125-narrow-pie-x11.png",
+          "kind": "x11",
+          "sample": "pie",
+          "actuallyViewed": true,
+          "method": "view_image of original PNG; direct pixel inspection",
+          "targetVisibility": "partial",
+          "finding": "Pie marker/title and both complete legends visible; lower portion of circle and numeric label 1 are outside the clipped preview. Preview horizontal/vertical scrollbars visible. No reachability claim.",
+          "bytes": 37706,
+          "sha256": "2778ac86ebba6434ec316a8e1cd239b1835b9ca1d2321a8840edf8a51b772835"
+        },
+        {
+          "file": "matrix-windowed-live-light-125-narrow-footnotes-x11.png",
+          "kind": "x11",
+          "sample": "footnotes",
+          "actuallyViewed": true,
+          "method": "view_image of original PNG; direct pixel inspection",
+          "targetVisibility": "targetComplete",
+          "finding": "Footnotes marker selected; two superscript 1 references, definition [1], three green return links, bold 强调 and Chinese definition visible. Below-target unsupported syntax stays literal; no missing-glyph boxes observed.",
+          "bytes": 58894,
+          "sha256": "5e62cf50eb1571b2f106b4d106b5ce05b593f7633c860436c84d1feb0e24ab9a"
+        }
+      ],
+      "completionRecord": {
+        "name": "matrix-complete-windowed-live-light-125-narrow",
+        "at": "2026-10-16T08:44:43.891Z"
+      }
+    },
+    {
+      "key": "windowed-live-light-150-wide",
+      "x11ImagesViewed": 6,
+      "targetComplete": 5,
+      "partial": 1,
+      "observation": "Light background, dark text, green diagram/link accents. Current viewport only; no inference of scroll reachability.",
+      "images": [
+        {
+          "file": "matrix-windowed-live-light-150-wide-root-x11.png",
+          "kind": "x11",
+          "sample": "root",
+          "actuallyViewed": true,
+          "method": "view_image of original PNG; direct pixel inspection",
+          "targetVisibility": "targetComplete",
+          "finding": "Root marker selected; inline fraction/cube-root and integral render with Chinese prose, all visible.",
+          "bytes": 45789,
+          "sha256": "f8b61bc9b6b77f28bea262ab9b35413d08c574fdd1203bcf356370ab4329fcd0"
+        },
+        {
+          "file": "matrix-windowed-live-light-150-wide-matrix-x11.png",
+          "kind": "x11",
+          "sample": "matrix",
+          "actuallyViewed": true,
+          "method": "view_image of original PNG; direct pixel inspection",
+          "targetVisibility": "targetComplete",
+          "finding": "Matrix marker selected; centered 2×2 matrix and parentheses fully visible.",
+          "bytes": 42129,
+          "sha256": "7f56f7f047a3bc59c016c81de56bd814a7a59babb6aaa104c727916b6c899eae"
+        },
+        {
+          "file": "matrix-windowed-live-light-150-wide-flow-x11.png",
+          "kind": "x11",
+          "sample": "flow",
+          "actuallyViewed": true,
+          "method": "view_image of original PNG; direct pixel inspection",
+          "targetVisibility": "targetComplete",
+          "finding": "Flow marker selected; full start/decision/end geometry, arrowheads and Chinese labels visible.",
+          "bytes": 39565,
+          "sha256": "127dc799b4f3cc7f4a163eeae49da5fb5ea97a28a23624b3289eb8d6cfef6777"
+        },
+        {
+          "file": "matrix-windowed-live-light-150-wide-sequence-x11.png",
+          "kind": "x11",
+          "sample": "sequence",
+          "actuallyViewed": true,
+          "method": "view_image of original PNG; direct pixel inspection",
+          "targetVisibility": "targetComplete",
+          "finding": "Sequence marker selected; actor 用户, 服务 box, dashed lifelines and 请求/返回 arrows fully visible.",
+          "bytes": 45192,
+          "sha256": "31bdd75399903dd36b833af4cc6ca3dfd34f089e1cca984ad2a1f4e87fd83d0f"
+        },
+        {
+          "file": "matrix-windowed-live-light-150-wide-pie-x11.png",
+          "kind": "x11",
+          "sample": "pie",
+          "actuallyViewed": true,
+          "method": "view_image of original PNG; direct pixel inspection",
+          "targetVisibility": "partial",
+          "finding": "Pie marker/title, two complete legends, both numeric sector labels visible; bottom arc clipped at preview lower edge with horizontal/vertical scrollbars visible. Cannot establish full-circle reachability.",
+          "bytes": 49261,
+          "sha256": "683e7e48f8e5738bc9ef4484c1b31fa1bcd242817ad43dbf59040d31b763949c"
+        },
+        {
+          "file": "matrix-windowed-live-light-150-wide-footnotes-x11.png",
+          "kind": "x11",
+          "sample": "footnotes",
+          "actuallyViewed": true,
+          "method": "view_image of original PNG; direct pixel inspection",
+          "targetVisibility": "targetComplete",
+          "finding": "Footnotes marker selected; two superscript 1 references, definition [1], three green return links, bold 强调 and Chinese definition visible. Below-target unsupported syntax stays literal; no missing-glyph boxes observed.",
+          "bytes": 73749,
+          "sha256": "bfd66bc9d26d42aa18d9e10ce8211ce4dc3fa50a1965c907cf541fb3a523222e"
+        }
+      ],
+      "completionRecord": {
+        "name": "matrix-complete-windowed-live-light-150-wide",
+        "at": "2026-10-16T08:46:27.382Z"
+      }
+    },
+    {
+      "key": "windowed-live-light-150-narrow",
+      "x11ImagesViewed": 6,
+      "targetComplete": 4,
+      "partial": 2,
+      "observation": "Light background, dark text, green diagram/link accents. Current viewport only; no inference of scroll reachability.",
+      "images": [
+        {
+          "file": "matrix-windowed-live-light-150-narrow-root-x11.png",
+          "kind": "x11",
+          "sample": "root",
+          "actuallyViewed": true,
+          "method": "view_image of original PNG; direct pixel inspection",
+          "targetVisibility": "targetComplete",
+          "finding": "Root marker selected; inline fraction/cube-root and integral render with Chinese prose, all visible.",
+          "bytes": 37547,
+          "sha256": "61b3f0234a42bdb72ae02c16411708b06d1378b8b8208425ae06014b6d433b53"
+        },
+        {
+          "file": "matrix-windowed-live-light-150-narrow-matrix-x11.png",
+          "kind": "x11",
+          "sample": "matrix",
+          "actuallyViewed": true,
+          "method": "view_image of original PNG; direct pixel inspection",
+          "targetVisibility": "targetComplete",
+          "finding": "Matrix marker selected; centered 2×2 matrix and parentheses fully visible.",
+          "bytes": 34763,
+          "sha256": "1afb5516d21710afb0d87be4a324db2d35b3bdea693f5590548f592ccbb79738"
+        },
+        {
+          "file": "matrix-windowed-live-light-150-narrow-flow-x11.png",
+          "kind": "x11",
+          "sample": "flow",
+          "actuallyViewed": true,
+          "method": "view_image of original PNG; direct pixel inspection",
+          "targetVisibility": "partial",
+          "finding": "Flow marker selected; start and decision nodes, arrows and 是 label visible; bottom completion node is cut by editor lower viewport edge. Vertical preview scrollbar visible; reachability untested.",
+          "bytes": 32373,
+          "sha256": "402962cb6ea577634ebcc222a2e6a009cfa1c3b2a328687b89b68b9f1b43e1e2"
+        },
+        {
+          "file": "matrix-windowed-live-light-150-narrow-sequence-x11.png",
+          "kind": "x11",
+          "sample": "sequence",
+          "actuallyViewed": true,
+          "method": "view_image of original PNG; direct pixel inspection",
+          "targetVisibility": "targetComplete",
+          "finding": "Selected sequence marker, actor 用户, 服务 box, full 请求/返回 arrows and dashed lifelines visible.",
+          "bytes": 33303,
+          "sha256": "3e6b7170fc6f3ed0b83b683e33937305d1b1ac7b5c0fb0a820fbdee6dd61650d"
+        },
+        {
+          "file": "matrix-windowed-live-light-150-narrow-pie-x11.png",
+          "kind": "x11",
+          "sample": "pie",
+          "actuallyViewed": true,
+          "method": "view_image of original PNG; direct pixel inspection",
+          "targetVisibility": "partial",
+          "finding": "Pie marker/title and upper circle with numeric label 2 visible; lower half/numeric 1 clipped below preview and both legend tails/percentages clipped at right. Horizontal/vertical preview scrollbars visible. X11 and WebView agree; reachability untested.",
+          "bytes": 34065,
+          "sha256": "137b5099a1fe221e5575d908aee85106451bc8284b077ec3fd572120f1e0013e"
+        },
+        {
+          "file": "matrix-windowed-live-light-150-narrow-footnotes-x11.png",
+          "kind": "x11",
+          "sample": "footnotes",
+          "actuallyViewed": true,
+          "method": "view_image of original PNG; direct pixel inspection",
+          "targetVisibility": "targetComplete",
+          "finding": "Selected footnotes marker, two superscript 1 links, [1], all three return links and complete Chinese definition visible over two lines; emphasized text legible. Unsupported syntax below stays literal.",
+          "bytes": 59378,
+          "sha256": "8aca9fc04f5b2766da094c2584288060babbdb9711036898d3bcbdd9606cc85e"
+        },
+        {
+          "file": "matrix-windowed-live-light-150-narrow-pie-webview.png",
+          "kind": "webview",
+          "sample": "pie",
+          "actuallyViewed": true,
+          "method": "view_image of original PNG; direct pixel inspection",
+          "targetVisibility": "partial",
+          "finding": "Pie marker/title and upper circle with numeric label 2 visible; lower half/numeric 1 clipped below preview and both legend tails/percentages clipped at right. Horizontal/vertical preview scrollbars visible. X11 and WebView agree; reachability untested.",
+          "bytes": 28871,
+          "sha256": "b5d94eb82544d7008930b6f86581e3093f2a19d64691e641cc945c8937649b28"
+        }
+      ],
+      "completionRecord": {
+        "name": "matrix-complete-windowed-live-light-150-narrow",
+        "at": "2026-10-16T08:47:57.025Z"
+      }
+    },
+    {
+      "key": "windowed-live-light-200-wide",
+      "x11ImagesViewed": 6,
+      "targetComplete": 4,
+      "partial": 2,
+      "observation": "Light background, dark text, green diagram/link accents. Current viewport only; no inference of scroll reachability.",
+      "images": [
+        {
+          "file": "matrix-windowed-live-light-200-wide-root-x11.png",
+          "kind": "x11",
+          "sample": "root",
+          "actuallyViewed": true,
+          "method": "view_image of original PNG; direct pixel inspection",
+          "targetVisibility": "targetComplete",
+          "finding": "Root marker selected; inline fraction/cube-root and integral render with Chinese prose, all visible.",
+          "bytes": 53247,
+          "sha256": "dc59530504b80a2fa22f9bafe3d5f551994a92f98d76371e3c63e65a05cf35fb"
+        },
+        {
+          "file": "matrix-windowed-live-light-200-wide-matrix-x11.png",
+          "kind": "x11",
+          "sample": "matrix",
+          "actuallyViewed": true,
+          "method": "view_image of original PNG; direct pixel inspection",
+          "targetVisibility": "targetComplete",
+          "finding": "Matrix marker selected; centered 2×2 matrix and parentheses fully visible.",
+          "bytes": 50846,
+          "sha256": "bae0158bba18cd0c2961f5512b0bc66cee95d7a5c5553b0395c1f7f0a9c6b7ff"
+        },
+        {
+          "file": "matrix-windowed-live-light-200-wide-flow-x11.png",
+          "kind": "x11",
+          "sample": "flow",
+          "actuallyViewed": true,
+          "method": "view_image of original PNG; direct pixel inspection",
+          "targetVisibility": "partial",
+          "finding": "Flow marker, start/decision/completion labels and arrows visible; completion node lower outline clipped at preview bottom; vertical scrollbar visible.",
+          "bytes": 46046,
+          "sha256": "2613da5fa3b894f0f9dfd87a644d75bbfb078bc845ef86cbf098abd05c3cc3f3"
+        },
+        {
+          "file": "matrix-windowed-live-light-200-wide-sequence-x11.png",
+          "kind": "x11",
+          "sample": "sequence",
+          "actuallyViewed": true,
+          "method": "view_image of original PNG; direct pixel inspection",
+          "targetVisibility": "targetComplete",
+          "finding": "Sequence marker selected; actor 用户, 服务 box, dashed lifelines and 请求/返回 arrows fully visible.",
+          "bytes": 47517,
+          "sha256": "d7cff3cf46caa1a919cf68747f19e2ca79ef7bbff94fd930b1cb3bedaa5fb7ef"
+        },
+        {
+          "file": "matrix-windowed-live-light-200-wide-pie-x11.png",
+          "kind": "x11",
+          "sample": "pie",
+          "actuallyViewed": true,
+          "method": "view_image of original PNG; direct pixel inspection",
+          "targetVisibility": "partial",
+          "finding": "Pie marker/title and upper-major portion of circle visible; lower circle/numeric 1 clipped below preview, both legend final percentage characters clipped at right. Horizontal/vertical scrollbars visible; no reachability claim.",
+          "bytes": 55318,
+          "sha256": "80b81bf284babce623ada03ea8fbb6880b067d3e7a5317b82e8456d1eb74349e"
+        },
+        {
+          "file": "matrix-windowed-live-light-200-wide-footnotes-x11.png",
+          "kind": "x11",
+          "sample": "footnotes",
+          "actuallyViewed": true,
+          "method": "view_image of original PNG; direct pixel inspection",
+          "targetVisibility": "targetComplete",
+          "finding": "Footnotes marker selected; two superscript 1 references, definition [1], three green return links, bold 强调 and Chinese definition visible. Below-target unsupported syntax stays literal; no missing-glyph boxes observed.",
+          "bytes": 87067,
+          "sha256": "ab23cc8c5cd3459a2a58e1c900e6560510ebc5bca391751382a0900c7275a0e9"
+        }
+      ],
+      "completionRecord": {
+        "name": "matrix-complete-windowed-live-light-200-wide",
+        "at": "2026-10-16T08:50:07.884Z"
+      }
+    },
+    {
+      "key": "windowed-live-light-200-narrow",
+      "x11ImagesViewed": 6,
+      "targetComplete": 3,
+      "partial": 3,
+      "observation": "Light background, dark text, green diagram/link accents. Current viewport only; no inference of scroll reachability.",
+      "images": [
+        {
+          "file": "matrix-windowed-live-light-200-narrow-root-x11.png",
+          "kind": "x11",
+          "sample": "root",
+          "actuallyViewed": true,
+          "method": "view_image of original PNG; direct pixel inspection",
+          "targetVisibility": "targetComplete",
+          "finding": "Root marker selected; inline fraction/cube-root and integral render with Chinese prose, all visible.",
+          "bytes": 42895,
+          "sha256": "2f48f70ff77769de35086ab1032a5fb5147d62a08e1b0ad36b2bec27b6492369"
+        },
+        {
+          "file": "matrix-windowed-live-light-200-narrow-matrix-x11.png",
+          "kind": "x11",
+          "sample": "matrix",
+          "actuallyViewed": true,
+          "method": "view_image of original PNG; direct pixel inspection",
+          "targetVisibility": "targetComplete",
+          "finding": "Matrix marker selected; centered 2×2 matrix and parentheses fully visible.",
+          "bytes": 37607,
+          "sha256": "c19b85cc3f53480ae1768881d503f324a9a221ca5872a00faaeb060243aa64e1"
+        },
+        {
+          "file": "matrix-windowed-live-light-200-narrow-flow-x11.png",
+          "kind": "x11",
+          "sample": "flow",
+          "actuallyViewed": true,
+          "method": "view_image of original PNG; direct pixel inspection",
+          "targetVisibility": "partial",
+          "finding": "Selected flow marker and full start node/first arrow visible; decision is cut at editor bottom and completion not visible. Preview scrollbar visible; no reachability claim.",
+          "bytes": 34546,
+          "sha256": "e4dd70f04142ac9e0e5a93049bb6876b6ec08216069348486a9a6bd482269985"
+        },
+        {
+          "file": "matrix-windowed-live-light-200-narrow-sequence-x11.png",
+          "kind": "x11",
+          "sample": "sequence",
+          "actuallyViewed": true,
+          "method": "view_image of original PNG; direct pixel inspection",
+          "targetVisibility": "partial",
+          "finding": "Selected sequence marker, actor 用户, 服务 box and 请求 forward arrow visible; return arrow/lower lifelines outside editor viewport. Horizontal/vertical scrollbars visible.",
+          "bytes": 38247,
+          "sha256": "116900f21011838bc2635ccde1643cf6ca8965cf9e6ccbdd60b4a36264c91f5c"
+        },
+        {
+          "file": "matrix-windowed-live-light-200-narrow-pie-x11.png",
+          "kind": "x11",
+          "sample": "pie",
+          "actuallyViewed": true,
+          "method": "view_image of original PNG; direct pixel inspection",
+          "targetVisibility": "partial",
+          "finding": "Pie marker/title and upper arc/numeric label 2 visible; lower circle, numeric 1 and both legends are outside current viewport. Horizontal/vertical scrollbars visible; no reachability claim.",
+          "bytes": 36539,
+          "sha256": "7584ef0f41e79ac78a706bc2b4cd76f85f6fd66b0b4c75acfe506a5fc5fa9d16"
+        },
+        {
+          "file": "matrix-windowed-live-light-200-narrow-footnotes-x11.png",
+          "kind": "x11",
+          "sample": "footnotes",
+          "actuallyViewed": true,
+          "method": "view_image of original PNG; direct pixel inspection",
+          "targetVisibility": "targetComplete",
+          "finding": "Both superscript references, [1], all three return links and complete definition visible with two-line wrapping (bold 强调 crosses line). Sample marker is above visible viewport. Unsupported math remains literal below.",
+          "bytes": 65142,
+          "sha256": "feeddba272154285a60f461ad622acf34b277a422bfaac043928d64ff3dc2efa"
+        },
+        {
+          "file": "matrix-windowed-live-light-200-narrow-flow-webview.png",
+          "kind": "webview",
+          "sample": "flow",
+          "actuallyViewed": true,
+          "method": "view_image of original PNG; direct pixel inspection",
+          "targetVisibility": "partial",
+          "finding": "Selected flow marker and full start node/first arrow visible; decision is cut at editor bottom and completion not visible. Preview scrollbar visible; no reachability claim.",
+          "bytes": 28585,
+          "sha256": "f80d9c9c336e85e29b1a68a69cfbf0e333bd5ab8330b2ff4b5aae0ff1f5b572c"
+        }
+      ],
+      "completionRecord": {
+        "name": "matrix-complete-windowed-live-light-200-narrow",
+        "at": "2026-10-16T08:51:51.125Z"
+      }
+    },
+    {
+      "key": "windowed-live-dark-100-wide",
+      "x11ImagesViewed": 6,
+      "targetComplete": 6,
+      "partial": 0,
+      "observation": "Dark background, light text, pale-blue diagram/link accents. Current viewport only; no inference of scroll reachability.",
+      "images": [
+        {
+          "file": "matrix-windowed-live-dark-100-wide-root-x11.png",
+          "kind": "x11",
+          "sample": "root",
+          "actuallyViewed": true,
+          "method": "view_image of original PNG; direct pixel inspection",
+          "targetVisibility": "targetComplete",
+          "finding": "Root marker selected; inline fraction/cube-root and integral render with Chinese prose, all visible.",
+          "bytes": 39666,
+          "sha256": "9e40e75342f8c25a553fe6d6f84d43520aba412da12cdcf4ce3f08045275aa95"
+        },
+        {
+          "file": "matrix-windowed-live-dark-100-wide-matrix-x11.png",
+          "kind": "x11",
+          "sample": "matrix",
+          "actuallyViewed": true,
+          "method": "view_image of original PNG; direct pixel inspection",
+          "targetVisibility": "targetComplete",
+          "finding": "Matrix marker selected; centered 2×2 matrix and parentheses fully visible.",
+          "bytes": 36826,
+          "sha256": "3d1b4c41260aff70ce77290497c1019dbcd1f75bafb224231af62517616526a6"
+        },
+        {
+          "file": "matrix-windowed-live-dark-100-wide-flow-x11.png",
+          "kind": "x11",
+          "sample": "flow",
+          "actuallyViewed": true,
+          "method": "view_image of original PNG; direct pixel inspection",
+          "targetVisibility": "targetComplete",
+          "finding": "Flow marker selected; full start/decision/end geometry, arrowheads and Chinese labels visible.",
+          "bytes": 34903,
+          "sha256": "01ef50b158e375bfa6da2506507fb534e351e7221c12710f1e6adbc26fc622a5"
+        },
+        {
+          "file": "matrix-windowed-live-dark-100-wide-sequence-x11.png",
+          "kind": "x11",
+          "sample": "sequence",
+          "actuallyViewed": true,
+          "method": "view_image of original PNG; direct pixel inspection",
+          "targetVisibility": "targetComplete",
+          "finding": "Sequence marker selected; actor 用户, 服务 box, dashed lifelines and 请求/返回 arrows fully visible.",
+          "bytes": 40657,
+          "sha256": "0d72718520549446c6a06c12abbf429263663fb4398322fddd1f8980aa0036af"
+        },
+        {
+          "file": "matrix-windowed-live-dark-100-wide-pie-x11.png",
+          "kind": "x11",
+          "sample": "pie",
+          "actuallyViewed": true,
+          "method": "view_image of original PNG; direct pixel inspection",
+          "targetVisibility": "targetComplete",
+          "finding": "Pie marker selected; full two-sector circle, numeric labels, 分布 title and both complete legend entries visible.",
+          "bytes": 54834,
+          "sha256": "5f30aec4338f8b4bb3aaa19c8d8cfe9f74885738850bea62267df7229f11278f"
+        },
+        {
+          "file": "matrix-windowed-live-dark-100-wide-footnotes-x11.png",
+          "kind": "x11",
+          "sample": "footnotes",
+          "actuallyViewed": true,
+          "method": "view_image of original PNG; direct pixel inspection",
+          "targetVisibility": "targetComplete",
+          "finding": "Selected footnotes marker, both superscript 1 references, [1], three pale-blue return links and full Chinese definition visible, with emphasized 强调. Unsupported/code syntax below remains literal, retained Chinese/accent/emoji visible without missing-glyph boxes.",
+          "bytes": 80705,
+          "sha256": "bf2f743dbc2ef59a31c473f087444a7154ae339e3348bb32036f9886f69c3867"
+        }
+      ],
+      "completionRecord": {
+        "name": "matrix-complete-windowed-live-dark-100-wide",
+        "at": "2026-10-16T08:53:38.693Z"
+      }
+    },
+    {
+      "key": "windowed-live-dark-100-narrow",
+      "x11ImagesViewed": 6,
+      "targetComplete": 5,
+      "partial": 1,
+      "observation": "Dark background, light text, pale-blue diagram/link accents. Current viewport only; no inference of scroll reachability.",
+      "images": [
+        {
+          "file": "matrix-windowed-live-dark-100-narrow-root-x11.png",
+          "kind": "x11",
+          "sample": "root",
+          "actuallyViewed": true,
+          "method": "view_image of original PNG; direct pixel inspection",
+          "targetVisibility": "targetComplete",
+          "finding": "Root marker selected; inline fraction/cube-root and integral render with Chinese prose, all visible.",
+          "bytes": 31313,
+          "sha256": "accc43bbf50c3ab081ab65aac1fe71600829575299240e0bf19878ed4943d8f6"
+        },
+        {
+          "file": "matrix-windowed-live-dark-100-narrow-matrix-x11.png",
+          "kind": "x11",
+          "sample": "matrix",
+          "actuallyViewed": true,
+          "method": "view_image of original PNG; direct pixel inspection",
+          "targetVisibility": "targetComplete",
+          "finding": "Matrix marker selected; centered 2×2 matrix and parentheses fully visible.",
+          "bytes": 28681,
+          "sha256": "1de2c238dd956bcfcdba5fdc3d9b67ec6be843c2ebeeee1e6d35a3612eb31533"
+        },
+        {
+          "file": "matrix-windowed-live-dark-100-narrow-flow-x11.png",
+          "kind": "x11",
+          "sample": "flow",
+          "actuallyViewed": true,
+          "method": "view_image of original PNG; direct pixel inspection",
+          "targetVisibility": "targetComplete",
+          "finding": "Flow marker selected; full start/decision/end geometry, arrowheads and Chinese labels visible.",
+          "bytes": 27806,
+          "sha256": "d81a5cc152c2c485bee2cd24aed3ea1bbeaf085da5d0538824d74bf7b0117fcc"
+        },
+        {
+          "file": "matrix-windowed-live-dark-100-narrow-sequence-x11.png",
+          "kind": "x11",
+          "sample": "sequence",
+          "actuallyViewed": true,
+          "method": "view_image of original PNG; direct pixel inspection",
+          "targetVisibility": "targetComplete",
+          "finding": "Sequence marker selected; actor 用户, 服务 box, dashed lifelines and 请求/返回 arrows fully visible.",
+          "bytes": 30690,
+          "sha256": "bdaa79233fedfcf80a337ae11d605fd8a52db366104eefc0150b1b899fa964e3"
+        },
+        {
+          "file": "matrix-windowed-live-dark-100-narrow-pie-x11.png",
+          "kind": "x11",
+          "sample": "pie",
+          "actuallyViewed": true,
+          "method": "view_image of original PNG; direct pixel inspection",
+          "targetVisibility": "partial",
+          "finding": "Selected pie marker/title, both numeric labels and complete legends visible; circle lower arc clipped by preview lower edge with horizontal/vertical scrollbars visible. X11/WebView agree; reachability untested.",
+          "bytes": 33233,
+          "sha256": "6d5dd6cf2960288b542a9b930e8df54493541358e8f3e6490042ca55e525965a"
+        },
+        {
+          "file": "matrix-windowed-live-dark-100-narrow-footnotes-x11.png",
+          "kind": "x11",
+          "sample": "footnotes",
+          "actuallyViewed": true,
+          "method": "view_image of original PNG; direct pixel inspection",
+          "targetVisibility": "targetComplete",
+          "finding": "Selected footnotes marker, both superscript 1 references, [1], three pale-blue return links and full Chinese definition visible, with emphasized 强调. Unsupported/code syntax below remains literal, retained Chinese/accent/emoji visible without missing-glyph boxes.",
+          "bytes": 49784,
+          "sha256": "08522cbd5d35047fb77a5bd3c8c2b7afe4fc8a5aec3fc59797fd2904fdc0e26f"
+        },
+        {
+          "file": "matrix-windowed-live-dark-100-narrow-pie-webview.png",
+          "kind": "webview",
+          "sample": "pie",
+          "actuallyViewed": true,
+          "method": "view_image of original PNG; direct pixel inspection",
+          "targetVisibility": "partial",
+          "finding": "Selected pie marker/title, both numeric labels and complete legends visible; circle lower arc clipped by preview lower edge with horizontal/vertical scrollbars visible. X11/WebView agree; reachability untested.",
+          "bytes": 28322,
+          "sha256": "57ecf88697a9075e56493fec74086328970a60b63c902c1b66d4c70ca0ef5c64"
+        }
+      ],
+      "completionRecord": {
+        "name": "matrix-complete-windowed-live-dark-100-narrow",
+        "at": "2026-10-16T08:54:47.861Z"
+      }
+    },
+    {
+      "key": "windowed-live-dark-125-wide",
+      "x11ImagesViewed": 6,
+      "targetComplete": 6,
+      "partial": 0,
+      "observation": "Dark background, light text, pale-blue diagram/link accents. Current viewport only; no inference of scroll reachability.",
+      "images": [
+        {
+          "file": "matrix-windowed-live-dark-125-wide-root-x11.png",
+          "kind": "x11",
+          "sample": "root",
+          "actuallyViewed": true,
+          "method": "view_image of original PNG; direct pixel inspection",
+          "targetVisibility": "targetComplete",
+          "finding": "Root marker selected; inline fraction/cube-root and integral render with Chinese prose, all visible.",
+          "bytes": 44150,
+          "sha256": "1b3092bedac4961488183ce2ae185e1e2c99297f8360e57501e8061d2a72aed6"
+        },
+        {
+          "file": "matrix-windowed-live-dark-125-wide-matrix-x11.png",
+          "kind": "x11",
+          "sample": "matrix",
+          "actuallyViewed": true,
+          "method": "view_image of original PNG; direct pixel inspection",
+          "targetVisibility": "targetComplete",
+          "finding": "Matrix marker selected; centered 2×2 matrix and parentheses fully visible.",
+          "bytes": 42335,
+          "sha256": "ce308a2a59eacaf3fff8cf6c64e9d154fd3e4eed3074e5c91345cdd931764570"
+        },
+        {
+          "file": "matrix-windowed-live-dark-125-wide-flow-x11.png",
+          "kind": "x11",
+          "sample": "flow",
+          "actuallyViewed": true,
+          "method": "view_image of original PNG; direct pixel inspection",
+          "targetVisibility": "targetComplete",
+          "finding": "Flow marker selected; full start/decision/end geometry, arrowheads and Chinese labels visible.",
+          "bytes": 41937,
+          "sha256": "d25fd2d8650ef64a59e6a6f20dae7a56f0933f60bd14424130cb91fa5ba85b86"
+        },
+        {
+          "file": "matrix-windowed-live-dark-125-wide-sequence-x11.png",
+          "kind": "x11",
+          "sample": "sequence",
+          "actuallyViewed": true,
+          "method": "view_image of original PNG; direct pixel inspection",
+          "targetVisibility": "targetComplete",
+          "finding": "Sequence marker selected; actor 用户, 服务 box, dashed lifelines and 请求/返回 arrows fully visible.",
+          "bytes": 44962,
+          "sha256": "f37f085a25d8ceb4634344b4510372d15d3b407219dc90e77168a0ab6e207b1a"
+        },
+        {
+          "file": "matrix-windowed-live-dark-125-wide-pie-x11.png",
+          "kind": "x11",
+          "sample": "pie",
+          "actuallyViewed": true,
+          "method": "view_image of original PNG; direct pixel inspection",
+          "targetVisibility": "targetComplete",
+          "finding": "Selected pie marker, entire circle, both sector numbers, title and both complete legends visible; vertical scrollbar visible.",
+          "bytes": 50065,
+          "sha256": "5dca891c550ec2faa4fc08fe094e03091af9697a7fbebbfd3203a6e79c94c983"
+        },
+        {
+          "file": "matrix-windowed-live-dark-125-wide-footnotes-x11.png",
+          "kind": "x11",
+          "sample": "footnotes",
+          "actuallyViewed": true,
+          "method": "view_image of original PNG; direct pixel inspection",
+          "targetVisibility": "targetComplete",
+          "finding": "Selected footnotes marker, both superscript 1 references, [1], three pale-blue return links and full Chinese definition visible, with emphasized 强调. Unsupported/code syntax below remains literal, retained Chinese/accent/emoji visible without missing-glyph boxes.",
+          "bytes": 83337,
+          "sha256": "1fbcb8161b19a35f03c06511f1661ac6c99ea5401bc3c3137c1dd00124717477"
+        },
+        {
+          "file": "matrix-windowed-live-dark-125-wide-sequence-webview.png",
+          "kind": "webview",
+          "sample": "sequence",
+          "actuallyViewed": true,
+          "method": "view_image of original PNG; direct pixel inspection",
+          "targetVisibility": "targetComplete",
+          "finding": "Sequence marker selected; actor 用户, 服务 box, dashed lifelines and 请求/返回 arrows fully visible.",
+          "bytes": 41831,
+          "sha256": "35b9fdf6a7365f34e6685d5812dd3d0c1dcc8de659a6a6feb7c8f43e87f01442"
+        }
+      ],
+      "completionRecord": {
+        "name": "matrix-complete-windowed-live-dark-125-wide",
+        "at": "2026-10-16T08:56:20.312Z"
+      }
+    },
+    {
+      "key": "windowed-live-dark-125-narrow",
+      "x11ImagesViewed": 6,
+      "targetComplete": 5,
+      "partial": 1,
+      "observation": "Dark background, light text, pale-blue diagram/link accents. Current viewport only; no inference of scroll reachability.",
+      "images": [
+        {
+          "file": "matrix-windowed-live-dark-125-narrow-root-x11.png",
+          "kind": "x11",
+          "sample": "root",
+          "actuallyViewed": true,
+          "method": "view_image of original PNG; direct pixel inspection",
+          "targetVisibility": "targetComplete",
+          "finding": "Root marker selected; inline fraction/cube-root and integral render with Chinese prose, all visible.",
+          "bytes": 35695,
+          "sha256": "150fed62bd5e8acded4f83352eb880ff30484cd5e630d051b9a42ea65ef83542"
+        },
+        {
+          "file": "matrix-windowed-live-dark-125-narrow-matrix-x11.png",
+          "kind": "x11",
+          "sample": "matrix",
+          "actuallyViewed": true,
+          "method": "view_image of original PNG; direct pixel inspection",
+          "targetVisibility": "targetComplete",
+          "finding": "Matrix marker selected; centered 2×2 matrix and parentheses fully visible.",
+          "bytes": 34404,
+          "sha256": "cb8eda9a6f45ccbc272f43fd4cdbd1e37298fcfb3b8e2305f23ab0b6fe49cfbc"
+        },
+        {
+          "file": "matrix-windowed-live-dark-125-narrow-flow-x11.png",
+          "kind": "x11",
+          "sample": "flow",
+          "actuallyViewed": true,
+          "method": "view_image of original PNG; direct pixel inspection",
+          "targetVisibility": "targetComplete",
+          "finding": "Flow marker selected; full start/decision/end geometry, arrowheads and Chinese labels visible.",
+          "bytes": 31914,
+          "sha256": "774b3793766f65fdd5f63ed2266c1f84ab3f1d3a3323ebc1d63cbcb14ce2345b"
+        },
+        {
+          "file": "matrix-windowed-live-dark-125-narrow-sequence-x11.png",
+          "kind": "x11",
+          "sample": "sequence",
+          "actuallyViewed": true,
+          "method": "view_image of original PNG; direct pixel inspection",
+          "targetVisibility": "targetComplete",
+          "finding": "Sequence marker selected; actor 用户, 服务 box, dashed lifelines and 请求/返回 arrows fully visible.",
+          "bytes": 31457,
+          "sha256": "a225cf60452af0482947518742b50988b8ec689fc3404aafd2dc998b2eb9f927"
+        },
+        {
+          "file": "matrix-windowed-live-dark-125-narrow-pie-x11.png",
+          "kind": "x11",
+          "sample": "pie",
+          "actuallyViewed": true,
+          "method": "view_image of original PNG; direct pixel inspection",
+          "targetVisibility": "partial",
+          "finding": "Selected pie marker/title and both complete legend entries visible; lower circle and numeric 1 clipped at preview bottom, horizontal/vertical scrollbars visible; reachability untested.",
+          "bytes": 35070,
+          "sha256": "0b174bb9e03df684160c612c2cb222af9ab354a91734bda32944015a9e0b3fd9"
+        },
+        {
+          "file": "matrix-windowed-live-dark-125-narrow-footnotes-x11.png",
+          "kind": "x11",
+          "sample": "footnotes",
+          "actuallyViewed": true,
+          "method": "view_image of original PNG; direct pixel inspection",
+          "targetVisibility": "targetComplete",
+          "finding": "Selected footnotes marker, both superscript 1 references, [1], three pale-blue return links and full Chinese definition visible, with emphasized 强调. Unsupported/code syntax below remains literal, retained Chinese/accent/emoji visible without missing-glyph boxes.",
+          "bytes": 59379,
+          "sha256": "37c26e8796500fa2450240e1c30b09ef54feec909bbf53778c048f59446727fd"
+        }
+      ],
+      "completionRecord": {
+        "name": "matrix-complete-windowed-live-dark-125-narrow",
+        "at": "2026-10-16T08:57:36.124Z"
+      }
+    },
+    {
+      "key": "windowed-live-dark-150-wide",
+      "x11ImagesViewed": 6,
+      "targetComplete": 5,
+      "partial": 1,
+      "observation": "Dark background, light text, pale-blue diagram/link accents. Current viewport only; no inference of scroll reachability.",
+      "images": [
+        {
+          "file": "matrix-windowed-live-dark-150-wide-root-x11.png",
+          "kind": "x11",
+          "sample": "root",
+          "actuallyViewed": true,
+          "method": "view_image of original PNG; direct pixel inspection",
+          "targetVisibility": "targetComplete",
+          "finding": "Root marker selected; inline fraction/cube-root and integral render with Chinese prose, all visible.",
+          "bytes": 47641,
+          "sha256": "b6531ae37801d4bdd027d68dd9cf41cbaae5f991fee9f03fca63223c25a00946"
+        },
+        {
+          "file": "matrix-windowed-live-dark-150-wide-matrix-x11.png",
+          "kind": "x11",
+          "sample": "matrix",
+          "actuallyViewed": true,
+          "method": "view_image of original PNG; direct pixel inspection",
+          "targetVisibility": "targetComplete",
+          "finding": "Matrix marker selected; centered 2×2 matrix and parentheses fully visible.",
+          "bytes": 43918,
+          "sha256": "de0a4e1a7f24222e3bfe9053de586a33db88756b5dc11db5ce59d0de00e1fa68"
+        },
+        {
+          "file": "matrix-windowed-live-dark-150-wide-flow-x11.png",
+          "kind": "x11",
+          "sample": "flow",
+          "actuallyViewed": true,
+          "method": "view_image of original PNG; direct pixel inspection",
+          "targetVisibility": "targetComplete",
+          "finding": "Flow marker selected; full start/decision/end geometry, arrowheads and Chinese labels visible.",
+          "bytes": 44275,
+          "sha256": "6d60860a8036bdd26a2b30a447c69e761ab0fe356a1fde7f90d3c2ebd392f0f9"
+        },
+        {
+          "file": "matrix-windowed-live-dark-150-wide-sequence-x11.png",
+          "kind": "x11",
+          "sample": "sequence",
+          "actuallyViewed": true,
+          "method": "view_image of original PNG; direct pixel inspection",
+          "targetVisibility": "targetComplete",
+          "finding": "Sequence marker selected; actor 用户, 服务 box, dashed lifelines and 请求/返回 arrows fully visible.",
+          "bytes": 45662,
+          "sha256": "e2e28e97676751073a33c669d0b2d03411450f8c575938451a583e10832eed93"
+        },
+        {
+          "file": "matrix-windowed-live-dark-150-wide-pie-x11.png",
+          "kind": "x11",
+          "sample": "pie",
+          "actuallyViewed": true,
+          "method": "view_image of original PNG; direct pixel inspection",
+          "targetVisibility": "partial",
+          "finding": "Selected pie marker/title, both full legends and numeric labels visible; circle bottom arc clipped inside preview, horizontal/vertical scrollbars visible; reachability untested.",
+          "bytes": 48760,
+          "sha256": "2770ec41993c1bb4c8f4fb1f587e0418ca58c54602dacc2161d14aba86117df0"
+        },
+        {
+          "file": "matrix-windowed-live-dark-150-wide-footnotes-x11.png",
+          "kind": "x11",
+          "sample": "footnotes",
+          "actuallyViewed": true,
+          "method": "view_image of original PNG; direct pixel inspection",
+          "targetVisibility": "targetComplete",
+          "finding": "Selected footnotes marker, both superscript 1 references, [1], three pale-blue return links and full Chinese definition visible, with emphasized 强调. Unsupported/code syntax below remains literal, retained Chinese/accent/emoji visible without missing-glyph boxes.",
+          "bytes": 74133,
+          "sha256": "9bfc8d2b70ed03ebcdebc0b04dfc3a45382c728947823df55f2017ecbdd657fb"
+        }
+      ],
+      "completionRecord": {
+        "name": "matrix-complete-windowed-live-dark-150-wide",
+        "at": "2026-10-16T08:59:16.713Z"
+      }
+    },
+    {
+      "key": "windowed-live-dark-150-narrow",
+      "x11ImagesViewed": 6,
+      "targetComplete": 4,
+      "partial": 2,
+      "observation": "Dark background, light text, pale-blue diagram/link accents. Current viewport only; no inference of scroll reachability.",
+      "images": [
+        {
+          "file": "matrix-windowed-live-dark-150-narrow-root-x11.png",
+          "kind": "x11",
+          "sample": "root",
+          "actuallyViewed": true,
+          "method": "view_image of original PNG; direct pixel inspection",
+          "targetVisibility": "targetComplete",
+          "finding": "Root marker selected; inline fraction/cube-root and integral render with Chinese prose, all visible.",
+          "bytes": 37884,
+          "sha256": "2b58595e802da79f9fef79b70ea3d58100bdd34084af91661ee8a9e969f6b943"
+        },
+        {
+          "file": "matrix-windowed-live-dark-150-narrow-matrix-x11.png",
+          "kind": "x11",
+          "sample": "matrix",
+          "actuallyViewed": true,
+          "method": "view_image of original PNG; direct pixel inspection",
+          "targetVisibility": "targetComplete",
+          "finding": "Matrix marker selected; centered 2×2 matrix and parentheses fully visible.",
+          "bytes": 35885,
+          "sha256": "b8368027b5b563f8542e4e0d4e4aaf15cdce71bd3ad4ec48924e8d9ec17cc385"
+        },
+        {
+          "file": "matrix-windowed-live-dark-150-narrow-flow-x11.png",
+          "kind": "x11",
+          "sample": "flow",
+          "actuallyViewed": true,
+          "method": "view_image of original PNG; direct pixel inspection",
+          "targetVisibility": "partial",
+          "finding": "Flow marker selected; start and decision nodes, arrows and 是 label visible; bottom completion node is cut by editor lower viewport edge. Vertical preview scrollbar visible; reachability untested.",
+          "bytes": 34384,
+          "sha256": "48e86284325ab085ca5109ac4f3553677084e731cf6bdb755bcfef0d5694a142"
+        },
+        {
+          "file": "matrix-windowed-live-dark-150-narrow-sequence-x11.png",
+          "kind": "x11",
+          "sample": "sequence",
+          "actuallyViewed": true,
+          "method": "view_image of original PNG; direct pixel inspection",
+          "targetVisibility": "targetComplete",
+          "finding": "Selected sequence marker, actor 用户, 服务 box, full 请求/返回 arrows and dashed lifelines visible.",
+          "bytes": 33664,
+          "sha256": "0803c0b2aa60c9c889563b9d16969666bc42912c3237cf93d987e6e457620636"
+        },
+        {
+          "file": "matrix-windowed-live-dark-150-narrow-pie-x11.png",
+          "kind": "x11",
+          "sample": "pie",
+          "actuallyViewed": true,
+          "method": "view_image of original PNG; direct pixel inspection",
+          "targetVisibility": "partial",
+          "finding": "Pie marker/title and upper circle with numeric label 2 visible; lower half/numeric 1 clipped below preview and both legend tails/percentages clipped at right. Horizontal/vertical preview scrollbars visible. X11 and WebView agree; reachability untested.",
+          "bytes": 34574,
+          "sha256": "3e9f97a6907ba5836d0544b9018e0607f819498a4101887e1ca1023dc0c87cb3"
+        },
+        {
+          "file": "matrix-windowed-live-dark-150-narrow-footnotes-x11.png",
+          "kind": "x11",
+          "sample": "footnotes",
+          "actuallyViewed": true,
+          "method": "view_image of original PNG; direct pixel inspection",
+          "targetVisibility": "targetComplete",
+          "finding": "Selected footnotes marker, both superscript references, [1], three pale-blue return links and complete Chinese definition visible over two lines. Unsupported syntax below stays literal.",
+          "bytes": 59702,
+          "sha256": "675fd85be0ba5af2af4c7ce1f407a013683b92745754db89a7f936db80c0a933"
+        },
+        {
+          "file": "matrix-windowed-live-dark-150-narrow-pie-webview.png",
+          "kind": "webview",
+          "sample": "pie",
+          "actuallyViewed": true,
+          "method": "view_image of original PNG; direct pixel inspection",
+          "targetVisibility": "partial",
+          "finding": "Pie marker/title and upper circle with numeric label 2 visible; lower half/numeric 1 clipped below preview and both legend tails/percentages clipped at right. Horizontal/vertical preview scrollbars visible. X11 and WebView agree; reachability untested.",
+          "bytes": 29477,
+          "sha256": "a86f5ecc699eb2743f7b360aacbba5ee85fe87acd24659c98d302427dcefad76"
+        }
+      ],
+      "completionRecord": {
+        "name": "matrix-complete-windowed-live-dark-150-narrow",
+        "at": "2026-10-16T09:00:32.273Z"
+      }
+    },
+    {
+      "key": "windowed-live-dark-200-wide",
+      "x11ImagesViewed": 6,
+      "targetComplete": 4,
+      "partial": 2,
+      "observation": "Dark background, light text, pale-blue diagram/link accents. Current viewport only; no inference of scroll reachability.",
+      "images": [
+        {
+          "file": "matrix-windowed-live-dark-200-wide-root-x11.png",
+          "kind": "x11",
+          "sample": "root",
+          "actuallyViewed": true,
+          "method": "view_image of original PNG; direct pixel inspection",
+          "targetVisibility": "targetComplete",
+          "finding": "Root marker selected; inline fraction/cube-root and integral render with Chinese prose, all visible.",
+          "bytes": 53962,
+          "sha256": "c87dac76346180fccba2570b04ddf7906fba84ac7064a11d129b665340011806"
+        },
+        {
+          "file": "matrix-windowed-live-dark-200-wide-matrix-x11.png",
+          "kind": "x11",
+          "sample": "matrix",
+          "actuallyViewed": true,
+          "method": "view_image of original PNG; direct pixel inspection",
+          "targetVisibility": "targetComplete",
+          "finding": "Matrix marker selected; centered 2×2 matrix and parentheses fully visible.",
+          "bytes": 53862,
+          "sha256": "83328a7d39473f0ca0624dc2759408e4fffd061fd2c6c8b2285d7348071fd235"
+        },
+        {
+          "file": "matrix-windowed-live-dark-200-wide-flow-x11.png",
+          "kind": "x11",
+          "sample": "flow",
+          "actuallyViewed": true,
+          "method": "view_image of original PNG; direct pixel inspection",
+          "targetVisibility": "partial",
+          "finding": "Flow marker, start/decision/completion labels and arrows visible; completion node lower outline clipped at preview bottom; vertical scrollbar visible.",
+          "bytes": 53278,
+          "sha256": "1d36c192e2c920286d42a528e8da1caafc306b85c7b713733ae44de0f1f4a2d0"
+        },
+        {
+          "file": "matrix-windowed-live-dark-200-wide-sequence-x11.png",
+          "kind": "x11",
+          "sample": "sequence",
+          "actuallyViewed": true,
+          "method": "view_image of original PNG; direct pixel inspection",
+          "targetVisibility": "targetComplete",
+          "finding": "Sequence marker selected; actor 用户, 服务 box, dashed lifelines and 请求/返回 arrows fully visible.",
+          "bytes": 48189,
+          "sha256": "3fba1d3254206a79bb7400b8bb45e1da1cfa70a292bef97cce4a44e97ad8d498"
+        },
+        {
+          "file": "matrix-windowed-live-dark-200-wide-pie-x11.png",
+          "kind": "x11",
+          "sample": "pie",
+          "actuallyViewed": true,
+          "method": "view_image of original PNG; direct pixel inspection",
+          "targetVisibility": "partial",
+          "finding": "Pie marker/title and upper-major portion of circle visible; lower circle/numeric 1 clipped below preview, both legend final percentage characters clipped at right. Horizontal/vertical scrollbars visible; no reachability claim.",
+          "bytes": 56346,
+          "sha256": "a7d9c2ec75eea5dcf332a01a7805573abd4e70f8fc6fe173b2aaae42166d6db8"
+        },
+        {
+          "file": "matrix-windowed-live-dark-200-wide-footnotes-x11.png",
+          "kind": "x11",
+          "sample": "footnotes",
+          "actuallyViewed": true,
+          "method": "view_image of original PNG; direct pixel inspection",
+          "targetVisibility": "targetComplete",
+          "finding": "Selected footnotes marker, both superscript 1 references, [1], three pale-blue return links and complete Chinese definition visible; emphasized 强调 readable. Unsupported source literal below.",
+          "bytes": 87834,
+          "sha256": "3cd1f8f181588503de00c16b2a2fc7d3a313a07f2789a5dd578825667327cc52"
+        }
+      ],
+      "completionRecord": {
+        "name": "matrix-complete-windowed-live-dark-200-wide",
+        "at": "2026-10-16T09:02:16.101Z"
+      }
+    },
+    {
+      "key": "windowed-live-dark-200-narrow",
+      "x11ImagesViewed": 6,
+      "targetComplete": 3,
+      "partial": 3,
+      "observation": "Dark background, light text, pale-blue diagram/link accents. Current viewport only; no inference of scroll reachability.",
+      "images": [
+        {
+          "file": "matrix-windowed-live-dark-200-narrow-root-x11.png",
+          "kind": "x11",
+          "sample": "root",
+          "actuallyViewed": true,
+          "method": "view_image of original PNG; direct pixel inspection",
+          "targetVisibility": "targetComplete",
+          "finding": "Root marker selected; inline fraction/cube-root and integral render with Chinese prose, all visible.",
+          "bytes": 43280,
+          "sha256": "32d9b8432bfd0a815d68956d160ff7d4f75b989a8237ab942eaa6a680d2fa163"
+        },
+        {
+          "file": "matrix-windowed-live-dark-200-narrow-matrix-x11.png",
+          "kind": "x11",
+          "sample": "matrix",
+          "actuallyViewed": true,
+          "method": "view_image of original PNG; direct pixel inspection",
+          "targetVisibility": "targetComplete",
+          "finding": "Matrix marker selected; centered 2×2 matrix and parentheses fully visible.",
+          "bytes": 37931,
+          "sha256": "208e3a4b67fdfb9f5fa09041ba9f7effb41bedbd5fcffee632c0cec0a6ad3d3f"
+        },
+        {
+          "file": "matrix-windowed-live-dark-200-narrow-flow-x11.png",
+          "kind": "x11",
+          "sample": "flow",
+          "actuallyViewed": true,
+          "method": "view_image of original PNG; direct pixel inspection",
+          "targetVisibility": "partial",
+          "finding": "Selected flow marker and full start node/first arrow visible; decision is cut at editor bottom and completion not visible. Preview scrollbar visible; no reachability claim.",
+          "bytes": 35419,
+          "sha256": "d7114233cea07f7e7f5b633ad6bf3c2b4827707c3abb04b2db0f41242684edf4"
+        },
+        {
+          "file": "matrix-windowed-live-dark-200-narrow-sequence-x11.png",
+          "kind": "x11",
+          "sample": "sequence",
+          "actuallyViewed": true,
+          "method": "view_image of original PNG; direct pixel inspection",
+          "targetVisibility": "partial",
+          "finding": "Selected sequence marker, actor 用户, 服务 box and 请求 forward arrow visible; return arrow/lower lifelines outside editor viewport. Horizontal/vertical scrollbars visible.",
+          "bytes": 38655,
+          "sha256": "0383a255a47cecf05b9bef98b452dfc029e7fd54b86ff6490d493d89cf5e0a06"
+        },
+        {
+          "file": "matrix-windowed-live-dark-200-narrow-pie-x11.png",
+          "kind": "x11",
+          "sample": "pie",
+          "actuallyViewed": true,
+          "method": "view_image of original PNG; direct pixel inspection",
+          "targetVisibility": "partial",
+          "finding": "Pie marker/title and upper arc/numeric label 2 visible; lower circle, numeric 1 and both legends are outside current viewport. Horizontal/vertical scrollbars visible; no reachability claim.",
+          "bytes": 37328,
+          "sha256": "1460830900edf9b4dbefd926fa063097dcc4154f82c97b8508768065b9a466d6"
+        },
+        {
+          "file": "matrix-windowed-live-dark-200-narrow-footnotes-x11.png",
+          "kind": "x11",
+          "sample": "footnotes",
+          "actuallyViewed": true,
+          "method": "view_image of original PNG; direct pixel inspection",
+          "targetVisibility": "targetComplete",
+          "finding": "Both superscript references, [1], three pale-blue return links and full definition visible over two lines; bold 强调 crosses line. Sample marker above visible viewport. Unsupported math literal below.",
+          "bytes": 65846,
+          "sha256": "e0e0029642cb4b835db608e404d2efd30cec32a461007f90643a842d8aff1f8d"
+        },
+        {
+          "file": "matrix-windowed-live-dark-200-narrow-flow-webview.png",
+          "kind": "webview",
+          "sample": "flow",
+          "actuallyViewed": true,
+          "method": "view_image of original PNG; direct pixel inspection",
+          "targetVisibility": "partial",
+          "finding": "Selected flow marker and full start node/first arrow visible; decision is cut at editor bottom and completion not visible. Preview scrollbar visible; no reachability claim.",
+          "bytes": 29083,
+          "sha256": "369b284a573ef2dcbd46746e809d28d960e63d6c4b7af96d693b242539e4919b"
+        }
+      ],
+      "completionRecord": {
+        "name": "matrix-complete-windowed-live-dark-200-narrow",
+        "at": "2026-10-16T09:03:46.472Z"
+      }
+    }
+  ],
+  "reviewedAt": "2026-10-16T09:06:16.332056+00:00",
+  "webviewComparisons": [
+    {
+      "file": "matrix-windowed-live-light-100-narrow-pie-webview.png",
+      "pairedX11": "matrix-windowed-live-light-100-narrow-pie-x11.png",
+      "targetVisibility": "partial",
+      "observation": "Actually viewed both original images; target appearance and clipping boundary agree."
+    },
+    {
+      "file": "matrix-windowed-live-light-125-wide-sequence-webview.png",
+      "pairedX11": "matrix-windowed-live-light-125-wide-sequence-x11.png",
+      "targetVisibility": "targetComplete",
+      "observation": "Actually viewed both original images; target appearance and clipping boundary agree."
+    },
+    {
+      "file": "matrix-windowed-live-light-150-narrow-pie-webview.png",
+      "pairedX11": "matrix-windowed-live-light-150-narrow-pie-x11.png",
+      "targetVisibility": "partial",
+      "observation": "Actually viewed both original images; target appearance and clipping boundary agree."
+    },
+    {
+      "file": "matrix-windowed-live-light-200-narrow-flow-webview.png",
+      "pairedX11": "matrix-windowed-live-light-200-narrow-flow-x11.png",
+      "targetVisibility": "partial",
+      "observation": "Actually viewed both original images; target appearance and clipping boundary agree."
+    },
+    {
+      "file": "matrix-windowed-live-dark-100-narrow-pie-webview.png",
+      "pairedX11": "matrix-windowed-live-dark-100-narrow-pie-x11.png",
+      "targetVisibility": "partial",
+      "observation": "Actually viewed both original images; target appearance and clipping boundary agree."
+    },
+    {
+      "file": "matrix-windowed-live-dark-125-wide-sequence-webview.png",
+      "pairedX11": "matrix-windowed-live-dark-125-wide-sequence-x11.png",
+      "targetVisibility": "targetComplete",
+      "observation": "Actually viewed both original images; target appearance and clipping boundary agree."
+    },
+    {
+      "file": "matrix-windowed-live-dark-150-narrow-pie-webview.png",
+      "pairedX11": "matrix-windowed-live-dark-150-narrow-pie-x11.png",
+      "targetVisibility": "partial",
+      "observation": "Actually viewed both original images; target appearance and clipping boundary agree."
+    },
+    {
+      "file": "matrix-windowed-live-dark-200-narrow-flow-webview.png",
+      "pairedX11": "matrix-windowed-live-dark-200-narrow-flow-x11.png",
+      "targetVisibility": "partial",
+      "observation": "Actually viewed both original images; target appearance and clipping boundary agree."
+    }
+  ]
+}

@@ -1,0 +1,414 @@
+import assert from 'node:assert/strict'
+import { readFile } from 'node:fs/promises'
+import vm from 'node:vm'
+const source = await readFile(new URL('./observer.js', import.meta.url), 'utf8')
+const tests = []
+function setup(entryValues, liveValues) {
+  const entries = Object.create(null)
+  for (const [key, value] of entryValues)
+    Object.defineProperty(entries, key, { value, configurable: true })
+  const callbacks = new Map(liveValues)
+  const originalFetch = function () {
+    return 'original-fetch-return'
+  }
+  const window = {
+    __TAURI_INTERNALS__: { callbacks },
+    __internal_unstable_listeners_object_id__: { 'milkup-plugin-dom-message': entries },
+  }
+  Object.defineProperty(window, 'fetch', {
+    value: originalFetch,
+    configurable: true,
+    enumerable: true,
+    writable: true,
+  })
+  let now = 0
+  const context = vm.createContext({
+    window,
+    Map,
+    Set,
+    TextEncoder,
+    performance: { now: () => (now += 0.01) },
+    document: { querySelector: () => undefined, querySelectorAll: () => [] },
+    setInterval: () => 1,
+    setTimeout: () => 2,
+    clearInterval: () => {},
+    clearTimeout: () => {},
+  })
+  const result = vm.runInContext('(' + source + ')()', context)
+  return { result, window, callbacks, originalFetch, entries }
+}
+function test(name, fn) {
+  fn()
+  tests.push(name)
+  console.log('PASS ' + name)
+}
+test('zero live entries refuses without mutation', () => {
+  const x = setup([['old', { handlerId: 10 }]], [])
+  assert.equal(x.result.installed, false)
+  assert.equal(x.window.fetch, x.originalFetch)
+  assert.equal(x.callbacks.size, 0)
+})
+test('two live functions refuse without mutation', () => {
+  const a = () => {},
+    b = () => {}
+  const x = setup(
+    [
+      ['a', { handlerId: 1 }],
+      ['b', { handlerId: 2 }],
+    ],
+    [
+      [1, a],
+      [2, b],
+    ],
+  )
+  assert.equal(x.result.installed, false)
+  assert.equal(x.callbacks.get(1), a)
+  assert.equal(x.callbacks.get(2), b)
+})
+test('malformed entry refuses even with one valid live function', () => {
+  const x = setup(
+    [
+      ['a', { handlerId: 1 }],
+      ['bad', { handlerId: '2' }],
+    ],
+    [[1, () => {}]],
+  )
+  assert.equal(x.result.installed, false)
+  assert.equal(x.window.fetch, x.originalFetch)
+})
+test('existing nonfunction callback refuses', () => {
+  const x = setup(
+    [
+      ['a', { handlerId: 1 }],
+      ['bad', { handlerId: 2 }],
+    ],
+    [
+      [1, () => {}],
+      [2, undefined],
+    ],
+  )
+  assert.equal(x.result.installed, false)
+  assert(x.callbacks.has(2))
+})
+test('duplicate live handler ID refuses', () => {
+  const x = setup(
+    [
+      ['a', { handlerId: 1 }],
+      ['duplicate', { handlerId: 1 }],
+    ],
+    [[1, () => {}]],
+  )
+  assert.equal(x.result.installed, false)
+})
+test('one live plus retired wraps only live and restores without reviving retired', () => {
+  const seen = [],
+    returned = { exact: true }
+  const original = function (...args) {
+    seen.push({ receiver: this, args })
+    return returned
+  }
+  const x = setup(
+    [
+      ['old', { handlerId: 10 }],
+      ['live', { handlerId: 20 }],
+    ],
+    [[20, original]],
+  )
+  assert.equal(x.result.installed, true)
+  assert.equal(x.result.retiredEntries.length, 1)
+  assert(!x.callbacks.has(10))
+  const receiver = {},
+    args = [{ event: 'unrelated' }, 2]
+  assert.equal(x.callbacks.get(20).apply(receiver, args), returned)
+  assert.equal(seen[0].receiver, receiver)
+  assert.deepEqual(seen[0].args, args)
+  x.window.__milkupTransportDiagnostic.stop('test')
+  assert.equal(x.callbacks.get(20), original)
+  assert(!x.callbacks.has(10))
+  assert.equal(x.window.fetch, x.originalFetch)
+  assert(Object.getOwnPropertyDescriptor(x.entries, 'old'))
+})
+test('synchronous callback exception passes through unchanged', () => {
+  const error = new Error('exact')
+  const x = setup(
+    [['live', { handlerId: 20 }]],
+    [
+      [
+        20,
+        () => {
+          throw error
+        },
+      ],
+    ],
+  )
+  assert.throws(
+    () => x.callbacks.get(20)({ event: 'unrelated' }),
+    (e) => e === error,
+  )
+  x.window.__milkupTransportDiagnostic.stop('test')
+})
+test('stop neither revives removed live callback nor overwrites replacement fetch', () => {
+  const x = setup(
+    [
+      ['old', { handlerId: 10 }],
+      ['live', { handlerId: 20 }],
+    ],
+    [[20, () => {}]],
+  )
+  const replacementFetch = () => {}
+  x.window.fetch = replacementFetch
+  x.callbacks.delete(20)
+  x.window.__milkupTransportDiagnostic.stop('test')
+  assert(!x.callbacks.has(10))
+  assert(!x.callbacks.has(20))
+  assert.equal(x.window.fetch, replacementFetch)
+})
+test('stop preserves a later legitimate callback replacement', () => {
+  const x = setup([['live', { handlerId: 20 }]], [[20, () => {}]])
+  const replacement = () => {}
+  x.callbacks.set(20, replacement)
+  x.window.__milkupTransportDiagnostic.stop('test')
+  assert.equal(x.callbacks.get(20), replacement)
+})
+console.log(
+  JSON.stringify({
+    count: tests.length,
+    scope:
+      'VM diagnostic observer contract only; not native isolation, app behavior, or acceptance evidence',
+  }),
+)
+const protocol = 'milkup.plugin.document-render.v1'
+function ready() {
+  return setup([['live', { handlerId: 20 }]], [[20, () => 'callback-result']])
+}
+function send(x, id = 'render_1', instanceId = 'instance1', source = 'small') {
+  const body = JSON.stringify({
+    pluginId: 'milkup.diagrams',
+    instanceId,
+    message: {
+      protocol,
+      type: 'render',
+      id,
+      payload: { pluginId: 'milkup.diagrams', rendererId: 'diagrams.mermaid', request: { source } },
+    },
+  })
+  assert.equal(
+    x.window.fetch('ipc://localhost/send_plugin_dom_message', { body }),
+    'original-fetch-return',
+  )
+  return body
+}
+function incoming(x, payload) {
+  return x.callbacks.get(20)({
+    event: 'milkup-plugin-dom-message',
+    payload: { pluginId: 'milkup.diagrams', instanceId: 'instance1', ...payload },
+  })
+}
+function state(x) {
+  return x.window.__milkupTransportDiagnostic.state
+}
+function stop(x) {
+  x.window.__milkupTransportDiagnostic.stop('test')
+  return state(x)
+}
+test('cancel preserves complete active input until authoritative matching result', () => {
+  const x = ready()
+  send(x)
+  x.window.fetch('ipc://localhost/send_plugin_dom_message', {
+    body: JSON.stringify({
+      pluginId: 'milkup.diagrams',
+      instanceId: 'instance1',
+      message: { protocol, type: 'cancel', id: 'render_1' },
+    }),
+  })
+  assert.equal(state(x).active.requestId, 'render_1')
+  assert.equal(state(x).cancels, 1)
+  incoming(x, {
+    kind: 'message',
+    message: { protocol, type: 'result', id: 'render_1', ok: true, value: {} },
+  })
+  assert.equal(state(x).active, null)
+  assert.equal(state(x).history.length, 1)
+  stop(x)
+})
+test('malformed results never clear input and never access successful value getter', () => {
+  const x = ready()
+  send(x)
+  for (const message of [
+    { protocol, type: 'result', id: 'render_1', ok: true, value: {}, extra: 1 },
+    { protocol, type: 'result', id: 'render_1', ok: false, error: 'anything' },
+    { protocol, type: 'result', id: 'render_1', ok: false, error: ['timeout'] },
+    { protocol, type: 'result', id: 'render_1', ok: true },
+    { protocol, type: 'result', id: 'render_1', ok: true, value: 1, error: 'timeout' },
+    Object.assign(Object.create({ value: 1 }), {
+      protocol,
+      type: 'result',
+      id: 'render_1',
+      ok: true,
+    }),
+    { protocol, type: 'result', id: 'x'.repeat(81), ok: true, value: 1 },
+  ]) {
+    incoming(x, { kind: 'message', message })
+    assert.equal(state(x).active.requestId, 'render_1')
+  }
+  const good = { protocol, type: 'result', id: 'render_1', ok: true }
+  Object.defineProperty(good, 'value', {
+    enumerable: true,
+    get() {
+      throw Error('AST must not be read')
+    },
+  })
+  incoming(x, { kind: 'message', message: good })
+  assert.equal(state(x).active, null)
+  stop(x)
+})
+test('child fake timeout kind and foreign outer identity cannot freeze or settle', () => {
+  const x = ready()
+  send(x)
+  incoming(x, {
+    kind: 'message',
+    message: {
+      kind: 'document-render-timeout',
+      protocol,
+      type: 'result',
+      id: 'render_1',
+      ok: false,
+      error: 'timeout',
+    },
+  })
+  assert.equal(state(x).active.requestId, 'render_1')
+  assert.equal(state(x).frozen, false)
+  for (const requestId of [undefined, null, 'x'.repeat(81), 'bad id']) {
+    incoming(x, { kind: 'document-render-timeout', requestId })
+    assert.equal(state(x).frozen, false)
+  }
+  incoming(x, { instanceId: 'foreign', kind: 'document-render-timeout', requestId: 'render_1' })
+  assert.equal(state(x).frozen, false)
+  assert.equal(state(x).active.instanceId, 'instance1')
+  stop(x)
+})
+test('trusted exact timeout immediately pins original input and ignores late result', () => {
+  const x = ready()
+  send(x, 'render_1', 'instance1', 'unique original')
+  incoming(x, { kind: 'document-render-timeout', requestId: 'render_1' })
+  assert.equal(state(x).frozen, true)
+  assert.equal(state(x).firstFault.matched, true)
+  incoming(x, {
+    kind: 'message',
+    message: { protocol, type: 'result', id: 'render_1', ok: true, value: {} },
+  })
+  assert.equal(state(x).active.payload.message.payload.request.source, 'unique original')
+  stop(x)
+})
+test('outer error without request ID marks instance-only uncertain binding', () => {
+  const x = ready()
+  send(x)
+  incoming(x, { kind: 'error', error: 'not retained arbitrary text' })
+  assert.equal(state(x).firstFault.binding, 'instance-only-current-input-uncertain')
+  assert.equal(state(x).firstFault.error, 'not retained arbitrary text')
+  stop(x)
+})
+test('active overlap never silently replaces original pinned input', () => {
+  const x = ready()
+  send(x, 'render_1')
+  send(x, 'render_2')
+  assert.equal(state(x).active.requestId, 'render_1')
+  assert.equal(state(x).reason, 'diagnostic-active-overlap')
+  stop(x)
+})
+test('new instance after valid settlement is explicitly recorded; callback replacement marks gap', () => {
+  const x = ready()
+  send(x)
+  incoming(x, {
+    kind: 'message',
+    message: { protocol, type: 'result', id: 'render_1', ok: false, error: 'aborted' },
+  })
+  send(x, 'render_1', 'instance2')
+  assert.equal(state(x).instances.length, 2)
+  assert.equal(state(x).active.instanceId, 'instance2')
+  incoming(x, { instanceId: 'instance1', kind: 'document-render-timeout', requestId: 'render_1' })
+  assert.equal(state(x).frozen, false)
+  assert.equal(state(x).active.instanceId, 'instance2')
+  assert(state(x).events.some((event) => event.kind === 'noncurrent-instance-notification-ignored'))
+  x.callbacks.set(20, () => {})
+  send(x, 'render_2', 'instance2')
+  assert.equal(state(x).reason, 'diagnostic-callback-gap')
+  stop(x)
+})
+test('64 request and2MiB export bounds retain current near1MiB input after long history', () => {
+  const x = ready()
+  for (let i = 1; i <= 200; i++) {
+    send(x, 'render_' + i, 'instance1', 'h'.repeat(12000))
+    incoming(x, {
+      kind: 'message',
+      message: {
+        protocol,
+        type: 'result',
+        id: 'render_' + i,
+        ok: true,
+        value: {
+          get dangerous() {
+            throw Error('not traversed')
+          },
+        },
+      },
+    })
+  }
+  send(x, 'render_current', 'instance1', 'x'.repeat(1048000))
+  incoming(x, { kind: 'document-render-timeout', requestId: 'render_current' })
+  const s = stop(x)
+  assert(s.history.length + 1 <= 64)
+  assert(s.evicted > 0)
+  assert.equal(s.active.payload.message.payload.request.source.length, 1048000)
+  assert(Buffer.byteLength(JSON.stringify(s)) <= 2097152)
+})
+test('fetch exact return object receiver args and synchronous throw are unchanged', () => {
+  const seen = [],
+    returned = {}
+  const x = ready()
+  stop(x)
+  // Separate realm installation against a new original fetch, same retained entry.
+  Object.defineProperty(x.window, 'fetch', {
+    value: function (...args) {
+      seen.push([this, args])
+      return returned
+    },
+    writable: true,
+    configurable: true,
+    enumerable: true,
+  })
+  const ctx = vm.createContext({
+    window: x.window,
+    Map,
+    Set,
+    TextEncoder,
+    performance: { now: () => 1, timeOrigin: 0 },
+  })
+  vm.runInContext('(' + source + ')()', ctx)
+  const receiver = {}
+  const args = ['unrelated', { body: 'x' }]
+  assert.equal(x.window.fetch.apply(receiver, args), returned)
+  assert.equal(seen[0][0], receiver)
+  assert.deepEqual(seen[0][1], args)
+  x.window.__milkupTransportDiagnostic.stop()
+  const error = new Error('same')
+  Object.defineProperty(x.window, 'fetch', {
+    value: () => {
+      throw error
+    },
+    writable: true,
+    configurable: true,
+  })
+  vm.runInContext('(' + source + ')()', ctx)
+  assert.throws(
+    () => x.window.fetch('unrelated'),
+    (e) => e === error,
+  )
+  x.window.__milkupTransportDiagnostic.stop()
+})
+console.log(
+  JSON.stringify({
+    total: tests.length,
+    scope: 'Memory-only transparent observer contracts; no native UI or isolation claim',
+  }),
+)

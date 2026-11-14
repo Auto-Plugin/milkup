@@ -1,0 +1,599 @@
+{
+  "frozenAt": "2026-10-16T16:56:48.414257+00:00",
+  "status": "OBSERVER_UNIQUE_HANDLER_PRECONDITION_RED_NO_HOOK_INSTALLED",
+  "diagnosticOnly": true,
+  "acceptance": false,
+  "execution": {
+    "command": [
+      "node",
+      "/workspace/milkup-mermaid-engine-evidence/research/native-ui04-transport-diagnostic-03/diagnostic.mjs"
+    ],
+    "cwd": "/workspace/milkup",
+    "started": "2026-10-16T16:53:58.145211+00:00",
+    "diagnosticOnly": true,
+    "ended": "2026-10-16T16:55:25.292890+00:00",
+    "exitCode": 1
+  },
+  "completed": {
+    "cold": true,
+    "independentArchiveInstall": true,
+    "isolatedFallbacks": 4,
+    "visibleNotices": 4,
+    "ordinaryPrefix": 3,
+    "flowSeekStarted": false
+  },
+  "observerInstalled": false,
+  "observerInstallation": {
+    "handlerCount": 2,
+    "installed": false,
+    "reason": "Expected one existing function callback; no mutation performed",
+    "entryTypes": [
+      "undefined",
+      "function"
+    ],
+    "coreDescriptors": {
+      "invoke": {
+        "writable": false,
+        "configurable": false,
+        "enumerable": false,
+        "valueType": "function"
+      },
+      "runCallback": {
+        "writable": false,
+        "configurable": false,
+        "enumerable": false,
+        "valueType": "function"
+      },
+      "postMessage": {
+        "writable": false,
+        "configurable": false,
+        "enumerable": false,
+        "valueType": "function"
+      },
+      "ipc": {
+        "writable": false,
+        "configurable": false,
+        "enumerable": false,
+        "valueType": "function"
+      }
+    }
+  },
+  "payloadCapture": false,
+  "firstFailure": {
+    "error": "AssertionError [ERR_ASSERTION]: Expected one existing function callback; no mutation performed\n\nfalse !== true\n",
+    "stack": "AssertionError [ERR_ASSERTION]: Expected one existing function callback; no mutation performed\n\nfalse !== true\n\n    at file:///workspace/milkup-mermaid-engine-evidence/research/native-ui04-transport-diagnostic-03/diagnostic.mjs:845:10"
+  },
+  "sourceExplanation": "Tauri unlisten unregisters callback from Map but retains non-enumerable listener entry. Installation sees two entries, one missing Map callback and one function. Old strict total-entry count guard rejected before any wrapper mutation. No claim of two live handlers.",
+  "tauriSource": {
+    "path": "/workspace/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/tauri-2.11.5/src/event/mod.rs",
+    "sha256": "dfcb7cf11d7674903f71196e64ae0fa95286757ac816bfbc3139ebdedcb25dea",
+    "excerpt": "tauri-unlisten-source.txt"
+  },
+  "nativePhaseCounts": {
+    "dispatch": 64,
+    "kill-start": 2,
+    "cleanup-complete": 2,
+    "cleanup-confirmed": 1
+  },
+  "nativeDeadlineObserved": false,
+  "sourceByteExact": true,
+  "historicalUnchanged": {
+    "at": "2026-10-16T16:55:59.878483+00:00",
+    "unchanged": true,
+    "files": 148
+  },
+  "visualReview": "Actually opened FAIL-webview.png; this is the post-guard screenshot, not evidence that flow was attempted or failed.",
+  "cleanup": "App finally closed; exact idle driver stopped by pidfd argv/birth check; driver exit0; ports4626/4627 empty. No retries.",
+  "files": [
+    {
+      "path": "diagnostic.mjs",
+      "sha256": "02d5b7faf560fe8cb8f8a52a415ee85836ac27853139e116663b056e11fb0f4d",
+      "bytes": 35452
+    },
+    {
+      "path": "driver-identity.json",
+      "sha256": "b34b2bd13451f79a7c0e00cc29204998ff3fc45c11252fdde799bc971a9a535c",
+      "bytes": 257
+    },
+    {
+      "path": "driver-ready.json",
+      "sha256": "c28f85ae0beb3f1afe6b8c81f2d82a55034d0e61d19522e4d7dae19693018f48",
+      "bytes": 69
+    },
+    {
+      "path": "driver-stop.json",
+      "sha256": "a29d3dfdb43c2efc53e8f5507ca7b0c1e0d6899400ad77e13bf25a4d70f87a28",
+      "bytes": 391
+    },
+    {
+      "path": "driver.sh",
+      "sha256": "a3cf88df95c3eca0a3ca14e527641c09264b1f0de3aea9150982a41bad5b14f4",
+      "bytes": 1327
+    },
+    {
+      "path": "env.sh",
+      "sha256": "12e2fb8f414b4cd32ce12daaa9fa95636f9ad31b1559c34fdb405de41c186a22",
+      "bytes": 763
+    },
+    {
+      "path": "execution.json",
+      "sha256": "79b1bf48a2d65805d3a65b45d69475605239f71b354e8f6bc2183e72710ddf1c",
+      "bytes": 312
+    },
+    {
+      "path": "from-diagnostic02.diff",
+      "sha256": "2913d2c854be17a37dc06bff6930cee5bb12154d21eae888c22bca267d05be21",
+      "bytes": 3133
+    },
+    {
+      "path": "frozen/00-tauri-mermaid-ui.mjs",
+      "sha256": "2b0ec01dd0c86e551bb4a43d3bc4d0024f92c218f2cba1da98d91e282c1c313a",
+      "bytes": 34544
+    },
+    {
+      "path": "frozen/01-native-clipboard.mjs",
+      "sha256": "82a7ce9bae5f9782728f71f14695b85049c7dead10e57bfe957ea8e2c66a7180",
+      "bytes": 1740
+    },
+    {
+      "path": "frozen/02-native-observer-server.mjs",
+      "sha256": "4909b16817cf14318cab83d670caae93ff6fa8d5847e8f6a008cea3a1ff258ce",
+      "bytes": 5481
+    },
+    {
+      "path": "frozen/03-native-owned-process.mjs",
+      "sha256": "63dc05ca826ea7e912f10df989c69d51ca8445d06f981ff757019f3095ef051b",
+      "bytes": 1733
+    },
+    {
+      "path": "frozen/04-native-plugin-visual-combination.mjs",
+      "sha256": "f70d010fe532560d72e792cbff56731f70757dac8015c4e081e891041ad6fac6",
+      "bytes": 9663
+    },
+    {
+      "path": "frozen/05-native-process-memory.mjs",
+      "sha256": "5a686a8727933f0a03a31c264f43f1005a6f67733bf4ebba8dc8a17e340d5d80",
+      "bytes": 1791
+    },
+    {
+      "path": "frozen/06-native-production.mjs",
+      "sha256": "293a00db10632383346fa739d8717ddf2d42928e0f2e3f9672043d0dd9452eb0",
+      "bytes": 7417
+    },
+    {
+      "path": "frozen/07-native-search-profile-server.mjs",
+      "sha256": "a01e6f586acffa6208898487b762a84182fb65bcec5fd97a9a781288308ddc73",
+      "bytes": 3517
+    },
+    {
+      "path": "frozen/08-native-startup.mjs",
+      "sha256": "d698104c7838e7d51a1ff64709c29f1660da8e3b9d1ca72fbf28c8370cc4d1f1",
+      "bytes": 3808
+    },
+    {
+      "path": "frozen/09-native-updates-fixture.mjs",
+      "sha256": "eae310d5f13a8623d0f5c8a386e5929405f588ba67a120cc927cb51cd48a5ae4",
+      "bytes": 8353
+    },
+    {
+      "path": "frozen/10-outline-fixture.mjs",
+      "sha256": "0109b43a8a9ccb17177d771093a25f89c2a0a31d9fdac34c1201846ff14f28a4",
+      "bytes": 1664
+    },
+    {
+      "path": "frozen/11-driver.sh",
+      "sha256": "74cdd8ca4334380509dda7b7ea403452c292fa1aad88f133e1e7dd40a36a5e19",
+      "bytes": 1323
+    },
+    {
+      "path": "frozen/12-run-env.sh",
+      "sha256": "af7c396a66bc537e308e72e9dfceec14d7171c5a176a41a62de9c5548a7860a2",
+      "bytes": 2569
+    },
+    {
+      "path": "frozen/13-official-cases.json",
+      "sha256": "8bc8c7ca0dc9f6062b3757e91c8b76d56c2f9c3b76cf468ac1bf43223868bec0",
+      "bytes": 25706
+    },
+    {
+      "path": "frozen/14-bundled-plugins.json",
+      "sha256": "79964cef22b06ccc0a1e701572120a56add28aad50b84cd9e1b3fe8b6f3d3762",
+      "bytes": 1536
+    },
+    {
+      "path": "frozen/15-plugin.json",
+      "sha256": "c58fb4120d5eef139336c5cdfed138cb8cd9a2d7fe0c31ede73f95c8cfb07eb8",
+      "bytes": 3085
+    },
+    {
+      "path": "frozen/16-plugin.json",
+      "sha256": "d3db87ffd7235524edf733e414b5ecb03fc027216777efb301f34545435be2b4",
+      "bytes": 837
+    },
+    {
+      "path": "frozen/17-plugin.json",
+      "sha256": "ddd54a662f04aa0a34183efdcbafebc49bdd53e1b647f7cb8061b38069382f63",
+      "bytes": 2493
+    },
+    {
+      "path": "frozen/18-plugin.json",
+      "sha256": "ec6ce0d8780a4854ba377dd7103f26915857a22b6b5938b6cf9ce8b4e8e6fd6d",
+      "bytes": 1596
+    },
+    {
+      "path": "frozen/19-plugin.json",
+      "sha256": "6361006c6b5454f94ec2b782a03b5ff9e5fe17613a812e1a968f1a3844360e93",
+      "bytes": 1489
+    },
+    {
+      "path": "frozen/20-plugin.json",
+      "sha256": "083acd8aa05d382383dfe45b9899674d7cbddcc9ce4af3d2497edad04fdfa612",
+      "bytes": 7776
+    },
+    {
+      "path": "frozen/21-plugin.json",
+      "sha256": "f2815d21e01e2ee152759ba92a77d8e4097816732135f9f897b94a8c541441ee",
+      "bytes": 1782
+    },
+    {
+      "path": "frozen/22-plugin.json",
+      "sha256": "67cdcea8e7988c1234d8ad9bd855312cffb56c98486dd808076afd2a3b629781",
+      "bytes": 525
+    },
+    {
+      "path": "frozen/23-plugin.json",
+      "sha256": "08c61140c81d91ae7d67ea4be33ef035afcfab262d827cfedfc0f0fd1aeace4b",
+      "bytes": 617
+    },
+    {
+      "path": "frozen/24-plugin.json",
+      "sha256": "f93b92f983d0e1ed44d4b9cbc3bdebf501be8391fb272cd92395212c69dbbba3",
+      "bytes": 478
+    },
+    {
+      "path": "frozen/25-diagnostic.mjs",
+      "sha256": "02d5b7faf560fe8cb8f8a52a415ee85836ac27853139e116663b056e11fb0f4d",
+      "bytes": 35452
+    },
+    {
+      "path": "frozen/26-observer.js",
+      "sha256": "0b15b8fc245fbf2192f87b2b0b05eef17be0898b4abd6b92b9304a8ebe3f8b54",
+      "bytes": 8941
+    },
+    {
+      "path": "frozen/27-env.sh",
+      "sha256": "12e2fb8f414b4cd32ce12daaa9fa95636f9ad31b1559c34fdb405de41c186a22",
+      "bytes": 763
+    },
+    {
+      "path": "frozen/28-driver.sh",
+      "sha256": "a3cf88df95c3eca0a3ca14e527641c09264b1f0de3aea9150982a41bad5b14f4",
+      "bytes": 1327
+    },
+    {
+      "path": "frozen/31-provenance.json",
+      "sha256": "be47ea8a2b3d4763457545026557a45b690a1babff33c2d7da9a5ccb57b74d03",
+      "bytes": 8278
+    },
+    {
+      "path": "frozen-inputs.json",
+      "sha256": "9a0ca0238a08a14ca46ec4b160b0494d693c93f8812814a41f8bfe6812d89f25",
+      "bytes": 11313
+    },
+    {
+      "path": "harness-first.log",
+      "sha256": "9ead643cfe4ff9b12f11a6a31962ff6e9fb22e8cd22be16c090371c830214e76",
+      "bytes": 1255
+    },
+    {
+      "path": "historical-before.json",
+      "sha256": "9a73a202cea282dd5798db014d7671cc755c674f077ce4f12fc7fe7d91b2ce7a",
+      "bytes": 31113
+    },
+    {
+      "path": "historical-verification.json",
+      "sha256": "b4e32cbc646d2c5bf856a6e232d77a194229cbde1bd9775e9c8babd415f784f7",
+      "bytes": 84
+    },
+    {
+      "path": "native-driver-first.log",
+      "sha256": "af5eb265ea8719b4bede9a049f87ef39b944fe50e42f6290ec911de0a5a58f69",
+      "bytes": 14206
+    },
+    {
+      "path": "native-phases.json",
+      "sha256": "6e8d366833cf0055f2d11aed6e35a609306c360930cee52efb62c1dec5a52338",
+      "bytes": 12886
+    },
+    {
+      "path": "observer.js",
+      "sha256": "0b15b8fc245fbf2192f87b2b0b05eef17be0898b4abd6b92b9304a8ebe3f8b54",
+      "bytes": 8941
+    },
+    {
+      "path": "original-ui04-harness.mjs",
+      "sha256": "2b0ec01dd0c86e551bb4a43d3bc4d0024f92c218f2cba1da98d91e282c1c313a",
+      "bytes": 34544
+    },
+    {
+      "path": "plan.json",
+      "sha256": "5906fb0ed45bb2ed341324cd1464f7f1ebc049a9c44d5939f032febf2d79662c",
+      "bytes": 4514
+    },
+    {
+      "path": "preflight.json",
+      "sha256": "dcfe01a8330f5b2dd546efb5c828211779ec8eb042041d5ff6079e778b9c8813",
+      "bytes": 370
+    },
+    {
+      "path": "run/FAIL-webview.png",
+      "sha256": "ae3ae8829599cfbee7efeb49cf8a157362509e2608a77637c40c3228e7ee32ed",
+      "bytes": 57890
+    },
+    {
+      "path": "run/FAIL-x11.png",
+      "sha256": "f605f1a0e11ed1c831f09613c6940f71d4bb97010125ec46933ebc11e913c578",
+      "bytes": 61232
+    },
+    {
+      "path": "run/coverage-ordinary-block-000-first-official-example-webview.png",
+      "sha256": "11778374b3a1bddf103b6892361164ec5ad084fe167c3ec37eed906e530bb270",
+      "bytes": 54160
+    },
+    {
+      "path": "run/coverage-ordinary-block-000-first-official-example-x11.png",
+      "sha256": "a6cedb61ef3704cabe2b793ee9f4d3d5ca44070d0e75376d185139c4628110f5",
+      "bytes": 58125
+    },
+    {
+      "path": "run/coverage-ordinary-classDiagram-000-first-official-example-webview.png",
+      "sha256": "328da28f1a6e32b8ae83cd561491bfb5f3a5e37d07da97736a1521281394eef9",
+      "bytes": 54005
+    },
+    {
+      "path": "run/coverage-ordinary-classDiagram-000-first-official-example-x11.png",
+      "sha256": "cb08f94e41ea8f8f2c135a16b0b167045a6f9a7d0a2aed42776ee6ac7a48f8e4",
+      "bytes": 57960
+    },
+    {
+      "path": "run/coverage-ordinary-entityRelationshipDiagram-000-first-official-example-webview.png",
+      "sha256": "45146f09e83cefd6aca880713597ae40383c5fa9340ee7f278f10be4f039b41e",
+      "bytes": 58189
+    },
+    {
+      "path": "run/coverage-ordinary-entityRelationshipDiagram-000-first-official-example-x11.png",
+      "sha256": "7b24bf0173da90dc092b18626830cff9a9a41372522f932e5a827f7674618767",
+      "bytes": 61543
+    },
+    {
+      "path": "run/failure.json",
+      "sha256": "4cbbc89067fc1e3f17e5babda4144883203cac3d4df08622c2463a675edec505",
+      "bytes": 385
+    },
+    {
+      "path": "run/fallback-flowchart-069-image.md",
+      "sha256": "7e5a5d4ad09b011f5bf3996a930e1011bdf4e87861359a957f964a94c338f775",
+      "bytes": 255
+    },
+    {
+      "path": "run/fallback-flowchart-086-animated-edge.md",
+      "sha256": "8218dda63a5944e3938a3ec617b1a3d28f28e6b37f8db19adab548ad7fd4472b",
+      "bytes": 143
+    },
+    {
+      "path": "run/fallback-flowchart-088-classDef.md",
+      "sha256": "7fa2b07706261cf7743957a4a7d5a8079cd46c3c57d0f1663c3b8ece6c6e21d4",
+      "bytes": 230
+    },
+    {
+      "path": "run/fallback-timeline-000-first-official-example.md",
+      "sha256": "c4bac2bb982fad00fc43c6900436974d5ed0fed676cd3745dd97d5ca7502d7c4",
+      "bytes": 258
+    },
+    {
+      "path": "run/installed-official-engine-webview.png",
+      "sha256": "6df7db9cbf31218fe35c195a653689e72565b8b77ba1c4cbbebe6a1fe33b8d9b",
+      "bytes": 60116
+    },
+    {
+      "path": "run/installed-official-engine-x11.png",
+      "sha256": "c36e9762cb3834c439e595fa9d903feb41aa0543b432e0e3ae543f4b2f96383a",
+      "bytes": 64214
+    },
+    {
+      "path": "run/isolated-fallback-flowchart-069-image-webview.png",
+      "sha256": "6d0b1a6fe1cd476bd07f69f7bc9f0ebbd70aa6c112c0aff9aab9bba85dd83f7e",
+      "bytes": 37205
+    },
+    {
+      "path": "run/isolated-fallback-flowchart-069-image-x11.png",
+      "sha256": "590d7754db233668651da926287b390b12a181cf61e33d23285196cb8103c0dc",
+      "bytes": 40228
+    },
+    {
+      "path": "run/isolated-fallback-flowchart-086-animated-edge-webview.png",
+      "sha256": "70ef556ca549f82d9f85bd28bc92202371ed52e5af5e687f27669263686336be",
+      "bytes": 28735
+    },
+    {
+      "path": "run/isolated-fallback-flowchart-086-animated-edge-x11.png",
+      "sha256": "42d9f9a0d0a4544ab1c2153f69b10344b937481713cc5b9eb1bd2a75a219aa7a",
+      "bytes": 32578
+    },
+    {
+      "path": "run/isolated-fallback-flowchart-088-classDef-webview.png",
+      "sha256": "188b9c35a0e1f79a0095d868102573d88519ff25126d1d6decaa05f532406270",
+      "bytes": 33651
+    },
+    {
+      "path": "run/isolated-fallback-flowchart-088-classDef-x11.png",
+      "sha256": "1e5bfb3030558f7901af4aa3f46a507a6005b2eec909a1c41a9529ac25a686dc",
+      "bytes": 37146
+    },
+    {
+      "path": "run/isolated-fallback-timeline-000-first-official-example-webview.png",
+      "sha256": "8b4e7ffb29585430ff9c72c0854c4d975a0b093a6e30fd1ab47a2dd04562fe9b",
+      "bytes": 34994
+    },
+    {
+      "path": "run/isolated-fallback-timeline-000-first-official-example-x11.png",
+      "sha256": "aa132c1d2629a6cb237945140ab1ff82ddf1af8803c284fd2b67fa2945ce773c",
+      "bytes": 38325
+    },
+    {
+      "path": "run/native-owned-profile.json",
+      "sha256": "6524df08180b9a614925671bcab95d9402f78d25c5e916a9c232d46b03f03a37",
+      "bytes": 753
+    },
+    {
+      "path": "run/notice-fallback-flowchart-069-image-webview.png",
+      "sha256": "7c7f434298ff3a774557fcecba2fb57b96b4ebd64a5d8fc311610a7bbba7fe98",
+      "bytes": 42478
+    },
+    {
+      "path": "run/notice-fallback-flowchart-069-image-x11.png",
+      "sha256": "0fad68da5d403bb9e1240638034acb94969d58e0af14d4be0dd6d1ede04ebb05",
+      "bytes": 45636
+    },
+    {
+      "path": "run/notice-fallback-flowchart-086-animated-edge-webview.png",
+      "sha256": "fbc1c50600866dd356c357c6f3b7cbccd4032f65e973c18012c4e60859d60281",
+      "bytes": 34204
+    },
+    {
+      "path": "run/notice-fallback-flowchart-086-animated-edge-x11.png",
+      "sha256": "0d9c4a9990509619dab494bf9878f8296eb19b2e792539235b48313a61f18328",
+      "bytes": 37842
+    },
+    {
+      "path": "run/notice-fallback-flowchart-088-classDef-webview.png",
+      "sha256": "afa9f2905849ca8cd9885119a3cf00007b15ebd902ebe5fa9a83e1000c806f3b",
+      "bytes": 39039
+    },
+    {
+      "path": "run/notice-fallback-flowchart-088-classDef-x11.png",
+      "sha256": "23b4e2ff917a791cc29d0ce1e0ac5f8322fb70762111deeeb41c2689476b7823",
+      "bytes": 41912
+    },
+    {
+      "path": "run/notice-fallback-timeline-000-first-official-example-webview.png",
+      "sha256": "4ba62ad045da2aca176c2f7b114d21ec41c0166ee4dc4ad415e24fb6950f318d",
+      "bytes": 41140
+    },
+    {
+      "path": "run/notice-fallback-timeline-000-first-official-example-x11.png",
+      "sha256": "99bb4163a1982ee6037b060143fc972949055a341a1e2a872cc559b56c0b5f7f",
+      "bytes": 44449
+    },
+    {
+      "path": "run/observer-installation.json",
+      "sha256": "aa317846e4091a1d75a0d58ca538447cbb4ef169df5dd25db948f56029cc9414",
+      "bytes": 749
+    },
+    {
+      "path": "run/ordinary.md",
+      "sha256": "a7267df165778c560a8fba59bfbff7065ae63365741e3eb87078783bc865fd4b",
+      "bytes": 11914
+    },
+    {
+      "path": "run/plan.json",
+      "sha256": "8a2a0db02b964a6aa79104fc376853ecd8faf8067372109feecfa389be34a630",
+      "bytes": 46088
+    },
+    {
+      "path": "run/preinstalled-cold-window-webview.png",
+      "sha256": "e64131963435490307a61ed24c5618be7a6f7970573361b17757fe7e1a8e9ab5",
+      "bytes": 54272
+    },
+    {
+      "path": "run/preinstalled-cold-window-x11.png",
+      "sha256": "0d3d40574aaf3c41a56787fdaddff0f724fc5e6334eaea9396d613917647cf0f",
+      "bytes": 58191
+    },
+    {
+      "path": "run/production-origin.json",
+      "sha256": "70fca1f334270776f547e3726811b13bb8f9b98e27728d0148c7ed69b8db4ded",
+      "bytes": 253
+    },
+    {
+      "path": "run/provenance.json",
+      "sha256": "74fb4002a977a94bc3cd70e1353e2ae08595d10ec8be7d311564e8c87ffc7886",
+      "bytes": 1793
+    },
+    {
+      "path": "run/results.json",
+      "sha256": "8affcaa75c13a4c909a5554b66257016b56d922f491e5f2a3ddbede3a13160f7",
+      "bytes": 129472
+    },
+    {
+      "path": "run/windowed.md",
+      "sha256": "84e661fa8af75731cbe8ff0c89c8b135303432307d7464f74a22cfceb7d1534d",
+      "bytes": 7851914
+    },
+    {
+      "path": "static-check-0.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "static-check-1.log",
+      "sha256": "eb2eb2b7122b2bae6b0a4e346f73b5197e32c4631f7796c8ca79aa0d7afc2465",
+      "bytes": 80
+    },
+    {
+      "path": "static-checks.json",
+      "sha256": "fd7fd7328b34703c823689456a4c8eae2fd3a251ca5bcd07b7d371c2be17103e",
+      "bytes": 1197
+    },
+    {
+      "path": "static-helper-resolution.json",
+      "sha256": "ad9c22435cc47d26ffab3f4a5f37d0f6b49e76a07c09b47ea7a65423cb4bb04c",
+      "bytes": 2069
+    },
+    {
+      "path": "static-preflight/fallback-flowchart-069-image.md",
+      "sha256": "7e5a5d4ad09b011f5bf3996a930e1011bdf4e87861359a957f964a94c338f775",
+      "bytes": 255
+    },
+    {
+      "path": "static-preflight/fallback-flowchart-086-animated-edge.md",
+      "sha256": "8218dda63a5944e3938a3ec617b1a3d28f28e6b37f8db19adab548ad7fd4472b",
+      "bytes": 143
+    },
+    {
+      "path": "static-preflight/fallback-flowchart-088-classDef.md",
+      "sha256": "7fa2b07706261cf7743957a4a7d5a8079cd46c3c57d0f1663c3b8ece6c6e21d4",
+      "bytes": 230
+    },
+    {
+      "path": "static-preflight/fallback-timeline-000-first-official-example.md",
+      "sha256": "c4bac2bb982fad00fc43c6900436974d5ed0fed676cd3745dd97d5ca7502d7c4",
+      "bytes": 258
+    },
+    {
+      "path": "static-preflight/ordinary.md",
+      "sha256": "a7267df165778c560a8fba59bfbff7065ae63365741e3eb87078783bc865fd4b",
+      "bytes": 11914
+    },
+    {
+      "path": "static-preflight/plan.json",
+      "sha256": "d6c16f77f2342435d4a2eed70f350f81db0c38f0bc3873a3283315c22af9960a",
+      "bytes": 46087
+    },
+    {
+      "path": "static-preflight/results.json",
+      "sha256": "37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570",
+      "bytes": 3
+    },
+    {
+      "path": "static-preflight/windowed.md",
+      "sha256": "84e661fa8af75731cbe8ff0c89c8b135303432307d7464f74a22cfceb7d1534d",
+      "bytes": 7851914
+    },
+    {
+      "path": "tauri-unlisten-source.txt",
+      "sha256": "4f242989ea7b554756970e9236a2017ec73319efd25da7106999bc602f0e7ea9",
+      "bytes": 483
+    }
+  ]
+}

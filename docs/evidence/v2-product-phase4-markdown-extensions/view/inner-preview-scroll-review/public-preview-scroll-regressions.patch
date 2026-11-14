@@ -1,0 +1,254 @@
+--- a/packages/view-dom/src/__tests__/document-presentation.test.ts
++++ b/packages/view-dom/src/__tests__/document-presentation.test.ts
+@@ -1,5 +1,5 @@
+ import { afterEach, expect, it, vi } from 'vitest'
+-import { EditorState, MemoryTextDocument, Selection, MemoryDocumentSource } from '@milkup/core'
++import { ChangeSet, EditorState, MemoryTextDocument, Selection, MemoryDocumentSource } from '@milkup/core'
+ import {
+   EditorView,
+   SourceDocumentView,
+@@ -91,6 +91,244 @@
+     await settle()
+     return view
+   }
++  function largeVectorProvider(targetText = () => 'Reading target'): DocumentPresentationConfig {
++    const base = provider()
++    return {
++      provide: async (window, options) => {
++        const response = await base.provide(window, options)
++        return {
++          ...response,
++          result: {
++            ...response.result,
++            fragments: response.result.fragments.map((fragment) => ({
++              ...fragment,
++              layout: 'block' as const,
++              accessibleText: 'Scrollable reading diagram',
++              content: {
++                type: 'vector' as const,
++                width: 900,
++                height: 900,
++                children: [
++                  { type: 'text' as const, x: 20, y: 30, text: 'Start' },
++                  { type: 'text' as const, x: 700, y: 850, text: targetText() },
++                ],
++              },
++            })),
++          },
++        }
++      },
++    }
++  }
++
++  const readingPreview = (view: EditorView | SourceDocumentView, targetText = 'Reading target'): HTMLElement => {
++    const preview = view.contentDOM.querySelector<HTMLElement>('[data-document-presentation]')
++    expect(preview?.querySelector('svg text')?.textContent).toBe('Start')
++    expect(preview?.textContent).toContain(targetText)
++    return preview!
++  }
++
++  for (const refresh of windowed ? ['source-window', 'provider'] : ['provider']) {
++    it(`keeps the reader's inner diagram position through ${refresh} refresh (${windowed})`, async () => {
++      const config = largeVectorProvider()
++      const provide = vi.spyOn(config, 'provide')
++      const view = await make('live', config)
++      const before = readingPreview(view)
++      // jsdom verifies continuity of public DOM scroll state only. The separate
++      // browser regression must establish real wheel/visible-target reachability.
++      before.scrollTop = 120
++      before.scrollLeft = 90
++      const outside = document.createElement('button')
++      document.body.append(outside)
++      outside.focus()
++      const text = view instanceof SourceDocumentView
++        ? (await view.source.readLineWindow(1, view.source.lineCount)).text
++        : view.state.doc.text
++      const selection = view instanceof SourceDocumentView
++        ? view.selection.main
++        : view.state.selection.main
++      const callsBefore = provide.mock.calls.length
++      if (refresh === 'source-window') {
++        expect(view).toBeInstanceOf(SourceDocumentView)
++        await (view as SourceDocumentView).renderVisibleWindow()
++      } else {
++        view.refreshDocumentPresentation()
++        await vi.waitFor(() => expect(provide.mock.calls.length).toBeGreaterThan(callsBefore))
++      }
++      await settle()
++      const after = readingPreview(view)
++      expect({ top: after.scrollTop, left: after.scrollLeft }).toEqual({ top: 120, left: 90 })
++      expect(document.activeElement).toBe(outside)
++      expect(view instanceof SourceDocumentView ? view.selection.main : view.state.selection.main)
++        .toEqual(selection)
++      if (view instanceof SourceDocumentView) {
++        expect(view.source.version).toBe(0)
++        expect((await view.source.readLineWindow(1, view.source.lineCount)).text).toBe(text)
++      } else {
++        expect(view.state.doc.text).toBe(text)
++        expect(view.state.undo().doc.text).toBe(text)
++      }
++    })
++  }
++
++  for (const change of ['identity', 'version', 'config', 'semantic-content'] as const) {
++    it(`does not carry a prior diagram position across ${change} replacement (${windowed})`, async () => {
++      let targetText = 'Reading target'
++      const view = await make('live', largeVectorProvider(() => targetText))
++      const before = readingPreview(view)
++      before.scrollTop = 120
++      before.scrollLeft = 90
++      const text = view instanceof SourceDocumentView
++        ? (await view.source.readLineWindow(1, view.source.lineCount)).text
++        : view.state.doc.text
++      if (change === 'config') {
++        view.setDocumentPresentation(largeVectorProvider())
++      } else if (change === 'semantic-content') {
++        targetText = 'Changed reading target'
++        view.refreshDocumentPresentation()
++      } else if (view instanceof SourceDocumentView) {
++        const nextText = change === 'version' ? text + '!' : text
++        view.updateSource(new MemoryDocumentSource({
++          documentId: change === 'identity' ? 'different-document' : view.source.documentId,
++          version: change === 'version' ? 1 : 0,
++          text: nextText,
++        }))
++        await view.revealSelection(1, Selection.cursor(nextText.length))
++      } else if (change === 'identity') {
++        view.updateState(new EditorState({
++          doc: new MemoryTextDocument(text), selection: Selection.cursor(text.length),
++        }))
++        view.refreshDocumentPresentation()
++      } else {
++        view.updateState(view.state.applyTransaction({
++          changes: ChangeSet.insert(text.length, '!'),
++          selection: Selection.cursor(text.length + 1),
++        }))
++      }
++      await settle()
++      const after = readingPreview(view, targetText)
++      expect({ top: after.scrollTop, left: after.scrollLeft }).toEqual({ top: 0, left: 0 })
++    })
++  }
++
++  if (windowed) {
++    it('does not carry a diagram position across a version change on the same source object', async () => {
++      const memory = new MemoryDocumentSource({ documentId: 'mutable-version', text: '$a/b$ tail' })
++      let version = 0
++      const source = {
++        documentId: memory.documentId,
++        get version() { return version },
++        lineCount: memory.lineCount,
++        length: memory.length,
++        readLineWindow: memory.readLineWindow.bind(memory),
++        lineAtPosition: memory.lineAtPosition.bind(memory),
++        positionAtLineOffset: memory.positionAtLineOffset.bind(memory),
++        snapshot: () => ({ ...memory.snapshot(), version }),
++      }
++      const parent = document.createElement('main')
++      document.body.append(parent)
++      const view = new SourceDocumentView({
++        parent, source, mode: 'live', documentPresentation: largeVectorProvider(),
++      })
++      views.push(view)
++      await view.revealSelection(1, Selection.cursor(memory.length))
++      await settle()
++      const before = readingPreview(view)
++      before.scrollTop = 120
++      before.scrollLeft = 90
++      version = 1
++      view.updateSource(source)
++      await view.renderVisibleWindow()
++      await settle()
++      expect(view.source).toBe(source)
++      expect(view.source.version).toBe(1)
++      const after = readingPreview(view)
++      expect({ top: after.scrollTop, left: after.scrollLeft }).toEqual({ top: 0, left: 0 })
++    })
++  }
++
++  if (windowed) {
++    async function makeScrollableDiagram() {
++      const text = ['$a/b$ tail', ...Array<string>(199).fill('reader text')].join('\n')
++      const source = new MemoryDocumentSource({ documentId: 'scroll-reader', text })
++      const read = vi.spyOn(source, 'readLineWindow')
++      const base = largeVectorProvider()
++      const parent = document.createElement('main')
++      document.body.append(parent)
++      const view = new SourceDocumentView({
++        parent,
++        source,
++        mode: 'live',
++        backgroundMarkdownWarmup: false,
++        virtualViewport: { enabled: true, viewportHeight: 84, overscanLines: 2 },
++        documentPresentation: {
++          provide: async (window, options) => {
++            const response = await base.provide(window, options)
++            return {
++              ...response,
++              result: {
++                ...response.result,
++                fragments: response.result.fragments.filter(
++                  (fragment) => fragment.from >= window.from && fragment.to <= window.to,
++                ),
++              },
++            }
++          },
++        },
++      })
++      views.push(view)
++      await view.revealSelection(1, Selection.cursor(10))
++      await settle()
++      return { view, source, read, text }
++    }
++
++    it('keeps a reader diagram mounted across repeated same-position editor scroll events', async () => {
++      const { view, read, source, text } = await makeScrollableDiagram()
++      // Establish a handled real position first. The following notifications
++      // carry no further motion and must not recreate the reader's viewport.
++      view.dom.scrollTop = 1
++      view.dom.dispatchEvent(new Event('scroll'))
++      await settle()
++      const before = readingPreview(view)
++      before.scrollTop = 120
++      before.scrollLeft = 90
++      const selection = view.selection.main
++      const reads = read.mock.calls.length
++      for (let count = 0; count < 3; count++) {
++        view.dom.dispatchEvent(new Event('scroll'))
++        await settle()
++      }
++      const after = readingPreview(view)
++      expect(after).toBe(before)
++      expect({ top: after.scrollTop, left: after.scrollLeft }).toEqual({ top: 120, left: 90 })
++      expect(read.mock.calls.length).toBe(reads)
++      expect(view.selection.main).toEqual(selection)
++      expect(source.version).toBe(0)
++      expect((await source.readLineWindow(1, source.lineCount)).text).toBe(text)
++    })
++
++    it('loads a genuinely moved editor viewport after duplicate scroll notifications', async () => {
++      const { view, source, text } = await makeScrollableDiagram()
++      view.dom.scrollTop = 1
++      view.dom.dispatchEvent(new Event('scroll'))
++      await settle()
++      view.dom.dispatchEvent(new Event('scroll'))
++      await settle()
++      const fromBefore = Number(view.contentDOM.dataset.fromLine)
++      const selection = view.selection.main
++      view.dom.scrollTop = 420
++      view.dom.dispatchEvent(new Event('scroll'))
++      await vi.waitFor(() => expect(Number(view.contentDOM.dataset.fromLine)).toBeGreaterThan(fromBefore))
++      const from = Number(view.contentDOM.dataset.fromLine)
++      const to = Number(view.contentDOM.dataset.toLine)
++      expect(from).toBeLessThanOrEqual(21)
++      expect(to).toBeGreaterThanOrEqual(21)
++      expect(view.contentDOM.querySelector('[data-line="21"]')?.textContent).toContain('reader text')
++      expect(view.selection.main).toEqual(selection)
++      expect(source.version).toBe(0)
++      expect((await source.readLineWindow(1, source.lineCount)).text).toBe(text)
++    })
++  }
++
+   it(`keeps preview keyboard focus when the view refreshes its source DOM (${windowed})`, async () => {
+     const base = provider()
+     const view = await make('live', {

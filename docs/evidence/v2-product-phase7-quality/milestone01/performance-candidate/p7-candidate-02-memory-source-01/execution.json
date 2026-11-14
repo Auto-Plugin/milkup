@@ -1,0 +1,61 @@
+{
+  "run": "p7-candidate-02-memory-source-01",
+  "binary": "/workspace/milkup-p7-quality-evidence/milestone01/candidate-production-02/milkup-desktop",
+  "binarySha256": "8deacbf470f699ad9b0a6c2c2937adbfc7ef6194c38e8f61e707a70bdfc5f9b2",
+  "command": [
+    "bash",
+    "-c",
+    "source /workspace/milkup-p7-quality-evidence/milestone01/native-ui/candidate-runtime/run-env.sh p7-candidate-02-memory-source-01 /workspace/milkup-p7-quality-evidence/milestone01/candidate-production-02/milkup-desktop 8deacbf470f699ad9b0a6c2c2937adbfc7ef6194c38e8f61e707a70bdfc5f9b2 || exit; export MILKUP_LATENCY_BYTES=179200 MILKUP_LATENCY_LINE_BYTES=64 MILKUP_LATENCY_MODE=source MILKUP_LATENCY_CYCLES=20; exec node tests/native/tauri-production-latency.mjs"
+  ],
+  "sourceBefore": {
+    "tests/native/tauri-production-latency.mjs": "e2d51ac3e39a8a161a9918484d6b0046a0989623f7e54d58972e25b19db55886",
+    "tests/helpers/native-production.mjs": "293a00db10632383346fa739d8717ddf2d42928e0f2e3f9672043d0dd9452eb0",
+    "tests/helpers/native-process-memory.mjs": "5a686a8727933f0a03a31c264f43f1005a6f67733bf4ebba8dc8a17e340d5d80",
+    "tests/helpers/native-startup.mjs": "d698104c7838e7d51a1ff64709c29f1660da8e3b9d1ca72fbf28c8370cc4d1f1"
+  },
+  "startedUtc": "2026-10-19T11:41:54.108702+00:00",
+  "driverStartExitCode": 0,
+  "harnessExitCode": 0,
+  "driverStopExitCode": 0,
+  "finishedUtc": "2026-10-19T11:42:40.596150+00:00",
+  "sourceAfter": {
+    "tests/native/tauri-production-latency.mjs": "e2d51ac3e39a8a161a9918484d6b0046a0989623f7e54d58972e25b19db55886",
+    "tests/helpers/native-production.mjs": "293a00db10632383346fa739d8717ddf2d42928e0f2e3f9672043d0dd9452eb0",
+    "tests/helpers/native-process-memory.mjs": "5a686a8727933f0a03a31c264f43f1005a6f67733bf4ebba8dc8a17e340d5d80",
+    "tests/helpers/native-startup.mjs": "d698104c7838e7d51a1ff64709c29f1660da8e3b9d1ca72fbf28c8370cc4d1f1"
+  },
+  "complete": true,
+  "sampleCount": 143,
+  "violations": [
+    {
+      "query": "A",
+      "wall": 1792410158149,
+      "count": "1/1",
+      "temperature": "first-query",
+      "modifiers": {
+        "alt": false,
+        "meta": false,
+        "ctrl": false
+      },
+      "recovery": "idle",
+      "twoFrames": 44576,
+      "frameMs": 1628,
+      "domMs": 301,
+      "started": 42948,
+      "renderedLines": 76,
+      "kind": "search",
+      "trusted": true,
+      "target": "",
+      "cursor": 1,
+      "targetMs": 500,
+      "expected": 1,
+      "key": "A",
+      "dom": 43249,
+      "version": 40,
+      "externalCommandToObservedMs": 1764.8576160000011,
+      "overTarget": true
+    }
+  ],
+  "samplesSha256": "05addc47252624b82c7a5448603d8ea3f88a56732cdb90aaa19bb1140f69928e",
+  "accepted": false
+}

@@ -1,0 +1,91 @@
+--- formal
++++ diagnostic
+@@ -8,10 +8,10 @@
+ import { createHash } from 'node:crypto'
+ import { mkdir, readFile, writeFile, readdir, access } from 'node:fs/promises'
+ import path from 'node:path'
+-import { startProduction } from '../helpers/native-production.mjs'
+-import { ownedApplication } from '../helpers/native-owned-process.mjs'
+-import { ownNativeClipboard } from '../helpers/native-clipboard.mjs'
+-import { action, nativeFixture, x } from '../helpers/native-updates-fixture.mjs'
++import { startProduction } from '/workspace/milkup/tests/helpers/native-production.mjs'
++import { ownedApplication } from '/workspace/milkup/tests/helpers/native-owned-process.mjs'
++import { ownNativeClipboard } from '/workspace/milkup/tests/helpers/native-clipboard.mjs'
++import { action, nativeFixture, x } from '/workspace/milkup/tests/helpers/native-updates-fixture.mjs'
+ 
+ const evidence = '/workspace/milkup-markdown-extensions-phase4-evidence'
+ const output = path.resolve(process.env.MILKUP_NATIVE_EVIDENCE_DIR || path.join(evidence, 'native'))
+@@ -234,10 +234,10 @@
+ const harnessSources = await Promise.all(
+   [
+     import.meta.url,
+-    new URL('../helpers/native-production.mjs', import.meta.url).href,
+-    new URL('../helpers/native-updates-fixture.mjs', import.meta.url).href,
+-    new URL('../helpers/native-owned-process.mjs', import.meta.url).href,
+-    new URL('../helpers/native-clipboard.mjs', import.meta.url).href,
++    new URL('/workspace/milkup/tests/helpers/native-production.mjs', import.meta.url).href,
++    new URL('/workspace/milkup/tests/helpers/native-updates-fixture.mjs', import.meta.url).href,
++    new URL('/workspace/milkup/tests/helpers/native-owned-process.mjs', import.meta.url).href,
++    new URL('/workspace/milkup/tests/helpers/native-clipboard.mjs', import.meta.url).href,
+   ].map(async (url) => ({
+     file: new URL(url).pathname,
+     sha256: hash(await readFile(new URL(url))),
+@@ -1097,6 +1097,10 @@
+   await app.key('Down')
+   const back = `[data-document-presentation][data-presentation-from="${definition}"] .milkup-document-reference`
+   await ui.ready(back)
++  if(name==='windowed'){
++    await app.execute(await readFile('/workspace/milkup-markdown-extensions-phase4-evidence/native/near-return-pointer/install-observer.js','utf8'))
++    await app.execute('window.__armNearReturnDiagnostic(arguments[0])',back)
++  }
+   await click(back)
+   await app.until(async () => {
+     const p = await app.probe()
+@@ -1104,6 +1108,7 @@
+   }, 'footnote return navigation')
+   assert.equal((await app.probe()).version, version)
+   await shot(`${name}-footnote-return`)
++  if(name==='windowed') return
+   await seek('SAMPLE-ERRORS', 'live')
+   await app.until(
+     () =>
+@@ -1290,26 +1295,11 @@
+ }
+ try {
+   await start()
+-  if (!diagnosticInstall || process.env.MILKUP_NATIVE_DIAGNOSTIC_REUSE !== '1')
+-    await installExternal()
+-  if (diagnosticInstall) {
+-    await semantics('ordinary')
+-    await record('DIAGNOSTIC-install-semantics-complete', { acceptance: false })
+-  } else {
+-    for (const name of ['ordinary', 'windowed']) {
+-      await semantics(name)
+-      if (name === 'windowed') await remoteFootnote()
+-      for (const mode of ['source', 'live']) await editHistory(name, mode)
+-    }
+-    await visualMatrix()
+-    await disableAndRecover()
+-    await record('PASS', {
+-      matrixCases: 64,
+-      matrixSampleCaptures: 384,
+-      allTenDisabled: true,
+-      windowsFonts: 'not-tested',
+-    })
+-  }
++  await installExternal()
++  await semantics('ordinary')
++  for(const mode of ['source','live']) await editHistory('ordinary',mode)
++  await semantics('windowed')
++  await record('NEAR-RETURN-DIAGNOSTIC-COMPLETE',{diagnosticOnly:true,acceptance:false})
+ } catch (error) {
+   await writeFile(
+     path.join(output, 'failure.json'),
+@@ -1318,5 +1308,5 @@
+   if (app) await shot('FAIL', { error: String(error) }).catch(() => {})
+   throw error
+ } finally {
+-  if (app) await app.close()
+-}
++  if(app){await writeFile(path.join(output,'near-return-events.json'),JSON.stringify(await app.execute('return window.__nearReturnTrace').catch(error=>({error:String(error)})),null,2));await app.close()}
++}

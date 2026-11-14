@@ -1,0 +1,50 @@
+
+ RUN  v3.2.6 /workspace/milkup
+
+ ❯ packages/core/src/__tests__/document-svg-image-marker-paint.test.ts (4 tests | 2 failed) 61ms
+   × marker paint comes from its definition ancestry > charges root-inherited gradients on each marker when the referring shape has no fill 30ms
+     → expected [Function] to throw an error
+   × marker paint comes from its definition ancestry > does not propagate a referring shape gradient into an independently styled marker 5ms
+     → expected [Function] to not throw an error but 'DocumentPresentationError: Document p…' was thrown
+   ✓ marker paint comes from its definition ancestry > honors the marker own fill overriding the root gradient 5ms
+   ✓ marker paint comes from its definition ancestry > continues inheriting each use element paint into symbol instances 19ms
+
+ Test Files  1 failed (1)
+      Tests  2 failed | 2 passed (4)
+   Start at  12:05:20
+   Duration  673ms (transform 173ms, setup 0ms, collect 188ms, tests 61ms, environment 0ms, prepare 121ms)
+
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  packages/core/src/__tests__/document-svg-image-marker-paint.test.ts > marker paint comes from its definition ancestry > charges root-inherited gradients on each marker when the referring shape has no fill
+AssertionError: expected [Function] to throw an error
+ ❯ packages/core/src/__tests__/document-svg-image-marker-paint.test.ts:36:55
+     34|     const small = { ...input, children: [{ ...input.children[0], point…
+     35|     expect(() => copyDocumentPresentationNode(small)).not.toThrow()
+     36|     expect(() => copyDocumentPresentationNode(input)).toThrow()
+       |                                                       ^
+     37|   })
+     38| 
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯
+
+ FAIL  packages/core/src/__tests__/document-svg-image-marker-paint.test.ts > marker paint comes from its definition ancestry > does not propagate a referring shape gradient into an independently styled marker
+AssertionError: expected [Function] to not throw an error but 'DocumentPresentationError: Document p…' was thrown
+
+- Expected: 
+undefined
+
++ Received: 
+"DocumentPresentationError: Document presentation: invalid-output"
+
+ ❯ packages/core/src/__tests__/document-svg-image-marker-paint.test.ts:40:72
+     38| 
+     39|   it('does not propagate a referring shape gradient into an independen…
+     40|     expect(() => copyDocumentPresentationNode(image(false, true))).not…
+       |                                                                        ^
+     41|   })
+     42| 
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/2]⎯
+

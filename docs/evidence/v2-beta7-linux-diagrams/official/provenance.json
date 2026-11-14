@@ -1,0 +1,1500 @@
+{
+  "schemaVersion": 1,
+  "purpose": "Minimal self-authored fixture and result collection from an independent Linux official-Mermaid prototype; not product integration or a runnable distribution.",
+  "sourceRoots": {
+    "official-run": "/tmp/milkup-beta6-linux-official",
+    "prototype": "/tmp/milkup-beta6-mermaid-prototype/scripts/experiments/mermaid-fixed-prototype"
+  },
+  "sourcePrototypeCommit": "b19a253fedc5854e18f820a34256279f290549f0",
+  "engine": {
+    "name": "mermaid",
+    "version": "12.2.0",
+    "browserDistributionSha256": "a8a6a6f805b074a8261a2825c86f99c8054acb3b35f50bb7e24a4f9f2c3c3b9f",
+    "browserDistributionBytes": 5494801,
+    "engineIncluded": false
+  },
+  "renderConfigurationSummary": {
+    "kind": "derived by reading the actual render-one.mjs harness, not an original runtime configuration file",
+    "sourceRoot": "official-run",
+    "sourcePath": "harness/render-one.mjs",
+    "sourceSha256": "974b0ffa8bdb9e0f68e1cfbd31549bfb76ea317011ba747819859ae69b6a5bb7",
+    "fixedValues": {
+      "startOnLoad": false,
+      "securityLevel": "strict",
+      "maxTextSize": 50000,
+      "maxEdges": 500,
+      "deterministicIds": true,
+      "deterministicIDSeed": "milkup-fixed-prototype",
+      "theme": "default",
+      "fontFamily": "Arial, sans-serif",
+      "htmlLabels": true
+    },
+    "lookRule": "fixture.initializeOverrides.look when present; otherwise classic",
+    "secureRule": "All keys of mermaid.mermaidAPI.defaultConfig plus securityLevel, startOnLoad, maxTextSize, maxEdges, secure and htmlLabels; unique keys.",
+    "browser": "Chromium 154.0.8037.57",
+    "browserSetup": {
+      "viewportWidth": 1280,
+      "initialViewportHeight": 900,
+      "deviceScaleFactor": 1,
+      "locale": "en-US",
+      "timezoneId": "UTC",
+      "chromiumSandbox": true
+    },
+    "notAppliedFromManifest": "manifest.baseInitialize is retained as original parser-stage metadata, not passed wholesale to mermaid.initialize by the rendering harness"
+  },
+  "copyPolicy": "Each entry is a byte-for-byte copy; only the containing archive path changes. Fixture manifest paths remain valid. Case ids map to rendered/<id>.png and rendered/<id>.json. No original file was rewritten.",
+  "copies": [
+    {
+      "sourceRoot": "official-run",
+      "sourcePath": "RESULT.json",
+      "sourceSha256": "e5d7e9ffac6333e5a930055cbd7bc7d5866b6d2473df0f5fe4483ad76da3441c",
+      "targetPath": "RESULT.json",
+      "targetSha256": "e5d7e9ffac6333e5a930055cbd7bc7d5866b6d2473df0f5fe4483ad76da3441c",
+      "bytes": 619,
+      "transformation": "byte-for-byte copy; archive location only"
+    },
+    {
+      "sourceRoot": "prototype",
+      "sourcePath": "fixtures-manifest.json",
+      "sourceSha256": "fd77aa8471a477ec7c98104203b12914078260a2b66354b4c324027fc8208f3f",
+      "targetPath": "fixtures-manifest.json",
+      "targetSha256": "fd77aa8471a477ec7c98104203b12914078260a2b66354b4c324027fc8208f3f",
+      "bytes": 48118,
+      "transformation": "byte-for-byte copy; archive location only"
+    },
+    {
+      "sourceRoot": "prototype",
+      "sourcePath": "fixtures/01-c4.mmd",
+      "sourceSha256": "91802e01eae02d2aa4d25a2c6565712b80f2a15753094ca6912672121ab72276",
+      "targetPath": "fixtures/01-c4.mmd",
+      "targetSha256": "91802e01eae02d2aa4d25a2c6565712b80f2a15753094ca6912672121ab72276",
+      "bytes": 90,
+      "transformation": "byte-for-byte copy; archive location only"
+    },
+    {
+      "sourceRoot": "prototype",
+      "sourcePath": "fixtures/02-flowchart-v2.mmd",
+      "sourceSha256": "86b7ef5f904a52a52e417807044a1b8abec5a8403058ef5cefb7ff2eb73b75be",
+      "targetPath": "fixtures/02-flowchart-v2.mmd",
+      "targetSha256": "86b7ef5f904a52a52e417807044a1b8abec5a8403058ef5cefb7ff2eb73b75be",
+      "bytes": 37,
+      "transformation": "byte-for-byte copy; archive location only"
+    },
+    {
+      "sourceRoot": "prototype",
+      "sourcePath": "fixtures/03-agentflow.mmd",
+      "sourceSha256": "045dedbc999f8ef74ddb4c2c012d9ba92b371bdb89816628c81d95cc295e5218",
+      "targetPath": "fixtures/03-agentflow.mmd",
+      "targetSha256": "045dedbc999f8ef74ddb4c2c012d9ba92b371bdb89816628c81d95cc295e5218",
+      "bytes": 128,
+      "transformation": "byte-for-byte copy; archive location only"
+    },
+    {
+      "sourceRoot": "prototype",
+      "sourcePath": "fixtures/04-swimlane.mmd",
+      "sourceSha256": "27b8cdb3bde099ec30c0679c8f73514812e31f907fc4efbf27234ffd82fd8d76",
+      "targetPath": "fixtures/04-swimlane.mmd",
+      "targetSha256": "27b8cdb3bde099ec30c0679c8f73514812e31f907fc4efbf27234ffd82fd8d76",
+      "bytes": 105,
+      "transformation": "byte-for-byte copy; archive location only"
+    },
+    {
+      "sourceRoot": "prototype",
+      "sourcePath": "fixtures/05-er.mmd",
+      "sourceSha256": "39d34fd617b410f2d6e48630e5b034f4b80d2f6a1f5179610b8a97ca1bc53afc",
+      "targetPath": "fixtures/05-er.mmd",
+      "targetSha256": "39d34fd617b410f2d6e48630e5b034f4b80d2f6a1f5179610b8a97ca1bc53afc",
+      "bytes": 38,
+      "transformation": "byte-for-byte copy; archive location only"
+    },
+    {
+      "sourceRoot": "prototype",
+      "sourcePath": "fixtures/06-gitGraph.mmd",
+      "sourceSha256": "d47106f0bc6f894cdb7ac4ae3b93c2bf0fcfc4cbda24af9fbadf4390961b7c4e",
+      "targetPath": "fixtures/06-gitGraph.mmd",
+      "targetSha256": "d47106f0bc6f894cdb7ac4ae3b93c2bf0fcfc4cbda24af9fbadf4390961b7c4e",
+      "bytes": 53,
+      "transformation": "byte-for-byte copy; archive location only"
+    },
+    {
+      "sourceRoot": "prototype",
+      "sourcePath": "fixtures/07-gantt.mmd",
+      "sourceSha256": "74b885309c1ec05cb04d4650fcb728e1887d267eafd18a7ddbe2547afd041bf1",
+      "targetPath": "fixtures/07-gantt.mmd",
+      "targetSha256": "74b885309c1ec05cb04d4650fcb728e1887d267eafd18a7ddbe2547afd041bf1",
+      "bytes": 104,
+      "transformation": "byte-for-byte copy; archive location only"
+    },
+    {
+      "sourceRoot": "prototype",
+      "sourcePath": "fixtures/08-info.mmd",
+      "sourceSha256": "96bac4de3ce48eccdafa38eb18e0581fe70d26b8d8d5a74ca8af79c77658dcde",
+      "targetPath": "fixtures/08-info.mmd",
+      "targetSha256": "96bac4de3ce48eccdafa38eb18e0581fe70d26b8d8d5a74ca8af79c77658dcde",
+      "bytes": 5,
+      "transformation": "byte-for-byte copy; archive location only"
+    },
+    {
+      "sourceRoot": "prototype",
+      "sourcePath": "fixtures/09-pie.mmd",
+      "sourceSha256": "4b8e6df1fc4438e38715d4b927132d8a34c3509e3f807be304bce6ee1e893b94",
+      "targetPath": "fixtures/09-pie.mmd",
+      "targetSha256": "4b8e6df1fc4438e38715d4b927132d8a34c3509e3f807be304bce6ee1e893b94",
+      "bytes": 27,
+      "transformation": "byte-for-byte copy; archive location only"
+    },
+    {
+      "sourceRoot": "prototype",
+      "sourcePath": "fixtures/10-quadrantChart.mmd",
+      "sourceSha256": "7b207dad0dfdb121d48718ea758c3d3121e36e52138f90106df394b9cc8e9c2a",
+      "targetPath": "fixtures/10-quadrantChart.mmd",
+      "targetSha256": "7b207dad0dfdb121d48718ea758c3d3121e36e52138f90106df394b9cc8e9c2a",
+      "bytes": 72,
+      "transformation": "byte-for-byte copy; archive location only"
+    },
+    {
+      "sourceRoot": "prototype",
+      "sourcePath": "fixtures/11-xychart.mmd",
+      "sourceSha256": "222745fcadb101fea4dd190485bae20bf2f3c62320eeed6202be3fae5aa43198",
+      "targetPath": "fixtures/11-xychart.mmd",
+      "targetSha256": "222745fcadb101fea4dd190485bae20bf2f3c62320eeed6202be3fae5aa43198",
+      "bytes": 61,
+      "transformation": "byte-for-byte copy; archive location only"
+    },
+    {
+      "sourceRoot": "prototype",
+      "sourcePath": "fixtures/12-requirement.mmd",
+      "sourceSha256": "6e0067ebec9613b4cf9d37c5cf835a8a7a95ee31e11145fe3af69a9d1c061bc4",
+      "targetPath": "fixtures/12-requirement.mmd",
+      "targetSha256": "6e0067ebec9613b4cf9d37c5cf835a8a7a95ee31e11145fe3af69a9d1c061bc4",
+      "bytes": 101,
+      "transformation": "byte-for-byte copy; archive location only"
+    },
+    {
+      "sourceRoot": "prototype",
+      "sourcePath": "fixtures/13-sequence.mmd",
+      "sourceSha256": "7d5e562e2b6603733e88b9b83f8ee180237283fb719137a9e8e846410820b3e0",
+      "targetPath": "fixtures/13-sequence.mmd",
+      "targetSha256": "7d5e562e2b6603733e88b9b83f8ee180237283fb719137a9e8e846410820b3e0",
+      "bytes": 63,
+      "transformation": "byte-for-byte copy; archive location only"
+    },
+    {
+      "sourceRoot": "prototype",
+      "sourcePath": "fixtures/14-classDiagram.mmd",
+      "sourceSha256": "c33354235c23ad34fef63177c9dccfca9f5e9b86e213e272691763a33a97b29b",
+      "targetPath": "fixtures/14-classDiagram.mmd",
+      "targetSha256": "c33354235c23ad34fef63177c9dccfca9f5e9b86e213e272691763a33a97b29b",
+      "bytes": 54,
+      "transformation": "byte-for-byte copy; archive location only"
+    },
+    {
+      "sourceRoot": "prototype",
+      "sourcePath": "fixtures/15-stateDiagram.mmd",
+      "sourceSha256": "6397d6dc2b9da2a48e045a8ea001f8521d3cfc70eaf612b4a454628380894ec9",
+      "targetPath": "fixtures/15-stateDiagram.mmd",
+      "targetSha256": "6397d6dc2b9da2a48e045a8ea001f8521d3cfc70eaf612b4a454628380894ec9",
+      "bytes": 60,
+      "transformation": "byte-for-byte copy; archive location only"
+    },
+    {
+      "sourceRoot": "prototype",
+      "sourcePath": "fixtures/16-journey.mmd",
+      "sourceSha256": "c733b14a63fb7b61c33f9f1916acbb4976e9546c1abe7f8f9119e14b108d5481",
+      "targetPath": "fixtures/16-journey.mmd",
+      "targetSha256": "c733b14a63fb7b61c33f9f1916acbb4976e9546c1abe7f8f9119e14b108d5481",
+      "bytes": 70,
+      "transformation": "byte-for-byte copy; archive location only"
+    },
+    {
+      "sourceRoot": "prototype",
+      "sourcePath": "fixtures/17-flowchart-elk.mmd",
+      "sourceSha256": "711892845eb26d454ab7a7d87d4e7f9ee0ae2a6800eab73e9629c9b6938be9f3",
+      "targetPath": "fixtures/17-flowchart-elk.mmd",
+      "targetSha256": "711892845eb26d454ab7a7d87d4e7f9ee0ae2a6800eab73e9629c9b6938be9f3",
+      "bytes": 41,
+      "transformation": "byte-for-byte copy; archive location only"
+    },
+    {
+      "sourceRoot": "prototype",
+      "sourcePath": "fixtures/18-timeline.mmd",
+      "sourceSha256": "4dd6fa4461c4c528b14989b5e989fc4e59378035a28affbb1b45bb783e8e7245",
+      "targetPath": "fixtures/18-timeline.mmd",
+      "targetSha256": "4dd6fa4461c4c528b14989b5e989fc4e59378035a28affbb1b45bb783e8e7245",
+      "bytes": 51,
+      "transformation": "byte-for-byte copy; archive location only"
+    },
+    {
+      "sourceRoot": "prototype",
+      "sourcePath": "fixtures/19-mindmap.mmd",
+      "sourceSha256": "9adf36ef3ae67cfd4cd1c11ef5c2e1ba639472ae51f203e6f61b56fe97f8e997",
+      "targetPath": "fixtures/19-mindmap.mmd",
+      "targetSha256": "9adf36ef3ae67cfd4cd1c11ef5c2e1ba639472ae51f203e6f61b56fe97f8e997",
+      "bytes": 45,
+      "transformation": "byte-for-byte copy; archive location only"
+    },
+    {
+      "sourceRoot": "prototype",
+      "sourcePath": "fixtures/20-kanban.mmd",
+      "sourceSha256": "cdf03260146c0777f07b677a49f7824253c3bb8a9ad8d3bb14363ad1ccecb5ac",
+      "targetPath": "fixtures/20-kanban.mmd",
+      "targetSha256": "cdf03260146c0777f07b677a49f7824253c3bb8a9ad8d3bb14363ad1ccecb5ac",
+      "bytes": 49,
+      "transformation": "byte-for-byte copy; archive location only"
+    },
+    {
+      "sourceRoot": "prototype",
+      "sourcePath": "fixtures/21-sankey.mmd",
+      "sourceSha256": "798aad84b649b2420de65aa5ea8057ab40d4b012d60474f2f66caf92fbe36d62",
+      "targetPath": "fixtures/21-sankey.mmd",
+      "targetSha256": "798aad84b649b2420de65aa5ea8057ab40d4b012d60474f2f66caf92fbe36d62",
+      "bytes": 36,
+      "transformation": "byte-for-byte copy; archive location only"
+    },
+    {
+      "sourceRoot": "prototype",
+      "sourcePath": "fixtures/22-packet.mmd",
+      "sourceSha256": "e0d5daa379c3060a6593526e84d9c78e071f234f3e664d681494b3e1e73d2406",
+      "targetPath": "fixtures/22-packet.mmd",
+      "targetSha256": "e0d5daa379c3060a6593526e84d9c78e071f234f3e664d681494b3e1e73d2406",
+      "bytes": 34,
+      "transformation": "byte-for-byte copy; archive location only"
+    },
+    {
+      "sourceRoot": "prototype",
+      "sourcePath": "fixtures/23-radar.mmd",
+      "sourceSha256": "6a1e457a4693e5df4b6dce0ecd718c61a5226a03cae2356d4c2dfcacc7fb4e72",
+      "targetPath": "fixtures/23-radar.mmd",
+      "targetSha256": "6a1e457a4693e5df4b6dce0ecd718c61a5226a03cae2356d4c2dfcacc7fb4e72",
+      "bytes": 59,
+      "transformation": "byte-for-byte copy; archive location only"
+    },
+    {
+      "sourceRoot": "prototype",
+      "sourcePath": "fixtures/24-block.mmd",
+      "sourceSha256": "d53953d4aeed9896aeb805ee7bdb31b0910a7cea5183599f5364fdf94c780191",
+      "targetPath": "fixtures/24-block.mmd",
+      "targetSha256": "d53953d4aeed9896aeb805ee7bdb31b0910a7cea5183599f5364fdf94c780191",
+      "bytes": 47,
+      "transformation": "byte-for-byte copy; archive location only"
+    },
+    {
+      "sourceRoot": "prototype",
+      "sourcePath": "fixtures/25-treeView.mmd",
+      "sourceSha256": "f2d09a221312b2f381ca5e1ac9d99ebf49fc689ef2f1cda4e2da30cf01ed10f2",
+      "targetPath": "fixtures/25-treeView.mmd",
+      "targetSha256": "f2d09a221312b2f381ca5e1ac9d99ebf49fc689ef2f1cda4e2da30cf01ed10f2",
+      "bytes": 50,
+      "transformation": "byte-for-byte copy; archive location only"
+    },
+    {
+      "sourceRoot": "prototype",
+      "sourcePath": "fixtures/26-architecture.mmd",
+      "sourceSha256": "1037d160cd82092a8fa1da0e59b51cbb9946f8e302548231a856286376ac1623",
+      "targetPath": "fixtures/26-architecture.mmd",
+      "targetSha256": "1037d160cd82092a8fa1da0e59b51cbb9946f8e302548231a856286376ac1623",
+      "bytes": 94,
+      "transformation": "byte-for-byte copy; archive location only"
+    },
+    {
+      "sourceRoot": "prototype",
+      "sourcePath": "fixtures/27-eventmodeling.mmd",
+      "sourceSha256": "1d6c14c9bd0554f80d5f4f5e919f390dfd19041afe9b585b42b61c1c1e7b43a8",
+      "targetPath": "fixtures/27-eventmodeling.mmd",
+      "targetSha256": "1d6c14c9bd0554f80d5f4f5e919f390dfd19041afe9b585b42b61c1c1e7b43a8",
+      "bytes": 69,
+      "transformation": "byte-for-byte copy; archive location only"
+    },
+    {
+      "sourceRoot": "prototype",
+      "sourcePath": "fixtures/28-ishikawa.mmd",
+      "sourceSha256": "e9617cf157dc23527880a30c570bd20ceb64aa64f1053dda9b03206fba322864",
+      "targetPath": "fixtures/28-ishikawa.mmd",
+      "targetSha256": "e9617cf157dc23527880a30c570bd20ceb64aa64f1053dda9b03206fba322864",
+      "bytes": 90,
+      "transformation": "byte-for-byte copy; archive location only"
+    },
+    {
+      "sourceRoot": "prototype",
+      "sourcePath": "fixtures/29-venn.mmd",
+      "sourceSha256": "421d3c4741253c0882f66fbcb978895d257e6fcc85254ba670e43567489d943c",
+      "targetPath": "fixtures/29-venn.mmd",
+      "targetSha256": "421d3c4741253c0882f66fbcb978895d257e6fcc85254ba670e43567489d943c",
+      "bytes": 59,
+      "transformation": "byte-for-byte copy; archive location only"
+    },
+    {
+      "sourceRoot": "prototype",
+      "sourcePath": "fixtures/30-treemap.mmd",
+      "sourceSha256": "00e0a01e4d53061e5db555acf32767f2eecf27c78384cdf15226e4a52fea459b",
+      "targetPath": "fixtures/30-treemap.mmd",
+      "targetSha256": "00e0a01e4d53061e5db555acf32767f2eecf27c78384cdf15226e4a52fea459b",
+      "bytes": 41,
+      "transformation": "byte-for-byte copy; archive location only"
+    },
+    {
+      "sourceRoot": "prototype",
+      "sourcePath": "fixtures/31-usecase.mmd",
+      "sourceSha256": "46795cc8c707034a8fb93d0308ec422c0c7b94280c5e9d1cd703ec063399df75",
+      "targetPath": "fixtures/31-usecase.mmd",
+      "targetSha256": "46795cc8c707034a8fb93d0308ec422c0c7b94280c5e9d1cd703ec063399df75",
+      "bytes": 73,
+      "transformation": "byte-for-byte copy; archive location only"
+    },
+    {
+      "sourceRoot": "prototype",
+      "sourcePath": "fixtures/32-wardley.mmd",
+      "sourceSha256": "b1731a7b6bd794e7abf73f740bedbf3645fd218ab937e7df42a2c6b29e24ee25",
+      "targetPath": "fixtures/32-wardley.mmd",
+      "targetSha256": "b1731a7b6bd794e7abf73f740bedbf3645fd218ab937e7df42a2c6b29e24ee25",
+      "bytes": 83,
+      "transformation": "byte-for-byte copy; archive location only"
+    },
+    {
+      "sourceRoot": "prototype",
+      "sourcePath": "fixtures/33-cynefin.mmd",
+      "sourceSha256": "8d3cec625f2b610fb121dff628508c913a93745aac25816223a7c95e3f9a9819",
+      "targetPath": "fixtures/33-cynefin.mmd",
+      "targetSha256": "8d3cec625f2b610fb121dff628508c913a93745aac25816223a7c95e3f9a9819",
+      "bytes": 50,
+      "transformation": "byte-for-byte copy; archive location only"
+    },
+    {
+      "sourceRoot": "prototype",
+      "sourcePath": "fixtures/34-railroad.mmd",
+      "sourceSha256": "5564964744636c680b137db1869ceac139acad9a21a2966baabbe846d7d9f480",
+      "targetPath": "fixtures/34-railroad.mmd",
+      "targetSha256": "5564964744636c680b137db1869ceac139acad9a21a2966baabbe846d7d9f480",
+      "bytes": 71,
+      "transformation": "byte-for-byte copy; archive location only"
+    },
+    {
+      "sourceRoot": "prototype",
+      "sourcePath": "fixtures/35-railroadEbnf.mmd",
+      "sourceSha256": "18555664e539d755136b86eaf67d2bd098f6c22ae26229c53ab6d8c33aebbe45",
+      "targetPath": "fixtures/35-railroadEbnf.mmd",
+      "targetSha256": "18555664e539d755136b86eaf67d2bd098f6c22ae26229c53ab6d8c33aebbe45",
+      "bytes": 40,
+      "transformation": "byte-for-byte copy; archive location only"
+    },
+    {
+      "sourceRoot": "prototype",
+      "sourcePath": "fixtures/36-railroadAbnf.mmd",
+      "sourceSha256": "3d1b9ad570e7e74124652f85277c2274507818315d07f4d479e6a9bf333ffce9",
+      "targetPath": "fixtures/36-railroadAbnf.mmd",
+      "targetSha256": "3d1b9ad570e7e74124652f85277c2274507818315d07f4d479e6a9bf333ffce9",
+      "bytes": 40,
+      "transformation": "byte-for-byte copy; archive location only"
+    },
+    {
+      "sourceRoot": "prototype",
+      "sourcePath": "fixtures/37-railroadPeg.mmd",
+      "sourceSha256": "aa3d658602096c3bd93b0f75d2646b703a69c77668376eb4dcf8abeb51935305",
+      "targetPath": "fixtures/37-railroadPeg.mmd",
+      "targetSha256": "aa3d658602096c3bd93b0f75d2646b703a69c77668376eb4dcf8abeb51935305",
+      "bytes": 37,
+      "transformation": "byte-for-byte copy; archive location only"
+    },
+    {
+      "sourceRoot": "prototype",
+      "sourcePath": "fixtures/38-flow-html-labels.mmd",
+      "sourceSha256": "1d1c1a320d37fc75ff29caac3161000a65821e426e985698430a013ce551ef06",
+      "targetPath": "fixtures/38-flow-html-labels.mmd",
+      "targetSha256": "1d1c1a320d37fc75ff29caac3161000a65821e426e985698430a013ce551ef06",
+      "bytes": 69,
+      "transformation": "byte-for-byte copy; archive location only"
+    },
+    {
+      "sourceRoot": "prototype",
+      "sourcePath": "fixtures/39-flow-markdown-labels.mmd",
+      "sourceSha256": "1b76868a184d02e168e6f84f5a78965e9292b490b66c914c673ae21a1309fcbd",
+      "targetPath": "fixtures/39-flow-markdown-labels.mmd",
+      "targetSha256": "1b76868a184d02e168e6f84f5a78965e9292b490b66c914c673ae21a1309fcbd",
+      "bytes": 70,
+      "transformation": "byte-for-byte copy; archive location only"
+    },
+    {
+      "sourceRoot": "prototype",
+      "sourcePath": "fixtures/40-flow-mathml.mmd",
+      "sourceSha256": "40c44c04d9d776c9b799e2e54f43820281d94f9d035a3f4977cc7f178b006e0a",
+      "targetPath": "fixtures/40-flow-mathml.mmd",
+      "targetSha256": "40c44c04d9d776c9b799e2e54f43820281d94f9d035a3f4977cc7f178b006e0a",
+      "bytes": 62,
+      "transformation": "byte-for-byte copy; archive location only"
+    },
+    {
+      "sourceRoot": "prototype",
+      "sourcePath": "fixtures/41-flow-cjk.mmd",
+      "sourceSha256": "2f4e5af65267f891ca026f986685d6c752712358766ba94fba7a34502ae8d0c5",
+      "targetPath": "fixtures/41-flow-cjk.mmd",
+      "targetSha256": "2f4e5af65267f891ca026f986685d6c752712358766ba94fba7a34502ae8d0c5",
+      "bytes": 85,
+      "transformation": "byte-for-byte copy; archive location only"
+    },
+    {
+      "sourceRoot": "prototype",
+      "sourcePath": "fixtures/42-flow-wide.mmd",
+      "sourceSha256": "a8dd9484abc63970a880a909c60ae654f66f3b113b195b7760de54eff6c5007d",
+      "targetPath": "fixtures/42-flow-wide.mmd",
+      "targetSha256": "a8dd9484abc63970a880a909c60ae654f66f3b113b195b7760de54eff6c5007d",
+      "bytes": 279,
+      "transformation": "byte-for-byte copy; archive location only"
+    },
+    {
+      "sourceRoot": "prototype",
+      "sourcePath": "fixtures/43-flow-tall.mmd",
+      "sourceSha256": "10617df8d4c7537b0b1b6767eb58631e3fe1f8fee146d3e4cea4a417b77ffb19",
+      "targetPath": "fixtures/43-flow-tall.mmd",
+      "targetSha256": "10617df8d4c7537b0b1b6767eb58631e3fe1f8fee146d3e4cea4a417b77ffb19",
+      "bytes": 423,
+      "transformation": "byte-for-byte copy; archive location only"
+    },
+    {
+      "sourceRoot": "prototype",
+      "sourcePath": "fixtures/44-flow-shadow.mmd",
+      "sourceSha256": "3ceaaad6b840d3341a9a23107afb588c5c72016cf2a454917bed1e40be8a6a38",
+      "targetPath": "fixtures/44-flow-shadow.mmd",
+      "targetSha256": "3ceaaad6b840d3341a9a23107afb588c5c72016cf2a454917bed1e40be8a6a38",
+      "bytes": 90,
+      "transformation": "byte-for-byte copy; archive location only"
+    },
+    {
+      "sourceRoot": "prototype",
+      "sourcePath": "fixtures/45-flow-subgraphs.mmd",
+      "sourceSha256": "c369cd3af1476410054efa2b650f7521102fb71c763cc177876d3e9029ec35cd",
+      "targetPath": "fixtures/45-flow-subgraphs.mmd",
+      "targetSha256": "c369cd3af1476410054efa2b650f7521102fb71c763cc177876d3e9029ec35cd",
+      "bytes": 133,
+      "transformation": "byte-for-byte copy; archive location only"
+    },
+    {
+      "sourceRoot": "prototype",
+      "sourcePath": "fixtures/46-sequence-groups.mmd",
+      "sourceSha256": "930350053c80a89d80a85b0ac555eb50b58a86fe702d9116e6b00135d8080073",
+      "targetPath": "fixtures/46-sequence-groups.mmd",
+      "targetSha256": "930350053c80a89d80a85b0ac555eb50b58a86fe702d9116e6b00135d8080073",
+      "bytes": 148,
+      "transformation": "byte-for-byte copy; archive location only"
+    },
+    {
+      "sourceRoot": "prototype",
+      "sourcePath": "fixtures/47-c4-container.mmd",
+      "sourceSha256": "67560b2e519368f25f00b21cac28308be0c01ca4222e0ed8fcf30ef392b6e039",
+      "targetPath": "fixtures/47-c4-container.mmd",
+      "targetSha256": "67560b2e519368f25f00b21cac28308be0c01ca4222e0ed8fcf30ef392b6e039",
+      "bytes": 115,
+      "transformation": "byte-for-byte copy; archive location only"
+    },
+    {
+      "sourceRoot": "prototype",
+      "sourcePath": "fixtures/48-c4-component.mmd",
+      "sourceSha256": "87836e6d3f329cd35ffb99f069e8bd59ad962c3baf05c25591905b618476422f",
+      "targetPath": "fixtures/48-c4-component.mmd",
+      "targetSha256": "87836e6d3f329cd35ffb99f069e8bd59ad962c3baf05c25591905b618476422f",
+      "bytes": 152,
+      "transformation": "byte-for-byte copy; archive location only"
+    },
+    {
+      "sourceRoot": "prototype",
+      "sourcePath": "fixtures/49-c4-dynamic.mmd",
+      "sourceSha256": "2ad7e54fbb898f2a6536cb91c8bf0b71fe23a9e4492f48fdf0303748429cd67f",
+      "targetPath": "fixtures/49-c4-dynamic.mmd",
+      "targetSha256": "2ad7e54fbb898f2a6536cb91c8bf0b71fe23a9e4492f48fdf0303748429cd67f",
+      "bytes": 113,
+      "transformation": "byte-for-byte copy; archive location only"
+    },
+    {
+      "sourceRoot": "prototype",
+      "sourcePath": "fixtures/50-c4-deployment.mmd",
+      "sourceSha256": "760f0511ba02f00dbeee98fff528d517a173f2b021d8e9a791a1f513b927fa95",
+      "targetPath": "fixtures/50-c4-deployment.mmd",
+      "targetSha256": "760f0511ba02f00dbeee98fff528d517a173f2b021d8e9a791a1f513b927fa95",
+      "bytes": 118,
+      "transformation": "byte-for-byte copy; archive location only"
+    },
+    {
+      "sourceRoot": "official-run",
+      "sourcePath": "evidence/matrix01/pixel-validation.json",
+      "sourceSha256": "0cfe3333a87d00b446e6cc50b50f0aa91765f5a14a94326be75cfe0f375a389d",
+      "targetPath": "pixel-validation.json",
+      "targetSha256": "0cfe3333a87d00b446e6cc50b50f0aa91765f5a14a94326be75cfe0f375a389d",
+      "bytes": 27729,
+      "transformation": "byte-for-byte copy; archive location only"
+    },
+    {
+      "sourceRoot": "official-run",
+      "sourcePath": "evidence/matrix01/agentflow.json",
+      "sourceSha256": "415ad6054e1cb980592bbe643b91e1ea78a1d0e83aa7946c2d5a663ff16f6be1",
+      "targetPath": "rendered/agentflow.json",
+      "targetSha256": "415ad6054e1cb980592bbe643b91e1ea78a1d0e83aa7946c2d5a663ff16f6be1",
+      "bytes": 1052,
+      "transformation": "byte-for-byte copy; archive location only"
+    },
+    {
+      "sourceRoot": "official-run",
+      "sourcePath": "evidence/matrix01/agentflow.png",
+      "sourceSha256": "ab574ad17d7981d08c04623e80528b6a55707a0c515f7036a04cffccd4ae5aec",
+      "targetPath": "rendered/agentflow.png",
+      "targetSha256": "ab574ad17d7981d08c04623e80528b6a55707a0c515f7036a04cffccd4ae5aec",
+      "bytes": 5153,
+      "transformation": "byte-for-byte copy; archive location only"
+    },
+    {
+      "sourceRoot": "official-run",
+      "sourcePath": "evidence/matrix01/architecture.json",
+      "sourceSha256": "aa1b1320e5152bcfa9961e712a86f52029e82c5ba3cdfd84ef76dc41512ee291",
+      "targetPath": "rendered/architecture.json",
+      "targetSha256": "aa1b1320e5152bcfa9961e712a86f52029e82c5ba3cdfd84ef76dc41512ee291",
+      "bytes": 1175,
+      "transformation": "byte-for-byte copy; archive location only"
+    },
+    {
+      "sourceRoot": "official-run",
+      "sourcePath": "evidence/matrix01/architecture.png",
+      "sourceSha256": "68fc3196e96cdabf38464c24246e2a660241f323e10aef362f95b9e001d5117f",
+      "targetPath": "rendered/architecture.png",
+      "targetSha256": "68fc3196e96cdabf38464c24246e2a660241f323e10aef362f95b9e001d5117f",
+      "bytes": 6312,
+      "transformation": "byte-for-byte copy; archive location only"
+    },
+    {
+      "sourceRoot": "official-run",
+      "sourcePath": "evidence/matrix01/block.json",
+      "sourceSha256": "a8dfc9b1d4c4978dd4559645d6b1f143207d49d17be43aae50403326aad5e5f6",
+      "targetPath": "rendered/block.json",
+      "targetSha256": "a8dfc9b1d4c4978dd4559645d6b1f143207d49d17be43aae50403326aad5e5f6",
+      "bytes": 1050,
+      "transformation": "byte-for-byte copy; archive location only"
+    },
+    {
+      "sourceRoot": "official-run",
+      "sourcePath": "evidence/matrix01/block.png",
+      "sourceSha256": "66e38dbaca28bed57cf7aa01a789c9026effe134ed19cdf2b43b9ddda8663854",
+      "targetPath": "rendered/block.png",
+      "targetSha256": "66e38dbaca28bed57cf7aa01a789c9026effe134ed19cdf2b43b9ddda8663854",
+      "bytes": 2961,
+      "transformation": "byte-for-byte copy; archive location only"
+    },
+    {
+      "sourceRoot": "official-run",
+      "sourcePath": "evidence/matrix01/c4-component.json",
+      "sourceSha256": "a9e7628b4cc681956d993453343fe442451da2082d1f395dc156329186dad99b",
+      "targetPath": "rendered/c4-component.json",
+      "targetSha256": "a9e7628b4cc681956d993453343fe442451da2082d1f395dc156329186dad99b",
+      "bytes": 1211,
+      "transformation": "byte-for-byte copy; archive location only"
+    },
+    {
+      "sourceRoot": "official-run",
+      "sourcePath": "evidence/matrix01/c4-component.png",
+      "sourceSha256": "bcd79684f49ad7b056644083aaae8376b52f3e63ec7b48b11305c4a0d446505e",
+      "targetPath": "rendered/c4-component.png",
+      "targetSha256": "bcd79684f49ad7b056644083aaae8376b52f3e63ec7b48b11305c4a0d446505e",
+      "bytes": 9298,
+      "transformation": "byte-for-byte copy; archive location only"
+    },
+    {
+      "sourceRoot": "official-run",
+      "sourcePath": "evidence/matrix01/c4-container.json",
+      "sourceSha256": "92c555c0b93dfecaedd105a724c81cc0a835484ea360ef12f67b4ff7561d8bf2",
+      "targetPath": "rendered/c4-container.json",
+      "targetSha256": "92c555c0b93dfecaedd105a724c81cc0a835484ea360ef12f67b4ff7561d8bf2",
+      "bytes": 1178,
+      "transformation": "byte-for-byte copy; archive location only"
+    },
+    {
+      "sourceRoot": "official-run",
+      "sourcePath": "evidence/matrix01/c4-container.png",
+      "sourceSha256": "11edeb5dae78969bff5bdbdd8fd1b7f0dc9777b3aff64f83d8c698065e91d69b",
+      "targetPath": "rendered/c4-container.png",
+      "targetSha256": "11edeb5dae78969bff5bdbdd8fd1b7f0dc9777b3aff64f83d8c698065e91d69b",
+      "bytes": 15581,
+      "transformation": "byte-for-byte copy; archive location only"
+    },
+    {
+      "sourceRoot": "official-run",
+      "sourcePath": "evidence/matrix01/c4-deployment.json",
+      "sourceSha256": "5db9ae4aa4929ec08d84637381b8cb2e1069b252293299168037bb705eb6fdfe",
+      "targetPath": "rendered/c4-deployment.json",
+      "targetSha256": "5db9ae4aa4929ec08d84637381b8cb2e1069b252293299168037bb705eb6fdfe",
+      "bytes": 1142,
+      "transformation": "byte-for-byte copy; archive location only"
+    },
+    {
+      "sourceRoot": "official-run",
+      "sourcePath": "evidence/matrix01/c4-deployment.png",
+      "sourceSha256": "ba18e9bcf63b64287e2a287d43710cbc346377baa4adab70358cbb97f3cfdc8e",
+      "targetPath": "rendered/c4-deployment.png",
+      "targetSha256": "ba18e9bcf63b64287e2a287d43710cbc346377baa4adab70358cbb97f3cfdc8e",
+      "bytes": 10572,
+      "transformation": "byte-for-byte copy; archive location only"
+    },
+    {
+      "sourceRoot": "official-run",
+      "sourcePath": "evidence/matrix01/c4-dynamic.json",
+      "sourceSha256": "5e7e9788b620a779749bb28595b481a11caa8fe5ef7fdc102f7ed70f4a85df2d",
+      "targetPath": "rendered/c4-dynamic.json",
+      "targetSha256": "5e7e9788b620a779749bb28595b481a11caa8fe5ef7fdc102f7ed70f4a85df2d",
+      "bytes": 1182,
+      "transformation": "byte-for-byte copy; archive location only"
+    },
+    {
+      "sourceRoot": "official-run",
+      "sourcePath": "evidence/matrix01/c4-dynamic.png",
+      "sourceSha256": "8680e06479f546c623f185cf1a19d8c98fc5ac9e87ae4ac6b50f2ba47a336513",
+      "targetPath": "rendered/c4-dynamic.png",
+      "targetSha256": "8680e06479f546c623f185cf1a19d8c98fc5ac9e87ae4ac6b50f2ba47a336513",
+      "bytes": 15697,
+      "transformation": "byte-for-byte copy; archive location only"
+    },
+    {
+      "sourceRoot": "official-run",
+      "sourcePath": "evidence/matrix01/c4.json",
+      "sourceSha256": "d8babb5242ba2efdb6642af79c686d03a07a386cf234e9cf5b568680b002f905",
+      "targetPath": "rendered/c4.json",
+      "targetSha256": "d8babb5242ba2efdb6642af79c686d03a07a386cf234e9cf5b568680b002f905",
+      "bytes": 1150,
+      "transformation": "byte-for-byte copy; archive location only"
+    },
+    {
+      "sourceRoot": "official-run",
+      "sourcePath": "evidence/matrix01/c4.png",
+      "sourceSha256": "6163df3a6c19a95686803b49d3dbac55751849a2d26a00860e1de137357f5da4",
+      "targetPath": "rendered/c4.png",
+      "targetSha256": "6163df3a6c19a95686803b49d3dbac55751849a2d26a00860e1de137357f5da4",
+      "bytes": 14984,
+      "transformation": "byte-for-byte copy; archive location only"
+    },
+    {
+      "sourceRoot": "official-run",
+      "sourcePath": "evidence/matrix01/classDiagram.json",
+      "sourceSha256": "2ccb34598d5056b0e188cc62d34eea605bf68347860d25b449f16433abab8e90",
+      "targetPath": "rendered/classDiagram.json",
+      "targetSha256": "2ccb34598d5056b0e188cc62d34eea605bf68347860d25b449f16433abab8e90",
+      "bytes": 1097,
+      "transformation": "byte-for-byte copy; archive location only"
+    },
+    {
+      "sourceRoot": "official-run",
+      "sourcePath": "evidence/matrix01/classDiagram.png",
+      "sourceSha256": "8281fefb357ed7dd2d0b018c767730c6b44d4dd481ade7e7e83fd9b65efd72fd",
+      "targetPath": "rendered/classDiagram.png",
+      "targetSha256": "8281fefb357ed7dd2d0b018c767730c6b44d4dd481ade7e7e83fd9b65efd72fd",
+      "bytes": 6667,
+      "transformation": "byte-for-byte copy; archive location only"
+    },
+    {
+      "sourceRoot": "official-run",
+      "sourcePath": "evidence/matrix01/cynefin.json",
+      "sourceSha256": "30cd8e665a16fa77efa1fd925ae349d7e578f1558bd127a99a5f5e6b98e1fe80",
+      "targetPath": "rendered/cynefin.json",
+      "targetSha256": "30cd8e665a16fa77efa1fd925ae349d7e578f1558bd127a99a5f5e6b98e1fe80",
+      "bytes": 1528,
+      "transformation": "byte-for-byte copy; archive location only"
+    },
+    {
+      "sourceRoot": "official-run",
+      "sourcePath": "evidence/matrix01/cynefin.png",
+      "sourceSha256": "589bf75d8d75268c8a34772ca824ee38e06724b11b2221d4a6eec64c672682db",
+      "targetPath": "rendered/cynefin.png",
+      "targetSha256": "589bf75d8d75268c8a34772ca824ee38e06724b11b2221d4a6eec64c672682db",
+      "bytes": 48714,
+      "transformation": "byte-for-byte copy; archive location only"
+    },
+    {
+      "sourceRoot": "official-run",
+      "sourcePath": "evidence/matrix01/er.json",
+      "sourceSha256": "1b1318f2305f1ac1c3ffaf87af3a546256b5f687e32f89c54fd4c04bbd5ecc96",
+      "targetPath": "rendered/er.json",
+      "targetSha256": "1b1318f2305f1ac1c3ffaf87af3a546256b5f687e32f89c54fd4c04bbd5ecc96",
+      "bytes": 1060,
+      "transformation": "byte-for-byte copy; archive location only"
+    },
+    {
+      "sourceRoot": "official-run",
+      "sourcePath": "evidence/matrix01/er.png",
+      "sourceSha256": "c4b9bfb4f4f988b877c84883accf5916d1bd5708f4e5a04a9e4ee9edc5fcb77b",
+      "targetPath": "rendered/er.png",
+      "targetSha256": "c4b9bfb4f4f988b877c84883accf5916d1bd5708f4e5a04a9e4ee9edc5fcb77b",
+      "bytes": 6319,
+      "transformation": "byte-for-byte copy; archive location only"
+    },
+    {
+      "sourceRoot": "official-run",
+      "sourcePath": "evidence/matrix01/eventmodeling.json",
+      "sourceSha256": "bf5dc3e0617941f983149031a8f9747b5b1d5ab15d03526bdf1f3c97454d2e41",
+      "targetPath": "rendered/eventmodeling.json",
+      "targetSha256": "bf5dc3e0617941f983149031a8f9747b5b1d5ab15d03526bdf1f3c97454d2e41",
+      "bytes": 1153,
+      "transformation": "byte-for-byte copy; archive location only"
+    },
+    {
+      "sourceRoot": "official-run",
+      "sourcePath": "evidence/matrix01/eventmodeling.png",
+      "sourceSha256": "abb8d824c00b8c447622e4601d707cad2a00d53b6ca4a3a6310699c2356d9c17",
+      "targetPath": "rendered/eventmodeling.png",
+      "targetSha256": "abb8d824c00b8c447622e4601d707cad2a00d53b6ca4a3a6310699c2356d9c17",
+      "bytes": 16483,
+      "transformation": "byte-for-byte copy; archive location only"
+    },
+    {
+      "sourceRoot": "official-run",
+      "sourcePath": "evidence/matrix01/flow-cjk.json",
+      "sourceSha256": "a59010cb349956da262e7ed58fa61afd2290b2290d5cbfe011610a108aea94e5",
+      "targetPath": "rendered/flow-cjk.json",
+      "targetSha256": "a59010cb349956da262e7ed58fa61afd2290b2290d5cbfe011610a108aea94e5",
+      "bytes": 1083,
+      "transformation": "byte-for-byte copy; archive location only"
+    },
+    {
+      "sourceRoot": "official-run",
+      "sourcePath": "evidence/matrix01/flow-cjk.png",
+      "sourceSha256": "988fa5effc49e196cc097a28822b8cde973813931cafea15376b6dd69dd8a076",
+      "targetPath": "rendered/flow-cjk.png",
+      "targetSha256": "988fa5effc49e196cc097a28822b8cde973813931cafea15376b6dd69dd8a076",
+      "bytes": 5724,
+      "transformation": "byte-for-byte copy; archive location only"
+    },
+    {
+      "sourceRoot": "official-run",
+      "sourcePath": "evidence/matrix01/flow-html-labels.json",
+      "sourceSha256": "87bf8272bd93aa9c9e1a1fc8ecb70d75c31195bcad5e47e09ed17bbd797a1c39",
+      "targetPath": "rendered/flow-html-labels.json",
+      "targetSha256": "87bf8272bd93aa9c9e1a1fc8ecb70d75c31195bcad5e47e09ed17bbd797a1c39",
+      "bytes": 1065,
+      "transformation": "byte-for-byte copy; archive location only"
+    },
+    {
+      "sourceRoot": "official-run",
+      "sourcePath": "evidence/matrix01/flow-html-labels.png",
+      "sourceSha256": "70a376232b34a6bafe559b333b5eaf8648529ad1fa479832d818c916ef124e07",
+      "targetPath": "rendered/flow-html-labels.png",
+      "targetSha256": "70a376232b34a6bafe559b333b5eaf8648529ad1fa479832d818c916ef124e07",
+      "bytes": 4676,
+      "transformation": "byte-for-byte copy; archive location only"
+    },
+    {
+      "sourceRoot": "official-run",
+      "sourcePath": "evidence/matrix01/flow-markdown-labels.json",
+      "sourceSha256": "be6314839e580d6d65f454c515cfcd9a6c9e60926df70b52aacce46929e240a2",
+      "targetPath": "rendered/flow-markdown-labels.json",
+      "targetSha256": "be6314839e580d6d65f454c515cfcd9a6c9e60926df70b52aacce46929e240a2",
+      "bytes": 1078,
+      "transformation": "byte-for-byte copy; archive location only"
+    },
+    {
+      "sourceRoot": "official-run",
+      "sourcePath": "evidence/matrix01/flow-markdown-labels.png",
+      "sourceSha256": "f393913aae36480d9140a62a28a54fcf8606e7794b371f78c1b8b1943cad60f9",
+      "targetPath": "rendered/flow-markdown-labels.png",
+      "targetSha256": "f393913aae36480d9140a62a28a54fcf8606e7794b371f78c1b8b1943cad60f9",
+      "bytes": 7081,
+      "transformation": "byte-for-byte copy; archive location only"
+    },
+    {
+      "sourceRoot": "official-run",
+      "sourcePath": "evidence/matrix01/flow-mathml.json",
+      "sourceSha256": "96a0fba8f544e7bf13f14a21cc63321547298fae268ed29cc0cc0dc178c20062",
+      "targetPath": "rendered/flow-mathml.json",
+      "targetSha256": "96a0fba8f544e7bf13f14a21cc63321547298fae268ed29cc0cc0dc178c20062",
+      "bytes": 1088,
+      "transformation": "byte-for-byte copy; archive location only"
+    },
+    {
+      "sourceRoot": "official-run",
+      "sourcePath": "evidence/matrix01/flow-mathml.png",
+      "sourceSha256": "00e1b79925a6a8b406165f9b128f348bab41b3491558308b6c09d2e1e535187b",
+      "targetPath": "rendered/flow-mathml.png",
+      "targetSha256": "00e1b79925a6a8b406165f9b128f348bab41b3491558308b6c09d2e1e535187b",
+      "bytes": 2582,
+      "transformation": "byte-for-byte copy; archive location only"
+    },
+    {
+      "sourceRoot": "official-run",
+      "sourcePath": "evidence/matrix01/flow-shadow.json",
+      "sourceSha256": "debeb9a1cf781c302ea3fd613a2d8d2933198b59b868a689ed48a390fba8a8d8",
+      "targetPath": "rendered/flow-shadow.json",
+      "targetSha256": "debeb9a1cf781c302ea3fd613a2d8d2933198b59b868a689ed48a390fba8a8d8",
+      "bytes": 1042,
+      "transformation": "byte-for-byte copy; archive location only"
+    },
+    {
+      "sourceRoot": "official-run",
+      "sourcePath": "evidence/matrix01/flow-shadow.png",
+      "sourceSha256": "3c03cb7f68e2198623cd7fb72828a9e570b77b77f742babcc5f36da690b5118e",
+      "targetPath": "rendered/flow-shadow.png",
+      "targetSha256": "3c03cb7f68e2198623cd7fb72828a9e570b77b77f742babcc5f36da690b5118e",
+      "bytes": 4491,
+      "transformation": "byte-for-byte copy; archive location only"
+    },
+    {
+      "sourceRoot": "official-run",
+      "sourcePath": "evidence/matrix01/flow-subgraphs.json",
+      "sourceSha256": "aea5e0b748291a405671147388617742176e0f6bc5e22735e8475b7945aa6512",
+      "targetPath": "rendered/flow-subgraphs.json",
+      "targetSha256": "aea5e0b748291a405671147388617742176e0f6bc5e22735e8475b7945aa6512",
+      "bytes": 1084,
+      "transformation": "byte-for-byte copy; archive location only"
+    },
+    {
+      "sourceRoot": "official-run",
+      "sourcePath": "evidence/matrix01/flow-subgraphs.png",
+      "sourceSha256": "134508eacd90dd730b86e4d2615e746bd8ef4b619e6823293985ca2137ae326a",
+      "targetPath": "rendered/flow-subgraphs.png",
+      "targetSha256": "134508eacd90dd730b86e4d2615e746bd8ef4b619e6823293985ca2137ae326a",
+      "bytes": 9420,
+      "transformation": "byte-for-byte copy; archive location only"
+    },
+    {
+      "sourceRoot": "official-run",
+      "sourcePath": "evidence/matrix01/flow-tall.json",
+      "sourceSha256": "ab268c3813c8f4355a0eb89db0098c697e878bcbd3e32a32d82d3d988d206dc7",
+      "targetPath": "rendered/flow-tall.json",
+      "targetSha256": "ab268c3813c8f4355a0eb89db0098c697e878bcbd3e32a32d82d3d988d206dc7",
+      "bytes": 1316,
+      "transformation": "byte-for-byte copy; archive location only"
+    },
+    {
+      "sourceRoot": "official-run",
+      "sourcePath": "evidence/matrix01/flow-tall.png",
+      "sourceSha256": "a54b9552e6d91226fb2fbca7b88c0360d2da18a37690c13f160351ddc4ae2398",
+      "targetPath": "rendered/flow-tall.png",
+      "targetSha256": "a54b9552e6d91226fb2fbca7b88c0360d2da18a37690c13f160351ddc4ae2398",
+      "bytes": 56465,
+      "transformation": "byte-for-byte copy; archive location only"
+    },
+    {
+      "sourceRoot": "official-run",
+      "sourcePath": "evidence/matrix01/flow-wide.json",
+      "sourceSha256": "52e62035279cb8f0cc05b88f94eb9bb45a29f96d669a4209b4b76a74cb3d6f53",
+      "targetPath": "rendered/flow-wide.json",
+      "targetSha256": "52e62035279cb8f0cc05b88f94eb9bb45a29f96d669a4209b4b76a74cb3d6f53",
+      "bytes": 1225,
+      "transformation": "byte-for-byte copy; archive location only"
+    },
+    {
+      "sourceRoot": "official-run",
+      "sourcePath": "evidence/matrix01/flow-wide.png",
+      "sourceSha256": "a2c86a61beeeb69e9c73971f2fa90c5ea5ca9db652711483ea770dbf2d4d498f",
+      "targetPath": "rendered/flow-wide.png",
+      "targetSha256": "a2c86a61beeeb69e9c73971f2fa90c5ea5ca9db652711483ea770dbf2d4d498f",
+      "bytes": 4390,
+      "transformation": "byte-for-byte copy; archive location only"
+    },
+    {
+      "sourceRoot": "official-run",
+      "sourcePath": "evidence/matrix01/flowchart-elk.json",
+      "sourceSha256": "1f84d60b6e039358c1eb5afa1889a5c929a032bfdfdf753715e99e0343ac3eaa",
+      "targetPath": "rendered/flowchart-elk.json",
+      "targetSha256": "1f84d60b6e039358c1eb5afa1889a5c929a032bfdfdf753715e99e0343ac3eaa",
+      "bytes": 1052,
+      "transformation": "byte-for-byte copy; archive location only"
+    },
+    {
+      "sourceRoot": "official-run",
+      "sourcePath": "evidence/matrix01/flowchart-elk.png",
+      "sourceSha256": "ddd438f8fc82ffa92475b5059cf30f37025ef1be48f4bc5e3c95b14723a7e12f",
+      "targetPath": "rendered/flowchart-elk.png",
+      "targetSha256": "ddd438f8fc82ffa92475b5059cf30f37025ef1be48f4bc5e3c95b14723a7e12f",
+      "bytes": 3511,
+      "transformation": "byte-for-byte copy; archive location only"
+    },
+    {
+      "sourceRoot": "official-run",
+      "sourcePath": "evidence/matrix01/flowchart-v2.json",
+      "sourceSha256": "cc90812d643a208fe6088f6443ed45cc3adf04c8c9de673246af61e2ad12989c",
+      "targetPath": "rendered/flowchart-v2.json",
+      "targetSha256": "cc90812d643a208fe6088f6443ed45cc3adf04c8c9de673246af61e2ad12989c",
+      "bytes": 1049,
+      "transformation": "byte-for-byte copy; archive location only"
+    },
+    {
+      "sourceRoot": "official-run",
+      "sourcePath": "evidence/matrix01/flowchart-v2.png",
+      "sourceSha256": "ddd438f8fc82ffa92475b5059cf30f37025ef1be48f4bc5e3c95b14723a7e12f",
+      "targetPath": "rendered/flowchart-v2.png",
+      "targetSha256": "ddd438f8fc82ffa92475b5059cf30f37025ef1be48f4bc5e3c95b14723a7e12f",
+      "bytes": 3511,
+      "transformation": "byte-for-byte copy; archive location only"
+    },
+    {
+      "sourceRoot": "official-run",
+      "sourcePath": "evidence/matrix01/gantt.json",
+      "sourceSha256": "4c7de1ea0639f8b59c9fb1d0382df1abace8c4515010d996e5f5f8169af0cc99",
+      "targetPath": "rendered/gantt.json",
+      "targetSha256": "4c7de1ea0639f8b59c9fb1d0382df1abace8c4515010d996e5f5f8169af0cc99",
+      "bytes": 1351,
+      "transformation": "byte-for-byte copy; archive location only"
+    },
+    {
+      "sourceRoot": "official-run",
+      "sourcePath": "evidence/matrix01/gantt.png",
+      "sourceSha256": "a6cbe3a34188a84c59deda7532e67e71d66cbe313fa0d291f4c2dc0a6b3ad64f",
+      "targetPath": "rendered/gantt.png",
+      "targetSha256": "a6cbe3a34188a84c59deda7532e67e71d66cbe313fa0d291f4c2dc0a6b3ad64f",
+      "bytes": 5046,
+      "transformation": "byte-for-byte copy; archive location only"
+    },
+    {
+      "sourceRoot": "official-run",
+      "sourcePath": "evidence/matrix01/gitGraph.json",
+      "sourceSha256": "35db30f00b0eb6a3a4a66239b6900d7207aa85f6a4ec6d3ef9f2e934a9a48377",
+      "targetPath": "rendered/gitGraph.json",
+      "targetSha256": "35db30f00b0eb6a3a4a66239b6900d7207aa85f6a4ec6d3ef9f2e934a9a48377",
+      "bytes": 1190,
+      "transformation": "byte-for-byte copy; archive location only"
+    },
+    {
+      "sourceRoot": "official-run",
+      "sourcePath": "evidence/matrix01/gitGraph.png",
+      "sourceSha256": "d64aaab352c9bd2900abde5c4f370249f45ae831990b64f6a6fe619cf3999b32",
+      "targetPath": "rendered/gitGraph.png",
+      "targetSha256": "d64aaab352c9bd2900abde5c4f370249f45ae831990b64f6a6fe619cf3999b32",
+      "bytes": 7962,
+      "transformation": "byte-for-byte copy; archive location only"
+    },
+    {
+      "sourceRoot": "official-run",
+      "sourcePath": "evidence/matrix01/info.json",
+      "sourceSha256": "b7585ca5a9950ad5c7a1a9990e0e3e4e42991ffb2a244e493fcdc79c03721544",
+      "targetPath": "rendered/info.json",
+      "targetSha256": "b7585ca5a9950ad5c7a1a9990e0e3e4e42991ffb2a244e493fcdc79c03721544",
+      "bytes": 1030,
+      "transformation": "byte-for-byte copy; archive location only"
+    },
+    {
+      "sourceRoot": "official-run",
+      "sourcePath": "evidence/matrix01/info.png",
+      "sourceSha256": "6a3c12bbaf72093f10985d95b053ce92f7bbfc3ed183f9547a40d33d6e6c3fd1",
+      "targetPath": "rendered/info.png",
+      "targetSha256": "6a3c12bbaf72093f10985d95b053ce92f7bbfc3ed183f9547a40d33d6e6c3fd1",
+      "bytes": 3572,
+      "transformation": "byte-for-byte copy; archive location only"
+    },
+    {
+      "sourceRoot": "official-run",
+      "sourcePath": "evidence/matrix01/ishikawa.json",
+      "sourceSha256": "d24e46ee6464fa0c754bf306ffd2cb5ef4a833b3a19678468e30eb43998c5acc",
+      "targetPath": "rendered/ishikawa.json",
+      "targetSha256": "d24e46ee6464fa0c754bf306ffd2cb5ef4a833b3a19678468e30eb43998c5acc",
+      "bytes": 1268,
+      "transformation": "byte-for-byte copy; archive location only"
+    },
+    {
+      "sourceRoot": "official-run",
+      "sourcePath": "evidence/matrix01/ishikawa.png",
+      "sourceSha256": "4d2a57e55e1787a9d70a93a5043e6b6ced086d2afe2078fa8bdcd607179e7692",
+      "targetPath": "rendered/ishikawa.png",
+      "targetSha256": "4d2a57e55e1787a9d70a93a5043e6b6ced086d2afe2078fa8bdcd607179e7692",
+      "bytes": 17737,
+      "transformation": "byte-for-byte copy; archive location only"
+    },
+    {
+      "sourceRoot": "official-run",
+      "sourcePath": "evidence/matrix01/journey.json",
+      "sourceSha256": "4be811cff3ca7112a9751b89acfc55c523613912249ebcc3fcac74ac96da12e5",
+      "targetPath": "rendered/journey.json",
+      "targetSha256": "4be811cff3ca7112a9751b89acfc55c523613912249ebcc3fcac74ac96da12e5",
+      "bytes": 1108,
+      "transformation": "byte-for-byte copy; archive location only"
+    },
+    {
+      "sourceRoot": "official-run",
+      "sourcePath": "evidence/matrix01/journey.png",
+      "sourceSha256": "15dbfd2b6be3b90c98fd8f018a318a173ad46ca6a5d0ff371e4d245a88f9cb11",
+      "targetPath": "rendered/journey.png",
+      "targetSha256": "15dbfd2b6be3b90c98fd8f018a318a173ad46ca6a5d0ff371e4d245a88f9cb11",
+      "bytes": 16374,
+      "transformation": "byte-for-byte copy; archive location only"
+    },
+    {
+      "sourceRoot": "official-run",
+      "sourcePath": "evidence/matrix01/kanban.json",
+      "sourceSha256": "1db2e5fa457cabd386843e6179851b8147f3dcc2340665268b9f19e6b2197398",
+      "targetPath": "rendered/kanban.json",
+      "targetSha256": "1db2e5fa457cabd386843e6179851b8147f3dcc2340665268b9f19e6b2197398",
+      "bytes": 1054,
+      "transformation": "byte-for-byte copy; archive location only"
+    },
+    {
+      "sourceRoot": "official-run",
+      "sourcePath": "evidence/matrix01/kanban.png",
+      "sourceSha256": "3d4c2caf15fad4f87860c77ed43572871f0f8c39a87c69d0a31ad2a5aca173b1",
+      "targetPath": "rendered/kanban.png",
+      "targetSha256": "3d4c2caf15fad4f87860c77ed43572871f0f8c39a87c69d0a31ad2a5aca173b1",
+      "bytes": 5543,
+      "transformation": "byte-for-byte copy; archive location only"
+    },
+    {
+      "sourceRoot": "official-run",
+      "sourcePath": "evidence/matrix01/mindmap.json",
+      "sourceSha256": "44ec3ca010ddb650674e5f3976dace1d29accbb365907671b5c0c750717027f5",
+      "targetPath": "rendered/mindmap.json",
+      "targetSha256": "44ec3ca010ddb650674e5f3976dace1d29accbb365907671b5c0c750717027f5",
+      "bytes": 1120,
+      "transformation": "byte-for-byte copy; archive location only"
+    },
+    {
+      "sourceRoot": "official-run",
+      "sourcePath": "evidence/matrix01/mindmap.png",
+      "sourceSha256": "1c4bb5b7acd268fc643a67f143e51de4162e805f2b85189eee7683ccf9371e32",
+      "targetPath": "rendered/mindmap.png",
+      "targetSha256": "1c4bb5b7acd268fc643a67f143e51de4162e805f2b85189eee7683ccf9371e32",
+      "bytes": 5666,
+      "transformation": "byte-for-byte copy; archive location only"
+    },
+    {
+      "sourceRoot": "official-run",
+      "sourcePath": "evidence/matrix01/packet.json",
+      "sourceSha256": "b10f8578b376c81c6c6d98604298ceeb11788edefb40e1349d059633ff31dc69",
+      "targetPath": "rendered/packet.json",
+      "targetSha256": "b10f8578b376c81c6c6d98604298ceeb11788edefb40e1349d059633ff31dc69",
+      "bytes": 1066,
+      "transformation": "byte-for-byte copy; archive location only"
+    },
+    {
+      "sourceRoot": "official-run",
+      "sourcePath": "evidence/matrix01/packet.png",
+      "sourceSha256": "0b1e36241cb54cdcbac16be768aff31e81d19f3e9c086b23e7e4e0334fc91b10",
+      "targetPath": "rendered/packet.png",
+      "targetSha256": "0b1e36241cb54cdcbac16be768aff31e81d19f3e9c086b23e7e4e0334fc91b10",
+      "bytes": 2468,
+      "transformation": "byte-for-byte copy; archive location only"
+    },
+    {
+      "sourceRoot": "official-run",
+      "sourcePath": "evidence/matrix01/pie.json",
+      "sourceSha256": "c50248a1d12a84c7e6e1a028d0116d62baafae75505cd69bfba86e6d346a66fd",
+      "targetPath": "rendered/pie.json",
+      "targetSha256": "c50248a1d12a84c7e6e1a028d0116d62baafae75505cd69bfba86e6d346a66fd",
+      "bytes": 1080,
+      "transformation": "byte-for-byte copy; archive location only"
+    },
+    {
+      "sourceRoot": "official-run",
+      "sourcePath": "evidence/matrix01/pie.png",
+      "sourceSha256": "f31af010abd75fbb03ec3d554db6061446d5b870f4fb7f4f593dc735f01db0c9",
+      "targetPath": "rendered/pie.png",
+      "targetSha256": "f31af010abd75fbb03ec3d554db6061446d5b870f4fb7f4f593dc735f01db0c9",
+      "bytes": 25374,
+      "transformation": "byte-for-byte copy; archive location only"
+    },
+    {
+      "sourceRoot": "official-run",
+      "sourcePath": "evidence/matrix01/quadrantChart.json",
+      "sourceSha256": "34b62c635b0accc1cb3ea2bfffd0631029de9667f56af5461fb8ae95ad6b8420",
+      "targetPath": "rendered/quadrantChart.json",
+      "targetSha256": "34b62c635b0accc1cb3ea2bfffd0631029de9667f56af5461fb8ae95ad6b8420",
+      "bytes": 1114,
+      "transformation": "byte-for-byte copy; archive location only"
+    },
+    {
+      "sourceRoot": "official-run",
+      "sourcePath": "evidence/matrix01/quadrantChart.png",
+      "sourceSha256": "8143d7cb10d483b4aa6b58682378feb196940c55d4336165b7319355abeacaac",
+      "targetPath": "rendered/quadrantChart.png",
+      "targetSha256": "8143d7cb10d483b4aa6b58682378feb196940c55d4336165b7319355abeacaac",
+      "bytes": 6743,
+      "transformation": "byte-for-byte copy; archive location only"
+    },
+    {
+      "sourceRoot": "official-run",
+      "sourcePath": "evidence/matrix01/radar.json",
+      "sourceSha256": "826a89af6069e9d90e4b0fde5a7c24652a58c60e52d4bc4e4090fbae6de56f51",
+      "targetPath": "rendered/radar.json",
+      "targetSha256": "826a89af6069e9d90e4b0fde5a7c24652a58c60e52d4bc4e4090fbae6de56f51",
+      "bytes": 1082,
+      "transformation": "byte-for-byte copy; archive location only"
+    },
+    {
+      "sourceRoot": "official-run",
+      "sourcePath": "evidence/matrix01/radar.png",
+      "sourceSha256": "2f478d9f4d43896330b6b1c038ffab9b2296131d4bf4dde8d5ba77c6738f34cb",
+      "targetPath": "rendered/radar.png",
+      "targetSha256": "2f478d9f4d43896330b6b1c038ffab9b2296131d4bf4dde8d5ba77c6738f34cb",
+      "bytes": 50681,
+      "transformation": "byte-for-byte copy; archive location only"
+    },
+    {
+      "sourceRoot": "official-run",
+      "sourcePath": "evidence/matrix01/railroad.json",
+      "sourceSha256": "cdc05b40b52160ff85d1d5a902b76c118657abdbb69866bf8923e63afc64ac9d",
+      "targetPath": "rendered/railroad.json",
+      "targetSha256": "cdc05b40b52160ff85d1d5a902b76c118657abdbb69866bf8923e63afc64ac9d",
+      "bytes": 1071,
+      "transformation": "byte-for-byte copy; archive location only"
+    },
+    {
+      "sourceRoot": "official-run",
+      "sourcePath": "evidence/matrix01/railroad.png",
+      "sourceSha256": "e461119f07a5410f13e5c93e196b254fa49d20da6e55ee524b0e532127aeea2a",
+      "targetPath": "rendered/railroad.png",
+      "targetSha256": "e461119f07a5410f13e5c93e196b254fa49d20da6e55ee524b0e532127aeea2a",
+      "bytes": 4504,
+      "transformation": "byte-for-byte copy; archive location only"
+    },
+    {
+      "sourceRoot": "official-run",
+      "sourcePath": "evidence/matrix01/railroadAbnf.json",
+      "sourceSha256": "8f83cd0774eccd630627b45ff413ce1bf0ce4bafc7da5c473b2d8f63f46249f3",
+      "targetPath": "rendered/railroadAbnf.json",
+      "targetSha256": "8f83cd0774eccd630627b45ff413ce1bf0ce4bafc7da5c473b2d8f63f46249f3",
+      "bytes": 1083,
+      "transformation": "byte-for-byte copy; archive location only"
+    },
+    {
+      "sourceRoot": "official-run",
+      "sourcePath": "evidence/matrix01/railroadAbnf.png",
+      "sourceSha256": "e461119f07a5410f13e5c93e196b254fa49d20da6e55ee524b0e532127aeea2a",
+      "targetPath": "rendered/railroadAbnf.png",
+      "targetSha256": "e461119f07a5410f13e5c93e196b254fa49d20da6e55ee524b0e532127aeea2a",
+      "bytes": 4504,
+      "transformation": "byte-for-byte copy; archive location only"
+    },
+    {
+      "sourceRoot": "official-run",
+      "sourcePath": "evidence/matrix01/railroadEbnf.json",
+      "sourceSha256": "8054cca50711c42866abd0900f7b52643d2f6c4bf6e581c0160040873ea8e1c2",
+      "targetPath": "rendered/railroadEbnf.json",
+      "targetSha256": "8054cca50711c42866abd0900f7b52643d2f6c4bf6e581c0160040873ea8e1c2",
+      "bytes": 1083,
+      "transformation": "byte-for-byte copy; archive location only"
+    },
+    {
+      "sourceRoot": "official-run",
+      "sourcePath": "evidence/matrix01/railroadEbnf.png",
+      "sourceSha256": "e461119f07a5410f13e5c93e196b254fa49d20da6e55ee524b0e532127aeea2a",
+      "targetPath": "rendered/railroadEbnf.png",
+      "targetSha256": "e461119f07a5410f13e5c93e196b254fa49d20da6e55ee524b0e532127aeea2a",
+      "bytes": 4504,
+      "transformation": "byte-for-byte copy; archive location only"
+    },
+    {
+      "sourceRoot": "official-run",
+      "sourcePath": "evidence/matrix01/railroadPeg.json",
+      "sourceSha256": "18eaef7b4d1b67c0b082ca551536dfe5e73d5bc0a090e018463e27a0c02e47a0",
+      "targetPath": "rendered/railroadPeg.json",
+      "targetSha256": "18eaef7b4d1b67c0b082ca551536dfe5e73d5bc0a090e018463e27a0c02e47a0",
+      "bytes": 1079,
+      "transformation": "byte-for-byte copy; archive location only"
+    },
+    {
+      "sourceRoot": "official-run",
+      "sourcePath": "evidence/matrix01/railroadPeg.png",
+      "sourceSha256": "e461119f07a5410f13e5c93e196b254fa49d20da6e55ee524b0e532127aeea2a",
+      "targetPath": "rendered/railroadPeg.png",
+      "targetSha256": "e461119f07a5410f13e5c93e196b254fa49d20da6e55ee524b0e532127aeea2a",
+      "bytes": 4504,
+      "transformation": "byte-for-byte copy; archive location only"
+    },
+    {
+      "sourceRoot": "official-run",
+      "sourcePath": "evidence/matrix01/requirement.json",
+      "sourceSha256": "19c245e13ca8c866a57f08e477ef198ca1f52932a87fa3221bb0091f5016daeb",
+      "targetPath": "rendered/requirement.json",
+      "targetSha256": "19c245e13ca8c866a57f08e477ef198ca1f52932a87fa3221bb0091f5016daeb",
+      "bytes": 1152,
+      "transformation": "byte-for-byte copy; archive location only"
+    },
+    {
+      "sourceRoot": "official-run",
+      "sourcePath": "evidence/matrix01/requirement.png",
+      "sourceSha256": "35ca571db47dfbedcea3e4ffb2403a5c38f0b84af73a2cfcfdeb0efe1815ea80",
+      "targetPath": "rendered/requirement.png",
+      "targetSha256": "35ca571db47dfbedcea3e4ffb2403a5c38f0b84af73a2cfcfdeb0efe1815ea80",
+      "bytes": 10062,
+      "transformation": "byte-for-byte copy; archive location only"
+    },
+    {
+      "sourceRoot": "official-run",
+      "sourcePath": "evidence/matrix01/sankey.json",
+      "sourceSha256": "68221fa57f9a86427bf20b860e966e9e2c49526853973c4a34c0822a2cc7ff8f",
+      "targetPath": "rendered/sankey.json",
+      "targetSha256": "68221fa57f9a86427bf20b860e966e9e2c49526853973c4a34c0822a2cc7ff8f",
+      "bytes": 1110,
+      "transformation": "byte-for-byte copy; archive location only"
+    },
+    {
+      "sourceRoot": "official-run",
+      "sourcePath": "evidence/matrix01/sankey.png",
+      "sourceSha256": "1ad2404118d4996e524b658859c04db3b0247d1adc1e11eadfed918e7b30e00a",
+      "targetPath": "rendered/sankey.png",
+      "targetSha256": "1ad2404118d4996e524b658859c04db3b0247d1adc1e11eadfed918e7b30e00a",
+      "bytes": 99994,
+      "transformation": "byte-for-byte copy; archive location only"
+    },
+    {
+      "sourceRoot": "official-run",
+      "sourcePath": "evidence/matrix01/sequence-groups.json",
+      "sourceSha256": "90ca73f4e1070a12c26e6e6e373932a691e8611217be917e7b4ba7d72b9eca28",
+      "targetPath": "rendered/sequence-groups.json",
+      "targetSha256": "90ca73f4e1070a12c26e6e6e373932a691e8611217be917e7b4ba7d72b9eca28",
+      "bytes": 1213,
+      "transformation": "byte-for-byte copy; archive location only"
+    },
+    {
+      "sourceRoot": "official-run",
+      "sourcePath": "evidence/matrix01/sequence-groups.png",
+      "sourceSha256": "97622d2da84848aafbde65cf0cbd67463bcf96791f459026e2398c994df5a3d7",
+      "targetPath": "rendered/sequence-groups.png",
+      "targetSha256": "97622d2da84848aafbde65cf0cbd67463bcf96791f459026e2398c994df5a3d7",
+      "bytes": 16568,
+      "transformation": "byte-for-byte copy; archive location only"
+    },
+    {
+      "sourceRoot": "official-run",
+      "sourcePath": "evidence/matrix01/sequence.json",
+      "sourceSha256": "f9517306afef151ac73399b740422805dba715cdfe1737da48eec28f2d95b1f7",
+      "targetPath": "rendered/sequence.json",
+      "targetSha256": "f9517306afef151ac73399b740422805dba715cdfe1737da48eec28f2d95b1f7",
+      "bytes": 1111,
+      "transformation": "byte-for-byte copy; archive location only"
+    },
+    {
+      "sourceRoot": "official-run",
+      "sourcePath": "evidence/matrix01/sequence.png",
+      "sourceSha256": "bd3b592db0cc86a7d87ba81ca4cd015300256061b10856f30c41f2324529b26b",
+      "targetPath": "rendered/sequence.png",
+      "targetSha256": "bd3b592db0cc86a7d87ba81ca4cd015300256061b10856f30c41f2324529b26b",
+      "bytes": 8695,
+      "transformation": "byte-for-byte copy; archive location only"
+    },
+    {
+      "sourceRoot": "official-run",
+      "sourcePath": "evidence/matrix01/stateDiagram.json",
+      "sourceSha256": "eceeb3ff5f2c64be996754e6cac4f14e562be10119a02cdd1a8ff46b973a28b7",
+      "targetPath": "rendered/stateDiagram.json",
+      "targetSha256": "eceeb3ff5f2c64be996754e6cac4f14e562be10119a02cdd1a8ff46b973a28b7",
+      "bytes": 1051,
+      "transformation": "byte-for-byte copy; archive location only"
+    },
+    {
+      "sourceRoot": "official-run",
+      "sourcePath": "evidence/matrix01/stateDiagram.png",
+      "sourceSha256": "65baafc197a5305f29e579981e2c08fde467923784a22f2e3b3bbfb115eaa0ff",
+      "targetPath": "rendered/stateDiagram.png",
+      "targetSha256": "65baafc197a5305f29e579981e2c08fde467923784a22f2e3b3bbfb115eaa0ff",
+      "bytes": 6339,
+      "transformation": "byte-for-byte copy; archive location only"
+    },
+    {
+      "sourceRoot": "official-run",
+      "sourcePath": "evidence/matrix01/swimlane.json",
+      "sourceSha256": "9c3103022b97f3040528d023ce86386548d4d2574981223fea941cd4f8a0ae91",
+      "targetPath": "rendered/swimlane.json",
+      "targetSha256": "9c3103022b97f3040528d023ce86386548d4d2574981223fea941cd4f8a0ae91",
+      "bytes": 1069,
+      "transformation": "byte-for-byte copy; archive location only"
+    },
+    {
+      "sourceRoot": "official-run",
+      "sourcePath": "evidence/matrix01/swimlane.png",
+      "sourceSha256": "78a779761a56fd024911206d957dc44e380254dbecfe7252b74e5b88d01e6ec7",
+      "targetPath": "rendered/swimlane.png",
+      "targetSha256": "78a779761a56fd024911206d957dc44e380254dbecfe7252b74e5b88d01e6ec7",
+      "bytes": 8203,
+      "transformation": "byte-for-byte copy; archive location only"
+    },
+    {
+      "sourceRoot": "official-run",
+      "sourcePath": "evidence/matrix01/timeline.json",
+      "sourceSha256": "009d238a3dc3a68b869e108490bc79d70daa4898263a182baa5be8e5b17eba36",
+      "targetPath": "rendered/timeline.json",
+      "targetSha256": "009d238a3dc3a68b869e108490bc79d70daa4898263a182baa5be8e5b17eba36",
+      "bytes": 1150,
+      "transformation": "byte-for-byte copy; archive location only"
+    },
+    {
+      "sourceRoot": "official-run",
+      "sourcePath": "evidence/matrix01/timeline.png",
+      "sourceSha256": "92070339b93eb371572371905b4116a99712b0c68ccb1f51a692f76db1644d19",
+      "targetPath": "rendered/timeline.png",
+      "targetSha256": "92070339b93eb371572371905b4116a99712b0c68ccb1f51a692f76db1644d19",
+      "bytes": 11846,
+      "transformation": "byte-for-byte copy; archive location only"
+    },
+    {
+      "sourceRoot": "official-run",
+      "sourcePath": "evidence/matrix01/treeView.json",
+      "sourceSha256": "c1c2ccda25741ff95ffa6cb391f6ee04edddc3fd56a63b766fe8a7a82d5355f6",
+      "targetPath": "rendered/treeView.json",
+      "targetSha256": "c1c2ccda25741ff95ffa6cb391f6ee04edddc3fd56a63b766fe8a7a82d5355f6",
+      "bytes": 1136,
+      "transformation": "byte-for-byte copy; archive location only"
+    },
+    {
+      "sourceRoot": "official-run",
+      "sourcePath": "evidence/matrix01/treeView.png",
+      "sourceSha256": "43676589d595ee46125abce415328b4721d7a981e9f971bd89eb349d537f1bbf",
+      "targetPath": "rendered/treeView.png",
+      "targetSha256": "43676589d595ee46125abce415328b4721d7a981e9f971bd89eb349d537f1bbf",
+      "bytes": 4616,
+      "transformation": "byte-for-byte copy; archive location only"
+    },
+    {
+      "sourceRoot": "official-run",
+      "sourcePath": "evidence/matrix01/treemap.json",
+      "sourceSha256": "626368e56972d5cee345834c83b9e51f08b4dcaf4746dfa3c249dd216bcf4d43",
+      "targetPath": "rendered/treemap.json",
+      "targetSha256": "626368e56972d5cee345834c83b9e51f08b4dcaf4746dfa3c249dd216bcf4d43",
+      "bytes": 1080,
+      "transformation": "byte-for-byte copy; archive location only"
+    },
+    {
+      "sourceRoot": "official-run",
+      "sourcePath": "evidence/matrix01/treemap.png",
+      "sourceSha256": "df2c549c9128aa4365a9812b8c849bf05f6cfa34a1b6c40601e4334506a8327f",
+      "targetPath": "rendered/treemap.png",
+      "targetSha256": "df2c549c9128aa4365a9812b8c849bf05f6cfa34a1b6c40601e4334506a8327f",
+      "bytes": 8553,
+      "transformation": "byte-for-byte copy; archive location only"
+    },
+    {
+      "sourceRoot": "official-run",
+      "sourcePath": "evidence/matrix01/usecase.json",
+      "sourceSha256": "be046ede53872c52087c10bc0ebe31fddcea2ba3107e94df9421af721dd0b6de",
+      "targetPath": "rendered/usecase.json",
+      "targetSha256": "be046ede53872c52087c10bc0ebe31fddcea2ba3107e94df9421af721dd0b6de",
+      "bytes": 1036,
+      "transformation": "byte-for-byte copy; archive location only"
+    },
+    {
+      "sourceRoot": "official-run",
+      "sourcePath": "evidence/matrix01/usecase.png",
+      "sourceSha256": "3437f770f8606821b8f72e6b8dd9363dcb67b56ea867158894c98259845e9fba",
+      "targetPath": "rendered/usecase.png",
+      "targetSha256": "3437f770f8606821b8f72e6b8dd9363dcb67b56ea867158894c98259845e9fba",
+      "bytes": 7842,
+      "transformation": "byte-for-byte copy; archive location only"
+    },
+    {
+      "sourceRoot": "official-run",
+      "sourcePath": "evidence/matrix01/venn.json",
+      "sourceSha256": "afefd0ee937c828a2801ed59da519bc1b0c9312e31da145d0885ac27da4cd3fe",
+      "targetPath": "rendered/venn.json",
+      "targetSha256": "afefd0ee937c828a2801ed59da519bc1b0c9312e31da145d0885ac27da4cd3fe",
+      "bytes": 1095,
+      "transformation": "byte-for-byte copy; archive location only"
+    },
+    {
+      "sourceRoot": "official-run",
+      "sourcePath": "evidence/matrix01/venn.png",
+      "sourceSha256": "23a038a6f77c916c14bcb7d2732b75e666156cfe533a2abc964e1eb9a7fc06e9",
+      "targetPath": "rendered/venn.png",
+      "targetSha256": "23a038a6f77c916c14bcb7d2732b75e666156cfe533a2abc964e1eb9a7fc06e9",
+      "bytes": 31212,
+      "transformation": "byte-for-byte copy; archive location only"
+    },
+    {
+      "sourceRoot": "official-run",
+      "sourcePath": "evidence/matrix01/wardley.json",
+      "sourceSha256": "161cc1860b08634db57c58c493d23cdec5798972b61b65573f190911065d5f39",
+      "targetPath": "rendered/wardley.json",
+      "targetSha256": "161cc1860b08634db57c58c493d23cdec5798972b61b65573f190911065d5f39",
+      "bytes": 1174,
+      "transformation": "byte-for-byte copy; archive location only"
+    },
+    {
+      "sourceRoot": "official-run",
+      "sourcePath": "evidence/matrix01/wardley.png",
+      "sourceSha256": "3259bf9a9a6fdc53431dd537eb7d93427d31d835852882c0114635fc6fec6306",
+      "targetPath": "rendered/wardley.png",
+      "targetSha256": "3259bf9a9a6fdc53431dd537eb7d93427d31d835852882c0114635fc6fec6306",
+      "bytes": 13260,
+      "transformation": "byte-for-byte copy; archive location only"
+    },
+    {
+      "sourceRoot": "official-run",
+      "sourcePath": "evidence/matrix01/xychart.json",
+      "sourceSha256": "ff79cb7457ca0deefc55811d80943fdf5dba01e78ec40826d867a572c70d861d",
+      "targetPath": "rendered/xychart.json",
+      "targetSha256": "ff79cb7457ca0deefc55811d80943fdf5dba01e78ec40826d867a572c70d861d",
+      "bytes": 1121,
+      "transformation": "byte-for-byte copy; archive location only"
+    },
+    {
+      "sourceRoot": "official-run",
+      "sourcePath": "evidence/matrix01/xychart.png",
+      "sourceSha256": "f90f6011b86440e503459016ac0f8944f30d1a2afdadb51389d1519d27c52bde",
+      "targetPath": "rendered/xychart.png",
+      "targetSha256": "f90f6011b86440e503459016ac0f8944f30d1a2afdadb51389d1519d27c52bde",
+      "bytes": 8779,
+      "transformation": "byte-for-byte copy; archive location only"
+    },
+    {
+      "sourceRoot": "official-run",
+      "sourcePath": "evidence/matrix01/summary.json",
+      "sourceSha256": "a33beb962edc5b0cdf2f50872aec4edabe0c2b09efed39bd2b041e52ce5f85e0",
+      "targetPath": "summary.json",
+      "targetSha256": "a33beb962edc5b0cdf2f50872aec4edabe0c2b09efed39bd2b041e52ce5f85e0",
+      "bytes": 107666,
+      "transformation": "byte-for-byte copy; archive location only"
+    },
+    {
+      "sourceRoot": "official-run",
+      "sourcePath": "evidence/matrix01/visual-review.json",
+      "sourceSha256": "b4d54e6a91d562ecdf3a71a713c9205828166d1a9505db0d901cf35917bb2631",
+      "targetPath": "visual-review.json",
+      "targetSha256": "b4d54e6a91d562ecdf3a71a713c9205828166d1a9505db0d901cf35917bb2631",
+      "bytes": 1448,
+      "transformation": "byte-for-byte copy; archive location only"
+    }
+  ],
+  "derivedFiles": [
+    {
+      "targetPath": "README.md",
+      "targetSha256": "f9da0bc7d786ae1b3bbbcc25cac16182675d4bb64fda2e27715f37ad210e9f7e",
+      "bytes": 2405,
+      "sources": [
+        {
+          "sourceRoot": "official-run",
+          "sourcePath": "README.md",
+          "sourceSha256": "428eb2b394734445a3dbe3ce51c14c16a470da3007f33ee86338a06096d7c10d"
+        },
+        {
+          "sourceRoot": "official-run",
+          "sourcePath": "RESULT.json",
+          "sourceSha256": "e5d7e9ffac6333e5a930055cbd7bc7d5866b6d2473df0f5fe4483ad76da3441c"
+        },
+        {
+          "sourceRoot": "official-run",
+          "sourcePath": "inputs.json",
+          "sourceSha256": "6682c0376d6f0f5ecb8c5f4149e7ce987a292368474c8de6e89dcd3874e1acca"
+        },
+        {
+          "sourceRoot": "official-run",
+          "sourcePath": "harness/render-one.mjs",
+          "sourceSha256": "974b0ffa8bdb9e0f68e1cfbd31549bfb76ea317011ba747819859ae69b6a5bb7"
+        },
+        {
+          "sourceRoot": "official-run",
+          "sourcePath": "evidence/matrix01/visual-review.json",
+          "sourceSha256": "b4d54e6a91d562ecdf3a71a713c9205828166d1a9505db0d901cf35917bb2631"
+        },
+        {
+          "sourceRoot": "prototype",
+          "sourcePath": "fixtures-manifest.json",
+          "sourceSha256": "fd77aa8471a477ec7c98104203b12914078260a2b66354b4c324027fc8208f3f"
+        }
+      ],
+      "transformation": "New Chinese scope and file-index summary based on listed original evidence; explicit limitations and archive-path mapping added. Not an original run artifact."
+    }
+  ],
+  "fixtureReview": {
+    "files": 50,
+    "totalBytes": 4084,
+    "sourceKind": "authored-minimal-example-from-fixed-grammar",
+    "review": "Read all 50 small sample texts and checked for credentials, private paths and external URLs; none observed. All fixture hashes match both the original manifest and actual rendered-case results."
+  },
+  "excluded": [
+    "config/ including passwd, group and machine-id",
+    "environment and stdout/stderr logs",
+    "browser-process samples",
+    "sandbox runtime reports",
+    "harness scripts and bytecode caches",
+    "official engine and browser binaries",
+    "smoke run duplicates"
+  ],
+  "reproductionBoundary": "Original fixtures, images and result identities can be checked from this collection. Execution depends on an omitted engine, harness and Linux tools; this is not a standalone rerunnable environment and proves neither Milkup nor Windows integration.",
+  "selfHashPolicy": "provenance.json cannot include its own hash; the parent generates the final collection checksum separately."
+}

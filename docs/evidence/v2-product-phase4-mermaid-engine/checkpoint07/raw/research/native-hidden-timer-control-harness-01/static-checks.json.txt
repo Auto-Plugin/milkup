@@ -1,0 +1,45 @@
+{
+  "at": "2026-10-16T18:00:44.181510+00:00",
+  "checks": [
+    {
+      "command": [
+        "/workspace/.cargo/bin/rustfmt",
+        "--edition",
+        "2021",
+        "--check",
+        "/workspace/milkup-mermaid-engine-evidence/research/native-hidden-timer-control-harness-01/mechanism-test.rs"
+      ],
+      "exitCode": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "node",
+        "--check",
+        "/workspace/milkup-mermaid-engine-evidence/research/native-hidden-timer-control-harness-01/fixtures/timer-module.js"
+      ],
+      "exitCode": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "bash",
+        "-n",
+        "/workspace/milkup-mermaid-engine-evidence/research/native-hidden-timer-control-harness-01/run-eight.sh"
+      ],
+      "exitCode": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "command": "ast.parse verify-cell.py (no import/execution)",
+      "exitCode": 0
+    }
+  ],
+  "fixturesHashMatches": true,
+  "rustSemanticCompile": false,
+  "observerExecuted": false,
+  "runtimeStarted": false
+}

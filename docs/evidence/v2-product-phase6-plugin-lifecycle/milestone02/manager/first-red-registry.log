@@ -1,0 +1,109 @@
+
+ RUN  v3.2.6 /workspace/milkup
+
+ ❯ packages/plugin/src/registry.test.ts (55 tests | 6 failed | 49 skipped) 15ms
+   ↓ plugin registry > restores installed outline under SDK 0.3.2 without altering range, approvals or enable state
+   ↓ plugin registry > restores installed updates under SDK 0.3.2 without altering range, approvals or enable state
+   ↓ plugin registry > restores installed workspace under SDK 0.3.2 without altering range, approvals or enable state
+   ↓ plugin registry > restores installed preferences under SDK 0.3.2 without altering range, approvals or enable state
+   ↓ plugin registry > restores installed shortcuts under SDK 0.3.2 without altering range, approvals or enable state
+   ↓ plugin registry > revalidates restored enabled plugins against the upgraded application before loading
+   ↓ plugin registry > enforces SDK range >=0.2.0 <0.4.0 against 0.2.0
+   ↓ plugin registry > enforces SDK range >=0.2.0 <0.4.0 against 0.3.0
+   ↓ plugin registry > enforces SDK range >=0.2.0 <0.4.0 against 0.4.0
+   ↓ plugin registry > enforces SDK range >=0.2.0 <0.4.0 against 0.1.9
+   ↓ plugin registry > enforces SDK range >=0.2.0 <0.4.0 against 0.3.0-beta.1
+   ↓ plugin registry > enforces SDK range >=0.3.0-beta.1 <0.4.0 against 0.3.0-beta.2
+   ↓ plugin registry > enforces SDK range >=0.2 <0.4.0 against 0.3.0
+   ↓ plugin registry > enforces SDK range >=0.2.0 <0.4 against 0.3.0
+   ↓ plugin registry > enforces SDK range >=0.2.0 <garbage against 0.3.0
+   ↓ plugin registry > enforces SDK range >=0.2.0 <0.4.* against 0.3.0
+   ↓ plugin registry > enforces SDK range >=0.2.0 || <0.4.0 against 0.3.0
+   ↓ plugin registry > enforces SDK range >=0.2.0 <0.4.0 || * against 0.4.0
+   ↓ plugin registry > enforces SDK range ^0.1.1 against 0.1.0
+   ↓ plugin registry > enforces SDK range ^0.1.1 against 0.1.1
+   ↓ plugin registry > enforces SDK range ^0.1.1 against 0.1.9
+   ↓ plugin registry > enforces SDK range ^0.1.1 against 0.2.0
+   ↓ plugin registry > enforces SDK range ^0.0.2 against 0.0.1
+   ↓ plugin registry > enforces SDK range ^0.0.2 against 0.0.2
+   ↓ plugin registry > enforces SDK range ^0.0.2 against 0.0.3
+   ↓ plugin registry > enforces SDK range ^1.2.3 against 1.2.2
+   ↓ plugin registry > enforces SDK range ^1.2.3 against 1.9.0
+   ↓ plugin registry > enforces SDK range ^1.2.3 against 2.0.0
+   ↓ plugin registry > enforces SDK range ^0.1.0 against 0.1.1
+   ↓ plugin registry > enforces SDK range >=0.1.1 against 0.1.0
+   ↓ plugin registry > enforces SDK range >=0.1.1 against 0.2.0
+   ↓ plugin registry > enforces SDK range ^0.1.1 against 0.1.1-beta
+   ↓ plugin registry > enforces SDK range ^garbage against 0.1.1
+   ↓ plugin registry > enforces SDK range ^0.1 against 0.1.1
+   ↓ plugin registry > enforces SDK range ^0.1.1 against 0.1.1+build.2
+   ↓ plugin registry > enforces SDK range ^2.0.0-0 against 2.0.0-beta.1
+   ↓ plugin registry > enforces SDK range ^2.0.0-0 against 2.0.0
+   ↓ plugin registry > enforces SDK range ^2.0.0-0 against 2.4.0
+   ↓ plugin registry > enforces SDK range ^2.0.0-0 against 2.1.0-beta.1
+   ↓ plugin registry > enforces SDK range ^2.0.0-0 against 3.0.0
+   ↓ plugin registry > enforces SDK range ^2.0.0 against 2.0.0-beta.1
+   ↓ plugin registry > enforces SDK range >=2.0.0-beta.2 against 2.0.0-beta.10
+   ↓ plugin registry > enforces SDK range >=2.0.0-beta.2 against 2.0.0-beta.1
+   ↓ plugin registry > exposes pure host preflight without changing manifest, registry or approval state
+   ↓ plugin registry > preserves preflight behavior when target or engines are omitted
+   ↓ plugin registry > installs local plugins, persists enable state, and restores records
+   ↓ plugin registry > marks incompatible plugins as failed and keeps sidecar approval explicit
+   ↓ plugin registry > indexes enabled contributions and makes keymap priority deterministic
+   ↓ plugin registry > isolates plugin storage keys
+   × P6 strict registry recovery > rejects duplicate IDs before replacing any existing records 10ms
+     → expected [Function] to throw an error
+   × P6 strict registry recovery > rejects malformed or expanded approved scope 1ms
+     → expected [Function] to throw an error
+   × P6 strict registry recovery > rejects malformed or expanded approved scope 1ms
+     → expected [Function] to throw an error
+   × P6 strict registry recovery > rejects malformed or expanded approved scope 1ms
+     → expected [Function] to throw an error
+   × P6 strict registry recovery > rejects malformed or expanded approved scope 1ms
+     → expected [Function] to throw an error
+   × P6 strict registry recovery > rejects malformed or expanded approved scope 1ms
+     → expected [Function] to throw an error
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 6 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  packages/plugin/src/registry.test.ts > P6 strict registry recovery > rejects duplicate IDs before replacing any existing records
+AssertionError: expected [Function] to throw an error
+
+- Expected: 
+null
+
++ Received: 
+undefined
+
+ ❯ packages/plugin/src/registry.test.ts:334:99
+    332|   it('rejects duplicate IDs before replacing any existing records',()=…
+    333|     const registry=new PluginRegistry();const original=valid();registr…
+    334|     expect(()=>registry.restore({...original,records:[...original.reco…
+       |                                                                                                   ^
+    335|     expect(registry.snapshot().records).toEqual(original.records)
+    336|   })
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/6]⎯
+
+ FAIL  packages/plugin/src/registry.test.ts > P6 strict registry recovery > rejects malformed or expanded approved scope
+ FAIL  packages/plugin/src/registry.test.ts > P6 strict registry recovery > rejects malformed or expanded approved scope
+ FAIL  packages/plugin/src/registry.test.ts > P6 strict registry recovery > rejects malformed or expanded approved scope
+ FAIL  packages/plugin/src/registry.test.ts > P6 strict registry recovery > rejects malformed or expanded approved scope
+ FAIL  packages/plugin/src/registry.test.ts > P6 strict registry recovery > rejects malformed or expanded approved scope
+AssertionError: expected [Function] to throw an error
+ ❯ packages/plugin/src/registry.test.ts:345:113
+    343|   ])('rejects malformed or expanded approved scope',(change)=>{
+    344|     const snapshot=valid()
+    345|     expect(()=>parsePluginRegistrySnapshot(JSON.stringify({...snapshot…
+       |                                                                                                                 ^
+    346|   })
+    347| })
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/6]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  6 failed | 49 skipped (55)
+   Start at  08:28:49
+   Duration  1.25s (transform 585ms, setup 0ms, collect 777ms, tests 15ms, environment 0ms, prepare 74ms)
+

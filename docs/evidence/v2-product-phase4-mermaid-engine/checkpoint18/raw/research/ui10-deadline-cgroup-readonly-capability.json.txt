@@ -1,0 +1,37 @@
+{
+  "author": "/root/release_sdk",
+  "method": "Single read-only self-cgroup/mountinfo and explicitly named cgroup2 files; no running process inspection, sampling loop, signal or limit write.",
+  "selfCgroup": "0::/",
+  "mountInfo": "176 175 0:24 /.. /sys/fs/cgroup ro,nosuid,nodev,noexec,relatime master:8 - cgroup2 cgroup2 rw,nsdelegate",
+  "files": [
+    {
+      "path": "/sys/fs/cgroup/cpu.stat",
+      "text": "usage_usec 66298900387\nuser_usec 53231255480\nsystem_usec 13067644907\nnice_usec 1798930\nnr_periods 452199\nnr_throttled 20395\nthrottled_usec 937355514\nnr_bursts 0\nburst_usec 0\n"
+    },
+    {
+      "path": "/sys/fs/cgroup/cpu.max",
+      "text": "400000 100000\n"
+    },
+    {
+      "path": "/sys/fs/cgroup/memory.events",
+      "text": "low 0\nhigh 0\nmax 73259\noom 0\noom_kill 0\noom_group_kill 0\n"
+    },
+    {
+      "path": "/sys/fs/cgroup/memory.events.local",
+      "text": "low 0\nhigh 0\nmax 73259\noom 0\noom_kill 0\noom_group_kill 0\n"
+    }
+  ],
+  "unavailable": [
+    {
+      "path": "/sys/fs/cgroup/cpu.pressure",
+      "errno": 2
+    },
+    {
+      "path": "/sys/fs/cgroup/memory.pressure",
+      "errno": 2
+    }
+  ],
+  "interpretation": "These are cumulative shared namespace-visible cgroup counters observed now, not UI10 failure-window deltas. cpu.max represents400000us quota per100000us period at this exposed group; it is not a per-render CPU entitlement. memory.events max is not proof of an OOM or this task's pressure. No attribution to render_2754 is possible.",
+  "candidate": "Read cpu.stat/cpu.max/memory.events at1Hz into a bounded60-sample ring, each read<=4KiB, record CLOCK_MONOTONIC and total/max read elapsed; no overlap/catch-up if late. Anchor offline to native monotonic events, retain exact interval and scope. Max64KiB serialized ring with explicit drop/incomplete flag; no silent disable if file becomes unavailable. No PSI is currently exposed at the inspected paths.",
+  "scopeLimit": "Future runner's /proc/self/cgroup and mount mapping must be confirmed, not assumed identical through a namespace. Bind exact App cgroup if permitted and different; otherwise call this observer-group data. Shared throttling/pressure deltas cannot attribute a single renderer request, and coarse intervals may include unrelated work."
+}

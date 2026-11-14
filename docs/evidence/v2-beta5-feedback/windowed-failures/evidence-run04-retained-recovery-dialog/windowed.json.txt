@@ -1,0 +1,4300 @@
+{
+  "startedAt": "2026-10-22T10:17:35.095Z",
+  "binary": "/tmp/milkup-beta5-native-final/candidate/milkup-desktop",
+  "binarySha256": "2944f2fea805122ec09c7b035ad47fe463ab2e2e7aa432068d521c39fe12224a",
+  "profile": "/tmp/milkup-beta5-native/profile",
+  "display": ":124",
+  "driver": "http://127.0.0.1:4517/",
+  "harness": [
+    {
+      "file": "/tmp/milkup-windows-manual-candidate/tests/native/tauri-beta5-windowed.mjs",
+      "sha256": "64321b0b65f724c4c43124529420d0fac6bc78e3c72db06e992bdab7580bff81"
+    },
+    {
+      "file": "/tmp/milkup-windows-manual-candidate/tests/helpers/native-production.mjs",
+      "sha256": "293a00db10632383346fa739d8717ddf2d42928e0f2e3f9672043d0dd9452eb0"
+    },
+    {
+      "file": "/tmp/milkup-windows-manual-candidate/tests/helpers/native-beta5-fixture.mjs",
+      "sha256": "2ac0636e4f0717f4fa712e1c8dcd348ec579ceec31903625ceebbc6e34fc5842"
+    },
+    {
+      "file": "/tmp/milkup-windows-manual-candidate/tests/helpers/native-updates-fixture.mjs",
+      "sha256": "eae310d5f13a8623d0f5c8a386e5929405f588ba67a120cc927cb51cd48a5ae4"
+    },
+    {
+      "file": "/tmp/milkup-windows-manual-candidate/tests/helpers/native-owned-process.mjs",
+      "sha256": "63dc05ca826ea7e912f10df989c69d51ca8445d06f981ff757019f3095ef051b"
+    }
+  ],
+  "plannedSteps": 30,
+  "budgetMinutes": 8,
+  "driverLaunch": {
+    "path": "/tmp/milkup-beta5-native/driver-launch.json",
+    "sha256": "76e0fa1a52b9b92511db375c32001e57d5f508e57af8d866e5aba5d6d1794273",
+    "record": {
+      "launchEnvironmentFile": "/tmp/milkup-beta5-native/env.sh",
+      "driverPort": 4517,
+      "nativePort": 9517,
+      "namespaceWrapper": "/workspace/milkup-export-print-evidence/milestone01/native/namespace.sh",
+      "environment": {
+        "XDG_CONFIG_HOME": "/tmp/milkup-beta5-native/profile/config",
+        "XDG_CACHE_HOME": "/tmp/milkup-beta5-native/profile/cache",
+        "XDG_DATA_HOME": "/tmp/milkup-beta5-native/profile/data",
+        "XDG_RUNTIME_DIR": "/tmp/milkup-beta5-native/runtime",
+        "DISPLAY": ":124"
+      },
+      "priorAttempt": "EACCES reading own test application /proc/environ; process closed; original profile and evidence retained; fresh empty profile recreated at same configured paths"
+    }
+  },
+  "processEnvironment": {
+    "verified": false,
+    "method": "driver launch record and existing profile/catalog; indirect only",
+    "error": "Error: EACCES: permission denied, open '/proc/217870/environ'"
+  },
+  "owner": {
+    "pid": 217870,
+    "argv": [
+      "/tmp/milkup-beta5-native-final/candidate/milkup-desktop",
+      "/tmp/milkup-beta5-windowed-final/evidence/windowed-integrity.md",
+      ""
+    ],
+    "birth": "11692836"
+  },
+  "beforeCatalogSha256": "b42c87458075b601c198da8598210aa2e4e2627d663d86e131605d1c63c04ed1",
+  "fixture": {
+    "path": "/tmp/milkup-beta5-windowed-final/evidence/windowed-integrity.md",
+    "bytes": 1350447,
+    "utf16Length": 960426,
+    "lineCount": 60033,
+    "sha256": "c7af9fbad223a67cf3a801b210f6cdac030e206c4cbc1a591f74e3eb32ea8ada",
+    "prefix": "# Beta5 windowed integrity\r\n\r\nFLOW-SAMPLE\r\n```mermaid\r\nflowchart TD\r\nA[Start] --> B[End]\r\n```\r\n\r\nSEQUENCE-SAMPLE\r\n```mermaid\r\nsequenceDiagram\r\nparticipant A as Alice\r\nparticipant B as Bob\r\nA->>B: Hello\r\nB-->>A: Reply\r\n```\r\n\r\nCODE-SAMPLE\r\n```js title=\"beta5\"\r\nconst 名 = \"😀\"; // CRLF\r\nconsole.log(名)\r\n```\r\n\r\nTABLE-SAMPLE\r\n| Name | Value |\r\n| --- | --- |\r\n| Alpha | 1 |\r\n| Beta | 2 |\r\n\r\nOUTSIDE-SAMPLE\r\n\r\n",
+    "tail": "TAIL 中文 é 👩🏽‍💻 😀\r\n"
+  },
+  "expectedPlugins": {
+    "milkup.diagrams": "1.2.0",
+    "milkup.formatting": "1.0.1"
+  },
+  "failure": {
+    "message": "AssertionError [ERR_ASSERTION]: Unobscured native pointer target: [data-menu-toggle]",
+    "stack": "AssertionError [ERR_ASSERTION]: Unobscured native pointer target: [data-menu-toggle]\n    at Object.pointer [as click] (file:///tmp/milkup-windows-manual-candidate/tests/helpers/native-beta5-fixture.mjs:67:7)\n    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)\n    at async click (file:///tmp/milkup-windows-manual-candidate/tests/helpers/native-updates-fixture.mjs:147:5)\n    at async Object.menu (file:///tmp/milkup-windows-manual-candidate/tests/helpers/native-updates-fixture.mjs:199:7)\n    at async file:///tmp/milkup-windows-manual-candidate/tests/native/tauri-beta5-windowed.mjs:521:7\n    at async step (file:///tmp/milkup-windows-manual-candidate/tests/native/tauri-beta5-windowed.mjs:403:7)\n    at async main (file:///tmp/milkup-windows-manual-candidate/tests/native/tauri-beta5-windowed.mjs:514:5)\n    at async file:///tmp/milkup-windows-manual-candidate/tests/native/tauri-beta5-windowed.mjs:778:1"
+  },
+  "inputs": [
+    {
+      "kind": "key",
+      "key": "ctrl+0"
+    }
+  ],
+  "rows": [
+    {
+      "name": "01-frozen-beta5-and-already-enabled-windowed-profile",
+      "startedAt": "2026-10-22T10:17:39.759Z",
+      "passed": false,
+      "before": {
+        "menu": false,
+        "width": 1100,
+        "previews": [],
+        "notices": [],
+        "editor": {
+          "x": 0,
+          "width": 1100,
+          "left": 0,
+          "right": 1100,
+          "top": 37,
+          "height": 693,
+          "y": 37,
+          "bottom": 730
+        },
+        "theme": "dark",
+        "selection": [],
+        "cursor": 0,
+        "url": "tauri://localhost",
+        "lines": [
+          {
+            "rect": {
+              "x": 26,
+              "width": 1048,
+              "left": 26,
+              "right": 1074,
+              "top": 61,
+              "height": 29,
+              "y": 61,
+              "bottom": 90
+            },
+            "to": 26,
+            "hidden": false,
+            "lineRect": {
+              "x": 26,
+              "width": 1048,
+              "left": 26,
+              "right": 1074,
+              "top": 61,
+              "height": 29,
+              "y": 61,
+              "bottom": 90
+            },
+            "display": "block",
+            "from": 0,
+            "text": "# Beta5 windowed integrity",
+            "line": "1"
+          },
+          {
+            "rect": {
+              "x": 26,
+              "width": 1048,
+              "left": 26,
+              "right": 1074,
+              "top": 90,
+              "height": 29,
+              "y": 90,
+              "bottom": 119
+            },
+            "to": 28,
+            "hidden": false,
+            "lineRect": {
+              "x": 26,
+              "width": 1048,
+              "left": 26,
+              "right": 1074,
+              "top": 90,
+              "height": 29,
+              "y": 90,
+              "bottom": 119
+            },
+            "display": "block",
+            "from": 28,
+            "text": "​",
+            "line": "2"
+          },
+          {
+            "rect": {
+              "x": 26,
+              "width": 1048,
+              "left": 26,
+              "right": 1074,
+              "top": 119,
+              "height": 21,
+              "y": 119,
+              "bottom": 140
+            },
+            "to": 41,
+            "hidden": false,
+            "lineRect": {
+              "x": 26,
+              "width": 1048,
+              "left": 26,
+              "right": 1074,
+              "top": 119,
+              "height": 21,
+              "y": 119,
+              "bottom": 140
+            },
+            "display": "block",
+            "from": 30,
+            "text": "FLOW-SAMPLE",
+            "line": "3"
+          },
+          {
+            "rect": {
+              "x": 26,
+              "width": 1048,
+              "left": 26,
+              "right": 1074,
+              "top": 140,
+              "height": 26,
+              "y": 140,
+              "bottom": 166
+            },
+            "to": 53,
+            "hidden": false,
+            "lineRect": {
+              "x": 26,
+              "width": 1048,
+              "left": 26,
+              "right": 1074,
+              "top": 140,
+              "height": 26,
+              "y": 140,
+              "bottom": 166
+            },
+            "display": "block",
+            "from": 43,
+            "text": "```mermaidPlain textJavaScriptTypeScriptJSONPythonShellSQLCSSHTMLJavaCC++RustGomermaid",
+            "line": "4"
+          },
+          {
+            "rect": {
+              "x": 26,
+              "width": 1048,
+              "left": 26,
+              "right": 1074,
+              "top": 166,
+              "height": 21,
+              "y": 166,
+              "bottom": 187
+            },
+            "to": 67,
+            "hidden": false,
+            "lineRect": {
+              "x": 26,
+              "width": 1048,
+              "left": 26,
+              "right": 1074,
+              "top": 166,
+              "height": 21,
+              "y": 166,
+              "bottom": 187
+            },
+            "display": "block",
+            "from": 55,
+            "text": "flowchart TD",
+            "line": "5"
+          },
+          {
+            "rect": {
+              "x": 26,
+              "width": 1048,
+              "left": 26,
+              "right": 1074,
+              "top": 187,
+              "height": 21,
+              "y": 187,
+              "bottom": 208
+            },
+            "to": 88,
+            "hidden": false,
+            "lineRect": {
+              "x": 26,
+              "width": 1048,
+              "left": 26,
+              "right": 1074,
+              "top": 187,
+              "height": 21,
+              "y": 187,
+              "bottom": 208
+            },
+            "display": "block",
+            "from": 69,
+            "text": "A[Start] --> B[End]",
+            "line": "6"
+          },
+          {
+            "rect": {
+              "x": 26,
+              "width": 1048,
+              "left": 26,
+              "right": 1074,
+              "top": 208,
+              "height": 0,
+              "y": 208,
+              "bottom": 208
+            },
+            "to": 93,
+            "hidden": false,
+            "lineRect": {
+              "x": 26,
+              "width": 1048,
+              "left": 26,
+              "right": 1074,
+              "top": 208,
+              "height": 0,
+              "y": 208,
+              "bottom": 208
+            },
+            "display": "block",
+            "from": 90,
+            "text": "```",
+            "line": "7"
+          },
+          {
+            "rect": {
+              "x": 26,
+              "width": 1048,
+              "left": 26,
+              "right": 1074,
+              "top": 208,
+              "height": 21,
+              "y": 208,
+              "bottom": 229
+            },
+            "to": 95,
+            "hidden": false,
+            "lineRect": {
+              "x": 26,
+              "width": 1048,
+              "left": 26,
+              "right": 1074,
+              "top": 208,
+              "height": 21,
+              "y": 208,
+              "bottom": 229
+            },
+            "display": "block",
+            "from": 95,
+            "text": "​",
+            "line": "8"
+          },
+          {
+            "rect": {
+              "x": 26,
+              "width": 1048,
+              "left": 26,
+              "right": 1074,
+              "top": 229,
+              "height": 21,
+              "y": 229,
+              "bottom": 250
+            },
+            "to": 112,
+            "hidden": false,
+            "lineRect": {
+              "x": 26,
+              "width": 1048,
+              "left": 26,
+              "right": 1074,
+              "top": 229,
+              "height": 21,
+              "y": 229,
+              "bottom": 250
+            },
+            "display": "block",
+            "from": 97,
+            "text": "SEQUENCE-SAMPLE",
+            "line": "9"
+          },
+          {
+            "rect": {
+              "x": 26,
+              "width": 1048,
+              "left": 26,
+              "right": 1074,
+              "top": 250,
+              "height": 26,
+              "y": 250,
+              "bottom": 276
+            },
+            "to": 124,
+            "hidden": false,
+            "lineRect": {
+              "x": 26,
+              "width": 1048,
+              "left": 26,
+              "right": 1074,
+              "top": 250,
+              "height": 26,
+              "y": 250,
+              "bottom": 276
+            },
+            "display": "block",
+            "from": 114,
+            "text": "```mermaidPlain textJavaScriptTypeScriptJSONPythonShellSQLCSSHTMLJavaCC++RustGomermaid",
+            "line": "10"
+          },
+          {
+            "rect": {
+              "x": 26,
+              "width": 1048,
+              "left": 26,
+              "right": 1074,
+              "top": 276,
+              "height": 21,
+              "y": 276,
+              "bottom": 297
+            },
+            "to": 141,
+            "hidden": false,
+            "lineRect": {
+              "x": 26,
+              "width": 1048,
+              "left": 26,
+              "right": 1074,
+              "top": 276,
+              "height": 21,
+              "y": 276,
+              "bottom": 297
+            },
+            "display": "block",
+            "from": 126,
+            "text": "sequenceDiagram",
+            "line": "11"
+          },
+          {
+            "rect": {
+              "x": 26,
+              "width": 1048,
+              "left": 26,
+              "right": 1074,
+              "top": 297,
+              "height": 21,
+              "y": 297,
+              "bottom": 318
+            },
+            "to": 165,
+            "hidden": false,
+            "lineRect": {
+              "x": 26,
+              "width": 1048,
+              "left": 26,
+              "right": 1074,
+              "top": 297,
+              "height": 21,
+              "y": 297,
+              "bottom": 318
+            },
+            "display": "block",
+            "from": 143,
+            "text": "participant A as Alice",
+            "line": "12"
+          },
+          {
+            "rect": {
+              "x": 26,
+              "width": 1048,
+              "left": 26,
+              "right": 1074,
+              "top": 318,
+              "height": 21,
+              "y": 318,
+              "bottom": 339
+            },
+            "to": 187,
+            "hidden": false,
+            "lineRect": {
+              "x": 26,
+              "width": 1048,
+              "left": 26,
+              "right": 1074,
+              "top": 318,
+              "height": 21,
+              "y": 318,
+              "bottom": 339
+            },
+            "display": "block",
+            "from": 167,
+            "text": "participant B as Bob",
+            "line": "13"
+          },
+          {
+            "rect": {
+              "x": 26,
+              "width": 1048,
+              "left": 26,
+              "right": 1074,
+              "top": 339,
+              "height": 21,
+              "y": 339,
+              "bottom": 360
+            },
+            "to": 201,
+            "hidden": false,
+            "lineRect": {
+              "x": 26,
+              "width": 1048,
+              "left": 26,
+              "right": 1074,
+              "top": 339,
+              "height": 21,
+              "y": 339,
+              "bottom": 360
+            },
+            "display": "block",
+            "from": 189,
+            "text": "A->>B: Hello",
+            "line": "14"
+          },
+          {
+            "rect": {
+              "x": 26,
+              "width": 1048,
+              "left": 26,
+              "right": 1074,
+              "top": 360,
+              "height": 21,
+              "y": 360,
+              "bottom": 381
+            },
+            "to": 216,
+            "hidden": false,
+            "lineRect": {
+              "x": 26,
+              "width": 1048,
+              "left": 26,
+              "right": 1074,
+              "top": 360,
+              "height": 21,
+              "y": 360,
+              "bottom": 381
+            },
+            "display": "block",
+            "from": 203,
+            "text": "B-->>A: Reply",
+            "line": "15"
+          },
+          {
+            "rect": {
+              "x": 26,
+              "width": 1048,
+              "left": 26,
+              "right": 1074,
+              "top": 381,
+              "height": 0,
+              "y": 381,
+              "bottom": 381
+            },
+            "to": 221,
+            "hidden": false,
+            "lineRect": {
+              "x": 26,
+              "width": 1048,
+              "left": 26,
+              "right": 1074,
+              "top": 381,
+              "height": 0,
+              "y": 381,
+              "bottom": 381
+            },
+            "display": "block",
+            "from": 218,
+            "text": "```",
+            "line": "16"
+          },
+          {
+            "rect": {
+              "x": 26,
+              "width": 1048,
+              "left": 26,
+              "right": 1074,
+              "top": 381,
+              "height": 21,
+              "y": 381,
+              "bottom": 402
+            },
+            "to": 223,
+            "hidden": false,
+            "lineRect": {
+              "x": 26,
+              "width": 1048,
+              "left": 26,
+              "right": 1074,
+              "top": 381,
+              "height": 21,
+              "y": 381,
+              "bottom": 402
+            },
+            "display": "block",
+            "from": 223,
+            "text": "​",
+            "line": "17"
+          },
+          {
+            "rect": {
+              "x": 26,
+              "width": 1048,
+              "left": 26,
+              "right": 1074,
+              "top": 402,
+              "height": 21,
+              "y": 402,
+              "bottom": 423
+            },
+            "to": 236,
+            "hidden": false,
+            "lineRect": {
+              "x": 26,
+              "width": 1048,
+              "left": 26,
+              "right": 1074,
+              "top": 402,
+              "height": 21,
+              "y": 402,
+              "bottom": 423
+            },
+            "display": "block",
+            "from": 225,
+            "text": "CODE-SAMPLE",
+            "line": "18"
+          },
+          {
+            "rect": {
+              "x": 26,
+              "width": 1048,
+              "left": 26,
+              "right": 1074,
+              "top": 423,
+              "height": 26,
+              "y": 423,
+              "bottom": 449
+            },
+            "to": 257,
+            "hidden": false,
+            "lineRect": {
+              "x": 26,
+              "width": 1048,
+              "left": 26,
+              "right": 1074,
+              "top": 423,
+              "height": 26,
+              "y": 423,
+              "bottom": 449
+            },
+            "display": "block",
+            "from": 238,
+            "text": "```js title=\"beta5\"Plain textJavaScriptTypeScriptJSONPythonShellSQLCSSHTMLJavaCC++RustGo",
+            "line": "19"
+          },
+          {
+            "rect": {
+              "x": 26,
+              "width": 1048,
+              "left": 26,
+              "right": 1074,
+              "top": 449,
+              "height": 21,
+              "y": 449,
+              "bottom": 470
+            },
+            "to": 282,
+            "hidden": false,
+            "lineRect": {
+              "x": 26,
+              "width": 1048,
+              "left": 26,
+              "right": 1074,
+              "top": 449,
+              "height": 21,
+              "y": 449,
+              "bottom": 470
+            },
+            "display": "block",
+            "from": 259,
+            "text": "const 名 = \"😀\"; // CRLF",
+            "line": "20"
+          },
+          {
+            "rect": {
+              "x": 26,
+              "width": 1048,
+              "left": 26,
+              "right": 1074,
+              "top": 470,
+              "height": 21,
+              "y": 470,
+              "bottom": 491
+            },
+            "to": 298,
+            "hidden": false,
+            "lineRect": {
+              "x": 26,
+              "width": 1048,
+              "left": 26,
+              "right": 1074,
+              "top": 470,
+              "height": 21,
+              "y": 470,
+              "bottom": 491
+            },
+            "display": "block",
+            "from": 284,
+            "text": "console.log(名)",
+            "line": "21"
+          },
+          {
+            "rect": {
+              "x": 26,
+              "width": 1048,
+              "left": 26,
+              "right": 1074,
+              "top": 491,
+              "height": 0,
+              "y": 491,
+              "bottom": 491
+            },
+            "to": 303,
+            "hidden": false,
+            "lineRect": {
+              "x": 26,
+              "width": 1048,
+              "left": 26,
+              "right": 1074,
+              "top": 491,
+              "height": 0,
+              "y": 491,
+              "bottom": 491
+            },
+            "display": "block",
+            "from": 300,
+            "text": "```",
+            "line": "22"
+          },
+          {
+            "rect": {
+              "x": 26,
+              "width": 1048,
+              "left": 26,
+              "right": 1074,
+              "top": 491,
+              "height": 21,
+              "y": 491,
+              "bottom": 512
+            },
+            "to": 305,
+            "hidden": false,
+            "lineRect": {
+              "x": 26,
+              "width": 1048,
+              "left": 26,
+              "right": 1074,
+              "top": 491,
+              "height": 21,
+              "y": 491,
+              "bottom": 512
+            },
+            "display": "block",
+            "from": 305,
+            "text": "​",
+            "line": "23"
+          },
+          {
+            "rect": {
+              "x": 26,
+              "width": 1048,
+              "left": 26,
+              "right": 1074,
+              "top": 512,
+              "height": 21,
+              "y": 512,
+              "bottom": 533
+            },
+            "to": 319,
+            "hidden": false,
+            "lineRect": {
+              "x": 26,
+              "width": 1048,
+              "left": 26,
+              "right": 1074,
+              "top": 512,
+              "height": 21,
+              "y": 512,
+              "bottom": 533
+            },
+            "display": "block",
+            "from": 307,
+            "text": "TABLE-SAMPLE",
+            "line": "24"
+          },
+          {
+            "rect": {
+              "x": 26,
+              "width": 1048,
+              "left": 26,
+              "right": 1074,
+              "top": 533,
+              "height": 31,
+              "y": 533,
+              "bottom": 564
+            },
+            "to": 337,
+            "hidden": false,
+            "lineRect": {
+              "x": 26,
+              "width": 1048,
+              "left": 26,
+              "right": 1074,
+              "top": 533,
+              "height": 31,
+              "y": 533,
+              "bottom": 564
+            },
+            "display": "grid",
+            "from": 321,
+            "text": "| Name | Value |",
+            "line": "25"
+          },
+          {
+            "rect": {
+              "x": 26,
+              "width": 1048,
+              "left": 26,
+              "right": 1074,
+              "top": 564,
+              "height": 0,
+              "y": 564,
+              "bottom": 564
+            },
+            "to": 352,
+            "hidden": false,
+            "lineRect": {
+              "x": 26,
+              "width": 1048,
+              "left": 26,
+              "right": 1074,
+              "top": 564,
+              "height": 0,
+              "y": 564,
+              "bottom": 564
+            },
+            "display": "grid",
+            "from": 339,
+            "text": "| --- | --- |",
+            "line": "26"
+          },
+          {
+            "rect": {
+              "x": 26,
+              "width": 1048,
+              "left": 26,
+              "right": 1074,
+              "top": 564,
+              "height": 30,
+              "y": 564,
+              "bottom": 594
+            },
+            "to": 367,
+            "hidden": false,
+            "lineRect": {
+              "x": 26,
+              "width": 1048,
+              "left": 26,
+              "right": 1074,
+              "top": 564,
+              "height": 30,
+              "y": 564,
+              "bottom": 594
+            },
+            "display": "grid",
+            "from": 354,
+            "text": "| Alpha | 1 |",
+            "line": "27"
+          },
+          {
+            "rect": {
+              "x": 26,
+              "width": 1048,
+              "left": 26,
+              "right": 1074,
+              "top": 594,
+              "height": 30,
+              "y": 594,
+              "bottom": 624
+            },
+            "to": 381,
+            "hidden": false,
+            "lineRect": {
+              "x": 26,
+              "width": 1048,
+              "left": 26,
+              "right": 1074,
+              "top": 594,
+              "height": 30,
+              "y": 594,
+              "bottom": 624
+            },
+            "display": "grid",
+            "from": 369,
+            "text": "| Beta | 2 |",
+            "line": "28"
+          },
+          {
+            "rect": {
+              "x": 26,
+              "width": 1048,
+              "left": 26,
+              "right": 1074,
+              "top": 624,
+              "height": 21,
+              "y": 624,
+              "bottom": 645
+            },
+            "to": 383,
+            "hidden": false,
+            "lineRect": {
+              "x": 26,
+              "width": 1048,
+              "left": 26,
+              "right": 1074,
+              "top": 624,
+              "height": 21,
+              "y": 624,
+              "bottom": 645
+            },
+            "display": "grid",
+            "from": 383,
+            "text": "​",
+            "line": "29"
+          },
+          {
+            "rect": {
+              "x": 26,
+              "width": 1048,
+              "left": 26,
+              "right": 1074,
+              "top": 645,
+              "height": 21,
+              "y": 645,
+              "bottom": 666
+            },
+            "to": 399,
+            "hidden": false,
+            "lineRect": {
+              "x": 26,
+              "width": 1048,
+              "left": 26,
+              "right": 1074,
+              "top": 645,
+              "height": 21,
+              "y": 645,
+              "bottom": 666
+            },
+            "display": "block",
+            "from": 385,
+            "text": "OUTSIDE-SAMPLE",
+            "line": "30"
+          },
+          {
+            "rect": {
+              "x": 26,
+              "width": 1048,
+              "left": 26,
+              "right": 1074,
+              "top": 666,
+              "height": 21,
+              "y": 666,
+              "bottom": 687
+            },
+            "to": 401,
+            "hidden": false,
+            "lineRect": {
+              "x": 26,
+              "width": 1048,
+              "left": 26,
+              "right": 1074,
+              "top": 666,
+              "height": 21,
+              "y": 666,
+              "bottom": 687
+            },
+            "display": "block",
+            "from": 401,
+            "text": "​",
+            "line": "31"
+          },
+          {
+            "rect": {
+              "x": 26,
+              "width": 1048,
+              "left": 26,
+              "right": 1074,
+              "top": 687,
+              "height": 21,
+              "y": 687,
+              "bottom": 708
+            },
+            "to": 431,
+            "hidden": false,
+            "lineRect": {
+              "x": 26,
+              "width": 1048,
+              "left": 26,
+              "right": 1074,
+              "top": 687,
+              "height": 21,
+              "y": 687,
+              "bottom": 708
+            },
+            "display": "block",
+            "from": 403,
+            "text": "retained 00000 中文 é 👩🏽‍💻",
+            "line": "32"
+          },
+          {
+            "rect": {
+              "x": 26,
+              "width": 1048,
+              "left": 26,
+              "right": 1074,
+              "top": 708,
+              "height": 21,
+              "y": 708,
+              "bottom": 729
+            },
+            "to": 433,
+            "hidden": false,
+            "lineRect": {
+              "x": 26,
+              "width": 1048,
+              "left": 26,
+              "right": 1074,
+              "top": 708,
+              "height": 21,
+              "y": 708,
+              "bottom": 729
+            },
+            "display": "block",
+            "from": 433,
+            "text": "​",
+            "line": "33"
+          },
+          {
+            "rect": {
+              "x": 26,
+              "width": 1048,
+              "left": 26,
+              "right": 1074,
+              "top": 729,
+              "height": 21,
+              "y": 729,
+              "bottom": 750
+            },
+            "to": 463,
+            "hidden": false,
+            "lineRect": {
+              "x": 26,
+              "width": 1048,
+              "left": 26,
+              "right": 1074,
+              "top": 729,
+              "height": 21,
+              "y": 729,
+              "bottom": 750
+            },
+            "display": "block",
+            "from": 435,
+            "text": "retained 00001 中文 é 👩🏽‍💻",
+            "line": "34"
+          },
+          {
+            "rect": {
+              "x": 26,
+              "width": 1048,
+              "left": 26,
+              "right": 1074,
+              "top": 750,
+              "height": 21,
+              "y": 750,
+              "bottom": 771
+            },
+            "to": 465,
+            "hidden": false,
+            "lineRect": {
+              "x": 26,
+              "width": 1048,
+              "left": 26,
+              "right": 1074,
+              "top": 750,
+              "height": 21,
+              "y": 750,
+              "bottom": 771
+            },
+            "display": "block",
+            "from": 465,
+            "text": "​",
+            "line": "35"
+          },
+          {
+            "rect": {
+              "x": 26,
+              "width": 1048,
+              "left": 26,
+              "right": 1074,
+              "top": 771,
+              "height": 21,
+              "y": 771,
+              "bottom": 792
+            },
+            "to": 495,
+            "hidden": false,
+            "lineRect": {
+              "x": 26,
+              "width": 1048,
+              "left": 26,
+              "right": 1074,
+              "top": 771,
+              "height": 21,
+              "y": 771,
+              "bottom": 792
+            },
+            "display": "block",
+            "from": 467,
+            "text": "retained 00002 中文 é 👩🏽‍💻",
+            "line": "36"
+          },
+          {
+            "rect": {
+              "x": 26,
+              "width": 1048,
+              "left": 26,
+              "right": 1074,
+              "top": 792,
+              "height": 21,
+              "y": 792,
+              "bottom": 813
+            },
+            "to": 497,
+            "hidden": false,
+            "lineRect": {
+              "x": 26,
+              "width": 1048,
+              "left": 26,
+              "right": 1074,
+              "top": 792,
+              "height": 21,
+              "y": 792,
+              "bottom": 813
+            },
+            "display": "block",
+            "from": 497,
+            "text": "​",
+            "line": "37"
+          },
+          {
+            "rect": {
+              "x": 26,
+              "width": 1048,
+              "left": 26,
+              "right": 1074,
+              "top": 813,
+              "height": 21,
+              "y": 813,
+              "bottom": 834
+            },
+            "to": 527,
+            "hidden": false,
+            "lineRect": {
+              "x": 26,
+              "width": 1048,
+              "left": 26,
+              "right": 1074,
+              "top": 813,
+              "height": 21,
+              "y": 813,
+              "bottom": 834
+            },
+            "display": "block",
+            "from": 499,
+            "text": "retained 00003 中文 é 👩🏽‍💻",
+            "line": "38"
+          },
+          {
+            "rect": {
+              "x": 26,
+              "width": 1048,
+              "left": 26,
+              "right": 1074,
+              "top": 834,
+              "height": 21,
+              "y": 834,
+              "bottom": 855
+            },
+            "to": 529,
+            "hidden": false,
+            "lineRect": {
+              "x": 26,
+              "width": 1048,
+              "left": 26,
+              "right": 1074,
+              "top": 834,
+              "height": 21,
+              "y": 834,
+              "bottom": 855
+            },
+            "display": "block",
+            "from": 529,
+            "text": "​",
+            "line": "39"
+          },
+          {
+            "rect": {
+              "x": 26,
+              "width": 1048,
+              "left": 26,
+              "right": 1074,
+              "top": 855,
+              "height": 21,
+              "y": 855,
+              "bottom": 876
+            },
+            "to": 559,
+            "hidden": false,
+            "lineRect": {
+              "x": 26,
+              "width": 1048,
+              "left": 26,
+              "right": 1074,
+              "top": 855,
+              "height": 21,
+              "y": 855,
+              "bottom": 876
+            },
+            "display": "block",
+            "from": 531,
+            "text": "retained 00004 中文 é 👩🏽‍💻",
+            "line": "40"
+          },
+          {
+            "rect": {
+              "x": 26,
+              "width": 1048,
+              "left": 26,
+              "right": 1074,
+              "top": 876,
+              "height": 21,
+              "y": 876,
+              "bottom": 897
+            },
+            "to": 561,
+            "hidden": false,
+            "lineRect": {
+              "x": 26,
+              "width": 1048,
+              "left": 26,
+              "right": 1074,
+              "top": 876,
+              "height": 21,
+              "y": 876,
+              "bottom": 897
+            },
+            "display": "block",
+            "from": 561,
+            "text": "​",
+            "line": "41"
+          },
+          {
+            "rect": {
+              "x": 26,
+              "width": 1048,
+              "left": 26,
+              "right": 1074,
+              "top": 897,
+              "height": 21,
+              "y": 897,
+              "bottom": 918
+            },
+            "to": 591,
+            "hidden": false,
+            "lineRect": {
+              "x": 26,
+              "width": 1048,
+              "left": 26,
+              "right": 1074,
+              "top": 897,
+              "height": 21,
+              "y": 897,
+              "bottom": 918
+            },
+            "display": "block",
+            "from": 563,
+            "text": "retained 00005 中文 é 👩🏽‍💻",
+            "line": "42"
+          },
+          {
+            "rect": {
+              "x": 26,
+              "width": 1048,
+              "left": 26,
+              "right": 1074,
+              "top": 918,
+              "height": 21,
+              "y": 918,
+              "bottom": 939
+            },
+            "to": 593,
+            "hidden": false,
+            "lineRect": {
+              "x": 26,
+              "width": 1048,
+              "left": 26,
+              "right": 1074,
+              "top": 918,
+              "height": 21,
+              "y": 918,
+              "bottom": 939
+            },
+            "display": "block",
+            "from": 593,
+            "text": "​",
+            "line": "43"
+          },
+          {
+            "rect": {
+              "x": 26,
+              "width": 1048,
+              "left": 26,
+              "right": 1074,
+              "top": 939,
+              "height": 21,
+              "y": 939,
+              "bottom": 960
+            },
+            "to": 623,
+            "hidden": false,
+            "lineRect": {
+              "x": 26,
+              "width": 1048,
+              "left": 26,
+              "right": 1074,
+              "top": 939,
+              "height": 21,
+              "y": 939,
+              "bottom": 960
+            },
+            "display": "block",
+            "from": 595,
+            "text": "retained 00006 中文 é 👩🏽‍💻",
+            "line": "44"
+          },
+          {
+            "rect": {
+              "x": 26,
+              "width": 1048,
+              "left": 26,
+              "right": 1074,
+              "top": 960,
+              "height": 21,
+              "y": 960,
+              "bottom": 981
+            },
+            "to": 625,
+            "hidden": false,
+            "lineRect": {
+              "x": 26,
+              "width": 1048,
+              "left": 26,
+              "right": 1074,
+              "top": 960,
+              "height": 21,
+              "y": 960,
+              "bottom": 981
+            },
+            "display": "block",
+            "from": 625,
+            "text": "​",
+            "line": "45"
+          },
+          {
+            "rect": {
+              "x": 26,
+              "width": 1048,
+              "left": 26,
+              "right": 1074,
+              "top": 981,
+              "height": 21,
+              "y": 981,
+              "bottom": 1002
+            },
+            "to": 655,
+            "hidden": false,
+            "lineRect": {
+              "x": 26,
+              "width": 1048,
+              "left": 26,
+              "right": 1074,
+              "top": 981,
+              "height": 21,
+              "y": 981,
+              "bottom": 1002
+            },
+            "display": "block",
+            "from": 627,
+            "text": "retained 00007 中文 é 👩🏽‍💻",
+            "line": "46"
+          },
+          {
+            "rect": {
+              "x": 26,
+              "width": 1048,
+              "left": 26,
+              "right": 1074,
+              "top": 1002,
+              "height": 21,
+              "y": 1002,
+              "bottom": 1023
+            },
+            "to": 657,
+            "hidden": false,
+            "lineRect": {
+              "x": 26,
+              "width": 1048,
+              "left": 26,
+              "right": 1074,
+              "top": 1002,
+              "height": 21,
+              "y": 1002,
+              "bottom": 1023
+            },
+            "display": "block",
+            "from": 657,
+            "text": "​",
+            "line": "47"
+          },
+          {
+            "rect": {
+              "x": 26,
+              "width": 1048,
+              "left": 26,
+              "right": 1074,
+              "top": 1023,
+              "height": 21,
+              "y": 1023,
+              "bottom": 1044
+            },
+            "to": 687,
+            "hidden": false,
+            "lineRect": {
+              "x": 26,
+              "width": 1048,
+              "left": 26,
+              "right": 1074,
+              "top": 1023,
+              "height": 21,
+              "y": 1023,
+              "bottom": 1044
+            },
+            "display": "block",
+            "from": 659,
+            "text": "retained 00008 中文 é 👩🏽‍💻",
+            "line": "48"
+          },
+          {
+            "rect": {
+              "x": 26,
+              "width": 1048,
+              "left": 26,
+              "right": 1074,
+              "top": 1044,
+              "height": 21,
+              "y": 1044,
+              "bottom": 1065
+            },
+            "to": 689,
+            "hidden": false,
+            "lineRect": {
+              "x": 26,
+              "width": 1048,
+              "left": 26,
+              "right": 1074,
+              "top": 1044,
+              "height": 21,
+              "y": 1044,
+              "bottom": 1065
+            },
+            "display": "block",
+            "from": 689,
+            "text": "​",
+            "line": "49"
+          },
+          {
+            "rect": {
+              "x": 26,
+              "width": 1048,
+              "left": 26,
+              "right": 1074,
+              "top": 1065,
+              "height": 21,
+              "y": 1065,
+              "bottom": 1086
+            },
+            "to": 719,
+            "hidden": false,
+            "lineRect": {
+              "x": 26,
+              "width": 1048,
+              "left": 26,
+              "right": 1074,
+              "top": 1065,
+              "height": 21,
+              "y": 1065,
+              "bottom": 1086
+            },
+            "display": "block",
+            "from": 691,
+            "text": "retained 00009 中文 é 👩🏽‍💻",
+            "line": "50"
+          },
+          {
+            "rect": {
+              "x": 26,
+              "width": 1048,
+              "left": 26,
+              "right": 1074,
+              "top": 1086,
+              "height": 21,
+              "y": 1086,
+              "bottom": 1107
+            },
+            "to": 721,
+            "hidden": false,
+            "lineRect": {
+              "x": 26,
+              "width": 1048,
+              "left": 26,
+              "right": 1074,
+              "top": 1086,
+              "height": 21,
+              "y": 1086,
+              "bottom": 1107
+            },
+            "display": "block",
+            "from": 721,
+            "text": "​",
+            "line": "51"
+          },
+          {
+            "rect": {
+              "x": 26,
+              "width": 1048,
+              "left": 26,
+              "right": 1074,
+              "top": 1107,
+              "height": 21,
+              "y": 1107,
+              "bottom": 1128
+            },
+            "to": 751,
+            "hidden": false,
+            "lineRect": {
+              "x": 26,
+              "width": 1048,
+              "left": 26,
+              "right": 1074,
+              "top": 1107,
+              "height": 21,
+              "y": 1107,
+              "bottom": 1128
+            },
+            "display": "block",
+            "from": 723,
+            "text": "retained 00010 中文 é 👩🏽‍💻",
+            "line": "52"
+          },
+          {
+            "rect": {
+              "x": 26,
+              "width": 1048,
+              "left": 26,
+              "right": 1074,
+              "top": 1128,
+              "height": 21,
+              "y": 1128,
+              "bottom": 1149
+            },
+            "to": 753,
+            "hidden": false,
+            "lineRect": {
+              "x": 26,
+              "width": 1048,
+              "left": 26,
+              "right": 1074,
+              "top": 1128,
+              "height": 21,
+              "y": 1128,
+              "bottom": 1149
+            },
+            "display": "block",
+            "from": 753,
+            "text": "​",
+            "line": "53"
+          },
+          {
+            "rect": {
+              "x": 26,
+              "width": 1048,
+              "left": 26,
+              "right": 1074,
+              "top": 1149,
+              "height": 21,
+              "y": 1149,
+              "bottom": 1170
+            },
+            "to": 783,
+            "hidden": false,
+            "lineRect": {
+              "x": 26,
+              "width": 1048,
+              "left": 26,
+              "right": 1074,
+              "top": 1149,
+              "height": 21,
+              "y": 1149,
+              "bottom": 1170
+            },
+            "display": "block",
+            "from": 755,
+            "text": "retained 00011 中文 é 👩🏽‍💻",
+            "line": "54"
+          },
+          {
+            "rect": {
+              "x": 26,
+              "width": 1048,
+              "left": 26,
+              "right": 1074,
+              "top": 1170,
+              "height": 21,
+              "y": 1170,
+              "bottom": 1191
+            },
+            "to": 785,
+            "hidden": false,
+            "lineRect": {
+              "x": 26,
+              "width": 1048,
+              "left": 26,
+              "right": 1074,
+              "top": 1170,
+              "height": 21,
+              "y": 1170,
+              "bottom": 1191
+            },
+            "display": "block",
+            "from": 785,
+            "text": "​",
+            "line": "55"
+          },
+          {
+            "rect": {
+              "x": 26,
+              "width": 1048,
+              "left": 26,
+              "right": 1074,
+              "top": 1191,
+              "height": 21,
+              "y": 1191,
+              "bottom": 1212
+            },
+            "to": 815,
+            "hidden": false,
+            "lineRect": {
+              "x": 26,
+              "width": 1048,
+              "left": 26,
+              "right": 1074,
+              "top": 1191,
+              "height": 21,
+              "y": 1191,
+              "bottom": 1212
+            },
+            "display": "block",
+            "from": 787,
+            "text": "retained 00012 中文 é 👩🏽‍💻",
+            "line": "56"
+          },
+          {
+            "rect": {
+              "x": 26,
+              "width": 1048,
+              "left": 26,
+              "right": 1074,
+              "top": 1212,
+              "height": 21,
+              "y": 1212,
+              "bottom": 1233
+            },
+            "to": 817,
+            "hidden": false,
+            "lineRect": {
+              "x": 26,
+              "width": 1048,
+              "left": 26,
+              "right": 1074,
+              "top": 1212,
+              "height": 21,
+              "y": 1212,
+              "bottom": 1233
+            },
+            "display": "block",
+            "from": 817,
+            "text": "​",
+            "line": "57"
+          }
+        ],
+        "focus": {
+          "html": "<button type=\"button\" class=\"dialog-button secondary\" data-recovery-close=\"\">暂不恢复</button>",
+          "editor": false,
+          "class": "dialog-button secondary",
+          "tag": "BUTTON"
+        },
+        "cards": [],
+        "code": [
+          {
+            "rect": {
+              "x": 0,
+              "width": 0,
+              "left": 0,
+              "right": 0,
+              "top": 0,
+              "height": 0,
+              "y": 0,
+              "bottom": 0
+            },
+            "to": 53,
+            "hidden": true,
+            "lineRect": {
+              "x": 26,
+              "width": 1048,
+              "left": 26,
+              "right": 1074,
+              "top": 140,
+              "height": 26,
+              "y": 140,
+              "bottom": 166
+            },
+            "display": "none",
+            "from": 43,
+            "text": "```mermaid",
+            "line": "4"
+          },
+          {
+            "rect": {
+              "x": 34,
+              "width": 83.83200073242188,
+              "left": 34,
+              "right": 117.83200073242188,
+              "top": 168,
+              "height": 16,
+              "y": 168,
+              "bottom": 184
+            },
+            "to": 67,
+            "hidden": false,
+            "lineRect": {
+              "x": 26,
+              "width": 1048,
+              "left": 26,
+              "right": 1074,
+              "top": 166,
+              "height": 21,
+              "y": 166,
+              "bottom": 187
+            },
+            "display": "inline",
+            "from": 55,
+            "text": "flowchart TD",
+            "line": "5"
+          },
+          {
+            "rect": {
+              "x": 34,
+              "width": 119.90199279785156,
+              "left": 34,
+              "right": 153.90199279785156,
+              "top": 189,
+              "height": 16,
+              "y": 189,
+              "bottom": 205
+            },
+            "to": 88,
+            "hidden": false,
+            "lineRect": {
+              "x": 26,
+              "width": 1048,
+              "left": 26,
+              "right": 1074,
+              "top": 187,
+              "height": 21,
+              "y": 187,
+              "bottom": 208
+            },
+            "display": "inline",
+            "from": 69,
+            "text": "A[Start] --> B[End]",
+            "line": "6"
+          },
+          {
+            "rect": {
+              "x": 0,
+              "width": 0,
+              "left": 0,
+              "right": 0,
+              "top": 0,
+              "height": 0,
+              "y": 0,
+              "bottom": 0
+            },
+            "to": 93,
+            "hidden": true,
+            "lineRect": {
+              "x": 26,
+              "width": 1048,
+              "left": 26,
+              "right": 1074,
+              "top": 208,
+              "height": 0,
+              "y": 208,
+              "bottom": 208
+            },
+            "display": "none",
+            "from": 90,
+            "text": "```",
+            "line": "7"
+          },
+          {
+            "rect": {
+              "x": 0,
+              "width": 0,
+              "left": 0,
+              "right": 0,
+              "top": 0,
+              "height": 0,
+              "y": 0,
+              "bottom": 0
+            },
+            "to": 124,
+            "hidden": true,
+            "lineRect": {
+              "x": 26,
+              "width": 1048,
+              "left": 26,
+              "right": 1074,
+              "top": 250,
+              "height": 26,
+              "y": 250,
+              "bottom": 276
+            },
+            "display": "none",
+            "from": 114,
+            "text": "```mermaid",
+            "line": "10"
+          },
+          {
+            "rect": {
+              "x": 34,
+              "width": 117.593994140625,
+              "left": 34,
+              "right": 151.593994140625,
+              "top": 278,
+              "height": 16,
+              "y": 278,
+              "bottom": 294
+            },
+            "to": 141,
+            "hidden": false,
+            "lineRect": {
+              "x": 26,
+              "width": 1048,
+              "left": 26,
+              "right": 1074,
+              "top": 276,
+              "height": 21,
+              "y": 276,
+              "bottom": 297
+            },
+            "display": "inline",
+            "from": 126,
+            "text": "sequenceDiagram",
+            "line": "11"
+          },
+          {
+            "rect": {
+              "x": 34,
+              "width": 134.593994140625,
+              "left": 34,
+              "right": 168.593994140625,
+              "top": 299,
+              "height": 16,
+              "y": 299,
+              "bottom": 315
+            },
+            "to": 165,
+            "hidden": false,
+            "lineRect": {
+              "x": 26,
+              "width": 1048,
+              "left": 26,
+              "right": 1074,
+              "top": 297,
+              "height": 21,
+              "y": 297,
+              "bottom": 318
+            },
+            "display": "inline",
+            "from": 143,
+            "text": "participant A as Alice",
+            "line": "12"
+          },
+          {
+            "rect": {
+              "x": 34,
+              "width": 126.91600036621094,
+              "left": 34,
+              "right": 160.91600036621094,
+              "top": 320,
+              "height": 16,
+              "y": 320,
+              "bottom": 336
+            },
+            "to": 187,
+            "hidden": false,
+            "lineRect": {
+              "x": 26,
+              "width": 1048,
+              "left": 26,
+              "right": 1074,
+              "top": 318,
+              "height": 21,
+              "y": 318,
+              "bottom": 339
+            },
+            "display": "inline",
+            "from": 167,
+            "text": "participant B as Bob",
+            "line": "13"
+          },
+          {
+            "rect": {
+              "x": 34,
+              "width": 78.41200256347656,
+              "left": 34,
+              "right": 112.41200256347656,
+              "top": 341,
+              "height": 16,
+              "y": 341,
+              "bottom": 357
+            },
+            "to": 201,
+            "hidden": false,
+            "lineRect": {
+              "x": 26,
+              "width": 1048,
+              "left": 26,
+              "right": 1074,
+              "top": 339,
+              "height": 21,
+              "y": 339,
+              "bottom": 360
+            },
+            "display": "inline",
+            "from": 189,
+            "text": "A->>B: Hello",
+            "line": "14"
+          },
+          {
+            "rect": {
+              "x": 34,
+              "width": 86.90199279785156,
+              "left": 34,
+              "right": 120.90199279785156,
+              "top": 362,
+              "height": 16,
+              "y": 362,
+              "bottom": 378
+            },
+            "to": 216,
+            "hidden": false,
+            "lineRect": {
+              "x": 26,
+              "width": 1048,
+              "left": 26,
+              "right": 1074,
+              "top": 360,
+              "height": 21,
+              "y": 360,
+              "bottom": 381
+            },
+            "display": "inline",
+            "from": 203,
+            "text": "B-->>A: Reply",
+            "line": "15"
+          },
+          {
+            "rect": {
+              "x": 0,
+              "width": 0,
+              "left": 0,
+              "right": 0,
+              "top": 0,
+              "height": 0,
+              "y": 0,
+              "bottom": 0
+            },
+            "to": 221,
+            "hidden": true,
+            "lineRect": {
+              "x": 26,
+              "width": 1048,
+              "left": 26,
+              "right": 1074,
+              "top": 381,
+              "height": 0,
+              "y": 381,
+              "bottom": 381
+            },
+            "display": "none",
+            "from": 218,
+            "text": "```",
+            "line": "16"
+          },
+          {
+            "rect": {
+              "x": 0,
+              "width": 0,
+              "left": 0,
+              "right": 0,
+              "top": 0,
+              "height": 0,
+              "y": 0,
+              "bottom": 0
+            },
+            "to": 257,
+            "hidden": true,
+            "lineRect": {
+              "x": 26,
+              "width": 1048,
+              "left": 26,
+              "right": 1074,
+              "top": 423,
+              "height": 26,
+              "y": 423,
+              "bottom": 449
+            },
+            "display": "none",
+            "from": 238,
+            "text": "```js title=\"beta5\"",
+            "line": "19"
+          },
+          {
+            "rect": {
+              "x": 34,
+              "width": 153.45474243164062,
+              "left": 34,
+              "right": 187.45474243164062,
+              "top": 451,
+              "height": 16,
+              "y": 451,
+              "bottom": 467
+            },
+            "to": 282,
+            "hidden": false,
+            "lineRect": {
+              "x": 26,
+              "width": 1048,
+              "left": 26,
+              "right": 1074,
+              "top": 449,
+              "height": 21,
+              "y": 449,
+              "bottom": 470
+            },
+            "display": "inline",
+            "from": 259,
+            "text": "const 名 = \"😀\"; // CRLF",
+            "line": "20"
+          },
+          {
+            "rect": {
+              "x": 34,
+              "width": 96,
+              "left": 34,
+              "right": 130,
+              "top": 472,
+              "height": 16,
+              "y": 472,
+              "bottom": 488
+            },
+            "to": 298,
+            "hidden": false,
+            "lineRect": {
+              "x": 26,
+              "width": 1048,
+              "left": 26,
+              "right": 1074,
+              "top": 470,
+              "height": 21,
+              "y": 470,
+              "bottom": 491
+            },
+            "display": "inline",
+            "from": 284,
+            "text": "console.log(名)",
+            "line": "21"
+          },
+          {
+            "rect": {
+              "x": 0,
+              "width": 0,
+              "left": 0,
+              "right": 0,
+              "top": 0,
+              "height": 0,
+              "y": 0,
+              "bottom": 0
+            },
+            "to": 303,
+            "hidden": true,
+            "lineRect": {
+              "x": 26,
+              "width": 1048,
+              "left": 26,
+              "right": 1074,
+              "top": 491,
+              "height": 0,
+              "y": 491,
+              "bottom": 491
+            },
+            "display": "none",
+            "from": 300,
+            "text": "```",
+            "line": "22"
+          }
+        ],
+        "zoom": 1,
+        "mode": "live",
+        "toolbar": {
+          "rect": {
+            "x": 0,
+            "width": 0,
+            "left": 0,
+            "right": 0,
+            "top": 0,
+            "height": 0,
+            "y": 0,
+            "bottom": 0
+          },
+          "display": "none",
+          "formattingHidden": null,
+          "visible": false,
+          "formattingVisible": false,
+          "commands": []
+        },
+        "menuScroll": 0,
+        "windowed": true,
+        "height": 760,
+        "vector": [],
+        "appVersion": "2.0.0-beta.5",
+        "pickers": [
+          {
+            "rect": {
+              "x": 979,
+              "width": 87,
+              "left": 979,
+              "right": 1066,
+              "top": 140,
+              "height": 26,
+              "y": 140,
+              "bottom": 166
+            },
+            "value": "mermaid",
+            "visible": true
+          },
+          {
+            "rect": {
+              "x": 979,
+              "width": 87,
+              "left": 979,
+              "right": 1066,
+              "top": 250,
+              "height": 26,
+              "y": 250,
+              "bottom": 276
+            },
+            "value": "mermaid",
+            "visible": true
+          },
+          {
+            "rect": {
+              "x": 979,
+              "width": 87,
+              "left": 979,
+              "right": 1066,
+              "top": 423,
+              "height": 26,
+              "y": 423,
+              "bottom": 449
+            },
+            "value": "javascript",
+            "visible": true
+          }
+        ],
+        "header": {
+          "x": 0,
+          "width": 1100,
+          "left": 0,
+          "right": 1100,
+          "top": 0,
+          "height": 37,
+          "y": 0,
+          "bottom": 37
+        },
+        "vectorColors": [],
+        "imagesInCode": 0,
+        "probe": {
+          "message": "字面匹配 · 忽略大小写 · 忽略查询首尾空白",
+          "query": "",
+          "mode": "live",
+          "count": "0/0",
+          "searching": false,
+          "selection": [],
+          "path": "/tmp/milkup-beta5-windowed-final/evidence/windowed-integrity.md",
+          "saving": false,
+          "notice": "已用原生大文件路径打开预览：1.3 MiB，60033 行。",
+          "dirty": false,
+          "cursor": null,
+          "url": "tauri://localhost",
+          "replaceDisabled": true,
+          "savedVersion": 0,
+          "replacing": false,
+          "loading": "ready",
+          "version": 0
+        }
+      },
+      "error": "AssertionError [ERR_ASSERTION]: Unobscured native pointer target: [data-menu-toggle]",
+      "after": {
+        "menu": false,
+        "width": 1280,
+        "previews": [
+          {
+            "label": "流程图与时序图（受限语法）",
+            "from": 43,
+            "rect": {
+              "x": 26,
+              "width": 1228,
+              "left": 26,
+              "right": 1254,
+              "top": 143.5,
+              "height": 276.78125,
+              "y": 143.5,
+              "bottom": 420.28125
+            },
+            "to": 93
+          },
+          {
+            "label": "流程图与时序图（受限语法）",
+            "from": 114,
+            "rect": {
+              "x": 26,
+              "width": 1228,
+              "left": 26,
+              "right": 1254,
+              "top": 469.28125,
+              "height": 296.78125,
+              "y": 469.28125,
+              "bottom": 766.0625
+            },
+            "to": 221
+          }
+        ],
+        "notices": [],
+        "editor": {
+          "x": 0,
+          "width": 1280,
+          "left": 0,
+          "right": 1280,
+          "top": 37,
+          "height": 733,
+          "y": 37,
+          "bottom": 770
+        },
+        "theme": "dark",
+        "selection": [],
+        "cursor": null,
+        "url": "tauri://localhost",
+        "lines": [
+          {
+            "rect": {
+              "x": 26,
+              "width": 1228,
+              "left": 26,
+              "right": 1254,
+              "top": 61,
+              "height": 29,
+              "y": 61,
+              "bottom": 90
+            },
+            "to": 26,
+            "hidden": false,
+            "lineRect": {
+              "x": 26,
+              "width": 1228,
+              "left": 26,
+              "right": 1254,
+              "top": 61,
+              "height": 29,
+              "y": 61,
+              "bottom": 90
+            },
+            "display": "block",
+            "from": 0,
+            "text": "# Beta5 windowed integrity",
+            "line": "1"
+          },
+          {
+            "rect": {
+              "x": 26,
+              "width": 1228,
+              "left": 26,
+              "right": 1254,
+              "top": 90,
+              "height": 29,
+              "y": 90,
+              "bottom": 119
+            },
+            "to": 28,
+            "hidden": false,
+            "lineRect": {
+              "x": 26,
+              "width": 1228,
+              "left": 26,
+              "right": 1254,
+              "top": 90,
+              "height": 29,
+              "y": 90,
+              "bottom": 119
+            },
+            "display": "block",
+            "from": 28,
+            "text": "​",
+            "line": "2"
+          },
+          {
+            "rect": {
+              "x": 26,
+              "width": 1228,
+              "left": 26,
+              "right": 1254,
+              "top": 119,
+              "height": 21,
+              "y": 119,
+              "bottom": 140
+            },
+            "to": 41,
+            "hidden": false,
+            "lineRect": {
+              "x": 26,
+              "width": 1228,
+              "left": 26,
+              "right": 1254,
+              "top": 119,
+              "height": 21,
+              "y": 119,
+              "bottom": 140
+            },
+            "display": "block",
+            "from": 30,
+            "text": "FLOW-SAMPLE",
+            "line": "3"
+          },
+          {
+            "rect": {
+              "x": 26,
+              "width": 1228,
+              "left": 26,
+              "right": 1254,
+              "top": 140,
+              "height": 283.78125,
+              "y": 140,
+              "bottom": 423.78125
+            },
+            "to": 53,
+            "hidden": false,
+            "lineRect": {
+              "x": 26,
+              "width": 1228,
+              "left": 26,
+              "right": 1254,
+              "top": 140,
+              "height": 283.78125,
+              "y": 140,
+              "bottom": 423.78125
+            },
+            "display": "block",
+            "from": 43,
+            "text": "StartEnd",
+            "line": "4"
+          },
+          {
+            "rect": {
+              "x": 0,
+              "width": 0,
+              "left": 0,
+              "right": 0,
+              "top": 0,
+              "height": 0,
+              "y": 0,
+              "bottom": 0
+            },
+            "to": 67,
+            "hidden": false,
+            "lineRect": {
+              "x": 0,
+              "width": 0,
+              "left": 0,
+              "right": 0,
+              "top": 0,
+              "height": 0,
+              "y": 0,
+              "bottom": 0
+            },
+            "display": "none",
+            "from": 55,
+            "text": "",
+            "line": "5"
+          },
+          {
+            "rect": {
+              "x": 0,
+              "width": 0,
+              "left": 0,
+              "right": 0,
+              "top": 0,
+              "height": 0,
+              "y": 0,
+              "bottom": 0
+            },
+            "to": 88,
+            "hidden": false,
+            "lineRect": {
+              "x": 0,
+              "width": 0,
+              "left": 0,
+              "right": 0,
+              "top": 0,
+              "height": 0,
+              "y": 0,
+              "bottom": 0
+            },
+            "display": "none",
+            "from": 69,
+            "text": "",
+            "line": "6"
+          },
+          {
+            "rect": {
+              "x": 0,
+              "width": 0,
+              "left": 0,
+              "right": 0,
+              "top": 0,
+              "height": 0,
+              "y": 0,
+              "bottom": 0
+            },
+            "to": 93,
+            "hidden": false,
+            "lineRect": {
+              "x": 0,
+              "width": 0,
+              "left": 0,
+              "right": 0,
+              "top": 0,
+              "height": 0,
+              "y": 0,
+              "bottom": 0
+            },
+            "display": "none",
+            "from": 90,
+            "text": "",
+            "line": "7"
+          },
+          {
+            "rect": {
+              "x": 26,
+              "width": 1228,
+              "left": 26,
+              "right": 1254,
+              "top": 423.78125,
+              "height": 21,
+              "y": 423.78125,
+              "bottom": 444.78125
+            },
+            "to": 95,
+            "hidden": false,
+            "lineRect": {
+              "x": 26,
+              "width": 1228,
+              "left": 26,
+              "right": 1254,
+              "top": 423.78125,
+              "height": 21,
+              "y": 423.78125,
+              "bottom": 444.78125
+            },
+            "display": "block",
+            "from": 95,
+            "text": "​",
+            "line": "8"
+          },
+          {
+            "rect": {
+              "x": 26,
+              "width": 1228,
+              "left": 26,
+              "right": 1254,
+              "top": 444.78125,
+              "height": 21,
+              "y": 444.78125,
+              "bottom": 465.78125
+            },
+            "to": 112,
+            "hidden": false,
+            "lineRect": {
+              "x": 26,
+              "width": 1228,
+              "left": 26,
+              "right": 1254,
+              "top": 444.78125,
+              "height": 21,
+              "y": 444.78125,
+              "bottom": 465.78125
+            },
+            "display": "block",
+            "from": 97,
+            "text": "SEQUENCE-SAMPLE",
+            "line": "9"
+          },
+          {
+            "rect": {
+              "x": 26,
+              "width": 1228,
+              "left": 26,
+              "right": 1254,
+              "top": 465.78125,
+              "height": 303.78125,
+              "y": 465.78125,
+              "bottom": 769.5625
+            },
+            "to": 124,
+            "hidden": false,
+            "lineRect": {
+              "x": 26,
+              "width": 1228,
+              "left": 26,
+              "right": 1254,
+              "top": 465.78125,
+              "height": 303.78125,
+              "y": 465.78125,
+              "bottom": 769.5625
+            },
+            "display": "block",
+            "from": 114,
+            "text": "AliceBobHelloReply",
+            "line": "10"
+          },
+          {
+            "rect": {
+              "x": 0,
+              "width": 0,
+              "left": 0,
+              "right": 0,
+              "top": 0,
+              "height": 0,
+              "y": 0,
+              "bottom": 0
+            },
+            "to": 141,
+            "hidden": false,
+            "lineRect": {
+              "x": 0,
+              "width": 0,
+              "left": 0,
+              "right": 0,
+              "top": 0,
+              "height": 0,
+              "y": 0,
+              "bottom": 0
+            },
+            "display": "none",
+            "from": 126,
+            "text": "",
+            "line": "11"
+          },
+          {
+            "rect": {
+              "x": 0,
+              "width": 0,
+              "left": 0,
+              "right": 0,
+              "top": 0,
+              "height": 0,
+              "y": 0,
+              "bottom": 0
+            },
+            "to": 165,
+            "hidden": false,
+            "lineRect": {
+              "x": 0,
+              "width": 0,
+              "left": 0,
+              "right": 0,
+              "top": 0,
+              "height": 0,
+              "y": 0,
+              "bottom": 0
+            },
+            "display": "none",
+            "from": 143,
+            "text": "",
+            "line": "12"
+          },
+          {
+            "rect": {
+              "x": 0,
+              "width": 0,
+              "left": 0,
+              "right": 0,
+              "top": 0,
+              "height": 0,
+              "y": 0,
+              "bottom": 0
+            },
+            "to": 187,
+            "hidden": false,
+            "lineRect": {
+              "x": 0,
+              "width": 0,
+              "left": 0,
+              "right": 0,
+              "top": 0,
+              "height": 0,
+              "y": 0,
+              "bottom": 0
+            },
+            "display": "none",
+            "from": 167,
+            "text": "",
+            "line": "13"
+          },
+          {
+            "rect": {
+              "x": 0,
+              "width": 0,
+              "left": 0,
+              "right": 0,
+              "top": 0,
+              "height": 0,
+              "y": 0,
+              "bottom": 0
+            },
+            "to": 201,
+            "hidden": false,
+            "lineRect": {
+              "x": 0,
+              "width": 0,
+              "left": 0,
+              "right": 0,
+              "top": 0,
+              "height": 0,
+              "y": 0,
+              "bottom": 0
+            },
+            "display": "none",
+            "from": 189,
+            "text": "",
+            "line": "14"
+          },
+          {
+            "rect": {
+              "x": 0,
+              "width": 0,
+              "left": 0,
+              "right": 0,
+              "top": 0,
+              "height": 0,
+              "y": 0,
+              "bottom": 0
+            },
+            "to": 216,
+            "hidden": false,
+            "lineRect": {
+              "x": 0,
+              "width": 0,
+              "left": 0,
+              "right": 0,
+              "top": 0,
+              "height": 0,
+              "y": 0,
+              "bottom": 0
+            },
+            "display": "none",
+            "from": 203,
+            "text": "",
+            "line": "15"
+          },
+          {
+            "rect": {
+              "x": 0,
+              "width": 0,
+              "left": 0,
+              "right": 0,
+              "top": 0,
+              "height": 0,
+              "y": 0,
+              "bottom": 0
+            },
+            "to": 221,
+            "hidden": false,
+            "lineRect": {
+              "x": 0,
+              "width": 0,
+              "left": 0,
+              "right": 0,
+              "top": 0,
+              "height": 0,
+              "y": 0,
+              "bottom": 0
+            },
+            "display": "none",
+            "from": 218,
+            "text": "",
+            "line": "16"
+          },
+          {
+            "rect": {
+              "x": 26,
+              "width": 1228,
+              "left": 26,
+              "right": 1254,
+              "top": 769.5625,
+              "height": 21,
+              "y": 769.5625,
+              "bottom": 790.5625
+            },
+            "to": 223,
+            "hidden": false,
+            "lineRect": {
+              "x": 26,
+              "width": 1228,
+              "left": 26,
+              "right": 1254,
+              "top": 769.5625,
+              "height": 21,
+              "y": 769.5625,
+              "bottom": 790.5625
+            },
+            "display": "block",
+            "from": 223,
+            "text": "​",
+            "line": "17"
+          },
+          {
+            "rect": {
+              "x": 26,
+              "width": 1228,
+              "left": 26,
+              "right": 1254,
+              "top": 790.5625,
+              "height": 21,
+              "y": 790.5625,
+              "bottom": 811.5625
+            },
+            "to": 236,
+            "hidden": false,
+            "lineRect": {
+              "x": 26,
+              "width": 1228,
+              "left": 26,
+              "right": 1254,
+              "top": 790.5625,
+              "height": 21,
+              "y": 790.5625,
+              "bottom": 811.5625
+            },
+            "display": "block",
+            "from": 225,
+            "text": "CODE-SAMPLE",
+            "line": "18"
+          },
+          {
+            "rect": {
+              "x": 26,
+              "width": 1228,
+              "left": 26,
+              "right": 1254,
+              "top": 811.5625,
+              "height": 26,
+              "y": 811.5625,
+              "bottom": 837.5625
+            },
+            "to": 257,
+            "hidden": false,
+            "lineRect": {
+              "x": 26,
+              "width": 1228,
+              "left": 26,
+              "right": 1254,
+              "top": 811.5625,
+              "height": 26,
+              "y": 811.5625,
+              "bottom": 837.5625
+            },
+            "display": "block",
+            "from": 238,
+            "text": "```js title=\"beta5\"Plain textJavaScriptTypeScriptJSONPythonShellSQLCSSHTMLJavaCC++RustGo",
+            "line": "19"
+          },
+          {
+            "rect": {
+              "x": 26,
+              "width": 1228,
+              "left": 26,
+              "right": 1254,
+              "top": 837.5625,
+              "height": 21,
+              "y": 837.5625,
+              "bottom": 858.5625
+            },
+            "to": 282,
+            "hidden": false,
+            "lineRect": {
+              "x": 26,
+              "width": 1228,
+              "left": 26,
+              "right": 1254,
+              "top": 837.5625,
+              "height": 21,
+              "y": 837.5625,
+              "bottom": 858.5625
+            },
+            "display": "block",
+            "from": 259,
+            "text": "const 名 = \"😀\"; // CRLF",
+            "line": "20"
+          },
+          {
+            "rect": {
+              "x": 26,
+              "width": 1228,
+              "left": 26,
+              "right": 1254,
+              "top": 858.5625,
+              "height": 21,
+              "y": 858.5625,
+              "bottom": 879.5625
+            },
+            "to": 298,
+            "hidden": false,
+            "lineRect": {
+              "x": 26,
+              "width": 1228,
+              "left": 26,
+              "right": 1254,
+              "top": 858.5625,
+              "height": 21,
+              "y": 858.5625,
+              "bottom": 879.5625
+            },
+            "display": "block",
+            "from": 284,
+            "text": "console.log(名)",
+            "line": "21"
+          },
+          {
+            "rect": {
+              "x": 26,
+              "width": 1228,
+              "left": 26,
+              "right": 1254,
+              "top": 879.5625,
+              "height": 0,
+              "y": 879.5625,
+              "bottom": 879.5625
+            },
+            "to": 303,
+            "hidden": false,
+            "lineRect": {
+              "x": 26,
+              "width": 1228,
+              "left": 26,
+              "right": 1254,
+              "top": 879.5625,
+              "height": 0,
+              "y": 879.5625,
+              "bottom": 879.5625
+            },
+            "display": "block",
+            "from": 300,
+            "text": "```",
+            "line": "22"
+          },
+          {
+            "rect": {
+              "x": 26,
+              "width": 1228,
+              "left": 26,
+              "right": 1254,
+              "top": 879.5625,
+              "height": 21,
+              "y": 879.5625,
+              "bottom": 900.5625
+            },
+            "to": 305,
+            "hidden": false,
+            "lineRect": {
+              "x": 26,
+              "width": 1228,
+              "left": 26,
+              "right": 1254,
+              "top": 879.5625,
+              "height": 21,
+              "y": 879.5625,
+              "bottom": 900.5625
+            },
+            "display": "block",
+            "from": 305,
+            "text": "​",
+            "line": "23"
+          },
+          {
+            "rect": {
+              "x": 26,
+              "width": 1228,
+              "left": 26,
+              "right": 1254,
+              "top": 900.5625,
+              "height": 21,
+              "y": 900.5625,
+              "bottom": 921.5625
+            },
+            "to": 319,
+            "hidden": false,
+            "lineRect": {
+              "x": 26,
+              "width": 1228,
+              "left": 26,
+              "right": 1254,
+              "top": 900.5625,
+              "height": 21,
+              "y": 900.5625,
+              "bottom": 921.5625
+            },
+            "display": "block",
+            "from": 307,
+            "text": "TABLE-SAMPLE",
+            "line": "24"
+          },
+          {
+            "rect": {
+              "x": 26,
+              "width": 1228,
+              "left": 26,
+              "right": 1254,
+              "top": 921.5625,
+              "height": 31,
+              "y": 921.5625,
+              "bottom": 952.5625
+            },
+            "to": 337,
+            "hidden": false,
+            "lineRect": {
+              "x": 26,
+              "width": 1228,
+              "left": 26,
+              "right": 1254,
+              "top": 921.5625,
+              "height": 31,
+              "y": 921.5625,
+              "bottom": 952.5625
+            },
+            "display": "grid",
+            "from": 321,
+            "text": "| Name | Value |",
+            "line": "25"
+          },
+          {
+            "rect": {
+              "x": 26,
+              "width": 1228,
+              "left": 26,
+              "right": 1254,
+              "top": 952.5625,
+              "height": 0,
+              "y": 952.5625,
+              "bottom": 952.5625
+            },
+            "to": 352,
+            "hidden": false,
+            "lineRect": {
+              "x": 26,
+              "width": 1228,
+              "left": 26,
+              "right": 1254,
+              "top": 952.5625,
+              "height": 0,
+              "y": 952.5625,
+              "bottom": 952.5625
+            },
+            "display": "grid",
+            "from": 339,
+            "text": "| --- | --- |",
+            "line": "26"
+          },
+          {
+            "rect": {
+              "x": 26,
+              "width": 1228,
+              "left": 26,
+              "right": 1254,
+              "top": 952.5625,
+              "height": 30,
+              "y": 952.5625,
+              "bottom": 982.5625
+            },
+            "to": 367,
+            "hidden": false,
+            "lineRect": {
+              "x": 26,
+              "width": 1228,
+              "left": 26,
+              "right": 1254,
+              "top": 952.5625,
+              "height": 30,
+              "y": 952.5625,
+              "bottom": 982.5625
+            },
+            "display": "grid",
+            "from": 354,
+            "text": "| Alpha | 1 |",
+            "line": "27"
+          },
+          {
+            "rect": {
+              "x": 26,
+              "width": 1228,
+              "left": 26,
+              "right": 1254,
+              "top": 982.5625,
+              "height": 30,
+              "y": 982.5625,
+              "bottom": 1012.5625
+            },
+            "to": 381,
+            "hidden": false,
+            "lineRect": {
+              "x": 26,
+              "width": 1228,
+              "left": 26,
+              "right": 1254,
+              "top": 982.5625,
+              "height": 30,
+              "y": 982.5625,
+              "bottom": 1012.5625
+            },
+            "display": "grid",
+            "from": 369,
+            "text": "| Beta | 2 |",
+            "line": "28"
+          },
+          {
+            "rect": {
+              "x": 26,
+              "width": 1228,
+              "left": 26,
+              "right": 1254,
+              "top": 1012.5625,
+              "height": 21,
+              "y": 1012.5625,
+              "bottom": 1033.5625
+            },
+            "to": 383,
+            "hidden": false,
+            "lineRect": {
+              "x": 26,
+              "width": 1228,
+              "left": 26,
+              "right": 1254,
+              "top": 1012.5625,
+              "height": 21,
+              "y": 1012.5625,
+              "bottom": 1033.5625
+            },
+            "display": "grid",
+            "from": 383,
+            "text": "​",
+            "line": "29"
+          },
+          {
+            "rect": {
+              "x": 26,
+              "width": 1228,
+              "left": 26,
+              "right": 1254,
+              "top": 1033.5625,
+              "height": 21,
+              "y": 1033.5625,
+              "bottom": 1054.5625
+            },
+            "to": 399,
+            "hidden": false,
+            "lineRect": {
+              "x": 26,
+              "width": 1228,
+              "left": 26,
+              "right": 1254,
+              "top": 1033.5625,
+              "height": 21,
+              "y": 1033.5625,
+              "bottom": 1054.5625
+            },
+            "display": "block",
+            "from": 385,
+            "text": "OUTSIDE-SAMPLE",
+            "line": "30"
+          },
+          {
+            "rect": {
+              "x": 26,
+              "width": 1228,
+              "left": 26,
+              "right": 1254,
+              "top": 1054.5625,
+              "height": 21,
+              "y": 1054.5625,
+              "bottom": 1075.5625
+            },
+            "to": 401,
+            "hidden": false,
+            "lineRect": {
+              "x": 26,
+              "width": 1228,
+              "left": 26,
+              "right": 1254,
+              "top": 1054.5625,
+              "height": 21,
+              "y": 1054.5625,
+              "bottom": 1075.5625
+            },
+            "display": "block",
+            "from": 401,
+            "text": "​",
+            "line": "31"
+          },
+          {
+            "rect": {
+              "x": 26,
+              "width": 1228,
+              "left": 26,
+              "right": 1254,
+              "top": 1075.5625,
+              "height": 21,
+              "y": 1075.5625,
+              "bottom": 1096.5625
+            },
+            "to": 431,
+            "hidden": false,
+            "lineRect": {
+              "x": 26,
+              "width": 1228,
+              "left": 26,
+              "right": 1254,
+              "top": 1075.5625,
+              "height": 21,
+              "y": 1075.5625,
+              "bottom": 1096.5625
+            },
+            "display": "block",
+            "from": 403,
+            "text": "retained 00000 中文 é 👩🏽‍💻",
+            "line": "32"
+          },
+          {
+            "rect": {
+              "x": 26,
+              "width": 1228,
+              "left": 26,
+              "right": 1254,
+              "top": 1096.5625,
+              "height": 21,
+              "y": 1096.5625,
+              "bottom": 1117.5625
+            },
+            "to": 433,
+            "hidden": false,
+            "lineRect": {
+              "x": 26,
+              "width": 1228,
+              "left": 26,
+              "right": 1254,
+              "top": 1096.5625,
+              "height": 21,
+              "y": 1096.5625,
+              "bottom": 1117.5625
+            },
+            "display": "block",
+            "from": 433,
+            "text": "​",
+            "line": "33"
+          },
+          {
+            "rect": {
+              "x": 26,
+              "width": 1228,
+              "left": 26,
+              "right": 1254,
+              "top": 1117.5625,
+              "height": 21,
+              "y": 1117.5625,
+              "bottom": 1138.5625
+            },
+            "to": 463,
+            "hidden": false,
+            "lineRect": {
+              "x": 26,
+              "width": 1228,
+              "left": 26,
+              "right": 1254,
+              "top": 1117.5625,
+              "height": 21,
+              "y": 1117.5625,
+              "bottom": 1138.5625
+            },
+            "display": "block",
+            "from": 435,
+            "text": "retained 00001 中文 é 👩🏽‍💻",
+            "line": "34"
+          },
+          {
+            "rect": {
+              "x": 26,
+              "width": 1228,
+              "left": 26,
+              "right": 1254,
+              "top": 1138.5625,
+              "height": 21,
+              "y": 1138.5625,
+              "bottom": 1159.5625
+            },
+            "to": 465,
+            "hidden": false,
+            "lineRect": {
+              "x": 26,
+              "width": 1228,
+              "left": 26,
+              "right": 1254,
+              "top": 1138.5625,
+              "height": 21,
+              "y": 1138.5625,
+              "bottom": 1159.5625
+            },
+            "display": "block",
+            "from": 465,
+            "text": "​",
+            "line": "35"
+          },
+          {
+            "rect": {
+              "x": 26,
+              "width": 1228,
+              "left": 26,
+              "right": 1254,
+              "top": 1159.5625,
+              "height": 21,
+              "y": 1159.5625,
+              "bottom": 1180.5625
+            },
+            "to": 495,
+            "hidden": false,
+            "lineRect": {
+              "x": 26,
+              "width": 1228,
+              "left": 26,
+              "right": 1254,
+              "top": 1159.5625,
+              "height": 21,
+              "y": 1159.5625,
+              "bottom": 1180.5625
+            },
+            "display": "block",
+            "from": 467,
+            "text": "retained 00002 中文 é 👩🏽‍💻",
+            "line": "36"
+          },
+          {
+            "rect": {
+              "x": 26,
+              "width": 1228,
+              "left": 26,
+              "right": 1254,
+              "top": 1180.5625,
+              "height": 21,
+              "y": 1180.5625,
+              "bottom": 1201.5625
+            },
+            "to": 497,
+            "hidden": false,
+            "lineRect": {
+              "x": 26,
+              "width": 1228,
+              "left": 26,
+              "right": 1254,
+              "top": 1180.5625,
+              "height": 21,
+              "y": 1180.5625,
+              "bottom": 1201.5625
+            },
+            "display": "block",
+            "from": 497,
+            "text": "​",
+            "line": "37"
+          },
+          {
+            "rect": {
+              "x": 26,
+              "width": 1228,
+              "left": 26,
+              "right": 1254,
+              "top": 1201.5625,
+              "height": 21,
+              "y": 1201.5625,
+              "bottom": 1222.5625
+            },
+            "to": 527,
+            "hidden": false,
+            "lineRect": {
+              "x": 26,
+              "width": 1228,
+              "left": 26,
+              "right": 1254,
+              "top": 1201.5625,
+              "height": 21,
+              "y": 1201.5625,
+              "bottom": 1222.5625
+            },
+            "display": "block",
+            "from": 499,
+            "text": "retained 00003 中文 é 👩🏽‍💻",
+            "line": "38"
+          },
+          {
+            "rect": {
+              "x": 26,
+              "width": 1228,
+              "left": 26,
+              "right": 1254,
+              "top": 1222.5625,
+              "height": 21,
+              "y": 1222.5625,
+              "bottom": 1243.5625
+            },
+            "to": 529,
+            "hidden": false,
+            "lineRect": {
+              "x": 26,
+              "width": 1228,
+              "left": 26,
+              "right": 1254,
+              "top": 1222.5625,
+              "height": 21,
+              "y": 1222.5625,
+              "bottom": 1243.5625
+            },
+            "display": "block",
+            "from": 529,
+            "text": "​",
+            "line": "39"
+          },
+          {
+            "rect": {
+              "x": 26,
+              "width": 1228,
+              "left": 26,
+              "right": 1254,
+              "top": 1243.5625,
+              "height": 21,
+              "y": 1243.5625,
+              "bottom": 1264.5625
+            },
+            "to": 559,
+            "hidden": false,
+            "lineRect": {
+              "x": 26,
+              "width": 1228,
+              "left": 26,
+              "right": 1254,
+              "top": 1243.5625,
+              "height": 21,
+              "y": 1243.5625,
+              "bottom": 1264.5625
+            },
+            "display": "block",
+            "from": 531,
+            "text": "retained 00004 中文 é 👩🏽‍💻",
+            "line": "40"
+          },
+          {
+            "rect": {
+              "x": 26,
+              "width": 1228,
+              "left": 26,
+              "right": 1254,
+              "top": 1264.5625,
+              "height": 21,
+              "y": 1264.5625,
+              "bottom": 1285.5625
+            },
+            "to": 561,
+            "hidden": false,
+            "lineRect": {
+              "x": 26,
+              "width": 1228,
+              "left": 26,
+              "right": 1254,
+              "top": 1264.5625,
+              "height": 21,
+              "y": 1264.5625,
+              "bottom": 1285.5625
+            },
+            "display": "block",
+            "from": 561,
+            "text": "​",
+            "line": "41"
+          },
+          {
+            "rect": {
+              "x": 26,
+              "width": 1228,
+              "left": 26,
+              "right": 1254,
+              "top": 1285.5625,
+              "height": 21,
+              "y": 1285.5625,
+              "bottom": 1306.5625
+            },
+            "to": 591,
+            "hidden": false,
+            "lineRect": {
+              "x": 26,
+              "width": 1228,
+              "left": 26,
+              "right": 1254,
+              "top": 1285.5625,
+              "height": 21,
+              "y": 1285.5625,
+              "bottom": 1306.5625
+            },
+            "display": "block",
+            "from": 563,
+            "text": "retained 00005 中文 é 👩🏽‍💻",
+            "line": "42"
+          },
+          {
+            "rect": {
+              "x": 26,
+              "width": 1228,
+              "left": 26,
+              "right": 1254,
+              "top": 1306.5625,
+              "height": 21,
+              "y": 1306.5625,
+              "bottom": 1327.5625
+            },
+            "to": 593,
+            "hidden": false,
+            "lineRect": {
+              "x": 26,
+              "width": 1228,
+              "left": 26,
+              "right": 1254,
+              "top": 1306.5625,
+              "height": 21,
+              "y": 1306.5625,
+              "bottom": 1327.5625
+            },
+            "display": "block",
+            "from": 593,
+            "text": "​",
+            "line": "43"
+          },
+          {
+            "rect": {
+              "x": 26,
+              "width": 1228,
+              "left": 26,
+              "right": 1254,
+              "top": 1327.5625,
+              "height": 21,
+              "y": 1327.5625,
+              "bottom": 1348.5625
+            },
+            "to": 623,
+            "hidden": false,
+            "lineRect": {
+              "x": 26,
+              "width": 1228,
+              "left": 26,
+              "right": 1254,
+              "top": 1327.5625,
+              "height": 21,
+              "y": 1327.5625,
+              "bottom": 1348.5625
+            },
+            "display": "block",
+            "from": 595,
+            "text": "retained 00006 中文 é 👩🏽‍💻",
+            "line": "44"
+          },
+          {
+            "rect": {
+              "x": 26,
+              "width": 1228,
+              "left": 26,
+              "right": 1254,
+              "top": 1348.5625,
+              "height": 21,
+              "y": 1348.5625,
+              "bottom": 1369.5625
+            },
+            "to": 625,
+            "hidden": false,
+            "lineRect": {
+              "x": 26,
+              "width": 1228,
+              "left": 26,
+              "right": 1254,
+              "top": 1348.5625,
+              "height": 21,
+              "y": 1348.5625,
+              "bottom": 1369.5625
+            },
+            "display": "block",
+            "from": 625,
+            "text": "​",
+            "line": "45"
+          },
+          {
+            "rect": {
+              "x": 26,
+              "width": 1228,
+              "left": 26,
+              "right": 1254,
+              "top": 1369.5625,
+              "height": 21,
+              "y": 1369.5625,
+              "bottom": 1390.5625
+            },
+            "to": 655,
+            "hidden": false,
+            "lineRect": {
+              "x": 26,
+              "width": 1228,
+              "left": 26,
+              "right": 1254,
+              "top": 1369.5625,
+              "height": 21,
+              "y": 1369.5625,
+              "bottom": 1390.5625
+            },
+            "display": "block",
+            "from": 627,
+            "text": "retained 00007 中文 é 👩🏽‍💻",
+            "line": "46"
+          },
+          {
+            "rect": {
+              "x": 26,
+              "width": 1228,
+              "left": 26,
+              "right": 1254,
+              "top": 1390.5625,
+              "height": 21,
+              "y": 1390.5625,
+              "bottom": 1411.5625
+            },
+            "to": 657,
+            "hidden": false,
+            "lineRect": {
+              "x": 26,
+              "width": 1228,
+              "left": 26,
+              "right": 1254,
+              "top": 1390.5625,
+              "height": 21,
+              "y": 1390.5625,
+              "bottom": 1411.5625
+            },
+            "display": "block",
+            "from": 657,
+            "text": "​",
+            "line": "47"
+          },
+          {
+            "rect": {
+              "x": 26,
+              "width": 1228,
+              "left": 26,
+              "right": 1254,
+              "top": 1411.5625,
+              "height": 21,
+              "y": 1411.5625,
+              "bottom": 1432.5625
+            },
+            "to": 687,
+            "hidden": false,
+            "lineRect": {
+              "x": 26,
+              "width": 1228,
+              "left": 26,
+              "right": 1254,
+              "top": 1411.5625,
+              "height": 21,
+              "y": 1411.5625,
+              "bottom": 1432.5625
+            },
+            "display": "block",
+            "from": 659,
+            "text": "retained 00008 中文 é 👩🏽‍💻",
+            "line": "48"
+          },
+          {
+            "rect": {
+              "x": 26,
+              "width": 1228,
+              "left": 26,
+              "right": 1254,
+              "top": 1432.5625,
+              "height": 21,
+              "y": 1432.5625,
+              "bottom": 1453.5625
+            },
+            "to": 689,
+            "hidden": false,
+            "lineRect": {
+              "x": 26,
+              "width": 1228,
+              "left": 26,
+              "right": 1254,
+              "top": 1432.5625,
+              "height": 21,
+              "y": 1432.5625,
+              "bottom": 1453.5625
+            },
+            "display": "block",
+            "from": 689,
+            "text": "​",
+            "line": "49"
+          },
+          {
+            "rect": {
+              "x": 26,
+              "width": 1228,
+              "left": 26,
+              "right": 1254,
+              "top": 1453.5625,
+              "height": 21,
+              "y": 1453.5625,
+              "bottom": 1474.5625
+            },
+            "to": 719,
+            "hidden": false,
+            "lineRect": {
+              "x": 26,
+              "width": 1228,
+              "left": 26,
+              "right": 1254,
+              "top": 1453.5625,
+              "height": 21,
+              "y": 1453.5625,
+              "bottom": 1474.5625
+            },
+            "display": "block",
+            "from": 691,
+            "text": "retained 00009 中文 é 👩🏽‍💻",
+            "line": "50"
+          },
+          {
+            "rect": {
+              "x": 26,
+              "width": 1228,
+              "left": 26,
+              "right": 1254,
+              "top": 1474.5625,
+              "height": 21,
+              "y": 1474.5625,
+              "bottom": 1495.5625
+            },
+            "to": 721,
+            "hidden": false,
+            "lineRect": {
+              "x": 26,
+              "width": 1228,
+              "left": 26,
+              "right": 1254,
+              "top": 1474.5625,
+              "height": 21,
+              "y": 1474.5625,
+              "bottom": 1495.5625
+            },
+            "display": "block",
+            "from": 721,
+            "text": "​",
+            "line": "51"
+          },
+          {
+            "rect": {
+              "x": 26,
+              "width": 1228,
+              "left": 26,
+              "right": 1254,
+              "top": 1495.5625,
+              "height": 21,
+              "y": 1495.5625,
+              "bottom": 1516.5625
+            },
+            "to": 751,
+            "hidden": false,
+            "lineRect": {
+              "x": 26,
+              "width": 1228,
+              "left": 26,
+              "right": 1254,
+              "top": 1495.5625,
+              "height": 21,
+              "y": 1495.5625,
+              "bottom": 1516.5625
+            },
+            "display": "block",
+            "from": 723,
+            "text": "retained 00010 中文 é 👩🏽‍💻",
+            "line": "52"
+          },
+          {
+            "rect": {
+              "x": 26,
+              "width": 1228,
+              "left": 26,
+              "right": 1254,
+              "top": 1516.5625,
+              "height": 21,
+              "y": 1516.5625,
+              "bottom": 1537.5625
+            },
+            "to": 753,
+            "hidden": false,
+            "lineRect": {
+              "x": 26,
+              "width": 1228,
+              "left": 26,
+              "right": 1254,
+              "top": 1516.5625,
+              "height": 21,
+              "y": 1516.5625,
+              "bottom": 1537.5625
+            },
+            "display": "block",
+            "from": 753,
+            "text": "​",
+            "line": "53"
+          },
+          {
+            "rect": {
+              "x": 26,
+              "width": 1228,
+              "left": 26,
+              "right": 1254,
+              "top": 1537.5625,
+              "height": 21,
+              "y": 1537.5625,
+              "bottom": 1558.5625
+            },
+            "to": 783,
+            "hidden": false,
+            "lineRect": {
+              "x": 26,
+              "width": 1228,
+              "left": 26,
+              "right": 1254,
+              "top": 1537.5625,
+              "height": 21,
+              "y": 1537.5625,
+              "bottom": 1558.5625
+            },
+            "display": "block",
+            "from": 755,
+            "text": "retained 00011 中文 é 👩🏽‍💻",
+            "line": "54"
+          },
+          {
+            "rect": {
+              "x": 26,
+              "width": 1228,
+              "left": 26,
+              "right": 1254,
+              "top": 1558.5625,
+              "height": 21,
+              "y": 1558.5625,
+              "bottom": 1579.5625
+            },
+            "to": 785,
+            "hidden": false,
+            "lineRect": {
+              "x": 26,
+              "width": 1228,
+              "left": 26,
+              "right": 1254,
+              "top": 1558.5625,
+              "height": 21,
+              "y": 1558.5625,
+              "bottom": 1579.5625
+            },
+            "display": "block",
+            "from": 785,
+            "text": "​",
+            "line": "55"
+          },
+          {
+            "rect": {
+              "x": 26,
+              "width": 1228,
+              "left": 26,
+              "right": 1254,
+              "top": 1579.5625,
+              "height": 21,
+              "y": 1579.5625,
+              "bottom": 1600.5625
+            },
+            "to": 815,
+            "hidden": false,
+            "lineRect": {
+              "x": 26,
+              "width": 1228,
+              "left": 26,
+              "right": 1254,
+              "top": 1579.5625,
+              "height": 21,
+              "y": 1579.5625,
+              "bottom": 1600.5625
+            },
+            "display": "block",
+            "from": 787,
+            "text": "retained 00012 中文 é 👩🏽‍💻",
+            "line": "56"
+          },
+          {
+            "rect": {
+              "x": 26,
+              "width": 1228,
+              "left": 26,
+              "right": 1254,
+              "top": 1600.5625,
+              "height": 21,
+              "y": 1600.5625,
+              "bottom": 1621.5625
+            },
+            "to": 817,
+            "hidden": false,
+            "lineRect": {
+              "x": 26,
+              "width": 1228,
+              "left": 26,
+              "right": 1254,
+              "top": 1600.5625,
+              "height": 21,
+              "y": 1600.5625,
+              "bottom": 1621.5625
+            },
+            "display": "block",
+            "from": 817,
+            "text": "​",
+            "line": "57"
+          }
+        ],
+        "focus": {
+          "html": "<button type=\"button\" class=\"dialog-button secondary\" data-recovery-close=\"\">暂不恢复</button>",
+          "editor": false,
+          "class": "dialog-button secondary",
+          "tag": "BUTTON"
+        },
+        "cards": [
+          {
+            "rect": {
+              "x": 0,
+              "width": 0,
+              "left": 0,
+              "right": 0,
+              "top": 0,
+              "height": 0,
+              "y": 0,
+              "bottom": 0
+            },
+            "checked": "true",
+            "busy": null,
+            "id": "milkup.diagrams",
+            "focus": false,
+            "text": "流流程图与时序图（受限语法）Windows 静态图表：支持基础无环流程图和简单时序图；不支持完整 Mermaid，不支持的语法保留全部源码并说明原因。已启用详情更多重新加载导出插件移除插件"
+          },
+          {
+            "rect": {
+              "x": 0,
+              "width": 0,
+              "left": 0,
+              "right": 0,
+              "top": 0,
+              "height": 0,
+              "y": 0,
+              "bottom": 0
+            },
+            "checked": "false",
+            "busy": null,
+            "id": "milkup.footnotes",
+            "focus": false,
+            "text": "MMilkup Footnotes有界脚注索引、定义与引用导航；编辑时保留 Markdown 源文。未启用1.0.1 · 下次开启时应用详情更多导出插件移除插件"
+          },
+          {
+            "rect": {
+              "x": 0,
+              "width": 0,
+              "left": 0,
+              "right": 0,
+              "top": 0,
+              "height": 0,
+              "y": 0,
+              "bottom": 0
+            },
+            "checked": "true",
+            "busy": null,
+            "id": "milkup.formatting",
+            "focus": false,
+            "text": "MMilkup Formatting通过公开版本校验编辑接口应用 Markdown 格式与真实表格结构操作。已启用格式与表格详情更多重新加载导出插件应用链接粗体无序列表代码块编辑格式字段1级标题2级标题3级标题4级标题5级标题6级标题行内代码斜体编辑链接格式与表格有序列表引用重新读取格式选区删除线右侧加列下方加行列居中清除列对齐列左对齐列右对齐清空单元格删除列删除行退出表格插入表格选中表格选中单元格替换单元格内容任务列表取消链接移除插件"
+          },
+          {
+            "rect": {
+              "x": 0,
+              "width": 0,
+              "left": 0,
+              "right": 0,
+              "top": 0,
+              "height": 0,
+              "y": 0,
+              "bottom": 0
+            },
+            "checked": "false",
+            "busy": null,
+            "id": "milkup.images",
+            "focus": false,
+            "text": "图图片与资源选择或粘贴本地图片，先安全保存资源，再插入 Markdown 引用；支持资源目录策略与取消。未启用1.0.0 · 下次开启时应用详情更多导出插件移除插件"
+          },
+          {
+            "rect": {
+              "x": 0,
+              "width": 0,
+              "left": 0,
+              "right": 0,
+              "top": 0,
+              "height": 0,
+              "y": 0,
+              "bottom": 0
+            },
+            "checked": "false",
+            "busy": null,
+            "id": "milkup.management",
+            "focus": false,
+            "text": "MMilkup Plugin Management查看插件兼容要求、权限变化、设置说明与故障建议，并打开可信宿主详情。未启用1.0.0 · 下次开启时应用详情更多导出插件移除插件"
+          },
+          {
+            "rect": {
+              "x": 0,
+              "width": 0,
+              "left": 0,
+              "right": 0,
+              "top": 0,
+              "height": 0,
+              "y": 0,
+              "bottom": 0
+            },
+            "checked": "false",
+            "busy": null,
+            "id": "milkup.math",
+            "focus": false,
+            "text": "数数学公式离线呈现行内与独立数学公式；不支持或超限的表达式保留可编辑源码。未启用1.0.0 · 下次开启时应用详情更多导出插件移除插件"
+          },
+          {
+            "rect": {
+              "x": 0,
+              "width": 0,
+              "left": 0,
+              "right": 0,
+              "top": 0,
+              "height": 0,
+              "y": 0,
+              "bottom": 0
+            },
+            "checked": "false",
+            "busy": null,
+            "id": "milkup.outline",
+            "focus": false,
+            "text": "MMilkup OutlineShow a read-only document outline.未启用1.3.3 · 下次开启时应用详情更多导出插件移除插件"
+          },
+          {
+            "rect": {
+              "x": 0,
+              "width": 0,
+              "left": 0,
+              "right": 0,
+              "top": 0,
+              "height": 0,
+              "y": 0,
+              "bottom": 0
+            },
+            "checked": "true",
+            "busy": null,
+            "id": "milkup.preferences",
+            "focus": false,
+            "text": "编编辑偏好预览并保存字体、正文宽度、缩进与外观偏好；取消或关闭会撤销未保存的预览。已启用编辑偏好详情更多重新加载导出插件取消偏好更改预览偏好预览默认偏好重新加载偏好保存偏好移除插件"
+          },
+          {
+            "rect": {
+              "x": 0,
+              "width": 0,
+              "left": 0,
+              "right": 0,
+              "top": 0,
+              "height": 0,
+              "y": 0,
+              "bottom": 0
+            },
+            "checked": "false",
+            "busy": null,
+            "id": "milkup.shortcuts",
+            "focus": false,
+            "text": "MMilkup Shortcuts查看完整命令与快捷键帮助，检查冲突并保存或恢复自定义快捷键。未启用1.0.0 · 下次开启时应用详情更多导出插件移除插件"
+          },
+          {
+            "rect": {
+              "x": 0,
+              "width": 0,
+              "left": 0,
+              "right": 0,
+              "top": 0,
+              "height": 0,
+              "y": 0,
+              "bottom": 0
+            },
+            "checked": "false",
+            "busy": null,
+            "id": "milkup.workspace",
+            "focus": false,
+            "text": "MMilkup Workspace按需浏览所选文件夹，打开 Markdown 与最近文件；文件保存和恢复由宿主管理。未启用1.0.1 · 下次开启时应用详情更多导出插件移除插件"
+          }
+        ],
+        "code": [
+          {
+            "rect": {
+              "x": 0,
+              "width": 0,
+              "left": 0,
+              "right": 0,
+              "top": 0,
+              "height": 0,
+              "y": 0,
+              "bottom": 0
+            },
+            "to": 257,
+            "hidden": true,
+            "lineRect": {
+              "x": 26,
+              "width": 1228,
+              "left": 26,
+              "right": 1254,
+              "top": 811.5625,
+              "height": 26,
+              "y": 811.5625,
+              "bottom": 837.5625
+            },
+            "display": "none",
+            "from": 238,
+            "text": "```js title=\"beta5\"",
+            "line": "19"
+          },
+          {
+            "rect": {
+              "x": 34,
+              "width": 153.45474243164062,
+              "left": 34,
+              "right": 187.45474243164062,
+              "top": 839.5625,
+              "height": 16,
+              "y": 839.5625,
+              "bottom": 855.5625
+            },
+            "to": 282,
+            "hidden": false,
+            "lineRect": {
+              "x": 26,
+              "width": 1228,
+              "left": 26,
+              "right": 1254,
+              "top": 837.5625,
+              "height": 21,
+              "y": 837.5625,
+              "bottom": 858.5625
+            },
+            "display": "inline",
+            "from": 259,
+            "text": "const 名 = \"😀\"; // CRLF",
+            "line": "20"
+          },
+          {
+            "rect": {
+              "x": 34,
+              "width": 96,
+              "left": 34,
+              "right": 130,
+              "top": 860.5625,
+              "height": 16,
+              "y": 860.5625,
+              "bottom": 876.5625
+            },
+            "to": 298,
+            "hidden": false,
+            "lineRect": {
+              "x": 26,
+              "width": 1228,
+              "left": 26,
+              "right": 1254,
+              "top": 858.5625,
+              "height": 21,
+              "y": 858.5625,
+              "bottom": 879.5625
+            },
+            "display": "inline",
+            "from": 284,
+            "text": "console.log(名)",
+            "line": "21"
+          },
+          {
+            "rect": {
+              "x": 0,
+              "width": 0,
+              "left": 0,
+              "right": 0,
+              "top": 0,
+              "height": 0,
+              "y": 0,
+              "bottom": 0
+            },
+            "to": 303,
+            "hidden": true,
+            "lineRect": {
+              "x": 26,
+              "width": 1228,
+              "left": 26,
+              "right": 1254,
+              "top": 879.5625,
+              "height": 0,
+              "y": 879.5625,
+              "bottom": 879.5625
+            },
+            "display": "none",
+            "from": 300,
+            "text": "```",
+            "line": "22"
+          }
+        ],
+        "zoom": 1,
+        "mode": "live",
+        "toolbar": {
+          "rect": {
+            "x": 0,
+            "width": 0,
+            "left": 0,
+            "right": 0,
+            "top": 0,
+            "height": 0,
+            "y": 0,
+            "bottom": 0
+          },
+          "display": "none",
+          "formattingHidden": true,
+          "visible": false,
+          "formattingVisible": false,
+          "commands": []
+        },
+        "menuScroll": 0,
+        "windowed": true,
+        "height": 800,
+        "vector": [
+          "Start",
+          "End",
+          "Alice",
+          "Bob",
+          "Hello",
+          "Reply"
+        ],
+        "appVersion": "2.0.0-beta.5",
+        "pickers": [
+          {
+            "rect": {
+              "x": 1159,
+              "width": 87,
+              "left": 1159,
+              "right": 1246,
+              "top": 811.5625,
+              "height": 26,
+              "y": 811.5625,
+              "bottom": 837.5625
+            },
+            "value": "javascript",
+            "visible": true
+          }
+        ],
+        "header": {
+          "x": 0,
+          "width": 1280,
+          "left": 0,
+          "right": 1280,
+          "top": 0,
+          "height": 37,
+          "y": 0,
+          "bottom": 37
+        },
+        "vectorColors": [
+          {
+            "color": "rgb(228, 234, 243)",
+            "fill": "rgb(228, 234, 243)",
+            "text": "Start"
+          },
+          {
+            "color": "rgb(228, 234, 243)",
+            "fill": "rgb(228, 234, 243)",
+            "text": "End"
+          },
+          {
+            "color": "rgb(228, 234, 243)",
+            "fill": "rgb(228, 234, 243)",
+            "text": "Alice"
+          },
+          {
+            "color": "rgb(228, 234, 243)",
+            "fill": "rgb(228, 234, 243)",
+            "text": "Bob"
+          },
+          {
+            "color": "rgb(228, 234, 243)",
+            "fill": "rgb(228, 234, 243)",
+            "text": "Hello"
+          },
+          {
+            "color": "rgb(228, 234, 243)",
+            "fill": "rgb(228, 234, 243)",
+            "text": "Reply"
+          }
+        ],
+        "imagesInCode": 0,
+        "probe": {
+          "message": "字面匹配 · 忽略大小写 · 忽略查询首尾空白",
+          "query": "",
+          "mode": "live",
+          "count": "0/0",
+          "searching": false,
+          "selection": [],
+          "path": "/tmp/milkup-beta5-windowed-final/evidence/windowed-integrity.md",
+          "saving": false,
+          "notice": "已用原生大文件路径打开预览：1.3 MiB，60033 行。",
+          "dirty": false,
+          "cursor": null,
+          "url": "tauri://localhost",
+          "replaceDisabled": true,
+          "savedVersion": 0,
+          "replacing": false,
+          "loading": "ready",
+          "version": 0
+        }
+      },
+      "finishedAt": "2026-10-22T10:17:41.096Z"
+    }
+  ],
+  "boundaries": [
+    "One frozen Linux production session and an already-enabled synthetic test profile; no install/upgrade or Windows claim.",
+    "Native keys/pointer and raw GTK clipboard; DOM observations only; diagnostics:false.",
+    "Local selections fit the loaded source window. No unsupported full-document clipboard claim.",
+    "Formatting succeeds only with trusted front-of-document context; a distant-tail command must visibly reject without editing.",
+    "Wide/narrow native window sizes and 100/200% application zoom; no OS DPI or IME claim. Screenshots await visual review."
+  ]
+}

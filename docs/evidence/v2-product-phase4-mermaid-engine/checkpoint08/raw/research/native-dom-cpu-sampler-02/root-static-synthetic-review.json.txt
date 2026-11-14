@@ -1,0 +1,58 @@
+{
+  "atUtc": "2026-10-16T18:45:23.474654+00:00",
+  "status": "STATIC_AND_FINITE_SYNTHETIC_REVIEW_ACCEPTED_FOR_SINGLE_RUN_PREPARATION",
+  "samplerSha256": "aee036fb54b038aff82c160618618baf933d86530ac408e06269b385c4e9779b",
+  "checked": [
+    {
+      "path": "base-v03.py",
+      "sha256": "30110c5ae58816d8ae5fb318d3b46094fd19dc77f22f527cde2b222f798424f9",
+      "bytes": 23595
+    },
+    {
+      "path": "cpu_sampler.py",
+      "sha256": "aee036fb54b038aff82c160618618baf933d86530ac408e06269b385c4e9779b",
+      "bytes": 30247
+    },
+    {
+      "path": "sampler02.patch",
+      "sha256": "a738849e0a3023d39d7b55e3ac80c3f63a82737f1e738646a40d2e08d9d5ad51",
+      "bytes": 12703
+    },
+    {
+      "path": "static-checks.json",
+      "sha256": "507ceac77698e66079541390399398c521beb9b51321da91c34112858e0669df",
+      "bytes": 1038
+    },
+    {
+      "path": "PLAN.md",
+      "sha256": "67f39edc6407c578e18b513c3005b93019cdadf0510ab66366f2ee18e223fd0d",
+      "bytes": 6232
+    },
+    {
+      "path": "preparation.json",
+      "sha256": "6c6b8fec62b9e86effd68dfdaf8f0bd8c57c2ef7e1cadbf3a0c09079c6589257",
+      "bytes": 1227
+    },
+    {
+      "path": "synthetic-tests.py",
+      "sha256": "13e5ba94ff19bd17bd7d13018fb2a2999b910a1a1c27e6447c7d8ef396c19c9f",
+      "bytes": 9511
+    },
+    {
+      "path": "synthetic-first-result.json",
+      "sha256": "001fc133c429472527b78172271b484cc5c7c2e45bb996c510da9dbf611a86c9",
+      "bytes": 5355
+    },
+    {
+      "path": "SYNTHETIC-RESULTS.md",
+      "sha256": "ac2dad7909283e15b661486919d413b27f69735ec7db6537b51981ad0a763b66",
+      "bytes": 1820
+    }
+  ],
+  "notes": [
+    "Root read full exact patch, plan, synthetic harness and independent review; diagnostics reuse existing reads and preserve accept/reject short circuits.",
+    "24 finite mocked binding cases passed with matching read sequence. This does not execute all planned malformed/window/terminal cases and does not establish a universal summary-size maximum.",
+    "Three tested summary shapes remain within original128KiB reserve; no live observation yet.",
+    "No historical binding cause inferred. Actual single-run inputs still require review."
+  ]
+}

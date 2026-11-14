@@ -1,0 +1,35 @@
+{
+  "author": "release_sdk",
+  "status": "Static review only; no UI/test/build execution",
+  "decision": "No substantive safety or assertion-weakening blocker found; two narrow precision improvements recommended before final freeze",
+  "harnessSha256": "8d34bc24e0fc60b4588c008a1402abe3384bf1e3dde6c17045845df8e75bebc0",
+  "patchSha256": "082f200e77a8935509caf255bf07fcb7a3014f392d3208ad87aa42109725c0d3",
+  "manifestInputsVerified": 6,
+  "scopeProof": "Removing appendFile import, single positionSample call and complete new helper restores prior frozen UI05 harness exactly. All original cold/fallback/ready/decode/history/save and64matrix assertions remain unchanged.",
+  "review": [
+    "Ranges come from frozen complete fixture source, with isolated fallback using its own single range. Overlap matching includes opening/closing lines and mapped presentationOwner geometry rather than zero-height collapsed children. No diagram-ID-specific decision.",
+    "Preceding fences are checked in source order against current mounted effective geometry; offscreen/unmounted prior fences do not block. Target must have positive visible geometry; no DOM scroll writes, synthetic events, source or selection changes.",
+    "Gutter uses fresh elementFromPoint/editor containment and excludes preview/input/controls. Native coordinate conversion follows existing physical-window WIDTH/innerWidth scale and window-relative origin. Zoom arithmetic itself introduces no new guessed fixed scale.",
+    "At most20 actualwheel events and2direction reversals; hard failures persist observations and do not silently retry/re-enable. File/version/selection/dirty preservation checked after positioning.",
+    "100ms observation delay is not proof that all provider/decode/layout work settled. Original subsequent decode and pre/post-screenshot stability checks remain authoritative.",
+    "If target remains physically clipped/overshot after bounded real input, the run correctly stops instead of weakening viewport or image assertions."
+  ],
+  "recommendations": [
+    {
+      "location": "positionSample readPosition viewport construction",
+      "issue": "Visibility uses root border-box while gutter uses clientWidth. Borders and native horizontal scrollbar area can be counted as visible even though they are not editor client content.",
+      "minimalChange": "Compute client left/top using root+clientLeft/clientTop and right/bottom using clientWidth/clientHeight, then intersect with innerWidth/innerHeight; use this same effective viewport for intersection and gutter."
+    },
+    {
+      "location": "positionSample success branch immediately after await readPosition",
+      "issue": "The pre-loop deadline and pre-wheel assertion prevent late new wheel input, but an observation returning after10s can still set completed=true. Current summary correctly qualifies command budget rather than hard walltime.",
+      "minimalChange": "If preserving the assertion wording within ten seconds, recheck elapsed before accepting completion; external blocking call itself cannot be preempted, so report overshoot rather than claim hard syscall deadline."
+    }
+  ],
+  "nonClaims": [
+    "No native narrow/zoom/gutter success has been exercised by this review.",
+    "First visible eligible target positioning is a setup precondition, not proof that renderer deadline failures are fixed.",
+    "One geometry sample is not a universal quiescence guarantee; future render changes remain detectable through original assertions."
+  ],
+  "blockers": []
+}

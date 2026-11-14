@@ -1,0 +1,34 @@
+{
+  "priorAfterEnvSh": {
+    "bundle": {
+      "icon": [
+        "/workspace/.cloud/milkup-v2/icon.png"
+      ]
+    }
+  },
+  "effective": {
+    "bundle": {
+      "icon": [
+        "/workspace/.cloud/milkup-v2/icon.png"
+      ]
+    },
+    "build": {
+      "frontendDist": "/workspace/milkup-mermaid-engine-evidence/research/native-sankey-short-sequence-build-01/build-attempt-01/research-dist"
+    }
+  },
+  "command": [
+    "cargo",
+    "build",
+    "--manifest-path",
+    "apps/desktop/src-tauri/Cargo.toml",
+    "--release",
+    "--locked",
+    "--offline",
+    "--features",
+    "tauri/custom-protocol",
+    "--bin",
+    "milkup-desktop",
+    "--message-format=json-render-diagnostics"
+  ],
+  "frontendDist": "/workspace/milkup-mermaid-engine-evidence/research/native-sankey-short-sequence-build-01/build-attempt-01/research-dist"
+}

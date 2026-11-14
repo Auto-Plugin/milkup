@@ -1,0 +1,14 @@
+2026-10-13T19:03:56.888Z NATIVE_STARTUP_WINDOW 1307ms
+PASS production full table context and native cell navigation beyond header viewport
+file:///workspace/milkup/tests/helpers/native-production.mjs:14
+ const until=async(fn,label,limit=15000)=>{const at=Date.now();while(Date.now()-at<limit){const result=await fn();if(result)return result;await delay(80)}throw Error('Timeout: '+label)}
+                                                                                                                                                                ^
+
+Error: Timeout: saved complete bytes
+    at Object.until (file:///workspace/milkup/tests/helpers/native-production.mjs:14:161)
+    at async save (file:///workspace/milkup/tests/native/tauri-production-tables.mjs:12:53)
+    at async file:///workspace/milkup/tests/native/tauri-production-tables.mjs:24:456
+    at async check (file:///workspace/milkup/tests/native/tauri-production-tables.mjs:10:57)
+    at async file:///workspace/milkup/tests/native/tauri-production-tables.mjs:22:2
+
+Node.js v24.19.0

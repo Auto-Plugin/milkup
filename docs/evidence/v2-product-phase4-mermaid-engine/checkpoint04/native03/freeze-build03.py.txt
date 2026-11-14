@@ -1,0 +1,16 @@
+import datetime,hashlib,json,pathlib,subprocess
+root=pathlib.Path('/workspace/milkup-mermaid-engine-evidence/product-native-03')
+previous=root.parent/'product-native-02'
+repo=pathlib.Path('/workspace/milkup')
+old=json.loads((previous/'provenance.json').read_text());files=[]
+for item in old['files']:
+ if not item['frozen'].startswith(('source/','bin/')):continue
+ src=pathlib.Path(item['origin']);dest=root/item['frozen'];dest.parent.mkdir(parents=True,exist_ok=True)
+ subprocess.run(['cp','--reflink=auto','--',str(src),str(dest)],check=True)
+ h=hashlib.sha256()
+ with dest.open('rb') as stream:
+  for b in iter(lambda:stream.read(1024*1024),b''):h.update(b)
+ files.append({'origin':str(src),'frozen':item['frozen'],'bytes':dest.stat().st_size,'sha256':h.hexdigest(),'differsFromBuild02':h.hexdigest()!=item['sha256']})
+(root/'tracked-native.patch').write_bytes(subprocess.check_output(['git','diff','--binary','--','apps/desktop/src-tauri'],cwd=repo))
+(root/'provenance.json').write_text(json.dumps({'frozenAt':datetime.datetime.now(datetime.timezone.utc).isoformat(),'gitHead':subprocess.check_output(['git','rev-parse','HEAD'],cwd=repo,text=True).strip(),'buildProfile':'debug','buildCommandRecord':'build.command.json','testBuildCommandRecord':'test-build.command.json','changesFromBuild02':'Prettier formatting only in plugin_dom_bootstrap.js and plugin_dom_bootstrap.test.mjs; Rust files unchanged.','files':files},indent=2)+'\n')
+print(json.dumps({'changed':[f for f in files if f['differsFromBuild02']]},indent=2))

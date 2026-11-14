@@ -1,0 +1,77 @@
+{
+  "schema": "milkup.owned-x11-observation.v1",
+  "ok": true,
+  "display": ":126",
+  "rootId": "0x21f",
+  "bootId": "dbd08833-6204-4080-9084-7b5e12bb7f3d",
+  "pidNamespace": "pid:[4026532200]",
+  "monotonic": 62116.23311924,
+  "wall": 1792174503.7984014,
+  "durationMs": 4.324477995396592,
+  "errors": [],
+  "identity": {
+    "allMatched": true,
+    "owners": [
+      {
+        "pid": 364061,
+        "birth": 6211505,
+        "observedBirth": 6211505,
+        "matched": true
+      },
+      {
+        "pid": 364070,
+        "birth": 6211514,
+        "observedBirth": 6211514,
+        "matched": true
+      }
+    ],
+    "after": [
+      {
+        "pid": 364061,
+        "birth": 6211505,
+        "observedBirth": 6211505,
+        "matched": true
+      },
+      {
+        "pid": 364070,
+        "birth": 6211514,
+        "observedBirth": 6211514,
+        "matched": true
+      }
+    ]
+  },
+  "focus": {
+    "windowId": "0x1",
+    "activeWindowId": null
+  },
+  "windows": [
+    {
+      "id": "0x200001",
+      "parentId": "0x21f",
+      "pid": 364070,
+      "mapState": "unmapped",
+      "inputOutput": false,
+      "overrideRedirect": false,
+      "toplevelKind": "root-child",
+      "owned": true
+    }
+  ],
+  "assessment": {
+    "ownedVisibleToplevelsAbsent": true,
+    "ownedVisibleToplevelIds": [],
+    "unknownVisibleToplevelIds": []
+  },
+  "comparison": {
+    "sameDisplay": true,
+    "focusUnchanged": true,
+    "activeWindowUnchanged": true,
+    "newVisibleToplevelIds": [],
+    "newUnknownVisibleToplevelIds": [],
+    "noNewVisibleToplevels": true
+  },
+  "limitations": [
+    "Discrete snapshot cannot exclude transient windows between observations.",
+    "X11 PID properties are attribution hints, verified against supplied process births; not a security boundary.",
+    "Non-toplevel internal children are recorded but not treated as visible OS toplevels."
+  ]
+}

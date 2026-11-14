@@ -1,0 +1,25 @@
+2026-10-15T06:30:56.218Z NATIVE_STARTUP_WINDOW 4233ms
+00-bundled-preferences-inactive
+01-independent-installed
+02-preview-without-document-edit
+03-invalid-value-preserves-preview
+04-saved-reset-cancel
+2026-10-15T06:32:00.738Z NATIVE_APPLICATION_CLEANUP 174708
+2026-10-15T06:32:05.069Z NATIVE_STARTUP_WINDOW 4331ms
+05-restart-persisted
+edit-ordinary-source
+indent-ordinary-source-four-spaces
+preview-ordinary-source
+FAIL
+node:internal/modules/run_main:107
+    triggerUncaughtException(
+    ^
+
+Error: Timeout: document edited
+    at Object.until (file:///workspace/milkup/tests/helpers/native-production.mjs:46:11)
+    at runNextTicks (node:internal/process/task_queues:65:5)
+    at process.processTimers (node:internal/timers:568:9)
+    at async byteEdit (file:///workspace/milkup/tests/native/tauri-preferences.mjs:258:3)
+    at async file:///workspace/milkup/tests/native/tauri-preferences.mjs:520:7
+
+Node.js v24.19.0

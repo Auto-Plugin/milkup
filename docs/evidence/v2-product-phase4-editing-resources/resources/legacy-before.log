@@ -1,0 +1,50 @@
+   Compiling simd-adler32 v0.3.9
+   Compiling num-traits v0.2.19
+   Compiling quick-error v2.0.1
+   Compiling pxfm v0.1.30
+   Compiling miniz_oxide v0.8.9
+   Compiling fdeflate v0.3.7
+   Compiling flate2 v1.1.9
+   Compiling byteorder-lite v0.1.0
+   Compiling png v0.17.16
+   Compiling zune-core v0.5.3
+   Compiling zune-jpeg v0.5.15
+   Compiling ico v0.5.0
+   Compiling tauri-codegen v2.6.3
+   Compiling moxcms v0.8.1
+   Compiling image-webp v0.2.4
+   Compiling tauri-macros v2.6.3
+   Compiling png v0.18.1
+   Compiling tauri v2.11.5
+   Compiling bytemuck v1.25.0
+   Compiling image v0.25.10
+   Compiling tauri-plugin-fs v2.5.1
+   Compiling tauri-plugin-updater v2.10.1
+   Compiling tauri-plugin-dialog v2.7.1
+   Compiling milkup-desktop v2.0.0-beta.1 (/workspace/milkup/apps/desktop/src-tauri)
+warning: unused import: `std::sync::Arc`
+    --> src/piece_tree.rs:1029:9
+     |
+1029 |     use std::sync::Arc;
+     |         ^^^^^^^^^^^^^^
+     |
+     = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: `milkup-desktop` (lib test) generated 1 warning (run `cargo fix --lib -p milkup-desktop --tests` to apply 1 suggestion)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 43.12s
+     Running unittests src/lib.rs (apps/desktop/src-tauri/target/debug/deps/milkup_desktop_lib-af882897d4fd716d)
+
+running 1 test
+
+thread 'tests::legacy_asset_commands_cannot_overwrite_arbitrary_existing_files' (229426) panicked at src/lib.rs:2085:9:
+assertion failed: write_asset_file(path_to_string(asset_path.clone()), vec![1, 2, 3]).is_err()
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+test tests::legacy_asset_commands_cannot_overwrite_arbitrary_existing_files ... FAILED
+
+failures:
+
+failures:
+    tests::legacy_asset_commands_cannot_overwrite_arbitrary_existing_files
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 101 filtered out; finished in 0.00s
+

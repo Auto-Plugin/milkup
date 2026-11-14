@@ -1,0 +1,946 @@
+// src/svg-primitives.ts
+var ConversionError = class extends Error {
+  constructor(code, reason, path = "") {
+    super(reason);
+    this.code = code;
+    this.path = path;
+    this.name = "ConversionError";
+  }
+};
+function fail(code, reason, path = "") {
+  throw new ConversionError(code, reason, path);
+}
+function finite(value, label = "number", limit = 8192) {
+  if (typeof value !== "number" && typeof value !== "string") fail("invalid-output", label);
+  const n = Number(value);
+  if (!Number.isFinite(n) || Math.abs(n) > limit) fail("limit-exceeded", label);
+  return n;
+}
+var NUMBER = /^[+-]?(?:\d+\.?\d*|\.\d+)(?:e[+-]?\d+)?/i;
+function length(value, fallback = "0") {
+  const text = (value ?? fallback).trim();
+  const match = /^([+-]?(?:\d+\.?\d*|\.\d+)(?:e[+-]?\d+)?)(px|em|%)?$/i.exec(text);
+  if (!match) fail("unsupported-feature", "unsupported length: " + text);
+  const unit = match[2]?.toLowerCase();
+  return { value: finite(match[1], "length"), unit: unit === "%" ? "percent" : unit === "px" ? "px" : unit === "em" ? "em" : "user" };
+}
+function numberList(value) {
+  let text = (value ?? "").trim();
+  const out = [];
+  while (text) {
+    const match = NUMBER.exec(text);
+    if (!match) fail("invalid-output", "invalid numeric list");
+    out.push(finite(match[0]));
+    text = text.slice(match[0].length);
+    const separator = /^[\s,]*/.exec(text)[0];
+    if ((separator.match(/,/g) ?? []).length > 1) fail("invalid-output", "repeated comma");
+    text = text.slice(separator.length);
+    if (separator.includes(",") && !text) fail("invalid-output", "trailing comma");
+    if (out.length > 8192) fail("limit-exceeded", "numeric list");
+  }
+  return out;
+}
+function lengthList(value) {
+  return value?.trim() ? value.trim().split(/[\s,]+/).map((x) => length(x)) : void 0;
+}
+function color(value) {
+  const text = value.trim();
+  if (text === "transparent") return [0, 0, 0, 0];
+  let match = /^rgba?\((.*)\)$/i.exec(text);
+  if (match) {
+    const parts = match[1].trim().split(/[\s,/]+/).filter(Boolean);
+    if (parts.length !== 3 && parts.length !== 4) fail("unsupported-feature", "color arity");
+    const channels = parts.slice(0, 3).map((x) => x.endsWith("%") ? finite(x.slice(0, -1)) * 2.55 : finite(x));
+    const a = parts[3];
+    const alpha = a === void 0 ? 1 : a.endsWith("%") ? finite(a.slice(0, -1)) / 100 : finite(a);
+    if (channels.some((x) => x < 0 || x > 255) || alpha < 0 || alpha > 1) fail("invalid-output", "color range");
+    return [channels[0], channels[1], channels[2], alpha];
+  }
+  match = /^color\(srgb\s+(.+)\)$/i.exec(text);
+  if (match) {
+    const parts = match[1].split(/[\s/]+/).map(Number);
+    if (parts.length < 3 || parts.length > 4 || parts.some((x) => !Number.isFinite(x) || x < 0 || x > 1)) fail("unsupported-feature", "color srgb");
+    return [parts[0] * 255, parts[1] * 255, parts[2] * 255, parts[3] ?? 1];
+  }
+  match = /^#([a-f\d]{3}|[a-f\d]{6}|[a-f\d]{8})$/i.exec(text);
+  if (match) {
+    let hex = match[1];
+    if (hex.length === 3) hex = [...hex].map((x) => x + x).join("");
+    return [parseInt(hex.slice(0, 2), 16), parseInt(hex.slice(2, 4), 16), parseInt(hex.slice(4, 6), 16), hex.length === 8 ? parseInt(hex.slice(6), 16) / 255 : 1];
+  }
+  fail("unsupported-feature", "unsupported computed color: " + text);
+}
+var ARITIES = { M: 2, L: 2, H: 1, V: 1, C: 6, S: 4, Q: 4, T: 2, A: 7, Z: 0 };
+function arcFlag(value) {
+  if (value === 0 || value === 1) return value;
+  fail("invalid-output", "arc flag");
+}
+function pathCommand(command, values) {
+  switch (command) {
+    case "M":
+    case "m":
+    case "L":
+    case "l":
+    case "T":
+    case "t":
+      return [command, values[0], values[1]];
+    case "H":
+    case "h":
+    case "V":
+    case "v":
+      return [command, values[0]];
+    case "C":
+    case "c":
+      return [command, values[0], values[1], values[2], values[3], values[4], values[5]];
+    case "S":
+    case "s":
+    case "Q":
+    case "q":
+      return [command, values[0], values[1], values[2], values[3]];
+    case "A":
+    case "a":
+      return [command, values[0], values[1], values[2], arcFlag(values[3]), arcFlag(values[4]), values[5], values[6]];
+    case "Z":
+    case "z":
+      return [command];
+    default:
+      fail("invalid-output", "path command");
+  }
+}
+function parsePath(value) {
+  if (value.length > 262144) fail("limit-exceeded", "path bytes");
+  let position = 0, command, first = true;
+  const out = [];
+  const whitespace = () => {
+    while (position < value.length && /\s/.test(value[position])) position++;
+  };
+  while (true) {
+    whitespace();
+    if (position >= value.length) break;
+    let explicit = false;
+    if (/[a-z]/i.test(value[position])) {
+      command = value[position++];
+      explicit = true;
+      if (!Object.hasOwn(ARITIES, command.toUpperCase())) fail("invalid-output", "path command");
+    }
+    if (!command) fail("invalid-output", "path must start with command");
+    const upper = command.toUpperCase();
+    if (first && upper !== "M") fail("invalid-output", "path starts without moveto");
+    first = false;
+    if (upper === "Z") {
+      out.push(pathCommand(command, []));
+      command = void 0;
+    } else {
+      const values = [];
+      for (let j = 0; j < ARITIES[upper]; j++) {
+        whitespace();
+        if (value[position] === ",") {
+          if (j === 0 && explicit) fail("invalid-output", "comma after command");
+          position++;
+          whitespace();
+          if (value[position] === ",") fail("invalid-output", "repeated comma");
+        }
+        if (upper === "A" && (j === 3 || j === 4)) {
+          if (value[position] !== "0" && value[position] !== "1") fail("invalid-output", "arc flag");
+          values.push(Number(value[position++]));
+        } else {
+          const match = NUMBER.exec(value.slice(position));
+          if (!match) fail("invalid-output", "path parameter");
+          values.push(finite(match[0], "path coordinate"));
+          position += match[0].length;
+        }
+      }
+      if (upper === "A" && (values[0] < 0 || values[1] < 0)) fail("invalid-output", "negative arc radius");
+      out.push(pathCommand(command, values));
+      if (upper === "M") command = command === "M" ? "L" : "l";
+    }
+    if (out.length > 4096) fail("limit-exceeded", "path command count");
+  }
+  return out;
+}
+function localMatrix(value) {
+  if (!value || value === "none") return void 0;
+  const match = /^matrix\(([^)]+)\)$/.exec(value);
+  if (!match) fail("unsupported-feature", "3D or unknown transform");
+  const values = numberList(match[1]);
+  if (values.length !== 6) fail("invalid-output", "matrix arity");
+  return [{ kind: "matrix", values: [values[0], values[1], values[2], values[3], values[4], values[5]] }];
+}
+var FONTS = /* @__PURE__ */ new Map([
+  ["arial, sans-serif", "arial-sans"],
+  ["arial,sans-serif", "arial-sans"],
+  ["open sans, sans-serif", "open-sans-sans"],
+  ["open sans,sans-serif", "open-sans-sans"],
+  ["trebuchet ms, verdana, arial, sans-serif", "trebuchet-verdana-arial-sans"],
+  ["sans-serif", "sans"],
+  ["serif", "serif"],
+  ["monospace", "monospace"]
+]);
+function fontId(value) {
+  const key = value.toLowerCase().replace(/["']/g, "").replace(/\s+/g, " ").trim();
+  const id = FONTS.get(key);
+  if (id) return id;
+  fail("font-unavailable", "unmapped offline font sequence: " + value);
+}
+
+// src/svg-converter.ts
+function pick(value, values, label) {
+  const result = values.find((item) => item === value);
+  if (result === void 0) fail("unsupported-feature", label + ": " + String(value));
+  return result;
+}
+function graphics(n) {
+  if (!(n instanceof SVGGraphicsElement)) fail("unsupported-feature", "requires graphics element");
+  return n;
+}
+function boxTuple(value) {
+  const [x, y, w, h] = value;
+  if (value.length !== 4 || x === void 0 || y === void 0 || w === void 0 || h === void 0) fail("invalid-output", "box arity");
+  return [x, y, w, h];
+}
+function matrixTuple(m) {
+  return [finite(m.a), finite(m.b), finite(m.c), finite(m.d), finite(m.e), finite(m.f)];
+}
+function record(value) {
+  return value !== null && typeof value === "object" && !Array.isArray(value);
+}
+var SVG = "http://www.w3.org/2000/svg";
+var XHTML = "http://www.w3.org/1999/xhtml";
+var MAX_NODES = 4096;
+var MAX_BYTES = 262144;
+var ENUM = pick;
+var interpolation = (value) => {
+  const v = value.toLowerCase();
+  if (v === "srgb") return "sRGB";
+  if (v === "linearrgb") return "linearRGB";
+  fail("unsupported-feature", "color interpolation: " + value);
+};
+var styleProperties = new Set("fill stroke fill-opacity stroke-opacity opacity fill-rule clip-rule stroke-width stroke-dasharray stroke-dashoffset stroke-linecap stroke-linejoin stroke-miterlimit display visibility overflow overflow-x overflow-y mix-blend-mode isolation filter clip-path color-interpolation color-interpolation-filters font-family font-size font-weight font-style letter-spacing word-spacing text-anchor dominant-baseline alignment-baseline text-decoration-line text-transform shape-rendering white-space transform transform-origin transform-box marker-start marker-mid marker-end color".split(" "));
+var geometryProperties = new Set("x y width height rx ry cx cy r d".split(" "));
+var nonPaintingProperties = new Set("cursor pointer-events user-select -webkit-user-select -webkit-tap-highlight-color".split(" "));
+var neutralProperties = new Map(Object.entries({
+  "paint-order": "normal",
+  "vector-effect": "none",
+  "writing-mode": "horizontal-tb",
+  "direction": "ltr",
+  "unicode-bidi": "normal",
+  "font-variant": "normal",
+  "font-variant-caps": "normal",
+  "font-variant-ligatures": "normal",
+  "font-feature-settings": "normal",
+  "font-stretch": "100%",
+  "font-kerning": "auto",
+  "text-shadow": "none",
+  "text-indent": "0px",
+  "text-overflow": "clip",
+  "mask-image": "none",
+  "mask": "none",
+  "perspective": "none",
+  "translate": "none",
+  "rotate": "none",
+  "scale": "none",
+  "text-rendering": "auto",
+  "image-rendering": "auto",
+  "letter-spacing": "normal",
+  "outline-style": "none",
+  "outline-width": "0px",
+  "box-shadow": "none",
+  "position": "static",
+  "float": "none",
+  "filter-rendering": "auto",
+  "will-change": "auto",
+  "contain": "none",
+  "content": "normal"
+}));
+var textBoxProperties = new Set("line-height text-align vertical-align box-sizing word-break overflow-wrap padding padding-top padding-right padding-bottom padding-left margin margin-top margin-right margin-bottom margin-left border border-top border-right border-bottom border-left border-width border-style border-color border-top-width border-right-width border-bottom-width border-left-width border-top-style border-right-style border-bottom-style border-left-style border-top-color border-right-color border-bottom-color border-left-color background background-color background-image".split(" "));
+var globalAttrs = new Set("id class style xmlns xmlns:xlink role aria-roledescription aria-labelledby aria-describedby aria-label title name".split(" "));
+var presentationAttrs = new Set("fill stroke fill-opacity stroke-opacity opacity fill-rule clip-rule stroke-width stroke-dasharray stroke-dashoffset stroke-linecap stroke-linejoin stroke-miterlimit display visibility overflow mix-blend-mode isolation filter clip-path color-interpolation color-interpolation-filters font-family font-size font-weight font-style letter-spacing word-spacing text-anchor dominant-baseline alignment-baseline text-decoration text-transform white-space transform transform-origin transform-box marker-start marker-mid marker-end color".split(" "));
+var attrsByTag = { svg: "width height viewBox preserveAspectRatio version", g: "", defs: "", style: "type media", title: "", desc: "", rect: "x y width height rx ry", circle: "cx cy r", ellipse: "cx cy rx ry", line: "x1 y1 x2 y2", path: "d", polygon: "points", polyline: "points", text: "x y dx dy xml:space", tspan: "x y dx dy xml:space", use: "href xlink:href x y width height", clipPath: "clipPathUnits", marker: "viewBox markerWidth markerHeight refX refY markerUnits orient preserveAspectRatio", linearGradient: "gradientUnits x1 y1 x2 y2 spreadMethod gradientTransform", stop: "offset stop-color stop-opacity", filter: "filterUnits primitiveUnits x y width height", feDropShadow: "dx dy stdDeviation flood-color flood-opacity in result", symbol: "viewBox width height preserveAspectRatio", switch: "", foreignObject: "x y width height" };
+function convertSvgElement(root) {
+  const coverage = { declarations: [], attributes: [], rules: [], normalizations: [] };
+  if (!root || root.namespaceURI !== SVG || root.localName !== "svg" || !root.isConnected) fail("invalid-output", "requires attached root SVG");
+  const all = [root, ...root.querySelectorAll("*")];
+  if (all.length > MAX_NODES) fail("limit-exceeded", "input element count");
+  const paths = /* @__PURE__ */ new WeakMap(), computed = /* @__PURE__ */ new WeakMap(), idNodes = /* @__PURE__ */ new Map(), duplicateIds = /* @__PURE__ */ new Map(), localIds = /* @__PURE__ */ new Map(), styles = [], styleMap = /* @__PURE__ */ new Map(), definitions = [];
+  let charged = 1;
+  const charge = (n = 1) => {
+    charged += n;
+    if (charged > MAX_NODES) fail("limit-exceeded", "charged nodes");
+  };
+  const pathOf = (n) => paths.get(n) ?? "?";
+  const recurse = (n, p, d) => {
+    if (d > 64) fail("limit-exceeded", "input depth", p);
+    paths.set(n, p);
+    computed.set(n, getComputedStyle(n));
+    Array.from(n.children).forEach((c, i) => recurse(c, p + "/" + i, d + 1));
+  };
+  recurse(root, "0", 0);
+  const css = (n, p) => {
+    const style2 = computed.get(n);
+    if (!style2) fail("invalid-output", "missing measured style");
+    return style2.getPropertyValue(p).trim();
+  };
+  const attr = (n, k, def = "") => n.getAttribute(k) ?? def;
+  for (const n of all) {
+    const id = n.getAttribute("id");
+    if (id) {
+      if (idNodes.has(id)) {
+        const first = idNodes.get(id);
+        if (!first) fail("invalid-output", "missing prior ID");
+        const prior = duplicateIds.get(id) ?? [first];
+        prior.push(n);
+        duplicateIds.set(id, prior);
+      } else idNodes.set(id, n);
+    }
+  }
+  for (const [id, nodes] of duplicateIds) {
+    if (nodes.length !== 2 || nodes[0]?.localName !== "g" || nodes[1]?.localName !== "path" || !nodes[0]?.contains(nodes[1] ?? null) || nodes.some((n) => n.closest("defs,marker,symbol,clipPath,filter,linearGradient"))) fail("invalid-output", "ambiguous duplicate id", pathOf(nodes[0] ?? root));
+  }
+  const definitionKinds = { clipPath: "clipPath", marker: "marker", linearGradient: "linearGradient", filter: "dropShadowFilter", symbol: "symbol" };
+  for (const n of all) if (definitionKinds[n.localName]) {
+    const id = n.getAttribute("id");
+    if (!id) fail("invalid-output", "definition without id", pathOf(n));
+    localIds.set(id, "d" + localIds.size);
+  }
+  function referenceKey(value, n, computedValue = false) {
+    let raw = value.trim();
+    const m = /^url\(\s*["']?([^"')]+)["']?\s*\)$/.exec(raw);
+    if (m?.[1]) raw = m[1];
+    if (!raw.startsWith("#")) {
+      if (computedValue) {
+        let u;
+        try {
+          u = new URL(raw, document.URL);
+        } catch {
+        }
+        const here = new URL(document.URL);
+        if (u && u.origin === here.origin && u.pathname === here.pathname && u.search === here.search && u.hash) {
+          const candidate = u.hash;
+          const authorized = coverage.declarations.some((x) => x.path === pathOf(n) && x.localReferences?.includes(candidate));
+          if (authorized) raw = candidate;
+        }
+      }
+      if (!raw.startsWith("#")) fail("unsafe-output", "external or unproven reference", pathOf(n));
+    }
+    return raw.slice(1);
+  }
+  function ref(value, kind, n, computedValue = false) {
+    const key = referenceKey(value, n, computedValue);
+    if (duplicateIds.has(key)) fail("invalid-output", "reference to duplicate id", pathOf(n));
+    const target = idNodes.get(key);
+    if (!target || !localIds.has(key)) fail("invalid-output", "missing local definition", pathOf(n));
+    if (kind && definitionKinds[target.localName] !== kind) fail("invalid-output", "reference type mismatch", pathOf(n));
+    const id = localIds.get(key);
+    if (!id) fail("invalid-output", "unresolved local ID");
+    return id;
+  }
+  function rawLocalReferences(value, n) {
+    const found = [];
+    for (const match of value.matchAll(/url\(\s*(["']?)(.*?)\1\s*\)/gi)) {
+      const v = (match[2] ?? "").trim();
+      if (!/^#[A-Za-z0-9_.:-]+$/.test(v)) fail("unsafe-output", "nonlocal CSS URL", pathOf(n));
+      found.push(v);
+    }
+    if (/(?:url|image-set)\s*\(/i.test(value) && !found.length) fail("unsafe-output", "unrecognized resource function", pathOf(n));
+    return found;
+  }
+  function declaration(n, property, value, source) {
+    const p = property.toLowerCase(), final = css(n, p), record2 = { path: pathOf(n), property: p, declared: value, computed: final, source };
+    if (coverage.declarations.length >= 2e4) fail("limit-exceeded", "CSS coverage rows");
+    record2.localReferences = rawLocalReferences(value, n);
+    if (n.namespaceURI === SVG && ["text", "tspan"].includes(n.localName) && geometryProperties.has(p) && source !== "presentation-attribute") fail("unsupported-feature", "CSS text geometry requires explicit support: " + p, pathOf(n));
+    if (p.startsWith("--")) record2.disposition = "custom-property-resolved-at-consumers";
+    else if (["white-space-collapse", "text-wrap-mode"].includes(p) && ["normal", "pre", "pre-wrap", "nowrap"].includes(css(n, "white-space"))) record2.disposition = "represented-by-effective-white-space";
+    else if (styleProperties.has(p) || geometryProperties.has(p) || p === "stop-color" || p === "stop-opacity" || p === "flood-color" || p === "flood-opacity") record2.disposition = "typed-effective-value";
+    else if (p.startsWith("animation") || p.startsWith("transition")) record2.disposition = "checked-no-effective-motion";
+    else if (nonPaintingProperties.has(p)) record2.disposition = "inert-in-image-no-interaction";
+    else if (textBoxProperties.has(p) || ["max-width", "max-height", "min-width", "min-height", "line-height", "text-align"].includes(p)) record2.disposition = "checked-box-or-inapplicable-SVG-layout";
+    else if (p === "box-shadow" && n.namespaceURI === SVG && n.localName === "rect") record2.disposition = "native-verified-nonpainting-svg-rect-box-shadow";
+    else if (p === "outline-width" && css(n, "outline-style") === "none") record2.disposition = "inactive-outline-width";
+    else if (neutralProperties.has(p) && final === neutralProperties.get(p)) record2.disposition = "effective-neutral";
+    else {
+      record2.disposition = "unsupported";
+      coverage.declarations.push(record2);
+      fail("unsupported-feature", "uncovered CSS declaration/effective value " + p + "=" + final, pathOf(n));
+    }
+    coverage.declarations.push(record2);
+  }
+  function declarations(n, style2, source) {
+    for (let i = 0; i < style2.length; i++) {
+      const p = style2.item(i);
+      declaration(n, p, style2.getPropertyValue(p), source);
+    }
+  }
+  function rules(list, source) {
+    for (const rule of Array.from(list)) {
+      if (rule instanceof CSSStyleRule) {
+        let matched = 0;
+        for (const n of all) {
+          let yes;
+          try {
+            yes = n.matches(rule.selectorText);
+          } catch {
+            fail("unsupported-feature", "unparsed selector");
+          }
+          if (yes) {
+            matched++;
+            declarations(n, rule.style, source + ":" + rule.selectorText);
+          }
+        }
+        coverage.rules.push({ selector: rule.selectorText, matched });
+      } else if (rule instanceof CSSKeyframesRule) {
+        coverage.rules.push({ keyframes: rule.name, disposition: "only-discard-if-no-effective-animation" });
+      } else if (rule instanceof CSSMediaRule) {
+        if (matchMedia(rule.conditionText).matches) rules(rule.cssRules, source + "@media");
+        else coverage.rules.push({ condition: rule.conditionText, disposition: "inactive-media" });
+      } else if (rule instanceof CSSSupportsRule) {
+        if (CSS.supports(rule.conditionText)) rules(rule.cssRules, source + "@supports");
+        else coverage.rules.push({ condition: rule.conditionText, disposition: "inactive-supports" });
+      } else if (rule.type === 3 || rule.type === 5) fail("unsafe-output", "import/font-face resource rule");
+      else fail("unsupported-feature", "unsupported CSS at-rule type " + rule.type);
+    }
+  }
+  for (const sheet of Array.from(document.styleSheets)) {
+    let list;
+    try {
+      list = sheet.cssRules;
+    } catch {
+      fail("unsafe-output", "unreadable stylesheet");
+    }
+    rules(list, "stylesheet");
+  }
+  for (const n of all) {
+    if (n.namespaceURI !== SVG && n.namespaceURI !== XHTML) fail("unsupported-feature", "unknown namespace", pathOf(n));
+    if (n.namespaceURI === SVG && !Object.hasOwn(attrsByTag, n.localName)) fail(["a", "image", "script"].includes(n.localName) ? "unsafe-output" : "unsupported-feature", "element " + n.localName, pathOf(n));
+    if (n.namespaceURI === XHTML && n.localName !== "div") fail("unsafe-output", "non-textbox XHTML", pathOf(n));
+    if (n instanceof SVGElement || n instanceof HTMLElement) declarations(n, n.style, "inline");
+    for (const a of Array.from(n.attributes)) {
+      if (/^on/i.test(a.name)) fail("unsafe-output", "event attribute", pathOf(n));
+      if (["href", "xlink:href", "src"].includes(a.name) && !a.value.startsWith("#")) fail("unsafe-output", "external link/resource", pathOf(n));
+      let disposition;
+      if (presentationAttrs.has(a.name)) {
+        declaration(n, a.name, a.value, "presentation-attribute");
+        disposition = "typed-effective-value";
+      } else if (n.namespaceURI === SVG && n.localName === "g" && ["x", "y"].includes(a.name) || n.namespaceURI === SVG && n.localName === "path" && a.name === "viewBox" || n.namespaceURI === SVG && n.localName === "circle" && ["width", "height"].includes(a.name)) {
+        disposition = "standard-inapplicable-attribute";
+        coverage.normalizations.push({ path: pathOf(n), kind: "standard-inapplicable-attribute", tag: n.localName, attribute: a.name, value: a.value, standard: n.localName === "g" ? "https://www.w3.org/TR/SVG2/struct.html#GElement" : n.localName === "circle" ? "https://www.w3.org/TR/SVG2/shapes.html#CircleElement" : "https://www.w3.org/TR/SVG2/paths.html#PathElement", viewportStandard: "https://www.w3.org/TR/SVG2/coords.html#ViewBoxAttribute" });
+      } else if (globalAttrs.has(a.name) || a.name.startsWith("data-")) disposition = "consumed-selector-or-metadata";
+      else if ((attrsByTag[n.localName] ?? "").split(" ").includes(a.name)) disposition = "typed-geometry-definition";
+      else fail("unsupported-feature", "unknown attribute " + a.name, pathOf(n));
+      coverage.attributes.push({ path: pathOf(n), name: a.name, disposition });
+    }
+    const motion = css(n, "animation-name");
+    if (motion && motion !== "none") fail("unsupported-animation", "effective CSS animation", pathOf(n));
+    if (typeof n.getAnimations === "function" && n.getAnimations().length) fail("unsupported-animation", "active browser animation", pathOf(n));
+    if (css(n, "transition-duration").split(",").some((x) => parseFloat(x) > 0)) fail("unsupported-animation", "effective transition duration", pathOf(n));
+    for (const [p, neutral] of neutralProperties) {
+      const value = css(n, p);
+      if (value && value !== neutral) {
+        if (p === "outline-width" && css(n, "outline-style") === "none") {
+          coverage.normalizations.push({ path: pathOf(n), kind: "inactive-outline-width", value });
+          continue;
+        }
+        if (p === "box-shadow" && n.namespaceURI === SVG && n.localName === "rect") {
+          coverage.normalizations.push({ path: pathOf(n), kind: "inapplicable-svg-rect-box-shadow", value, evidence: "normalization-rect-shadow-first: actual original SVG rect property removal yielded byte-identical native PNGs; this exception never applies to XHTML/foreignObject." });
+          continue;
+        }
+        if (p === "font-stretch" && value === "normal") continue;
+        fail("unsupported-feature", "effective " + p + "=" + value, pathOf(n));
+      }
+    }
+    for (const p of ["background-image", "mask-image"]) if (css(n, p) && css(n, p) !== "none") fail("unsafe-output", "effective image resource " + p, pathOf(n));
+  }
+  for (const [id, nodes] of duplicateIds) {
+    for (const n of all) {
+      for (const a of Array.from(n.attributes)) {
+        if (["href", "xlink:href"].includes(a.name) && a.value === "#" + id) fail("invalid-output", "reference to duplicate id", pathOf(n));
+        if (["aria-labelledby", "aria-describedby"].includes(a.name) && a.value.split(/\s+/).includes(id)) fail("invalid-output", "semantic reference to duplicate id", pathOf(n));
+      }
+      for (const property of styleProperties) {
+        const value = css(n, property);
+        for (const match of value.matchAll(/url\(\s*(["']?)(.*?)\1\s*\)/gi)) {
+          let url;
+          try {
+            url = new URL(match[2] ?? "", document.URL);
+          } catch {
+            fail("invalid-output", "unparsed effective reference", pathOf(n));
+          }
+          const here = new URL(document.URL);
+          if (url.origin === here.origin && url.pathname === here.pathname && url.search === here.search && url.hash === "#" + id) fail("invalid-output", "effective reference to duplicate id", pathOf(n));
+        }
+      }
+    }
+    if (coverage.declarations.some((row) => row.localReferences?.includes("#" + id))) fail("invalid-output", "declared reference to duplicate id", pathOf(nodes[0] ?? root));
+    coverage.normalizations.push({ kind: "resolved-unreferenced-ordinary-duplicate-id", id, paths: nodes.map(pathOf), disposition: "Original attached DOM and IDs were not mutated. CSSOM selector matching and effective per-node styles resolved before omitting both ordinary metadata IDs; all local/semantic references to either occurrence reject." });
+  }
+  const vb = boxTuple(numberList(root.getAttribute("viewBox")));
+  if (vb.length !== 4 || vb[2] <= 0 || vb[3] <= 0) fail("invalid-output", "viewBox");
+  const viewport = { x: vb[2], y: vb[3], r: Math.hypot(vb[2], vb[3]) / Math.SQRT2 };
+  function viewportFor(n) {
+    for (let parent = n.parentElement; parent && parent !== root; parent = parent.parentElement) {
+      if (parent.localName === "clipPath" && attr(parent, "clipPathUnits", "userSpaceOnUse") === "objectBoundingBox") return { x: 1, y: 1, r: 1 };
+      if (["marker", "symbol", "svg"].includes(parent.localName)) {
+        const local = parent.hasAttribute("viewBox") ? boxTuple(numberList(parent.getAttribute("viewBox"))) : null;
+        if (local?.length === 4) return { x: local[2], y: local[3], r: Math.hypot(local[2], local[3]) / Math.SQRT2 };
+        if (parent.localName === "marker") {
+          const x = finite(attr(parent, "markerWidth", "3")), y = finite(attr(parent, "markerHeight", "3"));
+          return { x, y, r: Math.hypot(x, y) / Math.SQRT2 };
+        }
+        fail("unsupported-feature", "percentage geometry in unresolved nested viewport", pathOf(n));
+      }
+    }
+    return viewport;
+  }
+  function scalar(n, key, def = 0, axis = "x") {
+    let value = css(n, key);
+    if (!value || value === "auto") value = attr(n, key, String(def));
+    const l = length(value);
+    if (l.unit === "percent") return finite(l.value * viewportFor(n)[axis] / 100, "resolved geometry");
+    if (l.unit === "em") return finite(l.value * parseFloat(css(n, "font-size")), "resolved em geometry");
+    return l.value;
+  }
+  function paint(value, n) {
+    if (value === "none") return { kind: "none" };
+    if (value.startsWith("url(")) return { kind: "gradient", ref: ref(value, "linearGradient", n, true) };
+    return { kind: "color", rgba: color(value) };
+  }
+  function filter(value, n) {
+    if (!value || value === "none") return { kind: "none" };
+    if (value.startsWith("url(")) {
+      const key = referenceKey(value, n, true);
+      if (!idNodes.has(key)) {
+        coverage.normalizations.push({ path: pathOf(n), kind: "unresolved-local-filter", original: key, disposition: "Host serializes a guaranteed absent local fragment; never filter:none. Native missing-to-missing pair is pixel-identical; original none red retained." });
+        return { kind: "unresolved-local" };
+      }
+      return { kind: "definition", ref: ref(value, "dropShadowFilter", n, true) };
+    }
+    let rest = value;
+    const shadows = [];
+    while (rest) {
+      if (!rest.startsWith("drop-shadow(")) fail("unsupported-feature", "filter function", pathOf(n));
+      let depth = 1, i = 12;
+      for (; i < rest.length && depth; i++) {
+        if (rest[i] === "(") depth++;
+        if (rest[i] === ")") depth--;
+      }
+      if (depth) fail("invalid-output", "filter parentheses");
+      let body = rest.slice(12, i - 1).trim();
+      let colorToken;
+      const cm = /^(rgba?\([^)]*\)|color\([^)]*\)|#[a-f\d]+)\s*/i.exec(body);
+      if (cm) {
+        colorToken = cm[1];
+        body = body.slice(cm[0].length);
+      } else {
+        const tail = /(rgba?\([^)]*\)|color\([^)]*\)|#[a-f\d]+)$/i.exec(body);
+        if (!tail) fail("unsupported-feature", "drop shadow color");
+        colorToken = tail[1];
+        body = body.slice(0, tail.index).trim();
+      }
+      const v = body.split(/\s+/).map((x) => length(x));
+      if (v.length < 2 || v.length > 3 || v.some((x) => !["px", "user"].includes(x.unit))) fail("unsupported-feature", "drop shadow lengths");
+      if ((v[2]?.value ?? 0) < 0) fail("invalid-output", "negative blur");
+      if ((v[2]?.value ?? 0) > 32) fail("limit-exceeded", "shadow blur");
+      shadows.push({ dx: v[0].value, dy: v[1].value, blur: v[2]?.value ?? 0, color: color(colorToken) });
+      if (shadows.length > 4) fail("limit-exceeded", "shadow count");
+      rest = rest.slice(i).trim();
+    }
+    return { kind: "cssDropShadow", shadows };
+  }
+  function style(n) {
+    const c = (p) => css(n, p), len = (p) => length(c(p));
+    const a = {};
+    a.fill = paint(c("fill") || "rgb(0, 0, 0)", n);
+    a.stroke = paint(c("stroke") || "none", n);
+    for (const [key2, p] of [["fillOpacity", "fill-opacity"], ["strokeOpacity", "stroke-opacity"], ["opacity", "opacity"]]) a[key2] = finite(c(p) || 1, p, 1);
+    a.fillRule = ENUM(c("fill-rule") || "nonzero", ["nonzero", "evenodd"], "fill rule");
+    a.clipRule = ENUM(c("clip-rule") || "nonzero", ["nonzero", "evenodd"], "clip rule");
+    a.strokeWidth = len("stroke-width");
+    a.dashArray = c("stroke-dasharray") === "none" ? [] : c("stroke-dasharray").split(/[\s,]+/).filter(Boolean).map((x) => length(x));
+    a.dashOffset = len("stroke-dashoffset");
+    a.lineCap = ENUM(c("stroke-linecap"), ["butt", "round", "square"], "line cap");
+    a.lineJoin = ENUM(c("stroke-linejoin"), ["miter", "round", "bevel"], "line join");
+    a.miterLimit = finite(c("stroke-miterlimit"));
+    a.display = c("display") === "none" ? "none" : "inline";
+    a.visibility = ENUM(c("visibility"), ["visible", "hidden", "collapse"], "visibility");
+    a.overflow = ENUM(c("overflow"), ["visible", "hidden"], "overflow");
+    a.mixBlendMode = ENUM(c("mix-blend-mode") || "normal", ["normal", "multiply"], "blend");
+    a.isolation = ENUM(c("isolation") || "auto", ["auto", "isolate"], "isolation");
+    a.filter = filter(c("filter"), n);
+    if (c("clip-path") && c("clip-path") !== "none") a.clipPath = ref(c("clip-path"), "clipPath", n, true);
+    a.colorInterpolation = interpolation(c("color-interpolation") || "sRGB");
+    a.colorInterpolationFilters = interpolation(c("color-interpolation-filters") || "linearRGB");
+    a.fontId = fontId(c("font-family"));
+    a.fontSize = len("font-size");
+    const weight = c("font-weight") === "normal" ? 400 : c("font-weight") === "bold" ? 700 : Number(c("font-weight"));
+    a.fontWeight = ENUM(weight, [100, 200, 300, 400, 500, 600, 700, 800, 900], "font weight");
+    a.fontStyle = ENUM(c("font-style"), ["normal", "italic", "oblique"], "font style");
+    for (const [key2, p] of [["letterSpacing", "letter-spacing"], ["wordSpacing", "word-spacing"]]) {
+      if (c(p) !== "normal") a[key2] = len(p);
+      else if (n.parentElement && computed.has(n.parentElement) && css(n.parentElement, p) !== "normal") fail("unsupported-feature", "normal spacing reset requires typed normal", pathOf(n));
+    }
+    const rendering = { "auto": "auto", "optimizespeed": "optimizeSpeed", "crispedges": "crispEdges", "geometricprecision": "geometricPrecision" };
+    const shapeRendering = rendering[(c("shape-rendering") || "auto").toLowerCase()];
+    if (!shapeRendering) fail("unsupported-feature", "shape rendering", pathOf(n));
+    a.shapeRendering = shapeRendering;
+    a.textAnchor = ENUM(c("text-anchor") || "start", ["start", "middle", "end"], "text anchor");
+    a.dominantBaseline = ENUM(c("dominant-baseline") || "auto", ["auto", "alphabetic", "central", "middle", "hanging", "text-before-edge", "text-after-edge"], "dominant baseline");
+    a.alignmentBaseline = ENUM(c("alignment-baseline") || "auto", ["auto", "baseline", "alphabetic", "central", "middle", "hanging", "before-edge", "after-edge"], "alignment baseline");
+    a.decoration = ENUM(c("text-decoration-line") || "none", ["none", "underline", "overline", "line-through"], "decoration");
+    a.textTransform = ENUM(c("text-transform") || "none", ["none", "uppercase", "lowercase", "capitalize"], "text transform");
+    a.whiteSpace = ENUM(c("white-space") || "normal", ["normal", "pre", "pre-wrap", "nowrap"], "whitespace");
+    if (n === root && color(c("background-color") || "rgba(0,0,0,0)")[3] !== 0) fail("unsupported-feature", "root background paint", pathOf(n));
+    const key = JSON.stringify(a);
+    let index = styleMap.get(key);
+    if (index === void 0) {
+      charge();
+      index = styles.length;
+      styles.push(a);
+      styleMap.set(key, index);
+    }
+    return index;
+  }
+  function effectiveLocalTransform(n) {
+    const declared = css(n, "transform");
+    if ((!declared || declared === "none") && !n.hasAttribute("transform")) return void 0;
+    const parent = n.parentElement;
+    if (n === root || !parent || !(n instanceof SVGGraphicsElement) || !(parent instanceof SVGGraphicsElement)) fail("unsupported-feature", "local transform without comparable CTM", pathOf(n));
+    if (n.localName === "svg" || n.localName === "symbol" || parent !== root && n.ownerSVGElement !== parent.ownerSVGElement) fail("unsupported-feature", "transform crosses SVG viewport", pathOf(n));
+    const own = n.getCTM(), up = parent.getCTM();
+    if (!own || !up) fail("unsupported-feature", "null local CTM", pathOf(n));
+    const valuesOf = (m2) => [m2.a, m2.b, m2.c, m2.d, m2.e, m2.f];
+    if ([...valuesOf(own), ...valuesOf(up)].some((v) => !Number.isFinite(v)) || Math.abs(up.a * up.d - up.b * up.c) < 1e-12) fail("unsupported-feature", "noninvertible parent CTM", pathOf(n));
+    let m;
+    try {
+      m = up.inverse().multiply(own);
+    } catch {
+      fail("unsupported-feature", "parent CTM inverse failed", pathOf(n));
+    }
+    const values = matrixTuple(m);
+    coverage.normalizations.push({ path: pathOf(n), kind: "same-viewport-relative-CTM-origin-baked-once", attribute: n.getAttribute("transform"), computed: declared, parent: valuesOf(up), own: valuesOf(own), local: values });
+    if (values.every((v, i) => v === [1, 0, 0, 1, 0, 0][i])) return void 0;
+    return [{ kind: "matrix", values }];
+  }
+  function common(n) {
+    const out = { style: style(n) }, transforms = effectiveLocalTransform(n);
+    if (transforms) {
+      charge(transforms.length);
+      out.transforms = transforms;
+    }
+    const title2 = Array.from(n.children).find((x) => x.localName === "title"), desc2 = Array.from(n.children).find((x) => x.localName === "desc");
+    if (title2) out.title = title2.textContent ?? "";
+    if (desc2) out.description = desc2.textContent ?? "";
+    return out;
+  }
+  function marked(n) {
+    const out = common(n);
+    for (const [key, p] of [["markerStart", "marker-start"], ["markerMid", "marker-mid"], ["markerEnd", "marker-end"]]) {
+      const v = css(n, p);
+      if (v && v !== "none") out[key] = ref(v, "marker", n, true);
+    }
+    return out;
+  }
+  function text(n) {
+    const textChildren = [];
+    const out = { kind: ENUM(n.localName, ["text", "tspan"], "text kind"), ...common(n), children: textChildren };
+    for (const key of ["x", "y", "dx", "dy"]) {
+      const v = lengthList(attr(n, key));
+      if (v) out[key] = v;
+    }
+    if (n.hasAttribute("xml:space")) out.xmlSpace = ENUM(n.getAttribute("xml:space"), ["default", "preserve"], "xml space");
+    for (const child of Array.from(n.childNodes)) {
+      if (child instanceof Text) {
+        charge();
+        textChildren.push({ kind: "textRun", text: child.data });
+      } else if (child instanceof Element && child.localName === "tspan") {
+        charge();
+        const span = text(child);
+        if (span.kind !== "tspan") fail("invalid-output", "expected tspan");
+        textChildren.push(span);
+      } else if (child instanceof Element && !["title", "desc"].includes(child.localName)) fail("unsupported-feature", "text child", pathOf(n));
+    }
+    return out;
+  }
+  function textBox(n) {
+    const outer = n.firstElementChild, inner = outer?.firstElementChild;
+    if (n.children.length !== 1 || outer?.namespaceURI !== XHTML || outer.localName !== "div" || outer.children.length !== 1 || inner?.localName !== "div" || inner.namespaceURI !== XHTML || inner.children.length) fail("unsafe-output", "textbox must be fixed div/div/plain-text", pathOf(n));
+    if (css(outer, "display") !== "table" || css(inner, "display") !== "table-cell") fail("unsupported-feature", "textbox layout");
+    const box = [scalar(n, "x"), scalar(n, "y", 0, "y"), scalar(n, "width"), scalar(n, "height", 0, "y")];
+    for (const node2 of [outer, inner]) {
+      for (const [dimension, index] of [["width", 2], ["height", 3]]) {
+        const raw = css(node2, dimension);
+        if (!/^[0-9.]+px$/.test(raw) || Math.abs(finite(parseFloat(raw)) - box[index]) > 0.01) fail("unsupported-feature", "textbox effective " + dimension + " differs from fixed container", pathOf(node2));
+      }
+      for (const p of ["overflow-x", "overflow-y", "visibility"]) if (css(node2, p) !== "visible") fail("unsupported-feature", "textbox " + p, pathOf(node2));
+      if (css(node2, "clip-path") !== "none" || css(node2, "isolation") !== "auto") fail("unsupported-feature", "textbox clipping/isolation", pathOf(node2));
+      for (const side of ["top", "right", "bottom", "left"]) for (const prefix of ["padding", "margin", "border"]) {
+        const p = prefix === "border" ? `border-${side}-width` : `${prefix}-${side}`;
+        if (parseFloat(css(node2, p)) !== 0) fail("unsupported-feature", "textbox nonzero " + p, pathOf(node2));
+      }
+      if (css(node2, "box-shadow") !== "none" || css(node2, "transform") !== "none" || css(node2, "filter") !== "none" || Number(css(node2, "opacity")) !== 1 || css(node2, "mix-blend-mode") !== "normal") fail("unsupported-feature", "textbox layered effect", pathOf(node2));
+    }
+    const c = (p) => css(inner, p), background = color(css(outer, "background-color"));
+    if (color(c("background-color"))[3] !== 0) fail("unsupported-feature", "textbox inner background");
+    const out = { kind: "textBox", ...common(n), box, outerBoxSizing: ENUM(css(outer, "box-sizing"), ["content-box", "border-box"], "outer box sizing"), innerBoxSizing: ENUM(c("box-sizing"), ["content-box", "border-box"], "inner box sizing"), textTransform: ENUM(c("text-transform") || "none", ["none", "uppercase", "lowercase", "capitalize"], "textbox transform"), decoration: ENUM(c("text-decoration-line") || "none", ["none", "underline", "overline", "line-through"], "textbox decoration"), text: inner.textContent ?? "", color: color(c("color")), fontId: fontId(c("font-family")), fontSizePx: finite(parseFloat(c("font-size"))), fontWeight: ENUM(Number(c("font-weight")), [100, 200, 300, 400, 500, 600, 700, 800, 900], "textbox weight"), fontStyle: ENUM(c("font-style"), ["normal", "italic", "oblique"], "textbox style"), lineHeight: c("line-height") === "normal" ? "normal" : { px: finite(parseFloat(c("line-height"))) }, hAlign: ENUM(c("text-align"), ["start", "center", "end"], "textbox alignment"), vAlign: ENUM(c("vertical-align"), ["top", "middle", "bottom"], "textbox vertical"), whiteSpace: ENUM(c("white-space"), ["normal", "pre", "pre-wrap", "nowrap"], "textbox whitespace"), overflowWrap: ENUM(c("overflow-wrap"), ["normal", "break-word"], "textbox wrapping"), wordBreak: ENUM(c("word-break"), ["normal", "break-all", "keep-all"], "textbox word break") };
+    for (const [key, p] of [["letterSpacing", "letter-spacing"], ["wordSpacing", "word-spacing"]]) {
+      if (c(p) !== "normal") out[key] = length(c(p));
+      else if (css(n, p) !== "normal") fail("unsupported-feature", "textbox normal spacing reset", pathOf(inner));
+    }
+    if (background[3]) out.background = background;
+    coverage.normalizations.push({ path: pathOf(n), kind: "fixed-textbox-layout", outer: pathOf(outer), inner: pathOf(inner), box, outerDisplay: css(outer, "display"), innerDisplay: c("display"), outerBoxSizing: out.outerBoxSizing, innerBoxSizing: out.innerBoxSizing });
+    return out;
+  }
+  function whollyClippedLine(n) {
+    if (n.namespaceURI !== SVG || n.localName !== "line" || n.children.length || n.hasAttribute("id")) return false;
+    const values = ["x1", "y1", "x2", "y2"].map((k) => n.getAttribute(k));
+    if (values.some((v) => v === null || !/^[-+]?(?:\d+\.?\d*|\.\d+)(?:e[-+]?\d+)?$/i.test(v))) return false;
+    const nums = values.map(Number);
+    if (nums.some((v) => !Number.isFinite(v) || Math.abs(v) > 1e9) || nums.every((v) => Math.abs(v) <= 8192)) return false;
+    if (css(root, "overflow-x") !== "hidden" || css(root, "overflow-y") !== "hidden") return false;
+    const ancestorChecks = [];
+    for (let a = n; a; a = a.parentElement) {
+      if (a !== n && a !== root && a.localName !== "g") return false;
+      if (a.hasAttribute("transform") || css(a, "transform") !== "none" || css(a, "filter") !== "none" || css(a, "clip-path") !== "none" || css(a, "mask-image") !== "none" || Number(css(a, "opacity")) !== 1 || css(a, "mix-blend-mode") !== "normal" || css(a, "isolation") !== "auto" || css(a, "transform-box") !== "view-box") return false;
+      for (const key of ["marker-start", "marker-mid", "marker-end"]) if (css(a, key) && css(a, key) !== "none") return false;
+      if (["fill", "stroke"].some((key) => css(a, key).includes("url("))) return false;
+      ancestorChecks.push({ path: pathOf(a), filter: css(a, "filter"), transform: css(a, "transform"), transformBox: css(a, "transform-box"), clipPath: css(a, "clip-path") });
+      if (a === root) break;
+      if (!a.parentElement || !root.contains(a.parentElement)) return false;
+    }
+    if (css(n, "stroke-linecap") !== "butt" || css(n, "stroke-dasharray") !== "none") return false;
+    const width = /^(\d+(?:\.\d+)?)px$/.exec(css(n, "stroke-width"));
+    if (!width) return false;
+    const stroke = Number(width[1]);
+    if (!Number.isFinite(stroke) || stroke > 64) return false;
+    const matrix = graphics(n).getScreenCTM();
+    if (!matrix || ![matrix.a, matrix.b, matrix.c, matrix.d, matrix.e, matrix.f].every(Number.isFinite) || matrix.b !== 0 || matrix.c !== 0 || matrix.a <= 0 || matrix.d <= 0) return false;
+    const x1 = matrix.a * nums[0] + matrix.e, y1 = matrix.d * nums[1] + matrix.f, x2 = matrix.a * nums[2] + matrix.e, y2 = matrix.d * nums[3] + matrix.f;
+    const pad = stroke / 2 * Math.max(matrix.a, matrix.d) + 1;
+    const bounds = [Math.min(x1, x2) - pad, Math.min(y1, y2) - pad, Math.max(x1, x2) + pad, Math.max(y1, y2) + pad], clip = root.getBoundingClientRect();
+    if (!(bounds[2] < clip.left || bounds[0] > clip.right || bounds[3] < clip.top || bounds[1] > clip.bottom)) return false;
+    coverage.normalizations.push({ path: pathOf(n), kind: "wholly-clipped-unreferenced-line", rawCoordinates: nums, screenStrokeEnvelope: bounds, rootClip: [clip.left, clip.top, clip.right, clip.bottom], ancestorChecks });
+    return true;
+  }
+  function children(n) {
+    return Array.from(n.children).filter((c) => !["defs", "style", "title", "desc"].includes(c.localName) && !definitionKinds[c.localName] && !whollyClippedLine(c)).map(node);
+  }
+  function node(n) {
+    charge();
+    switch (n.localName) {
+      case "g":
+        return { kind: "group", ...common(n), children: children(n) };
+      case "rect": {
+        let rx = scalar(n, "rx", 0), ry = scalar(n, "ry", 0, "y");
+        const rxAuto = (!css(n, "rx") || css(n, "rx") === "auto") && !n.hasAttribute("rx"), ryAuto = (!css(n, "ry") || css(n, "ry") === "auto") && !n.hasAttribute("ry");
+        if (rxAuto && !ryAuto) rx = ry;
+        if (ryAuto && !rxAuto) ry = rx;
+        return { kind: "rect", ...common(n), x: scalar(n, "x"), y: scalar(n, "y", 0, "y"), width: scalar(n, "width"), height: scalar(n, "height", 0, "y"), rx, ry };
+      }
+      case "circle":
+        return { kind: "circle", ...common(n), cx: scalar(n, "cx"), cy: scalar(n, "cy", 0, "y"), r: scalar(n, "r", 0, "r") };
+      case "ellipse":
+        return { kind: "ellipse", ...common(n), cx: scalar(n, "cx"), cy: scalar(n, "cy", 0, "y"), rx: scalar(n, "rx"), ry: scalar(n, "ry", 0, "y") };
+      case "line":
+        return { kind: "line", ...marked(n), x1: scalar(n, "x1"), y1: scalar(n, "y1", 0, "y"), x2: scalar(n, "x2"), y2: scalar(n, "y2", 0, "y") };
+      case "path": {
+        let d = css(n, "d");
+        if (d && d !== "none") {
+          const match = /^path\(["'](.*)["']\)$/.exec(d);
+          if (!match) fail("unsupported-feature", "computed path syntax", pathOf(n));
+          d = match[1];
+        } else d = attr(n, "d", "");
+        const commands = parsePath(d);
+        charge(commands.length);
+        return { kind: "path", ...marked(n), commands };
+      }
+      case "polygon":
+      case "polyline": {
+        const nums = numberList(attr(n, "points", ""));
+        if (nums.length % 2) fail("invalid-output", "points arity");
+        const points = [];
+        for (let i = 0; i < nums.length; i += 2) points.push([nums[i], nums[i + 1]]);
+        charge(points.length);
+        return { kind: n.localName, ...marked(n), points };
+      }
+      case "text": {
+        const result = text(n);
+        if (result.kind !== "text") fail("invalid-output", "expected text");
+        return result;
+      }
+      case "use": {
+        const href = attr(n, "href", attr(n, "xlink:href", ""));
+        const out = { kind: "use", ...common(n), ref: ref(href, "symbol", n) };
+        for (const k of ["x", "y", "width", "height"]) if (n.hasAttribute(k)) out[k] = scalar(n, k, 0, k === "y" || k === "height" ? "y" : "x");
+        return out;
+      }
+      case "foreignObject":
+        return textBox(n);
+      case "switch": {
+        const cs = Array.from(n.children);
+        if (cs.length !== 2 || cs[0]?.localName !== "foreignObject" || cs[1]?.localName !== "text") fail("unsupported-feature", "non-text alternative");
+        charge(2);
+        const first = cs[0], second = cs[1];
+        if (!first || !second) fail("invalid-output", "alternative arity");
+        const fallback = text(second);
+        if (fallback.kind !== "text") fail("invalid-output", "alternative text");
+        return { kind: "textAlternative", ...common(n), primary: textBox(first), fallback };
+      }
+      default:
+        fail("unsupported-feature", "render node " + n.localName, pathOf(n));
+    }
+  }
+  function definition(n) {
+    charge();
+    const id = localIds.get(n.id), kind = definitionKinds[n.localName];
+    if (!id) fail("invalid-output", "missing definition ID");
+    if (["marker", "symbol", "clipPath"].includes(n.localName) && n.hasAttribute("transform") && css(n, "transform") === "none") fail("unsupported-feature", "definition attribute transform requires dedicated viewport proof", pathOf(n));
+    if (kind === "linearGradient") {
+      const stops = Array.from(n.children).map((c) => {
+        if (c.localName !== "stop") fail("unsupported-feature", "gradient child");
+        charge();
+        const l = length(attr(c, "offset", "0"));
+        const base = color(css(c, "stop-color"));
+        const rgba = [base[0], base[1], base[2], base[3] * finite(css(c, "stop-opacity") || 1, "stop opacity", 1)];
+        return { offset: l.unit === "percent" ? l.value / 100 : l.value, color: rgba };
+      });
+      let transforms;
+      if (n.hasAttribute("gradientTransform")) {
+        if (!(n instanceof SVGLinearGradientElement)) fail("invalid-output", "expected gradient");
+        const list = n.gradientTransform.baseVal;
+        if (!list) fail("unsupported-feature", "gradient transform parser");
+        transforms = [];
+        for (let i = 0; i < list.numberOfItems; i++) {
+          const m = list.getItem(i).matrix;
+          transforms.push({ kind: "matrix", values: matrixTuple(m) });
+        }
+        charge(transforms.length);
+      }
+      return { kind, id, units: ENUM(attr(n, "gradientUnits", "objectBoundingBox"), ["userSpaceOnUse", "objectBoundingBox"], "gradient units"), x1: length(attr(n, "x1", "0%")), y1: length(attr(n, "y1", "0%")), x2: length(attr(n, "x2", "100%")), y2: length(attr(n, "y2", "0%")), spread: ENUM(attr(n, "spreadMethod", "pad"), ["pad", "reflect", "repeat"], "gradient spread"), ...transforms ? { transforms } : {}, stops };
+    }
+    if (kind === "dropShadowFilter") {
+      const cs = Array.from(n.children);
+      if (cs.length !== 1 || cs[0]?.localName !== "feDropShadow") fail("unsupported-feature", "filter primitive");
+      const op = cs[0];
+      if (!op) fail("invalid-output", "filter primitive missing");
+      if (op.hasAttribute("in") && op.getAttribute("in") !== "SourceGraphic") fail("unsupported-feature", "filter input");
+      if (op.hasAttribute("result")) fail("unsupported-feature", "filter intermediate result");
+      const sd = numberList(attr(op, "stdDeviation", "2"));
+      if (sd.length < 1 || sd.length > 2) fail("invalid-output", "stdDeviation");
+      const base = color(css(op, "flood-color"));
+      const rgba = [base[0], base[1], base[2], base[3] * finite(css(op, "flood-opacity") || 1, "flood opacity", 1)];
+      return { kind, id, units: ENUM(attr(n, "filterUnits", "objectBoundingBox"), ["userSpaceOnUse", "objectBoundingBox"], "filter units"), primitiveUnits: ENUM(attr(n, "primitiveUnits", "userSpaceOnUse"), ["userSpaceOnUse", "objectBoundingBox"], "filter primitive units"), region: [length(attr(n, "x", "-10%")), length(attr(n, "y", "-10%")), length(attr(n, "width", "120%")), length(attr(n, "height", "120%"))], colorInterpolation: interpolation(css(n, "color-interpolation-filters") || "linearRGB"), dx: finite(attr(op, "dx", "2")), dy: finite(attr(op, "dy", "2")), stdDeviation: [sd[0], sd[1] ?? sd[0]], color: rgba };
+    }
+    if (kind === "clipPath" && css(n, "transform") !== "none" && css(n, "transform-origin").split(/\s+/).some((v) => parseFloat(v) !== 0)) fail("unsupported-feature", "clip transform origin");
+    if (kind === "clipPath") {
+      const transforms = localMatrix(css(n, "transform"));
+      return { kind, id, units: ENUM(attr(n, "clipPathUnits", "userSpaceOnUse"), ["userSpaceOnUse", "objectBoundingBox"], "clip units"), ...transforms ? { transforms } : {}, children: children(n) };
+    }
+    if (kind === "marker") {
+      if (css(n, "transform") !== "none") fail("unsupported-feature", "marker own transform");
+      const orient = attr(n, "orient", "0"), viewBox = n.hasAttribute("viewBox") ? boxTuple(numberList(n.getAttribute("viewBox"))) : void 0;
+      if (n.hasAttribute("preserveAspectRatio") && n.getAttribute("preserveAspectRatio") !== "xMidYMid meet") fail("unsupported-feature", "marker aspect");
+      return { kind, id, ...viewBox ? { viewBox } : {}, width: finite(attr(n, "markerWidth", "3")), height: finite(attr(n, "markerHeight", "3")), refX: length(attr(n, "refX", "0")), refY: length(attr(n, "refY", "0")), units: ENUM(attr(n, "markerUnits", "strokeWidth"), ["strokeWidth", "userSpaceOnUse"], "marker units"), orient: orient === "auto" || orient === "auto-start-reverse" ? orient : { degrees: finite(orient) }, style: style(n), children: children(n) };
+    }
+    if (kind === "symbol") {
+      if (n.hasAttribute("preserveAspectRatio") && n.getAttribute("preserveAspectRatio") !== "xMidYMid meet") fail("unsupported-feature", "symbol aspect");
+      const out = { kind, id, style: style(n), children: children(n) };
+      if (n.hasAttribute("viewBox")) out.viewBox = boxTuple(numberList(n.getAttribute("viewBox")));
+      for (const k of ["width", "height"]) if (n.hasAttribute(k)) out[k] = finite(n.getAttribute(k));
+      const transforms = localMatrix(css(n, "transform"));
+      if (transforms) {
+        charge(1 + transforms.length);
+        out.children = [{ kind: "group", ...common(n), children: out.children }];
+        delete out.style;
+      }
+      return out;
+    }
+    fail("unsupported-feature", "definition kind");
+  }
+  for (const n of all) if (definitionKinds[n.localName]) definitions.push(definition(n));
+  const rect = root.getBoundingClientRect();
+  if (css(root, "transform") !== "none" || root.hasAttribute("transform")) fail("unsupported-feature", "root transform requires explicit viewport handling");
+  const aspectWords = attr(root, "preserveAspectRatio", "xMidYMid meet").trim().split(/\s+/);
+  if (aspectWords.length > 2) fail("unsupported-feature", "root aspect");
+  const image = {
+    type: "svg-image",
+    profile: "bounded-svg-v1",
+    width: finite(rect.width, "image width"),
+    height: finite(rect.height, "image height"),
+    viewBox: vb,
+    aspect: { align: ENUM(aspectWords[0], ["none", "xMinYMin", "xMidYMin", "xMaxYMin", "xMinYMid", "xMidYMid", "xMaxYMid", "xMinYMax", "xMidYMax", "xMaxYMax"], "aspect align"), fit: ENUM(aspectWords[1] ?? "meet", ["meet", "slice"], "aspect fit") },
+    rootStyle: style(root),
+    styles,
+    definitions,
+    children: children(root),
+    motion: "static"
+  };
+  const title = Array.from(root.children).find((n) => n.localName === "title"), desc = Array.from(root.children).find((n) => n.localName === "desc");
+  if (title) image.title = title.textContent ?? "";
+  if (desc) image.description = desc.textContent ?? "";
+  const defMap = new Map(definitions.map((d) => [d.id, d]));
+  const references = (value) => {
+    const out = [];
+    function visit(v) {
+      if (Array.isArray(v)) {
+        v.forEach(visit);
+        return;
+      }
+      if (!record(v)) return;
+      if (["use", "gradient", "definition"].includes(String(v.kind)) && typeof v.ref === "string") out.push({ id: v.ref, multiple: 1 });
+      if (typeof v.clipPath === "string") out.push({ id: v.clipPath, multiple: 1 });
+      for (const k of ["markerStart", "markerMid", "markerEnd"]) {
+        const id = v[k];
+        if (typeof id === "string") {
+          const count = Array.isArray(v.commands) ? v.commands.length : Array.isArray(v.points) ? v.points.length : 2;
+          out.push({ id, multiple: k === "markerMid" ? Math.max(1, count - 1) : 1 });
+        }
+      }
+      if (typeof v.style === "number" && Number.isInteger(v.style)) visit(styles[v.style]);
+      for (const [k, x] of Object.entries(v)) if (k !== "style") visit(x);
+    }
+    visit(value);
+    return out;
+  };
+  const visiting = /* @__PURE__ */ new Set(), visited = /* @__PURE__ */ new Set();
+  function check(id, depth = 0) {
+    if (depth > 64) fail("limit-exceeded", "reference depth");
+    if (visiting.has(id)) fail("invalid-output", "reference cycle");
+    if (visited.has(id)) return;
+    const d = defMap.get(id);
+    if (!d) fail("invalid-output", "unresolved typed reference");
+    visiting.add(id);
+    for (const r of references(d)) check(r.id, depth + 1);
+    visiting.delete(id);
+    visited.add(id);
+  }
+  for (const id of defMap.keys()) check(id);
+  let expandedNodes = 0;
+  function expand(value, depth = 0) {
+    if (depth > 64) fail("limit-exceeded", "expanded depth");
+    if (Array.isArray(value)) {
+      for (const item of value) expand(item, depth + 1);
+      return;
+    }
+    if (!record(value)) return;
+    expandedNodes++;
+    if (value.kind === "path" && Array.isArray(value.commands)) expandedNodes += value.commands.length;
+    if (Array.isArray(value.points)) expandedNodes += value.points.length;
+    if (Array.isArray(value.transforms)) expandedNodes += value.transforms.length;
+    if (expandedNodes > MAX_NODES) fail("limit-exceeded", "expanded geometry");
+    const shallow = { ...value };
+    delete shallow.children;
+    delete shallow.primary;
+    delete shallow.fallback;
+    delete shallow.stops;
+    for (const r of references(shallow)) for (let i = 0; i < r.multiple; i++) expand(defMap.get(r.id), depth + 1);
+    for (const k of ["children", "primary", "fallback", "stops"]) if (value[k]) expand(value[k], depth + 1);
+  }
+  expand(image.children);
+  if (image.rootStyle !== void 0) for (const r of references(styles[image.rootStyle])) expand(defMap.get(r.id));
+  const bytes = new TextEncoder().encode(JSON.stringify(image)).length;
+  if (bytes > MAX_BYTES) fail("limit-exceeded", "AST UTF8 bytes");
+  return image;
+}
+export {
+  ConversionError,
+  convertSvgElement
+};

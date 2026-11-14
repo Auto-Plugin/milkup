@@ -1,0 +1,78 @@
+{
+  "status": "product fix implemented; standalone package rebuild and native replay pending",
+  "baselineCommit": "fa13f1667350c60ae38b04450b205c806950f5b9",
+  "rootCause": "Formatting toolbar capture identity included layout-only viewport; invalidation emptied the toolbar and its height change produced another viewport update.",
+  "changedFiles": [
+    {
+      "path": "plugins/formatting/src/plugin.ts",
+      "sha256": "3382f1ad48816bd2f595fcc0aace87e458b7e09f3bb47f7c81b6756a9faf91d0"
+    },
+    {
+      "path": "plugins/formatting/src/ui.test.ts",
+      "sha256": "f8035a8edc163b4d678df83136c884d02978cd3b139d3c12580fb373f39d3a3e"
+    }
+  ],
+  "originalProductSha256": "0ad8738e25b743ad4be3627f0a973245d3dd6f3c928f5e3ee0d07f8994dcaa0e",
+  "red": {
+    "command": "../../node_modules/.bin/vitest run --config vitest.config.ts src/ui.test.ts -t \"viewport|save location\"",
+    "failed": 3,
+    "skipped": 14,
+    "log": "red.log"
+  },
+  "green": {
+    "command": "../../node_modules/.bin/vitest run --config vitest.config.ts",
+    "testFiles": 3,
+    "passed": 54,
+    "failed": 0,
+    "log": "green-all.log"
+  },
+  "typecheck": {
+    "command": "../../node_modules/.bin/tsc --noEmit",
+    "exitCode": 0,
+    "log": "typecheck.log"
+  },
+  "format": {
+    "passed": true,
+    "log": "format-final.log"
+  },
+  "diffCheck": {
+    "passed": true
+  },
+  "runtimeEvidence": "/tmp/milkup-beta5-windowed-final/evidence/windowed.json rows[14].toolbarReadiness (run06)",
+  "unchanged": [
+    "product version 1.0.1",
+    "manifest",
+    "SDK",
+    "controller",
+    "host API",
+    "CSS",
+    "native acceptance assertions"
+  ],
+  "displayOperated": false,
+  "logs": [
+    {
+      "path": "format-final.log",
+      "sha256": "17aa973d3f004560237d9a95171210b0671deff23d61628eecf7322ff5938f20"
+    },
+    {
+      "path": "format.log",
+      "sha256": "ece090edc7daf2ac056ad9d2e62206a3710da8dcaa78d0ef0a916bb4de860d32"
+    },
+    {
+      "path": "green-all.log",
+      "sha256": "740346aaadc63ae962e807fa575c944ef4ce1ce81bace39a1e114d6310b51fcd"
+    },
+    {
+      "path": "red.log",
+      "sha256": "4301df293c5a95d5ebef7bfd97bb93d76628771b4e2843cfe87b2b4979b2b2ef"
+    },
+    {
+      "path": "runner-preflight.log",
+      "sha256": "06102ceebda1fad6410864e270f7f92d823fe9cdf8fcf0ea29920801df51b315"
+    },
+    {
+      "path": "typecheck.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  ]
+}

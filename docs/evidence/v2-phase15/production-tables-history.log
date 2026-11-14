@@ -1,0 +1,25 @@
+2026-10-13T19:20:00.544Z NATIVE_STARTUP_WINDOW 1315ms
+PASS production full table context and native cell navigation beyond header viewport
+PASS production multiline cell typing and atomic history
+PASS production complete column operation undo redo exact bytes
+node:internal/modules/run_main:107
+    triggerUncaughtException(
+    ^
+
+AssertionError [ERR_ASSERTION]: The expression evaluated to a falsy value:
+
+  assert((await geometry()).cells.length === 2)
+
+    at file:///workspace/milkup/tests/native/tauri-production-tables.mjs:191:7
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+    at async check (file:///workspace/milkup/tests/native/tauri-production-tables.mjs:42:3)
+    at async file:///workspace/milkup/tests/native/tauri-production-tables.mjs:166:3 {
+  generatedMessage: true,
+  code: 'ERR_ASSERTION',
+  actual: false,
+  expected: true,
+  operator: '==',
+  diff: 'simple'
+}
+
+Node.js v24.19.0

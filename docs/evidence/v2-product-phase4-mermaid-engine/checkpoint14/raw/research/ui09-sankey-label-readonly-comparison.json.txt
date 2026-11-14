@@ -1,0 +1,232 @@
+{
+  "author": "release_sdk",
+  "kind": "read-only-identity-and-actual-pixel-review",
+  "case": "sankey-000-first-official-example",
+  "conclusion": "Dense label overlap is visibly present in the retained original official Mermaid SVG rasterization at100%, before the canonical image path. The current150% production screenshot shows the same categories of crowding. This supplies a source/engine baseline for this case, not proof that current production output is pixel-identical or fully readable.",
+  "sourceIdentity": {
+    "utf8Bytes": 2304,
+    "sha256": "c6739c6a83029fbe481d653c74d1e302c8226bc89edcbebec88062125baa78d3",
+    "oldRequestAndCurrentFrozenCatalogBytesEqual": true,
+    "officialSourceRecorded": "https://github.com/mermaid-js/mermaid/blob/mermaid%4012.2.0/packages/mermaid/src/docs/syntax/sankey.md",
+    "qualification": "Compared retained local evidence; no new upstream fetch or modified official source."
+  },
+  "engineIdentity": {
+    "version": "12.2.0",
+    "oldActualOfflineBundleSha256": "043c33385b8b41bb628872f4e419c7f20886403152b045736382db36072d8c0c",
+    "oldRecordedPreparedHashMatches": true,
+    "packageAndSankeyModuleComparisons": [
+      {
+        "relativePath": "package.json",
+        "sha256": "8ae9f399a7a99cff12baf654216db25523987a49cfcdc5b8413a98308de1fb24",
+        "oldCurrentBytesEqual": true
+      },
+      {
+        "relativePath": "dist/chunks/mermaid.core/sankeyDiagram-SY24JHO5.mjs",
+        "sha256": "551d2920ca6f1b2f7407d6b91784b0a667a3615c2218d4a44c58951cf5e50d96",
+        "oldCurrentBytesEqual": true
+      }
+    ],
+    "difference": "The old standalone offline bundle is not the current complete plugin archive. Only package metadata and the actual Sankey core module were byte-compared across installations; full transitive closure/config/bundle identity was not asserted. Both relevant entries explicitly use Arial,sans-serif and htmlLabels:false; current renderer has additional security configuration."
+  },
+  "actualPixelObservations": [
+    {
+      "image": "old original-inline.png",
+      "finding": "At600px-wide100% rendering, UK land based bioenergy overlaps Bio-conversion, Gas reserves overlaps Ngas, and the H2 conversion/Lighting & appliances region is crowded. District heating and Thermal generation are also tightly placed. The entire dense graph is visible in this old standalone frame."
+    },
+    {
+      "image": "old controlled-original.png",
+      "finding": "The same label crowding remains in the original SVG with the controlled outer slot/footer. It was not introduced only by the canonical img conversion."
+    },
+    {
+      "image": "current150% WebView and X11",
+      "finding": "Actually viewed both. The displayed upper/middle graph has corresponding crowded label regions, notably UK land based bioenergy/Bio-conversion and H2 conversion/Lighting. The lower graph extends below the editor viewport, so this capture does not demonstrate all lower labels or full graph reachability. X11 includes desktop black area outside the app; this is not diagram content."
+    }
+  ],
+  "oldPairedEvidence": {
+    "actualPngBytesEqual": [
+      "controlled-original.png",
+      "canonical-inline.png",
+      "canonical-img.png"
+    ],
+    "sha256": "27757a4ba9eb4686a334c5542be96ae775dc61876c8dd430d03818489339444c",
+    "recordedPixelComparison": [
+      {
+        "candidate": "canonical-inline",
+        "identicalPixels": true,
+        "changedPixels": 0,
+        "differenceBounds": null,
+        "baselineSha256": "27757a4ba9eb4686a334c5542be96ae775dc61876c8dd430d03818489339444c",
+        "candidateSha256": "27757a4ba9eb4686a334c5542be96ae775dc61876c8dd430d03818489339444c"
+      },
+      {
+        "candidate": "canonical-img",
+        "identicalPixels": true,
+        "changedPixels": 0,
+        "differenceBounds": null,
+        "baselineSha256": "27757a4ba9eb4686a334c5542be96ae775dc61876c8dd430d03818489339444c",
+        "candidateSha256": "27757a4ba9eb4686a334c5542be96ae775dc61876c8dd430d03818489339444c"
+      }
+    ],
+    "boundary": "Fixed accepted research AST paired with independently rendered original at100%; result.json explicitly says productPluginTested:false. This is not a fresh current package render."
+  },
+  "currentCompletedRecord": {
+    "name": "matrix-ordinary-live-light-150-wide-sankey-000-first-official-example",
+    "at": "2026-10-16T21:19:59.342Z",
+    "combination": {
+      "view": "ordinary",
+      "mode": "live",
+      "theme": "light",
+      "zoom": 1.5,
+      "narrow": false,
+      "key": "ordinary-live-light-150-wide"
+    },
+    "previewRange": [
+      5742,
+      8060
+    ],
+    "image": {
+      "rect": {
+        "x": 34.395835876464844,
+        "width": 600,
+        "left": 34.395835876464844,
+        "right": 634.3958358764648,
+        "top": 153.75,
+        "height": 407,
+        "y": 153.75,
+        "bottom": 560.75
+      },
+      "width": 600,
+      "src": "blob:tauri://localhost/b27aa619-a70a-4a48-88ac-71fae6fb6201",
+      "slot": {
+        "x": 34.395835876464844,
+        "width": 600,
+        "left": 34.395835876464844,
+        "right": 634.3958358764648,
+        "top": 153.75,
+        "height": 406.90625,
+        "y": 153.75,
+        "bottom": 560.65625
+      },
+      "ink": {
+        "x": 34.395835876464844,
+        "width": 600,
+        "left": 34.395835876464844,
+        "right": 634.3958358764648,
+        "top": 153.75,
+        "height": 406.90625,
+        "y": 153.75,
+        "bottom": 560.65625
+      },
+      "offset": {
+        "slotLeft": "0px",
+        "slotTop": "0px",
+        "left": "0px",
+        "top": "0px"
+      },
+      "height": 407,
+      "slotOverflow": "visible",
+      "complete": true,
+      "naturalWidth": 900,
+      "naturalHeight": 610,
+      "tabIndex": -1,
+      "draggable": false
+    },
+    "recordSha256CanonicalJson": "8e49ec8f285a92898a74bac55bf90f55a5da1acbd5d67d2f2ac7d047afc2b4f3",
+    "qualification": "Read only this already-completed record from the growing results file. No hash or final status claim for the active whole run."
+  },
+  "scalingBoundary": "Current image CSS600x407, exact ink slot600x406.90625, natural900x610 at1.5 zoom is approximately uniform scaling with integer raster rounding. These dimensions alone neither prove nor disprove internal layout fidelity; no cross-zoom pixel equality was calculated.",
+  "evidenceFiles": [
+    {
+      "path": "/workspace/milkup-mermaid-engine-evidence/research/edge-product-sankey-z100/runs/edge-sankey-z100-forced/original-inline.svg",
+      "bytes": 49105,
+      "sha256": "b1bb586934979c095091b2bfd939bf87d9985c1152f88b304a04402777e69d45",
+      "visuallyViewed": false
+    },
+    {
+      "path": "/workspace/milkup-mermaid-engine-evidence/research/edge-product-sankey-z100/runs/edge-sankey-z100-forced/scan_036-request.json",
+      "bytes": 5244,
+      "sha256": "1c3fe3694b4d46c05600bcaf9c27fe06165f9cf59cd192ed542002e341225024",
+      "visuallyViewed": false
+    },
+    {
+      "path": "/workspace/milkup-mermaid-engine-evidence/research/edge-product-sankey-z100/runs/edge-sankey-z100-forced/scan_036-result.json",
+      "bytes": 280826,
+      "sha256": "98c8fb41e9f7bed54460659865dbe52214df321063206c185d448fe0c784d85c",
+      "visuallyViewed": false
+    },
+    {
+      "path": "/workspace/milkup-mermaid-engine-evidence/research/edge-product-sankey-z100/runs/edge-sankey-z100-forced/result.json",
+      "bytes": 1054984,
+      "sha256": "011fbdd4d225258323fcaa69ddb6ff8abe6cd4d7cc6eac5462bc59f2ac40a9ac",
+      "visuallyViewed": false
+    },
+    {
+      "path": "/workspace/milkup-mermaid-engine-evidence/research/edge-product-sankey-z100/runs/edge-sankey-z100-forced/pixel-comparison.json",
+      "bytes": 123105,
+      "sha256": "4b81767b057c969ed6faf17b0720979ed41fb02f7ba1578a4a21e26ededb13d2",
+      "visuallyViewed": false
+    },
+    {
+      "path": "/workspace/milkup-mermaid-engine-evidence/research/edge-product-sankey-z100/prepared.json",
+      "bytes": 9336,
+      "sha256": "d94e086beb68c52f26cf990bca260e92ac72b32eb561a3f6f6043d628b617813",
+      "visuallyViewed": false
+    },
+    {
+      "path": "/workspace/milkup-mermaid-engine-evidence/research/edge-product-sankey-z100/paired-helper/assets/mermaid-full-12.2.0.mjs",
+      "bytes": 5254581,
+      "sha256": "043c33385b8b41bb628872f4e419c7f20886403152b045736382db36072d8c0c",
+      "visuallyViewed": false
+    },
+    {
+      "path": "/workspace/milkup-mermaid-engine-evidence/product-ui-runs/control/mermaid-ui-09/13-official-cases.json",
+      "bytes": 25706,
+      "sha256": "8bc8c7ca0dc9f6062b3757e91c8b76d56c2f9c3b76cf468ac1bf43223868bec0",
+      "visuallyViewed": false
+    },
+    {
+      "path": "/workspace/milkup-mermaid-engine-evidence/research/edge-product-sankey-z100/runs/edge-sankey-z100-forced/original-inline.png",
+      "bytes": 156980,
+      "sha256": "e198349f2654f0f138710f1b07cbe318f89175b96495ac4d3e1d049575f48d3a",
+      "visuallyViewed": true
+    },
+    {
+      "path": "/workspace/milkup-mermaid-engine-evidence/research/edge-product-sankey-z100/runs/edge-sankey-z100-forced/controlled-original.png",
+      "bytes": 157007,
+      "sha256": "27757a4ba9eb4686a334c5542be96ae775dc61876c8dd430d03818489339444c",
+      "visuallyViewed": true
+    },
+    {
+      "path": "/workspace/milkup-mermaid-engine-evidence/product-ui-runs/runs/mermaid-ui-09/matrix-ordinary-live-light-150-wide-sankey-000-first-official-example-webview.png",
+      "bytes": 225773,
+      "sha256": "103b7e4f321d7a8bd083170e6450c0432d3452f15dde0e0fa3783c4c16a134c1",
+      "visuallyViewed": true
+    },
+    {
+      "path": "/workspace/milkup-mermaid-engine-evidence/product-ui-runs/runs/mermaid-ui-09/matrix-ordinary-live-light-150-wide-sankey-000-first-official-example-x11.png",
+      "bytes": 231069,
+      "sha256": "c5a394dc757cf1b0a9aec8266c75aa8029f032839d0e24938589cf7154a1106e",
+      "visuallyViewed": true
+    },
+    {
+      "path": "/workspace/milkup-mermaid-engine-evidence/research/edge-product-sankey-z100/runs/edge-sankey-z100-forced/canonical-inline.png",
+      "bytes": 157007,
+      "sha256": "27757a4ba9eb4686a334c5542be96ae775dc61876c8dd430d03818489339444c",
+      "visuallyViewed": false
+    },
+    {
+      "path": "/workspace/milkup-mermaid-engine-evidence/research/edge-product-sankey-z100/runs/edge-sankey-z100-forced/canonical-img.png",
+      "bytes": 157007,
+      "sha256": "27757a4ba9eb4686a334c5542be96ae775dc61876c8dd430d03818489339444c",
+      "visuallyViewed": false
+    }
+  ],
+  "notEstablished": [
+    "Exact current canonical SVG/AST equality to the old original or fixed AST.",
+    "Pixel equivalence between100% standalone and150% production UI.",
+    "All labels being legible or fully on-screen at every zoom/window size.",
+    "No additional current product rendering issue beyond this observed baseline crowding."
+  ],
+  "actionBoundary": "Do not rewrite the official source, remove labels, or alter layout merely to remove inherent case crowding. Preserve this case-specific limitation in visual acceptance.",
+  "execution": "Read-only JSON/source/hash and direct view_image of four existing PNGs. No browser/native/build/test, profile access, image transformation, new rendering, or active log modification."
+}

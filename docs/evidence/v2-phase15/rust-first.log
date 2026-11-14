@@ -1,0 +1,33 @@
+   Compiling milkup-desktop v0.1.0 (/workspace/milkup/apps/desktop/src-tauri)
+error[E0277]: `LargeFileLineWindowResult` doesn't implement `Debug`
+    --> src/lib.rs:2566:18
+     |
+2566 |                 .unwrap_err()
+     |                  ^^^^^^^^^^ unsatisfied trait bound
+     |
+help: the trait `Debug` is not implemented for `LargeFileLineWindowResult`
+    --> src/lib.rs:194:1
+     |
+ 194 | struct LargeFileLineWindowResult {
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     = note: add `#[derive(Debug)]` to `LargeFileLineWindowResult` or manually `impl Debug for LargeFileLineWindowResult`
+note: required by a bound in `Result::<T, E>::unwrap_err`
+    --> /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/result.rs:1323:4
+
+error[E0277]: `LargeFileLineWindowResult` doesn't implement `Debug`
+    --> src/lib.rs:2602:18
+     |
+2602 |                 .unwrap_err()
+     |                  ^^^^^^^^^^ unsatisfied trait bound
+     |
+help: the trait `Debug` is not implemented for `LargeFileLineWindowResult`
+    --> src/lib.rs:194:1
+     |
+ 194 | struct LargeFileLineWindowResult {
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     = note: add `#[derive(Debug)]` to `LargeFileLineWindowResult` or manually `impl Debug for LargeFileLineWindowResult`
+note: required by a bound in `Result::<T, E>::unwrap_err`
+    --> /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/result.rs:1323:4
+
+For more information about this error, try `rustc --explain E0277`.
+error: could not compile `milkup-desktop` (lib test) due to 2 previous errors

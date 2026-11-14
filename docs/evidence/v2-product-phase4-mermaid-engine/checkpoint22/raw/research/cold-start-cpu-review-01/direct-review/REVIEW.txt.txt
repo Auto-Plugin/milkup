@@ -1,0 +1,24 @@
+Direct controlled-fork capability 独立核验
+读取对象：fork-capability-preparation/direct-first-result.json；本审查只解析已完成产物，未重复执行fork、未读live /proc、未运行bwrap或产品。
+
+结论
+当前这一次独立fixture中，确有存活的直接父子关系，内部父进程与外部observer两侧实际open同一/proc/469729/task/469729/children均返回errno2 ENOENT。因此该指定children接口在这两个读取时刻不可用，而不是“读到了空孩子列表”。这直接验证了当前outer /proc可用性缺口，不是对历史guardian/renderer全生命周期的重建，不证明所有proc挂载、命名空间、其他机器同样缺失，也不确定内核配置/虚拟化实现等底层原因。
+
+原始性与独立重算
+运行脚本实际SHA256 49785387a59707aeb1a8841516272b647a996be078f8b4fb63b203ed8df1542f，与已冻结候选一致。
+结果JSON SHA256 dc1cf84464901f1119d76491e48ad4d6e0079d76aa764dc801576195eb0b9004。
+verification.json保存28项独立检查，全通过：直接重新解析8份原始stat字符串的pid/birth/PPID/state，核对原始字节长度，并重算身份稳定、直接关系、ENOENT路径、elapsed及退出码；未仅信任parentStable等布尔摘要。
+
+确切身份
+observer PID469726；fixture parent PID469729/birth8925421，PPID469726；child PID469730/birth8925421，PPID469729。父子birth相同只说明同一10ms刻度内创建，身份键仍是PID+birth，不能误作身份冲突。
+inside和outside的before/after stat都保持相同PID+birth、正确PPID；child状态均S（非Z/X），parent在inside为R、outside为S。task枚举均成功且恰1个TID。children接口是error/ENOENT，非read/0bytes，childListed=false不得另解为child不存在。
+三者实际记录同user:[4026531837]、pid:[4026532200]、mnt:[4026532201]，相同uid/gid映射。这些是本次fixture原始context，不能补写旧run的namespace状态。
+
+时间与退出
+startedNs89254216435040，finishedNs89254242078065，差25643025ns=25.643025ms，小于8s计划预算。
+inside children读取89254219894675→89254220034914；outside89254220911964→89254220953109，均errno2。
+fixtureFinal.releaseReason=pipe-eof；child waitpid记录PID469730、waitStatus0/exitCode0、reaped=true；observer reaped parent469729、waitStatus0/exitCode0。两个reap都在finished之前。原脚本路径没有信号调用，原记录signalsSent=0、globalProcScans=0、productStarted=false，与静态调用范围一致。当前没有必要追加bwrap实验；它不能改变已经证明的此次outer接口缺口。
+
+对历史采样器的含义与限制
+冻结v02 children()对FileNotFoundError执行continue，会把“文件不可用”与“成功读取但无child”混成没有后代而无error。此fixture证明这种不可用情况确实可以出现在当前context，解释了必须修正记录分类的理由。但历史02/03没有保存这些实际open errno，不能宣称已逐次证实历史guardian全是ENOENT，也不能借此重写旧样本或推算缺失renderer CPU。
+后续候选只应明确标记children读取缺口及coverage incomplete，不能用全局/proc扫描或猜PID填补。renderer身份如何由权威native记录提供属于另一个单独审阅设计。旧production08 timeout根因仍未由本能力probe解释。

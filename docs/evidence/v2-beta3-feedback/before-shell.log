@@ -1,0 +1,65 @@
+
+Running 2 tests using 1 worker
+
+(node:49336) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  1 tests/e2e/desktop-plugin-cards.spec.ts:242:1 › beta3 card switch toggles in place without opening details (6.8s)
+(node:49482) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  2 tests/e2e/desktop-shell.spec.ts:1605:1 › beta3 menu covers inert titlebar and retains an accessible close button (1.1s)
+
+
+  1) tests/e2e/desktop-plugin-cards.spec.ts:242:1 › beta3 card switch toggles in place without opening details 
+
+    Error: expect(locator).toHaveAttribute(expected) failed
+
+    Locator: locator('.plugin-summary-card[data-plugin-id="cards.beta"]').getByRole('switch')
+    Expected: "false"
+    Timeout: 5000ms
+    Error: element(s) not found
+
+    Call log:
+      - Expect "toHaveAttribute" with timeout 5000ms
+      - waiting for locator('.plugin-summary-card[data-plugin-id="cards.beta"]').getByRole('switch')
+
+
+      243 |   await seed(page)
+      244 |   const card = page.locator('.plugin-summary-card[data-plugin-id="cards.beta"]')
+    > 245 |   await expect(card.getByRole('switch')).toHaveAttribute('aria-checked', 'false')
+          |                                          ^
+      246 |   await card.locator('.plugin-card-title').click()
+      247 |   await expect(page.locator('.plugin-detail')).toHaveCount(0)
+      248 |   await card.getByRole('switch').click()
+        at /tmp/milkup-windows-manual-candidate/tests/e2e/desktop-plugin-cards.spec.ts:245:42
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ../milkup-beta3-evidence/browser/desktop-plugin-cards-beta3-3245e-ace-without-opening-details/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ../milkup-beta3-evidence/browser/desktop-plugin-cards-beta3-3245e-ace-without-opening-details/error-context.md
+
+  2) tests/e2e/desktop-shell.spec.ts:1605:1 › beta3 menu covers inert titlebar and retains an accessible close button 
+
+    Error: expect(received).toBe(expected) // Object.is equality
+
+    Expected: true
+    Received: false
+
+      1610 |     const top = document.elementFromPoint(20, 10)
+      1611 |     return rect.top === 0 && !!top && menu.contains(top)
+    > 1612 |   })).toBe(true)
+           |       ^
+      1613 |   await page.getByRole('button', { name: '关闭菜单', exact: true }).click()
+      1614 |   await expect(page.locator('[data-app-menu]')).toBeHidden()
+      1615 | })
+        at /tmp/milkup-windows-manual-candidate/tests/e2e/desktop-shell.spec.ts:1612:7
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ../milkup-beta3-evidence/browser/desktop-shell-beta3-menu-c-0c5fb--an-accessible-close-button/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ../milkup-beta3-evidence/browser/desktop-shell-beta3-menu-c-0c5fb--an-accessible-close-button/error-context.md
+
+  2 failed
+    tests/e2e/desktop-plugin-cards.spec.ts:242:1 › beta3 card switch toggles in place without opening details 
+    tests/e2e/desktop-shell.spec.ts:1605:1 › beta3 menu covers inert titlebar and retains an accessible close button 

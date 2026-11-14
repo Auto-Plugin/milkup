@@ -1,0 +1,29 @@
+# Static offline validation plan
+
+Prepared without building or executing either validator/comparator. No product files changed. The existing `validation/` draft was handed from update_plugin to view_fixes; its original scripts are preserved here as `*-initial.mjs.txt`. This is not a second independent validator implementation.
+
+## Inputs and exact contracts
+
+Each `harness/run/{01-A,02-B,03-B,04-A}/result/` contains `outcome.json` and, for each sent request, its exact `request-{1,2}.json` RPC envelope. Successful result events are `event-{1,2}.json`, full DomEvent envelopes. `message.value` is the complete typed result; `payload.request` is the exact context. A native deadline event is not a valid output. The censored second request has no fabricated event and must remain absent.
+
+The shared fixture source is 529 UTF-8 bytes, source range 440..969, light theme, width1100. Actual context is always read from each recorded request, not substituted from those expectations. Both request IDs are checked against event IDs. Manifest renderer declaration is looked up by actual rendererId; plugin IDs must match.
+
+Frozen current core exports used without source changes:
+
+- `copyDocumentPresentationRequest(value)`
+- `copyDocumentPresentationResult(value, request, declaration)`
+- `copyDocumentPresentationAggregate(value, request, [declaration])`
+- `serializeDocumentPresentationNode(content, request)`
+- Internal exported codec `createDocumentOutputBudget()` and `copyDocumentSvgImage(value, sharedBudget, 1)` for diagnostic cost counters only.
+
+Full result and aggregate admission happen before per-fragment serialization. Original node4096/depth64/output256KiB, canonical and geometric shared budgets remain unchanged. `svgAggregateBudget` reports exact codec counters (nodes/text/expanded/work/canonicalBytes) shared across images; **it excludes fragment accessibleText/message text** and is not presented as a complete exposed result-budget counter. The full result validator independently enforces that enclosing budget. One-request admission is not combined with another independent task's output.
+
+No output fields, IDs, styles or numeric values are normalized for comparison. Event SHA hashes original persisted bytes. `rawValueSha256` hashes `JSON.stringify` of the parsed complete value, explicitly not a byte slice of the original JSON envelope. `validatedValueSha256` hashes the core-returned closed value. Canonical SVG hashes and byte lengths use the actual current serializer; dimensions/viewBox/rasterBounds are reported. No claim of pixel equality follows from accepted output or equal dimensions; varying hand-drawn geometry may legitimately make typed/canonical hashes differ.
+
+## Commands after separate CPU/build authorization
+
+1. From `validation/`: `MILKUP_EAGER_BUILD_APPROVED=1 node build-validator.mjs`. The build locks the four frozen core inputs, esbuild0.25.12 and no external imports; the small entry reexports the existing functions only. Its SHA is recorded in validator-build.json.
+2. For each native `status=result`, run `node validation/verify-event.mjs CELL/result/event-1.json CELL/result/request-1.json fixtures/class-manifest.json render_1 CELL/result/validation-1.json` (analogous render_2). Rejection writes a report and exits nonzero; preserve it. Do not invoke this command for censored requests or treat a control event as a result.
+3. Run `node analysis/compare-abba.mjs harness/run analysis/abba-comparison.json`. It compares all six cross-cell pairs separately for first/second positions and all four within-helper pairs. Different request contexts are explicitly flagged; no normalization makes them equal. It counts all typed differences and saves the first100 JSON-pointer differences, with omitted count.
+
+Fresh output files use exclusive-create semantics. No historical result is overwritten. Before execution, confirm the source-freeze hashes still match the intended current product. Scripts themselves are currently static, uncompiled/unrun and may still require a first-run fixture correction; preserve any such first error rather than label it a product failure.

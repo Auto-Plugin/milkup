@@ -1,0 +1,20 @@
+{
+  "command": [
+    "bash",
+    "scripts/cloud/pnpm.sh",
+    "exec",
+    "prettier",
+    "--check",
+    "scripts/ci/prepare-bundled-plugins.mjs",
+    "scripts/ci/public-plugin-build-contract.mjs",
+    "scripts/ci/verify-public-plugin-builds.mjs",
+    "release/bundled-plugins.json",
+    "tests/ci/public-plugin-build-contract.test.mjs",
+    "tests/ci/public-plugin-dom-build.test.mjs"
+  ],
+  "cwd": "/workspace/milkup",
+  "startedAt": "2026-10-16T10:58:59.875630+00:00",
+  "endedAt": "2026-10-16T10:59:00.879173+00:00",
+  "exitCode": 0,
+  "logSha256": "17aa973d3f004560237d9a95171210b0671deff23d61628eecf7322ff5938f20"
+}

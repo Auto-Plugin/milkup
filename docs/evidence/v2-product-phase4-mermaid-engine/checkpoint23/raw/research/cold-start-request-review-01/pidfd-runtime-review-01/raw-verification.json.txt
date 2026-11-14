@@ -1,0 +1,127 @@
+{
+  "reviewedAtUtc": "2026-10-17T01:55:10.838918+00:00",
+  "classification": "INDEPENDENT_READ_ONLY_REVIEW_OF_ROOT_SINGLE_DIRECT_PROBE",
+  "input": {
+    "path": "/workspace/milkup-mermaid-engine-evidence/research/cold-start-cpu-review-01/pidfd-capability-preparation/direct-first-result.json",
+    "bytes": 16827,
+    "sha256": "4d82b6ffad4874a2f66e9b289413d2d0fce3114f150040e03f794ffa6d957777",
+    "scriptSha256AtReview": "1de5425c31e89b64be90b76052284759a43f8194fd4c49461c865df7462338f7"
+  },
+  "rawFieldChecks": [
+    {
+      "snapshot": "inside",
+      "fdEntriesObserved": 9,
+      "fdRecordsRead": 9,
+      "scanBudgetExceeded": false,
+      "durationNs": 761422,
+      "ownerBeforeReparsed": {
+        "pid": 470393,
+        "birth": 8961866,
+        "parent": 470390,
+        "state": "R"
+      },
+      "ownerAfterReparsed": {
+        "pid": 470393,
+        "birth": 8961866,
+        "parent": 470390,
+        "state": "R"
+      },
+      "derivedPidfdTargets": [
+        {
+          "fdDiscovered": 5,
+          "pidFromRawFdinfo": 470394,
+          "nspidFromRaw": [
+            470394
+          ],
+          "rawFdinfoBeforeAfterEqual": true,
+          "rawFdinfoSha256": "e32e95d61b66ce5464e31b1f8d8d2f30c6d90f32ef092e09b1572ef3ad144c58",
+          "targetBeforeReparsed": {
+            "pid": 470394,
+            "birth": 8961866,
+            "parent": 470393,
+            "state": "S"
+          },
+          "targetAfterReparsed": {
+            "pid": 470394,
+            "birth": 8961866,
+            "parent": 470393,
+            "state": "S"
+          },
+          "oracleMatchesAfterDerivation": true
+        }
+      ],
+      "unavailableFdRecords": [
+        {
+          "fd": 8,
+          "errno": 2,
+          "errnoName": "ENOENT"
+        }
+      ]
+    },
+    {
+      "snapshot": "outside",
+      "fdEntriesObserved": 8,
+      "fdRecordsRead": 8,
+      "scanBudgetExceeded": false,
+      "durationNs": 597099,
+      "ownerBeforeReparsed": {
+        "pid": 470393,
+        "birth": 8961866,
+        "parent": 470390,
+        "state": "S"
+      },
+      "ownerAfterReparsed": {
+        "pid": 470393,
+        "birth": 8961866,
+        "parent": 470390,
+        "state": "S"
+      },
+      "derivedPidfdTargets": [
+        {
+          "fdDiscovered": 5,
+          "pidFromRawFdinfo": 470394,
+          "nspidFromRaw": [
+            470394
+          ],
+          "rawFdinfoBeforeAfterEqual": true,
+          "rawFdinfoSha256": "e32e95d61b66ce5464e31b1f8d8d2f30c6d90f32ef092e09b1572ef3ad144c58",
+          "targetBeforeReparsed": {
+            "pid": 470394,
+            "birth": 8961866,
+            "parent": 470393,
+            "state": "S"
+          },
+          "targetAfterReparsed": {
+            "pid": 470394,
+            "birth": 8961866,
+            "parent": 470393,
+            "state": "S"
+          },
+          "oracleMatchesAfterDerivation": true
+        }
+      ],
+      "unavailableFdRecords": []
+    }
+  ],
+  "sameRecordedNamespacesUidGid": true,
+  "workerReleaseReason": "pipe-eof",
+  "childReap": {
+    "pid": 470394,
+    "reaped": true,
+    "waitStatus": 0,
+    "exitCode": 0,
+    "atNs": 89618680248654
+  },
+  "workerReap": {
+    "pid": 470393,
+    "reaped": true,
+    "waitStatus": 0,
+    "exitCode": 0,
+    "atNs": 89618690582795
+  },
+  "elapsedNs": 28856707,
+  "narrowDirectChildCapabilityConfirmed": true,
+  "fullRendererTreeCoverage": false,
+  "reviewerProbeExecutions": 0,
+  "qualification": "Reparsed recorded raw strings only; no live proc reads or rerun. Exact child/worker wait statuses verified independently of complete boolean. No cross-namespace or full descendant discovery claim."
+}

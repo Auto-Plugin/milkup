@@ -1,0 +1,29 @@
+{
+  "atUtc": "2026-10-16T18:27:30.122178+00:00",
+  "reviewed": [
+    "complete mechanism-test diff from completed A/C",
+    "run-abba.sh",
+    "verify-cell.py",
+    "build-fixtures.mjs",
+    "A/B source patch and common initialization",
+    "offline validator/build/compare scripts and exact core exports"
+  ],
+  "harnessPreparationSha256": "617a0ccd1e7f1ab2392cffcaf892b51f7800d94c138f16ec7c88afeae10499ed",
+  "harnessFilesActuallyChecked": 16,
+  "allHarnessHashesMatch": true,
+  "fixtureIndexSha256": "3c2204f09e080f9de067745b4fb8ac27bed62bcc7c68971ff8370c82428f3db3",
+  "actualModules": {
+    "A": "bd4ccc11c9b7948ae878551ea1e7916adcb499ebca640b2205df0876d76efe0b",
+    "B": "ee1b1af3206d2826c9b37b17b2b197f8c6415ad9805a9dfaaab9c35de844743a"
+  },
+  "actualValidatorSha256": "a470330dcf0a22b877d68f4e241b3c8caf0cde8e36eb8516ec02f0c8a4f04fab",
+  "limits": [
+    "A common strict initialization differs from product baseline.",
+    "Same hidden diagnostic helper; no product container change.",
+    "Two real requests, no fake prewarm; original native 2s/10s retained.",
+    "Native deadline censors subsequent request, setup failures stop all further cells.",
+    "Canonical validation is offline after active tasks; no pixel equivalence or CPU attribution."
+  ],
+  "nativeTestBuilt": false,
+  "runtimeStarted": false
+}

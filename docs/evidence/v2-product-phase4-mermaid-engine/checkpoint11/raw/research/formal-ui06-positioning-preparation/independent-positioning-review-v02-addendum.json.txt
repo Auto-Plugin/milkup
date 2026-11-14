@@ -1,0 +1,19 @@
+{
+  "author": "release_sdk",
+  "decision": "Both precision recommendations implemented; no incremental blocker",
+  "scope": "Read-only two-hunk diff and frozen identity review; no tests/build/UI/runtime",
+  "previousReview": "independent-positioning-review.json",
+  "harnessSha256": "a00f14ca30d468fd33f92c14c9f060fcf658e10cbc046cdbb135fbfb4441fc6b",
+  "revision02ManifestSha256": "a1195cd52b542c31f1d0b7fb95a3bfef714e269710704d800be56405f52d5048",
+  "correctionsPatchSha256": "67cbb495524df7e2bfc5d9d6dd81cb4038eb4d65a94363ebcf936241d8c7d105",
+  "verifiedChanges": [
+    "Visibility now intersects editor clientLeft/clientTop/clientWidth/clientHeight with WebView bounds, excluding border and native scrollbar area.",
+    "Elapsed time is checked immediately after readPosition and before successful positioning can be accepted. Existing pre-wheel bound remains."
+  ],
+  "preserved": "No additional changes relative to reviewedv1 beyond these two corrections.20ticks/2reversals and original render/decode/history/save/matrix assertions remain.",
+  "limits": [
+    "100ms observation is not global rendering quiescence.",
+    "Synchronous tool roundtrips cannot be preempted; overshoot is rejected on return.",
+    "No UI06 outcome was inspected or claimed; prior failure evidence remains unchanged."
+  ]
+}

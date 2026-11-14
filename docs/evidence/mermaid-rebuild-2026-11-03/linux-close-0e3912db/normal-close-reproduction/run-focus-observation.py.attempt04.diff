@@ -1,0 +1,14 @@
+--- /workspace/mermaid-rebuild-evidence/linux-close-0e3912db/normal-close-reproduction/run-focus-observation-attempt-03.py	2026-11-03 14:48:51.977307769 +0000
++++ /workspace/mermaid-rebuild-evidence/linux-close-0e3912db/normal-close-reproduction/run-focus-observation.py	2026-11-03 14:48:51.977712699 +0000
+@@ -72,6 +72,11 @@
+     (root/'harness.log').write_text(run.stdout)
+     print(run.stdout,flush=True)
+     exitcode=run.returncode
++    # Let the read-only sampler finish normally before tearing down its group.
++    sampler.wait(timeout=5)
++    observation=json.loads((root/'evidence/x11-observation-summary.json').read_text())
++    if sampler.returncode != 0 or observation['overflow'] or not observation['stoppedByHarness'] or observation['retainedSamples'] < 2:
++        raise RuntimeError('Focus observation incomplete or sampler did not exit naturally')
+ except Exception as error:
+     (root/'orchestration-error.json').write_text(json.dumps({'error':str(error),'type':type(error).__name__},indent=2)+'\n')
+     print(str(error),file=sys.stderr,flush=True)

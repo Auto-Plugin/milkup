@@ -1,0 +1,207 @@
+{
+  "sink": {
+    "events": [
+      {
+        "client": 1,
+        "nativeInstanceId": null,
+        "phase": "queued",
+        "requestId": "render_1",
+        "pluginId": "fixture",
+        "rendererId": "diagram",
+        "activeId": null,
+        "queueDepth": 1,
+        "detail": null,
+        "requestJson": "{\"pluginId\":\"fixture\",\"rendererId\":\"diagram\",\"request\":{\"documentId\":\"first\",\"version\":1,\"from\":0,\"to\":5,\"source\":\"hello\",\"fromLine\":1,\"toLine\":1,\"completeStart\":true,\"completeEnd\":true,\"contextKnown\":true,\"protectedRanges\":[],\"blocks\":[],\"selection\":{\"anchor\":0,\"head\":0},\"theme\":\"light\",\"target\":\"screen\",\"width\":380}}",
+        "frontendMs": 989.428771,
+        "captureEndMs": 989.477456
+      },
+      {
+        "client": 1,
+        "nativeInstanceId": null,
+        "phase": "dispatch",
+        "requestId": "render_1",
+        "pluginId": "fixture",
+        "rendererId": "diagram",
+        "activeId": "render_1",
+        "queueDepth": 0,
+        "detail": null,
+        "requestJson": null,
+        "frontendMs": 989.528199,
+        "captureEndMs": 989.537547
+      },
+      {
+        "client": 1,
+        "nativeInstanceId": null,
+        "phase": "queued",
+        "requestId": "render_2",
+        "pluginId": "fixture",
+        "rendererId": "diagram",
+        "activeId": "render_1",
+        "queueDepth": 1,
+        "detail": null,
+        "requestJson": "{\"pluginId\":\"fixture\",\"rendererId\":\"diagram\",\"request\":{\"documentId\":\"removed\",\"version\":1,\"from\":0,\"to\":5,\"source\":\"hello\",\"fromLine\":1,\"toLine\":1,\"completeStart\":true,\"completeEnd\":true,\"contextKnown\":true,\"protectedRanges\":[],\"blocks\":[],\"selection\":{\"anchor\":0,\"head\":0},\"theme\":\"light\",\"target\":\"screen\",\"width\":380}}",
+        "frontendMs": 990.217889,
+        "captureEndMs": 990.234884
+      },
+      {
+        "client": 1,
+        "nativeInstanceId": null,
+        "phase": "queued",
+        "requestId": "render_3",
+        "pluginId": "fixture",
+        "rendererId": "diagram",
+        "activeId": "render_1",
+        "queueDepth": 2,
+        "detail": null,
+        "requestJson": "{\"pluginId\":\"fixture\",\"rendererId\":\"diagram\",\"request\":{\"documentId\":\"survivor\",\"version\":1,\"from\":0,\"to\":5,\"source\":\"hello\",\"fromLine\":1,\"toLine\":1,\"completeStart\":true,\"completeEnd\":true,\"contextKnown\":true,\"protectedRanges\":[],\"blocks\":[],\"selection\":{\"anchor\":0,\"head\":0},\"theme\":\"light\",\"target\":\"screen\",\"width\":380}}",
+        "frontendMs": 990.274219,
+        "captureEndMs": 990.283694
+      },
+      {
+        "client": 1,
+        "nativeInstanceId": null,
+        "phase": "cancel-queued",
+        "requestId": "render_2",
+        "pluginId": "fixture",
+        "rendererId": "diagram",
+        "activeId": "render_1",
+        "queueDepth": 2,
+        "detail": null,
+        "requestJson": null,
+        "frontendMs": 990.49108,
+        "captureEndMs": 990.499822
+      },
+      {
+        "client": 1,
+        "nativeInstanceId": null,
+        "phase": "cancel-active",
+        "requestId": "render_1",
+        "pluginId": "fixture",
+        "rendererId": "diagram",
+        "activeId": "render_1",
+        "queueDepth": 1,
+        "detail": null,
+        "requestJson": null,
+        "frontendMs": 990.589619,
+        "captureEndMs": 990.596737
+      },
+      {
+        "client": 1,
+        "nativeInstanceId": null,
+        "phase": "remote-settled",
+        "requestId": "render_1",
+        "pluginId": "fixture",
+        "rendererId": "diagram",
+        "activeId": "render_1",
+        "queueDepth": 1,
+        "detail": "false",
+        "requestJson": null,
+        "frontendMs": 991.933361,
+        "captureEndMs": 991.950252
+      },
+      {
+        "client": 1,
+        "nativeInstanceId": null,
+        "phase": "dispatch",
+        "requestId": "render_3",
+        "pluginId": "fixture",
+        "rendererId": "diagram",
+        "activeId": "render_3",
+        "queueDepth": 0,
+        "detail": null,
+        "requestJson": null,
+        "frontendMs": 992.116756,
+        "captureEndMs": 992.132173
+      },
+      {
+        "client": 1,
+        "nativeInstanceId": null,
+        "phase": "remote-settled",
+        "requestId": "render_3",
+        "pluginId": "fixture",
+        "rendererId": "diagram",
+        "activeId": "render_3",
+        "queueDepth": 0,
+        "detail": "true",
+        "requestJson": null,
+        "frontendMs": 992.278991,
+        "captureEndMs": 992.507184
+      }
+    ],
+    "clients": 1,
+    "bytes": 7040,
+    "dropped": 0,
+    "errors": 0
+  },
+  "calls": [
+    "first",
+    "survivor"
+  ],
+  "sent": [
+    {
+      "protocol": "milkup.plugin.document-render.v1",
+      "type": "render",
+      "id": "render_1",
+      "payload": {
+        "pluginId": "fixture",
+        "rendererId": "diagram",
+        "request": {
+          "documentId": "first",
+          "version": 1,
+          "from": 0,
+          "to": 5,
+          "source": "hello",
+          "fromLine": 1,
+          "toLine": 1,
+          "completeStart": true,
+          "completeEnd": true,
+          "contextKnown": true,
+          "protectedRanges": [],
+          "blocks": [],
+          "selection": {
+            "anchor": 0,
+            "head": 0
+          },
+          "theme": "light",
+          "target": "screen",
+          "width": 380
+        }
+      }
+    },
+    {
+      "protocol": "milkup.plugin.document-render.v1",
+      "type": "cancel",
+      "id": "render_1"
+    },
+    {
+      "protocol": "milkup.plugin.document-render.v1",
+      "type": "render",
+      "id": "render_3",
+      "payload": {
+        "pluginId": "fixture",
+        "rendererId": "diagram",
+        "request": {
+          "documentId": "survivor",
+          "version": 1,
+          "from": 0,
+          "to": 5,
+          "source": "hello",
+          "fromLine": 1,
+          "toLine": 1,
+          "completeStart": true,
+          "completeEnd": true,
+          "contextKnown": true,
+          "protectedRanges": [],
+          "blocks": [],
+          "selection": {
+            "anchor": 0,
+            "head": 0
+          },
+          "theme": "light",
+          "target": "screen",
+          "width": 380
+        }
+      }
+    }
+  ]
+}

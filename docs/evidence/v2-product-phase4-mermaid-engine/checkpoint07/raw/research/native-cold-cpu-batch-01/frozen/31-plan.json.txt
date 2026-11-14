@@ -1,0 +1,72 @@
+{
+  "preparedAt": "2026-10-16T17:28:43.469338+00:00",
+  "status": "STATIC_INTEGRATED_PENDING_ROOT_REVIEW_AND_RUNTIME_GO",
+  "classification": "DIAGNOSTIC_ONLY_NOT_ACCEPTANCE",
+  "binary": {
+    "path": "/workspace/milkup-mermaid-engine-evidence/research/native-dom-stage-candidate-01/install/usr/bin/milkup-desktop",
+    "sha256": "8041da503dac6cc0ff5d45d4c11982ca4b6a898930f3e4ecc3442d8cb1e4d140"
+  },
+  "batch": {
+    "maximumRuns": 3,
+    "serial": true,
+    "freshProfiles": true,
+    "stopOnFirstFailure": true,
+    "retry": false,
+    "acceptedScope": "coldBundledWindow only",
+    "otherPrefix": false,
+    "matrix": false,
+    "controller": "Manual strictly serial owner orchestration; no auto-retry or automatic loop. After exact driver cleanup, inspect UI exit and sampler completion; only both successful may next fresh case start."
+  },
+  "samplerDraftContract": {
+    "command": [
+      "/usr/bin/python3",
+      "/workspace/milkup-mermaid-engine-evidence/research/native-dom-cpu-sampler-01/cpu_sampler.py",
+      "--output",
+      "<run>/cpu-observer",
+      "--app-log",
+      "<driver native log>"
+    ],
+    "stdin": "One JSON line containing exact owner.identity pid,birth,argv",
+    "start": "Immediately after original ownedApplication, exact environment checks and native-owned-profile write; before existing page diagnostics/window sizing/coldBundledWindow",
+    "waitBeforeCold": false,
+    "firstDispatch": "Earliest actual exact App dispatch in existing log, even if it predates sampler startup",
+    "window": "Original first dispatch + 10s, never extended",
+    "coverage": "Record startup latency/missed head; do not relabel first observed sample as dispatch",
+    "exitWait": "App closes normally immediately in original finally; then wait for sampler natural bounded completion before next fresh run",
+    "caps": {
+      "intervalMs": 50,
+      "discoveryMs": 250,
+      "samples": 201,
+      "bytes": 2097152
+    },
+    "exitCodes": {
+      "0": "Bounded observation complete; not product acceptance",
+      "2": "Incomplete observation, stops whole batch"
+    },
+    "cgroupCpuStat": false
+  },
+  "firstFailure": "Preserve original thrown UI failure, existing FAIL snapshot, sampler completion and driver log; stop batch. Sampler nonzero/identity failure also prevents another run. No deadline change.",
+  "connectionPoints": "Absolute helper imports/provenance retained; no UI observer, callback or fetch wrapper, signals, IPC or CPU load generator.",
+  "pending": [
+    "Independent sampler review and possible frozen revision",
+    "Root checkpoint commit/push and explicit unique runtime GO"
+  ],
+  "files": [],
+  "commands": {
+    "cwd": "/workspace/milkup",
+    "driver": [
+      "bash",
+      "/workspace/milkup-mermaid-engine-evidence/research/native-cold-cpu-batch-01/driver.sh",
+      "<1|2|3>"
+    ],
+    "harnessShell": "source /workspace/milkup-mermaid-engine-evidence/research/native-cold-cpu-batch-01/env.sh <1|2|3>\nnode /workspace/milkup-mermaid-engine-evidence/research/native-cold-cpu-batch-01/cold-diagnostic.mjs",
+    "cleanup": "Exact owned tauri-driver pid/birth/argv verified through pidfd, then SIGTERM; record exit and ports empty before any next case."
+  },
+  "beforeEachCase": [
+    "Verify frozen inputs SHA/bytes; original history unaffected",
+    "Require profile, short runtime, log and evidence paths all absent",
+    "Check exact Xvfb :126 pid/birth and ports 4626/4627 free",
+    "Start only one driver; readiness/status no active sessions",
+    "Run unchanged cold gate, preserve first error and original diagnostic logs"
+  ]
+}

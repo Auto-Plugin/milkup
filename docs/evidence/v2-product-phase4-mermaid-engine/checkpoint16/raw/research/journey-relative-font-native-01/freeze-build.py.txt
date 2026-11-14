@@ -1,0 +1,11 @@
+from pathlib import Path
+import json,hashlib,shutil,subprocess
+r=Path(__file__).resolve().parent
+rows=[json.loads(s) for s in (r/'build-logs/paint.jsonl').read_text().splitlines() if s.startswith('{')]
+outputs=[Path(v['executable']) for v in rows if v.get('reason')=='compiler-artifact' and v.get('executable') and v['target']['name']=='milkup-mermaid-snapshot-probe']
+assert len(outputs)==1,outputs
+out=r/'bin/paint';assert not out.exists();shutil.copyfile(outputs[0],out);out.chmod(0o755)
+files=[]
+for p in [out,r/'extensions/libpaired_resource_guard.so',*sorted((r/'paint-helper/assets').iterdir())]:
+ b=p.read_bytes();files.append({'path':str(p),'bytes':len(b),'sha256':hashlib.sha256(b).hexdigest()})
+(r/'build-logs/paint-artifacts.json').write_text(json.dumps({'compilerArtifact':str(outputs[0]),'files':files,'buildId':subprocess.check_output(['readelf','-n',str(out)],text=True)},indent=2)+'\n')

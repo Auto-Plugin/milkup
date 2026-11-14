@@ -1,0 +1,56 @@
+[
+  {
+    "name": "js",
+    "command": ["pnpm", "-r", "--workspace-concurrency=1", "test"],
+    "started": "2026-10-13T19:59:22.407074+00:00",
+    "exitCode": 0
+  },
+  {
+    "name": "supplemental",
+    "command": [
+      "pnpm",
+      "exec",
+      "vitest",
+      "run",
+      "plugins/outline/src/plugin.test.ts",
+      "tests/helpers/native-startup.test.ts"
+    ],
+    "started": "2026-10-13T19:59:46.273393+00:00",
+    "exitCode": 0
+  },
+  {
+    "name": "typecheck",
+    "command": ["pnpm", "typecheck"],
+    "started": "2026-10-13T19:59:47.573019+00:00",
+    "exitCode": 0
+  },
+  {
+    "name": "build",
+    "command": ["pnpm", "build"],
+    "started": "2026-10-13T19:59:58.736942+00:00",
+    "exitCode": 0
+  },
+  {
+    "name": "rust",
+    "command": ["cargo", "test", "--manifest-path", "apps/desktop/src-tauri/Cargo.toml", "--lib"],
+    "started": "2026-10-13T20:00:09.250401+00:00",
+    "exitCode": 0
+  },
+  {
+    "name": "rust-fmt",
+    "command": ["cargo", "fmt", "--manifest-path", "apps/desktop/src-tauri/Cargo.toml", "--check"],
+    "started": "2026-10-13T20:00:09.747992+00:00",
+    "exitCode": 0
+  },
+  {
+    "name": "browser",
+    "command": ["pnpm", "test:e2e", "--workers=1"],
+    "started": "2026-10-13T20:00:09.829670+00:00",
+    "exitCode": 0
+  },
+  {
+    "name": "lint",
+    "command": ["pnpm", "lint"],
+    "exitCode": 0
+  }
+]

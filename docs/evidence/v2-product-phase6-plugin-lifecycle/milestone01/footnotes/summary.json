@@ -1,0 +1,37 @@
+{
+  "baseline": "1388f646",
+  "productFiles": [
+    "plugins/footnotes/src/controller.ts",
+    "plugins/footnotes/src/controller.test.ts"
+  ],
+  "red": {
+    "exit": 1,
+    "failed": 8,
+    "passed": 21
+  },
+  "green": {
+    "exit": 0,
+    "passed": 29
+  },
+  "typecheck": {
+    "directIndependentProject": {
+      "exit": 2,
+      "reason": "Independent package has no installed @milkup/plugin-sdk. No dependency/lock changes performed."
+    },
+    "publicSDK036Mapping": {
+      "exit": 0,
+      "config": "tsconfig.public-sdk.json",
+      "scope": "Unmodified plugin tsconfig plus external path mapping to public SDK declaration only, not an installed-package/release acceptance."
+    }
+  },
+  "initialInvocationError": "red-invocation-error.log retained: repo cwd did not match plugin-relative Vitest include; not counted as semantic RED",
+  "boundaries": [
+    "No await scan in renderer",
+    "No native2s change",
+    "No package/version/lock edits",
+    "No UI run"
+  ],
+  "formatExit": 0,
+  "diffCheckExit": 0,
+  "frozen": true
+}

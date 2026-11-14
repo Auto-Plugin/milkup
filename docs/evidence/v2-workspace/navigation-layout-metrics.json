@@ -1,0 +1,583 @@
+{
+  "config": {
+    "argv": [
+      "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+      "/workspace/milkup/node_modules/@playwright/test/cli.js",
+      "test",
+      "tests/e2e/desktop-plugin-tree.spec.ts",
+      "--project=desktop-msedge",
+      "--workers=2",
+      "--reporter=list,json",
+      "--output=/workspace/milkup-workspace-evidence/browser-review/navigation-after"
+    ],
+    "configFile": "/workspace/milkup/playwright.config.ts",
+    "rootDir": "/workspace/milkup/tests/e2e",
+    "failOnFlakyTests": false,
+    "forbidOnly": false,
+    "fullyParallel": false,
+    "globalSetup": null,
+    "globalTeardown": null,
+    "globalTimeout": 0,
+    "grep": {},
+    "grepInvert": null,
+    "maxFailures": 0,
+    "metadata": {
+      "actualWorkers": 1
+    },
+    "preserveOutput": "always",
+    "projects": [
+      {
+        "outputDir": "/workspace/milkup-workspace-evidence/browser-review/navigation-after",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "playground-msedge",
+        "name": "playground-msedge",
+        "testDir": "/workspace/milkup/tests/e2e",
+        "testIgnore": [],
+        "testMatch": ["/live-render\\.spec\\.ts/"],
+        "timeout": 60000
+      },
+      {
+        "outputDir": "/workspace/milkup-workspace-evidence/browser-review/navigation-after",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "desktop-msedge",
+        "name": "desktop-msedge",
+        "testDir": "/workspace/milkup/tests/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "/desktop-(?:shell|visual-fixes|updates|plugin-cards|plugin-tree|workspace)\\.spec\\.ts/"
+        ],
+        "timeout": 60000
+      }
+    ],
+    "quiet": false,
+    "reporter": [["list"], ["json"]],
+    "reportSlowTests": {
+      "max": 5,
+      "threshold": 300000
+    },
+    "shard": null,
+    "tags": [],
+    "updateSnapshots": "missing",
+    "updateSourceMethod": "patch",
+    "version": "1.61.1",
+    "workers": 2,
+    "webServer": null
+  },
+  "suites": [
+    {
+      "title": "desktop-plugin-tree.spec.ts",
+      "file": "desktop-plugin-tree.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "controlled trees navigate visible items and preserve focus through asynchronous refresh",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "desktop-msedge",
+              "projectName": "desktop-msedge",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1650,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-15T05:34:05.978Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "a60ac0125792c5a24181-e4c10d5017cfd270bcc8",
+          "file": "desktop-plugin-tree.spec.ts",
+          "line": 148,
+          "column": 1
+        },
+        {
+          "title": "collapsing a controlled panel reports visibility and keeps its keyboard return point",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "desktop-msedge",
+              "projectName": "desktop-msedge",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 774,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-15T05:34:08.500Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "a60ac0125792c5a24181-a2441b930d5d0b1b1833",
+          "file": "desktop-plugin-tree.spec.ts",
+          "line": 188,
+          "column": 1
+        },
+        {
+          "title": "only the same synchronous native button action receives its trusted click or keydown",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "desktop-msedge",
+              "projectName": "desktop-msedge",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 904,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-15T05:34:09.292Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "a60ac0125792c5a24181-3c9ab8ce1eb623e9e68f",
+          "file": "desktop-plugin-tree.spec.ts",
+          "line": 218,
+          "column": 1
+        },
+        {
+          "title": "controlled navigation remains visible and keyboard usable in light at narrow 200% CSS zoom",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "desktop-msedge",
+              "projectName": "desktop-msedge",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 656,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-15T05:34:10.222Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "a60ac0125792c5a24181-f3fad431f4a003b6844c",
+          "file": "desktop-plugin-tree.spec.ts",
+          "line": 294,
+          "column": 3
+        },
+        {
+          "title": "controlled navigation remains visible and keyboard usable in dark at narrow 200% CSS zoom",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "desktop-msedge",
+              "projectName": "desktop-msedge",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 699,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-15T05:34:10.902Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "a60ac0125792c5a24181-4af5ff1f35c8cc8d941f",
+          "file": "desktop-plugin-tree.spec.ts",
+          "line": 294,
+          "column": 3
+        },
+        {
+          "title": "navigation secondary list light 1100 with 3 recent rows preserves the primary tree",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "desktop-msedge",
+              "projectName": "desktop-msedge",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1368,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-15T05:34:11.633Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "navigation-dimensions",
+                      "contentType": "application/json",
+                      "body": "eyJwYW5lbCI6MzE2LCJ0cmVlIjoxMDUsInNlY29uZGFyeSI6NzksInBhZGRpbmciOiIwcHgiLCJzZWNvbmRhcnlTY3JvbGxhYmxlIjp0cnVlLCJwYW5lbFNjcm9sbGFibGUiOmZhbHNlfQ=="
+                    }
+                  ]
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "a60ac0125792c5a24181-0277e2cf53ba6fc3c047",
+          "file": "desktop-plugin-tree.spec.ts",
+          "line": 332,
+          "column": 7
+        },
+        {
+          "title": "navigation secondary list light 1100 with 20 recent rows preserves the primary tree",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "desktop-msedge",
+              "projectName": "desktop-msedge",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1499,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-15T05:34:13.024Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "navigation-dimensions",
+                      "contentType": "application/json",
+                      "body": "eyJwYW5lbCI6MzE2LCJ0cmVlIjoxMDUsInNlY29uZGFyeSI6NzksInBhZGRpbmciOiIwcHgiLCJzZWNvbmRhcnlTY3JvbGxhYmxlIjp0cnVlLCJwYW5lbFNjcm9sbGFibGUiOmZhbHNlfQ=="
+                    }
+                  ]
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "a60ac0125792c5a24181-fe5173ecf449703f6df1",
+          "file": "desktop-plugin-tree.spec.ts",
+          "line": 332,
+          "column": 7
+        },
+        {
+          "title": "navigation secondary list light 760 with 3 recent rows preserves the primary tree",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "desktop-msedge",
+              "projectName": "desktop-msedge",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1192,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-15T05:34:14.543Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "navigation-dimensions",
+                      "contentType": "application/json",
+                      "body": "eyJwYW5lbCI6MTk2LCJ0cmVlIjo4NCwic2Vjb25kYXJ5IjoyOCwicGFkZGluZyI6IjBweCIsInNlY29uZGFyeVNjcm9sbGFibGUiOnRydWUsInBhbmVsU2Nyb2xsYWJsZSI6dHJ1ZX0="
+                    }
+                  ]
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "a60ac0125792c5a24181-57e58404ab34fe5ca2cb",
+          "file": "desktop-plugin-tree.spec.ts",
+          "line": 332,
+          "column": 7
+        },
+        {
+          "title": "navigation secondary list light 760 with 20 recent rows preserves the primary tree",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "desktop-msedge",
+              "projectName": "desktop-msedge",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1464,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-15T05:34:15.747Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "navigation-dimensions",
+                      "contentType": "application/json",
+                      "body": "eyJwYW5lbCI6MTk2LCJ0cmVlIjo4NCwic2Vjb25kYXJ5IjoyOCwicGFkZGluZyI6IjBweCIsInNlY29uZGFyeVNjcm9sbGFibGUiOnRydWUsInBhbmVsU2Nyb2xsYWJsZSI6dHJ1ZX0="
+                    }
+                  ]
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "a60ac0125792c5a24181-b22b4a2aabf8c61a54b1",
+          "file": "desktop-plugin-tree.spec.ts",
+          "line": 332,
+          "column": 7
+        },
+        {
+          "title": "navigation secondary list dark 1100 with 3 recent rows preserves the primary tree",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "desktop-msedge",
+              "projectName": "desktop-msedge",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1251,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-15T05:34:17.224Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "navigation-dimensions",
+                      "contentType": "application/json",
+                      "body": "eyJwYW5lbCI6MzE2LCJ0cmVlIjoxMDUsInNlY29uZGFyeSI6NzksInBhZGRpbmciOiIwcHgiLCJzZWNvbmRhcnlTY3JvbGxhYmxlIjp0cnVlLCJwYW5lbFNjcm9sbGFibGUiOmZhbHNlfQ=="
+                    }
+                  ]
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "a60ac0125792c5a24181-95275a4344d8a9b370a2",
+          "file": "desktop-plugin-tree.spec.ts",
+          "line": 332,
+          "column": 7
+        },
+        {
+          "title": "navigation secondary list dark 1100 with 20 recent rows preserves the primary tree",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "desktop-msedge",
+              "projectName": "desktop-msedge",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1201,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-15T05:34:18.493Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "navigation-dimensions",
+                      "contentType": "application/json",
+                      "body": "eyJwYW5lbCI6MzE2LCJ0cmVlIjoxMDUsInNlY29uZGFyeSI6NzksInBhZGRpbmciOiIwcHgiLCJzZWNvbmRhcnlTY3JvbGxhYmxlIjp0cnVlLCJwYW5lbFNjcm9sbGFibGUiOmZhbHNlfQ=="
+                    }
+                  ]
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "a60ac0125792c5a24181-5c19abf0a008ec6f7c4b",
+          "file": "desktop-plugin-tree.spec.ts",
+          "line": 332,
+          "column": 7
+        },
+        {
+          "title": "navigation secondary list dark 760 with 3 recent rows preserves the primary tree",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "desktop-msedge",
+              "projectName": "desktop-msedge",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1020,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-15T05:34:19.716Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "navigation-dimensions",
+                      "contentType": "application/json",
+                      "body": "eyJwYW5lbCI6MTk2LCJ0cmVlIjo4NCwic2Vjb25kYXJ5IjoyOCwicGFkZGluZyI6IjBweCIsInNlY29uZGFyeVNjcm9sbGFibGUiOnRydWUsInBhbmVsU2Nyb2xsYWJsZSI6dHJ1ZX0="
+                    }
+                  ]
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "a60ac0125792c5a24181-5cf9ebe150f2c5e91508",
+          "file": "desktop-plugin-tree.spec.ts",
+          "line": 332,
+          "column": 7
+        },
+        {
+          "title": "navigation secondary list dark 760 with 20 recent rows preserves the primary tree",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "desktop-msedge",
+              "projectName": "desktop-msedge",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 696,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-15T05:34:20.750Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "navigation-dimensions",
+                      "contentType": "application/json",
+                      "body": "eyJwYW5lbCI6MTk2LCJ0cmVlIjo4NCwic2Vjb25kYXJ5IjoyOCwicGFkZGluZyI6IjBweCIsInNlY29uZGFyeVNjcm9sbGFibGUiOnRydWUsInBhbmVsU2Nyb2xsYWJsZSI6dHJ1ZX0="
+                    }
+                  ]
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "a60ac0125792c5a24181-00a12bc9d749af679db2",
+          "file": "desktop-plugin-tree.spec.ts",
+          "line": 332,
+          "column": 7
+        }
+      ]
+    }
+  ],
+  "errors": [],
+  "stats": {
+    "startTime": "2026-10-15T05:33:59.712Z",
+    "duration": 21933.612,
+    "expected": 13,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0
+  }
+}

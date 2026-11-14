@@ -1,0 +1,1099 @@
+{
+  "preparedOnly": false,
+  "diagnosticOnly": true,
+  "executionPrefix": "Cold bundled, independent installation, four isolated fallbacks and notices, ordinary block/class/ER/flow; stop before other cases or matrix.",
+  "listedMatrixIsNotExecuted": true,
+  "observer": "Native stage traces only; no JS wire observer.",
+  "archive": {
+    "path": "/workspace/milkup-mermaid-engine-evidence/research/generic-build-gate-preparation/final-build01/standalone/plugin/dist/milkup.diagrams-1.1.0.milkup-plugin",
+    "sha256": "27db9bdefb9b241b03da2f3536f7e50d334117f928f963cfe290543f650b6239",
+    "manifest": {
+      "id": "milkup.diagrams",
+      "name": "Milkup Diagrams",
+      "version": "1.1.0",
+      "description": "使用完整官方 Mermaid 引擎离线呈现图表；无法安全呈现的内容保留完整源码。",
+      "host": "dom",
+      "main": "./dist/plugin.js",
+      "engines": {
+        "milkup": "^2.0.0-0",
+        "pluginSdk": ">=0.3.4 <0.4.0"
+      },
+      "permissions": [
+        "document:read"
+      ],
+      "contributes": {
+        "documentRenderers": [
+          {
+            "id": "diagrams.mermaid",
+            "contexts": [
+              "fence"
+            ],
+            "fenceLanguages": [
+              "mermaid"
+            ]
+          }
+        ]
+      },
+      "resources": [
+        "THIRD-PARTY-NOTICES.txt",
+        "dependency-provenance.json"
+      ]
+    }
+  },
+  "catalog": {
+    "path": "/workspace/milkup-mermaid-engine-evidence/research/product-ui-preparation/official-cases.json",
+    "sha256": "8bc8c7ca0dc9f6062b3757e91c8b76d56c2f9c3b76cf468ac1bf43223868bec0"
+  },
+  "samples": [
+    {
+      "id": "block-000-first-official-example",
+      "family": "block",
+      "source": "block\ncolumns 1\n  db((\"DB\"))\n  blockArrowId6<[\"&nbsp;&nbsp;&nbsp;\"]>(down)\n  block:ID\n    A\n    B[\"A wide one in the middle\"]\n    C\n  end\n  space\n  D\n  ID --> D\n  C --> D\n  style B fill:#969,stroke:#333,stroke-width:4px\n",
+      "sourceSha256": "78e30a8aaf7fb9a0a374414e1984d2882815549cfce0428d71601302ed4998d2",
+      "officialSource": "https://github.com/mermaid-js/mermaid/blob/mermaid%4012.2.0/packages/mermaid/src/docs/syntax/block.md",
+      "line": 10,
+      "unmodifiedOfficialBlock": true,
+      "expected": "ready",
+      "expectationReason": "Ordinary official syntax must render completely; an implementation gap must fail this case.",
+      "matrix": false,
+      "marker": "MERMAID-SAMPLE-block-000-first-official-example",
+      "from": 108,
+      "to": 342
+    },
+    {
+      "id": "classDiagram-000-first-official-example",
+      "family": "classDiagram",
+      "source": "---\ntitle: Animal example\n---\nclassDiagram\n    note \"From Duck till Zebra\"\n    Animal <|-- Duck\n    note for Duck \"can fly<br>can swim<br>can dive<br>can help in debugging\"\n    Animal <|-- Fish\n    Animal <|-- Zebra\n    Animal : +int age\n    Animal : +String gender\n    Animal: +isMammal()\n    Animal: +mate()\n    class Duck{\n        +String beakColor\n        +swim()\n        +quack()\n    }\n    class Fish{\n        -int sizeInFeet\n        -canEat()\n    }\n    class Zebra{\n        +bool is_wild\n        +run()\n    }\n",
+      "sourceSha256": "01f53b9e79db0fe31e23e5b0bd74fde68bf38de3255c838d9effb67403ffb77b",
+      "officialSource": "https://github.com/mermaid-js/mermaid/blob/mermaid%4012.2.0/packages/mermaid/src/docs/syntax/classDiagram.md",
+      "line": 11,
+      "unmodifiedOfficialBlock": true,
+      "expected": "ready",
+      "expectationReason": "Ordinary official syntax must render completely; an implementation gap must fail this case.",
+      "matrix": true,
+      "marker": "MERMAID-SAMPLE-classDiagram-000-first-official-example",
+      "from": 440,
+      "to": 969
+    },
+    {
+      "id": "entityRelationshipDiagram-000-first-official-example",
+      "family": "entityRelationshipDiagram",
+      "source": "---\ntitle: Order example\n---\nerDiagram\n    CUSTOMER ||--o{ ORDER : places\n    ORDER ||--|{ LINE-ITEM : contains\n    CUSTOMER }|..|{ DELIVERY-ADDRESS : uses\n",
+      "sourceSha256": "973dfeffadbed6ce882050ada2e9747a1049e0d21a31f41ab0123313bb143e72",
+      "officialSource": "https://github.com/mermaid-js/mermaid/blob/mermaid%4012.2.0/packages/mermaid/src/docs/syntax/entityRelationshipDiagram.md",
+      "line": 9,
+      "unmodifiedOfficialBlock": true,
+      "expected": "ready",
+      "expectationReason": "Ordinary official syntax must render completely; an implementation gap must fail this case.",
+      "matrix": false,
+      "marker": "MERMAID-SAMPLE-entityRelationshipDiagram-000-first-official-example",
+      "from": 1087,
+      "to": 1257
+    },
+    {
+      "id": "flowchart-000-first-official-example",
+      "family": "flowchart",
+      "source": "---\ntitle: Node\n---\nflowchart LR\n    id\n",
+      "sourceSha256": "ff9a1774bb7e9a416e6000ff507393b371cfb18e9dc361858312b223c212c5e7",
+      "officialSource": "https://github.com/mermaid-js/mermaid/blob/mermaid%4012.2.0/packages/mermaid/src/docs/syntax/flowchart.md",
+      "line": 23,
+      "unmodifiedOfficialBlock": true,
+      "expected": "ready",
+      "expectationReason": "Ordinary official syntax must render completely; an implementation gap must fail this case.",
+      "matrix": false,
+      "marker": "MERMAID-SAMPLE-flowchart-000-first-official-example",
+      "from": 1372,
+      "to": 1426
+    },
+    {
+      "id": "flowchart-003-markdown-label",
+      "family": "flowchart",
+      "source": "---\nconfig:\n  htmlLabels: false\n---\nflowchart LR\n    markdown[\"`This **is** _Markdown_`\"]\n    newLines[\"`Line1\n    Line 2\n    Line 3`\"]\n    markdown --> newLines\n",
+      "sourceSha256": "c73fdea4fca45502e808258502bf60c5400ce0c011e1976893bfaeaaab82a236",
+      "officialSource": "https://github.com/mermaid-js/mermaid/blob/mermaid%4012.2.0/packages/mermaid/src/docs/syntax/flowchart.md",
+      "line": 66,
+      "unmodifiedOfficialBlock": true,
+      "expected": "ready",
+      "expectationReason": "Ordinary official syntax must render completely; an implementation gap must fail this case.",
+      "matrix": false,
+      "marker": "MERMAID-SAMPLE-flowchart-003-markdown-label",
+      "from": 1517,
+      "to": 1693
+    },
+    {
+      "id": "flowchart-006-subgraph",
+      "family": "flowchart",
+      "source": "flowchart LR\n  subgraph Client\n    UI[Web app]\n    Cache[(Local cache)]\n  end\n  subgraph Services\n    API[API gateway]\n    Auth[Auth service]\n    Orders[Order service]\n  end\n  subgraph Storage\n    DB[(Orders DB)]\n  end\n  UI --> API\n  UI --> Cache\n  API --> Auth\n  API --> Orders\n  Orders --> DB\n  Auth -. token .-> UI\n",
+      "sourceSha256": "db4aa3083cae19b2161f65a3286ca21bd0af2272991be4d9b363418ce69e51ed",
+      "officialSource": "https://github.com/mermaid-js/mermaid/blob/mermaid%4012.2.0/packages/mermaid/src/docs/syntax/flowchart.md",
+      "line": 115,
+      "unmodifiedOfficialBlock": true,
+      "expected": "ready",
+      "expectationReason": "Ordinary official syntax must render completely; an implementation gap must fail this case.",
+      "matrix": true,
+      "marker": "MERMAID-SAMPLE-flowchart-006-subgraph",
+      "from": 1770,
+      "to": 2102
+    },
+    {
+      "id": "flowchart-069-image",
+      "family": "flowchart",
+      "source": "flowchart TD\n  %% My image with a constrained aspect ratio\n  A@{ img: \"https://mermaid.js.org/favicon.svg\", label: \"My example image label\", pos: \"t\", h: 60, constraint: \"on\" }\n",
+      "sourceSha256": "9a39031c41fcb0e669e341b2100124e9ce9d8d98370e92022f62b0e972f8e4bd",
+      "officialSource": "https://github.com/mermaid-js/mermaid/blob/mermaid%4012.2.0/packages/mermaid/src/docs/syntax/flowchart.md",
+      "line": 674,
+      "unmodifiedOfficialBlock": true,
+      "expected": "fallback",
+      "expectationReason": "external image access is not granted",
+      "matrix": false,
+      "marker": "MERMAID-SAMPLE-flowchart-069-image",
+      "from": 2170,
+      "to": 2361
+    },
+    {
+      "id": "flowchart-086-animated-edge",
+      "family": "flowchart",
+      "source": "flowchart LR\n  A e1@==> B\n  e1@{ animate: true }\n",
+      "sourceSha256": "fa96150719680e006a7e696777f9ebf0d06e5f65a1c8d8e5021c8645a0308afc",
+      "officialSource": "https://github.com/mermaid-js/mermaid/blob/mermaid%4012.2.0/packages/mermaid/src/docs/syntax/flowchart.md",
+      "line": 818,
+      "unmodifiedOfficialBlock": true,
+      "expected": "fallback",
+      "expectationReason": "effective animation has no static profile representation",
+      "matrix": false,
+      "marker": "MERMAID-SAMPLE-flowchart-086-animated-edge",
+      "from": 2434,
+      "to": 2497
+    },
+    {
+      "id": "flowchart-088-classDef",
+      "family": "flowchart",
+      "source": "flowchart LR\n  A e1@--> B\n  classDef animate stroke-dasharray: 9,5,stroke-dashoffset: 900,animation: dash 25s linear infinite;\n  class e1 animate\n",
+      "sourceSha256": "b03ea11e4f024eb7f3b176d9dc7a5e2a363c11503302f52c63be6fc1666b15de",
+      "officialSource": "https://github.com/mermaid-js/mermaid/blob/mermaid%4012.2.0/packages/mermaid/src/docs/syntax/flowchart.md",
+      "line": 844,
+      "unmodifiedOfficialBlock": true,
+      "expected": "fallback",
+      "expectationReason": "The unmodified official classDef enables effective CSS animation, which has no static profile representation (converter04 scan_016 unsupported-animation).",
+      "matrix": false,
+      "marker": "MERMAID-SAMPLE-flowchart-088-classDef",
+      "from": 2573,
+      "to": 2733
+    },
+    {
+      "id": "flowchart-099-nested-direction",
+      "family": "flowchart",
+      "source": "flowchart LR\n  subgraph TOP\n    direction TB\n    subgraph B1\n        direction RL\n        i1 -->f1\n    end\n    subgraph B2\n        direction BT\n        i2 -->f2\n    end\n  end\n  A --> TOP --> B\n  B1 --> B2\n",
+      "sourceSha256": "6897cf10b879aea931c767b87da1d418708bc32d666a506880bd282a738c4497",
+      "officialSource": "https://github.com/mermaid-js/mermaid/blob/mermaid%4012.2.0/packages/mermaid/src/docs/syntax/flowchart.md",
+      "line": 1019,
+      "unmodifiedOfficialBlock": true,
+      "expected": "ready",
+      "expectationReason": "Ordinary official syntax must render completely; an implementation gap must fail this case.",
+      "matrix": false,
+      "marker": "MERMAID-SAMPLE-flowchart-099-nested-direction",
+      "from": 2812,
+      "to": 3031
+    },
+    {
+      "id": "flowchart-107-style",
+      "family": "flowchart",
+      "source": "flowchart LR\n    id1(Start)-->id2(Stop)\n    style id1 fill:#f9f,stroke:#333,stroke-width:4px\n    style id2 fill:#bbf,stroke:#f66,stroke-width:2px,color:#fff,stroke-dasharray: 5 5\n",
+      "sourceSha256": "f4ddc73bd88be46e5f91b2386188d0ffbf9ee0e628168227fcd2e4cbba1da61d",
+      "officialSource": "https://github.com/mermaid-js/mermaid/blob/mermaid%4012.2.0/packages/mermaid/src/docs/syntax/flowchart.md",
+      "line": 1297,
+      "unmodifiedOfficialBlock": true,
+      "expected": "ready",
+      "expectationReason": "Ordinary official syntax must render completely; an implementation gap must fail this case.",
+      "matrix": false,
+      "marker": "MERMAID-SAMPLE-flowchart-107-style",
+      "from": 3107,
+      "to": 3300
+    },
+    {
+      "id": "gantt-000-first-official-example",
+      "family": "gantt",
+      "source": "gantt\n    title A Gantt Diagram\n    dateFormat YYYY-MM-DD\n    section Section\n        A task          :a1, 2014-01-01, 30d\n        Another task    :after a1, 20d\n    section Another\n        Task in Another :2014-01-12, 12d\n        another task    :24d\n",
+      "sourceSha256": "9994b276372df6ec8dece5afd5a93326bf86e01f4e6574ed3e6c1fb052805144",
+      "officialSource": "https://github.com/mermaid-js/mermaid/blob/mermaid%4012.2.0/packages/mermaid/src/docs/syntax/gantt.md",
+      "line": 19,
+      "unmodifiedOfficialBlock": true,
+      "expected": "ready",
+      "expectationReason": "Fresh native converter → current core → canonical image at native 100% passed per root handoff; final independent archive must still pass this production UI gate.",
+      "matrix": false,
+      "marker": "MERMAID-SAMPLE-gantt-000-first-official-example",
+      "from": 3378,
+      "to": 3644
+    },
+    {
+      "id": "gitgraph-000-first-official-example",
+      "family": "gitgraph",
+      "source": "---\ntitle: Example Git diagram\n---\ngitGraph\n   commit\n   commit\n   branch develop\n   checkout develop\n   commit\n   commit\n   checkout main\n   merge develop\n   commit\n   commit\n",
+      "sourceSha256": "d28b30afdeb64f8443a454a3406b72c78bf84bb28aba1de21b112a4cfc82e276",
+      "officialSource": "https://github.com/mermaid-js/mermaid/blob/mermaid%4012.2.0/packages/mermaid/src/docs/syntax/gitgraph.md",
+      "line": 9,
+      "unmodifiedOfficialBlock": true,
+      "expected": "ready",
+      "expectationReason": "Ordinary official syntax must render completely; an implementation gap must fail this case.",
+      "matrix": false,
+      "marker": "MERMAID-SAMPLE-gitgraph-000-first-official-example",
+      "from": 3738,
+      "to": 3928
+    },
+    {
+      "id": "mindmap-000-first-official-example",
+      "family": "mindmap",
+      "source": "mindmap\n  root((mindmap))\n    Origins\n      Long history\n      ::icon(fa fa-book)\n      Popularisation\n        British popular psychology author Tony Buzan\n    Research\n      On effectiveness<br/>and features\n      On Automatic creation\n        Uses\n            Creative techniques\n            Strategic planning\n            Argument mapping\n    Tools\n      Pen and paper\n      Mermaid\n\n",
+      "sourceSha256": "117201a14a668273ea3ae6a8af2ac29bbf490baba7ac66875007482ce765712c",
+      "officialSource": "https://github.com/mermaid-js/mermaid/blob/mermaid%4012.2.0/packages/mermaid/src/docs/syntax/mindmap.md",
+      "line": 9,
+      "unmodifiedOfficialBlock": true,
+      "expected": "ready",
+      "expectationReason": "Ordinary official syntax must render completely; an implementation gap must fail this case.",
+      "matrix": false,
+      "marker": "MERMAID-SAMPLE-mindmap-000-first-official-example",
+      "from": 4024,
+      "to": 4425
+    },
+    {
+      "id": "mindmap-001-without-icons",
+      "family": "mindmap",
+      "source": "mindmap\nRoot\n    A\n      B\n      C\n",
+      "sourceSha256": "50120b037f07451727a4c261d4a2f601f5ce26c40c061336c710b49d99f33bf7",
+      "officialSource": "https://github.com/mermaid-js/mermaid/blob/mermaid%4012.2.0/packages/mermaid/src/docs/syntax/mindmap.md",
+      "line": 46,
+      "unmodifiedOfficialBlock": true,
+      "expected": "ready",
+      "expectationReason": "Ordinary official syntax must render completely; an implementation gap must fail this case.",
+      "matrix": false,
+      "marker": "MERMAID-SAMPLE-mindmap-001-without-icons",
+      "from": 4511,
+      "to": 4560
+    },
+    {
+      "id": "pie-000-first-official-example",
+      "family": "pie",
+      "source": "pie title Pets adopted by volunteers\n    \"Dogs\" : 386\n    \"Cats\" : 85\n    \"Rats\" : 15\n",
+      "sourceSha256": "f41484cd94dd84837056db4c681ce6119f533b643bed745c58116553acdebf27",
+      "officialSource": "https://github.com/mermaid-js/mermaid/blob/mermaid%4012.2.0/packages/mermaid/src/docs/syntax/pie.md",
+      "line": 8,
+      "unmodifiedOfficialBlock": true,
+      "expected": "ready",
+      "expectationReason": "Ordinary official syntax must render completely; an implementation gap must fail this case.",
+      "matrix": false,
+      "marker": "MERMAID-SAMPLE-pie-000-first-official-example",
+      "from": 4642,
+      "to": 4742
+    },
+    {
+      "id": "quadrantChart-000-first-official-example",
+      "family": "quadrantChart",
+      "source": "quadrantChart\n    title Reach and engagement of campaigns\n    x-axis Low Reach --> High Reach\n    y-axis Low Engagement --> High Engagement\n    quadrant-1 We should expand\n    quadrant-2 Need to promote\n    quadrant-3 Re-evaluate\n    quadrant-4 May be improved\n    Campaign A: [0.3, 0.6]\n    Campaign B: [0.45, 0.23]\n    Campaign C: [0.57, 0.69]\n    Campaign D: [0.78, 0.34]\n    Campaign E: [0.40, 0.34]\n    Campaign F: [0.35, 0.78]\n",
+      "sourceSha256": "19ab9ebf1e76dde2af0aaea8d8cae3929cdd1efc149fd887c40faceb8c0b45e4",
+      "officialSource": "https://github.com/mermaid-js/mermaid/blob/mermaid%4012.2.0/packages/mermaid/src/docs/syntax/quadrantChart.md",
+      "line": 7,
+      "unmodifiedOfficialBlock": true,
+      "expected": "ready",
+      "expectationReason": "Ordinary official syntax must render completely; an implementation gap must fail this case.",
+      "matrix": false,
+      "marker": "MERMAID-SAMPLE-quadrantChart-000-first-official-example",
+      "from": 4839,
+      "to": 5286
+    },
+    {
+      "id": "requirementDiagram-000-first-official-example",
+      "family": "requirementDiagram",
+      "source": "    requirementDiagram\n\n    requirement test_req {\n    id: 1\n    text: the test text.\n    risk: high\n    verifymethod: test\n    }\n\n    element test_entity {\n    type: simulation\n    }\n\n    test_entity - satisfies -> test_req\n",
+      "sourceSha256": "7919bd6c635cc68d8a8b86f72a64f21a6096c8f567708424a49b7ccccd96eb83",
+      "officialSource": "https://github.com/mermaid-js/mermaid/blob/mermaid%4012.2.0/packages/mermaid/src/docs/syntax/requirementDiagram.md",
+      "line": 7,
+      "unmodifiedOfficialBlock": true,
+      "expected": "ready",
+      "expectationReason": "Ordinary official syntax must render completely; an implementation gap must fail this case.",
+      "matrix": false,
+      "marker": "MERMAID-SAMPLE-requirementDiagram-000-first-official-example",
+      "from": 5398,
+      "to": 5637
+    },
+    {
+      "id": "sankey-000-first-official-example",
+      "family": "sankey",
+      "source": "---\nconfig:\n  sankey:\n    showValues: false\n---\nsankey\n\nAgricultural 'waste',Bio-conversion,124.729\nBio-conversion,Liquid,0.597\nBio-conversion,Losses,26.862\nBio-conversion,Solid,280.322\nBio-conversion,Gas,81.144\nBiofuel imports,Liquid,35\nBiomass imports,Solid,35\nCoal imports,Coal,11.606\nCoal reserves,Coal,63.965\nCoal,Solid,75.571\nDistrict heating,Industry,10.639\nDistrict heating,Heating and cooling - commercial,22.505\nDistrict heating,Heating and cooling - homes,46.184\nElectricity grid,Over generation / exports,104.453\nElectricity grid,Heating and cooling - homes,113.726\nElectricity grid,H2 conversion,27.14\nElectricity grid,Industry,342.165\nElectricity grid,Road transport,37.797\nElectricity grid,Agriculture,4.412\nElectricity grid,Heating and cooling - commercial,40.858\nElectricity grid,Losses,56.691\nElectricity grid,Rail transport,7.863\nElectricity grid,Lighting & appliances - commercial,90.008\nElectricity grid,Lighting & appliances - homes,93.494\nGas imports,Ngas,40.719\nGas reserves,Ngas,82.233\nGas,Heating and cooling - commercial,0.129\nGas,Losses,1.401\nGas,Thermal generation,151.891\nGas,Agriculture,2.096\nGas,Industry,48.58\nGeothermal,Electricity grid,7.013\nH2 conversion,H2,20.897\nH2 conversion,Losses,6.242\nH2,Road transport,20.897\nHydro,Electricity grid,6.995\nLiquid,Industry,121.066\nLiquid,International shipping,128.69\nLiquid,Road transport,135.835\nLiquid,Domestic aviation,14.458\nLiquid,International aviation,206.267\nLiquid,Agriculture,3.64\nLiquid,National navigation,33.218\nLiquid,Rail transport,4.413\nMarine algae,Bio-conversion,4.375\nNgas,Gas,122.952\nNuclear,Thermal generation,839.978\nOil imports,Oil,504.287\nOil reserves,Oil,107.703\nOil,Liquid,611.99\nOther waste,Solid,56.587\nOther waste,Bio-conversion,77.81\nPumped heat,Heating and cooling - homes,193.026\nPumped heat,Heating and cooling - commercial,70.672\nSolar PV,Electricity grid,59.901\nSolar Thermal,Heating and cooling - homes,19.263\nSolar,Solar Thermal,19.263\nSolar,Solar PV,59.901\nSolid,Agriculture,0.882\nSolid,Thermal generation,400.12\nSolid,Industry,46.477\nThermal generation,Electricity grid,525.531\nThermal generation,Losses,787.129\nThermal generation,District heating,79.329\nTidal,Electricity grid,9.452\nUK land based bioenergy,Bio-conversion,182.01\nWave,Electricity grid,19.013\nWind,Electricity grid,289.366\n",
+      "sourceSha256": "c6739c6a83029fbe481d653c74d1e302c8226bc89edcbebec88062125baa78d3",
+      "officialSource": "https://github.com/mermaid-js/mermaid/blob/mermaid%4012.2.0/packages/mermaid/src/docs/syntax/sankey.md",
+      "line": 15,
+      "unmodifiedOfficialBlock": true,
+      "expected": "ready",
+      "expectationReason": "Ordinary official syntax must render completely; an implementation gap must fail this case.",
+      "matrix": true,
+      "marker": "MERMAID-SAMPLE-sankey-000-first-official-example",
+      "from": 5742,
+      "to": 8060
+    },
+    {
+      "id": "sequenceDiagram-000-first-official-example",
+      "family": "sequenceDiagram",
+      "source": "sequenceDiagram\n    Alice->>John: Hello John, how are you?\n    John-->>Alice: Great!\n    Alice-)John: See you later!\n",
+      "sourceSha256": "b2066a62d878a2b2b1ad49be0674b68d0fb78deed9c5def176cfcb2340403d25",
+      "officialSource": "https://github.com/mermaid-js/mermaid/blob/mermaid%4012.2.0/packages/mermaid/src/docs/syntax/sequenceDiagram.md",
+      "line": 7,
+      "unmodifiedOfficialBlock": true,
+      "expected": "ready",
+      "expectationReason": "Ordinary official syntax must render completely; an implementation gap must fail this case.",
+      "matrix": false,
+      "marker": "MERMAID-SAMPLE-sequenceDiagram-000-first-official-example",
+      "from": 8162,
+      "to": 8293
+    },
+    {
+      "id": "sequenceDiagram-001-autonumber",
+      "family": "sequenceDiagram",
+      "source": "sequenceDiagram\n  autonumber\n  actor Customer\n  participant Web as Web app\n  participant API as API gateway\n  participant Bank\n  Customer->>Web: Place order\n  Web->>API: POST /orders\n  activate API\n  API->>Bank: Authorise payment\n  Bank-->>API: Approved\n  API-->>Web: 201 Created\n  deactivate API\n  Web-->>Customer: Order confirmed\n  Note over Customer,Bank: One order, one transaction\n",
+      "sourceSha256": "b46ca8f030ae22c724720f00d238e528d416593c51d52a6e4f22d99b99f93b2d",
+      "officialSource": "https://github.com/mermaid-js/mermaid/blob/mermaid%4012.2.0/packages/mermaid/src/docs/syntax/sequenceDiagram.md",
+      "line": 30,
+      "unmodifiedOfficialBlock": true,
+      "expected": "ready",
+      "expectationReason": "Ordinary official syntax must render completely; an implementation gap must fail this case.",
+      "matrix": false,
+      "marker": "MERMAID-SAMPLE-sequenceDiagram-001-autonumber",
+      "from": 8392,
+      "to": 8792
+    },
+    {
+      "id": "sequenceDiagram-016-box-group",
+      "family": "sequenceDiagram",
+      "source": "    sequenceDiagram\n    box Purple Alice & John\n    participant A\n    participant J\n    end\n    box Another Group\n    participant B\n    participant C\n    end\n    A->>J: Hello John, how are you?\n    J->>A: Great!\n    A->>B: Hello Bob, how is Charley?\n    B->>C: Hello Charley, how are you?\n",
+      "sourceSha256": "93d3c0ff3d5d384a0044c0882501febf51d0ba59c26ca2c237eae58d27ad53aa",
+      "officialSource": "https://github.com/mermaid-js/mermaid/blob/mermaid%4012.2.0/packages/mermaid/src/docs/syntax/sequenceDiagram.md",
+      "line": 315,
+      "unmodifiedOfficialBlock": true,
+      "expected": "ready",
+      "expectationReason": "Ordinary official syntax must render completely; an implementation gap must fail this case.",
+      "matrix": false,
+      "marker": "MERMAID-SAMPLE-sequenceDiagram-016-box-group",
+      "from": 8878,
+      "to": 9181
+    },
+    {
+      "id": "sequenceDiagram-025-loop-group",
+      "family": "sequenceDiagram",
+      "source": "sequenceDiagram\n    Alice->John: Hello John, how are you?\n    loop Every minute\n        John-->Alice: Great!\n    end\n",
+      "sourceSha256": "d042768225fc2a2c6aed87e913d293db64cb8da27b430259f3161a3f684888b3",
+      "officialSource": "https://github.com/mermaid-js/mermaid/blob/mermaid%4012.2.0/packages/mermaid/src/docs/syntax/sequenceDiagram.md",
+      "line": 483,
+      "unmodifiedOfficialBlock": true,
+      "expected": "ready",
+      "expectationReason": "Ordinary official syntax must render completely; an implementation gap must fail this case.",
+      "matrix": false,
+      "marker": "MERMAID-SAMPLE-sequenceDiagram-025-loop-group",
+      "from": 9267,
+      "to": 9398
+    },
+    {
+      "id": "sequenceDiagram-026-alt-group",
+      "family": "sequenceDiagram",
+      "source": "sequenceDiagram\n    Alice->>Bob: Hello Bob, how are you?\n    alt is sick\n        Bob->>Alice: Not so good :(\n    else is well\n        Bob->>Alice: Feeling fresh like a daisy\n    end\n    opt Extra response\n        Bob->>Alice: Thanks for asking\n    end\n",
+      "sourceSha256": "5ba07f36cdf08b28445a16fd8f24d05afbf5cd349679847aab70f7fddf476084",
+      "officialSource": "https://github.com/mermaid-js/mermaid/blob/mermaid%4012.2.0/packages/mermaid/src/docs/syntax/sequenceDiagram.md",
+      "line": 513,
+      "unmodifiedOfficialBlock": true,
+      "expected": "ready",
+      "expectationReason": "Ordinary official syntax must render completely; an implementation gap must fail this case.",
+      "matrix": true,
+      "marker": "MERMAID-SAMPLE-sequenceDiagram-026-alt-group",
+      "from": 9484,
+      "to": 9750
+    },
+    {
+      "id": "sequenceDiagram-027-par-group",
+      "family": "sequenceDiagram",
+      "source": "sequenceDiagram\n    par Alice to Bob\n        Alice->>Bob: Hello guys!\n    and Alice to John\n        Alice->>John: Hello guys!\n    end\n    Bob-->>Alice: Hi Alice!\n    John-->>Alice: Hi Alice!\n",
+      "sourceSha256": "6c0cb8e242cbf8bdadf2c2cccad5c0b5b6938127e0c76574c3fcadf342055b84",
+      "officialSource": "https://github.com/mermaid-js/mermaid/blob/mermaid%4012.2.0/packages/mermaid/src/docs/syntax/sequenceDiagram.md",
+      "line": 544,
+      "unmodifiedOfficialBlock": true,
+      "expected": "ready",
+      "expectationReason": "Ordinary official syntax must render completely; an implementation gap must fail this case.",
+      "matrix": false,
+      "marker": "MERMAID-SAMPLE-sequenceDiagram-027-par-group",
+      "from": 9835,
+      "to": 10040
+    },
+    {
+      "id": "sequenceDiagram-029-critical-group",
+      "family": "sequenceDiagram",
+      "source": "sequenceDiagram\n    critical Establish a connection to the DB\n        Service-->DB: connect\n    option Network timeout\n        Service-->Service: Log error\n    option Credentials rejected\n        Service-->Service: Log different error\n    end\n",
+      "sourceSha256": "201a0912328e98f240b39c1412adc00d0bf51c483304d8078d4d8552dac24083",
+      "officialSource": "https://github.com/mermaid-js/mermaid/blob/mermaid%4012.2.0/packages/mermaid/src/docs/syntax/sequenceDiagram.md",
+      "line": 589,
+      "unmodifiedOfficialBlock": true,
+      "expected": "ready",
+      "expectationReason": "Ordinary official syntax must render completely; an implementation gap must fail this case.",
+      "matrix": false,
+      "marker": "MERMAID-SAMPLE-sequenceDiagram-029-critical-group",
+      "from": 10130,
+      "to": 10387
+    },
+    {
+      "id": "stateDiagram-000-first-official-example",
+      "family": "stateDiagram",
+      "source": "---\ntitle: Simple sample\n---\nstateDiagram-v2\n    [*] --> Still\n    Still --> [*]\n\n    Still --> Moving\n    Moving --> Still\n    Moving --> Crash\n    Crash --> [*]\n",
+      "sourceSha256": "fc35188de9f919aa10f7bb302574c3bcdc2fc74a54434a5bc4ee33c57cff8d64",
+      "officialSource": "https://github.com/mermaid-js/mermaid/blob/mermaid%4012.2.0/packages/mermaid/src/docs/syntax/stateDiagram.md",
+      "line": 10,
+      "unmodifiedOfficialBlock": true,
+      "expected": "ready",
+      "expectationReason": "Ordinary official syntax must render completely; an implementation gap must fail this case.",
+      "matrix": false,
+      "marker": "MERMAID-SAMPLE-stateDiagram-000-first-official-example",
+      "from": 10487,
+      "to": 10664
+    },
+    {
+      "id": "timeline-000-first-official-example",
+      "family": "timeline",
+      "source": "timeline\n    title History of Social Media Platform\n    2002 : LinkedIn\n    2004 : Facebook\n         : Google\n    2005 : YouTube\n    2006 : Twitter\n",
+      "sourceSha256": "1b6ef8c6e2bb60382d1e417d7363b495a28cfba8b98c31705c30c32081801372",
+      "officialSource": "https://github.com/mermaid-js/mermaid/blob/mermaid%4012.2.0/packages/mermaid/src/docs/syntax/timeline.md",
+      "line": 9,
+      "unmodifiedOfficialBlock": true,
+      "expected": "fallback",
+      "expectationReason": "Current native static profile rejects the effective CSS filter function (converter04 scan_054 unsupported-feature); retain the complete editable source with an explicit notice.",
+      "matrix": false,
+      "marker": "MERMAID-SAMPLE-timeline-000-first-official-example",
+      "from": 10765,
+      "to": 10927
+    },
+    {
+      "id": "userJourney-000-first-official-example",
+      "family": "userJourney",
+      "source": "journey\n    title My working day\n    section Go to work\n      Make tea: 5: Me\n      Go upstairs: 3: Me\n      Do work: 1: Me, Cat\n    section Go home\n      Go downstairs: 5: Me\n      Sit down: 5: Me\n",
+      "sourceSha256": "e978837ae6de4a8b5c7831489dc68a9f8fe20d5d9b7514016207af832f687bdd",
+      "officialSource": "https://github.com/mermaid-js/mermaid/blob/mermaid%4012.2.0/packages/mermaid/src/docs/syntax/userJourney.md",
+      "line": 7,
+      "unmodifiedOfficialBlock": true,
+      "expected": "ready",
+      "expectationReason": "Ordinary official syntax must render completely; an implementation gap must fail this case.",
+      "matrix": true,
+      "marker": "MERMAID-SAMPLE-userJourney-000-first-official-example",
+      "from": 11027,
+      "to": 11239
+    },
+    {
+      "id": "xyChart-000-first-official-example",
+      "family": "xyChart",
+      "source": "xychart\n    title \"Sales Revenue\"\n    x-axis [jan, feb, mar, apr, may, jun, jul, aug, sep, oct, nov, dec]\n    y-axis \"Revenue (in $)\" 4000 --> 11000\n    bar [5000, 6000, 7500, 8200, 9500, 10500, 11000, 10200, 9200, 8500, 7000, 6000]\n    line [5000, 6000, 7500, 8200, 9500, 10500, 11000, 10200, 9200, 8500, 7000, 6000]\n",
+      "sourceSha256": "26b0cd5e3c3bcf2c2d0cbbc02df82376d779b0ec1893940495460009622029fe",
+      "officialSource": "https://github.com/mermaid-js/mermaid/blob/mermaid%4012.2.0/packages/mermaid/src/docs/syntax/xyChart.md",
+      "line": 9,
+      "unmodifiedOfficialBlock": true,
+      "expected": "ready",
+      "expectationReason": "Ordinary official syntax must render completely; an implementation gap must fail this case.",
+      "matrix": false,
+      "marker": "MERMAID-SAMPLE-xyChart-000-first-official-example",
+      "from": 11338,
+      "to": 11670
+    },
+    {
+      "id": "local-unicode-roundtrip",
+      "family": "flowchart",
+      "source": "flowchart LR\n  A[中文 é 👩🏽‍💻 long label] -->|往返| B[保留原始源码]\n  B --> A\n",
+      "sourceSha256": "f221b20de0b8ce74273302d68f0796a6af26c82a0b1148164a48a402c5303462",
+      "unmodifiedOfficialBlock": false,
+      "expected": "ready",
+      "matrix": false,
+      "expectationReason": "Local Unicode and editing regression, not an official example.",
+      "marker": "MERMAID-SAMPLE-local-unicode-roundtrip",
+      "from": 11754,
+      "to": 11839
+    }
+  ],
+  "isolatedFallbacks": [
+    {
+      "id": "flowchart-069-image",
+      "family": "flowchart",
+      "source": "flowchart TD\n  %% My image with a constrained aspect ratio\n  A@{ img: \"https://mermaid.js.org/favicon.svg\", label: \"My example image label\", pos: \"t\", h: 60, constraint: \"on\" }\n",
+      "sourceSha256": "9a39031c41fcb0e669e341b2100124e9ce9d8d98370e92022f62b0e972f8e4bd",
+      "officialSource": "https://github.com/mermaid-js/mermaid/blob/mermaid%4012.2.0/packages/mermaid/src/docs/syntax/flowchart.md",
+      "line": 674,
+      "unmodifiedOfficialBlock": true,
+      "expected": "fallback",
+      "expectationReason": "external image access is not granted",
+      "matrix": false,
+      "marker": "MERMAID-SAMPLE-flowchart-069-image",
+      "from": 36,
+      "to": 227,
+      "name": "fallback-flowchart-069-image"
+    },
+    {
+      "id": "flowchart-086-animated-edge",
+      "family": "flowchart",
+      "source": "flowchart LR\n  A e1@==> B\n  e1@{ animate: true }\n",
+      "sourceSha256": "fa96150719680e006a7e696777f9ebf0d06e5f65a1c8d8e5021c8645a0308afc",
+      "officialSource": "https://github.com/mermaid-js/mermaid/blob/mermaid%4012.2.0/packages/mermaid/src/docs/syntax/flowchart.md",
+      "line": 818,
+      "unmodifiedOfficialBlock": true,
+      "expected": "fallback",
+      "expectationReason": "effective animation has no static profile representation",
+      "matrix": false,
+      "marker": "MERMAID-SAMPLE-flowchart-086-animated-edge",
+      "from": 44,
+      "to": 107,
+      "name": "fallback-flowchart-086-animated-edge"
+    },
+    {
+      "id": "flowchart-088-classDef",
+      "family": "flowchart",
+      "source": "flowchart LR\n  A e1@--> B\n  classDef animate stroke-dasharray: 9,5,stroke-dashoffset: 900,animation: dash 25s linear infinite;\n  class e1 animate\n",
+      "sourceSha256": "b03ea11e4f024eb7f3b176d9dc7a5e2a363c11503302f52c63be6fc1666b15de",
+      "officialSource": "https://github.com/mermaid-js/mermaid/blob/mermaid%4012.2.0/packages/mermaid/src/docs/syntax/flowchart.md",
+      "line": 844,
+      "unmodifiedOfficialBlock": true,
+      "expected": "fallback",
+      "expectationReason": "The unmodified official classDef enables effective CSS animation, which has no static profile representation (converter04 scan_016 unsupported-animation).",
+      "matrix": false,
+      "marker": "MERMAID-SAMPLE-flowchart-088-classDef",
+      "from": 39,
+      "to": 199,
+      "name": "fallback-flowchart-088-classDef"
+    },
+    {
+      "id": "timeline-000-first-official-example",
+      "family": "timeline",
+      "source": "timeline\n    title History of Social Media Platform\n    2002 : LinkedIn\n    2004 : Facebook\n         : Google\n    2005 : YouTube\n    2006 : Twitter\n",
+      "sourceSha256": "1b6ef8c6e2bb60382d1e417d7363b495a28cfba8b98c31705c30c32081801372",
+      "officialSource": "https://github.com/mermaid-js/mermaid/blob/mermaid%4012.2.0/packages/mermaid/src/docs/syntax/timeline.md",
+      "line": 9,
+      "unmodifiedOfficialBlock": true,
+      "expected": "fallback",
+      "expectationReason": "Current native static profile rejects the effective CSS filter function (converter04 scan_054 unsupported-feature); retain the complete editable source with an explicit notice.",
+      "matrix": false,
+      "marker": "MERMAID-SAMPLE-timeline-000-first-official-example",
+      "from": 52,
+      "to": 214,
+      "name": "fallback-timeline-000-first-official-example"
+    }
+  ],
+  "matrix": [
+    {
+      "view": "ordinary",
+      "mode": "source",
+      "theme": "light",
+      "zoom": 1,
+      "narrow": false,
+      "key": "ordinary-source-light-100-wide"
+    },
+    {
+      "view": "ordinary",
+      "mode": "source",
+      "theme": "light",
+      "zoom": 1,
+      "narrow": true,
+      "key": "ordinary-source-light-100-narrow"
+    },
+    {
+      "view": "ordinary",
+      "mode": "source",
+      "theme": "light",
+      "zoom": 1.25,
+      "narrow": false,
+      "key": "ordinary-source-light-125-wide"
+    },
+    {
+      "view": "ordinary",
+      "mode": "source",
+      "theme": "light",
+      "zoom": 1.25,
+      "narrow": true,
+      "key": "ordinary-source-light-125-narrow"
+    },
+    {
+      "view": "ordinary",
+      "mode": "source",
+      "theme": "light",
+      "zoom": 1.5,
+      "narrow": false,
+      "key": "ordinary-source-light-150-wide"
+    },
+    {
+      "view": "ordinary",
+      "mode": "source",
+      "theme": "light",
+      "zoom": 1.5,
+      "narrow": true,
+      "key": "ordinary-source-light-150-narrow"
+    },
+    {
+      "view": "ordinary",
+      "mode": "source",
+      "theme": "light",
+      "zoom": 2,
+      "narrow": false,
+      "key": "ordinary-source-light-200-wide"
+    },
+    {
+      "view": "ordinary",
+      "mode": "source",
+      "theme": "light",
+      "zoom": 2,
+      "narrow": true,
+      "key": "ordinary-source-light-200-narrow"
+    },
+    {
+      "view": "ordinary",
+      "mode": "source",
+      "theme": "dark",
+      "zoom": 1,
+      "narrow": false,
+      "key": "ordinary-source-dark-100-wide"
+    },
+    {
+      "view": "ordinary",
+      "mode": "source",
+      "theme": "dark",
+      "zoom": 1,
+      "narrow": true,
+      "key": "ordinary-source-dark-100-narrow"
+    },
+    {
+      "view": "ordinary",
+      "mode": "source",
+      "theme": "dark",
+      "zoom": 1.25,
+      "narrow": false,
+      "key": "ordinary-source-dark-125-wide"
+    },
+    {
+      "view": "ordinary",
+      "mode": "source",
+      "theme": "dark",
+      "zoom": 1.25,
+      "narrow": true,
+      "key": "ordinary-source-dark-125-narrow"
+    },
+    {
+      "view": "ordinary",
+      "mode": "source",
+      "theme": "dark",
+      "zoom": 1.5,
+      "narrow": false,
+      "key": "ordinary-source-dark-150-wide"
+    },
+    {
+      "view": "ordinary",
+      "mode": "source",
+      "theme": "dark",
+      "zoom": 1.5,
+      "narrow": true,
+      "key": "ordinary-source-dark-150-narrow"
+    },
+    {
+      "view": "ordinary",
+      "mode": "source",
+      "theme": "dark",
+      "zoom": 2,
+      "narrow": false,
+      "key": "ordinary-source-dark-200-wide"
+    },
+    {
+      "view": "ordinary",
+      "mode": "source",
+      "theme": "dark",
+      "zoom": 2,
+      "narrow": true,
+      "key": "ordinary-source-dark-200-narrow"
+    },
+    {
+      "view": "ordinary",
+      "mode": "live",
+      "theme": "light",
+      "zoom": 1,
+      "narrow": false,
+      "key": "ordinary-live-light-100-wide"
+    },
+    {
+      "view": "ordinary",
+      "mode": "live",
+      "theme": "light",
+      "zoom": 1,
+      "narrow": true,
+      "key": "ordinary-live-light-100-narrow"
+    },
+    {
+      "view": "ordinary",
+      "mode": "live",
+      "theme": "light",
+      "zoom": 1.25,
+      "narrow": false,
+      "key": "ordinary-live-light-125-wide"
+    },
+    {
+      "view": "ordinary",
+      "mode": "live",
+      "theme": "light",
+      "zoom": 1.25,
+      "narrow": true,
+      "key": "ordinary-live-light-125-narrow"
+    },
+    {
+      "view": "ordinary",
+      "mode": "live",
+      "theme": "light",
+      "zoom": 1.5,
+      "narrow": false,
+      "key": "ordinary-live-light-150-wide"
+    },
+    {
+      "view": "ordinary",
+      "mode": "live",
+      "theme": "light",
+      "zoom": 1.5,
+      "narrow": true,
+      "key": "ordinary-live-light-150-narrow"
+    },
+    {
+      "view": "ordinary",
+      "mode": "live",
+      "theme": "light",
+      "zoom": 2,
+      "narrow": false,
+      "key": "ordinary-live-light-200-wide"
+    },
+    {
+      "view": "ordinary",
+      "mode": "live",
+      "theme": "light",
+      "zoom": 2,
+      "narrow": true,
+      "key": "ordinary-live-light-200-narrow"
+    },
+    {
+      "view": "ordinary",
+      "mode": "live",
+      "theme": "dark",
+      "zoom": 1,
+      "narrow": false,
+      "key": "ordinary-live-dark-100-wide"
+    },
+    {
+      "view": "ordinary",
+      "mode": "live",
+      "theme": "dark",
+      "zoom": 1,
+      "narrow": true,
+      "key": "ordinary-live-dark-100-narrow"
+    },
+    {
+      "view": "ordinary",
+      "mode": "live",
+      "theme": "dark",
+      "zoom": 1.25,
+      "narrow": false,
+      "key": "ordinary-live-dark-125-wide"
+    },
+    {
+      "view": "ordinary",
+      "mode": "live",
+      "theme": "dark",
+      "zoom": 1.25,
+      "narrow": true,
+      "key": "ordinary-live-dark-125-narrow"
+    },
+    {
+      "view": "ordinary",
+      "mode": "live",
+      "theme": "dark",
+      "zoom": 1.5,
+      "narrow": false,
+      "key": "ordinary-live-dark-150-wide"
+    },
+    {
+      "view": "ordinary",
+      "mode": "live",
+      "theme": "dark",
+      "zoom": 1.5,
+      "narrow": true,
+      "key": "ordinary-live-dark-150-narrow"
+    },
+    {
+      "view": "ordinary",
+      "mode": "live",
+      "theme": "dark",
+      "zoom": 2,
+      "narrow": false,
+      "key": "ordinary-live-dark-200-wide"
+    },
+    {
+      "view": "ordinary",
+      "mode": "live",
+      "theme": "dark",
+      "zoom": 2,
+      "narrow": true,
+      "key": "ordinary-live-dark-200-narrow"
+    },
+    {
+      "view": "windowed",
+      "mode": "source",
+      "theme": "light",
+      "zoom": 1,
+      "narrow": false,
+      "key": "windowed-source-light-100-wide"
+    },
+    {
+      "view": "windowed",
+      "mode": "source",
+      "theme": "light",
+      "zoom": 1,
+      "narrow": true,
+      "key": "windowed-source-light-100-narrow"
+    },
+    {
+      "view": "windowed",
+      "mode": "source",
+      "theme": "light",
+      "zoom": 1.25,
+      "narrow": false,
+      "key": "windowed-source-light-125-wide"
+    },
+    {
+      "view": "windowed",
+      "mode": "source",
+      "theme": "light",
+      "zoom": 1.25,
+      "narrow": true,
+      "key": "windowed-source-light-125-narrow"
+    },
+    {
+      "view": "windowed",
+      "mode": "source",
+      "theme": "light",
+      "zoom": 1.5,
+      "narrow": false,
+      "key": "windowed-source-light-150-wide"
+    },
+    {
+      "view": "windowed",
+      "mode": "source",
+      "theme": "light",
+      "zoom": 1.5,
+      "narrow": true,
+      "key": "windowed-source-light-150-narrow"
+    },
+    {
+      "view": "windowed",
+      "mode": "source",
+      "theme": "light",
+      "zoom": 2,
+      "narrow": false,
+      "key": "windowed-source-light-200-wide"
+    },
+    {
+      "view": "windowed",
+      "mode": "source",
+      "theme": "light",
+      "zoom": 2,
+      "narrow": true,
+      "key": "windowed-source-light-200-narrow"
+    },
+    {
+      "view": "windowed",
+      "mode": "source",
+      "theme": "dark",
+      "zoom": 1,
+      "narrow": false,
+      "key": "windowed-source-dark-100-wide"
+    },
+    {
+      "view": "windowed",
+      "mode": "source",
+      "theme": "dark",
+      "zoom": 1,
+      "narrow": true,
+      "key": "windowed-source-dark-100-narrow"
+    },
+    {
+      "view": "windowed",
+      "mode": "source",
+      "theme": "dark",
+      "zoom": 1.25,
+      "narrow": false,
+      "key": "windowed-source-dark-125-wide"
+    },
+    {
+      "view": "windowed",
+      "mode": "source",
+      "theme": "dark",
+      "zoom": 1.25,
+      "narrow": true,
+      "key": "windowed-source-dark-125-narrow"
+    },
+    {
+      "view": "windowed",
+      "mode": "source",
+      "theme": "dark",
+      "zoom": 1.5,
+      "narrow": false,
+      "key": "windowed-source-dark-150-wide"
+    },
+    {
+      "view": "windowed",
+      "mode": "source",
+      "theme": "dark",
+      "zoom": 1.5,
+      "narrow": true,
+      "key": "windowed-source-dark-150-narrow"
+    },
+    {
+      "view": "windowed",
+      "mode": "source",
+      "theme": "dark",
+      "zoom": 2,
+      "narrow": false,
+      "key": "windowed-source-dark-200-wide"
+    },
+    {
+      "view": "windowed",
+      "mode": "source",
+      "theme": "dark",
+      "zoom": 2,
+      "narrow": true,
+      "key": "windowed-source-dark-200-narrow"
+    },
+    {
+      "view": "windowed",
+      "mode": "live",
+      "theme": "light",
+      "zoom": 1,
+      "narrow": false,
+      "key": "windowed-live-light-100-wide"
+    },
+    {
+      "view": "windowed",
+      "mode": "live",
+      "theme": "light",
+      "zoom": 1,
+      "narrow": true,
+      "key": "windowed-live-light-100-narrow"
+    },
+    {
+      "view": "windowed",
+      "mode": "live",
+      "theme": "light",
+      "zoom": 1.25,
+      "narrow": false,
+      "key": "windowed-live-light-125-wide"
+    },
+    {
+      "view": "windowed",
+      "mode": "live",
+      "theme": "light",
+      "zoom": 1.25,
+      "narrow": true,
+      "key": "windowed-live-light-125-narrow"
+    },
+    {
+      "view": "windowed",
+      "mode": "live",
+      "theme": "light",
+      "zoom": 1.5,
+      "narrow": false,
+      "key": "windowed-live-light-150-wide"
+    },
+    {
+      "view": "windowed",
+      "mode": "live",
+      "theme": "light",
+      "zoom": 1.5,
+      "narrow": true,
+      "key": "windowed-live-light-150-narrow"
+    },
+    {
+      "view": "windowed",
+      "mode": "live",
+      "theme": "light",
+      "zoom": 2,
+      "narrow": false,
+      "key": "windowed-live-light-200-wide"
+    },
+    {
+      "view": "windowed",
+      "mode": "live",
+      "theme": "light",
+      "zoom": 2,
+      "narrow": true,
+      "key": "windowed-live-light-200-narrow"
+    },
+    {
+      "view": "windowed",
+      "mode": "live",
+      "theme": "dark",
+      "zoom": 1,
+      "narrow": false,
+      "key": "windowed-live-dark-100-wide"
+    },
+    {
+      "view": "windowed",
+      "mode": "live",
+      "theme": "dark",
+      "zoom": 1,
+      "narrow": true,
+      "key": "windowed-live-dark-100-narrow"
+    },
+    {
+      "view": "windowed",
+      "mode": "live",
+      "theme": "dark",
+      "zoom": 1.25,
+      "narrow": false,
+      "key": "windowed-live-dark-125-wide"
+    },
+    {
+      "view": "windowed",
+      "mode": "live",
+      "theme": "dark",
+      "zoom": 1.25,
+      "narrow": true,
+      "key": "windowed-live-dark-125-narrow"
+    },
+    {
+      "view": "windowed",
+      "mode": "live",
+      "theme": "dark",
+      "zoom": 1.5,
+      "narrow": false,
+      "key": "windowed-live-dark-150-wide"
+    },
+    {
+      "view": "windowed",
+      "mode": "live",
+      "theme": "dark",
+      "zoom": 1.5,
+      "narrow": true,
+      "key": "windowed-live-dark-150-narrow"
+    },
+    {
+      "view": "windowed",
+      "mode": "live",
+      "theme": "dark",
+      "zoom": 2,
+      "narrow": false,
+      "key": "windowed-live-dark-200-wide"
+    },
+    {
+      "view": "windowed",
+      "mode": "live",
+      "theme": "dark",
+      "zoom": 2,
+      "narrow": true,
+      "key": "windowed-live-dark-200-narrow"
+    }
+  ],
+  "scope": "Actual production image decoding and UI behavior. Screenshots require separate visual review; geometry is not pixel fidelity proof.",
+  "excludes": [
+    "native process lifetime/timeout audit (separate harness)",
+    "Windows",
+    "system DPI",
+    "inline-vs-image pixel comparison (separate isolated probe)"
+  ]
+}

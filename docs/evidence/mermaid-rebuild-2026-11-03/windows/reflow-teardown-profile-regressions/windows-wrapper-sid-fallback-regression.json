@@ -1,0 +1,81 @@
+{
+  "status": "passed",
+  "powershell": "7.6.9",
+  "observerCompiled": true,
+  "cases": [
+    {
+      "case": "snapshot-exact",
+      "queryCalls": 0,
+      "matchedExactSid": true,
+      "failedClosed": false,
+      "error": null
+    },
+    {
+      "case": "snapshot-other",
+      "queryCalls": 0,
+      "matchedExactSid": false,
+      "failedClosed": false,
+      "error": null
+    },
+    {
+      "case": "null-idle",
+      "queryCalls": 0,
+      "matchedExactSid": false,
+      "failedClosed": false,
+      "error": null
+    },
+    {
+      "case": "null-system",
+      "queryCalls": 0,
+      "matchedExactSid": false,
+      "failedClosed": false,
+      "error": null
+    },
+    {
+      "case": "known-sid-never-kernel-exempt",
+      "queryCalls": 0,
+      "matchedExactSid": true,
+      "failedClosed": false,
+      "error": null
+    },
+    {
+      "case": "fallback-exact",
+      "queryCalls": 1,
+      "matchedExactSid": true,
+      "failedClosed": false,
+      "error": null
+    },
+    {
+      "case": "fallback-other",
+      "queryCalls": 1,
+      "matchedExactSid": false,
+      "failedClosed": false,
+      "error": null
+    },
+    {
+      "case": "fallback-access-denied",
+      "queryCalls": 1,
+      "matchedExactSid": false,
+      "failedClosed": true,
+      "error": "mock read-only token query denied"
+    },
+    {
+      "case": "fallback-null",
+      "queryCalls": 1,
+      "matchedExactSid": false,
+      "failedClosed": true,
+      "error": "Process-owner SID query returned no identity"
+    },
+    {
+      "case": "fallback-empty",
+      "queryCalls": 1,
+      "matchedExactSid": false,
+      "failedClosed": true,
+      "error": "Process-owner SID query returned no identity"
+    }
+  ],
+  "nativeWindowsApisCalled": false,
+  "processNamesUsedForExemption": false,
+  "permissionsAdjusted": false,
+  "remoteTasksTriggered": false
+}

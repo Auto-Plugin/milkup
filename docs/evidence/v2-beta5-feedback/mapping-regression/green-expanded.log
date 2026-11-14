@@ -1,0 +1,61 @@
+
+ RUN  v3.2.6 /tmp/milkup-windows-manual-candidate/packages/view-dom
+
+ ❯ src/__tests__/beta5-incremental-source-mapping.test.ts (18 tests | 2 failed) 2431ms
+   × ordinary incremental live source mappings > maps clicks inside retained highlighted code and inline Unicode after replacement 115ms
+     → Failed to execute 'createTreeWalker' on 'Document': parameter 1 is not of type 'Node'.
+   ✓ ordinary incremental live source mappings > remaps saved source children when an earlier edit withdraws an inline preview 242ms
+   ✓ ordinary incremental live source mappings > keeps the retained later language control attached to its shifted fence 77ms
+   ✓ ordinary incremental live source mappings > replace preserves reused code/inline ranges and history with "\n" 53ms
+   ✓ ordinary incremental live source mappings > insert preserves reused code/inline ranges and history with "\n" 43ms
+   ✓ ordinary incremental live source mappings > delete preserves reused code/inline ranges and history with "\n" 74ms
+   ✓ ordinary incremental live source mappings > replace preserves reused code/inline ranges and history with "\r\n" 69ms
+   ✓ ordinary incremental live source mappings > insert preserves reused code/inline ranges and history with "\r\n" 71ms
+   ✓ ordinary incremental live source mappings > delete preserves reused code/inline ranges and history with "\r\n" 30ms
+   × windowed incremental live source mappings > maps clicks inside retained highlighted code and inline Unicode after replacement 277ms
+     → Failed to execute 'createTreeWalker' on 'Document': parameter 1 is not of type 'Node'.
+   ✓ windowed incremental live source mappings > remaps saved source children when an earlier edit withdraws an inline preview 133ms
+   ✓ windowed incremental live source mappings > keeps the retained later language control attached to its shifted fence 144ms
+   ✓ windowed incremental live source mappings > replace preserves reused code/inline ranges and history with "\n" 201ms
+   ✓ windowed incremental live source mappings > insert preserves reused code/inline ranges and history with "\n" 195ms
+   ✓ windowed incremental live source mappings > delete preserves reused code/inline ranges and history with "\n" 178ms
+   ✓ windowed incremental live source mappings > replace preserves reused code/inline ranges and history with "\r\n" 176ms
+   ✓ windowed incremental live source mappings > insert preserves reused code/inline ranges and history with "\r\n" 157ms
+   ✓ windowed incremental live source mappings > delete preserves reused code/inline ranges and history with "\r\n" 192ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/__tests__/beta5-incremental-source-mapping.test.ts > ordinary incremental live source mappings > maps clicks inside retained highlighted code and inline Unicode after replacement
+TypeError: Failed to execute 'createTreeWalker' on 'Document': parameter 1 is not of type 'Node'.
+ ❯ Object.exports.convert ../../../../workspace/milkup/node_modules/.pnpm/jsdom@27.4.0/node_modules/jsdom/lib/jsdom/living/generated/Node.js:25:9
+ ❯ Document.createTreeWalker ../../../../workspace/milkup/node_modules/.pnpm/jsdom@27.4.0/node_modules/jsdom/lib/jsdom/living/generated/Document.js:692:23
+ ❯ src/__tests__/beta5-incremental-source-mapping.test.ts:179:33
+    177|         await s.commit()
+    178|         const inline = s.view.contentDOM.querySelector<HTMLElement>('.…
+    179|         const walker = document.createTreeWalker(inline, NodeFilter.SH…
+       |                                 ^
+    180|         for (let node = walker.nextNode(); node; node = walker.nextNod…
+    181|           if (node.textContent?.includes('👩🏽‍💻')) targetNode = node
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯
+
+ FAIL  src/__tests__/beta5-incremental-source-mapping.test.ts > windowed incremental live source mappings > maps clicks inside retained highlighted code and inline Unicode after replacement
+TypeError: Failed to execute 'createTreeWalker' on 'Document': parameter 1 is not of type 'Node'.
+ ❯ Object.exports.convert ../../../../workspace/milkup/node_modules/.pnpm/jsdom@27.4.0/node_modules/jsdom/lib/jsdom/living/generated/Node.js:25:9
+ ❯ Document.createTreeWalker ../../../../workspace/milkup/node_modules/.pnpm/jsdom@27.4.0/node_modules/jsdom/lib/jsdom/living/generated/Document.js:692:23
+ ❯ src/__tests__/beta5-incremental-source-mapping.test.ts:179:33
+    177|         await s.commit()
+    178|         const inline = s.view.contentDOM.querySelector<HTMLElement>('.…
+    179|         const walker = document.createTreeWalker(inline, NodeFilter.SH…
+       |                                 ^
+    180|         for (let node = walker.nextNode(); node; node = walker.nextNod…
+    181|           if (node.textContent?.includes('👩🏽‍💻')) targetNode = node
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/2]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  2 failed | 16 passed (18)
+   Start at  09:40:32
+   Duration  6.47s (transform 1.42s, setup 0ms, collect 1.81s, tests 2.43s, environment 927ms, prepare 545ms)
+

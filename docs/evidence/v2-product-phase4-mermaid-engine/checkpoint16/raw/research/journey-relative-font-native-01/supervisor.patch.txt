@@ -1,0 +1,95 @@
+--- baseline/supervise.py
++++ supervise.py
+@@ -1,11 +1,11 @@
+ #!/usr/bin/env python3
+ """External Linux mechanism probe. No UI may be launched until explicit GO.
+ Usage: supervise.py --output NEW_DIR -- COMMAND [ARGS...]
+-Runs fixed bbox twice in one fresh helper, then synchronous loop. All jobs 2s from native send.
++Fixed captured Journey SVG only: two arms, full canvas and scroll top. All tasks2s from native send.
+ """
+ import shutil
+ import argparse,ctypes,hashlib,json,os,pathlib,selectors,signal,subprocess,time,fcntl
+-ap=argparse.ArgumentParser();ap.add_argument('--output',required=True);ap.add_argument('--phase',choices=['capture','paint'],required=True);ap.add_argument('command',nargs=argparse.REMAINDER);args=ap.parse_args()
++ap=argparse.ArgumentParser();ap.add_argument('--output',required=True);ap.add_argument('--phase',choices=['paint'],required=True);ap.add_argument('--zoom',choices=['1','2'],required=True);ap.add_argument('command',nargs=argparse.REMAINDER);args=ap.parse_args()
+ cmd=args.command[1:] if args.command and args.command[0]=='--' else args.command
+ if not cmd:raise SystemExit('Command required')
+ out=pathlib.Path(args.output);out.mkdir(parents=True,exist_ok=False)
+@@ -109,7 +109,7 @@
+   while not ready:
+    f=frame_before(deadline)
+    if f is None:raise TimeoutError('Separate preparation deadline 10s')
+-   if f.get('type')=='native-policy':assert f['sandbox'] and f['ephemeral'] and not f['tauriBridge']
++   if f.get('type')=='native-policy':assert f['sandbox'] and f['ephemeral'] and not f['tauriBridge'] and f['diagnosticZoom']==int(args.zoom)
+    if f.get('type')=='ready':
+     if f['value'].get('bootstrapMissing'):
+      time.sleep(.02);proc.stdin.write(b'bootstrap\n');proc.stdin.flush()
+@@ -153,53 +153,23 @@
+   def snapshot(label):
+    before=inspect(label+'-before-snapshot')
+    value=command({'op':'snapshot'},time.monotonic()+2)
+-   assert value.get('snapshot'),value
++   assert value.get('snapshot') and value.get('zoom')==int(args.zoom),value
+    source=root/'profiles'/out.name/'journey.png';target=out/(label+'.png');shutil.copyfile(source,target)
+    after=inspect(label+'-after-snapshot')
+-   for field in ['arm','mode','nodeId','rect','currentSrc','complete','naturalWidth','naturalHeight']:
++   for field in ['arm','mode','nodeId','rect','currentSrc','complete','naturalWidth','naturalHeight','fontAndLayout']:
+     assert before.get(field)==after.get(field),('Snapshot identity/geometry changed',field,before,after)
+    if before.get('preview'):
+     for field in ['top','left','scrollWidth','scrollHeight','clientWidth','clientHeight']:
+      assert before['preview'][field]==after['preview'][field],('Snapshot scroll changed',field)
+    event('paired-snapshot',label=label,sha256=hashlib.sha256(target.read_bytes()).hexdigest(),geometry=value,before=before,after=after)
+-  def edges(label):
+-   env={**os.environ,'DISPLAY':':128'}
+-   def x(*arguments):return subprocess.check_output(['xdotool',*map(str,arguments)],env=env,text=True,timeout=2).strip()
+-   windows=x('search','--onlyvisible','--name','^Isolated DOM mechanism probe$').splitlines();assert len(windows)==1,windows
+-   window=windows[0]
+-   initial=inspect(label+'-initial');viewport=initial['preview'];assert viewport
+-   # Sole exact-owned display contains only this helper; window origin is handled by --window.
+-   x('windowfocus','--sync',window)
+-   left,top,width,height=viewport['rect']
+-   x('mousemove','--window',window,round((left+width/2)*2),round((top+height/2)*2))
+-   snapshot(label+'-top-left')
+-   operations=[]
+-   for axis,button,scroll,client in [('top','5','scrollHeight','clientHeight'),('left','7','scrollWidth','clientWidth')]:
+-    deadline=time.monotonic()+10;ticks=0
+-    while True:
+-     current=inspect(label+'-'+axis+'-'+str(ticks))['preview']
+-     target=current[scroll]-current[client]
+-     if abs(current[axis]-target)<=1:break
+-     assert time.monotonic()<deadline and ticks<20,('Bounded wheel edge not reached',axis,current)
+-     x('click',button);ticks+=1;time.sleep(.08)
+-    operations.append({'axis':axis,'target':target,'actual':current[axis],'ticks':ticks})
+-   snapshot(label+'-bottom-right')
+-   event('native-wheel-edges',label=label,operations=operations)
+-  if args.phase=='capture':
+-   request=json.loads((root/'request.json').read_text())
+-   value=task(request,'actual-current-renderer')
+-   (out/'typed-result.json').write_text(json.dumps(value['typedResult'],ensure_ascii=False,indent=2)+'\n')
+-   captured=command({'op':'original-source'},time.monotonic()+2)
+-   assert isinstance(captured.get('rawReturnedSvg'),str) and isinstance(captured.get('installedRootSvg'),str)
+-   (out/'raw-capture.json').write_text(json.dumps(captured,ensure_ascii=False,indent=2)+'\n')
+-   results.append({'status':'capture-complete','scope':'actual current source renderer plus synchronous observation tap'})
+-  else:
+-   for arm in ['original','canonical']:
+-    task({'arm':arm,'mode':'full'},arm+'-full')
+-    snapshot(arm+'-full-canvas')
+-    task({'arm':arm,'mode':'scroll'},arm+'-scroll')
+-    edges(arm)
+-   results.append({'status':'paired-complete','scope':'same-capture original and independently canonicalized artifact; no rerender'})
++  for arm in ['original','canonical']:
++   task({'arm':arm,'mode':'full'},arm+'-full')
++   snapshot(arm+'-full-canvas')
++   task({'arm':arm,'mode':'scroll'},arm+'-scroll')
++   initial=inspect(arm+'-scroll-initial')
++   assert initial['preview']['top']==0 and initial['preview']['left']==0,initial
++   snapshot(arm+'-top-left')
++  results.append({'status':'paired-measurement-complete','zoom':int(args.zoom),'scope':'same frozen original/canonical; no Mermaid render, no wheel, pixels not judged by this runner'})
+   terminate('completed-research-cleanup');proc=None
+  event('completed',results=results)
+ except BaseException as e:
+@@ -211,4 +181,4 @@
+ finally:
+  os.close(result_read)
+  if result_write is not None:os.close(result_write)
+- (out/'result.json').write_text(json.dumps({'diagnosticOnly':True,'phase':args.phase,'actualCurrentSourceRenderer':args.phase=='capture','productPluginTested':False,'currentCoreValidatedFixedAST':args.phase=='paint','results':results,'events':trace},ensure_ascii=False,indent=2))
++ (out/'result.json').write_text(json.dumps({'diagnosticOnly':True,'phase':args.phase,'actualCurrentSourceRenderer':False,'nativeZoom':int(args.zoom),'productPluginTested':False,'currentCoreValidatedFixedAST':args.phase=='paint','results':results,'events':trace},ensure_ascii=False,indent=2))

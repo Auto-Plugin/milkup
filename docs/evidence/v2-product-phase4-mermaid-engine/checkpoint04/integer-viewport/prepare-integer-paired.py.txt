@@ -1,0 +1,52 @@
+from pathlib import Path
+import shutil,json,hashlib,difflib
+p=Path(__file__).parent/'native-runner';out=p/'integer-viewport-candidate';before=out/'before';before.mkdir(exist_ok=True)
+for rel in ['paired-helper/assets/entry.mjs','paired-helper/src/main.rs','paired-helper/assets/canonical.svg','supervise-paired-diagnostic.py','run-paired-diagnostic.sh']:
+ f=p/rel;d=before/rel;d.parent.mkdir(parents=True,exist_ok=True);shutil.copyfile(f,d)
+f=p/'paired-helper/assets/entry.mjs';s=f.read_text();start=s.index('// Research-only paired image observation');s=s[:start]+r'''// Research-only integer raster viewport/layout observation, separate from conversion.
+let originalGeometry;
+function matrix(m){return m?[m.a,m.b,m.c,m.d,m.e,m.f]:null;}
+function box(b){return [b.x,b.y,b.width,b.height];}
+function geometry(n){const c=getComputedStyle(n);let bbox=null;try{bbox=box(n.getBBox());}catch{}return {kind:n.localName,rect:box(n.getBoundingClientRect()),bbox,ctm:matrix(n.getCTM?.()),screenCTM:matrix(n.getScreenCTM?.()),viewBox:n.getAttribute('viewBox'),width:n.getAttribute('width'),height:n.getAttribute('height'),preserveAspectRatio:n.getAttribute('preserveAspectRatio'),overflow:c.overflow,display:c.display,transform:c.transform};}
+function rememberOriginal(){if(!originalGeometry){const root=host?.querySelector('svg');if(!root)throw Error('no original SVG');originalGeometry=geometry(root);}return originalGeometry;}
+function mountSlot(node){const g=rememberOriginal(),slot=document.createElement('div');slot.dataset.diagnosticSlot='true';slot.style.width=g.rect[2]+'px';slot.style.height=g.rect[3]+'px';slot.style.display='block';slot.style.overflow='visible';node.style.display='block';slot.append(node);const footer=document.createElement('div');footer.dataset.diagnosticFooter='true';footer.style.cssText='display:block;width:80px;height:8px;margin-top:8px;background:rgb(16,80,192)';host.replaceChildren(slot,footer);}
+function completeObservation(taskId,extra={}){requestAnimationFrame(()=>requestAnimationFrame(()=>{task={taskId,status:'complete',result:{ok:true,observationOnly:true,...extra,...inspect(false)}};}));}
+function controlOriginal(){if(busy||task?.status==='pending')throw Error('busy');rememberOriginal();const root=host.querySelector('svg');const taskId='control_'+(++sequence);task={taskId,status:'pending'};mountSlot(root);completeObservation(taskId);return {taskId,status:'pending'};}
+function showCanonical(){
+ if(busy||task?.status==='pending')throw Error('busy');const g=rememberOriginal(),taskId='canonical_'+(++sequence);task={taskId,status:'pending'};
+ const img=new Image();img.alt='Canonical independently validated image';img.style.width=Math.ceil(g.rect[2])+'px';img.style.height=Math.ceil(g.rect[3])+'px';
+ img.onload=()=>completeObservation(taskId);img.onerror=()=>{task={taskId,status:'error',error:'fixed canonical image decode failed'};};
+ mountSlot(img);img.src='milkup-render://job/canonical.svg';return {taskId,status:'pending'};
+}
+function inspect(includeSource=false){
+ const svg=host?.querySelector('svg'),img=host?.querySelector('img'),node=svg??img;if(!node)throw Error('nothing mounted');
+ if(includeSource)rememberOriginal();const b=node.getBoundingClientRect(),c=getComputedStyle(node),slot=host.querySelector('[data-diagnostic-slot]'),footer=host.querySelector('[data-diagnostic-footer]');
+ const state={kind:node.localName,bbox:box(b),css:{width:c.width,height:c.height,display:c.display,objectFit:c.objectFit,objectPosition:c.objectPosition,transform:c.transform},devicePixelRatio:window.devicePixelRatio,originalGeometry,slot:slot?{rect:box(slot.getBoundingClientRect()),overflow:getComputedStyle(slot).overflow}:null,footer:footer?box(footer.getBoundingClientRect()):null};
+ if(svg){const inner=Array.from(svg.children).find(n=>n.localName==='svg')??svg;state.rootGeometry=geometry(svg);state.innerGeometry=geometry(inner);const nodes=Array.from(inner.querySelectorAll('rect,path,text'));state.geometryNodeCount=nodes.length;state.geometrySamples=nodes.slice(0,72).map((n,index)=>({index,...geometry(n)}));if(includeSource)state.svg=svg.outerHTML;}
+ else Object.assign(state,{naturalWidth:img.naturalWidth,naturalHeight:img.naturalHeight,complete:img.complete,currentSrc:img.currentSrc});return state;
+}
+function showCanonicalInline(svg){
+ if(busy||task?.status==='pending')throw Error('busy');rememberOriginal();const taskId='canonical_inline_'+(++sequence);task={taskId,status:'pending'};
+ // Only the fixed compiled independently validated canonical resource enters here.
+ const holder=document.createElement('div');holder.innerHTML=svg;const root=holder.firstElementChild;if(root?.localName!=='svg'||holder.children.length!==1)throw Error('fixed SVG invalid');mountSlot(root);completeObservation(taskId);return {taskId,status:'pending'};
+}
+window.__milkupSvgConverterProbe=Object.freeze({ready,readiness,run,start,poll,clear,showCanonical,showCanonicalInline,inspect,controlOriginal});
+export {ready,readiness,run,start,poll,clear};
+''';f.write_text(s)
+f=p/'paired-helper/src/main.rs';s=f.read_text();needle='    Some("inspect")=>';assert s.count(needle)==1;s=s.replace(needle,'    Some("control-original")=>"window.__milkupSvgConverterProbe.controlOriginal()".into(),\n'+needle);f.write_text(s)
+f=p/'supervise-paired-diagnostic.py';s=f.read_text();needle="     snapshot('original-inline')\n";assert s.count(needle)==1;s=s.replace(needle,needle+'''     started=time.monotonic();deadline=started+2;proc.stdin.write(b'{"op":"control-original"}\\n');proc.stdin.flush();f=frame_before(deadline);assert f and f['value'].get('taskId'),f
+     controlled_id=f['value']['taskId']
+     while True:
+      proc.stdin.write((json.dumps({'op':'poll','taskId':controlled_id})+'\\n').encode());proc.stdin.flush();f=frame_before(deadline);assert f and f.get('type')=='result',f
+      state=f['value'];assert state['status'] in ['pending','complete'],state
+      if state['status']=='complete':assert state['result'].get('ok');break
+      time.sleep(.01)
+     inspect('controlled-original')
+     snapshot('controlled-original')
+''');(p/'supervise-paired-integer.py').write_text(s)
+s=(p/'run-paired-diagnostic.sh').read_text().replace('supervise-paired-diagnostic.py','supervise-paired-integer.py');(p/'run-paired-integer.sh').write_text(s)
+shutil.copyfile(out/'sankey-integer-viewport.svg',p/'paired-helper/assets/canonical.svg')
+files=['paired-helper/assets/entry.mjs','paired-helper/src/main.rs','paired-helper/assets/canonical.svg','supervise-paired-integer.py','run-paired-integer.sh']
+(out/'runner-preparation.json').write_text(json.dumps({'status':'prepared-not-built-not-run','boundaries':'Only external diagnostic helper; same native render watchdog, frame limit, sandbox and fixed URI guards. Per-observation operations separately bounded at 2s.','files':[{'path':str(p/x),'sha256':hashlib.sha256((p/x).read_bytes()).hexdigest()} for x in files]},indent=2)+'\n')
+for rel in ['paired-helper/assets/entry.mjs','paired-helper/src/main.rs']:
+ (out/(Path(rel).name+'.diff')).write_text(''.join(difflib.unified_diff((before/rel).read_text().splitlines(True),(p/rel).read_text().splitlines(True),fromfile='before/'+rel,tofile='integer/'+rel)))

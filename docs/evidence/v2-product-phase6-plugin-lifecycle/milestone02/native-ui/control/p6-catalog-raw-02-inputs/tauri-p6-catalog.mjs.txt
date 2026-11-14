@@ -1,0 +1,536 @@
+// P6 checkpoint 2. Root owns native execution. --preflight never starts an app.
+// MILKUP_P6_CATALOG_CASE=smoke|manager-rollback|manager-hang|raw-api|late-command|catalog-cas|trial-restart|
+// startup-restart|mirror-restart|catalog-corruption|remove-failure
+// All runs need a unique owned profile and immutable binary + SHA. Trusted-host
+// IPC probes are explicitly separate from ordinary plugin and shipped-UI actions.
+import assert from 'node:assert/strict'
+import { createHash, randomUUID } from 'node:crypto'
+import { chmod, mkdir, readFile, realpath, stat, writeFile } from 'node:fs/promises'
+import path from 'node:path'
+import { startProduction } from '../helpers/native-production.mjs'
+import { nativeFixture, action, x } from '../helpers/native-updates-fixture.mjs'
+import { ownNativeClipboard } from '../helpers/native-clipboard.mjs'
+import {
+  catalogFixtureId as id,
+  catalogFixtureArchive,
+  catalogSource,
+  writeCatalogFixtures,
+} from '../helpers/p6-catalog-fixtures.mjs'
+
+const required = (key) => (assert(process.env[key], `Set ${key}`), process.env[key])
+const digest = (bytes) => createHash('sha256').update(bytes).digest('hex')
+const output = path.resolve(required('MILKUP_NATIVE_EVIDENCE_DIR'))
+const profile = path.resolve(required('MILKUP_NATIVE_PROFILE_ROOT'))
+const binary = await realpath(required('TAURI_APP_PATH'))
+const stage = required('MILKUP_P6_CATALOG_CASE')
+const stages = [
+  'smoke',
+  'manager-rollback',
+  'manager-hang',
+  'raw-api',
+  'late-command',
+  'catalog-cas',
+  'trial-restart',
+  'startup-restart',
+  'mirror-restart',
+  'catalog-corruption',
+  'remove-failure',
+]
+assert(stages.includes(stage), 'Known catalog case')
+assert(
+  profile.startsWith('/tmp/milkup-p6-profiles/') && profile !== '/tmp/milkup-p6-profiles',
+  'Dedicated disposable P6 profile required',
+)
+assert(!binary.includes('/target/'), 'Frozen binary copy required')
+assert.equal(digest(await readFile(binary)), required('MILKUP_NATIVE_EXPECTED_BINARY_SHA256'))
+assert(!process.env.WEBKIT_DISABLE_SANDBOX_THIS_IS_DANGEROUS && !process.env.LD_PRELOAD)
+await mkdir(output, { recursive: true })
+await writeFile(path.join(output, 'catalog-run.lock'), new Date().toISOString(), { flag: 'wx' })
+const json = (name, value) =>
+  writeFile(path.join(output, name + '.json'), JSON.stringify(value, null, 2) + '\n')
+const fixtures = await writeCatalogFixtures(output)
+const sourcePath = path.join(output, 'source.md')
+await writeFile(sourcePath, catalogSource, { flag: 'wx' })
+await json('preflight', {
+  stage,
+  profile,
+  binary,
+  binarySha256: digest(await readFile(binary)),
+  sourceSha256: digest(catalogSource),
+  fixtures: Object.fromEntries(
+    Object.entries(fixtures).map(([key, value]) => [
+      key,
+      { path: value.file, sha256: value.sha256, manifest: value.archive.manifest },
+    ]),
+  ),
+  methods: {
+    manager: 'shipped controls + GTK picker + native keyboard',
+    catalog: 'WebDriver trusted-host existing native IPC; not plugin permission proof',
+    storage: 'owned test profile only; original bytes and modes preserved',
+    raw: 'actual isolated Worker fixture using public plugin object contract',
+  },
+})
+if (process.argv.includes('--preflight')) process.exit(0)
+assert.equal(process.env.MILKUP_P6_BINARY_CONFIRMED, '1')
+assert.equal(process.env.MILKUP_NATIVE_EXCLUSIVE_DISPLAY, '1')
+
+let app
+const ui = nativeFixture(() => app)
+const events = []
+const restorations = []
+let launches = 0
+let passed = false
+async function launch() {
+  const launchOutput = path.join(output, 'launch-' + ++launches)
+  await mkdir(launchOutput)
+  app = await startProduction(sourcePath, launchOutput, { diagnostics: false })
+  x('windowsize', ui.windowId(), '1280', '900')
+  // Browser script only initiates the existing native command. No app/private
+  // manager object is exposed or patched, and no native authority is mocked.
+  assert(
+    await app.execute('return typeof window.__TAURI_INTERNALS__?.invoke === "function"'),
+    'Native invoke bridge available to trusted host',
+  )
+  await app.until(async () => (await catalog()).version === 1, 'native catalog readable', 45000)
+  // A fresh profile has no legacy registry; migrationReceipt correctly remains
+  // null. Shipped manager actions await initialization themselves.
+  await ui.list()
+  await ui.ready('[data-plugin-action="install"]')
+  await observe('launch-' + launches)
+}
+async function invoke(command, args) {
+  const key = '__p6CatalogProbe_' + randomUUID().replaceAll('-', '')
+  await app.execute(
+    `const [key,command,args]=arguments; window[key]={done:false};
+    window.__TAURI_INTERNALS__.invoke(command,args).then(value=>window[key]={done:true,ok:true,value},error=>window[key]={done:true,ok:false,error:String(error)});`,
+    key,
+    command,
+    args ?? {},
+  )
+  const result = await app.until(
+    () => app.execute('return window[arguments[0]]?.done ? window[arguments[0]] : null', key),
+    command,
+    45000,
+  )
+  await app.execute('delete window[arguments[0]]', key)
+  if (!result.ok) throw Error(result.error)
+  return result.value
+}
+const catalog = () => invoke('plugin_catalog_read')
+const find = (snapshot, pluginId = id) => snapshot.entries.find((entry) => entry.id === pluginId)
+async function record() {
+  return find(await catalog())
+}
+async function transition(entry, value) {
+  return invoke('plugin_catalog_transition', {
+    pluginId: entry.id,
+    expectedRevision: entry.revision,
+    action: value,
+  })
+}
+function identity(entry) {
+  assert(entry.pending)
+  return {
+    transactionId: entry.pending.transactionId,
+    fingerprint: entry.pending.generation.capabilityFingerprint,
+  }
+}
+async function observe(name) {
+  const row = {
+    name,
+    at: new Date().toISOString(),
+    catalog: await catalog(),
+    document: await app.probe(),
+    managerText: await app.execute(
+      'return document.querySelector("[data-plugin-manager]")?.textContent ?? null',
+    ),
+    mirror: await app.execute('return localStorage.getItem("milkup.desktop.plugins.registry.v1")'),
+  }
+  events.push(row)
+  await json('events', events)
+  await app.shot(name)
+  return row
+}
+async function restart() {
+  await app.close()
+  app = undefined
+  await launch()
+}
+async function openPackage(kind) {
+  await ui.list()
+  await ui.click('[data-plugin-action="install"]')
+  await ui.picker(fixtures[kind].file)
+  await app.until(
+    async () => {
+      const entry = await record()
+      const version = fixtures[kind].archive.manifest.version
+      return (
+        entry?.active?.manifest.version === version ||
+        entry?.pending?.generation.manifest.version === version ||
+        (await app.execute(
+          'return [...document.querySelectorAll(".plugin-errors")].some(e=>e.textContent.includes(arguments[0]))',
+          fixtures[kind].file,
+        ))
+      )
+    },
+    'candidate accepted or visible installation error',
+    30000,
+  )
+}
+async function activateCurrent() {
+  await ui.details(id)
+  if (await ui.exists(action('approve', id))) await ui.click(action('approve', id))
+  const current = await record()
+  if (current.pending || !current.enabled) await ui.click(action('enable', id))
+  await app.until(
+    async () => {
+      const entry = await record()
+      return entry?.enabled && !entry.startAttempt && !entry.pending
+    },
+    'verified activation committed and startup complete',
+    30000,
+  )
+  await ui.ready(action('disable', id))
+}
+async function installBase() {
+  assert(!find(await catalog()), 'Fresh fixture ID required')
+  await openPackage('base')
+  await activateCurrent()
+  const entry = await record()
+  assert.equal(entry.active.manifest.version, '1.0.0')
+  assert(entry.active.verified && entry.enabled && !entry.pending)
+  await observe('base-enabled')
+  return entry
+}
+async function disable() {
+  await ui.details(id)
+  if (await ui.exists(action('disable', id))) await ui.click(action('disable', id))
+  await app.until(async () => !(await record()).enabled, 'fixture disabled')
+}
+async function unicodeSave() {
+  await ui.closeMenu()
+  await app.focus('.milkup-input-proxy')
+  await app.key('ctrl+1')
+  await app.key('ctrl+End')
+  const inserted = '\nP6 插件故障后仍可保存 😀 𠮷 e\u0301\n'
+  const release = await ownNativeClipboard(inserted)
+  try {
+    await app.key('ctrl+v')
+    await app.until(async () => (await app.probe()).dirty, 'Unicode edit dirty')
+  } finally {
+    release()
+  }
+  await app.key('ctrl+s')
+  await app.until(
+    async () => digest(await readFile(sourcePath)) === digest(catalogSource + inserted),
+    'exact Unicode save',
+  )
+  await app.key('ctrl+z')
+  await app.key('ctrl+s')
+  await app.until(
+    async () => digest(await readFile(sourcePath)) === digest(catalogSource),
+    'exact Unicode undo save',
+  )
+  await app.key('ctrl+shift+z')
+  await app.key('ctrl+s')
+  await app.until(
+    async () => digest(await readFile(sourcePath)) === digest(catalogSource + inserted),
+    'exact Unicode redo save',
+  )
+  await app.key('ctrl+z')
+  await app.key('ctrl+s')
+  await app.until(
+    async () => digest(await readFile(sourcePath)) === digest(catalogSource),
+    'original bytes restored',
+  )
+  await observe('unicode-history-save')
+}
+async function prepare(kind, pluginId = id) {
+  const current = find(await catalog(), pluginId)
+  return invoke('plugin_catalog_prepare', {
+    archive: catalogFixtureArchive(kind, pluginId),
+    sourcePath: fixtures[kind].file,
+    expectedRevision: current?.revision ?? null,
+  })
+}
+async function stagedTrial() {
+  await disable()
+  let entry = find(await prepare('failure'))
+  if (!entry.pending.generation.approvedFingerprint)
+    entry = find(await transition(entry, { type: 'approve', ...identity(entry) }))
+  entry = find(await transition(entry, { type: 'beginTrial', ...identity(entry) }))
+  assert.equal(entry.pending.phase, 'trial')
+  assert.equal(entry.enabled, false)
+  return entry
+}
+async function ping(previousToken) {
+  await ui.details(id)
+  await ui.click('[data-plugin-command="catalogFixture.ping"]')
+  return app.until(async () => {
+    const notice = await app.execute(
+      'return document.querySelector("[data-notice]")?.textContent ?? ""',
+    )
+    const token = /P6_BASE_ALIVE:([a-f0-9]{32})/.exec(notice)?.[1]
+    return token && token !== previousToken ? token : false
+  }, 'old code command responds from a fresh activation')
+}
+async function managerRollback(kind = 'failure') {
+  const before = await installBase()
+  const previousActivationToken = await ping()
+  await openPackage(kind)
+  await ui.details(id)
+  let activationStarted
+  if ((await record()).pending) {
+    if (await ui.exists(action('approve', id))) await ui.click(action('approve', id))
+    activationStarted = performance.now()
+    await ui.click(action('enable', id))
+  }
+  assert(activationStarted !== undefined, 'The reviewed candidate must actually enter activation')
+  await app.until(
+    async () => {
+      const entry = await record()
+      return !entry.pending && entry.active?.id === before.active.id && entry.enabled
+    },
+    'failed candidate removed and old generation newly running',
+    30000,
+  )
+  const after = await record()
+  const recoveryElapsedMs = performance.now() - activationStarted
+  if (kind === 'hang') {
+    assert(
+      recoveryElapsedMs >= 9000,
+      'Infinite CPU activation must reach the real 10-second deadline, not fail immediately',
+    )
+    assert(
+      recoveryElapsedMs < 30000,
+      'Host must remain responsive and recover within the harness bound',
+    )
+  }
+  assert.equal(after.active.contentSha256, before.active.contentSha256)
+  assert.equal(after.active.approvedFingerprint, before.active.approvedFingerprint)
+  const activationToken = await ping(previousActivationToken)
+  assert.notEqual(activationToken, previousActivationToken)
+  await json('candidate-recovery', {
+    kind,
+    recoveryElapsedMs,
+    previousActivationToken,
+    activationToken,
+    oldGeneration: before.active.id,
+    restoredGeneration: after.active.id,
+    observation:
+      'Public fixture activation nonce proves a fresh activation; private host epoch is not exposed to the harness',
+  })
+  await observe(kind === 'hang' ? 'cpu-hang-upgrade-restored' : 'failed-upgrade-restored')
+}
+async function rawApi() {
+  const before = await installBase()
+  await openPackage('raw')
+  await activateCurrent()
+  const guarded = await record()
+  assert.equal(
+    guarded.active.manifest.version,
+    '1.1.0',
+    'actual Worker raw API rejection probes all completed',
+  )
+  assert.equal(guarded.previous.id, before.active.id)
+  await observe('raw-apis-blocked-in-worker')
+  await openPackage('dynamic')
+  if ((await record()).pending) {
+    await ui.details(id)
+    if (await ui.exists(action('approve', id))) await ui.click(action('approve', id))
+    await ui.click(action('enable', id))
+  }
+  await app.until(
+    async () => {
+      const entry = await record()
+      return !entry.pending && entry.active?.id === guarded.active.id && entry.enabled
+    },
+    'runtime-loading candidate rejected and old raw guard fixture retained',
+    30000,
+  )
+  await observe('dynamic-import-rejected')
+}
+async function lateCommand() {
+  await installBase()
+  await ui.details(id)
+  await ui.click('[data-plugin-command="catalogFixture.delayed"]')
+  await ui.click(action('disable', id))
+  await app.until(async () => !(await record()).enabled, 'disable while command delayed')
+  await app.delay(2500)
+  const body = await app.execute('return document.body.textContent')
+  assert(
+    !body.includes('P6_STALE_COMMAND_MUST_NOT_APPEAR'),
+    'removed epoch cannot publish delayed command notification',
+  )
+  await observe('delayed-command-after-disable')
+  // This is a live command crossing disable, not evidence that an already delivered
+  // native RPC can be undone. Separate unit tests cover broker late-result guards.
+}
+async function cas() {
+  const pluginId = 'example.catalog-concurrent'
+  const entry = find(await prepare('base', pluginId), pluginId)
+  const args = ['approve', 'abort'].map((type) => ({
+    pluginId,
+    expectedRevision: entry.revision,
+    action: { type, ...identity(entry) },
+  }))
+  const key = '__p6Concurrent_' + randomUUID().replaceAll('-', '')
+  await app.execute(
+    `const [key,args]=arguments; window[key]=null; Promise.allSettled(args.map(arg=>window.__TAURI_INTERNALS__.invoke('plugin_catalog_transition',arg))).then(results=>window[key]=results.map(r=>r.status==='fulfilled'?{status:r.status,revision:r.value.revision}:{status:r.status,reason:String(r.reason)}));`,
+    key,
+    args,
+  )
+  const result = await app.until(
+    () => app.execute('return window[arguments[0]]', key),
+    'native concurrent CAS results',
+  )
+  assert.equal(result.filter((item) => item.status === 'fulfilled').length, 1)
+  assert.equal(
+    result.filter((item) => item.status === 'rejected' && item.reason.includes('conflict')).length,
+    1,
+  )
+  await json('same-id-concurrent-cas', { expectedRevision: entry.revision, result })
+  await app.execute('delete window[arguments[0]]', key)
+  await observe('concurrent-cas')
+}
+async function interrupted(kind) {
+  const before = await installBase()
+  if (kind === 'trial') await stagedTrial()
+  else {
+    await disable()
+    const entry = await record()
+    await transition(entry, { type: 'startupBegin', generationId: entry.active.id })
+    assert((await record()).startAttempt)
+  }
+  await observe('persisted-' + kind + '-before-restart')
+  // A real process exit with incomplete persisted attempt; no completion/abort is
+  // invoked. Graceful WebDriver close may trigger general shutdown but does not
+  // know the trusted-host native-only injected transaction.
+  await restart()
+  const after = await record()
+  assert.equal(after.active.id, before.active.id)
+  assert.equal(after.pending, null)
+  assert.equal(after.startAttempt, null)
+  assert.equal(after.enabled, false)
+  assert(after.diagnostics.length > 0)
+  await observe('interrupted-' + kind + '-recovered')
+}
+async function mirrorRestart() {
+  const before = await installBase()
+  await app.execute(
+    'localStorage.setItem("milkup.desktop.plugins.registry.v1", "{broken P6 mirror");',
+  )
+  await restart()
+  const after = await record()
+  assert.equal(after.active.id, before.active.id)
+  assert.equal(after.active.contentSha256, before.active.contentSha256)
+  assert.equal(after.active.approvedFingerprint, before.active.approvedFingerprint)
+  assert.equal(after.enabled, true)
+  await app.until(async () => {
+    const mirror = await app.execute(
+      'return localStorage.getItem("milkup.desktop.plugins.registry.v1")',
+    )
+    try {
+      return JSON.parse(mirror).records.some((item) => item.manifest.id === id)
+    } catch {
+      return false
+    }
+  }, 'native authority rebuilt corrupted localStorage mirror')
+  await observe('corrupt-mirror-rebuilt')
+}
+function ownedNativePath(file) {
+  const resolved = path.resolve(file)
+  assert(resolved.startsWith(profile + path.sep), 'Fault injection limited to owned profile')
+  return resolved
+}
+async function catalogCorruption() {
+  const before = await installBase()
+  await disable()
+  const root = ownedNativePath(path.resolve(before.active.packageRoot, '../../..'))
+  const primary = path.join(root, 'catalog-v1.json')
+  const backup = path.join(root, 'catalog-v1.backup.json')
+  await app.close()
+  app = undefined
+  const original = await readFile(primary)
+  const backupBytes = await readFile(backup)
+  await writeFile(path.join(output, 'catalog-before-corruption.json'), original, { flag: 'wx' })
+  await writeFile(path.join(output, 'catalog-valid-backup.json'), backupBytes, { flag: 'wx' })
+  await writeFile(primary, '{P6 intentionally corrupt primary')
+  await launch()
+  const recovered = await catalog()
+  assert(recovered.diagnostics.some((message) => /corrupt|backup|recover/i.test(message)))
+  assert(recovered.entries.every((entry) => !entry.enabled && !entry.startAttempt))
+  assert(
+    recovered.entries.every((entry) => !entry.active || entry.active.approvedFingerprint === null),
+  )
+  assert(find(recovered)?.active, 'valid backup package metadata retained')
+  await observe('native-corruption-recovered-fail-closed')
+}
+async function removeFailure() {
+  const before = await installBase()
+  await disable()
+  const generationRoot = ownedNativePath(path.dirname(before.active.packageRoot))
+  const mode = (await stat(generationRoot)).mode & 0o777
+  const dataRoot = ownedNativePath(before.dataRoot)
+  await mkdir(dataRoot, { recursive: true })
+  const sentinel = path.join(dataRoot, 'p6-retained-user-data.txt')
+  await writeFile(sentinel, 'P6 user data 中文 😀', { flag: 'wx' })
+  restorations.push(() => chmod(generationRoot, mode))
+  await chmod(generationRoot, 0o500)
+  const removed = find(await transition(await record(), { type: 'remove' }))
+  assert(removed.tombstone && !removed.enabled)
+  assert(
+    removed.diagnostics.some((message) => /cleanup pending/i.test(message)),
+    'actual deletion refusal recorded',
+  )
+  await observe('remove-failed-tombstone-persisted')
+  await restart()
+  const restarted = await record()
+  assert(restarted.tombstone && !restarted.enabled)
+  assert.equal(await readFile(sentinel, 'utf8'), 'P6 user data 中文 😀')
+  await chmod(generationRoot, mode)
+  await transition(restarted, { type: 'remove' })
+  assert.equal(await readFile(sentinel, 'utf8'), 'P6 user data 中文 😀')
+  await observe('remove-retried-data-retained')
+}
+
+try {
+  await launch()
+  if (stage === 'smoke') await installBase()
+  else if (stage === 'manager-rollback') await managerRollback()
+  else if (stage === 'manager-hang') await managerRollback('hang')
+  else if (stage === 'raw-api') await rawApi()
+  else if (stage === 'late-command') await lateCommand()
+  else if (stage === 'catalog-cas') await cas()
+  else if (stage === 'trial-restart') await interrupted('trial')
+  else if (stage === 'startup-restart') await interrupted('startup')
+  else if (stage === 'mirror-restart') await mirrorRestart()
+  else if (stage === 'catalog-corruption') await catalogCorruption()
+  else if (stage === 'remove-failure') await removeFailure()
+  await unicodeSave()
+  passed = true
+} catch (error) {
+  await json('failure', { error: String(error), stack: error.stack })
+  if (app) {
+    await observe('failure-observation').catch(() => {})
+    await app.shot('failure').catch(() => {})
+  }
+  throw error
+} finally {
+  for (const restore of restorations.reverse())
+    await restore().catch((error) => console.error('Fault injection restoration failed', error))
+  await app?.close()
+  await json('completion', {
+    passed,
+    stage,
+    launches,
+    sourceSha256: digest(await readFile(sourcePath)),
+    limitations: [
+      'Linux WebKit only',
+      'Trusted-host IPC tests do not establish plugin access',
+      'No complete malicious-code sandbox claim',
+      'Late-command case covers delayed worker command publication, not undo of completed external effects',
+      'Process exit during injected persistent attempt, not arbitrary power loss',
+    ],
+  })
+}

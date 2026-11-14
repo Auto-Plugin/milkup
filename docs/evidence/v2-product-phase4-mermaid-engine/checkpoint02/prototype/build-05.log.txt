@@ -1,0 +1,60 @@
+   Compiling percent-encoding v2.3.2
+   Compiling form_urlencoded v1.2.2
+   Compiling url v2.5.8
+   Compiling tao v0.35.3
+   Compiling milkup-dom-render-probe v0.0.0 (/workspace/milkup-mermaid-engine-evidence/prototype/dom-helper)
+error[E0433]: cannot find module or crate `soup3` in this scope
+  --> src/main.rs:38:15
+   |
+38 |   let headers=soup3::MessageHeaders::new(soup3::MessageHeadersType::Response);
+   |               ^^^^^ use of unresolved module or unlinked crate `soup3`
+   |
+help: there is a crate or module with a similar name
+   |
+38 -   let headers=soup3::MessageHeaders::new(soup3::MessageHeadersType::Response);
+38 +   let headers=soup::MessageHeaders::new(soup3::MessageHeadersType::Response);
+   |
+
+error[E0433]: cannot find module or crate `soup3` in this scope
+  --> src/main.rs:38:42
+   |
+38 |   let headers=soup3::MessageHeaders::new(soup3::MessageHeadersType::Response);
+   |                                          ^^^^^ use of unresolved module or unlinked crate `soup3`
+   |
+help: there is a crate or module with a similar name
+   |
+38 -   let headers=soup3::MessageHeaders::new(soup3::MessageHeadersType::Response);
+38 +   let headers=soup3::MessageHeaders::new(soup::MessageHeadersType::Response);
+   |
+
+error[E0034]: multiple applicable items in scope
+  --> src/main.rs:44:22
+   |
+44 |  let settings=native.settings().unwrap();
+   |                      ^^^^^^^^ multiple `settings` found
+   |
+   = note: candidate #1 is defined in an impl of the trait `WebViewExt` for the type `O`
+   = note: candidate #2 is defined in an impl of the trait `gtk::prelude::WidgetExt` for the type `O`
+help: disambiguate the method for candidate #1
+   |
+44 -  let settings=native.settings().unwrap();
+44 +  let settings=WebViewExt::settings(&native).unwrap();
+   |
+help: disambiguate the method for candidate #2
+   |
+44 -  let settings=native.settings().unwrap();
+44 +  let settings=gtk::prelude::WidgetExt::settings(&native).unwrap();
+   |
+
+warning: use of deprecated method `webkit2gtk::NavigationPolicyDecisionExt::request`: Since 2.6
+  --> src/main.rs:55:95
+   |
+55 |     let allowed=decision.downcast_ref::<webkit2gtk::NavigationPolicyDecision>().and_then(|d|d.request()).and_then(|r|r.uri()).map(|u...
+   |                                                                                               ^^^^^^^
+   |
+   = note: `#[warn(deprecated)]` on by default
+
+Some errors have detailed explanations: E0034, E0433.
+For more information about an error, try `rustc --explain E0034`.
+warning: `milkup-dom-render-probe` (bin "milkup-dom-render-probe") generated 1 warning
+error: could not compile `milkup-dom-render-probe` (bin "milkup-dom-render-probe") due to 3 previous errors; 1 warning emitted

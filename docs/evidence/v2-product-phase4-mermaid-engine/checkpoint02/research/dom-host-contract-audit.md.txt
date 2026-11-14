@@ -1,0 +1,110 @@
+# 独立 DOM 渲染程序：manifest、加载与生命周期合同审计
+
+审计于 2026-10-16。仓库 `/workspace/milkup`，当前 HEAD `5c049cc5e339cf12fe432f3a111f132be76b6091`，功能基线 `d385143`。只读检查代码及已有外部引擎审计，没有修改仓库源码、运行测试、启动 UI 或安装依赖。以下是建议，**当前产品没有 DOM host，也没有已验证的独立 DOM 终止/安全边界**。
+
+## 结论与首版范围
+
+首版建议新增严格的 **`host: "dom"` 插件执行类型**，使用现有 `main` 指向包内离线 UTF-8 ESM，贡献只允许 `documentRenderers`，权限只允许 `document:read`。由宿主创建独立、可硬终止的 DOM 执行程序，直接提供隔离 endpoint，复用 `createRpcPluginIsolationHost` → `createIsolatedPluginModule` → PluginRuntime → presentation service。不先启 Worker，不让 Worker 中的 renderer 再调用 DOM 后端。host routing 只能依赖已验证的 manifest host，不能依赖插件 ID、Mermaid 围栏名或第三方库名。
+
+这里的 `document:read` 首版仅授权宿主送入当前有界 `DocumentPresentationRequest`，不自动开放整个 document broker。DOM 子程序没有 command、storage、file、network、UI 导航或任意 Tauri IPC；“纯只读”也不等于浏览器沙箱。必须由独立程序的实际隔离配置禁止网络、任意本地文件、宿主 IPC 和导航，不能仅靠权限数组、JS 覆盖 fetch、Mermaid strict 配置或 main 页面 CSP 声称实现。
+
+若将来确实需要 DOM 插件后台 `readWindow`，应另行明确允许的单一协议与生命周期；本轮没有这种需求，不应复用 Worker 初始化器把所有 broker 一并带入。其他普通 Worker 插件（例如脚注）继续保留原 document broker 能力。
+
+## 现有代码入口和可复用部分
+
+| 位置（当前 HEAD 行号） | 实际行为 / 接入含义 |
+| --- | --- |
+| `packages/plugin/src/manifest.ts:6,141,181–207,299–312` | host 只有 worker/sidecar；documentRenderers 要求 document:read，但没有纯 renderer 权限/贡献剖面。新 host 需显式扩 union、校验与严格剖面。 |
+| `manifest.ts:1139–1181`；`packages/core/src/document-presentation.ts:154–172` | renderer declaration 仅 id/contexts/fenceLanguages，未知键被拒绝；不是能直接塞 runtime/entry 的开放对象。当前输出/输入/2 秒/队列额度仍作为独立合同保留。 |
+| `packages/plugin/src/package.ts:24–63,84–119` | 包先调用 manifest 校验；相对 main 必须在 files 中；只有 worker 明确要求 UTF-8。dom 必须同样要求 UTF-8，并更严格要求相对、包内、存在的入口。现包格式 v1 不必因 host 字段自动升级，但旧 parser 必然不接受新 host。 |
+| `packages/plugin/src/loader.ts:29–58,73–83` | metadata 读取与本地 import 分离；import 默认只允许 worker。dom 不可加入“可在宿主线程 import”的 allowedHosts。可复用 manifest 读取，执行必须走新的隔离 loader。 |
+| `apps/desktop/src/main.ts:3750–3773` | 当前 prepareModule 对 sidecar 返回 executable；其他 host 接受 http/data/blob/milkup 入口或读源码创建 blob。**这条泛化分支不满足 dom 离线要求**，不能直接落入它。 |
+| `apps/desktop/src/desktop-plugin-manager.ts:99–121,178,218,305–326` | 已有 loaded module + dispose、capabilities、loader 注入；host allowlist 固定 worker/sidecar。建议新增 loadDomModule 注入，显式三路路由。 |
+| `desktop-plugin-manager.ts:489–577` | enable 串行 lifecycle、先 unload、捕获 activation epoch、prepare、建 brokers、load/activate、再次核 epoch、markEnabled。最小 dom loader 可插在 544–546，不需第二套注册表。 |
+| `desktop-plugin-manager.ts:589–624,1250–1328` | disable/reload/remove 走同一生命周期队列；timeout/failure 先同步撤销 capability、递增 epoch、markFailed，再排队卸载。新 host 必须使用同一 epoch callbacks 和 loaded dispose。 |
+| `desktop-plugin-manager.ts:1208–1222,1757–1786`；`packages/plugin/src/registry.ts:190–218,325–353` | 审批包含 host；仅 worker 自动有 host approval。新 dom 默认应保留显式 host 审批，不能把旧 Worker 审批转移成 DOM 批准。详情能显示通用 host/error，卡片 title/logo/description 无需改变。 |
+| `packages/plugin/src/isolation.ts:122–167` | `createIsolatedPluginModule` 返回 runtimeHost=isolated；按 activation 宣告且由 manifest 拥有的 renderer IDs 建代理，renderDocument 直接调用 host，不自加 2 秒 timer。可以直接复用。 |
+| `packages/plugin/src/isolation-rpc.ts:65–166` | 通用 lifecycle RPC 默认 5 秒，Worker 显式传 10 秒；renderDocument 使用独立 document client，不经过普通 call(method) timer。无需套第二层 Worker RPC。 |
+| `packages/plugin/src/document-render-rpc.ts:55–193` | 每个 client 一个 active + 最多两个排队；排队不启动两秒 timer；可信 authority 存在时不在主线程仲裁。active cancel 只拒绝调用方并发送 cancel，仍占 active，直至结果或强制终止。 |
+| `packages/plugin/src/render-arbitration.ts:1–42` | authority 为 host-only WeakMap；`createTrustedPluginRenderEndpoint` 只接受可信 owner 控制订阅。子程序输出的 timeout/ready 标志不能自行取得 authority。 |
+| `packages/plugin/src/isolation-module-host.ts:71–142,198–244` | generation/active/AbortController、declaration/permission 和请求/结果复制校验可复用。不要复用其完整 broker 配置；dom 模块激活上下文必须是无 host bridge 的专用配置，且隔离入口不得安装任意 broker RPC server。 |
+| `packages/plugin/src/runtime.ts:443–493` | enabled、manifest declaration、document:read、capability generation、最多三项 presentation jobs、结果复制；timeout 会撤销并禁用。无额外两秒 timer。 |
+| `apps/desktop/src/document-presentation-service.ts:37–151` | 窗口/版本/identity/selection/保护范围准备在调用 renderer 之前；聚合时再次校验 ownership 和结果，不需要引擎特判。 |
+| `packages/view-dom/src/document-presentation.ts:59,683–711` | 10 秒 hostPreparationDeadline 实际包住整个 `config.provide`，包括上下文准备、等待 renderer/排队及聚合，不只是冷启动。触发时保留源码并 abort；它不是引擎可额外消费的 10 秒。 |
+| `apps/desktop/src/plugin-sidecar.ts:16–155`；`apps/desktop/src-tauri/src/plugin_sidecar.rs:174–277,353` | 可借鉴 native instanceId、可信 control 与 ordinary message 分离、独立 Instant watchdog、严格结果 envelope 仲裁。现 sidecar 接受 executable，不是离线 DOM 包安全加载器；不可把它原样当 dom 权限边界。 |
+
+## 两种 manifest 方案的兼容性比较
+
+| 方案 | 优点 | 实际新增成本 / 风险 |
+| --- | --- | --- |
+| `host:"dom"`，现有 `main`，只有 documentRenderers | 一个插件一个执行实例和单一 owner；已有启停/卸载/审批/错误/epoch 大体直接适用；无需 Worker；旧 worker/sidecar 包和 renderer declaration 不变。 | 新 host union 与 registry allowlist；DOM 专属严格 manifest/package 校验；新 loader/native transport；不支持同包 commands 或混合 Worker+DOM。该限制应显式报错。 |
+| renderer declaration 增加 `runtime:"dom"` / `entry` | 可在同包保留 Worker commands、部分 DOM renderer；长期可描述多执行端。 | 现 declaration 严格拒绝新键，且类型由 core 导出；将执行部署细节塞入 core presentation declaration。一个插件需多个 prepared entries、多个 host approval、隔离 capability、聚合 activation、组合 dispose、跨 host 超时失败策略、总并发限额和每 host epoch。若仍由 Worker 代理调用，容易产生二重 2 秒；若直接路由则要拆 activation authority。 |
+
+推荐首版 host 方案，明确不支持混合宿主；不要同时引入两种声明。若以后需要 renderer runtime/entry，应放在 plugin 层专用声明并消除其与 `manifest.host/main` 的优先级歧义，而不是悄悄拓宽核心展示类型。
+
+独立插件继续导出普通 SDK module 形状的 `documentRenderers` 映射，可复用公开 `SdkDocumentRenderer`。native helper 是通用执行器：离线 import 插件入口、绑定 lifecycle/render RPC、返回经公共 profile 验证的输出；不能把 Mermaid import/配置/图种逻辑放宿主。可以允许已有 activate/deactivate 钩子，但它们属于有界初始化/销毁而不是 command 权限，`context.host` 不暴露 broker；如决定首版只接受静态 renderer exports，应明确发布为 DOM profile 限制，不能假装已有 SDK module 一概兼容。
+
+新最低宿主/SDK版本须明确反映 host 与新静态输出 profile。旧版本应清楚拒绝安装/启用新 host，不能默认为 worker。现 SDK `packages/plugin-sdk/src/index.d.ts:571–578` 定义 module renderer 映射；manifest 主类型在 plugin 包。SDK 对输出节点的扩展与 host manifest 支持是两项兼容条件，外部包必须同时声明满足。不要为新纯 DOM 插件开放原 sidecar arbitrary executable 语义。
+
+## 请求链、初始化和预算分层
+
+建议链路：
+
+```text
+可信窗口上下文 → PluginRuntime.renderDocument
+  → createIsolatedPluginModule 的 renderer proxy
+  → createRpcPluginIsolationHost.documentClient（1 active + 2 queued）
+  → native-owned DOM endpoint（唯一执行仲裁 owner）
+  → 独立 DOM realm 的 module renderer → 受控结果
+  → native envelope 仲裁 → JS/core profile 验证 → 原 presentation view
+```
+
+1. **启用时准备，不在 renderer 内懒建执行器。** 验证包、读入口、准备固定资源/font、启动独立程序、import/activate、得到 owned renderer IDs 后才能 markEnabled。沿用现 loader 显式 10 秒初始化上限的意图，但 native 必须能终止卡在 import/activate 的程序；主线程 Promise 超时本身不是终止。初始化不接收文档、不借“warmup”先做图内容渲染。准备失败 markFailed/execution-host，源码保留。
+2. **真正 dispatch 才开始唯一 2000ms。** native ready 后 document client 才发送 render；队列中的两个 job 尚无执行 timer。native owner 在接受当前实例的 active request、实际转发前，用自身单调时钟设 2000ms deadline；结果仅在完整匹配严格 envelope 且未过期时结算。等待 IPC写入、DOM消息调度、引擎内部排队、实际布局、异步等待、插件的输出转换，均属于这次已派发执行的 elapsed time，不得靠子程序“provider开始”消息重置。
+3. **没有 Worker 中转。** 现 Worker supervisor 在 `worker-supervisor.ts:218–243` 转发 render 前设 deadline。若 Worker 收请求后再准备/等待 DOM IPC，这些时间全消耗 Worker 两秒；内层再设两秒也不能修复。dom host 根本不创建 Worker renderer 实例，不改变原 worker 的正确 deadline。
+4. **避免原生额外隐藏队列。** DOM endpoint 一个实例只接受一个 active。其他 native 全局容量等待必须在 readiness/admission 层有界且可取消，不能已向前端宣称执行后又把它塞进未知队列；也不能将插件自己发出的 ready/started 当免计时证明。保留前端整体 10 秒 provide 上限作为可见性兜底，但它不能取代 native硬终止。若所有槽位不可用，应明确 unavailable/busy，不自动把运行预算延长。
+5. **引擎自己的队列算执行。** 外部 Mermaid审计 owner确认当前官方公开 render 内部有串行队列、无 AbortSignal。同一实例不可并发 dispatch 多个 plugin请求；一个请求内多个图顺序调用仍共享该请求的两秒。超出就明确 fallback，不每图重置预算；不允许已超时任务遗留在引擎队列继续干扰后续任务。基础输出验证和不可信复杂转换也需有界。
+6. **取消不提前交出执行槽。** queued abort 移出队列；active abort 向调用者返回 aborted，但原生 watchdog保持，原 job 未完成/进程未确认停止前不得启动下一 job。不支持协作取消的官方引擎可以继续至合法结果被丢弃或硬截止；若选择立即销毁实例，需要明确实例已不可用及显式重新启用策略，不能悄悄重跑。
+7. **独立 owner 先停再通知。** native timeout 必须先终止拥有的 DOM 执行上下文，再发外层控制事件。主 WebView停顿不应把已在 deadline内到达原生owner的结果误判；迟到或 malformed/wrong-id 结果不能解除 watchdog。复用严格 `document-render-wire.ts` 的 id、ok/value/error互斥及错误码白名单，不接受 child伪造control。
+
+初始化、活动请求和关闭必须都可有界完成；仅画布/隐藏WebView/iframe存在不等于可独立终止。后端实现需要实际证明一个卡死的DOM任务不会冻结编辑器且可被owner杀掉。不能用同UI进程的 DOM对象销毁、Promise.race、Worker terminate 或 `securityLevel:"sandbox"` 代替该证明。
+
+## 最小可信加载和 native envelope
+
+建议保持公开 renderer request/result 语义；新增的是 host内部的实例控制，不将路径、原生handle、nonce放进SDK参数。
+
+- native start接受**已安装插件ID + 宿主期望的包代次/内容摘要**，验证安装记录中的 host/main/resources、入口真实包根和 symlink confinement；宿主选固定 helper binary，不接受插件指定 executable/args。仅开发浏览器 fixture 的 data/blob不能变成生产许可。
+- 首版打包单个自包含离线 ESM最简单：无外部 import、动态 chunk、远端font/image。若允许包内模块图，需逐模块受约束解析/加载；现 blob入口只读main并不能证明模块图离线。仅扫描import字符串不足以阻止运行时代码发起请求，真正安全边界必须在执行环境。
+- 每次 start返回不可复用的 instanceId；host所有 send/stop/listen都同时核 pluginId+instanceId+active requestId。旧epoch startup迟到需立即close旧实例；旧stop/错误/结果不得落到重新启用的新实例。
+- endpoint只转发 activation/deactivation/render所需协议。child数据永远只是普通结果；任何启动确认、deadline控制、终止事件只能来自可信nativeowner。renderer declaration必须属于安装manifest，activation返回renderer集合应确认满足需要，不可零renderer却显示成功启用。
+- 独立程序不得有主应用 Tauri invoke/listen 注入、窗口opener或主app同源能力；不给普通 OS路径、工作目录文件读写、网络和浏览器存储继承。静态文档样式和包内字体亦只从审核过的资源加载。需要哪些操作系统级约束是后端实现的待证明项，本审计不把CSP视作完整文件/网络沙箱。
+- 输出仍是公共有界数据，经独立 core validator。官方生成SVG不能未经安全profile校验插进编辑器DOM；现 MathML/flat-vector不能自动承载复杂官方SVG。输出合同详见并行 `view-presentation-output-audit.md`；dom host接入并不授权任意HTML/SVG/JS。
+
+## 启停、错误与无 native 后端
+
+新 `loadDomModule` 必须返回现有 `{module, dispose}`，ready前可取消，dispose幂等。manager依现有 activationEpoch 与每插件 lifecycle序列化，timeout/execution-host callback 捕获当次epoch；先同步撤销/markFailed，再异步关闭。disable/uninstall先撤销所有请求，取消队列、关端口、终止owner并释放包资源；后台结果不能重新注册贡献。timeout后保留可诊断失败和手动重新启用入口，不自动重启循环；手动启用可清特定runtime错误，不能清包兼容/权限错误。
+
+现 manager `createUiBroker` 在存在 documentRenderers 时也会建UI broker（1110–1134），`createWorkerModule` 会建storage并配置多个RPC。dom不能直接复用它；只建需要的只读运行状态，不把这些实例/IPC转交DOM。即便manifest恶意声明commands等，应在安装时拒绝，再在native和RPC方法层拒绝，不能只依靠UI没有按钮。
+
+普通浏览器或没有已验证native backend的平台：
+
+- 安装/列表可显示manifest，但启用dom loader必须清楚失败 `DOM renderer backend unavailable`，保留源码，其他基础编辑和Worker插件不受影响；没有无声的Worker/iframe/main-thread替代。
+- 可在当前manager默认sidecar不可用的模式（312–316）基础上添加显式dom不可用loader，结合通用execution-host错误；若平台选择registry unsupported-host禁用，则应给明确平台原因。两者择一统一错误语义，不能在浏览器假显示renderer已启用。
+- 后端能力检测应基于native受控probe/协议版本，不仅 `window.__TAURI_INTERNALS__` 存在。Web浏览器测试可注入受控fake loader覆盖UI/生命周期，但不能称为DOM安全/两秒终止证据。
+- Linux独立DOM证明不自动覆盖Windows/macOS；没有backend的系统明确fallback原文，不借sidecar普通可执行程序绕过限制。
+
+## 最小实施切面与先验回归
+
+最小新切面：manifest/package的domprofile；manager `loadDomModule` 三路选择及capability限制；一个隔离DOM host adapter/endpoint；native固定helper生命周期与受约束加载；对应SDK输出profile版本。沿用隔离模块、render RPC、runtime、presentation聚合和view源码回退。不需要插件ID分支，也不需要新文档编辑API或新业务菜单。
+
+实施前/后应各自保留失败证据，重点如下：
+
+1. manifest拒绝dom + command/UI/storage/file/network/sidecar路径、URL/绝对/越界main、base64main、缺entry、未知rendererID；原worker/sidecar包原行为不变，dom升级host不能继承旧审批。
+2. import/字体初始化可以慢于2秒但仍在单独有界startup内完成；之后快速renderer不因之前准备被两秒误杀。超过startup上限必须硬停，不把pending模块标enabled。
+3. 一active+两queued，队列等待不消费执行2秒；active cancel不解除硬deadline/启动下一项。官方内部队列不遗留旧任务。无额外Worker层timer。
+4. 真实DOM CPU死循环与异步不返回在独立2秒owner停止；主WebView忙时已按时返回的任务不误杀。严格wrong-id/malformed/value缺失/伪造control仍超时；完成后helper按设计可复用。
+5. disable/uninstall/re-enable与start/render/result/stop交错；旧instance不得影响新epoch；实例/资源全部有主，生命周期失败不绕过审批。
+6. request无路径、源内容仅已授权窗口；网络/file/IPC/导航实际尝试均被边界拦住。未经校验SVG/HTML/URL不得进入编辑DOM。基础编辑、源字节、undo/redo不变。
+7. 浏览器缺backend的启用错误与源码fallback可见，不能以mock通过替代native证明；原有真实滚轮可达性/64组合/恢复验收继续适用于新输出。
+
+现阶段建议先批准独立DOM后端的可终止/无桥/离线加载原型证明，再冻结公共host与输出profile。**没有该证明，就不能将成熟引擎移到主线程后声称保持原隔离保障。**

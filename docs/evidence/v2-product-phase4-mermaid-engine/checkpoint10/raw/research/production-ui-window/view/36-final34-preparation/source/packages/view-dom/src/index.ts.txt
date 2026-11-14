@@ -1,0 +1,78 @@
+export { createControlledRendererNodes } from './controlled-renderer'
+export {
+  createInputProxy,
+  buildLineProjection,
+  coordinateToPosition,
+  EditorView,
+  getVisibleLineWindow,
+  positionToLineOffset,
+  positionToRect,
+  renderCursorOverlay,
+  renderMarkdownLines,
+  renderPlainTextLineWindow,
+  renderPlainTextLines,
+  renderSelectionOverlay,
+  scrollPositionIntoView,
+  sourcePositionToVisualOffset,
+  type ScrollPositionIntoViewConfig,
+  visualOffsetToSourcePosition,
+  type EditorMarkdownParseState,
+  type LineProjection,
+  type LineProjectionSegment,
+  type ProjectionSegmentKind,
+  type RenderMarkdownLinesOptions,
+  type VisibleLineWindowConfig,
+} from './editor-view'
+export { SourceDocumentView, type SourceDocumentViewConfig } from './source-document-view'
+export type {
+  BlockView,
+  ControlledRenderer,
+  ControlledRendererAction,
+  ControlledRendererActionDetail,
+  ControlledRendererContext,
+  ControlledRendererElement,
+  ControlledRendererField,
+  ControlledRendererOutput,
+  ControlledRendererTag,
+  ControlledMarkdownSyntax,
+  CursorVisibilityOptions,
+  Decoration,
+  EditorViewConfig,
+  EditorViewDispatch,
+  EditorViewLike,
+  PositionLineOffset,
+  SearchHighlight,
+  ViewCoordinate,
+  ViewMetrics,
+  ViewMode,
+  ViewRect,
+  ViewUpdate,
+  VirtualViewportConfig,
+} from './types'
+
+export type { TableCommand, TableContext } from './table-editing'
+export { prepareTableEdit, prepareTableInsertion, editingContextLimits } from './editing-context'
+export type {
+  EditingContext,
+  EditingSelection,
+  TableEditingContext,
+  TableEditOperation,
+  TableEditPlan,
+  TableAlignment,
+} from './editing-context'
+
+export type { EditorPresentation } from './presentation'
+export type {
+  EmptyPasteHandler,
+  ImagePasteHandler,
+  ImageResolver,
+  ResolvedImageResource,
+} from './image-presentation'
+
+export { createDocumentPresentationNode } from './document-presentation'
+export type {
+  DocumentPresentationConfig,
+  DocumentPresentationWindow,
+  DocumentPresentationResponse,
+  DocumentPresentationTarget,
+} from './document-presentation'

@@ -1,0 +1,77 @@
+{
+  "platform": "Linux Chromium (not Windows/WebView2)",
+  "productionPluginSha256": "17558b11f62c27389b6085a13b963487ab3403db102eb7409a9869f04f403254",
+  "checks": [
+    "production plugin via createBrowserWorkerPluginHost + initializePluginWorkerRealm + EditorView flowchart",
+    "production CSP and ambient Worker guards reject eval/Function/network/RTC",
+    "sequence alias / Chinese / solid and dashed messages visibly rendered",
+    "source/live preserve exact source",
+    "real document transaction refreshes bounded Worker output",
+    "five unsupported/injection fixtures retain exact source with explicit error and no active DOM",
+    "four unsupported fence-info whitespace variants preserve exact CRLF fence and document with explicit diagnostic",
+    "existing host kills a separate deliberately nonresponsive Worker at its fixed 2s render deadline",
+    "editor and independent productive Worker remain usable after timeout"
+  ],
+  "fenceInfoCases": [
+    {
+      "info": "mermaid unsupported-option",
+      "sourceUtf16": 82,
+      "exactFencePreserved": true,
+      "exactDocumentPreserved": true,
+      "diagnostic": "受限图表围栏参数暂不支持；已保留完整源码。"
+    },
+    {
+      "info": " mermaid\tunsupported-option ",
+      "sourceUtf16": 84,
+      "exactFencePreserved": true,
+      "exactDocumentPreserved": true,
+      "diagnostic": "受限图表围栏参数暂不支持；已保留完整源码。"
+    },
+    {
+      "info": "\tmermaid  unsupported-option\t",
+      "sourceUtf16": 85,
+      "exactFencePreserved": true,
+      "exactDocumentPreserved": true,
+      "diagnostic": "受限图表围栏参数暂不支持；已保留完整源码。"
+    },
+    {
+      "info": "mermaid unsupported-option",
+      "sourceUtf16": 82,
+      "exactFencePreserved": true,
+      "exactDocumentPreserved": true,
+      "diagnostic": "受限图表围栏参数暂不支持；已保留完整源码。"
+    }
+  ],
+  "input": {
+    "sourceCommit": "7eee3944a8658a955f5f43fff3455f734aa6ce0d",
+    "archivePath": "/tmp/milkup-beta4-diagrams-worker-external-infofix/dist/milkup.diagrams-1.2.0.milkup-plugin",
+    "archiveSha256": "b1c2b8490da465f1c38f4f3886e7fa926978d2e6e2c5081bca4d716659c4acc1",
+    "archiveBytes": 88827,
+    "productionPluginSha256": "17558b11f62c27389b6085a13b963487ab3403db102eb7409a9869f04f403254",
+    "workerBytes": 82244,
+    "workerGzipBytes": 24643,
+    "entryReadDirectlyFromArchive": true
+  },
+  "probe": {
+    "proofProbe": true,
+    "document": "undefined",
+    "rtc": "function",
+    "rtcConstructorBlocked": true,
+    "evalBlocked": true,
+    "functionBlocked": true,
+    "networkDenied": true
+  },
+  "timeout": {
+    "elapsed": 2002,
+    "error": "DocumentPresentationError: Document presentation: timeout",
+    "terminated": 1
+  },
+  "server": {
+    "canaries": 0
+  },
+  "checkCount": 9,
+  "unsupportedBodyCases": 5,
+  "fenceInfoCaseCount": 4,
+  "pageErrorCount": 0,
+  "passed": true
+}

@@ -1,0 +1,39 @@
+
+ RUN  v3.2.6 /workspace/milkup/plugins/formatting
+
+ ❯ src/controller.test.ts (13 tests | 1 failed) 76ms
+   ✓ public editing controller > uses bounded capture and one atomic public apply with preserved selection 6ms
+   ✓ public editing controller > preserves a form snapshot and exposes stale rejection without retrying another target 2ms
+   ✓ public editing controller > uses the same public apply for a windowed document 1ms
+   ✓ public editing controller > does not write when syntax cannot be proven 1ms
+   ✓ public editing controller > cancels pending work and does not publish success or recapture after disposal 54ms
+   ✓ public editing controller > preserves successful write status if the follow-up capture fails 1ms
+   ✓ public editing controller > validates table dimensions before passing the snapshot to a real primitive 1ms
+   ✓ public editing controller > forwards bounded alignment and cell operations, rejects unknown ones 1ms
+   ✓ public editing controller > forwards literal cell content and exit through the public table primitive 1ms
+   ✓ public editing controller > does not submit after a capture ignores cancellation and resolves late 1ms
+   ✓ public editing controller > expands a partial table snapshot by its measured rows before applying 1ms
+   ✓ public editing controller > does not silently retarget when selection changes while expanding the table 1ms
+   × public editing controller > does not drop a user command when a background selection refresh is still pending 5ms
+     → expected "spy" to be called 1 times, but got 0 times
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/controller.test.ts > public editing controller > does not drop a user command when a background selection refresh is still pending
+AssertionError: expected "spy" to be called 1 times, but got 0 times
+ ❯ src/controller.test.ts:222:24
+    220|     const refresh = controller.load()
+    221|     await controller.execute('bold')
+    222|     expect(host.apply).toHaveBeenCalledTimes(1)
+       |                        ^
+    223|     complete(snapshot('old'))
+    224|     await refresh
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 12 passed (13)
+   Start at  08:36:00
+   Duration  441ms (transform 79ms, setup 0ms, collect 95ms, tests 76ms, environment 0ms, prepare 69ms)
+

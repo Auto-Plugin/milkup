@@ -1,0 +1,18 @@
+{
+  "author": "release_sdk",
+  "managerSha256": "07cbcfb4d576ff148585a397195edb691ab8780fe539c2fad52e246b081462b7",
+  "beforeSha256": "8dc1f4a2571539cdb32b85bb7f8cecee6c32cf2aa2f1f757b580d1087301d8e3",
+  "patchSha256": "11786b4a345a1f3cec1469246ac9522c2e9028847c869a22aeed6fce18f83723",
+  "scope": "Only ResizeObserver callback scheduling and destruction cancellation. General microtask schedule, immediate invalidation, selection, API, CSS and timing budgets unchanged.",
+  "checks": [
+    "One pending frame per manager; owner document Window retained for cancellation.",
+    "Frame clears handle at entry and checks stopped before layout and again before schedule.",
+    "Destroy disconnects observer and cancels pending frame.",
+    "No captured response/context is replayed: layout and schedule use current manager state."
+  ],
+  "execution": "Static read/diff only; no tests/build/UI. Real browser baseline was run separately by update_plugin. Green browser and type/format checks pending.",
+  "limitations": [
+    "This repairs the demonstrated delivery-cycle mechanism, not yet proof that the original native UI07 sequence is resolved.",
+    "The existing DOM contract assumes an owner Window with requestAnimationFrame when ResizeObserver is available."
+  ]
+}

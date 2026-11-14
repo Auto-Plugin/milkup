@@ -1,0 +1,70 @@
+{
+  "calls": [
+    "active",
+    "survivor"
+  ],
+  "messages": [
+    {
+      "protocol": "milkup.plugin.document-render.v1",
+      "type": "render",
+      "id": "render_1",
+      "payload": {
+        "pluginId": "test.deterministic",
+        "rendererId": "fence",
+        "request": {
+          "documentId": "active",
+          "version": 1,
+          "from": 0,
+          "to": 5,
+          "source": "hello",
+          "fromLine": 1,
+          "toLine": 1,
+          "completeStart": true,
+          "completeEnd": true,
+          "contextKnown": true,
+          "protectedRanges": [],
+          "blocks": [],
+          "selection": {
+            "anchor": 0,
+            "head": 0
+          },
+          "theme": "light",
+          "target": "screen",
+          "width": 380
+        }
+      }
+    },
+    {
+      "protocol": "milkup.plugin.document-render.v1",
+      "type": "render",
+      "id": "render_3",
+      "payload": {
+        "pluginId": "test.deterministic",
+        "rendererId": "fence",
+        "request": {
+          "documentId": "survivor",
+          "version": 1,
+          "from": 0,
+          "to": 5,
+          "source": "hello",
+          "fromLine": 1,
+          "toLine": 1,
+          "completeStart": true,
+          "completeEnd": true,
+          "contextKnown": true,
+          "protectedRanges": [],
+          "blocks": [],
+          "selection": {
+            "anchor": 0,
+            "head": 0
+          },
+          "theme": "light",
+          "target": "screen",
+          "width": 380
+        }
+      }
+    }
+  ],
+  "timeoutCalls": 0,
+  "qualification": "Real RPC client/server with controlled deferred provider; no process kill/deadline isolation proof."
+}

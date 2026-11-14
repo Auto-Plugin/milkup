@@ -1,0 +1,81 @@
+"""Frozen failure evidence audit. Does not execute or relax the completed-run auditor."""
+import collections, hashlib, itertools, json
+from pathlib import Path
+B = Path('/workspace/milkup-mermaid-engine-evidence/research/production08-targeted-sankey-native-01')
+R = B/'runtime/mermaid-ui-production08-targeted-01'
+E = R/'evidence'
+sha = lambda b: hashlib.sha256(b).hexdigest()
+mb=(B/'completed-manifest.json').read_bytes()
+assert sha(mb)=='66eb2be2505d641f4d6b356ae18fe13fae7a7c1eb29a9e2c81cc0911b74aa8c5'
+m=json.loads(mb);index={x['path']:x for x in m['files']}
+assert len(index)==len(m['files'])==447
+def raw(p):
+    b=p.read_bytes();x=index[str(p)]
+    assert len(b)==x['bytes'] and sha(b)==x['sha256'],str(p)
+    return b
+def obj(p):return json.loads(raw(p))
+for p in index:raw(Path(p))
+assert sum(x['bytes'] for x in index.values())==81577458
+records=obj(E/'results.json');names=[x['name'] for x in records]
+assert len(names)==len(set(names))==150 and names[-1]=='FAIL' and 'PASS' not in names
+failure=obj(E/'failure.json');assert failure['error']==records[-1]['error']
+samples=obj(B/'targeted-cases.json');plan=obj(E/'plan.json')
+assert sha(raw(B/'targeted-cases.json'))=='3fe245bc202cf9b3c9f3452b5a4b14f0e3ee88460c96f3d1647d1667c5380556'
+source='# Official Mermaid production UI acceptance 中文 é 👩🏽‍💻\n\n'
+for s in samples:
+    assert sha(s['source'].encode())==s['sourceSha256']
+    source+='MERMAID-SAMPLE-'+s['id']+'\n\n```mermaid\n'+s['source']+('' if s['source'].endswith('\n') else '\n')+'```\n\nAFTER-'+s['id']+'\n\n'
+files=[]
+for v,t in [('ordinary',source),('windowed',source+'retained Unicode 中文 é 👩🏽‍💻 body\n'*160000)]:
+    b=raw(E/(v+'.md'));assert b==t.encode();files.append(dict(view=v,bytes=len(b),sha256=sha(b)))
+expected=[]
+for c in plan['matrix']:
+    key=c['key']
+    for s in [x for x in samples if x.get('matrix')]+([x for x in samples if x['id'] in ['sequenceDiagram-016-box-group','flowchart-107-style']] if (c['zoom']==1 and not c['narrow']) or (c['zoom']==2 and c['narrow']) else []):
+        expected.append(('matrix-' if s.get('matrix') else 'contrast-')+key+'-'+s['id'])
+        if c['zoom']==2 and c['narrow'] and s.get('matrix'):
+            expected += ['edges-'+key+'-'+s['id']+'-'+corner for corner in ['bottom-right','top-left']]
+    expected.append('matrix-complete-'+key)
+actual=[n for n in names if n.startswith(('matrix-','contrast-','edges-'))]
+assert actual==expected[:len(actual)],'Must be genuine prefix of frozen target order'
+counts={p:sum(n.startswith(p) and (p!='matrix-' or not n.startswith('matrix-complete-')) for n in names) for p in ['matrix-complete-','matrix-','contrast-','edges-','coverage-','history-','selection-']}
+assert counts=={'matrix-complete-':31,'matrix-':63,'contrast-':14,'edges-':13,'coverage-':10,'history-':12,'selection-':2}
+history=[x for x in records if x['name'].startswith('history-')]
+assert {x['name'] for x in history}=={f'history-{v}-{mode}-{a}' for v,mode,a in itertools.product(['ordinary','windowed'],['source','live'],['save','undo','redo'])}
+selection=[x for x in records if x['name'].startswith('selection-')]
+assert all(x['byteExact'] and not x['document']['dirty'] and not x['document']['saving'] for x in history+selection)
+for x in records:
+    if x['name'].startswith('matrix-complete-'):
+        assert x['exactFileSha256']==sha(raw(E/(x['combination']['view']+'.md'))) and not x['document']['dirty']
+screens=[]
+for r in records:
+    for s in r.get('screenshots',[]):
+        p=E/s['file'];assert p.parent==E
+        b=raw(p);assert len(b)==s['bytes'] and sha(b)==s['sha256'] and b[:8]==b'\x89PNG\r\n\x1a\n'
+        screens.append(s)
+assert len(screens)==len({x['file'] for x in screens})==234
+assert {x['file'] for x in screens}=={p.name for p in E.glob('*.png')}
+traces=[];other=[]
+for line,text in enumerate(raw(R/'driver.log').decode().splitlines(),1):
+    if text.startswith('DOM_NATIVE_TIMING '):traces.append(dict(line=line,**json.loads(text[len('DOM_NATIVE_TIMING '):])))
+    elif text.strip():other.append(dict(line=line,text=text))
+deadline=[x for x in traces if x['phase']=='deadline-observed'];assert len(deadline)==1
+d=deadline[0];assert d['pid']==498871 and d['requestId']=='render_1037' and d['instanceId']=='7bc0620d4b97b639ac92c79eb5b8a6d8dbd074c6944199ab'
+dispatch=[x for x in traces if x['phase']=='dispatch' and (x['pid'],x['instanceId'],x['requestId'])==(d['pid'],d['instanceId'],d['requestId'])];assert len(dispatch)==1
+control=next(x for x in traces if x['phase']=='control-emitted' and (x['pid'],x['instanceId'],x['requestId'])==(d['pid'],d['instanceId'],d['requestId']))
+chain=[x for x in traces if x['instanceId']==d['instanceId'] and dispatch[0]['line']<=x['line']<=control['line']]
+assert [x['phase'] for x in chain]==['dispatch','deadline-observed','kill-start','cleanup-complete','cleanup-confirmed','control-emitted']
+assert chain[2]['pid']==chain[3]['pid']==499152 and chain[4]['pid']==498871
+assert dispatch[0]['monotonicNs']<d['monotonicNs']<chain[4]['monotonicNs']<control['monotonicNs']
+cleanup=obj(R/'control/exact-known-postcheck.json');stop=obj(R/'control/driver-stop.json');exits=obj(R/'control/tool-exit-results.json')
+assert exits['nodeExitCode']==exits['harnessTool']['exitCode']==1 and exits['firstAttemptOnly']
+assert len(cleanup['knownIdentities'])==12 and all(not x['sameIdentityPresent'] for x in cleanup['knownIdentities']) and not cleanup['listeners'] and cleanup['reapCount']==10
+assert stop['statusBefore']['response']['value']['message']=='No sessions' and stop['identityAfter'] is None
+assert all(stop['owner'][k]==stop['identityBefore'][k] for k in ['pid','birth','group'])
+inner=[json.loads(x) for x in raw(E/'inner-wheel.jsonl').splitlines()]
+alignment=[json.loads(x) for x in raw(E/'corner-alignment.jsonl').splitlines()]
+last=records[-1];provider=next(x for x in last['registry'] if x['id']=='milkup.diagrams')
+assert provider['state']=='failed' and not provider['enabled'] and not last['dom']['previews']
+assert inner[-1]['corner']=='top-left' and inner[-1]['axis']=='left' and inner[-1]['error']==failure['error']
+report=dict(classification='FIRST_TARGETED_UI_FAILURE_CONFIRMED_NOT_PASS',frozen=dict(files=len(index),bytes=sum(x['bytes'] for x in index.values()),manifestSha256=sha(mb)),recordCount=len(records),counts=counts,exactMatrixOrderPrefix=True,unreachedRecords=expected[len(actual):],failure=failure,finalFiles=files,historyAndSelectionRecordedByteExact=True,historyEvidenceLimitation='Historical save/undo/redo bytes are harness assertions; final ordinary/windowed bytes independently reconstructed.',screenshots=dict(count=len(screens),bytes=sum(x['bytes'] for x in screens),allHashAndLengthMatch=True),lastSuccessfulRecord=records[-2]['name'],lastDocument=last['document'],provider=provider,native=dict(chain=chain,dispatchToDeadlineAppMs=(d['monotonicNs']-dispatch[0]['monotonicNs'])/1e6,deadlineToCleanupConfirmedAppMs=(chain[4]['monotonicNs']-d['monotonicNs'])/1e6,deadlineToControlAppMs=(control['monotonicNs']-d['monotonicNs'])/1e6,phaseCounts=dict(collections.Counter(x['phase'] for x in traces)),nonTimingLines=other,qualification='Same-App monotonic durations only. Guardian entries retain raw clocks and line order; no cross-process subtraction. No complete accepted wire; active payload/source cannot be inferred from displayed target.'),wheel=dict(records=len(inner),errorRecords=[x for x in inner if x.get('error')],alignments=len(alignment)),cleanup=cleanup,toolExits=exits,completedAuditor='Preserved frozen and unexecuted; no defaults relaxed')
+print(json.dumps(report,ensure_ascii=False,indent=2))

@@ -1,0 +1,79 @@
+// Independent public-class mechanism study, NOT the desktop document integration path.
+import assert from 'node:assert/strict'
+import { expect } from '/workspace/milkup/node_modules/@playwright/test/index.mjs'
+import { readFile, writeFile, mkdir } from 'node:fs/promises'
+import { execFileSync } from 'node:child_process'
+import { createHash } from 'node:crypto'
+import path from 'node:path'
+import { startProduction } from './helpers/native-production.mjs'
+import { ownedApplication } from './helpers/native-owned-process.mjs'
+const directory=path.dirname(new URL(import.meta.url).pathname)
+const output=process.env.MILKUP_NATIVE_EVIDENCE_DIR
+assert(output && process.env.TAURI_APP_PATH && process.env.MILKUP_NATIVE_EXCLUSIVE_DISPLAY==='1')
+await mkdir(output) // Exclusive fresh run; never replace a previous attempt.
+const save=(name,value)=>writeFile(path.join(output,name),JSON.stringify(value,null,2)+'\n')
+const hash=bytes=>createHash('sha256').update(bytes).digest('hex')
+const manifest=JSON.parse(await readFile(path.join(directory,'prepared-inputs.json'),'utf8'))
+for(const row of manifest.files) assert.equal(hash(await readFile(row.path)),row.sha256,row.path)
+const launchFile=path.join(output,'empty-host.md')
+await writeFile(launchFile,'# Native public-class study host\n',{flag:'wx'})
+const text=await readFile(path.join(directory,'fixture.md'),'utf8')
+const classes=await readFile(path.join(directory,'classes.iife.js'),'utf8')
+const study=await readFile(path.join(directory,'case.iife.js'),'utf8')
+const loadScript=classes+`\nif (Object.prototype.hasOwnProperty.call(globalThis,'__milkupMultirowResearch')) throw Error('Research global exists'); globalThis.__milkupMultirowResearch=__milkupMultirowClassExports; return Object.keys(__milkupMultirowResearch);`
+const studyScript=study+'\nreturn __milkupMultirowCaseExports.default(arguments[0]);'
+for(const [script,args] of [[loadScript,[]],[studyScript,[{text}]]]) assert(Buffer.byteLength(JSON.stringify({script,args}))<=2*1024*1024,'Predeclared research HTTP request bound')
+let app,errors=[],failure
+try {
+ app=await startProduction(launchFile,output,{diagnostics:false})
+ const owner=await ownedApplication(process.env.TAURI_APP_PATH,launchFile)
+ const environment=(await readFile(`/proc/${owner.identity.pid}/environ`,'utf8')).split('\0')
+ const verifiedProfile={}
+ for(const key of ['XDG_CONFIG_HOME','XDG_CACHE_HOME','XDG_DATA_HOME']) {
+  const actual=environment.find(value=>value.startsWith(key+'='))?.slice(key.length+1)
+  assert.equal(actual,process.env[key]); verifiedProfile[key]=actual
+ }
+ await save('owner.json',{...owner.identity,verifiedProfile})
+ const x=(...args)=>execFileSync('xdotool',args,{encoding:'utf8',env:process.env}).trim()
+ const visible=x('search','--onlyvisible','--class','milkup-desktop').split('\n').filter(id=>{
+  const property=execFileSync('xprop',['-id',id,'_NET_WM_PID'],{encoding:'utf8',env:process.env})
+  return Number(/= (\d+)/.exec(property)?.[1])===owner.identity.pid
+ })
+ assert.equal(visible.length,1)
+ x('windowsize',visible[0],'1100','760')
+ await app.until(()=>app.execute('return innerWidth===1100 && innerHeight===760'),'exact original 1100x760 study viewport',5000)
+ await app.execute(`if ('__multirowResearchErrors' in window) throw Error('Study observer exists'); const errors=[];const onError=e=>errors.push(String(e.message));const onRejection=e=>errors.push(String(e.reason));const onCsp=e=>errors.push('CSP:'+e.violatedDirective+':'+e.blockedURI);addEventListener('error',onError);addEventListener('unhandledrejection',onRejection);addEventListener('securitypolicyviolation',onCsp);window.__multirowResearchErrors={errors,cleanup(){removeEventListener('error',onError);removeEventListener('unhandledrejection',onRejection);removeEventListener('securitypolicyviolation',onCsp)}};`)
+ await save('environment.json',await app.execute(`return {url:location.href,innerWidth,innerHeight,devicePixelRatio,visibility:document.visibilityState,styles:Array.from(document.querySelectorAll('link[rel="stylesheet"]')).map(e=>e.href),font: getComputedStyle(document.body).font,rootTheme:document.documentElement.dataset.theme}`))
+ await save('exports.json',await app.execute(loadScript))
+ const result=await app.execute(studyScript,{text})
+ errors=await app.execute('return window.__multirowResearchErrors.errors')
+ await save('result.json',{...result,errors})
+ await app.shot('result')
+    expect(errors).toEqual([])
+    expect(result.unchanged).toBe(true)
+    expect(result.version).toBe(0)
+    expect(result.final.selection).toMatchObject({ anchor: result.from, head: result.to })
+    expect(result.final.marker).not.toBeNull()
+    const viewport = result.final.editor!
+    expect(result.final.marker!.rect!.bottom).toBeGreaterThan(viewport.top)
+    expect(result.final.marker!.rect!.top).toBeLessThan(viewport.bottom)
+    const projections = result.final.overlays.filter((node: any) => Number(node.from) === result.from && Number(node.to) === result.to)
+    expect(projections.length).toBeGreaterThan(0)
+    expect(projections.some((node: any) => node.rect.bottom > viewport.top && node.rect.top < viewport.bottom)).toBe(true)
+    expect(result.final.cursors.some((node: any) => Number(node.position) === result.to && Number(node.line) === 398 && node.rect.bottom > viewport.top && node.rect.top < viewport.bottom)).toBe(true)
+ await save('verdict.json',{status:'MECHANISM_PASS_NOT_DESKTOP_ACCEPTANCE',at:new Date().toISOString()})
+} catch(error) {
+ failure=error
+ await save('failure.json',{error:String(error),stack:error.stack,at:new Date().toISOString()})
+} finally {
+ if(app) {
+  try {
+   const trace=await app.execute(`const p=window.multirowStudy;return {trace:p?{reads:p.reads,events:p.events,phases:p.phases,drops:p.drops,final:p.snapshot('finally')}:null,errors:window.__multirowResearchErrors?.errors??null}`)
+   await save('trace.json',trace)
+   await app.shot('final')
+  } catch(error) {await save('final-observation-error.json',{error:String(error)})}
+  try {await app.execute(`window.multirowStudy?.cleanup();window.__multirowResearchErrors?.cleanup();delete window.multirowStudy;delete window.__multirowResearchErrors;delete window.__milkupMultirowResearch;`)} catch(error) {await save('study-cleanup-error.json',{error:String(error)})}
+  await app.close()
+ }
+}
+if(failure) throw failure

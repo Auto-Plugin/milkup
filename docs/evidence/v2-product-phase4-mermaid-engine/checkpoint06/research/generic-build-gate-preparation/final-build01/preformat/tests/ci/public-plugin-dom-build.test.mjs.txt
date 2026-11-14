@@ -1,0 +1,349 @@
+import assert from 'node:assert/strict'
+import { createHash } from 'node:crypto'
+import { mkdtemp, mkdir, readFile, rm, symlink, writeFile } from 'node:fs/promises'
+import os from 'node:os'
+import path from 'node:path'
+import test from 'node:test'
+import * as contract from '../../scripts/ci/public-plugin-build-contract.mjs'
+
+const sha = (value) => createHash('sha256').update(value).digest('hex')
+async function fixture(t) {
+  const root = await mkdtemp(path.join(os.tmpdir(), 'milkup-dom-build-'))
+  t.after(() => rm(root, { recursive: true, force: true }))
+  const write = async (name, value) => {
+    await mkdir(path.dirname(path.join(root, name)), { recursive: true })
+    await writeFile(
+      path.join(root, name),
+      typeof value === 'string' ? value : JSON.stringify(value),
+    )
+  }
+  const plugin = 'plugins/example'
+  const packageRoot = 'node_modules/.pnpm/example-engine@1.2.3/node_modules/example-engine'
+  const manifest = {
+    id: 'example.diagram',
+    name: 'Example Diagram',
+    version: '1.0.0',
+    host: 'dom',
+    main: './dist/plugin.js',
+    permissions: ['document:read'],
+    engines: { pluginSdk: '^0.3.3' },
+    contributes: {
+      documentRenderers: [
+        { id: 'example.diagram', contexts: ['fence'], fenceLanguages: ['diagram'] },
+      ],
+    },
+    resources: ['THIRD-PARTY-NOTICES.txt'],
+  }
+  const profile = {
+    version: 1,
+    packageManager: 'pnpm@11.7.0',
+    target: 'es2022',
+    minify: false,
+    sdkTarballSha256: sha('sdk tarball'),
+    buildFiles: ['scripts/build.mjs'],
+    packages: [
+      {
+        locator: 'example-engine@1.2.3',
+        name: 'example-engine',
+        version: '1.2.3',
+        root: packageRoot,
+        inputs: [{ path: 'index.js', sha256: sha('export const engine = 1') }],
+        notices: [
+          {
+            path: 'LICENSE',
+            sha256: sha('MIT example license'),
+            resource: 'THIRD-PARTY-NOTICES.txt',
+            resourceSha256: sha('MIT example license'),
+          },
+        ],
+      },
+    ],
+  }
+  const distribution = {
+    directory: plugin,
+    host: 'dom',
+    permissions: ['document:read'],
+    dependencyClosure: {
+      lockfile: 'pnpm-lock.yaml',
+      lockSha256: sha("lockfileVersion: '9.0'\n"),
+      profile: 'build-dependencies.json',
+      profileSha256: sha(JSON.stringify(profile)),
+    },
+  }
+  await write('packages/plugin-sdk/package.json', { name: '@milkup/plugin-sdk', version: '0.3.3' })
+  await write(`${plugin}/plugin.json`, manifest)
+  await write(`${plugin}/package.json`, {
+    packageManager: 'pnpm@11.7.0',
+    dependencies: { 'example-engine': '1.2.3' },
+    devDependencies: { '@milkup/plugin-sdk': 'file:vendor/plugin-sdk.tgz' },
+  })
+  await write(`${plugin}/pnpm-lock.yaml`, "lockfileVersion: '9.0'\n")
+  await write(`${plugin}/build-dependencies.json`, profile)
+  await write(`${plugin}/src/plugin.ts`, 'export const plugin = 1')
+  await write(`${plugin}/scripts/build.mjs`, '// fixture only')
+  await write(`${plugin}/${packageRoot}/package.json`, { name: 'example-engine', version: '1.2.3' })
+  await write(`${plugin}/${packageRoot}/index.js`, 'export const engine = 1')
+  await write(`${plugin}/${packageRoot}/LICENSE`, 'MIT example license')
+  await write(`${plugin}/THIRD-PARTY-NOTICES.txt`, 'MIT example license')
+  await write('release/bundled-plugins.json', [distribution])
+  const meta = {
+    inputs: { 'src/plugin.ts': {}, [`${packageRoot}/index.js`]: {} },
+    outputs: { 'dist/plugin.js': { imports: [], bytes: 32 } },
+  }
+  return {
+    root,
+    pluginRoot: path.join(root, plugin),
+    write,
+    profile,
+    manifest,
+    distribution,
+    packageRoot,
+    meta,
+  }
+}
+
+test('DOM distribution requires explicit host and a pinned closure; Worker remains explicitly legacy', async (t) => {
+  const f = await fixture(t)
+  const inputs = await contract.readPublicPluginBuildInputs(f.root)
+  assert.equal(inputs.plugins[0].host, 'dom')
+  assert.equal(inputs.plugins[0].buildMode, 'frozen-closure')
+  await f.write('release/bundled-plugins.json', [{ ...f.distribution, host: 'worker' }])
+  await assert.rejects(contract.readPublicPluginBuildInputs(f.root), /host mismatch/)
+  await f.write('release/bundled-plugins.json', [
+    { ...f.distribution, dependencyClosure: undefined },
+  ])
+  await assert.rejects(contract.readPublicPluginBuildInputs(f.root), /closure/i)
+})
+
+test('DOM capability restrictions cannot be bypassed by distribution permission approval', async (t) => {
+  const f = await fixture(t)
+  for (const patch of [
+    { contributes: { ...f.manifest.contributes, commands: [] } },
+    { settings: {} },
+    { networkOrigins: [] },
+    { permissions: ['document:read', 'document:write'] },
+  ]) {
+    await f.write('plugins/example/plugin.json', { ...f.manifest, ...patch })
+    await assert.rejects(contract.readPublicPluginBuildInputs(f.root))
+  }
+})
+
+test('closure verifies exact inputs and notices, not arbitrary node_modules or package version alone', async (t) => {
+  const f = await fixture(t)
+  const entry = (await contract.readPublicPluginBuildInputs(f.root)).plugins[0]
+  await contract.verifyPublicPluginBundle(f.pluginRoot, entry, f.meta)
+  await f.write(`plugins/example/${f.packageRoot}/index.js`, 'export const engine = 2')
+  await assert.rejects(contract.verifyPublicPluginBundle(f.pluginRoot, entry, f.meta), /hash/i)
+  await f.write(`plugins/example/${f.packageRoot}/index.js`, 'export const engine = 1')
+  await f.write('plugins/example/node_modules/unknown/index.js', 'export const hidden = 1')
+  await assert.rejects(
+    contract.verifyPublicPluginBundle(f.pluginRoot, entry, {
+      ...f.meta,
+      inputs: { ...f.meta.inputs, 'node_modules/unknown/index.js': {} },
+    }),
+    /dependency/i,
+  )
+  await f.write('plugins/example/THIRD-PARTY-NOTICES.txt', 'truncated')
+  await assert.rejects(contract.verifyPublicPluginBundle(f.pluginRoot, entry, f.meta), /hash/i)
+})
+
+test('closure rejects lock drift, source symlink escapes, missing reviewed inputs and runtime imports', async (t) => {
+  const f = await fixture(t)
+  const entry = (await contract.readPublicPluginBuildInputs(f.root)).plugins[0]
+  await assert.rejects(
+    contract.verifyPublicPluginBundle(f.pluginRoot, entry, {
+      ...f.meta,
+      outputs: { 'dist/plugin.js': { imports: [{ path: 'https://example.invalid/code.js' }] } },
+    }),
+    /self-contained/,
+  )
+  await assert.rejects(
+    contract.verifyPublicPluginBundle(f.pluginRoot, entry, {
+      ...f.meta,
+      inputs: { 'src/plugin.ts': {} },
+    }),
+    /input.*mismatch/i,
+  )
+  await f.write('private-host.js', 'private host code')
+  await symlink(path.join(f.root, 'private-host.js'), path.join(f.pluginRoot, 'src/escape.js'))
+  await assert.rejects(
+    contract.verifyPublicPluginBundle(f.pluginRoot, entry, {
+      ...f.meta,
+      inputs: { ...f.meta.inputs, 'src/escape.js': {} },
+    }),
+    /dependency/i,
+  )
+  await f.write('plugins/example/pnpm-lock.yaml', 'changed lock')
+  await assert.rejects(contract.readPublicPluginBuildInputs(f.root), /hash/i)
+})
+
+test('frozen copy list preserves lock, notices and helpers and SDK tarball bytes are checked', async (t) => {
+  const f = await fixture(t)
+  const entry = (await contract.readPublicPluginBuildInputs(f.root)).plugins[0]
+  assert.ok(entry.buildFiles.includes('pnpm-lock.yaml'))
+  assert.ok(entry.buildFiles.includes('build-dependencies.json'))
+  assert.ok(entry.buildFiles.includes('scripts/build.mjs'))
+  assert.ok(entry.resources.includes('THIRD-PARTY-NOTICES.txt'))
+  assert.equal(contract.verifyPublicSdkTarball(entry, Buffer.from('sdk tarball')), true)
+  assert.throws(() => contract.verifyPublicSdkTarball(entry, Buffer.from('changed sdk')), /hash/i)
+  const verifier = await readFile(
+    new URL('../../scripts/ci/verify-public-plugin-builds.mjs', import.meta.url),
+    'utf8',
+  )
+  assert.ok(verifier.includes('--frozen-lockfile'))
+})
+
+test('package identity and notice originals are verified even if all input paths match', async (t) => {
+  const f = await fixture(t)
+  const entry = (await contract.readPublicPluginBuildInputs(f.root)).plugins[0]
+  await f.write(`plugins/example/${f.packageRoot}/package.json`, {
+    name: 'example-engine',
+    version: '9.9.9',
+  })
+  await assert.rejects(
+    contract.verifyPublicPluginBundle(f.pluginRoot, entry, f.meta),
+    /version mismatch/i,
+  )
+  await f.write(`plugins/example/${f.packageRoot}/package.json`, {
+    name: 'example-engine',
+    version: '1.2.3',
+  })
+  await f.write(`plugins/example/${f.packageRoot}/LICENSE`, 'a changed notice')
+  await assert.rejects(contract.verifyPublicPluginBundle(f.pluginRoot, entry, f.meta), /hash/i)
+})
+
+test('the fixed SDK declaration cannot hide a private host dependency or floating tool', async (t) => {
+  const f = await fixture(t)
+  for (const dependencies of [
+    { '@milkup/plugin-sdk': 'file:../host-sdk.tgz' },
+    { '@milkup/plugin-sdk': 'file:vendor/plugin-sdk.tgz', '@milkup/core': '1.0.0' },
+    { '@milkup/plugin-sdk': 'file:vendor/plugin-sdk.tgz', esbuild: '^0.25.12' },
+  ]) {
+    await f.write('plugins/example/package.json', {
+      packageManager: 'pnpm@11.7.0',
+      devDependencies: dependencies,
+    })
+    await assert.rejects(contract.readPublicPluginBuildInputs(f.root))
+  }
+})
+
+test('profile and resource symlinks cannot admit checkout files outside the plugin', async (t) => {
+  const f = await fixture(t)
+  await f.write('outside-profile.json', JSON.stringify(f.profile))
+  await rm(path.join(f.pluginRoot, 'build-dependencies.json'))
+  await symlink(
+    path.join(f.root, 'outside-profile.json'),
+    path.join(f.pluginRoot, 'build-dependencies.json'),
+  )
+  await assert.rejects(contract.readPublicPluginBuildInputs(f.root), /escapes package/)
+})
+
+test('document renderer bounds follow the public manifest grammar, not action IDs', async (t) => {
+  const f = await fixture(t)
+  const renderer = { contexts: ['text'] }
+  const declarations = Array.from({ length: 16 }, (_, index) => ({
+    ...renderer,
+    id: `example.r${index}`,
+  }))
+  await f.write('plugins/example/plugin.json', {
+    ...f.manifest,
+    contributes: { documentRenderers: declarations },
+  })
+  await contract.readPublicPluginBuildInputs(f.root)
+  for (const invalid of [
+    [...declarations, { ...renderer, id: 'example.extra' }],
+    ...[
+      'example.0',
+      'example..bad',
+      'example.-bad',
+      'example-',
+      'example:action',
+      'example.camelCase',
+      `a${'b'.repeat(128)}`,
+    ].map((id) => [{ ...renderer, id }]),
+  ]) {
+    await f.write('plugins/example/plugin.json', {
+      ...f.manifest,
+      contributes: { documentRenderers: invalid },
+    })
+    await assert.rejects(contract.readPublicPluginBuildInputs(f.root))
+  }
+})
+
+test('copied-source proof rejects additions, removals and changes in sources, manifest and tsconfig', async (t) => {
+  const f = await fixture(t)
+  const source = path.join(f.root, 'original')
+  const target = path.join(f.root, 'copied')
+  const initial = {
+    'src/plugin.ts': 'export const value = 1',
+    'plugin.json': '{"name":"original"}',
+    'tsconfig.json': '{}',
+  }
+  for (const [name, text] of Object.entries(initial)) {
+    await f.write(`original/${name}`, text)
+    await f.write(`copied/${name}`, text)
+  }
+  const inputs = ['src', 'plugin.json', 'tsconfig.json']
+  const snapshot = await contract.capturePublicBuildInputs(target)
+  await contract.verifyPublicBuildInputs(target, source, inputs, snapshot)
+  for (const name of Object.keys(initial)) {
+    await f.write(`copied/${name}`, 'changed')
+    await assert.rejects(
+      contract.verifyPublicBuildInputs(target, source, inputs, snapshot),
+      /inputs.*changed/,
+    )
+    await f.write(`copied/${name}`, initial[name])
+  }
+  await f.write('copied/src/injected.ts', 'export const injected = true')
+  await assert.rejects(
+    contract.verifyPublicBuildInputs(target, source, inputs, snapshot),
+    /inputs.*changed/,
+  )
+  await rm(path.join(target, 'src/injected.ts'))
+  await rm(path.join(target, 'plugin.json'))
+  await assert.rejects(
+    contract.verifyPublicBuildInputs(target, source, inputs, snapshot),
+    /inputs.*changed/,
+  )
+  await f.write('copied/plugin.json', initial['plugin.json'])
+  await f.write('original/src/plugin.ts', 'checkout changed too')
+  await assert.rejects(
+    contract.verifyPublicBuildInputs(target, source, inputs, snapshot),
+    /Checkout build inputs changed/,
+  )
+})
+
+test('copied-source proof excludes only explicit generated locations, not arbitrary vendor or new config', async (t) => {
+  const f = await fixture(t)
+  const target = path.join(f.root, 'copied')
+  await f.write('copied/src/plugin.ts', 'export {}')
+  const snapshot = await contract.capturePublicBuildInputs(target)
+  for (const name of [
+    'dist/plugin.js',
+    'node_modules/tool/index.js',
+    'vitest.public.config.mjs',
+    'vendor/plugin-sdk.tgz',
+  ])
+    await f.write(`copied/${name}`, 'injected by verifier or build')
+  assert.deepEqual(await contract.capturePublicBuildInputs(target), snapshot)
+  await f.write('copied/vendor/hidden.js', 'not an allowed injection')
+  assert.notDeepEqual(await contract.capturePublicBuildInputs(target), snapshot)
+})
+
+test('minification is an explicit profile choice and the existing DOM entry limit stays fixed', async (t) => {
+  const f = await fixture(t)
+  for (const minify of [false, true]) {
+    const profile = { ...f.profile, target: 'es2024', minify }
+    await f.write('plugins/example/build-dependencies.json', profile)
+    await f.write('release/bundled-plugins.json', [{ ...f.distribution, dependencyClosure: { ...f.distribution.dependencyClosure, profileSha256: sha(JSON.stringify(profile)) } }])
+    const entry = (await contract.readPublicPluginBuildInputs(f.root)).plugins[0]
+    assert.equal(entry.closure.minify, minify)
+    await contract.verifyPublicPluginBundle(f.pluginRoot, entry, f.meta)
+    await assert.rejects(contract.verifyPublicPluginBundle(f.pluginRoot, entry, { ...f.meta, outputs: { 'dist/plugin.js': { imports: [], bytes: 8 * 1024 * 1024 + 1 } } }), /8 MiB/)
+  }
+  const profile = { ...f.profile }
+  delete profile.minify
+  await f.write('plugins/example/build-dependencies.json', profile)
+  await f.write('release/bundled-plugins.json', [{ ...f.distribution, dependencyClosure: { ...f.distribution.dependencyClosure, profileSha256: sha(JSON.stringify(profile)) } }])
+  await assert.rejects(contract.readPublicPluginBuildInputs(f.root), /minification/)
+})

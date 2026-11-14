@@ -1,0 +1,23 @@
+2026-10-15T13:24:35.592Z NATIVE_STARTUP_WINDOW 2772ms
+PASS 00-installed-distribution
+PASS installed-milkup.math
+PASS enabled-milkup.math
+PASS FAIL
+node:internal/modules/run_main:107
+    triggerUncaughtException(
+    ^
+
+AssertionError [ERR_ASSERTION]: Native pointer target must be visible and hit-testable: [data-plugin-action="details"][data-plugin-id="milkup.diagrams"]
+    at click (file:///workspace/milkup/tests/native/tauri-markdown-extensions.mjs:386:3)
+    at async details (file:///workspace/milkup/tests/native/tauri-markdown-extensions.mjs:419:3)
+    at async installExternal (file:///workspace/milkup/tests/native/tauri-markdown-extensions.mjs:731:7)
+    at async file:///workspace/milkup/tests/native/tauri-markdown-extensions.mjs:1241:5 {
+  generatedMessage: false,
+  code: 'ERR_ASSERTION',
+  actual: false,
+  expected: true,
+  operator: '==',
+  diff: 'simple'
+}
+
+Node.js v24.19.0

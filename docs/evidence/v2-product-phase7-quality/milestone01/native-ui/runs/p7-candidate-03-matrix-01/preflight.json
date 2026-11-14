@@ -1,0 +1,124 @@
+{
+  "stage": "matrix",
+  "routes": [
+    "ordinary",
+    "windowed"
+  ],
+  "binary": "/workspace/milkup-p7-quality-evidence/milestone01/candidate-production-03/milkup-desktop",
+  "binarySha256": "341d12999d07ba0b7116d463ebacde4bb52ead97279a33ad588ab599d2ddb7a2",
+  "inputs": [
+    {
+      "file": "/workspace/milkup/tests/native/tauri-p7-quality.mjs",
+      "frozen": "tauri-p7-quality.mjs.txt",
+      "sha256": "fb81e937395ff7ca5c06548ddf0ca9ff1b62b1e6f13ea7b700841f68186edd03"
+    },
+    {
+      "file": "/workspace/milkup/tests/helpers/native-production.mjs",
+      "frozen": "native-production.mjs.txt",
+      "sha256": "293a00db10632383346fa739d8717ddf2d42928e0f2e3f9672043d0dd9452eb0"
+    },
+    {
+      "file": "/workspace/milkup/tests/helpers/native-startup.mjs",
+      "frozen": "native-startup.mjs.txt",
+      "sha256": "d698104c7838e7d51a1ff64709c29f1660da8e3b9d1ca72fbf28c8370cc4d1f1"
+    },
+    {
+      "file": "/workspace/milkup/tests/helpers/native-updates-fixture.mjs",
+      "frozen": "native-updates-fixture.mjs.txt",
+      "sha256": "eae310d5f13a8623d0f5c8a386e5929405f588ba67a120cc927cb51cd48a5ae4"
+    },
+    {
+      "file": "/workspace/milkup/tests/helpers/native-clipboard.mjs",
+      "frozen": "native-clipboard.mjs.txt",
+      "sha256": "82a7ce9bae5f9782728f71f14695b85049c7dead10e57bfe957ea8e2c66a7180"
+    },
+    {
+      "file": "/workspace/milkup/apps/desktop/src/desktop-open-policy.ts",
+      "frozen": "desktop-open-policy.ts.txt",
+      "sha256": "13c81bf590fe3bb43d25dd9612872c312f5075f7cafdd8085584f0818f6818b5"
+    },
+    {
+      "file": "/workspace/milkup/packages/core/src/store/large-file-policy.ts",
+      "frozen": "large-file-policy.ts.txt",
+      "sha256": "ccef89d7f536eee4445742c02c4b50c20ecbbe6103c7a82bc67d60c432b80c0c"
+    }
+  ],
+  "fixtures": [
+    {
+      "kind": "ordinary",
+      "mode": "source",
+      "file": "/workspace/milkup-p7-quality-evidence/milestone01/native-ui/runs/p7-candidate-03-matrix-01/ordinary-source.md",
+      "sha256": "02006fb2f1010f81aae43bf32dcbb306f1b06446ce041c339122608c3d72ac3f",
+      "lines": 60,
+      "utf16": 1687,
+      "bytes": 1759
+    },
+    {
+      "kind": "ordinary",
+      "mode": "live",
+      "file": "/workspace/milkup-p7-quality-evidence/milestone01/native-ui/runs/p7-candidate-03-matrix-01/ordinary-live.md",
+      "sha256": "02006fb2f1010f81aae43bf32dcbb306f1b06446ce041c339122608c3d72ac3f",
+      "lines": 60,
+      "utf16": 1687,
+      "bytes": 1759
+    },
+    {
+      "kind": "windowed",
+      "mode": "source",
+      "file": "/workspace/milkup-p7-quality-evidence/milestone01/native-ui/runs/p7-candidate-03-matrix-01/windowed-source.md",
+      "sha256": "248937e2f6e0bdda72d01bd9d9517a1a5e8a4f49c68a61c9e623631352292372",
+      "lines": 180060,
+      "utf16": 1381687,
+      "bytes": 2101759
+    },
+    {
+      "kind": "windowed",
+      "mode": "live",
+      "file": "/workspace/milkup-p7-quality-evidence/milestone01/native-ui/runs/p7-candidate-03-matrix-01/windowed-live.md",
+      "sha256": "248937e2f6e0bdda72d01bd9d9517a1a5e8a4f49c68a61c9e623631352292372",
+      "lines": 180060,
+      "utf16": 1381687,
+      "bytes": 2101759
+    }
+  ],
+  "openPolicy": {
+    "performanceBytes": 131072,
+    "nativeLargeFileBytes": 262144,
+    "proof": "frozen shipped policy sources + exact file bytes + shipped open-stage DOM diagnostics; SourceDocumentView class alone is insufficient"
+  },
+  "preparedOnly": false,
+  "matrix": {
+    "themes": [
+      "light",
+      "dark"
+    ],
+    "nativeZoom": [
+      1,
+      1.25,
+      1.5,
+      2
+    ],
+    "sizes": [
+      [
+        1280,
+        800
+      ],
+      [
+        760,
+        520
+      ]
+    ],
+    "modes": [
+      "source",
+      "live"
+    ]
+  },
+  "boundaries": [
+    "Linux production WebKit/X11 only; native application zoom is not OS DPI.",
+    "X11 clipboard + native Ctrl+V is not a real IME/composition/candidate-window test.",
+    "No screen reader is exercised. DOM roles/names and visible keyboard trajectories are separate evidence.",
+    "No IPC invocation or editor model mutation; helper focus is explicitly recorded, never counted as a Tab sequence.",
+    "Bounded event observer reads trusted input/focus and two-rAF DOM proxies, not physical screen latency.",
+    "Every failing sample is retained; successful later samples do not erase earlier failures."
+  ]
+}

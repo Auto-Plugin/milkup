@@ -1,0 +1,15 @@
+{
+  "hooks": {
+    "pre-commit": {
+      "sha256": "fb59daa4f8af495bb8127903748bfe0a01461a9394e31628ffe316b0ed78e45e",
+      "text": "#!/bin/sh\nif [ \"$SKIP_SIMPLE_GIT_HOOKS\" = \"1\" ]; then\n    echo \"[INFO] SKIP_SIMPLE_GIT_HOOKS is set to 1, skipping hook.\"\n    exit 0\nfi\nif [ -f \"$SIMPLE_GIT_HOOKS_RC\" ]; then\n    . \"$SIMPLE_GIT_HOOKS_RC\"\nfi\nnpx lint-staged"
+    },
+    "commit-msg": {
+      "sha256": "419e2573274d789614a8c478b925a02808a1c03aa842dde720b1f6e1eebaa829",
+      "text": "#!/bin/sh\nif [ \"$SKIP_SIMPLE_GIT_HOOKS\" = \"1\" ]; then\n    echo \"[INFO] SKIP_SIMPLE_GIT_HOOKS is set to 1, skipping hook.\"\n    exit 0\nfi\nif [ -f \"$SIMPLE_GIT_HOOKS_RC\" ]; then\n    . \"$SIMPLE_GIT_HOOKS_RC\"\nfi\nnode scripts/verify-commit.js"
+    }
+  },
+  "lintStagedExecutablePresent": false,
+  "verifyCommitScriptPresent": false,
+  "plannedAction": "Use SKIP_SIMPLE_GIT_HOOKS=1 only for the authorized isolated-branch commit after independent tests/types/build/format/diff checks. Do not change hook files or install/download hook dependencies."
+}

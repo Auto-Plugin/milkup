@@ -1,0 +1,121 @@
+{
+  "scope": "completed artifacts only; no live /proc or native operations",
+  "issues": [],
+  "fileHashes": {
+    "cpu-observer/summary.json": {
+      "bytes": 5708,
+      "sha256": "08ce5bccd10b3d58dda4efdb0c1d5e067b8053e239fdd6e3ca90d954b7f77357"
+    },
+    "cpu-observer/samples.ndjson": {
+      "bytes": 16373,
+      "sha256": "26269770e5b418f51dcd25eb7ed3ecf88f83715f3b13eed50dec41f48a04574f"
+    },
+    "native-capture/events.jsonl": {
+      "bytes": 9678,
+      "sha256": "ddb3e04d4869142cb8cb9a6169260d338986578e116ada4f91357d9a6a8499f4"
+    },
+    "native-capture/status.json": {
+      "bytes": 838,
+      "sha256": "ee1a9dda51d3fb0ff8ee872a7ced5fd7d4151b7c447e5ea6108a76faba084049"
+    },
+    "native-capture/complete.json": {
+      "bytes": 838,
+      "sha256": "ee1a9dda51d3fb0ff8ee872a7ced5fd7d4151b7c447e5ea6108a76faba084049"
+    },
+    "driver.log": {
+      "bytes": 2181,
+      "sha256": "1eb04fb62db61af04361635fc5fe3aa50f2775e4775efe08f060fe481d7390c3"
+    }
+  },
+  "app": {
+    "pid": 468788,
+    "birth": 8887290,
+    "parent": 468706,
+    "state": "S",
+    "userTicks": 57,
+    "systemTicks": 39,
+    "argv": [
+      "/workspace/milkup-mermaid-engine-evidence/research/native-cold-start-diagnostic-02/diagnostic-binary/milkup-desktop",
+      "/workspace/milkup-mermaid-engine-evidence/research/native-cold-start-diagnostic-03/runtime/mermaid-ui-cold-diag-03/evidence/ordinary.md"
+    ],
+    "boundNs": 88876251015747
+  },
+  "stopReason": "controller-stop",
+  "knownIdentities": [
+    {
+      "pid": 468788,
+      "birth": 8887290,
+      "parent": 468706,
+      "state": "S",
+      "userTicks": 57,
+      "systemTicks": 39,
+      "role": "App",
+      "instanceId": null,
+      "parentIdentity": null,
+      "firstSeenNs": 88876251021169,
+      "firstSampleNs": 88876251451376
+    },
+    {
+      "pid": 468923,
+      "birth": 8887623,
+      "parent": 468788,
+      "state": "R",
+      "userTicks": 0,
+      "systemTicks": 1,
+      "role": "guardian",
+      "instanceId": "89991fca045be26f50cf9b51dabff036dbd0a170476407fc",
+      "parentIdentity": {
+        "pid": 468788,
+        "birth": 8887290
+      },
+      "firstSeenNs": 88876251253945,
+      "firstSampleNs": 88876251531906
+    }
+  ],
+  "sampleStatusCounts": {
+    "sample": 42
+  },
+  "cpuOverhead": {
+    "observerOwnCpuNs": 75795591,
+    "prelaunchHashCpuNs": 18261164,
+    "afterReadyCpuNs": 57537785,
+    "procReads": 185,
+    "readTotalNs": 8742531,
+    "readMaxNs": 988498,
+    "sampleTotalNs": 9025382,
+    "sampleMaxNs": 3061736,
+    "discoveryTotalNs": 6581704,
+    "discoveryMaxNs": 2409050
+  },
+  "cpuQuality": {
+    "sampleCount": 21,
+    "sampleIncomplete": 0,
+    "evictedRows": 0,
+    "skippedSlots": 0,
+    "maxLateNs": 143337982,
+    "discoveryCount": 10,
+    "discoveryIncomplete": 0,
+    "discoveryTasks": 19,
+    "errorCount": 0,
+    "errors": [],
+    "requestPayloadLinesSkipped": 0
+  },
+  "retainedSampleDurationSumNs": 9025382,
+  "retainedSampleDurationMaxNs": 3061736,
+  "nativeCaptureOverhead": {
+    "writerThreadCpuNs": 27228049,
+    "writerCpuScope": "App-owned background writer thread through last status checkpoint, excludes final status/complete serialization; included in App own CPU",
+    "captureTotalNs": 1415286,
+    "captureMaxNs": 1356979,
+    "incompleteTiming": 0
+  },
+  "requests": [],
+  "qualifications": [
+    "No cgroup data is collected by this candidate; do not infer shared cgroup CPU.",
+    "CPU sum without valid intervals is null, not 0. Per-PID and per-role coverage differ.",
+    "Leader schedstat does not cover other threads; nonzero wait is limited to those observed leader intervals.",
+    "Native writerThreadCpuNs is already part of App CPU; captureTotalNs is elapsed duration, not CPU. Do not sum these as additive CPU.",
+    "Observer overhead fields are nested/overlapping and cannot all be summed; real perturbation remains counterfactual.",
+    "Partial, initial, missing and terminal edges are not interpolated. No CPU cause is inferred."
+  ]
+}

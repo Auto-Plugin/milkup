@@ -1,0 +1,132 @@
+#!/usr/bin/env python3
+"""Post-run only; preserves partial/not-started states, never fabricates outcomes."""
+import argparse
+import hashlib
+import json
+import time
+from pathlib import Path
+
+BASE = Path('/workspace/milkup-mermaid-engine-evidence/research/mermaid-eager-load-candidate-01/harness')
+CELLS = ['01-A', '02-B', '03-B', '04-A']
+
+
+def read(path):
+    return json.loads(path.read_text()) if path.exists() else None
+
+
+def record(path):
+    data = path.read_bytes()
+    return {'path': str(path), 'bytes': len(data), 'sha256': hashlib.sha256(data).hexdigest()}
+
+
+def owner_status(owner):
+    try:
+        fields = Path('/proc', str(owner['pid']), 'stat').read_text().rsplit(')', 1)[1].split()
+        return {**owner, 'present': True, 'actualBirth': int(fields[19]),
+                'sameBirth': int(fields[19]) == owner['birth'], 'state': fields[0], 'parent': int(fields[1])}
+    except FileNotFoundError:
+        return {**owner, 'present': False, 'qualification': 'Absent at this post-run read, including exit races'}
+    except (OSError, ValueError, IndexError) as error:
+        return {**owner, 'present': None, 'error': str(error), 'qualification': 'Unknown cleanup identity, not a PASS'}
+
+
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--preflight', required=True)
+    parser.add_argument('--output', required=True)
+    args = parser.parse_args()
+    preflight = read(Path(args.preflight))
+    integrity = []
+    for before in preflight['inputs'] + preflight['authoritySources']:
+        path = Path(before['path'])
+        after = record(path) if path.exists() else None
+        integrity.append({'path': str(path), 'beforeSha256': before['sha256'], 'after': after,
+                          'unchanged': bool(after and after['sha256'] == before['sha256'] and after['bytes'] == before['bytes'])})
+    cells = []
+    stopped = False
+    for cell in CELLS:
+        directory = BASE / 'run' / cell
+        if not directory.exists():
+            cells.append({'cell': cell, 'state': 'not-started', 'requests': None})
+            stopped = True
+            continue
+        result = directory / 'result'
+        outcome, identity = read(result / 'outcome.json'), read(result / 'instance.json')
+        verdict = read(directory / 'offline-verdict.json')
+        codefile = directory / 'exit-code.txt'
+        code = int(codefile.read_text()) if codefile.exists() else None
+        traces, errors = [], []
+        logfile = directory / 'native-test.log'
+        if logfile.exists():
+            for number, line in enumerate(logfile.read_text().splitlines(), 1):
+                marker = line.find('DOM_NATIVE_TIMING ')
+                if marker < 0:
+                    continue
+                try:
+                    row = json.loads(line[marker+18:])
+                    if identity and row.get('instanceId') == identity['instanceId']:
+                        traces.append({**row, 'rawLine': number})
+                except (ValueError, TypeError) as error:
+                    errors.append({'line': number, 'error': str(error)})
+        owners = read(result / 'owned.json')
+        # A launch/setup failure may precede the helper handshake. Do not invent helper identity.
+        if owners is None and identity:
+            owners = [{'role': 'guardian', 'pid': identity['guardianPid'], 'birth': identity['guardianBirth']}]
+        final_owners = [owner_status(owner) for owner in (owners or [])]
+        completed = code == 0 and outcome is not None and verdict is not None and not errors
+        requests = []
+        for ordinal in [1, 2]:
+            rid = f'render_{ordinal}'
+            request_path, event_path = result / f'request-{ordinal}.json', result / f'event-{ordinal}.json'
+            declared = next((r for r in (outcome or {}).get('requests', []) if r['requestId'] == rid), None)
+            request_traces = [r for r in traces if r.get('requestId') == rid]
+            by_phase = {}
+            for row in request_traces:
+                by_phase.setdefault(row['phase'], []).append(row)
+            elapsed = None
+            for end in ['result-settled', 'deadline-observed']:
+                if len(by_phase.get('dispatch', [])) == 1 and len(by_phase.get(end, [])) == 1:
+                    elapsed = {'endPhase': end, 'ms': (by_phase[end][0]['monotonicNs'] - by_phase['dispatch'][0]['monotonicNs'])/1e6}
+            requests.append({'requestId': rid, 'declaredOutcome': declared,
+                             'observedState': declared['status'] if declared else ('sent-or-partial' if request_path.exists() else 'not-sent-before-stop'),
+                             'requestFile': record(request_path) if request_path.exists() else None,
+                             'eventFile': record(event_path) if event_path.exists() else None,
+                             'nativeDispatchToEnd': elapsed, 'phases': request_traces,
+                             'coreValidation': read(result / f'validation-{ordinal}.json')})
+        windows = {p.stem: read(p) for p in result.glob('windows-*.json') if not p.stem.endswith(('-identity', '-command'))}
+        cells.append({'cell': cell, 'state': 'completed-mechanism-outcome' if completed else 'first-failure-or-incomplete',
+                      'startedAfterPriorStop': stopped, 'exitCode': code, 'instance': identity,
+                      'preparation': read(result / 'preparation-timing.json'), 'outcome': outcome,
+                      'offlineVerdict': verdict, 'requests': requests, 'nativePhases': traces, 'traceParseErrors': errors,
+                      'windows': windows, 'finalOwnerStatus': final_owners,
+                      'allRecordedOwnersAbsentOrReused': bool(final_owners) and all(o['present'] is False or (o['present'] is True and not o['sameBirth']) for o in final_owners),
+                      'retainedNativeCleanupConfirmed': any(r['phase'] == 'cleanup-confirmed' for r in traces)})
+        if not completed:
+            stopped = True
+    artifacts, excluded = [], 0
+    for path in sorted((BASE / 'run').rglob('*')):
+        if path.is_file():
+            if 'profile' in path.relative_to(BASE / 'run').parts:
+                excluded += 1
+            else:
+                artifacts.append(record(path))
+    report = {'created': time.time(), 'classification': 'NATIVE_ABBA_MECHANISM_DIAGNOSTIC_NOT_EDITOR_ACCEPTANCE',
+              'cells': cells, 'allFourCompleted': all(c['state'] == 'completed-mechanism-outcome' for c in cells),
+              'batchStoppedAfterFirstFailure': not any(c.get('startedAfterPriorStop') for c in cells),
+              'inputsAndSources': integrity, 'allInputsAndSourcesUnchanged': all(r['unchanged'] for r in integrity),
+              'artifactManifest': artifacts, 'excludedProfileFiles': excluded,
+              'limits': ['No CPU sampler. All phase durations include observation overhead and are wall intervals.',
+                         'A shares explicit strict initialization changes with B; it is not unchanged production.',
+                         'Native timeout censors second request; missing setup outcomes are not reconstructed.',
+                         'Core aggregate/canonical comparison is a separate post-batch action; missing cells prevent full comparison.',
+                         'No new claim about historical formal UI04 timeout payload or full editor acceptance.',
+                         'Post-run proc checks cover recorded exact owners; no birth means no inferred descendant identity.']}
+    with Path(args.output).open('x') as output:
+        json.dump(report, output, indent=2)
+        output.write('\n')
+    print(json.dumps({'output': args.output, 'allFourCompleted': report['allFourCompleted'],
+                      'unchanged': report['allInputsAndSourcesUnchanged'], 'states': [c['state'] for c in cells]}))
+
+
+if __name__ == '__main__':
+    main()

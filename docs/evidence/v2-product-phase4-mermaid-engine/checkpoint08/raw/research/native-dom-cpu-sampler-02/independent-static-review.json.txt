@@ -1,0 +1,65 @@
+{
+  "atUtc": "2026-10-16T18:42:03.971530+00:00",
+  "status": "No blocking static finding; synthetic and live execution remain separately gated.",
+  "candidateSha256": "aee036fb54b038aff82c160618618baf933d86530ac408e06269b385c4e9779b",
+  "preparationSha256": "6c6b8fec62b9e86effd68dfdaf8f0bd8c57c2ef7e1cadbf3a0c09079c6589257",
+  "inputsVerified": [
+    {
+      "path": "base-v03.py",
+      "sha256": "30110c5ae58816d8ae5fb318d3b46094fd19dc77f22f527cde2b222f798424f9",
+      "bytes": 23595
+    },
+    {
+      "path": "cpu_sampler.py",
+      "sha256": "aee036fb54b038aff82c160618618baf933d86530ac408e06269b385c4e9779b",
+      "bytes": 30247
+    },
+    {
+      "path": "sampler02.patch",
+      "sha256": "a738849e0a3023d39d7b55e3ac80c3f63a82737f1e738646a40d2e08d9d5ad51",
+      "bytes": 12703
+    },
+    {
+      "path": "static-checks.json",
+      "sha256": "507ceac77698e66079541390399398c521beb9b51321da91c34112858e0669df",
+      "bytes": 1038
+    },
+    {
+      "path": "PLAN.md",
+      "sha256": "67f39edc6407c578e18b513c3005b93019cdadf0510ab66366f2ee18e223fd0d",
+      "bytes": 6232
+    }
+  ],
+  "oldV03Unchanged": true,
+  "patchReconstructedExactly": true,
+  "unchangedMethodsAst": [
+    "error",
+    "bounded_read",
+    "argv",
+    "read_root",
+    "await_dispatch",
+    "role",
+    "discover",
+    "cgroup",
+    "sample",
+    "run",
+    "emit"
+  ],
+  "unchangedTopLevelAst": true,
+  "blockingFindings": [],
+  "findings": [
+    "No additional live read or discovery pass: existing owner-before, task/children reads, owner-after-tasks, candidate stat, owner-after-candidates, argv, conditional env and conditional final birth checks retain order. Added records reuse returned values.",
+    "Acceptance remains exact direct PPID/birth, two-argument vector, exactly one matching instance environment value, final same birth and unique guardian. Original argv/env short circuits and terminal/global error behavior remain; added diagnostic counters do not change acceptance.",
+    "Candidate array/map share at most128 records under the original pre-insertion cap. Aggregate read details cap32 with omitted count. Stage/reason are closed branch strings; error records contain class/errno, no exception message. No new argv/env value dump is introduced.",
+    "Only one binding attempt is recorded. Later discovery has binding=None. started/ended clocks include existing optional cgroup-path setup as documented. Allocation/timing/serialization overhead is real and not subtracted.",
+    "Eleven methods and top-level imports/constants/functions including main are independently AST-identical.10s anchor,50ms/250ms sampling,2MiB total/128KiB summary,1024tasks/128identities/candidates remain. No retry/re-anchor/signal/IPC/cleanup behavior added.",
+    "Summary reserve stays fail-closed; records consume existing reserve. PLAN does not claim historical cause or completed synthetic/runtime tests."
+  ],
+  "pending": [
+    "Separately authorized in-memory differential tests should verify identical ordered mocked reads, decisions and errors for rejection/race/ambiguity/overflow cases.",
+    "Check maximum128 candidates plus known identities/errors/cgroup against128KiB. A reserve overflow must remain explicit failure, not enlarged budget or partial evidence called complete. Existing finish can throw before summary write, so caller must preserve nonzero exit/stderr.",
+    "Any live use needs separately frozen caller/preflight and root GO; this review cannot explain old zero-sample failure or establish CPU causality."
+  ],
+  "reviewerExecution": "File reads, hashes, diff/AST parsing only; no sampler import/execution, synthetic fixture run, live proc inspection, build/UI or product edits.",
+  "reviewerCheckNote": "First independent AST check asserted an unnecessarily specific ordering of the unchanged-method list and failed; inspection showed only list ordering differed from the expected list. Rechecked set equality and top-level AST equality successfully. This was a review-script assertion, not sampler execution or a product failure."
+}

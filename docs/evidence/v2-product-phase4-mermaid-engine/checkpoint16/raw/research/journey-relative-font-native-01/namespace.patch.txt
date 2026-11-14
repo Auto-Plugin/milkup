@@ -1,0 +1,37 @@
+--- baseline/run-namespace.sh
++++ run-namespace.sh
+@@ -2,12 +2,13 @@
+ # Research only; invoked by exact-owned display launcher after separate runtime GO.
+ set -euo pipefail
+ source /workspace/.cloud/milkup-v2/env.sh
+-root=/workspace/milkup-mermaid-engine-evidence/research/journey-current-native-paired-01
++root=/workspace/milkup-mermaid-engine-evidence/research/journey-relative-font-native-01
+ verified_base=/workspace/milkup-mermaid-engine-evidence/prototype
+ runtime=/workspace/.cloud/milkup-v2/sysroot
+-phase=${1:?capture or paint}
+-[[ "$phase" == capture || "$phase" == paint ]]
+-run="$phase-first01"
++phase=paint
++zoom=${1:?native zoom 1 or 2}
++[[ "$zoom" == 1 || "$zoom" == 2 ]]
++run="zoom$zoom-first01"
+ [[ "$run" =~ ^[a-zA-Z0-9_-]{1,64}$ ]] || { printf 'Invalid run name\n' >&2; exit 2; }
+ profile="$root/profiles/$run"
+ output="$root/runs/$run"
+@@ -17,7 +18,7 @@
+ uid=$(id -u)
+ # The supervisor remains OUTSIDE the child namespaces, owning the host PIDs,
+ # monotonic watchdog, process-group signals and subreaper waitpid audit.
+-exec /usr/bin/python3 "$root/supervise.py" --output "$output" --phase "$phase" -- \
++exec /usr/bin/python3 "$root/supervise.py" --output "$output" --phase "$phase" --zoom "$zoom" -- \
+   /usr/bin/bwrap \
+   --die-with-parent --unshare-user --unshare-pid --unshare-ipc --unshare-uts --unshare-net \
+   --clearenv \
+@@ -54,6 +55,7 @@
+   --setenv GSETTINGS_SCHEMA_DIR /runtime/schemas \
+   --setenv GDK_PIXBUF_MODULE_FILE /probe/loaders.cache \
+   --setenv MILKUP_PROBE_EXTENSIONS /probe/extensions \
++  --setenv MILKUP_PROBE_ZOOM "$zoom" \
+   --setenv DISPLAY :128 --setenv GDK_BACKEND x11 --setenv LIBGL_ALWAYS_SOFTWARE 1 \
+   --setenv LANG C.UTF-8 --setenv LC_ALL C.UTF-8 --setenv TZ UTC \
+   --setenv NO_AT_BRIDGE 1 \

@@ -1,0 +1,76 @@
+
+ RUN  v3.2.6 /workspace/milkup/apps/desktop
+
+ ❯ src/output-service.test.ts (16 tests | 2 failed) 383ms
+   ✓ controlled desktop output > writes a complete immutable captured version after subsequent edits 17ms
+   ✓ controlled desktop output > rejects a document version change during capture before allocating a native job 1ms
+   ✓ controlled desktop output > aborts owned jobs on disposal and isolates plugin handles 6ms
+   ✓ controlled desktop output > reports committed writes when cancellation arrives after native commit 2ms
+   ✓ controlled desktop output > rejects oversized source before reads and preserves native outputs on cancelled chooser 19ms
+   ✓ controlled desktop output > preserves CRLF, Unicode and blank lines across bounded source windows 40ms
+   ✓ controlled desktop output > keeps a selected absolute range and warns about unavailable rich context 1ms
+   ✓ controlled desktop output > cleans a late native preparation when capture was cancelled 2ms
+   ✓ controlled desktop output > makes unavailable and remote images visible without network requests 3ms
+   ✓ controlled desktop output > does not allocate a target on chooser cancellation or write afterwards 2ms
+   ✓ controlled desktop output > captures adjacent long lines without exceeding the per-read budget 26ms
+   ✓ controlled desktop output > preserves a final bare CR instead of silently truncating source metadata 1ms
+   ✓ controlled desktop output > maps native rejection after cancellation to aborted while retaining the success contract 2ms
+   ✓ controlled desktop output > rejects HTML above the native transfer budget before asking for a destination 225ms
+   × controlled desktop output > shrinks windows for the native string budget error and bounds every boundary lookup 23ms
+     → Unbounded native lineAtPosition is forbidden during capture
+   × controlled desktop output > keeps released snapshot allocations reserved until in-flight choosers settle 9ms
+     → promise resolved "{ …(8) }" instead of rejecting
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/output-service.test.ts > controlled desktop output > shrinks windows for the native string budget error and bounds every boundary lookup
+Error: Unbounded native lineAtPosition is forbidden during capture
+ ❯ MemoryDocumentSource.source.lineAtPosition src/output-service.test.ts:240:49
+    238|     const source = f.current().source
+    239|     const read = source.readLineWindow.bind(source)
+    240|     source.lineAtPosition = async () => { throw new Error('Unbounded n…
+       |                                                 ^
+    241|     source.readLineWindow = async (from, to, budget) => {
+    242|       expect(budget).toBe(131072)
+ ❯ src/output-service.ts:143:42
+ ❯ operation src/output-service.ts:85:24
+ ❯ Object.capture src/output-service.ts:104:18
+ ❯ src/output-service.test.ts:246:68
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯
+
+ FAIL  src/output-service.test.ts > controlled desktop output > keeps released snapshot allocations reserved until in-flight choosers settle
+AssertionError: promise resolved "{ …(8) }" instead of rejecting
+
+- Expected
++ Received
+
+- Error {
+-   "message": "rejected promise",
++ {
++   "documentId": "doc",
++   "from": 0,
++   "id": "29c533435f6c47c99fdce1ebde6db3b6",
++   "lineCount": 3,
++   "title": "笔记.md",
++   "to": 15,
++   "version": 4,
++   "warnings": [],
+  }
+
+ ❯ src/output-service.test.ts:261:42
+    259|       await adapter.release(snapshot.id)
+    260|     }
+    261|     await expect(adapter.capture(request)).rejects.toMatchObject({ cod…
+       |                                          ^
+    262|     complete.forEach(resolve => resolve(null))
+    263|     await Promise.all(pending)
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/2]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  2 failed | 14 passed (16)
+   Start at  02:25:45
+   Duration  2.11s (transform 892ms, setup 0ms, collect 1.20s, tests 383ms, environment 0ms, prepare 192ms)
+

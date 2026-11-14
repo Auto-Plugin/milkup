@@ -1,0 +1,73 @@
+$ pnpm -r test
+Scope: 14 of 15 workspace projects
+packages/assets test$ vitest run
+packages/core test$ vitest run
+packages/input test$ vitest run
+packages/markdown test$ vitest run
+packages/assets test:  RUN  v3.2.6 /workspace/milkup/packages/assets
+packages/core test:  RUN  v3.2.6 /workspace/milkup/packages/core
+packages/markdown test:  RUN  v3.2.6 /workspace/milkup/packages/markdown
+packages/input test:  RUN  v3.2.6 /workspace/milkup/packages/input
+packages/assets test:  ✓ src/provider.test.ts (6 tests) 207ms
+packages/assets test:  Test Files  1 passed (1)
+packages/assets test:       Tests  6 passed (6)
+packages/assets test:    Start at  06:19:27
+packages/assets test:    Duration  2.89s (transform 423ms, setup 0ms, collect 414ms, tests 207ms, environment 0ms, prepare 573ms)
+packages/assets test: Done
+packages/core test:  ✓ src/__tests__/store-search.test.ts (10 tests) 231ms
+packages/core test:  ✓ src/__tests__/action-registry.test.ts (8 tests) 603ms
+packages/markdown test:  ✓ src/__tests__/incremental-parser.test.ts (4 tests) 21ms
+packages/core test:  ✓ src/__tests__/large-edit-session.test.ts (12 tests) 87ms
+packages/markdown test:  ✓ src/__tests__/inline-parser.test.ts (33 tests) 174ms
+packages/core test:  ✓ src/__tests__/document-store.test.ts (9 tests) 36ms
+packages/markdown test:  ✓ src/__tests__/block-parser.test.ts (55 tests) 446ms
+packages/core test:  ✓ src/__tests__/editor-history.test.ts (12 tests) 36ms
+packages/markdown test:  ✓ src/__tests__/plugin-syntax.test.ts (2 tests) 43ms
+packages/markdown test:  ✓ src/__tests__/table-boundaries.test.ts (4 tests) 109ms
+packages/core test:  ✓ src/__tests__/literal-search.test.ts (3 tests) 54ms
+packages/input test:  ✓ src/paste.test.ts (8 tests) 942ms
+packages/input test:    ✓ paste pipeline > converts simple html to markdown when plain text is missing  666ms
+packages/input test:  Test Files  1 passed (1)
+packages/input test:       Tests  8 passed (8)
+packages/input test:    Start at  06:19:29
+packages/input test:    Duration  11.20s (transform 840ms, setup 0ms, collect 837ms, tests 942ms, environment 5.64s, prepare 1.07s)
+packages/markdown test:  ✓ src/__tests__/ast-stringify.test.ts (3 tests) 53ms
+packages/input test: Done
+packages/core test:  ✓ src/__tests__/memory-text-document.test.ts (14 tests) 239ms
+packages/markdown test:  ✓ src/__tests__/window-parser.test.ts (3 tests) 86ms
+packages/markdown test:  ✓ src/__tests__/extension-safety.test.ts (3 tests) 37ms
+packages/core test:  ✓ src/__tests__/editor-document-source.test.ts (2 tests) 13ms
+packages/markdown test:  Test Files  8 passed (8)
+packages/markdown test:       Tests  107 passed (107)
+packages/markdown test:    Start at  06:19:29
+packages/markdown test:    Duration  13.82s (transform 5.55s, setup 0ms, collect 14.30s, tests 969ms, environment 12ms, prepare 8.26s)
+packages/core test:  ✓ src/__tests__/large-file-policy.test.ts (5 tests) 17ms
+packages/markdown test: Done
+packages/core test:  ❯ src/__tests__/large-document.test.ts (4 tests | 1 failed) 12295ms
+packages/core test:    ✓ large document contracts > reads windows from a 10 MiB synthetic Markdown document  1178ms
+packages/core test:    ✓ large document contracts > flushes a large edited document snapshot  1964ms
+packages/core test:    ✓ large document contracts > undoes a local edit in a large document through the global editor history  689ms
+packages/core test:    × large document contracts > searches a virtual 100 MiB synthetic Markdown document through line windows 8462ms
+packages/core test:      → Test timed out in 5000ms.
+packages/core test: If this is a long-running test, pass a timeout value as the last argument or configure it globally with "testTimeout".
+packages/core test: ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+packages/core test:  FAIL  src/__tests__/large-document.test.ts > large document contracts > searches a virtual 100 MiB synthetic Markdown document through line windows
+packages/core test: Error: Test timed out in 5000ms.
+packages/core test: If this is a long-running test, pass a timeout value as the last argument or configure it globally with "testTimeout".
+packages/core test:  ❯ src/__tests__/large-document.test.ts:73:3
+packages/core test:      71|   }, 20_000)
+packages/core test:      72|
+packages/core test:      73|   it('searches a virtual 100 MiB synthetic Markdown document through l…
+packages/core test:        |   ^
+packages/core test:      74|     const store = new VirtualSyntheticMarkdownStore(HUNDRED_MIB)
+packages/core test:      75|     const targetLine = 1024
+packages/core test: ⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+packages/core test:  Test Files  1 failed | 9 passed (10)
+packages/core test:       Tests  1 failed | 78 passed (79)
+packages/core test:    Start at  06:19:27
+packages/core test:    Duration  19.12s (transform 4.11s, setup 0ms, collect 13.23s, tests 13.61s, environment 8ms, prepare 7.69s)
+packages/core test: Failed
+/workspace/milkup/packages/core:
+[ERR_PNPM_RECURSIVE_RUN_FIRST_FAIL] @milkup/core@2.0.0-beta.1 test: `vitest run`
+Exit status 1
+[ELIFECYCLE] Test failed. See above for more details.

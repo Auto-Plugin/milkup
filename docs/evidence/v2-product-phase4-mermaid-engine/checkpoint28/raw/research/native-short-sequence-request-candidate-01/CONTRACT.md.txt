@@ -1,0 +1,45 @@
+# Short-sequence native request recorder — research-only candidate
+
+This candidate has exactly three source overlays: `plugin_dom.rs`, `plugin_dom_process.rs`, `plugin_dom_request_diagnostic.rs`. It starts from the old accepted-wire three-file candidate, whose differences from current product source remain only the existing research module/initialization/accepted capture/test-field wiring. New changes add lifecycle observations to that same recorder. No stage/bootstrap/helper/C guard/pidfd module, frontend, archive, permission or sampler is included. Product repository is not edited. No native build or runtime has occurred.
+
+## Gate, bounds and overhead
+
+Existing gate/output: `MILKUP_COLD_REQUEST_DIAGNOSTICS=1`, `MILKUP_COLD_REQUEST_OUTPUT_DIR=<fresh exclusive directory>`. Writer initializes in App launch within the original init budget, after the original init start timestamp and before guardian fork as in the previous accepted-wire candidate. No new writer in a guardian/helper. Disabled mode performs no new observer directory/thread initialization.
+
+All original bounds remain: queue8; **256 total attempted records, not 256 render requests**; individual wire1MiB; reserved cumulative wire16MiB. New lifecycle rows consume the same event/queue budget but no wire bytes. A typical render costs accepted + pipe + frame + settled = four rows, plus guardian, RPC, cancellation, failure/stop events. Thus do not assume 64 requests always fit. This narrow scenario must be assessed from its actual counters; any cap/drop/error is incomplete. The old stage/JS first-eight admission limit is entirely absent because those modules are not included.
+
+Existing captureTotalNs/captureMaxNs, captureBeforeNs/AfterCloneNs/AfterNs, queueFull/disconnected/oversize/capped/ioErrors/incompleteTiming, inFlight, writerThreadCpuNs and exclusive writer behavior remain. Event observation clock reads and small ID clones before recorder entry are not covered by captureTotalNs; no zero-overhead or exhaustive-overhead claim. The frame-read observer does work before receive's original validation and deadline check; that cost stays inside the unchanged deadline. Hash, UTF-8 conversion and JSON/file writes remain on the background writer. Native control mutex only contains optional clock reads and bounded ID clones; recorder allocation/try_send happens after unlock. No extra diagnostic lock or process scan is added.
+
+## Row contract and authority
+
+Existing guardian-spawn and render-accepted rows retain `milkup.cold-accepted-wire.v1`. Render-accepted retains the complete exact serialized wire, its byte length and SHA256, App PID/birth, guardian PID/birth, pluginId, instanceId and requestId. New lifecycle rows use `milkup.cold-request-lifecycle.v1`, carry the same native identity fields but **no wire**. The association key is owner PID/birth + instanceId + requestId; IDs alone are insufficient. Fields added to accepted/lifecycle rows:
+
+- `eventMonotonicNs`: native CLOCK_MONOTONIC at the named observation, possibly earlier than recorder entry.
+- `eventOk`: nullable boolean whose meaning is phase-specific below.
+- `eventBytes`: nullable input/output frame length, without newline.
+- `eventReason`: fixed native explanatory label.
+
+Existing monotonicNs equals captureBeforeNs, the recorder's later entry time. Sequence is capture attempt order; file order is queue/writer order. Multiple App threads can capture earlier observations later, and terminal records can precede a delayed accepted row in file order. Never require global sequence/time ordering as a substitute for exact keys. Clock failure zero increments incompleteTiming when encoded; it is not usable timing evidence. Only App-local differences are authorized; no JS clock subtraction or CPU attribution.
+
+| Kind | eventMonotonicNs placement | eventOk / interpretation |
+|---|---|---|
+| render-accepted | after original active deadline assignment and wake, while original control lock remains held | null; accepted identity and wire. Original DOM_NATIVE_TIMING dispatch remains authoritative, not replaced |
+| render-cancel | original control decision; recorded after unlock | true = active ID matched and proceeds to original pipe; false = not active, original early return/no forwarding. Neither means settled or resets deadline |
+| owner-pipe-complete | original input-ready wait + stdin lock + write/newline/flush closure returned | whether closure succeeded. eventReason distinguishes render/cancel/lifecycle-rpc; RPC requestId is null |
+| owner-frame-read | read_frame returned bytes, before original JSON parse | null. After parse, only a valid render-protocol ID is copied. This is a **parsed response claim**, not strict native matching or settlement; malformed JSON instead reaches original fail path |
+| render-settled | immediately after original active=None, after strict is_result, output bound and both original deadline checks | exact accepted message.ok; false is a valid settled plugin error, not a timeout. Recorded after wake/unlock before original message emit |
+| render-deadline | finish entry after original deadline branch cleared active | eventOk says original cleanup succeeded, **not render success**. Record is queued after original cleanup; original deadline/control traces remain |
+| render-failed | original fail holds control, after stopped guard, before active clear | null. Exact active ID copied if any; otherwise requestId null. Queued after original finish/cleanup/control delivery; not mistaken for strict settlement |
+| render-stop | explicit stop holds control before original active clear | eventOk says cleanup succeeded. Active ID copied if any, otherwise null; queued after original cleanup. Normal disposal is not a deadline |
+
+Native `fail` still calls original `finish(None,error)`; diagnostic correlation does not alter the public control envelope or invent a public timeout request ID. Both receive deadline branches and the watchdog still call original finish with their authoritative active request ID. No original 2-second render or 10-second init deadline, lock, write framing, result validation, kill/guardian cleanup or emit decision is removed or rescheduled by this candidate.
+
+## Closure and evidence limits
+
+The existing `finish.request` → close admission → bounded queue drain → complete.json protocol remains. Final means this observation window closed; it is not a guarantee of product lifetime coverage or all request endpoints. The harness must freeze frontend queue evidence separately and assess every accepted native key for its corresponding strict settlement/failure/deadline/stop. If finish.request precedes App.close, later disposal/stop records are outside the capture window; missing terminal keys remain explicit, not completed by a final marker. App crash or cleanup delay can lose terminal rows; do not infer them from adjacent requests.
+
+Frontend queue/cancel instrumentation is a separate Root-owned research overlay. Join exact request/instance/native identity with recorded frontend mapping; do not derive request payload from the UI target. Native pipeline timings include scheduler waits, IPC and instrumentation; these are not renderer CPU. Existing strict historical wire auditor remains unchanged; it must not be silently widened to accept the lifecycle schema or represented as having validated this new mixed stream.
+
+## Validation prepared, not run
+
+Eleven pure recorder tests are in the actual diagnostic module: seven original bounds/Unicode-hash/identity/gate/drain/exclusive/I/O tests and four lifecycle tests (exact key and event-vs-capture time across all phases; accepted wire/cancel preservation; shared queue and event-cap loss; zero clock/null scope). `tests/recorder-contract.rs` imports the actual module. These tests exercise the recorder only, not native send/receive integration or WebKit. Rustfmt parsed the two changed Rust files and entry successfully. Tests are not yet compiled or executed; Root review/authorization precedes any test compilation. Native build/runtime require separate authorization.

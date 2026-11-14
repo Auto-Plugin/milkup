@@ -1,0 +1,28 @@
+// Research-only synchronous observation; no DOM mutation or extra rendering.
+let captured: unknown
+const box = (b: DOMRect | SVGRect) => [b.x, b.y, b.width, b.height]
+const matrix = (m: DOMMatrix | null) => m ? [m.a, m.b, m.c, m.d, m.e, m.f] : null
+export function captureRoot(raw: string, root: SVGSVGElement): void {
+  if (captured !== undefined) throw new Error('Exactly one root capture permitted')
+  const css = getComputedStyle(root)
+  const value = {
+    rawReturnedSvg: raw,
+    installedRootSvg: root.outerHTML,
+    geometry: {
+      width: root.getAttribute('width'), height: root.getAttribute('height'),
+      viewBox: root.getAttribute('viewBox'), aspect: root.getAttribute('preserveAspectRatio'),
+      style: root.getAttribute('style'), rect: box(root.getBoundingClientRect()), bbox: box(root.getBBox()),
+      ctm: matrix(root.getCTM()), screenCTM: matrix(root.getScreenCTM()),
+      computed: { width: css.width, height: css.height, overflow: css.overflow, font: css.font },
+      parentRect: root.parentElement ? box(root.parentElement.getBoundingClientRect()) : null,
+      devicePixelRatio, fontsStatus: document.fonts.status,
+    },
+  }
+  if (new TextEncoder().encode(JSON.stringify(value)).length > 240_000)
+    throw new Error('Research root capture bounded frame exceeded')
+  captured = value
+}
+export function getCapture(): unknown {
+  if (captured === undefined) throw new Error('No actual renderer root captured')
+  return captured
+}

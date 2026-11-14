@@ -1,0 +1,10 @@
+import hashlib,json
+from pathlib import Path
+base=Path(__file__).resolve().parent
+def sha(p):return hashlib.sha256(Path(p).read_bytes()).hexdigest()
+m=base/'runtime-inputs.json';go=json.loads((base/'root-runtime-go.json').read_text())
+assert go['authorized'] is True and go['runtimeInputsSha256']==sha(m)
+inputs=json.loads(m.read_text());assert inputs['run']=='mermaid-ui-cold-diag-01'
+assert inputs['binary']['sha256'] and inputs['nativeCandidateFinalManifest'], 'Final diagnostic binary and native candidate freeze required'
+assert inputs['classification']=='DIAGNOSTIC_PREFIX_ONLY_NOT_PRODUCTION_ACCEPTANCE'
+for row in inputs['files']:assert sha(row['path'])==row['sha256'],row['path']

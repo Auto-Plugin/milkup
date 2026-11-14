@@ -1,0 +1,10 @@
+from pathlib import Path
+import subprocess,json,datetime,os
+out=Path(__file__).parent
+command=['bash','-lc','source /workspace/.cloud/milkup-v2/env.sh\nunset CARGO_TARGET_X86_64_UNKNOWN_LINUX_GNU_RUNNER PROOT_NO_SECCOMP\nbash scripts/cloud/pnpm.sh --filter @milkup/desktop tauri build --bundles deb']
+record={'command':command,'cwd':'/workspace/milkup','startedUtc':datetime.datetime.now(datetime.timezone.utc).isoformat()}
+(out/'build-command.json').write_text(json.dumps(record,indent=2)+'\n')
+with (out/'build.log').open('w') as log:r=subprocess.run(command,cwd=record['cwd'],stdout=log,stderr=subprocess.STDOUT)
+record.update(endedUtc=datetime.datetime.now(datetime.timezone.utc).isoformat(),exitCode=r.returncode)
+(out/'build-command.json').write_text(json.dumps(record,indent=2)+'\n')
+print(json.dumps(record));raise SystemExit(r.returncode)

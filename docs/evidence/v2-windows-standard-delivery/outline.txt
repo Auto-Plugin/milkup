@@ -1,0 +1,29 @@
+
+ RUN  v3.2.6 /workspace/milkup
+
+ ✓ plugins/outline/src/outline-index.test.ts (3 tests) 4222ms
+   ✓ matches an independent hierarchy oracle for 8775 headings and sparse/global folds  1279ms
+   ✓ matches an independent hierarchy oracle for 18000 headings and sparse/global folds  2700ms
+ ✓ plugins/outline/src/plugin.test.ts (21 tests) 9039ms
+   ✓ complete paged outline index > ignores delayed echoes of the last returned slice rather than oscillating between old and prepared ranges  1108ms
+   ✓ complete paged outline index > stops following the old active heading immediately and keeps the newest scroll request during storage reads  730ms
+   ✓ complete paged outline index > ignores host slice echoes and settles without a render feedback loop  413ms
+   ✓ complete paged outline index > indexes every contiguous range, preserves the full hierarchy and does not rescan when navigating  585ms
+   ✓ complete paged outline index > folds subtrees across scan boundaries, highlights ancestors and restores a navigated child  451ms
+   ✓ complete paged outline index > uses source identity for duplicate titles and rejects stale version actions immediately  309ms
+   ✓ complete paged outline index > discards old scans after quick document changes and disposes each temporary index  336ms
+   ✓ complete paged outline index > invalidates cached visible ancestors when a later range adds their first child  323ms
+   ✓ complete paged outline index > shows a partial index honestly, supports cancellation/retry and does not reuse cancelled identities  330ms
+   ✓ complete paged outline index > supports empty documents and reports storage capability or quota failures explicitly  303ms
+   ✓ complete paged outline index > does not silently complete after invalidated, truncated or interrupted scans  460ms
+   ✓ complete paged outline index > keeps every indexed title available beyond 16384 lines while rendering no more than 500 rows  1256ms
+   ✓ complete paged outline index > bounds persisted pages for worst-case escaped labels while preserving folds  429ms
+   ✓ complete paged outline index > does not accept a delayed old-document navigation as current selection  362ms
+   ✓ debounces rapid edits/undo-redo and waits for old temporary-store disposal before indexing the newest version  389ms
+   ✓ cancels a debounced startup before allocating a store and can retry normally  421ms
+
+ Test Files  2 passed (2)
+      Tests  24 passed (24)
+   Start at  01:06:57
+   Duration  12.02s (transform 1.46s, setup 0ms, collect 1.84s, tests 13.26s, environment 0ms, prepare 954ms)
+

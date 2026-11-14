@@ -1,0 +1,29 @@
+Owned fork+pidfd capability — PREPARED ONLY / NO EXECUTION
+
+Question
+Can an external observer obtain the exact known fixture worker's direct child's PID from that worker's existing pidfd via /proc/WORKER/fdinfo, without children files or global /proc scans? This tests an existing-handle path suggested by production guardian.rs pidfd_open. It does not start product, recreate WebKit, change guardian, or prove whole renderer tree coverage.
+
+Invocation requires root review + explicit GO in require_escalated context:
+python3 <this-dir>/pidfd_capability.py --authorized-context require_escalated --output <new-unused-json>
+The context flag is a contract only; real namespace links/maps are recorded. Do not execute during preparation or launch a bwrap second case automatically.
+
+Fixture topology
+Original process is external observer. It forks exactly one worker, and worker forks exactly one child. Child sends own PID/birth/context over a private pipe and remains alive waiting for control EOF. Worker calls os.pidfd_open(child,0) using its actual fork-return PID, keeps the pidfd until fixture completion, and records pidfd-open status/error. This opening occurs AFTER the child fork; only the worker possesses that pidfd. Neither the FD number nor a guessed renderer PID is provided to the outside enumeration algorithm.
+Worker performs an inside fdinfo snapshot, sends identities/oracle/context to observer, waits control EOF. Observer independently enumerates exact worker fdinfo and snapshots. It then closes control pipe; worker closes child hold pipe and waitpid reaps child; observer waitpid reaps worker. Private process-only topology; no product/window/IPC, signals or kernel setting changes. The previous direct children probe remains untouched.
+
+Bounded fdinfo algorithm
+1. Verify owner PID/birth stat before enumeration. Enumerate only /proc/<known-worker>/fdinfo at most32 entries (+1 for cap detection); numeric names only. No assumed FD, /proc root scan or children path.
+2. Each fdinfo read<=4096 bytes, captures readStart/end, raw bytes and exact errno (ENOENT/EACCES/etc.). Total snapshot has a cooperative20ms budget checked between FDs. Overflow and budget limit remain explicit and do not become no-pidfd conclusions.
+3. Parse Pid and optional NSpid. Missing Pid means not-pidfd. Duplicate fields/malformed integer are invalid. Pid=-1 means exited target; nonpositive/invalid PID/NSpid is rejected. NSpid values are retained; never use the last element as presumed outer PID or invent a namespace translation.
+4. For positive Pid, read /proc/<Pid>/stat in THIS observer's proc view. Require direct PPID=worker PID, birth>=worker birth and live state. Save target stat before/after and reread the same fdinfo path between them. Require exact fdinfo raw bytes unchanged, target PID+birth/PPID still match and state live. Finally reverify owner PID/birth; any mismatch clears accepted targets. This defends FD reuse/owner reuse under this proof, while recognizing reads are not atomic.
+5. Oracle child identity from fork handshake is used only AFTER derived targets are accepted, to report oracleMatched. It does not select FD or supply a target PID to discovery. Output labels accepted identities direct-child only. fullDescendantTreeCoverage is always false.
+
+Interpretation and exit status
+complete means protocol finished and both children were reaped. It is not the capability result. directPidfdCapabilityObserved separately requires inside and outside both derive the expected oracle identity. Exit0 may therefore describe a clean negative capability experiment: check capability field and raw reasons, never use exit code alone. Negative/permission/interface/overflow/malformed/exit cases must remain first results, with no automatic retry.
+Matching fdinfo Pid plus exact target birth/PPID in observer proc view is the binding evidence. A raw NSpid alone is not enough. If no Pid exists in this implementation, ENOENT/EACCES occurs, or target view fails validation, this path is unavailable/inconclusive; do not bypass with global scanning. Success provides ONLY direct child from held pidfd; descendants without their own retained pidfds are outside coverage. It cannot repair historical missing CPU or prove old timeout cause.
+
+Time/cleanup bounds
+Same cooperative total8s deadline as direct probe; child hold<=4s; startup frame<=3s; worker control wait<=3s; waitpid(WNOHANG) on own exact direct child only, 10ms polls within deadline. Private EOF releases normal exit; no kill fallback or unrelated process signals. Retained pidfd closes in worker finally. Kernel reads/writes and scheduling cannot be preempted by cooperative timers, so not a hard-real-time guarantee. Any unreaped status is explicit; root may assess captured owned identities separately, no blanket cleanup.
+
+Preparation checks
+Only source construction and AST syntax parsing; no dynamic unit tests, fork, pidfd_open or product execution. Root requested prepared candidates wait for unified review. No claims of actual fdinfo capability yet. Output uses create-new to protect prior evidence. All old candidate-v02, original direct probe and completed results remain byte-identical.

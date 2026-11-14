@@ -1,0 +1,31 @@
+--- beta5/verify-download.py
++++ beta6/verify-download.py
+@@ -1,5 +1,5 @@
+ #!/usr/bin/env python3
+-"""Verify an already downloaded beta.5 Actions ZIP; never execute its contents."""
++"""Verify an already downloaded beta.6 Actions ZIP; never execute its contents."""
+ from __future__ import annotations
+ 
+ import argparse
+@@ -14,9 +14,9 @@
+ import sys
+ import zipfile
+ 
+-VERSION = '2.0.0-beta.5'
+-BASELINE = '0e74d9fad211c304ef68449fa6becb7450dfffef'
+-BRANCH = 'dot/milkup-v2-beta5-feedback'
++VERSION = '2.0.0-beta.6'
++BASELINE = '7cc4edc6747abf5fbc31b60cccf4bd73174af6f8'
++BRANCH = 'dot/milkup-v2-beta6-ui-candidate'
+ REPOSITORY = 'Auto-Plugin/milkup'
+ DIAGRAMS_SHA256 = 'b1c2b8490da465f1c38f4f3886e7fa926978d2e6e2c5081bca4d716659c4acc1'
+ # Formatting 1.0.1 after the viewport-loop fix at 66ace39. The independently
+@@ -349,6 +349,8 @@
+         require(formatting_review is not None, 'Missing reviewed Formatting viewport-loop fix')
+         require(file_names == expected_files, 'Unaccounted payload files')
+         require(len(payload) == 18, 'Incomplete verified payload')
++        for name in ('README.md', 'FEEDBACK.md', 'samples/basic.md'):
++            require(member(name) == git_bytes(args.source, 'show', f'{args.expected_commit}:docs/manual-windows-beta6/{name}'), f'Manual trial material differs from committed source: {name}')
+ 
+     result = {
+         'status': 'passed', 'artifactId': metadata['id'], 'artifactZipSha256': zip_hash,

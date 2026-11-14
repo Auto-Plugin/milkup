@@ -1,0 +1,38 @@
+import { readFile, writeFile } from 'node:fs/promises'
+import assert from 'node:assert/strict'
+import { MemoryDocumentSource } from '/workspace/milkup/packages/core/src/index.ts'
+import { parseMarkdownWindow } from '/workspace/milkup/packages/markdown/src/index.ts'
+const base = '/workspace/milkup-mermaid-engine-evidence/research'
+const results = []
+for (const revision of ['01', '02']) {
+  const text = await readFile(`${base}/window-navigation-multirow-browser-${revision}/fixture.md`, 'utf8')
+  const source = new MemoryDocumentSource({ documentId: `parser-proof-${revision}`, text })
+  const marker = (await source.readLineWindow(398, 398)).lines[0]
+  assert.equal(marker.from, 8103); assert.equal(marker.to, 8160)
+  for (const [fromLine, toLine] of [[280,384],[304,559]]) {
+    const parsed = await parseMarkdownWindow({ documentId: source.documentId, version: source.version,
+      readLineWindow: (from,to) => source.readLineWindow(from,to,65536),
+    }, { fromLine, toLine })
+    const fences = (parsed.root.children ?? []).filter(block => block.type === 'fencedCode').map(block => ({
+      from: block.from, to: block.to, status: block.status, markers: block.markerRanges,
+      fromLine: parsed.window.lines.find(line => line.from === block.from)?.number,
+      closingLine: block.markerRanges?.length === 2 ? parsed.window.lines.find(line => line.from <= block.markerRanges![1].to && line.to >= block.markerRanges![1].to)?.number : undefined,
+    }))
+    results.push({ revision, requested: [fromLine,toLine], actualWindow: { fromLine: parsed.window.fromLine, toLine: parsed.window.toLine, from: parsed.window.from, to: parsed.window.to, lines: parsed.window.lines.length, codeUnits: parsed.window.text.length }, marker: { from: marker.from,to:marker.to }, fences })
+    if (revision === '02') {
+      assert(parsed.window.lines.length <=256)
+      assert(parsed.window.text.length <=65536)
+      const target = fences.find(block => block.from ===5742)
+      assert(target, 'Expected actual target opening at UTF16 offset5742')
+      if (fromLine===280) assert.equal(target.status,'incomplete')
+      else {
+        assert.equal(target.status,'valid')
+        assert.equal(target.fromLine,318)
+        assert.equal(target.closingLine,394)
+        assert.equal(target.markers?.[1].to,8060)
+      }
+    }
+  }
+}
+await writeFile(`${base}/window-navigation-multirow-browser-02/parser-proof.json`, JSON.stringify({ status:'PASS', assertions:'revision02 initial context has true incomplete target opening; bounded supplement has exact valid target closing; original revision01 recorded without imposed result', results },null,2)+'\n')
+console.log('PASS finite public-parser proof: 2 sources × 2 bounded windows; revision02 exact complete target318..394 and marker398 offsets retained')

@@ -1,0 +1,317 @@
+// Include inside plugin_dom::process::tests in the independent candidate only.
+// One invocation is exactly one fresh helper. The reviewed external sequence owns
+// eight invocations; a normal native render deadline is a recorded mechanism outcome.
+#[test]
+#[ignore = "explicit isolated A/C diagnostic candidate, frozen inputs, native display required"]
+fn real_webkit_hidden_timer_cell() {
+    use std::path::{Path, PathBuf};
+    fn save(path: &Path, value: &Value) {
+        let bytes = serde_json::to_vec_pretty(value).unwrap();
+        assert!(bytes.len() < 1024 * 1024, "bounded research artifact");
+        let mut file = std::fs::OpenOptions::new()
+            .write(true)
+            .create_new(true)
+            .open(path)
+            .unwrap();
+        file.write_all(&bytes).unwrap();
+    }
+    fn read_hashed(root: &Path, name: &str, expected: &Value) -> Vec<u8> {
+        assert!(!name.contains('/') && !name.contains(".."));
+        let bytes = std::fs::read(root.join(name)).unwrap();
+        assert_eq!(
+            format!("{:x}", Sha256::digest(&bytes)),
+            expected.as_str().unwrap()
+        );
+        bytes
+    }
+    fn window_snapshot(out: &Path, stage: &str, owners: Value, baseline: Option<&Path>) -> Value {
+        let input = out.join(format!("windows-{stage}-identity.json"));
+        let output = out.join(format!("windows-{stage}.json"));
+        save(
+            &input,
+            &json!({"display":std::env::var("DISPLAY").unwrap(),"owners":owners}),
+        );
+        let mut command = Command::new("/usr/bin/python3");
+        command
+            .arg(std::env::var("MILKUP_TIMER_WINDOW_OBSERVER").unwrap())
+            .arg("--identity-file")
+            .arg(&input)
+            .arg("--output")
+            .arg(&output);
+        if let Some(path) = baseline {
+            command.arg("--baseline").arg(path);
+        }
+        let observed = command.output().unwrap();
+        save(
+            &out.join(format!("windows-{stage}-command.json")),
+            &json!({
+                "exitCode":observed.status.code(),
+                "stdout":String::from_utf8_lossy(&observed.stdout),
+                "stderr":String::from_utf8_lossy(&observed.stderr)
+            }),
+        );
+        assert!(observed.status.success(), "X11 observation failed");
+        let value: Value = serde_json::from_slice(&std::fs::read(output).unwrap()).unwrap();
+        assert_eq!(value["schema"], "milkup.owned-x11-observation.v1");
+        assert_eq!(value["ok"], true);
+        assert_eq!(value["identity"]["allMatched"], true);
+        assert_eq!(value["assessment"]["ownedVisibleToplevelsAbsent"], true);
+        if baseline.is_some() {
+            for key in [
+                "sameDisplay",
+                "focusUnchanged",
+                "activeWindowUnchanged",
+                "noNewVisibleToplevels",
+            ] {
+                assert_eq!(value["comparison"][key], true, "X11 condition {key}");
+            }
+        }
+        value
+    }
+    let fixtures = PathBuf::from(std::env::var("MILKUP_TIMER_FIXTURES").unwrap());
+    let out = PathBuf::from(std::env::var("MILKUP_TIMER_OUTPUT").unwrap());
+    assert!(!out.exists(), "fresh cell output required");
+    std::fs::create_dir_all(&out).unwrap();
+    let cell = std::env::var("MILKUP_TIMER_CELL").unwrap();
+    let (arm, workload) = cell.split_once('-').unwrap();
+    assert!(["A", "C"].contains(&arm));
+    assert!(["control", "single", "double", "class"].contains(&workload));
+    let expected_arm = if arm == "A" { "hidden" } else { "offscreen" };
+    assert_eq!(
+        std::env::var("MILKUP_DOM_TIMER_CONTROL").unwrap(),
+        expected_arm
+    );
+    assert_eq!(std::env::var("MILKUP_DOM_DIAGNOSTICS").unwrap(), "1");
+    assert_eq!(INIT_DEADLINE, Duration::from_secs(10));
+    assert_eq!(RENDER_DEADLINE, Duration::from_secs(2));
+    let executable = PathBuf::from(std::env::var("MILKUP_DOM_NATIVE_TEST_EXECUTABLE").unwrap());
+    assert_eq!(
+        format!("{:x}", Sha256::digest(std::fs::read(&executable).unwrap())),
+        std::env::var("MILKUP_TIMER_BINARY_SHA256").unwrap()
+    );
+    let observer = PathBuf::from(std::env::var("MILKUP_TIMER_WINDOW_OBSERVER").unwrap());
+    assert_eq!(
+        format!("{:x}", Sha256::digest(std::fs::read(&observer).unwrap())),
+        std::env::var("MILKUP_TIMER_WINDOW_OBSERVER_SHA256").unwrap()
+    );
+    assert_eq!(
+        format!(
+            "{:x}",
+            Sha256::digest(std::fs::read(fixtures.join("index.json")).unwrap())
+        ),
+        std::env::var("MILKUP_TIMER_FIXTURE_INDEX_SHA256").unwrap()
+    );
+    let index: Value =
+        serde_json::from_slice(&std::fs::read(fixtures.join("index.json")).unwrap()).unwrap();
+    let config = &index["fixtures"][workload];
+    let module = String::from_utf8(read_hashed(
+        &fixtures,
+        config["module"].as_str().unwrap(),
+        &config["moduleSha256"],
+    ))
+    .unwrap();
+    let manifest: Value = serde_json::from_slice(&read_hashed(
+        &fixtures,
+        config["manifest"].as_str().unwrap(),
+        &config["manifestSha256"],
+    ))
+    .unwrap();
+    let request: Value = serde_json::from_slice(&read_hashed(
+        &fixtures,
+        config["request"].as_str().unwrap(),
+        &config["requestSha256"],
+    ))
+    .unwrap();
+    let plugin_id = config["pluginId"].as_str().unwrap().to_string();
+    let source = request["payload"]["request"]["source"].as_str().unwrap();
+    assert_eq!(
+        format!("{:x}", Sha256::digest(source.as_bytes())),
+        config["sourceSha256"].as_str().unwrap()
+    );
+    assert_eq!(source.len() as u64, config["sourceBytes"].as_u64().unwrap());
+    save(
+        &out.join("input.json"),
+        &json!({"cell":cell,"arm":expected_arm,"fixture":config,"request":request,
+        "classification":"diagnostic mechanism only; package installation and frontend validation are bypassed"}),
+    );
+    window_snapshot(&out, "baseline", json!([]), None);
+    let baseline_path = out.join("windows-baseline.json");
+    let snapshot = Snapshot {
+        manifest: manifest.clone(),
+        sha256: format!("{:x}", Sha256::digest(module.as_bytes())),
+        module,
+    };
+    let (tx, rx) = std::sync::mpsc::channel();
+    let instance = Instance::launch(
+        plugin_id.clone(),
+        snapshot,
+        Arc::new(move |event| {
+            let _ = tx.send(event);
+        }),
+        executable.clone(),
+    )
+    .unwrap();
+    struct ResearchCleanup(Arc<Instance>);
+    impl Drop for ResearchCleanup {
+        fn drop(&mut self) {
+            let _ = self.0.stop();
+        }
+    }
+    let _cleanup = ResearchCleanup(instance.clone());
+    save(
+        &out.join("instance.json"),
+        &json!({"instanceId":instance.id,"guardianPid":instance.pid,"guardianBirth":instance.birth}),
+    );
+    instance.send(json!({"protocol":RPC_PROTOCOL,"type":"request","id":"activate_1","method":"activate",
+        "payload":{"pluginId":plugin_id,"manifest":manifest,"permissions":["document:read"],"hostCapabilities":[]}})).unwrap();
+    let activation = rx.recv_timeout(Duration::from_secs(12)).unwrap();
+    save(
+        &out.join("activation.json"),
+        &serde_json::to_value(&activation).unwrap(),
+    );
+    assert_eq!(activation.kind, "message");
+    let activated = activation.message.as_ref().unwrap();
+    assert_eq!(activated["id"], "activate_1");
+    assert_eq!(activated["ok"], true);
+    assert_eq!(
+        activated["value"]["documentRenderers"],
+        json!([config["rendererId"]])
+    );
+    instance.sample_owned();
+    let owned = instance.owned.lock().unwrap().clone();
+    let mut helpers = Vec::new();
+    let mut candidate_records = Vec::new();
+    for (pid, birth) in &owned {
+        if let Some(row) = proc_stat(*pid) {
+            if row.birth != *birth || row.parent != instance.pid {
+                continue;
+            }
+            let mut raw = Vec::new();
+            let read = File::open(format!("/proc/{pid}/cmdline"))
+                .and_then(|file| file.take(16385).read_to_end(&mut raw));
+            if let Err(error) = read {
+                candidate_records.push(
+                    json!({"pid":pid,"birth":birth,"parent":row.parent,"error":error.to_string()}),
+                );
+                continue;
+            }
+            assert!(raw.len() <= 16384, "bounded exact helper argv");
+            let args: Vec<_> = raw.split(|v| *v == 0).filter(|v| !v.is_empty()).collect();
+            let matched = args
+                == vec![
+                    executable.to_str().unwrap().as_bytes(),
+                    b"--milkup-internal-dom-helper".as_slice(),
+                ];
+            candidate_records.push(json!({"pid":pid,"birth":birth,"parent":row.parent,"argv":args.iter().map(|v|String::from_utf8_lossy(v)).collect::<Vec<_>>(),"matched":matched}));
+            if matched {
+                helpers.push((*pid, *birth));
+            }
+        }
+    }
+    save(
+        &out.join("helper-candidates.json"),
+        &json!(candidate_records),
+    );
+    assert_eq!(helpers.len(), 1, "exact direct helper identity required");
+    let owners = json!([{"role":"guardian","pid":instance.pid,"birth":instance.birth},
+        {"role":"helper","pid":helpers[0].0,"birth":helpers[0].1}]);
+    save(&out.join("owned.json"), &owners);
+    window_snapshot(&out, "activated", owners.clone(), Some(&baseline_path));
+    let started = Instant::now();
+    instance.send(request).unwrap();
+    let event = rx.recv_timeout(Duration::from_secs(7)).unwrap();
+    let elapsed = started.elapsed();
+    save(
+        &out.join("event.json"),
+        &serde_json::to_value(&event).unwrap(),
+    );
+    let timeout = event.kind == "document-render-timeout";
+    let mut timer_observation = Value::Null;
+    if timeout {
+        assert_eq!(event.request_id.as_deref(), Some("render_1"));
+        assert!(elapsed >= RENDER_DEADLINE);
+    } else {
+        assert_eq!(
+            event.kind, "message",
+            "setup/safety/host failure stops batch"
+        );
+        let result = event.message.as_ref().unwrap();
+        assert_eq!(result["id"], "render_1");
+        assert_eq!(result["ok"], true);
+        let value = &result["value"];
+        assert_eq!(value["complete"], true);
+        let fragments = value["fragments"].as_array().unwrap();
+        assert_eq!(fragments.len(), 1);
+        if workload == "class" {
+            assert_eq!(fragments[0]["status"], "ready");
+            assert_eq!(fragments[0]["content"]["type"], "svg-image");
+            assert!(fragments[0]["content"]["width"].as_f64().unwrap() > 0.0);
+            assert!(fragments[0]["content"]["height"].as_f64().unwrap() > 0.0);
+        } else {
+            timer_observation =
+                serde_json::from_str(fragments[0]["content"]["text"].as_str().unwrap()).unwrap();
+            let expected = match workload {
+                "control" => 0,
+                "single" => 1,
+                "double" => 2,
+                _ => unreachable!(),
+            };
+            assert_eq!(
+                timer_observation["callbacksMs"].as_array().unwrap().len(),
+                expected
+            );
+            assert_eq!(
+                timer_observation["mode"],
+                if workload == "control" {
+                    "none"
+                } else {
+                    workload
+                }
+            );
+            for value in timer_observation["callbacksMs"].as_array().unwrap() {
+                assert!(value.as_f64().is_some_and(|n| n.is_finite() && n >= 0.0));
+            }
+            assert!(timer_observation["totalMs"]
+                .as_f64()
+                .is_some_and(|n| n.is_finite() && n >= 0.0));
+            if workload == "control" {
+                assert!(
+                    timer_observation["geometry"]["bbox"]["width"]
+                        .as_f64()
+                        .unwrap()
+                        > 0.0
+                );
+                assert!(
+                    timer_observation["geometry"]["bbox"]["height"]
+                        .as_f64()
+                        .unwrap()
+                        > 0.0
+                );
+                assert!(timer_observation["geometry"]["ctm"].is_object());
+                assert!(timer_observation["geometry"]["screenCtm"].is_object());
+            }
+        }
+        window_snapshot(&out, "rendered", owners, Some(&baseline_path));
+    }
+    // Native timeout event is issued only after owned cleanup. stop() is exact,
+    // idempotent, and confirms guardian ECHILD cleanup for normal results too.
+    instance.stop().unwrap();
+    for (pid, birth) in instance.owned.lock().unwrap().iter() {
+        assert!(
+            !proc_stat(*pid).is_some_and(|p| p.birth == *birth),
+            "owned process remains"
+        );
+    }
+    assert!(
+        rx.try_recv().is_err(),
+        "no additional control/result after settlement and stop"
+    );
+    window_snapshot(&out, "stopped", json!([]), Some(&baseline_path));
+    save(
+        &out.join("outcome.json"),
+        &json!({"cell":cell,"outcome":if timeout {"native-render-deadline"} else {"result"},
+        "elapsedMs":elapsed.as_secs_f64()*1000.0,"timerObservation":timer_observation,
+        "ownedCleanupConfirmed":true,"normalVisibleWindowAbsentAtSnapshots":true,
+        "limits":"Observed times include diagnostic/native IPC work; no CPU attribution. Timer result unavailable after native deadline; no retrospective callback completion claim."}),
+    );
+}

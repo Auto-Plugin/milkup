@@ -1,0 +1,84 @@
+COMMAND ["pnpm", "test:e2e", "--workers=1"]
+MILKUP_BROWSER_EXECUTABLE=/usr/bin/chromium
+$ playwright test --workers=1
+[WebServer] (node:45960) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] $ vite --host 127.0.0.1
+[WebServer] (node:45973) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] (node:45997) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] $ vite --host 127.0.0.1
+[WebServer] (node:46013) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 60 tests using 1 worker
+
+(node:46039) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓   1 [playground-msedge] › tests/e2e/live-render.spec.ts:3:1 › live render projection hides inline markers and keeps editor geometry usable (616ms)
+  ✓   2 [playground-msedge] › tests/e2e/live-render.spec.ts:33:1 › live table and task-list clicks preserve visual cursor mapping (642ms)
+  ✓   3 [playground-msedge] › tests/e2e/live-render.spec.ts:105:1 › browser selection rendering follows keyboard selection changes (380ms)
+  ✓   4 [playground-msedge] › tests/e2e/live-render.spec.ts:121:1 › browser mode switches preserve editor scroll position (842ms)
+  ✓   5 [playground-msedge] › tests/e2e/live-render.spec.ts:143:1 › browser worker plugin command mutates the editor through global history (473ms)
+  ✓   6 [playground-msedge] › tests/e2e/live-render.spec.ts:159:1 › browser worker plugin fetches through the main-thread network broker (522ms)
+  ✓   7 [playground-msedge] › tests/e2e/live-render.spec.ts:172:1 › browser worker plugin reads through the main-thread file broker (466ms)
+(node:46414) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓   8 [desktop-msedge] › tests/e2e/desktop-shell.spec.ts:32:1 › desktop shell loads editor and tracks dirty session state (1.6s)
+  ✓   9 [desktop-msedge] › tests/e2e/desktop-shell.spec.ts:144:1 › plugin manager restores, executes, disables, and reenables a Worker plugin (785ms)
+  ✓  10 [desktop-msedge] › tests/e2e/desktop-shell.spec.ts:198:1 › desktop shell imports pasted image files through asset provider (551ms)
+  ✓  11 [desktop-msedge] › tests/e2e/desktop-shell.spec.ts:230:1 › desktop search highlights matches and moves the active result (692ms)
+  ✓  12 [desktop-msedge] › tests/e2e/desktop-shell.spec.ts:253:1 › closing search cancels the active scan and clears highlights (553ms)
+  ✓  13 [desktop-msedge] › tests/e2e/desktop-shell.spec.ts:279:1 › desktop shell routes primary shortcuts through active document actions (668ms)
+  ✓  14 [desktop-msedge] › tests/e2e/desktop-shell.spec.ts:358:1 › desktop shell confirms before closing a dirty window (663ms)
+  ✓  15 [desktop-msedge] › tests/e2e/desktop-shell.spec.ts:422:3 › existing-file success keeps subsequent input and history dirty until their own save (489ms)
+  ✓  16 [desktop-msedge] › tests/e2e/desktop-shell.spec.ts:422:3 › existing-file cancel keeps subsequent input and history dirty until their own save (483ms)
+  ✓  17 [desktop-msedge] › tests/e2e/desktop-shell.spec.ts:422:3 › existing-file error keeps subsequent input and history dirty until their own save (477ms)
+  ✓  18 [desktop-msedge] › tests/e2e/desktop-shell.spec.ts:459:3 › dirty Control+n supports cancel, focus containment and explicit discard (627ms)
+  ✓  19 [desktop-msedge] › tests/e2e/desktop-shell.spec.ts:459:3 › dirty Control+o supports cancel, focus containment and explicit discard (595ms)
+  ✓  20 [desktop-msedge] › tests/e2e/desktop-shell.spec.ts:459:3 › dirty Control+w supports cancel, focus containment and explicit discard (566ms)
+  ✓  21 [desktop-msedge] › tests/e2e/desktop-shell.spec.ts:492:1 › save before new retains the draft after cancellation or failure and supports retry (642ms)
+  ✓  22 [desktop-msedge] › tests/e2e/desktop-shell.spec.ts:516:1 › cancelling a pending save continuation never navigates after the write completes (621ms)
+  ✓  23 [desktop-msedge] › tests/e2e/desktop-shell.spec.ts:544:3 › opening cancel after discard preserves original content and history (526ms)
+  ✓  24 [desktop-msedge] › tests/e2e/desktop-shell.spec.ts:544:3 › opening error after discard preserves original content and history (604ms)
+  ✓  25 [desktop-msedge] › tests/e2e/desktop-shell.spec.ts:565:1 › ordinary save failures are visible without developer diagnostics and recover on retry (492ms)
+  ✓  26 [desktop-msedge] › tests/e2e/desktop-shell.spec.ts:582:1 › browser reload cancellation keeps the unsaved editor alive (5.5s)
+  ✓  27 [desktop-msedge] › tests/e2e/desktop-shell.spec.ts:597:3 › synthetic composition cancellation preserves selected text and history in source (487ms)
+  ✓  28 [desktop-msedge] › tests/e2e/desktop-shell.spec.ts:597:3 › synthetic composition cancellation preserves selected text and history in live (519ms)
+  ✓  29 [desktop-msedge] › tests/e2e/desktop-shell.spec.ts:652:1 › multiline code paste and following typing undo independently across mode changes (458ms)
+  ✓  30 [desktop-msedge] › tests/e2e/desktop-shell.spec.ts:680:1 › typing after cursor movement restores only the local edit on undo (388ms)
+  ✓  31 [desktop-msedge] › tests/e2e/desktop-shell.spec.ts:692:1 › cancelled and failed Save As preserve the path and dirty content (496ms)
+  ✓  32 [desktop-msedge] › tests/e2e/desktop-shell.spec.ts:708:1 › windowed memory documents keep finalized composition separate from adjacent typing (746ms)
+  ✓  33 [desktop-msedge] › tests/e2e/desktop-shell.spec.ts:775:1 › late image imports never write into a newly created document (505ms)
+  ✓  34 [desktop-msedge] › tests/e2e/desktop-shell.spec.ts:792:3 › pending save reconciles modified events before allowing navigation (587ms)
+  ✓  35 [desktop-msedge] › tests/e2e/desktop-shell.spec.ts:792:3 › pending save reconciles deleted events before allowing navigation (569ms)
+  ✓  36 [desktop-msedge] › tests/e2e/desktop-shell.spec.ts:792:3 › pending save reconciles own-save events before allowing navigation (569ms)
+  ✓  37 [desktop-msedge] › tests/e2e/desktop-shell.spec.ts:835:1 › saving cancels a pending image import without dirtying the saved snapshot (465ms)
+  ✓  38 [desktop-msedge] › tests/e2e/desktop-shell.spec.ts:855:1 › failed image imports show an error and a subsequent paste can succeed (492ms)
+  ✓  39 [desktop-msedge] › tests/e2e/desktop-shell.spec.ts:877:3 › Unicode graphemes survive keyboard selection, deletion and undo in source (437ms)
+  ✓  40 [desktop-msedge] › tests/e2e/desktop-shell.spec.ts:877:3 › Unicode graphemes survive keyboard selection, deletion and undo in live (437ms)
+  ✓  41 [desktop-msedge] › tests/e2e/desktop-shell.spec.ts:902:3 › windowed source keyboard edits preserve whole graphemes and undo (568ms)
+  ✓  42 [desktop-msedge] › tests/e2e/desktop-shell.spec.ts:902:3 › windowed live keyboard edits preserve whole graphemes and undo (603ms)
+  ✓  43 [desktop-msedge] › tests/e2e/desktop-shell.spec.ts:934:1 › issue 255 bracket typing keeps its position after delayed rendering (3.0s)
+  ✓  44 [desktop-msedge] › tests/e2e/desktop-shell.spec.ts:951:1 › issue 255 single-space headings render immediately after an image line (444ms)
+  ✓  45 [desktop-msedge] › tests/e2e/desktop-shell.spec.ts:967:3 › source list keyboard nesting, exit and undo survive mode changes (427ms)
+  ✓  46 [desktop-msedge] › tests/e2e/desktop-shell.spec.ts:989:3 › source code block Enter preserves literal markers and blank lines (476ms)
+  ✓  47 [desktop-msedge] › tests/e2e/desktop-shell.spec.ts:967:3 › live list keyboard nesting, exit and undo survive mode changes (424ms)
+  ✓  48 [desktop-msedge] › tests/e2e/desktop-shell.spec.ts:989:3 › live code block Enter preserves literal markers and blank lines (461ms)
+  ✓  49 [desktop-msedge] › tests/e2e/desktop-shell.spec.ts:1033:1 › live table navigation replaces one cell, keeps line breaks and supports undo (579ms)
+  ✓  50 [desktop-msedge] › tests/e2e/desktop-shell.spec.ts:1063:1 › table toolbar preserves row and column content through undo and redo (717ms)
+  ✓  51 [desktop-msedge] › tests/e2e/desktop-shell.spec.ts:1094:1 › rendered table copy offers HTML and exact Markdown; source copy stays plain (533ms)
+  ✓  52 [desktop-msedge] › tests/e2e/desktop-shell.spec.ts:1131:1 › native-style multiline clipboard paste stays within a cell and table exit is undoable (584ms)
+  ✓  53 [desktop-msedge] › tests/e2e/desktop-shell.spec.ts:1152:1 › phase9 search updates queries and keeps keyboard navigation in the search box (633ms)
+  ✓  54 [desktop-msedge] › tests/e2e/desktop-shell.spec.ts:1172:1 › phase9 outline updates renamed headings and highlights the current section (1.7s)
+  ✓  55 [desktop-msedge] › tests/e2e/desktop-shell.spec.ts:1196:1 › phase9 literal replacement preserves Unicode offsets and one undo boundary (1.1s)
+  ✓  56 [desktop-msedge] › tests/e2e/desktop-shell.spec.ts:1225:1 › phase9 replace all deletes literally and rejects a stale query (842ms)
+  ✓  57 [desktop-msedge] › tests/e2e/desktop-shell.spec.ts:1244:1 › phase9 editing refreshes results without moving the caret and switching documents clears them (873ms)
+  ✓  58 [desktop-msedge] › tests/e2e/desktop-shell.spec.ts:1269:1 › phase9 truncated results are explicit and cannot be replaced as a complete set (608ms)
+  ✓  59 [desktop-msedge] › tests/e2e/desktop-shell.spec.ts:1282:1 › phase9 narrow search and outline stay reachable and source mode removes inline code styling (840ms)
+  ✓  60 [desktop-msedge] › tests/e2e/desktop-shell.spec.ts:1342:1 › phase10 live table arrows skip delimiters and protect shifted cell selections (570ms)
+
+  60 passed (48.4s)
+
+ACTUAL_EXIT_CODE 0

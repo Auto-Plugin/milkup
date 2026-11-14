@@ -1,0 +1,174 @@
+{
+  "passed": false,
+  "delayEvents": [
+    {
+      "kind": "delay-start",
+      "wall": 1792114980730
+    },
+    {
+      "kind": "post-failure-observation-start",
+      "wall": 1792114985765
+    },
+    {
+      "kind": "delay-end",
+      "wall": 1792114986230
+    },
+    {
+      "kind": "post-failure-observation-end",
+      "wall": 1792114986480
+    }
+  ],
+  "pageErrors": [],
+  "events": [
+    {
+      "time": 79.79999999981374,
+      "wall": 1792114976312,
+      "kind": "registry",
+      "records": [
+        {
+          "id": "milkup.updates",
+          "state": "installed",
+          "enabled": false,
+          "updatedAt": 1,
+          "errors": []
+        }
+      ],
+      "audit": []
+    },
+    {
+      "kind": "fixture-return",
+      "time": 3464.399999999907
+    },
+    {
+      "time": 3655.5999999996275,
+      "wall": 1792114979888,
+      "kind": "click",
+      "text": "\n        \n      ",
+      "trusted": true
+    },
+    {
+      "time": 3990.5,
+      "wall": 1792114980223,
+      "kind": "click",
+      "text": "插件",
+      "trusted": true
+    },
+    {
+      "time": 4115.299999999814,
+      "wall": 1792114980347,
+      "kind": "click",
+      "text": "MMilkup Updates检查版本、阅读更新说明，并请求安全下载和安装软件更新。",
+      "action": "details",
+      "trusted": true
+    },
+    {
+      "time": 4369.5,
+      "wall": 1792114980602,
+      "kind": "click",
+      "text": "批准能力",
+      "action": "approve",
+      "trusted": true
+    },
+    {
+      "time": 4371.899999999907,
+      "wall": 1792114980604,
+      "kind": "registry",
+      "records": [
+        {
+          "id": "milkup.updates",
+          "state": "disabled",
+          "enabled": false,
+          "updatedAt": 1792114980603,
+          "errors": []
+        }
+      ],
+      "audit": [
+        {
+          "pluginId": "milkup.updates",
+          "operation": "approval",
+          "at": 1792114980603,
+          "detail": "approved"
+        }
+      ]
+    },
+    {
+      "time": 4484.299999999814,
+      "wall": 1792114980716,
+      "kind": "click",
+      "text": "启用",
+      "action": "enable",
+      "trusted": true
+    },
+    {
+      "time": 4489,
+      "wall": 1792114980721,
+      "kind": "new",
+      "worker": 1,
+      "url": "http://127.0.0.1:1420/src/plugin-worker.ts?worker_file&type=module",
+      "name": "milkup-plugin-milkup.updates"
+    },
+    {
+      "time": 4490.399999999907,
+      "wall": 1792114980723,
+      "kind": "send",
+      "worker": 1,
+      "protocol": "milkup.plugin.worker.init.v1",
+      "type": "init"
+    },
+    {
+      "time": 10223.899999999907,
+      "wall": 1792114986456,
+      "kind": "receive",
+      "worker": 1,
+      "protocol": "milkup.plugin.worker.init.v1",
+      "type": "ready"
+    },
+    {
+      "time": 10226.299999999814,
+      "wall": 1792114986459,
+      "kind": "send",
+      "worker": 1,
+      "protocol": "milkup.plugin.isolation.rpc.v1",
+      "type": "request",
+      "id": "mvaazpi2-0",
+      "method": "activate"
+    },
+    {
+      "time": 10229.69999999972,
+      "wall": 1792114986462,
+      "kind": "receive",
+      "worker": 1,
+      "protocol": "milkup.plugin.isolation.rpc.v1",
+      "type": "response",
+      "id": "mvaazpi2-0",
+      "ok": true
+    },
+    {
+      "time": 10230.69999999972,
+      "wall": 1792114986463,
+      "kind": "registry",
+      "records": [
+        {
+          "id": "milkup.updates",
+          "state": "enabled",
+          "enabled": true,
+          "updatedAt": 1792114986462,
+          "errors": []
+        }
+      ],
+      "audit": [
+        {
+          "pluginId": "milkup.updates",
+          "operation": "approval",
+          "at": 1792114980603,
+          "detail": "approved"
+        },
+        {
+          "pluginId": "milkup.updates",
+          "operation": "enable",
+          "at": 1792114986462
+        }
+      ]
+    }
+  ]
+}

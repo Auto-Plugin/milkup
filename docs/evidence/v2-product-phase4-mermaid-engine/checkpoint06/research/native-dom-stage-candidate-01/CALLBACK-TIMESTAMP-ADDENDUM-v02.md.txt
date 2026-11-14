@@ -1,0 +1,7 @@
+# Revision02 callback timestamp clarification
+
+Root and independent reviewer requested a callback arrival timestamp distinguishable from result conversion. The first patch, initial source manifest, checks, review manifest and IMPLEMENTATION.md remain preserved, with all three first-revision Rust source bodies in source-revision01/.
+
+The only revision02 code delta adds optional callback_entry_monotonic_ns to fixed Evaluation metadata. For input evaluations only, it captures CLOCK_MONOTONIC immediately after the original busy.set(false), before result.to_json and serde_json conversion. The event monotonicNs remains the later event emission timestamp; their delta includes callback conversion plus diagnostic overhead. The field is an observed near-entry timestamp, not JS promise completion. Empty polls do not perform this extra capture or emit input-callback logs. Existing functional callback ordering, deadline checks and output processing remain unchanged.
+
+helper-frame-dequeued remains logged after bounded diagnostic metadata parsing; it is a dequeue observation, not an exact preparse timestamp. No change was made to that path. The three-file production04 delta is now diagnostic-v02.patch and candidate-source-manifest-v02.json. No compilation or runtime occurred.

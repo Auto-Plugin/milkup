@@ -1,0 +1,32 @@
+# Optional exact-owner CPU sampling — static proposal only
+
+Status: not implemented, not executed, not part of the approved fresh-prefix02 diagnostic. Root authorized that diagnostic with its already-frozen wire observer only, keeping the observation change isolated. Its driver/runtime remains exclusively owned by dom_transport. Evaluate this proposal only if a subsequent reproduced failure still needs CPU evidence. No product instrumentation, new binary, deadline change or page listener is proposed here.
+
+This document is separate from the frozen research/ui04-render68-readonly-audit directory; that audit is unchanged.
+
+## Existing code that can inform implementation
+
+`tests/helpers/native-dom-process-observer.py` already supplies `/proc/PID/stat` identity parsing, exact argv checking, parent-tree discovery and retained PID/birth tracking. It is not a drop-in sampler for this stage: its `bind` selects the unique guardian created after its initial `root` baseline, while the planned prefix has already activated diagrams. Its automatic25ms full `/proc` scans and per-sample file writes must not be described as negligible overhead. Its fault-injection command is unnecessary and would be omitted from a dedicated read-only implementation.
+
+## Minimal identity contract
+
+1. Obtain the real editor identity using the existing ownedApplication record: exact executable argv, PID and birth. Read and recheck that identity before binding. PID namespaces must match; namespace identity is recorded, never guessed from names alone.
+2. Discover only direct children of that exact live App. A guardian candidate must have the frozen binary argv plus the exact internal DOM helper argument. Validate its birth and trusted inherited instanceId environment against the native timing record. If candidates are absent, ambiguous, mismatched or unreadable, report that observation failure rather than choose by CPU usage/name or broaden to all WebKit processes.
+3. Retain the bound guardian PID/birth and recursively observed helper/WebKit descendants. Every later read must verify birth before using ticks; PID reuse is a different identity. If reparenting occurs, continue tracking only already-proven exact identities; never absorb an unrelated global process merely because its name or group matches.
+4. Main editor/WebKit processes are distinct from the DOM guardian subtree. Optional App CPU is separately labeled and never added to DOM totals. No signal, pidfd signal, product IPC, helper command, directory deletion or process cleanup is performed by the sampler.
+
+## Bounded observation schedule
+
+Prepare the identity handshake before the flow action. A trusted test-side start message records an initial monotonic_ns sample adjacent to that real action, then starts one fixed10second observation window. It does not restart on requests/results and does not modify the existing10second diagnostic or native2second deadline. Target50ms reads for known exact PID stat files; refresh descendant discovery at most every250ms. Cap ordinary periodic samples at201, plus explicitly labeled initial/final identity observations. If work exceeds an interval, record the actual delay and skip missed slots rather than catch up in a burst.
+
+Each sample records monotonic_ns, wall time for human correlation, sample duration, and each exact identity's parent/group/state and separate utime/stime ticks. Record SC_CLK_TCK once. A bounded in-memory list (for example2MiB maximum) may be written after the window to reduce repeated I/O; reaching the cap must produce an explicit truncated-observation marker rather than silently losing samples. Preserve failures and partial observations. Sampling exits naturally after its bound; it does not terminate the driver or keep CPU sampling active through later unrelated work.
+
+Record observer self CPU and wall duration, sample count, timing gaps, discovery duration and file-read errors. Report raw measurement overhead, without subtracting it from product timings or claiming zero overhead. The50ms rate is a proposed tradeoff, not an experimentally validated overhead bound. SC_CLK_TCK quantization limits short-window CPU interpretation. A250ms discovery refresh can miss short-lived previously-unseen children; say so explicitly, and do not repurpose this sampler as proof of complete descendant cleanup.
+
+## Interpretation and limits
+
+Align native dispatch/deadline records and wire request identity with monotonic_ns from the same system. Only compare consecutive samples for the same PID/birth. CPU seconds are tick delta divided by SC_CLK_TCK; interval utilization is CPU seconds divided by actual sample elapsed time and may exceed one core for multithreaded process work. Do not add overlapping per-process and per-thread accounting. Disappearance produces no fabricated terminal tick value.
+
+Sustained WebKit/helper CPU increase supports active work within the observed DOM context. It does not prove that all work belongs to the timed request: GC, layout and leftover asynchronous work may share that context. Little CPU increase means little accounted CPU in the observed processes; it does not prove a queue bug or OS starvation, because legitimate timers, IPC, asynchronous engine work and unobserved processes can also wait. Parent/helper progress with WebKit inactivity is a clue, not a stage timestamp. This sampler cannot replace payload correlation or helper arrival/settlement traces.
+
+If the existing fresh-prefix02 diagnostic succeeds, preserve that result without implying it explains historical render68. If it reproduces a failure, first assess whether its request/hash/wire evidence already answers the question. Only then seek explicit approval for a bounded diagnostic variant using this sampler. Do not add it silently to the already-reviewed02 run, automatically rerun the failure, or introduce speculative product changes.

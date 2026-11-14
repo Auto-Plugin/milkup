@@ -1,0 +1,66 @@
+[
+  {
+    "check": "workspace-tests-final",
+    "command": "source /workspace/.cloud/milkup-v2/env.sh\nexport NPM_CONFIG_VERIFY_DEPS_BEFORE_RUN=false NPM_CONFIG_MANAGE_PACKAGE_MANAGER_VERSIONS=false\nbash scripts/cloud/pnpm.sh --config.verify-deps-before-run=false --config.manage-package-manager-versions=false -r --workspace-concurrency=1 test",
+    "startedUtc": "2026-10-19T06:57:43.544504+00:00",
+    "exitCode": 0,
+    "endedUtc": "2026-10-19T06:58:56.596676+00:00",
+    "vitestWorkspaceCounts": [
+      6,
+      176,
+      8,
+      121,
+      75,
+      11,
+      6,
+      55,
+      681,
+      516,
+      12,
+      522,
+      21
+    ],
+    "vitestCount": 2210,
+    "nodeTestSummary": [
+      "\u2139 tests 4",
+      "\u2139 pass 4",
+      "\u2139 fail 0"
+    ]
+  },
+  {
+    "check": "workspace-types-final",
+    "command": "source /workspace/.cloud/milkup-v2/env.sh\nexport NPM_CONFIG_VERIFY_DEPS_BEFORE_RUN=false NPM_CONFIG_MANAGE_PACKAGE_MANAGER_VERSIONS=false\nbash scripts/cloud/pnpm.sh --config.verify-deps-before-run=false --config.manage-package-manager-versions=false -r --workspace-concurrency=1 typecheck",
+    "startedUtc": "2026-10-19T06:58:56.599211+00:00",
+    "exitCode": 0,
+    "endedUtc": "2026-10-19T06:59:35.624474+00:00"
+  },
+  {
+    "check": "workspace-build-final",
+    "command": "source /workspace/.cloud/milkup-v2/env.sh\nexport NPM_CONFIG_VERIFY_DEPS_BEFORE_RUN=false NPM_CONFIG_MANAGE_PACKAGE_MANAGER_VERSIONS=false\nbash scripts/cloud/pnpm.sh --config.verify-deps-before-run=false --config.manage-package-manager-versions=false build",
+    "startedUtc": "2026-10-19T06:59:35.626346+00:00",
+    "exitCode": 0,
+    "endedUtc": "2026-10-19T07:00:04.585844+00:00"
+  },
+  {
+    "check": "workspace-format-final",
+    "command": "pnpm lint (pinned 11.7.0 cloud wrapper)",
+    "exitCode": 0,
+    "log": "workspace-format-final.log"
+  },
+  {
+    "check": "rustfmt-final",
+    "command": "cargo fmt --manifest-path apps/desktop/src-tauri/Cargo.toml -- --check",
+    "exitCode": 0,
+    "log": "rustfmt-final.log"
+  },
+  {
+    "check": "native-dom-tests",
+    "command": "cargo test --release --manifest-path apps/desktop/src-tauri/Cargo.toml --lib plugin_dom -- --test-threads=1",
+    "exitCode": 0,
+    "passed": 16,
+    "ignored": 2,
+    "filtered": 136,
+    "log": "native-dom-tests.log",
+    "ignoredExplanation": "One private child fixture is invoked by its passing parent; real-WebKit display fixture not exercised in this cargo invocation."
+  }
+]

@@ -1,0 +1,43 @@
+# Runtime handoff — pending built identities and separate GO
+
+These additional files do not change any of the original 18 reviewed inputs in `preparation.json`. The two candidate executable SHA values remain pending. No build or runtime has been performed by preparing these scripts.
+
+Use the native owner's final copied executables at:
+
+- `research/native-hidden-timer-candidate-01/bin/milkup-desktop`
+- `research/native-hidden-timer-candidate-01/bin/native-tests`
+
+The runtime owner first verifies the final native build/source manifest and the exact root-approved binary hashes. Set `binary_sha` and `tests_sha` to those values. Do not use the earlier stage8041 binary as the new candidate. Before starting anything, with no other runtime owner:
+
+```bash
+unset CARGO_TARGET_X86_64_UNKNOWN_LINUX_GNU_RUNNER PROOT_NO_SECCOMP
+/usr/bin/python3 /workspace/milkup-mermaid-engine-evidence/research/native-hidden-timer-control-harness-01/runtime-preflight.py \
+  --binary-sha "$binary_sha" --tests-sha "$tests_sha" \
+  --output /workspace/milkup-mermaid-engine-evidence/research/native-hidden-timer-control-harness-01/runtime-preflight.json
+```
+
+The preflight reads and hashes all 18 original inputs plus both executable files, the two added scripts, and retained authoritative source summaries. It checks the exact Xvfb126 PID/birth/argv, its socket, empty former driver ports, and fresh batch/runtime paths. It starts no display, observer, application, test or sampler. Record the concrete expanded command and exit code. Failure stops preparation; do not create a replacement Xvfb or change the display.
+
+After the root's separate exclusive runtime GO, invoke exactly once with the same concrete hashes:
+
+```bash
+MILKUP_TIMER_RUNTIME_APPROVED=1 bash /workspace/milkup-mermaid-engine-evidence/research/native-hidden-timer-control-harness-01/run-eight.sh \
+  /workspace/milkup-mermaid-engine-evidence/research/native-hidden-timer-candidate-01/bin/milkup-desktop "$binary_sha" \
+  /workspace/milkup-mermaid-engine-evidence/research/native-hidden-timer-candidate-01/bin/native-tests "$tests_sha" \
+  /workspace/milkup-mermaid-engine-evidence/research/native-hidden-timer-window-observer-01/observe.py \
+  f5d8fa88a4b859c28f09a26b1f86c7fe8daf385602dfbc4cba68bd59926db8f8
+```
+
+Preserve the outer command's timestamps, exit code and stdout/stderr. The wrapper records each native-test log and exit code. Do not retry a failed cell. A normal native render deadline may continue only after the existing test and offline verifier confirm its exact request and owned cleanup. Any setup, X11, identity, security, cleanup or diagnostic-record failure stops the sequence. No CPU sampler is involved.
+
+After the wrapper exits, whether complete or failed, aggregate once into a new file:
+
+```bash
+/usr/bin/python3 /workspace/milkup-mermaid-engine-evidence/research/native-hidden-timer-control-harness-01/aggregate-results.py \
+  --preflight /workspace/milkup-mermaid-engine-evidence/research/native-hidden-timer-control-harness-01/runtime-preflight.json \
+  --output /workspace/milkup-mermaid-engine-evidence/research/native-hidden-timer-control-harness-01/runtime-summary.json
+```
+
+The aggregation adds a clearly labelled **post-run** check for finite bbox x/y/width/height, positive width/height, finite CTM/screenCTM a–f, and a nonzero finite determinant. This is additional analysis, not an assertion retroactively attributed to the frozen test. If either control lacks valid geometry, the run supplies no valid geometry support and cannot establish a successful candidate. Raw timer values, source identities, native phases, X11 snapshots and cleanup records remain intact. Missing or censored results stay missing. No 1-second/2-second timer expectation or CPU conclusion is imposed.
+
+Verify no owned live process remains and preserve any zombie record explicitly. The root should review the retained images/geometry and outcomes before any product decision. This experiment bypasses package installation and frontend presentation validation; it is not editor acceptance or a repeat of the formal production04 matrix.

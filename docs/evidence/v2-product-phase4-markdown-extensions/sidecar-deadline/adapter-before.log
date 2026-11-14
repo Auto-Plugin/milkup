@@ -1,0 +1,63 @@
+
+ RUN  v3.2.6 /workspace/milkup
+
+ ❯ apps/desktop/src/plugin-sidecar.test.ts (3 tests | 1 failed) 13ms
+   × desktop plugin sidecar adapter > does not deliver stdout from an older native process instance 9ms
+     → expected "spy" to not be called at all, but actually been called 1 times
+
+Received: 
+
+  1st spy call:
+
+    Array [
+      Object {
+        "data": Object {
+          "id": "1",
+          "type": "response",
+        },
+      },
+    ]
+
+
+Number of calls: 1
+
+   ✓ desktop plugin sidecar adapter > starts a native sidecar process and exposes an isolation RPC endpoint 3ms
+   ✓ desktop plugin sidecar adapter > removes listeners when the endpoint is closed directly 0ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  apps/desktop/src/plugin-sidecar.test.ts > desktop plugin sidecar adapter > does not deliver stdout from an older native process instance
+AssertionError: expected "spy" to not be called at all, but actually been called 1 times
+
+Received: 
+
+  1st spy call:
+
+    Array [
+      Object {
+        "data": Object {
+          "id": "1",
+          "type": "response",
+        },
+      },
+    ]
+
+
+Number of calls: 1
+
+ ❯ apps/desktop/src/plugin-sidecar.test.ts:32:26
+     30|       message: { type: 'response', id: '1' },
+     31|     } as DesktopPluginSidecarMessageEvent })
+     32|     expect(listener).not.toHaveBeenCalled()
+       |                          ^
+     33|     endpoint.close?.()
+     34|   })
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 2 passed (3)
+   Start at  01:10:46
+   Duration  566ms (transform 73ms, setup 0ms, collect 68ms, tests 13ms, environment 0ms, prepare 79ms)
+

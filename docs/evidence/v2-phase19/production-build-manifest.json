@@ -1,0 +1,63 @@
+{
+  "baselineHead": "f38e7f4ebfaa039d7ff2bf3aba3eb734dd221547",
+  "candidateAt": "2026-10-14T00:54:34.494324+00:00",
+  "build": ["pnpm", "--filter", "@milkup/desktop", "tauri", "build", "--no-bundle"],
+  "files": [
+    {
+      "path": "apps/desktop/src-tauri/target/release/milkup-desktop",
+      "bytes": 13127504,
+      "sha256": "54e5df6da7831a37d125c36cb0a7d71ac3e2bacb8370f97efa132dd7b8ad3071"
+    },
+    {
+      "path": "apps/desktop/dist/assets/core-DhEqZVGG.js",
+      "bytes": 2441,
+      "sha256": "8261a5e51510afea7347ee6c40e783127639b88b158982711196012d6d50ceb3"
+    },
+    {
+      "path": "apps/desktop/dist/assets/event-BK_86lmQ.js",
+      "bytes": 1407,
+      "sha256": "d696b4f6aba82c664602610943df9a2502faa81f4c7329b5a6c27245246dbfe3"
+    },
+    {
+      "path": "apps/desktop/dist/assets/index-DYpqHbeK.css",
+      "bytes": 32621,
+      "sha256": "08e8b07d148e85205c69658a80fbd0dd2d45ff61695c435e8dc28c342f5ea6cf"
+    },
+    {
+      "path": "apps/desktop/dist/assets/index-lBcCbJoJ.js",
+      "bytes": 291,
+      "sha256": "c7b24d2c99ec9ca2048130db56e3e83f05fadb024bab58c81e6923bc58a443d2"
+    },
+    {
+      "path": "apps/desktop/dist/assets/index-vLfruit4.js",
+      "bytes": 377264,
+      "sha256": "56dd3448efd6ac02ab88b482aa90605309af102950cbdbbb70c4bf5c8f48e3bb"
+    },
+    {
+      "path": "apps/desktop/dist/assets/large-search-worker-BwuKh3LS.js",
+      "bytes": 1317,
+      "sha256": "ae20f74ce4e2ef1aae7b2f422eec08ded22b3e8ecf51d04922361f39bb8b9ff0"
+    },
+    {
+      "path": "apps/desktop/dist/assets/plugin-worker-D1SAD1gm.js",
+      "bytes": 15374,
+      "sha256": "e9eca0f14f87cba10956188838ace4487a39e4a4300339aba771c75c4a838503"
+    },
+    {
+      "path": "apps/desktop/dist/assets/webview-Dd-2IzEi.js",
+      "bytes": 3356,
+      "sha256": "a3db500977b40be13d7f794126a6f6d4323dc447de712d024f0f756307380efb"
+    },
+    {
+      "path": "apps/desktop/dist/assets/window-6lX1olBp.js",
+      "bytes": 14160,
+      "sha256": "7683cdbb5955d8602822812527dc761c4c8ce7f6cdb1264fc46aaedab3092ba5"
+    },
+    {
+      "path": "apps/desktop/dist/assets/worker-file-plugin-BcWd8aV7.js",
+      "bytes": 2846,
+      "sha256": "839a0051f79eecbeccacbfaa877201156ea190dd9304dc0a02061bb04a7acec0"
+    }
+  ],
+  "productDiff": "diff --git a/packages/view-dom/src/source-document-view.ts b/packages/view-dom/src/source-document-view.ts\nindex 49c9b01..26d4dad 100644\n--- a/packages/view-dom/src/source-document-view.ts\n+++ b/packages/view-dom/src/source-document-view.ts\n@@ -146,13 +146,15 @@ export class SourceDocumentView {\n   private readonly sourceWindowCache = new Map<string, DocumentLineWindow>()\n   private searchHighlights: readonly SearchHighlight[] = Object.freeze([])\n   private activeSearchHighlightIndex = -1\n-  private scrollAnchor: { readonly line: number; readonly scrollTop: number } | undefined\n+  private scrollAnchor: { readonly scrollTop: number } | undefined\n   private readonly handleScrollEvent = (): void => {\n     const anchor = this.scrollAnchor\n \n     if (anchor && Math.abs(this.dom.scrollTop - anchor.scrollTop) <= 1) {\n       this.scrollAnchor = undefined\n-      void this.renderVisibleWindow(this.createRenderRequestForLine(anchor.line))\n+      // scrollToLine already owns the target render, even if its read is still\n+      // pending. Rebuilding it here duplicates DOM/layout work. A changed\n+      // scroll position below still renders a real user scroll normally.\n       return\n     }\n \n@@ -460,7 +462,7 @@ export class SourceDocumentView {\n     this.dom.scrollTop = geometry.compressed\n       ? geometry.toPhysical(this.lineTop(lineNumber) + this.contentPadding().top)\n       : this.lineTop(lineNumber)\n-    this.scrollAnchor = Object.freeze({ line: lineNumber, scrollTop: this.dom.scrollTop })\n+    this.scrollAnchor = Object.freeze({ scrollTop: this.dom.scrollTop })\n     await this.renderVisibleWindow(this.createRenderRequestForLine(lineNumber))\n     const target = this.contentDOM.querySelector<HTMLElement>(\n       `.milkup-line[data-line=\"${lineNumber}\"]`,\n@@ -468,7 +470,7 @@ export class SourceDocumentView {\n \n     if (target && target.offsetTop > 0 && Math.abs(this.dom.scrollTop - target.offsetTop) > 1) {\n       this.dom.scrollTop = target.offsetTop\n-      this.scrollAnchor = Object.freeze({ line: lineNumber, scrollTop: this.dom.scrollTop })\n+      this.scrollAnchor = Object.freeze({ scrollTop: this.dom.scrollTop })\n     }\n   }\n \n"
+}

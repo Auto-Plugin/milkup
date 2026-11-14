@@ -1,0 +1,19 @@
+$ node tests/native/tauri-windowed-blocks.mjs
+2026-10-13T12:59:45.982Z POST /session
+2026-10-13T12:59:51.632Z POST /session/8147acd6-192e-4249-ac1a-df4074b77d86/execute/sync return !!document.querySelector(".milkup-input-proxy")
+2026-10-13T13:00:12.422Z POST /session/8147acd6-192e-4249-ac1a-df4074b77d86/execute/sync localStorage.removeItem("milkup.desktop.nativeTestPaths")
+2026-10-13T13:00:30.058Z DELETE /session/8147acd6-192e-4249-ac1a-df4074b77d86
+file:///workspace/milkup/tests/native/tauri-windowed-blocks.mjs:33
+    throw Error(`${method} ${route}: ${error}`)
+          ^
+
+Error: POST /session/8147acd6-192e-4249-ac1a-df4074b77d86/execute/sync: TimeoutError: The operation was aborted due to timeout
+    at file:///workspace/milkup/tests/native/tauri-windowed-blocks.mjs:33:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+    at async req (file:///workspace/milkup/tests/native/tauri-windowed-blocks.mjs:27:13)
+    at async until (file:///workspace/milkup/tests/native/tauri-windowed-blocks.mjs:43:19)
+    at async start (file:///workspace/milkup/tests/native/tauri-windowed-blocks.mjs:178:3)
+    at async file:///workspace/milkup/tests/native/tauri-windowed-blocks.mjs:248:3
+
+Node.js v24.19.0
+[ELIFECYCLE] Command failed with exit code 1.

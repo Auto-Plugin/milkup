@@ -1,0 +1,27 @@
+[
+  {
+    "name": "js",
+    "command": ["pnpm", "-r", "--workspace-concurrency=1", "test"],
+    "exitCode": 0,
+    "finished": "2026-10-13T20:30:34.217305+00:00"
+  },
+  {
+    "name": "supplemental",
+    "command": [
+      "pnpm",
+      "exec",
+      "vitest",
+      "run",
+      "plugins/outline/src/plugin.test.ts",
+      "tests/helpers/native-startup.test.ts"
+    ],
+    "exitCode": 0,
+    "finished": "2026-10-13T20:30:35.540273+00:00"
+  },
+  {
+    "name": "typecheck",
+    "command": ["pnpm", "typecheck"],
+    "exitCode": 0,
+    "finished": "2026-10-13T20:30:48.322313+00:00"
+  }
+]

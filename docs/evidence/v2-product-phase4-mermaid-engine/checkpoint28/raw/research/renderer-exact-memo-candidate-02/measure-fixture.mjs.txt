@@ -1,0 +1,33 @@
+import fs from 'node:fs'
+const body = 'sankey\nA,B,1', opening = '```mermaid\r\n', ending = '\r\n```\r\n'
+const source = opening + body + ending, from = 123
+const request = {
+  documentId: 'd'.repeat(220_000), version: 0, source, from, to: from + source.length,
+  fromLine: 9, toLine: 9 + source.split('\n').length - 1, completeStart: true,
+  completeEnd: true, contextKnown: true, protectedRanges: [],
+  blocks: [{ kind: 'fence', complete: true, info: 'mermaid', from, to: from + source.length,
+    contentRanges: [{ from: from + opening.length, to: from + opening.length + body.length }] }],
+  selection: { anchor: from, head: from }, theme: 'light', target: 'screen', width: 800,
+}
+const content = {
+  type: 'svg-image', profile: 'bounded-svg-v1', motion: 'static', width: 100, height: 80,
+  rasterBounds: [0, 0, 100, 80], viewBox: [0, 0, 100, 80], aspect: { align: 'none', fit: 'meet' },
+  styles: [], definitions: [], children: [{ kind: 'rect', x: 2, y: 2, width: 90, height: 70 }],
+  title: 'x'.repeat(90_000),
+}
+const result = { fragments: [{ from, to: request.to, layout: 'block', status: 'ready', content,
+  accessibleText: content.title }], complete: true }
+const key = JSON.stringify(request), value = JSON.stringify(result)
+const proof = {
+  kind: 'Pure JSON fixture arithmetic; no renderer invocation',
+  chronology: 'Computed after candidate02 first53PASS; root request for pretest proof arrived during that run.',
+  keyUtf16Units: key.length, resultUtf16Units: value.length,
+  resultUtf8Bytes: Buffer.byteLength(value, 'utf8'), envelopeLimit: 262144,
+  retainedEntryUtf16Bytes: 2 * (key.length + value.length), retainedLimit: 2 * 1024 * 1024,
+  fourEntriesUtf16Bytes: 8 * (key.length + value.length),
+  oneResultFitsEnvelope: Buffer.byteLength(value, 'utf8') <= 262144,
+  fourEntriesExceedMemoCap: 8 * (key.length + value.length) > 2 * 1024 * 1024,
+  requestVersionDigitsInTest: '0..3: identical serialized lengths',
+}
+fs.writeFileSync(new URL('./fixture-budget-proof.json', import.meta.url), JSON.stringify(proof, null, 2) + '\n')
+console.log(JSON.stringify(proof))

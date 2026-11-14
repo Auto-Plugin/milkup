@@ -1,0 +1,45 @@
+
+ RUN  v3.2.6 /workspace/milkup/apps/desktop
+
+ ❯ src/output-service.test.ts (15 tests | 1 failed) 141ms
+   ✓ controlled desktop output > writes a complete immutable captured version after subsequent edits 13ms
+   ✓ controlled desktop output > rejects a document version change during capture before allocating a native job 1ms
+   ✓ controlled desktop output > aborts owned jobs on disposal and isolates plugin handles 1ms
+   ✓ controlled desktop output > reports committed writes when cancellation arrives after native commit 1ms
+   ✓ controlled desktop output > rejects oversized source before reads and preserves native outputs on cancelled chooser 10ms
+   ✓ controlled desktop output > preserves CRLF, Unicode and blank lines across bounded source windows 20ms
+   ✓ controlled desktop output > keeps a selected absolute range and warns about unavailable rich context 1ms
+   ✓ controlled desktop output > cleans a late native preparation when capture was cancelled 1ms
+   ✓ controlled desktop output > makes unavailable and remote images visible without network requests 2ms
+   ✓ controlled desktop output > does not allocate a target on chooser cancellation or write afterwards 1ms
+   ✓ controlled desktop output > captures adjacent long lines without exceeding the per-read budget 11ms
+   ✓ controlled desktop output > preserves a final bare CR instead of silently truncating source metadata 0ms
+   ✓ controlled desktop output > maps native rejection after cancellation to aborted while retaining the success contract 1ms
+   ✓ controlled desktop output > rejects HTML above the native transfer budget before asking for a destination 54ms
+   × controlled desktop output > shrinks windows for the native string budget error and bounds every boundary lookup 20ms
+     → Unbounded native lineAtPosition is forbidden during capture
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/output-service.test.ts > controlled desktop output > shrinks windows for the native string budget error and bounds every boundary lookup
+Error: Unbounded native lineAtPosition is forbidden during capture
+ ❯ MemoryDocumentSource.source.lineAtPosition src/output-service.test.ts:240:49
+    238|     const source = f.current().source
+    239|     const read = source.readLineWindow.bind(source)
+    240|     source.lineAtPosition = async () => { throw new Error('Unbounded n…
+       |                                                 ^
+    241|     source.readLineWindow = async (from, to, budget) => {
+    242|       expect(budget).toBe(131072)
+ ❯ src/output-service.ts:143:42
+ ❯ operation src/output-service.ts:85:24
+ ❯ Object.capture src/output-service.ts:104:18
+ ❯ src/output-service.test.ts:246:68
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 14 passed (15)
+   Start at  02:24:57
+   Duration  1.36s (transform 671ms, setup 0ms, collect 893ms, tests 141ms, environment 0ms, prepare 77ms)
+

@@ -1,0 +1,2805 @@
+{
+  "classification": "DIAGNOSTIC ONLY, not formal UI acceptance",
+  "traceCount": 910,
+  "phaseCounts": {
+    "pipe-write-complete": 92,
+    "helper-frame-dequeued": 92,
+    "helper-evaluate-submitted": 92,
+    "helper-evaluate-callback": 92,
+    "helper-result-drained": 79,
+    "helper-result-write-complete": 79,
+    "receive-entry": 79,
+    "dispatch": 75,
+    "request-meta": 75,
+    "matching-result-received": 75,
+    "result-settled": 75,
+    "kill-start": 2,
+    "cleanup-complete": 2,
+    "cleanup-confirmed": 1
+  },
+  "requestCount": 75,
+  "completeCount": 75,
+  "unmatchedSourceCount": 0,
+  "deadlineRecords": [],
+  "cancelledRequestCount": 13,
+  "settledOk": 71,
+  "settledFalse": 4,
+  "limits": [
+    "Intervals are observed monotonic wall time, not helper CPU execution time.",
+    "helper-frame-dequeued timestamp includes diagnostic metadata parsing; callback entry is separately recorded before callback metadata.",
+    "Trace performs diagnostic hashing/serialization/queueing and has a bounded nonblocking channel; unobserved records cannot prove absence. No overhead subtraction.",
+    "Source matching uses JavaScript UTF-16 slice, exact UTF-8 bytes and SHA-256 on actual opened ordinary/fallback files. Windowed file was not opened.",
+    "No selection in native metadata; no reconstruction from later UI snapshot.",
+    "No payload attribution to historical formal UI04 render_68.",
+    "Cross-process post-write logging can occur after receive-entry; signed overlapping intervals are preserved and are not negative transport latency.",
+    "Cancel frame evaluation timestamps do not prove the async renderer observed cancellation before producing its result.",
+    "Result ok=false alone does not expose a specific error reason in this trace."
+  ],
+  "top10": [
+    {
+      "instanceId": "2dde50696c86d909bbf2b195ae830759c23ffaf8309eeee7",
+      "requestId": "render_2",
+      "traces": [
+        {
+          "line": 124,
+          "instanceId": "2dde50696c86d909bbf2b195ae830759c23ffaf8309eeee7",
+          "monotonicNs": 58747323722626,
+          "phase": "dispatch",
+          "pid": 358243,
+          "requestId": "render_2"
+        },
+        {
+          "line": 125,
+          "details": {
+            "detailType": "request",
+            "from": 440,
+            "source_bytes": 529,
+            "source_sha256": "ef80eda5ae0f45a95b22a734fbd6c8d4ef9e4187e6209d4c925164b547767c14",
+            "theme": "light",
+            "to": 969,
+            "width": 1100
+          },
+          "instanceId": "2dde50696c86d909bbf2b195ae830759c23ffaf8309eeee7",
+          "monotonicNs": 58747324061525,
+          "phase": "request-meta",
+          "pid": 358243,
+          "requestId": "render_2"
+        },
+        {
+          "line": 126,
+          "details": {
+            "detailType": "frame",
+            "message": {
+              "id": "render_2",
+              "kind": "render",
+              "protocol": "document-render"
+            }
+          },
+          "instanceId": "2dde50696c86d909bbf2b195ae830759c23ffaf8309eeee7",
+          "monotonicNs": 58747324747944,
+          "phase": "pipe-write-complete",
+          "pid": 358243,
+          "requestId": "render_2"
+        },
+        {
+          "line": 127,
+          "details": {
+            "detailType": "frame",
+            "message": {
+              "id": "render_2",
+              "kind": "render",
+              "protocol": "document-render"
+            }
+          },
+          "instanceId": "2dde50696c86d909bbf2b195ae830759c23ffaf8309eeee7",
+          "monotonicNs": 58747325738158,
+          "phase": "helper-frame-dequeued",
+          "pid": 358544,
+          "requestId": "render_2"
+        },
+        {
+          "line": 128,
+          "details": {
+            "detailType": "frame",
+            "message": {
+              "id": "render_2",
+              "kind": "render",
+              "protocol": "document-render"
+            }
+          },
+          "instanceId": "2dde50696c86d909bbf2b195ae830759c23ffaf8309eeee7",
+          "monotonicNs": 58747326100215,
+          "phase": "helper-evaluate-submitted",
+          "pid": 358544,
+          "requestId": "render_2"
+        },
+        {
+          "line": 129,
+          "details": {
+            "callback_entry_monotonic_ns": 58747986480978,
+            "detailType": "evaluation",
+            "message": {
+              "id": "render_2",
+              "kind": "render",
+              "protocol": "document-render"
+            },
+            "result_kind": "null",
+            "success": true
+          },
+          "instanceId": "2dde50696c86d909bbf2b195ae830759c23ffaf8309eeee7",
+          "monotonicNs": 58747986535943,
+          "phase": "helper-evaluate-callback",
+          "pid": 358544,
+          "requestId": "render_2"
+        },
+        {
+          "line": 130,
+          "details": {
+            "detailType": "frame",
+            "message": {
+              "id": "render_2",
+              "kind": "cancel",
+              "protocol": "document-render"
+            }
+          },
+          "instanceId": "2dde50696c86d909bbf2b195ae830759c23ffaf8309eeee7",
+          "monotonicNs": 58748085482442,
+          "phase": "pipe-write-complete",
+          "pid": 358243,
+          "requestId": "render_2"
+        },
+        {
+          "line": 131,
+          "details": {
+            "detailType": "frame",
+            "message": {
+              "id": "render_2",
+              "kind": "cancel",
+              "protocol": "document-render"
+            }
+          },
+          "instanceId": "2dde50696c86d909bbf2b195ae830759c23ffaf8309eeee7",
+          "monotonicNs": 58748295575456,
+          "phase": "helper-frame-dequeued",
+          "pid": 358544,
+          "requestId": "render_2"
+        },
+        {
+          "line": 132,
+          "details": {
+            "detailType": "frame",
+            "message": {
+              "id": "render_2",
+              "kind": "cancel",
+              "protocol": "document-render"
+            }
+          },
+          "instanceId": "2dde50696c86d909bbf2b195ae830759c23ffaf8309eeee7",
+          "monotonicNs": 58748295697880,
+          "phase": "helper-evaluate-submitted",
+          "pid": 358544,
+          "requestId": "render_2"
+        },
+        {
+          "line": 133,
+          "details": {
+            "callback_entry_monotonic_ns": 58748451209346,
+            "detailType": "evaluation",
+            "message": {
+              "id": "render_2",
+              "kind": "cancel",
+              "protocol": "document-render"
+            },
+            "result_kind": "null",
+            "success": true
+          },
+          "instanceId": "2dde50696c86d909bbf2b195ae830759c23ffaf8309eeee7",
+          "monotonicNs": 58748451263132,
+          "phase": "helper-evaluate-callback",
+          "pid": 358544,
+          "requestId": "render_2"
+        },
+        {
+          "line": 134,
+          "details": {
+            "detailType": "frame",
+            "message": {
+              "id": "render_2",
+              "kind": "result",
+              "protocol": "document-render"
+            }
+          },
+          "instanceId": "2dde50696c86d909bbf2b195ae830759c23ffaf8309eeee7",
+          "monotonicNs": 58748563537341,
+          "phase": "helper-result-drained",
+          "pid": 358544,
+          "requestId": "render_2"
+        },
+        {
+          "line": 135,
+          "details": {
+            "detailType": "frame",
+            "message": {
+              "id": "render_2",
+              "kind": "result",
+              "protocol": "document-render"
+            }
+          },
+          "instanceId": "2dde50696c86d909bbf2b195ae830759c23ffaf8309eeee7",
+          "monotonicNs": 58748563740815,
+          "phase": "helper-result-write-complete",
+          "pid": 358544,
+          "requestId": "render_2"
+        },
+        {
+          "line": 136,
+          "details": {
+            "detailType": "received",
+            "entry_monotonic_ns": 58748568671823,
+            "message": {
+              "id": "render_2",
+              "kind": "result",
+              "protocol": "document-render"
+            },
+            "ok": true
+          },
+          "instanceId": "2dde50696c86d909bbf2b195ae830759c23ffaf8309eeee7",
+          "monotonicNs": 58748568674040,
+          "phase": "receive-entry",
+          "pid": 358243,
+          "requestId": "render_2"
+        },
+        {
+          "line": 137,
+          "details": {
+            "detailType": "received",
+            "entry_monotonic_ns": 58748568671823,
+            "message": {
+              "id": "render_2",
+              "kind": "result",
+              "protocol": "document-render"
+            },
+            "ok": true
+          },
+          "instanceId": "2dde50696c86d909bbf2b195ae830759c23ffaf8309eeee7",
+          "monotonicNs": 58748570265461,
+          "phase": "matching-result-received",
+          "pid": 358243,
+          "requestId": "render_2"
+        },
+        {
+          "line": 138,
+          "details": {
+            "detailType": "settled",
+            "message": {
+              "id": "render_2",
+              "kind": "result",
+              "protocol": "document-render"
+            },
+            "ok": true
+          },
+          "instanceId": "2dde50696c86d909bbf2b195ae830759c23ffaf8309eeee7",
+          "monotonicNs": 58748570504802,
+          "phase": "result-settled",
+          "pid": 358243,
+          "requestId": "render_2"
+        }
+      ],
+      "meta": {
+        "detailType": "request",
+        "from": 440,
+        "source_bytes": 529,
+        "source_sha256": "ef80eda5ae0f45a95b22a734fbd6c8d4ef9e4187e6209d4c925164b547767c14",
+        "theme": "light",
+        "to": 969,
+        "width": 1100
+      },
+      "selection": "unknown: native request-meta does not record selection",
+      "sourceCandidates": [
+        {
+          "file": "ordinary.md",
+          "fullDocumentSha256": "a7267df165778c560a8fba59bfbff7065ae63365741e3eb87078783bc865fd4b",
+          "from": 440,
+          "to": 969,
+          "sourceBytes": 529,
+          "sourceSha256": "ef80eda5ae0f45a95b22a734fbd6c8d4ef9e4187e6209d4c925164b547767c14",
+          "source": "```mermaid\n---\ntitle: Animal example\n---\nclassDiagram\n    note \"From Duck till Zebra\"\n    Animal <|-- Duck\n    note for Duck \"can fly<br>can swim<br>can dive<br>can help in debugging\"\n    Animal <|-- Fish\n    Animal <|-- Zebra\n    Animal : +int age\n    Animal : +String gender\n    Animal: +isMammal()\n    Animal: +mate()\n    class Duck{\n        +String beakColor\n        +swim()\n        +quack()\n    }\n    class Fish{\n        -int sizeInFeet\n        -canEat()\n    }\n    class Zebra{\n        +bool is_wild\n        +run()\n    }\n```",
+          "sampleId": "classDiagram-000-first-official-example",
+          "family": "classDiagram"
+        }
+      ],
+      "points": {
+        "dispatch": 58747323722626,
+        "pipeWrite": 58747324747944,
+        "dequeued": 58747325738158,
+        "evaluateSubmitted": 58747326100215,
+        "evaluateCallbackEntry": 58747986480978,
+        "evaluateCallbackLogged": 58747986535943,
+        "resultDrained": 58748563537341,
+        "resultWrite": 58748563740815,
+        "receiveEntry": 58748568671823,
+        "matchingResult": 58748570265461,
+        "settled": 58748570504802
+      },
+      "intervals": {
+        "dispatchToPipeWriteMs": 1.025318,
+        "pipeWriteToDequeuedMs": 0.990214,
+        "dequeuedToEvaluateSubmittedMs": 0.362057,
+        "evaluateSubmittedToEvaluateCallbackEntryMs": 660.380763,
+        "evaluateCallbackEntryToEvaluateCallbackLoggedMs": 0.054965,
+        "evaluateCallbackLoggedToResultDrainedMs": 577.001398,
+        "resultDrainedToResultWriteMs": 0.203474,
+        "resultWriteToReceiveEntryMs": 4.931008,
+        "receiveEntryToMatchingResultMs": 1.593638,
+        "matchingResultToSettledMs": 0.239341
+      },
+      "dispatchToSettledMs": 1246.782176,
+      "ok": true,
+      "cancelObserved": true,
+      "cancelPhases": [
+        {
+          "line": 130,
+          "details": {
+            "detailType": "frame",
+            "message": {
+              "id": "render_2",
+              "kind": "cancel",
+              "protocol": "document-render"
+            }
+          },
+          "instanceId": "2dde50696c86d909bbf2b195ae830759c23ffaf8309eeee7",
+          "monotonicNs": 58748085482442,
+          "phase": "pipe-write-complete",
+          "pid": 358243,
+          "requestId": "render_2"
+        },
+        {
+          "line": 131,
+          "details": {
+            "detailType": "frame",
+            "message": {
+              "id": "render_2",
+              "kind": "cancel",
+              "protocol": "document-render"
+            }
+          },
+          "instanceId": "2dde50696c86d909bbf2b195ae830759c23ffaf8309eeee7",
+          "monotonicNs": 58748295575456,
+          "phase": "helper-frame-dequeued",
+          "pid": 358544,
+          "requestId": "render_2"
+        },
+        {
+          "line": 132,
+          "details": {
+            "detailType": "frame",
+            "message": {
+              "id": "render_2",
+              "kind": "cancel",
+              "protocol": "document-render"
+            }
+          },
+          "instanceId": "2dde50696c86d909bbf2b195ae830759c23ffaf8309eeee7",
+          "monotonicNs": 58748295697880,
+          "phase": "helper-evaluate-submitted",
+          "pid": 358544,
+          "requestId": "render_2"
+        },
+        {
+          "line": 133,
+          "details": {
+            "callback_entry_monotonic_ns": 58748451209346,
+            "detailType": "evaluation",
+            "message": {
+              "id": "render_2",
+              "kind": "cancel",
+              "protocol": "document-render"
+            },
+            "result_kind": "null",
+            "success": true
+          },
+          "instanceId": "2dde50696c86d909bbf2b195ae830759c23ffaf8309eeee7",
+          "monotonicNs": 58748451263132,
+          "phase": "helper-evaluate-callback",
+          "pid": 358544,
+          "requestId": "render_2"
+        }
+      ],
+      "complete": true
+    },
+    {
+      "instanceId": "0028e0e1fd92e3efec404fca7e011554738e493e076d89ab",
+      "requestId": "render_3",
+      "traces": [
+        {
+          "line": 41,
+          "instanceId": "0028e0e1fd92e3efec404fca7e011554738e493e076d89ab",
+          "monotonicNs": 58730941928799,
+          "phase": "dispatch",
+          "pid": 358243,
+          "requestId": "render_3"
+        },
+        {
+          "line": 42,
+          "details": {
+            "detailType": "request",
+            "from": 440,
+            "source_bytes": 529,
+            "source_sha256": "ef80eda5ae0f45a95b22a734fbd6c8d4ef9e4187e6209d4c925164b547767c14",
+            "theme": "light",
+            "to": 969,
+            "width": 1100
+          },
+          "instanceId": "0028e0e1fd92e3efec404fca7e011554738e493e076d89ab",
+          "monotonicNs": 58730941996366,
+          "phase": "request-meta",
+          "pid": 358243,
+          "requestId": "render_3"
+        },
+        {
+          "line": 43,
+          "details": {
+            "detailType": "frame",
+            "message": {
+              "id": "render_3",
+              "kind": "render",
+              "protocol": "document-render"
+            }
+          },
+          "instanceId": "0028e0e1fd92e3efec404fca7e011554738e493e076d89ab",
+          "monotonicNs": 58730942017155,
+          "phase": "pipe-write-complete",
+          "pid": 358243,
+          "requestId": "render_3"
+        },
+        {
+          "line": 44,
+          "details": {
+            "detailType": "frame",
+            "message": {
+              "id": "render_3",
+              "kind": "render",
+              "protocol": "document-render"
+            }
+          },
+          "instanceId": "0028e0e1fd92e3efec404fca7e011554738e493e076d89ab",
+          "monotonicNs": 58730943583986,
+          "phase": "helper-frame-dequeued",
+          "pid": 358379,
+          "requestId": "render_3"
+        },
+        {
+          "line": 45,
+          "details": {
+            "detailType": "frame",
+            "message": {
+              "id": "render_3",
+              "kind": "render",
+              "protocol": "document-render"
+            }
+          },
+          "instanceId": "0028e0e1fd92e3efec404fca7e011554738e493e076d89ab",
+          "monotonicNs": 58730943776953,
+          "phase": "helper-evaluate-submitted",
+          "pid": 358379,
+          "requestId": "render_3"
+        },
+        {
+          "line": 46,
+          "details": {
+            "callback_entry_monotonic_ns": 58731442534918,
+            "detailType": "evaluation",
+            "message": {
+              "id": "render_3",
+              "kind": "render",
+              "protocol": "document-render"
+            },
+            "result_kind": "null",
+            "success": true
+          },
+          "instanceId": "0028e0e1fd92e3efec404fca7e011554738e493e076d89ab",
+          "monotonicNs": 58731442555039,
+          "phase": "helper-evaluate-callback",
+          "pid": 358379,
+          "requestId": "render_3"
+        },
+        {
+          "line": 47,
+          "details": {
+            "detailType": "received",
+            "entry_monotonic_ns": 58731942588759,
+            "message": {
+              "id": "render_3",
+              "kind": "result",
+              "protocol": "document-render"
+            },
+            "ok": true
+          },
+          "instanceId": "0028e0e1fd92e3efec404fca7e011554738e493e076d89ab",
+          "monotonicNs": 58731942590927,
+          "phase": "receive-entry",
+          "pid": 358243,
+          "requestId": "render_3"
+        },
+        {
+          "line": 48,
+          "details": {
+            "detailType": "received",
+            "entry_monotonic_ns": 58731942588759,
+            "message": {
+              "id": "render_3",
+              "kind": "result",
+              "protocol": "document-render"
+            },
+            "ok": true
+          },
+          "instanceId": "0028e0e1fd92e3efec404fca7e011554738e493e076d89ab",
+          "monotonicNs": 58731942791154,
+          "phase": "matching-result-received",
+          "pid": 358243,
+          "requestId": "render_3"
+        },
+        {
+          "line": 49,
+          "details": {
+            "detailType": "settled",
+            "message": {
+              "id": "render_3",
+              "kind": "result",
+              "protocol": "document-render"
+            },
+            "ok": true
+          },
+          "instanceId": "0028e0e1fd92e3efec404fca7e011554738e493e076d89ab",
+          "monotonicNs": 58731947005324,
+          "phase": "result-settled",
+          "pid": 358243,
+          "requestId": "render_3"
+        },
+        {
+          "line": 50,
+          "details": {
+            "detailType": "frame",
+            "message": {
+              "id": "render_3",
+              "kind": "result",
+              "protocol": "document-render"
+            }
+          },
+          "instanceId": "0028e0e1fd92e3efec404fca7e011554738e493e076d89ab",
+          "monotonicNs": 58731941227346,
+          "phase": "helper-result-drained",
+          "pid": 358379,
+          "requestId": "render_3"
+        },
+        {
+          "line": 51,
+          "details": {
+            "detailType": "frame",
+            "message": {
+              "id": "render_3",
+              "kind": "result",
+              "protocol": "document-render"
+            }
+          },
+          "instanceId": "0028e0e1fd92e3efec404fca7e011554738e493e076d89ab",
+          "monotonicNs": 58731941311812,
+          "phase": "helper-result-write-complete",
+          "pid": 358379,
+          "requestId": "render_3"
+        }
+      ],
+      "meta": {
+        "detailType": "request",
+        "from": 440,
+        "source_bytes": 529,
+        "source_sha256": "ef80eda5ae0f45a95b22a734fbd6c8d4ef9e4187e6209d4c925164b547767c14",
+        "theme": "light",
+        "to": 969,
+        "width": 1100
+      },
+      "selection": "unknown: native request-meta does not record selection",
+      "sourceCandidates": [
+        {
+          "file": "ordinary.md",
+          "fullDocumentSha256": "a7267df165778c560a8fba59bfbff7065ae63365741e3eb87078783bc865fd4b",
+          "from": 440,
+          "to": 969,
+          "sourceBytes": 529,
+          "sourceSha256": "ef80eda5ae0f45a95b22a734fbd6c8d4ef9e4187e6209d4c925164b547767c14",
+          "source": "```mermaid\n---\ntitle: Animal example\n---\nclassDiagram\n    note \"From Duck till Zebra\"\n    Animal <|-- Duck\n    note for Duck \"can fly<br>can swim<br>can dive<br>can help in debugging\"\n    Animal <|-- Fish\n    Animal <|-- Zebra\n    Animal : +int age\n    Animal : +String gender\n    Animal: +isMammal()\n    Animal: +mate()\n    class Duck{\n        +String beakColor\n        +swim()\n        +quack()\n    }\n    class Fish{\n        -int sizeInFeet\n        -canEat()\n    }\n    class Zebra{\n        +bool is_wild\n        +run()\n    }\n```",
+          "sampleId": "classDiagram-000-first-official-example",
+          "family": "classDiagram"
+        }
+      ],
+      "points": {
+        "dispatch": 58730941928799,
+        "pipeWrite": 58730942017155,
+        "dequeued": 58730943583986,
+        "evaluateSubmitted": 58730943776953,
+        "evaluateCallbackEntry": 58731442534918,
+        "evaluateCallbackLogged": 58731442555039,
+        "resultDrained": 58731941227346,
+        "resultWrite": 58731941311812,
+        "receiveEntry": 58731942588759,
+        "matchingResult": 58731942791154,
+        "settled": 58731947005324
+      },
+      "intervals": {
+        "dispatchToPipeWriteMs": 0.088356,
+        "pipeWriteToDequeuedMs": 1.566831,
+        "dequeuedToEvaluateSubmittedMs": 0.192967,
+        "evaluateSubmittedToEvaluateCallbackEntryMs": 498.757965,
+        "evaluateCallbackEntryToEvaluateCallbackLoggedMs": 0.020121,
+        "evaluateCallbackLoggedToResultDrainedMs": 498.672307,
+        "resultDrainedToResultWriteMs": 0.084466,
+        "resultWriteToReceiveEntryMs": 1.276947,
+        "receiveEntryToMatchingResultMs": 0.202395,
+        "matchingResultToSettledMs": 4.21417
+      },
+      "dispatchToSettledMs": 1005.076525,
+      "ok": true,
+      "cancelObserved": false,
+      "cancelPhases": [],
+      "complete": true
+    },
+    {
+      "instanceId": "2dde50696c86d909bbf2b195ae830759c23ffaf8309eeee7",
+      "requestId": "render_28",
+      "traces": [
+        {
+          "line": 429,
+          "instanceId": "2dde50696c86d909bbf2b195ae830759c23ffaf8309eeee7",
+          "monotonicNs": 58784029221174,
+          "phase": "dispatch",
+          "pid": 358243,
+          "requestId": "render_28"
+        },
+        {
+          "line": 430,
+          "details": {
+            "detailType": "request",
+            "from": 440,
+            "source_bytes": 529,
+            "source_sha256": "ef80eda5ae0f45a95b22a734fbd6c8d4ef9e4187e6209d4c925164b547767c14",
+            "theme": "light",
+            "to": 969,
+            "width": 1100
+          },
+          "instanceId": "2dde50696c86d909bbf2b195ae830759c23ffaf8309eeee7",
+          "monotonicNs": 58784029283797,
+          "phase": "request-meta",
+          "pid": 358243,
+          "requestId": "render_28"
+        },
+        {
+          "line": 431,
+          "details": {
+            "detailType": "frame",
+            "message": {
+              "id": "render_28",
+              "kind": "render",
+              "protocol": "document-render"
+            }
+          },
+          "instanceId": "2dde50696c86d909bbf2b195ae830759c23ffaf8309eeee7",
+          "monotonicNs": 58784029321098,
+          "phase": "pipe-write-complete",
+          "pid": 358243,
+          "requestId": "render_28"
+        },
+        {
+          "line": 432,
+          "details": {
+            "detailType": "frame",
+            "message": {
+              "id": "render_28",
+              "kind": "render",
+              "protocol": "document-render"
+            }
+          },
+          "instanceId": "2dde50696c86d909bbf2b195ae830759c23ffaf8309eeee7",
+          "monotonicNs": 58784032692059,
+          "phase": "helper-frame-dequeued",
+          "pid": 358544,
+          "requestId": "render_28"
+        },
+        {
+          "line": 433,
+          "details": {
+            "detailType": "frame",
+            "message": {
+              "id": "render_28",
+              "kind": "render",
+              "protocol": "document-render"
+            }
+          },
+          "instanceId": "2dde50696c86d909bbf2b195ae830759c23ffaf8309eeee7",
+          "monotonicNs": 58784032887713,
+          "phase": "helper-evaluate-submitted",
+          "pid": 358544,
+          "requestId": "render_28"
+        },
+        {
+          "line": 434,
+          "details": {
+            "callback_entry_monotonic_ns": 58784225222145,
+            "detailType": "evaluation",
+            "message": {
+              "id": "render_28",
+              "kind": "render",
+              "protocol": "document-render"
+            },
+            "result_kind": "null",
+            "success": true
+          },
+          "instanceId": "2dde50696c86d909bbf2b195ae830759c23ffaf8309eeee7",
+          "monotonicNs": 58784225243161,
+          "phase": "helper-evaluate-callback",
+          "pid": 358544,
+          "requestId": "render_28"
+        },
+        {
+          "line": 435,
+          "details": {
+            "detailType": "frame",
+            "message": {
+              "id": "render_28",
+              "kind": "result",
+              "protocol": "document-render"
+            }
+          },
+          "instanceId": "2dde50696c86d909bbf2b195ae830759c23ffaf8309eeee7",
+          "monotonicNs": 58784578727817,
+          "phase": "helper-result-drained",
+          "pid": 358544,
+          "requestId": "render_28"
+        },
+        {
+          "line": 436,
+          "details": {
+            "detailType": "frame",
+            "message": {
+              "id": "render_28",
+              "kind": "result",
+              "protocol": "document-render"
+            }
+          },
+          "instanceId": "2dde50696c86d909bbf2b195ae830759c23ffaf8309eeee7",
+          "monotonicNs": 58784578802067,
+          "phase": "helper-result-write-complete",
+          "pid": 358544,
+          "requestId": "render_28"
+        },
+        {
+          "line": 437,
+          "details": {
+            "detailType": "received",
+            "entry_monotonic_ns": 58784580728958,
+            "message": {
+              "id": "render_28",
+              "kind": "result",
+              "protocol": "document-render"
+            },
+            "ok": true
+          },
+          "instanceId": "2dde50696c86d909bbf2b195ae830759c23ffaf8309eeee7",
+          "monotonicNs": 58784580730245,
+          "phase": "receive-entry",
+          "pid": 358243,
+          "requestId": "render_28"
+        },
+        {
+          "line": 438,
+          "details": {
+            "detailType": "received",
+            "entry_monotonic_ns": 58784580728958,
+            "message": {
+              "id": "render_28",
+              "kind": "result",
+              "protocol": "document-render"
+            },
+            "ok": true
+          },
+          "instanceId": "2dde50696c86d909bbf2b195ae830759c23ffaf8309eeee7",
+          "monotonicNs": 58784580932236,
+          "phase": "matching-result-received",
+          "pid": 358243,
+          "requestId": "render_28"
+        },
+        {
+          "line": 439,
+          "details": {
+            "detailType": "settled",
+            "message": {
+              "id": "render_28",
+              "kind": "result",
+              "protocol": "document-render"
+            },
+            "ok": true
+          },
+          "instanceId": "2dde50696c86d909bbf2b195ae830759c23ffaf8309eeee7",
+          "monotonicNs": 58784581000233,
+          "phase": "result-settled",
+          "pid": 358243,
+          "requestId": "render_28"
+        }
+      ],
+      "meta": {
+        "detailType": "request",
+        "from": 440,
+        "source_bytes": 529,
+        "source_sha256": "ef80eda5ae0f45a95b22a734fbd6c8d4ef9e4187e6209d4c925164b547767c14",
+        "theme": "light",
+        "to": 969,
+        "width": 1100
+      },
+      "selection": "unknown: native request-meta does not record selection",
+      "sourceCandidates": [
+        {
+          "file": "ordinary.md",
+          "fullDocumentSha256": "a7267df165778c560a8fba59bfbff7065ae63365741e3eb87078783bc865fd4b",
+          "from": 440,
+          "to": 969,
+          "sourceBytes": 529,
+          "sourceSha256": "ef80eda5ae0f45a95b22a734fbd6c8d4ef9e4187e6209d4c925164b547767c14",
+          "source": "```mermaid\n---\ntitle: Animal example\n---\nclassDiagram\n    note \"From Duck till Zebra\"\n    Animal <|-- Duck\n    note for Duck \"can fly<br>can swim<br>can dive<br>can help in debugging\"\n    Animal <|-- Fish\n    Animal <|-- Zebra\n    Animal : +int age\n    Animal : +String gender\n    Animal: +isMammal()\n    Animal: +mate()\n    class Duck{\n        +String beakColor\n        +swim()\n        +quack()\n    }\n    class Fish{\n        -int sizeInFeet\n        -canEat()\n    }\n    class Zebra{\n        +bool is_wild\n        +run()\n    }\n```",
+          "sampleId": "classDiagram-000-first-official-example",
+          "family": "classDiagram"
+        }
+      ],
+      "points": {
+        "dispatch": 58784029221174,
+        "pipeWrite": 58784029321098,
+        "dequeued": 58784032692059,
+        "evaluateSubmitted": 58784032887713,
+        "evaluateCallbackEntry": 58784225222145,
+        "evaluateCallbackLogged": 58784225243161,
+        "resultDrained": 58784578727817,
+        "resultWrite": 58784578802067,
+        "receiveEntry": 58784580728958,
+        "matchingResult": 58784580932236,
+        "settled": 58784581000233
+      },
+      "intervals": {
+        "dispatchToPipeWriteMs": 0.099924,
+        "pipeWriteToDequeuedMs": 3.370961,
+        "dequeuedToEvaluateSubmittedMs": 0.195654,
+        "evaluateSubmittedToEvaluateCallbackEntryMs": 192.334432,
+        "evaluateCallbackEntryToEvaluateCallbackLoggedMs": 0.021016,
+        "evaluateCallbackLoggedToResultDrainedMs": 353.484656,
+        "resultDrainedToResultWriteMs": 0.07425,
+        "resultWriteToReceiveEntryMs": 1.926891,
+        "receiveEntryToMatchingResultMs": 0.203278,
+        "matchingResultToSettledMs": 0.067997
+      },
+      "dispatchToSettledMs": 551.779059,
+      "ok": true,
+      "cancelObserved": false,
+      "cancelPhases": [],
+      "complete": true
+    },
+    {
+      "instanceId": "0028e0e1fd92e3efec404fca7e011554738e493e076d89ab",
+      "requestId": "render_5",
+      "traces": [
+        {
+          "line": 63,
+          "instanceId": "0028e0e1fd92e3efec404fca7e011554738e493e076d89ab",
+          "monotonicNs": 58733679623700,
+          "phase": "dispatch",
+          "pid": 358243,
+          "requestId": "render_5"
+        },
+        {
+          "line": 64,
+          "details": {
+            "detailType": "request",
+            "from": 440,
+            "source_bytes": 529,
+            "source_sha256": "ef80eda5ae0f45a95b22a734fbd6c8d4ef9e4187e6209d4c925164b547767c14",
+            "theme": "light",
+            "to": 969,
+            "width": 1100
+          },
+          "instanceId": "0028e0e1fd92e3efec404fca7e011554738e493e076d89ab",
+          "monotonicNs": 58733679661278,
+          "phase": "request-meta",
+          "pid": 358243,
+          "requestId": "render_5"
+        },
+        {
+          "line": 65,
+          "details": {
+            "detailType": "frame",
+            "message": {
+              "id": "render_5",
+              "kind": "render",
+              "protocol": "document-render"
+            }
+          },
+          "instanceId": "0028e0e1fd92e3efec404fca7e011554738e493e076d89ab",
+          "monotonicNs": 58733679690819,
+          "phase": "pipe-write-complete",
+          "pid": 358243,
+          "requestId": "render_5"
+        },
+        {
+          "line": 66,
+          "details": {
+            "detailType": "frame",
+            "message": {
+              "id": "render_5",
+              "kind": "render",
+              "protocol": "document-render"
+            }
+          },
+          "instanceId": "0028e0e1fd92e3efec404fca7e011554738e493e076d89ab",
+          "monotonicNs": 58733682058306,
+          "phase": "helper-frame-dequeued",
+          "pid": 358379,
+          "requestId": "render_5"
+        },
+        {
+          "line": 67,
+          "details": {
+            "detailType": "frame",
+            "message": {
+              "id": "render_5",
+              "kind": "render",
+              "protocol": "document-render"
+            }
+          },
+          "instanceId": "0028e0e1fd92e3efec404fca7e011554738e493e076d89ab",
+          "monotonicNs": 58733682099178,
+          "phase": "helper-evaluate-submitted",
+          "pid": 358379,
+          "requestId": "render_5"
+        },
+        {
+          "line": 68,
+          "details": {
+            "callback_entry_monotonic_ns": 58733857671744,
+            "detailType": "evaluation",
+            "message": {
+              "id": "render_5",
+              "kind": "render",
+              "protocol": "document-render"
+            },
+            "result_kind": "null",
+            "success": true
+          },
+          "instanceId": "0028e0e1fd92e3efec404fca7e011554738e493e076d89ab",
+          "monotonicNs": 58733857693204,
+          "phase": "helper-evaluate-callback",
+          "pid": 358379,
+          "requestId": "render_5"
+        },
+        {
+          "line": 69,
+          "details": {
+            "detailType": "frame",
+            "message": {
+              "id": "render_5",
+              "kind": "result",
+              "protocol": "document-render"
+            }
+          },
+          "instanceId": "0028e0e1fd92e3efec404fca7e011554738e493e076d89ab",
+          "monotonicNs": 58734114138423,
+          "phase": "helper-result-drained",
+          "pid": 358379,
+          "requestId": "render_5"
+        },
+        {
+          "line": 70,
+          "details": {
+            "detailType": "frame",
+            "message": {
+              "id": "render_5",
+              "kind": "result",
+              "protocol": "document-render"
+            }
+          },
+          "instanceId": "0028e0e1fd92e3efec404fca7e011554738e493e076d89ab",
+          "monotonicNs": 58734114216408,
+          "phase": "helper-result-write-complete",
+          "pid": 358379,
+          "requestId": "render_5"
+        },
+        {
+          "line": 71,
+          "details": {
+            "detailType": "received",
+            "entry_monotonic_ns": 58734115667610,
+            "message": {
+              "id": "render_5",
+              "kind": "result",
+              "protocol": "document-render"
+            },
+            "ok": true
+          },
+          "instanceId": "0028e0e1fd92e3efec404fca7e011554738e493e076d89ab",
+          "monotonicNs": 58734115669220,
+          "phase": "receive-entry",
+          "pid": 358243,
+          "requestId": "render_5"
+        },
+        {
+          "line": 72,
+          "details": {
+            "detailType": "received",
+            "entry_monotonic_ns": 58734115667610,
+            "message": {
+              "id": "render_5",
+              "kind": "result",
+              "protocol": "document-render"
+            },
+            "ok": true
+          },
+          "instanceId": "0028e0e1fd92e3efec404fca7e011554738e493e076d89ab",
+          "monotonicNs": 58734116033262,
+          "phase": "matching-result-received",
+          "pid": 358243,
+          "requestId": "render_5"
+        },
+        {
+          "line": 73,
+          "details": {
+            "detailType": "settled",
+            "message": {
+              "id": "render_5",
+              "kind": "result",
+              "protocol": "document-render"
+            },
+            "ok": true
+          },
+          "instanceId": "0028e0e1fd92e3efec404fca7e011554738e493e076d89ab",
+          "monotonicNs": 58734116049892,
+          "phase": "result-settled",
+          "pid": 358243,
+          "requestId": "render_5"
+        }
+      ],
+      "meta": {
+        "detailType": "request",
+        "from": 440,
+        "source_bytes": 529,
+        "source_sha256": "ef80eda5ae0f45a95b22a734fbd6c8d4ef9e4187e6209d4c925164b547767c14",
+        "theme": "light",
+        "to": 969,
+        "width": 1100
+      },
+      "selection": "unknown: native request-meta does not record selection",
+      "sourceCandidates": [
+        {
+          "file": "ordinary.md",
+          "fullDocumentSha256": "a7267df165778c560a8fba59bfbff7065ae63365741e3eb87078783bc865fd4b",
+          "from": 440,
+          "to": 969,
+          "sourceBytes": 529,
+          "sourceSha256": "ef80eda5ae0f45a95b22a734fbd6c8d4ef9e4187e6209d4c925164b547767c14",
+          "source": "```mermaid\n---\ntitle: Animal example\n---\nclassDiagram\n    note \"From Duck till Zebra\"\n    Animal <|-- Duck\n    note for Duck \"can fly<br>can swim<br>can dive<br>can help in debugging\"\n    Animal <|-- Fish\n    Animal <|-- Zebra\n    Animal : +int age\n    Animal : +String gender\n    Animal: +isMammal()\n    Animal: +mate()\n    class Duck{\n        +String beakColor\n        +swim()\n        +quack()\n    }\n    class Fish{\n        -int sizeInFeet\n        -canEat()\n    }\n    class Zebra{\n        +bool is_wild\n        +run()\n    }\n```",
+          "sampleId": "classDiagram-000-first-official-example",
+          "family": "classDiagram"
+        }
+      ],
+      "points": {
+        "dispatch": 58733679623700,
+        "pipeWrite": 58733679690819,
+        "dequeued": 58733682058306,
+        "evaluateSubmitted": 58733682099178,
+        "evaluateCallbackEntry": 58733857671744,
+        "evaluateCallbackLogged": 58733857693204,
+        "resultDrained": 58734114138423,
+        "resultWrite": 58734114216408,
+        "receiveEntry": 58734115667610,
+        "matchingResult": 58734116033262,
+        "settled": 58734116049892
+      },
+      "intervals": {
+        "dispatchToPipeWriteMs": 0.067119,
+        "pipeWriteToDequeuedMs": 2.367487,
+        "dequeuedToEvaluateSubmittedMs": 0.040872,
+        "evaluateSubmittedToEvaluateCallbackEntryMs": 175.572566,
+        "evaluateCallbackEntryToEvaluateCallbackLoggedMs": 0.02146,
+        "evaluateCallbackLoggedToResultDrainedMs": 256.445219,
+        "resultDrainedToResultWriteMs": 0.077985,
+        "resultWriteToReceiveEntryMs": 1.451202,
+        "receiveEntryToMatchingResultMs": 0.365652,
+        "matchingResultToSettledMs": 0.01663
+      },
+      "dispatchToSettledMs": 436.426192,
+      "ok": true,
+      "cancelObserved": false,
+      "cancelPhases": [],
+      "complete": true
+    },
+    {
+      "instanceId": "0028e0e1fd92e3efec404fca7e011554738e493e076d89ab",
+      "requestId": "render_1",
+      "traces": [
+        {
+          "line": 15,
+          "instanceId": "0028e0e1fd92e3efec404fca7e011554738e493e076d89ab",
+          "monotonicNs": 58730047721515,
+          "phase": "dispatch",
+          "pid": 358243,
+          "requestId": "render_1"
+        },
+        {
+          "line": 16,
+          "details": {
+            "detailType": "request",
+            "from": 108,
+            "source_bytes": 234,
+            "source_sha256": "e51cb79094f8db3d5a6afd84b1b3a9dab0a1a8da503e5d39a1e7733985c0244b",
+            "theme": "light",
+            "to": 342,
+            "width": 1100
+          },
+          "instanceId": "0028e0e1fd92e3efec404fca7e011554738e493e076d89ab",
+          "monotonicNs": 58730047994249,
+          "phase": "request-meta",
+          "pid": 358243,
+          "requestId": "render_1"
+        },
+        {
+          "line": 17,
+          "details": {
+            "detailType": "frame",
+            "message": {
+              "id": "render_1",
+              "kind": "render",
+              "protocol": "document-render"
+            }
+          },
+          "instanceId": "0028e0e1fd92e3efec404fca7e011554738e493e076d89ab",
+          "monotonicNs": 58730048063143,
+          "phase": "pipe-write-complete",
+          "pid": 358243,
+          "requestId": "render_1"
+        },
+        {
+          "line": 18,
+          "details": {
+            "detailType": "frame",
+            "message": {
+              "id": "render_1",
+              "kind": "render",
+              "protocol": "document-render"
+            }
+          },
+          "instanceId": "0028e0e1fd92e3efec404fca7e011554738e493e076d89ab",
+          "monotonicNs": 58730051184601,
+          "phase": "helper-frame-dequeued",
+          "pid": 358379,
+          "requestId": "render_1"
+        },
+        {
+          "line": 19,
+          "details": {
+            "detailType": "frame",
+            "message": {
+              "id": "render_1",
+              "kind": "render",
+              "protocol": "document-render"
+            }
+          },
+          "instanceId": "0028e0e1fd92e3efec404fca7e011554738e493e076d89ab",
+          "monotonicNs": 58730051278070,
+          "phase": "helper-evaluate-submitted",
+          "pid": 358379,
+          "requestId": "render_1"
+        },
+        {
+          "line": 20,
+          "details": {
+            "detailType": "frame",
+            "message": {
+              "id": "render_1",
+              "kind": "cancel",
+              "protocol": "document-render"
+            }
+          },
+          "instanceId": "0028e0e1fd92e3efec404fca7e011554738e493e076d89ab",
+          "monotonicNs": 58730098711440,
+          "phase": "pipe-write-complete",
+          "pid": 358243,
+          "requestId": "render_1"
+        },
+        {
+          "line": 21,
+          "details": {
+            "callback_entry_monotonic_ns": 58730464277500,
+            "detailType": "evaluation",
+            "message": {
+              "id": "render_1",
+              "kind": "render",
+              "protocol": "document-render"
+            },
+            "result_kind": "null",
+            "success": true
+          },
+          "instanceId": "0028e0e1fd92e3efec404fca7e011554738e493e076d89ab",
+          "monotonicNs": 58730464297837,
+          "phase": "helper-evaluate-callback",
+          "pid": 358379,
+          "requestId": "render_1"
+        },
+        {
+          "line": 22,
+          "details": {
+            "detailType": "frame",
+            "message": {
+              "id": "render_1",
+              "kind": "cancel",
+              "protocol": "document-render"
+            }
+          },
+          "instanceId": "0028e0e1fd92e3efec404fca7e011554738e493e076d89ab",
+          "monotonicNs": 58730465099453,
+          "phase": "helper-frame-dequeued",
+          "pid": 358379,
+          "requestId": "render_1"
+        },
+        {
+          "line": 23,
+          "details": {
+            "detailType": "frame",
+            "message": {
+              "id": "render_1",
+              "kind": "cancel",
+              "protocol": "document-render"
+            }
+          },
+          "instanceId": "0028e0e1fd92e3efec404fca7e011554738e493e076d89ab",
+          "monotonicNs": 58730465133341,
+          "phase": "helper-evaluate-submitted",
+          "pid": 358379,
+          "requestId": "render_1"
+        },
+        {
+          "line": 24,
+          "details": {
+            "callback_entry_monotonic_ns": 58730465593232,
+            "detailType": "evaluation",
+            "message": {
+              "id": "render_1",
+              "kind": "cancel",
+              "protocol": "document-render"
+            },
+            "result_kind": "null",
+            "success": true
+          },
+          "instanceId": "0028e0e1fd92e3efec404fca7e011554738e493e076d89ab",
+          "monotonicNs": 58730465606380,
+          "phase": "helper-evaluate-callback",
+          "pid": 358379,
+          "requestId": "render_1"
+        },
+        {
+          "line": 25,
+          "details": {
+            "detailType": "frame",
+            "message": {
+              "id": "render_1",
+              "kind": "result",
+              "protocol": "document-render"
+            }
+          },
+          "instanceId": "0028e0e1fd92e3efec404fca7e011554738e493e076d89ab",
+          "monotonicNs": 58730471837268,
+          "phase": "helper-result-drained",
+          "pid": 358379,
+          "requestId": "render_1"
+        },
+        {
+          "line": 26,
+          "details": {
+            "detailType": "frame",
+            "message": {
+              "id": "render_1",
+              "kind": "result",
+              "protocol": "document-render"
+            }
+          },
+          "instanceId": "0028e0e1fd92e3efec404fca7e011554738e493e076d89ab",
+          "monotonicNs": 58730471900488,
+          "phase": "helper-result-write-complete",
+          "pid": 358379,
+          "requestId": "render_1"
+        },
+        {
+          "line": 27,
+          "details": {
+            "detailType": "received",
+            "entry_monotonic_ns": 58730472486072,
+            "message": {
+              "id": "render_1",
+              "kind": "result",
+              "protocol": "document-render"
+            },
+            "ok": true
+          },
+          "instanceId": "0028e0e1fd92e3efec404fca7e011554738e493e076d89ab",
+          "monotonicNs": 58730472487695,
+          "phase": "receive-entry",
+          "pid": 358243,
+          "requestId": "render_1"
+        },
+        {
+          "line": 28,
+          "details": {
+            "detailType": "received",
+            "entry_monotonic_ns": 58730472486072,
+            "message": {
+              "id": "render_1",
+              "kind": "result",
+              "protocol": "document-render"
+            },
+            "ok": true
+          },
+          "instanceId": "0028e0e1fd92e3efec404fca7e011554738e493e076d89ab",
+          "monotonicNs": 58730475903768,
+          "phase": "matching-result-received",
+          "pid": 358243,
+          "requestId": "render_1"
+        },
+        {
+          "line": 29,
+          "details": {
+            "detailType": "settled",
+            "message": {
+              "id": "render_1",
+              "kind": "result",
+              "protocol": "document-render"
+            },
+            "ok": true
+          },
+          "instanceId": "0028e0e1fd92e3efec404fca7e011554738e493e076d89ab",
+          "monotonicNs": 58730475926657,
+          "phase": "result-settled",
+          "pid": 358243,
+          "requestId": "render_1"
+        }
+      ],
+      "meta": {
+        "detailType": "request",
+        "from": 108,
+        "source_bytes": 234,
+        "source_sha256": "e51cb79094f8db3d5a6afd84b1b3a9dab0a1a8da503e5d39a1e7733985c0244b",
+        "theme": "light",
+        "to": 342,
+        "width": 1100
+      },
+      "selection": "unknown: native request-meta does not record selection",
+      "sourceCandidates": [
+        {
+          "file": "ordinary.md",
+          "fullDocumentSha256": "a7267df165778c560a8fba59bfbff7065ae63365741e3eb87078783bc865fd4b",
+          "from": 108,
+          "to": 342,
+          "sourceBytes": 234,
+          "sourceSha256": "e51cb79094f8db3d5a6afd84b1b3a9dab0a1a8da503e5d39a1e7733985c0244b",
+          "source": "```mermaid\nblock\ncolumns 1\n  db((\"DB\"))\n  blockArrowId6<[\"&nbsp;&nbsp;&nbsp;\"]>(down)\n  block:ID\n    A\n    B[\"A wide one in the middle\"]\n    C\n  end\n  space\n  D\n  ID --> D\n  C --> D\n  style B fill:#969,stroke:#333,stroke-width:4px\n```",
+          "sampleId": "block-000-first-official-example",
+          "family": "block"
+        }
+      ],
+      "points": {
+        "dispatch": 58730047721515,
+        "pipeWrite": 58730048063143,
+        "dequeued": 58730051184601,
+        "evaluateSubmitted": 58730051278070,
+        "evaluateCallbackEntry": 58730464277500,
+        "evaluateCallbackLogged": 58730464297837,
+        "resultDrained": 58730471837268,
+        "resultWrite": 58730471900488,
+        "receiveEntry": 58730472486072,
+        "matchingResult": 58730475903768,
+        "settled": 58730475926657
+      },
+      "intervals": {
+        "dispatchToPipeWriteMs": 0.341628,
+        "pipeWriteToDequeuedMs": 3.121458,
+        "dequeuedToEvaluateSubmittedMs": 0.093469,
+        "evaluateSubmittedToEvaluateCallbackEntryMs": 412.99943,
+        "evaluateCallbackEntryToEvaluateCallbackLoggedMs": 0.020337,
+        "evaluateCallbackLoggedToResultDrainedMs": 7.539431,
+        "resultDrainedToResultWriteMs": 0.06322,
+        "resultWriteToReceiveEntryMs": 0.585584,
+        "receiveEntryToMatchingResultMs": 3.417696,
+        "matchingResultToSettledMs": 0.022889
+      },
+      "dispatchToSettledMs": 428.205142,
+      "ok": true,
+      "cancelObserved": true,
+      "cancelPhases": [
+        {
+          "line": 20,
+          "details": {
+            "detailType": "frame",
+            "message": {
+              "id": "render_1",
+              "kind": "cancel",
+              "protocol": "document-render"
+            }
+          },
+          "instanceId": "0028e0e1fd92e3efec404fca7e011554738e493e076d89ab",
+          "monotonicNs": 58730098711440,
+          "phase": "pipe-write-complete",
+          "pid": 358243,
+          "requestId": "render_1"
+        },
+        {
+          "line": 22,
+          "details": {
+            "detailType": "frame",
+            "message": {
+              "id": "render_1",
+              "kind": "cancel",
+              "protocol": "document-render"
+            }
+          },
+          "instanceId": "0028e0e1fd92e3efec404fca7e011554738e493e076d89ab",
+          "monotonicNs": 58730465099453,
+          "phase": "helper-frame-dequeued",
+          "pid": 358379,
+          "requestId": "render_1"
+        },
+        {
+          "line": 23,
+          "details": {
+            "detailType": "frame",
+            "message": {
+              "id": "render_1",
+              "kind": "cancel",
+              "protocol": "document-render"
+            }
+          },
+          "instanceId": "0028e0e1fd92e3efec404fca7e011554738e493e076d89ab",
+          "monotonicNs": 58730465133341,
+          "phase": "helper-evaluate-submitted",
+          "pid": 358379,
+          "requestId": "render_1"
+        },
+        {
+          "line": 24,
+          "details": {
+            "callback_entry_monotonic_ns": 58730465593232,
+            "detailType": "evaluation",
+            "message": {
+              "id": "render_1",
+              "kind": "cancel",
+              "protocol": "document-render"
+            },
+            "result_kind": "null",
+            "success": true
+          },
+          "instanceId": "0028e0e1fd92e3efec404fca7e011554738e493e076d89ab",
+          "monotonicNs": 58730465606380,
+          "phase": "helper-evaluate-callback",
+          "pid": 358379,
+          "requestId": "render_1"
+        }
+      ],
+      "complete": true
+    },
+    {
+      "instanceId": "2dde50696c86d909bbf2b195ae830759c23ffaf8309eeee7",
+      "requestId": "render_8",
+      "traces": [
+        {
+          "line": 183,
+          "instanceId": "2dde50696c86d909bbf2b195ae830759c23ffaf8309eeee7",
+          "monotonicNs": 58750748174101,
+          "phase": "dispatch",
+          "pid": 358243,
+          "requestId": "render_8"
+        },
+        {
+          "line": 184,
+          "details": {
+            "detailType": "request",
+            "from": 1087,
+            "source_bytes": 170,
+            "source_sha256": "895354fc25512f2596fb5d5c02cf508321018f50ba41bf88c1d06876d2b24a61",
+            "theme": "light",
+            "to": 1257,
+            "width": 1100
+          },
+          "instanceId": "2dde50696c86d909bbf2b195ae830759c23ffaf8309eeee7",
+          "monotonicNs": 58750748307340,
+          "phase": "request-meta",
+          "pid": 358243,
+          "requestId": "render_8"
+        },
+        {
+          "line": 185,
+          "details": {
+            "detailType": "frame",
+            "message": {
+              "id": "render_8",
+              "kind": "render",
+              "protocol": "document-render"
+            }
+          },
+          "instanceId": "2dde50696c86d909bbf2b195ae830759c23ffaf8309eeee7",
+          "monotonicNs": 58750748351329,
+          "phase": "pipe-write-complete",
+          "pid": 358243,
+          "requestId": "render_8"
+        },
+        {
+          "line": 186,
+          "details": {
+            "detailType": "frame",
+            "message": {
+              "id": "render_8",
+              "kind": "render",
+              "protocol": "document-render"
+            }
+          },
+          "instanceId": "2dde50696c86d909bbf2b195ae830759c23ffaf8309eeee7",
+          "monotonicNs": 58750760713947,
+          "phase": "helper-frame-dequeued",
+          "pid": 358544,
+          "requestId": "render_8"
+        },
+        {
+          "line": 187,
+          "details": {
+            "detailType": "frame",
+            "message": {
+              "id": "render_8",
+              "kind": "render",
+              "protocol": "document-render"
+            }
+          },
+          "instanceId": "2dde50696c86d909bbf2b195ae830759c23ffaf8309eeee7",
+          "monotonicNs": 58750761214468,
+          "phase": "helper-evaluate-submitted",
+          "pid": 358544,
+          "requestId": "render_8"
+        },
+        {
+          "line": 188,
+          "details": {
+            "callback_entry_monotonic_ns": 58750901737119,
+            "detailType": "evaluation",
+            "message": {
+              "id": "render_8",
+              "kind": "render",
+              "protocol": "document-render"
+            },
+            "result_kind": "null",
+            "success": true
+          },
+          "instanceId": "2dde50696c86d909bbf2b195ae830759c23ffaf8309eeee7",
+          "monotonicNs": 58750901753471,
+          "phase": "helper-evaluate-callback",
+          "pid": 358544,
+          "requestId": "render_8"
+        },
+        {
+          "line": 189,
+          "details": {
+            "detailType": "frame",
+            "message": {
+              "id": "render_8",
+              "kind": "result",
+              "protocol": "document-render"
+            }
+          },
+          "instanceId": "2dde50696c86d909bbf2b195ae830759c23ffaf8309eeee7",
+          "monotonicNs": 58751090286176,
+          "phase": "helper-result-drained",
+          "pid": 358544,
+          "requestId": "render_8"
+        },
+        {
+          "line": 190,
+          "details": {
+            "detailType": "frame",
+            "message": {
+              "id": "render_8",
+              "kind": "result",
+              "protocol": "document-render"
+            }
+          },
+          "instanceId": "2dde50696c86d909bbf2b195ae830759c23ffaf8309eeee7",
+          "monotonicNs": 58751090334851,
+          "phase": "helper-result-write-complete",
+          "pid": 358544,
+          "requestId": "render_8"
+        },
+        {
+          "line": 191,
+          "details": {
+            "detailType": "received",
+            "entry_monotonic_ns": 58751090778981,
+            "message": {
+              "id": "render_8",
+              "kind": "result",
+              "protocol": "document-render"
+            },
+            "ok": true
+          },
+          "instanceId": "2dde50696c86d909bbf2b195ae830759c23ffaf8309eeee7",
+          "monotonicNs": 58751090780517,
+          "phase": "receive-entry",
+          "pid": 358243,
+          "requestId": "render_8"
+        },
+        {
+          "line": 192,
+          "details": {
+            "detailType": "received",
+            "entry_monotonic_ns": 58751090778981,
+            "message": {
+              "id": "render_8",
+              "kind": "result",
+              "protocol": "document-render"
+            },
+            "ok": true
+          },
+          "instanceId": "2dde50696c86d909bbf2b195ae830759c23ffaf8309eeee7",
+          "monotonicNs": 58751090888929,
+          "phase": "matching-result-received",
+          "pid": 358243,
+          "requestId": "render_8"
+        },
+        {
+          "line": 193,
+          "details": {
+            "detailType": "settled",
+            "message": {
+              "id": "render_8",
+              "kind": "result",
+              "protocol": "document-render"
+            },
+            "ok": true
+          },
+          "instanceId": "2dde50696c86d909bbf2b195ae830759c23ffaf8309eeee7",
+          "monotonicNs": 58751090912311,
+          "phase": "result-settled",
+          "pid": 358243,
+          "requestId": "render_8"
+        }
+      ],
+      "meta": {
+        "detailType": "request",
+        "from": 1087,
+        "source_bytes": 170,
+        "source_sha256": "895354fc25512f2596fb5d5c02cf508321018f50ba41bf88c1d06876d2b24a61",
+        "theme": "light",
+        "to": 1257,
+        "width": 1100
+      },
+      "selection": "unknown: native request-meta does not record selection",
+      "sourceCandidates": [
+        {
+          "file": "ordinary.md",
+          "fullDocumentSha256": "a7267df165778c560a8fba59bfbff7065ae63365741e3eb87078783bc865fd4b",
+          "from": 1087,
+          "to": 1257,
+          "sourceBytes": 170,
+          "sourceSha256": "895354fc25512f2596fb5d5c02cf508321018f50ba41bf88c1d06876d2b24a61",
+          "source": "```mermaid\n---\ntitle: Order example\n---\nerDiagram\n    CUSTOMER ||--o{ ORDER : places\n    ORDER ||--|{ LINE-ITEM : contains\n    CUSTOMER }|..|{ DELIVERY-ADDRESS : uses\n```",
+          "sampleId": "entityRelationshipDiagram-000-first-official-example",
+          "family": "entityRelationshipDiagram"
+        }
+      ],
+      "points": {
+        "dispatch": 58750748174101,
+        "pipeWrite": 58750748351329,
+        "dequeued": 58750760713947,
+        "evaluateSubmitted": 58750761214468,
+        "evaluateCallbackEntry": 58750901737119,
+        "evaluateCallbackLogged": 58750901753471,
+        "resultDrained": 58751090286176,
+        "resultWrite": 58751090334851,
+        "receiveEntry": 58751090778981,
+        "matchingResult": 58751090888929,
+        "settled": 58751090912311
+      },
+      "intervals": {
+        "dispatchToPipeWriteMs": 0.177228,
+        "pipeWriteToDequeuedMs": 12.362618,
+        "dequeuedToEvaluateSubmittedMs": 0.500521,
+        "evaluateSubmittedToEvaluateCallbackEntryMs": 140.522651,
+        "evaluateCallbackEntryToEvaluateCallbackLoggedMs": 0.016352,
+        "evaluateCallbackLoggedToResultDrainedMs": 188.532705,
+        "resultDrainedToResultWriteMs": 0.048675,
+        "resultWriteToReceiveEntryMs": 0.44413,
+        "receiveEntryToMatchingResultMs": 0.109948,
+        "matchingResultToSettledMs": 0.023382
+      },
+      "dispatchToSettledMs": 342.73821,
+      "ok": true,
+      "cancelObserved": false,
+      "cancelPhases": [],
+      "complete": true
+    },
+    {
+      "instanceId": "2dde50696c86d909bbf2b195ae830759c23ffaf8309eeee7",
+      "requestId": "render_25",
+      "traces": [
+        {
+          "line": 388,
+          "instanceId": "2dde50696c86d909bbf2b195ae830759c23ffaf8309eeee7",
+          "monotonicNs": 58783122508969,
+          "phase": "dispatch",
+          "pid": 358243,
+          "requestId": "render_25"
+        },
+        {
+          "line": 389,
+          "details": {
+            "detailType": "request",
+            "from": 108,
+            "source_bytes": 234,
+            "source_sha256": "e51cb79094f8db3d5a6afd84b1b3a9dab0a1a8da503e5d39a1e7733985c0244b",
+            "theme": "light",
+            "to": 342,
+            "width": 1100
+          },
+          "instanceId": "2dde50696c86d909bbf2b195ae830759c23ffaf8309eeee7",
+          "monotonicNs": 58783122546808,
+          "phase": "request-meta",
+          "pid": 358243,
+          "requestId": "render_25"
+        },
+        {
+          "line": 390,
+          "details": {
+            "detailType": "frame",
+            "message": {
+              "id": "render_25",
+              "kind": "render",
+              "protocol": "document-render"
+            }
+          },
+          "instanceId": "2dde50696c86d909bbf2b195ae830759c23ffaf8309eeee7",
+          "monotonicNs": 58783122583518,
+          "phase": "pipe-write-complete",
+          "pid": 358243,
+          "requestId": "render_25"
+        },
+        {
+          "line": 391,
+          "details": {
+            "detailType": "frame",
+            "message": {
+              "id": "render_25",
+              "kind": "render",
+              "protocol": "document-render"
+            }
+          },
+          "instanceId": "2dde50696c86d909bbf2b195ae830759c23ffaf8309eeee7",
+          "monotonicNs": 58783123855901,
+          "phase": "helper-frame-dequeued",
+          "pid": 358544,
+          "requestId": "render_25"
+        },
+        {
+          "line": 392,
+          "details": {
+            "detailType": "frame",
+            "message": {
+              "id": "render_25",
+              "kind": "render",
+              "protocol": "document-render"
+            }
+          },
+          "instanceId": "2dde50696c86d909bbf2b195ae830759c23ffaf8309eeee7",
+          "monotonicNs": 58783123890348,
+          "phase": "helper-evaluate-submitted",
+          "pid": 358544,
+          "requestId": "render_25"
+        },
+        {
+          "line": 393,
+          "details": {
+            "detailType": "frame",
+            "message": {
+              "id": "render_25",
+              "kind": "cancel",
+              "protocol": "document-render"
+            }
+          },
+          "instanceId": "2dde50696c86d909bbf2b195ae830759c23ffaf8309eeee7",
+          "monotonicNs": 58783229808190,
+          "phase": "pipe-write-complete",
+          "pid": 358243,
+          "requestId": "render_25"
+        },
+        {
+          "line": 394,
+          "details": {
+            "callback_entry_monotonic_ns": 58783444242457,
+            "detailType": "evaluation",
+            "message": {
+              "id": "render_25",
+              "kind": "render",
+              "protocol": "document-render"
+            },
+            "result_kind": "null",
+            "success": true
+          },
+          "instanceId": "2dde50696c86d909bbf2b195ae830759c23ffaf8309eeee7",
+          "monotonicNs": 58783444261274,
+          "phase": "helper-evaluate-callback",
+          "pid": 358544,
+          "requestId": "render_25"
+        },
+        {
+          "line": 395,
+          "details": {
+            "detailType": "frame",
+            "message": {
+              "id": "render_25",
+              "kind": "cancel",
+              "protocol": "document-render"
+            }
+          },
+          "instanceId": "2dde50696c86d909bbf2b195ae830759c23ffaf8309eeee7",
+          "monotonicNs": 58783446476972,
+          "phase": "helper-frame-dequeued",
+          "pid": 358544,
+          "requestId": "render_25"
+        },
+        {
+          "line": 396,
+          "details": {
+            "detailType": "frame",
+            "message": {
+              "id": "render_25",
+              "kind": "cancel",
+              "protocol": "document-render"
+            }
+          },
+          "instanceId": "2dde50696c86d909bbf2b195ae830759c23ffaf8309eeee7",
+          "monotonicNs": 58783446495628,
+          "phase": "helper-evaluate-submitted",
+          "pid": 358544,
+          "requestId": "render_25"
+        },
+        {
+          "line": 397,
+          "details": {
+            "callback_entry_monotonic_ns": 58783450883127,
+            "detailType": "evaluation",
+            "message": {
+              "id": "render_25",
+              "kind": "cancel",
+              "protocol": "document-render"
+            },
+            "result_kind": "null",
+            "success": true
+          },
+          "instanceId": "2dde50696c86d909bbf2b195ae830759c23ffaf8309eeee7",
+          "monotonicNs": 58783450909512,
+          "phase": "helper-evaluate-callback",
+          "pid": 358544,
+          "requestId": "render_25"
+        },
+        {
+          "line": 398,
+          "details": {
+            "detailType": "frame",
+            "message": {
+              "id": "render_25",
+              "kind": "result",
+              "protocol": "document-render"
+            }
+          },
+          "instanceId": "2dde50696c86d909bbf2b195ae830759c23ffaf8309eeee7",
+          "monotonicNs": 58783454397060,
+          "phase": "helper-result-drained",
+          "pid": 358544,
+          "requestId": "render_25"
+        },
+        {
+          "line": 399,
+          "details": {
+            "detailType": "frame",
+            "message": {
+              "id": "render_25",
+              "kind": "result",
+              "protocol": "document-render"
+            }
+          },
+          "instanceId": "2dde50696c86d909bbf2b195ae830759c23ffaf8309eeee7",
+          "monotonicNs": 58783455046980,
+          "phase": "helper-result-write-complete",
+          "pid": 358544,
+          "requestId": "render_25"
+        },
+        {
+          "line": 400,
+          "details": {
+            "detailType": "received",
+            "entry_monotonic_ns": 58783455501321,
+            "message": {
+              "id": "render_25",
+              "kind": "result",
+              "protocol": "document-render"
+            },
+            "ok": true
+          },
+          "instanceId": "2dde50696c86d909bbf2b195ae830759c23ffaf8309eeee7",
+          "monotonicNs": 58783455503154,
+          "phase": "receive-entry",
+          "pid": 358243,
+          "requestId": "render_25"
+        },
+        {
+          "line": 401,
+          "details": {
+            "detailType": "received",
+            "entry_monotonic_ns": 58783455501321,
+            "message": {
+              "id": "render_25",
+              "kind": "result",
+              "protocol": "document-render"
+            },
+            "ok": true
+          },
+          "instanceId": "2dde50696c86d909bbf2b195ae830759c23ffaf8309eeee7",
+          "monotonicNs": 58783455658601,
+          "phase": "matching-result-received",
+          "pid": 358243,
+          "requestId": "render_25"
+        },
+        {
+          "line": 402,
+          "details": {
+            "detailType": "settled",
+            "message": {
+              "id": "render_25",
+              "kind": "result",
+              "protocol": "document-render"
+            },
+            "ok": true
+          },
+          "instanceId": "2dde50696c86d909bbf2b195ae830759c23ffaf8309eeee7",
+          "monotonicNs": 58783455679490,
+          "phase": "result-settled",
+          "pid": 358243,
+          "requestId": "render_25"
+        }
+      ],
+      "meta": {
+        "detailType": "request",
+        "from": 108,
+        "source_bytes": 234,
+        "source_sha256": "e51cb79094f8db3d5a6afd84b1b3a9dab0a1a8da503e5d39a1e7733985c0244b",
+        "theme": "light",
+        "to": 342,
+        "width": 1100
+      },
+      "selection": "unknown: native request-meta does not record selection",
+      "sourceCandidates": [
+        {
+          "file": "ordinary.md",
+          "fullDocumentSha256": "a7267df165778c560a8fba59bfbff7065ae63365741e3eb87078783bc865fd4b",
+          "from": 108,
+          "to": 342,
+          "sourceBytes": 234,
+          "sourceSha256": "e51cb79094f8db3d5a6afd84b1b3a9dab0a1a8da503e5d39a1e7733985c0244b",
+          "source": "```mermaid\nblock\ncolumns 1\n  db((\"DB\"))\n  blockArrowId6<[\"&nbsp;&nbsp;&nbsp;\"]>(down)\n  block:ID\n    A\n    B[\"A wide one in the middle\"]\n    C\n  end\n  space\n  D\n  ID --> D\n  C --> D\n  style B fill:#969,stroke:#333,stroke-width:4px\n```",
+          "sampleId": "block-000-first-official-example",
+          "family": "block"
+        }
+      ],
+      "points": {
+        "dispatch": 58783122508969,
+        "pipeWrite": 58783122583518,
+        "dequeued": 58783123855901,
+        "evaluateSubmitted": 58783123890348,
+        "evaluateCallbackEntry": 58783444242457,
+        "evaluateCallbackLogged": 58783444261274,
+        "resultDrained": 58783454397060,
+        "resultWrite": 58783455046980,
+        "receiveEntry": 58783455501321,
+        "matchingResult": 58783455658601,
+        "settled": 58783455679490
+      },
+      "intervals": {
+        "dispatchToPipeWriteMs": 0.074549,
+        "pipeWriteToDequeuedMs": 1.272383,
+        "dequeuedToEvaluateSubmittedMs": 0.034447,
+        "evaluateSubmittedToEvaluateCallbackEntryMs": 320.352109,
+        "evaluateCallbackEntryToEvaluateCallbackLoggedMs": 0.018817,
+        "evaluateCallbackLoggedToResultDrainedMs": 10.135786,
+        "resultDrainedToResultWriteMs": 0.64992,
+        "resultWriteToReceiveEntryMs": 0.454341,
+        "receiveEntryToMatchingResultMs": 0.15728,
+        "matchingResultToSettledMs": 0.020889
+      },
+      "dispatchToSettledMs": 333.170521,
+      "ok": true,
+      "cancelObserved": true,
+      "cancelPhases": [
+        {
+          "line": 393,
+          "details": {
+            "detailType": "frame",
+            "message": {
+              "id": "render_25",
+              "kind": "cancel",
+              "protocol": "document-render"
+            }
+          },
+          "instanceId": "2dde50696c86d909bbf2b195ae830759c23ffaf8309eeee7",
+          "monotonicNs": 58783229808190,
+          "phase": "pipe-write-complete",
+          "pid": 358243,
+          "requestId": "render_25"
+        },
+        {
+          "line": 395,
+          "details": {
+            "detailType": "frame",
+            "message": {
+              "id": "render_25",
+              "kind": "cancel",
+              "protocol": "document-render"
+            }
+          },
+          "instanceId": "2dde50696c86d909bbf2b195ae830759c23ffaf8309eeee7",
+          "monotonicNs": 58783446476972,
+          "phase": "helper-frame-dequeued",
+          "pid": 358544,
+          "requestId": "render_25"
+        },
+        {
+          "line": 396,
+          "details": {
+            "detailType": "frame",
+            "message": {
+              "id": "render_25",
+              "kind": "cancel",
+              "protocol": "document-render"
+            }
+          },
+          "instanceId": "2dde50696c86d909bbf2b195ae830759c23ffaf8309eeee7",
+          "monotonicNs": 58783446495628,
+          "phase": "helper-evaluate-submitted",
+          "pid": 358544,
+          "requestId": "render_25"
+        },
+        {
+          "line": 397,
+          "details": {
+            "callback_entry_monotonic_ns": 58783450883127,
+            "detailType": "evaluation",
+            "message": {
+              "id": "render_25",
+              "kind": "cancel",
+              "protocol": "document-render"
+            },
+            "result_kind": "null",
+            "success": true
+          },
+          "instanceId": "2dde50696c86d909bbf2b195ae830759c23ffaf8309eeee7",
+          "monotonicNs": 58783450909512,
+          "phase": "helper-evaluate-callback",
+          "pid": 358544,
+          "requestId": "render_25"
+        }
+      ],
+      "complete": true
+    },
+    {
+      "instanceId": "2dde50696c86d909bbf2b195ae830759c23ffaf8309eeee7",
+      "requestId": "render_57",
+      "traces": [
+        {
+          "line": 753,
+          "instanceId": "2dde50696c86d909bbf2b195ae830759c23ffaf8309eeee7",
+          "monotonicNs": 58799016093007,
+          "phase": "dispatch",
+          "pid": 358243,
+          "requestId": "render_57"
+        },
+        {
+          "line": 754,
+          "details": {
+            "detailType": "request",
+            "from": 440,
+            "source_bytes": 529,
+            "source_sha256": "ef80eda5ae0f45a95b22a734fbd6c8d4ef9e4187e6209d4c925164b547767c14",
+            "theme": "light",
+            "to": 969,
+            "width": 1100
+          },
+          "instanceId": "2dde50696c86d909bbf2b195ae830759c23ffaf8309eeee7",
+          "monotonicNs": 58799016143467,
+          "phase": "request-meta",
+          "pid": 358243,
+          "requestId": "render_57"
+        },
+        {
+          "line": 755,
+          "details": {
+            "detailType": "frame",
+            "message": {
+              "id": "render_57",
+              "kind": "render",
+              "protocol": "document-render"
+            }
+          },
+          "instanceId": "2dde50696c86d909bbf2b195ae830759c23ffaf8309eeee7",
+          "monotonicNs": 58799016177496,
+          "phase": "pipe-write-complete",
+          "pid": 358243,
+          "requestId": "render_57"
+        },
+        {
+          "line": 756,
+          "details": {
+            "detailType": "frame",
+            "message": {
+              "id": "render_57",
+              "kind": "render",
+              "protocol": "document-render"
+            }
+          },
+          "instanceId": "2dde50696c86d909bbf2b195ae830759c23ffaf8309eeee7",
+          "monotonicNs": 58799028754811,
+          "phase": "helper-frame-dequeued",
+          "pid": 358544,
+          "requestId": "render_57"
+        },
+        {
+          "line": 757,
+          "details": {
+            "detailType": "frame",
+            "message": {
+              "id": "render_57",
+              "kind": "render",
+              "protocol": "document-render"
+            }
+          },
+          "instanceId": "2dde50696c86d909bbf2b195ae830759c23ffaf8309eeee7",
+          "monotonicNs": 58799028796702,
+          "phase": "helper-evaluate-submitted",
+          "pid": 358544,
+          "requestId": "render_57"
+        },
+        {
+          "line": 758,
+          "details": {
+            "callback_entry_monotonic_ns": 58799231797406,
+            "detailType": "evaluation",
+            "message": {
+              "id": "render_57",
+              "kind": "render",
+              "protocol": "document-render"
+            },
+            "result_kind": "null",
+            "success": true
+          },
+          "instanceId": "2dde50696c86d909bbf2b195ae830759c23ffaf8309eeee7",
+          "monotonicNs": 58799231820395,
+          "phase": "helper-evaluate-callback",
+          "pid": 358544,
+          "requestId": "render_57"
+        },
+        {
+          "line": 759,
+          "details": {
+            "detailType": "frame",
+            "message": {
+              "id": "render_57",
+              "kind": "result",
+              "protocol": "document-render"
+            }
+          },
+          "instanceId": "2dde50696c86d909bbf2b195ae830759c23ffaf8309eeee7",
+          "monotonicNs": 58799339546700,
+          "phase": "helper-result-drained",
+          "pid": 358544,
+          "requestId": "render_57"
+        },
+        {
+          "line": 760,
+          "details": {
+            "detailType": "frame",
+            "message": {
+              "id": "render_57",
+              "kind": "result",
+              "protocol": "document-render"
+            }
+          },
+          "instanceId": "2dde50696c86d909bbf2b195ae830759c23ffaf8309eeee7",
+          "monotonicNs": 58799339638665,
+          "phase": "helper-result-write-complete",
+          "pid": 358544,
+          "requestId": "render_57"
+        },
+        {
+          "line": 761,
+          "details": {
+            "detailType": "received",
+            "entry_monotonic_ns": 58799342775355,
+            "message": {
+              "id": "render_57",
+              "kind": "result",
+              "protocol": "document-render"
+            },
+            "ok": true
+          },
+          "instanceId": "2dde50696c86d909bbf2b195ae830759c23ffaf8309eeee7",
+          "monotonicNs": 58799342777326,
+          "phase": "receive-entry",
+          "pid": 358243,
+          "requestId": "render_57"
+        },
+        {
+          "line": 762,
+          "details": {
+            "detailType": "received",
+            "entry_monotonic_ns": 58799342775355,
+            "message": {
+              "id": "render_57",
+              "kind": "result",
+              "protocol": "document-render"
+            },
+            "ok": true
+          },
+          "instanceId": "2dde50696c86d909bbf2b195ae830759c23ffaf8309eeee7",
+          "monotonicNs": 58799343021048,
+          "phase": "matching-result-received",
+          "pid": 358243,
+          "requestId": "render_57"
+        },
+        {
+          "line": 763,
+          "details": {
+            "detailType": "settled",
+            "message": {
+              "id": "render_57",
+              "kind": "result",
+              "protocol": "document-render"
+            },
+            "ok": true
+          },
+          "instanceId": "2dde50696c86d909bbf2b195ae830759c23ffaf8309eeee7",
+          "monotonicNs": 58799343047393,
+          "phase": "result-settled",
+          "pid": 358243,
+          "requestId": "render_57"
+        }
+      ],
+      "meta": {
+        "detailType": "request",
+        "from": 440,
+        "source_bytes": 529,
+        "source_sha256": "ef80eda5ae0f45a95b22a734fbd6c8d4ef9e4187e6209d4c925164b547767c14",
+        "theme": "light",
+        "to": 969,
+        "width": 1100
+      },
+      "selection": "unknown: native request-meta does not record selection",
+      "sourceCandidates": [
+        {
+          "file": "ordinary.md",
+          "fullDocumentSha256": "a7267df165778c560a8fba59bfbff7065ae63365741e3eb87078783bc865fd4b",
+          "from": 440,
+          "to": 969,
+          "sourceBytes": 529,
+          "sourceSha256": "ef80eda5ae0f45a95b22a734fbd6c8d4ef9e4187e6209d4c925164b547767c14",
+          "source": "```mermaid\n---\ntitle: Animal example\n---\nclassDiagram\n    note \"From Duck till Zebra\"\n    Animal <|-- Duck\n    note for Duck \"can fly<br>can swim<br>can dive<br>can help in debugging\"\n    Animal <|-- Fish\n    Animal <|-- Zebra\n    Animal : +int age\n    Animal : +String gender\n    Animal: +isMammal()\n    Animal: +mate()\n    class Duck{\n        +String beakColor\n        +swim()\n        +quack()\n    }\n    class Fish{\n        -int sizeInFeet\n        -canEat()\n    }\n    class Zebra{\n        +bool is_wild\n        +run()\n    }\n```",
+          "sampleId": "classDiagram-000-first-official-example",
+          "family": "classDiagram"
+        }
+      ],
+      "points": {
+        "dispatch": 58799016093007,
+        "pipeWrite": 58799016177496,
+        "dequeued": 58799028754811,
+        "evaluateSubmitted": 58799028796702,
+        "evaluateCallbackEntry": 58799231797406,
+        "evaluateCallbackLogged": 58799231820395,
+        "resultDrained": 58799339546700,
+        "resultWrite": 58799339638665,
+        "receiveEntry": 58799342775355,
+        "matchingResult": 58799343021048,
+        "settled": 58799343047393
+      },
+      "intervals": {
+        "dispatchToPipeWriteMs": 0.084489,
+        "pipeWriteToDequeuedMs": 12.577315,
+        "dequeuedToEvaluateSubmittedMs": 0.041891,
+        "evaluateSubmittedToEvaluateCallbackEntryMs": 203.000704,
+        "evaluateCallbackEntryToEvaluateCallbackLoggedMs": 0.022989,
+        "evaluateCallbackLoggedToResultDrainedMs": 107.726305,
+        "resultDrainedToResultWriteMs": 0.091965,
+        "resultWriteToReceiveEntryMs": 3.13669,
+        "receiveEntryToMatchingResultMs": 0.245693,
+        "matchingResultToSettledMs": 0.026345
+      },
+      "dispatchToSettledMs": 326.954386,
+      "ok": true,
+      "cancelObserved": false,
+      "cancelPhases": [],
+      "complete": true
+    },
+    {
+      "instanceId": "0028e0e1fd92e3efec404fca7e011554738e493e076d89ab",
+      "requestId": "render_2",
+      "traces": [
+        {
+          "line": 30,
+          "instanceId": "0028e0e1fd92e3efec404fca7e011554738e493e076d89ab",
+          "monotonicNs": 58730483342435,
+          "phase": "dispatch",
+          "pid": 358243,
+          "requestId": "render_2"
+        },
+        {
+          "line": 31,
+          "details": {
+            "detailType": "request",
+            "from": 108,
+            "source_bytes": 234,
+            "source_sha256": "e51cb79094f8db3d5a6afd84b1b3a9dab0a1a8da503e5d39a1e7733985c0244b",
+            "theme": "light",
+            "to": 342,
+            "width": 1100
+          },
+          "instanceId": "0028e0e1fd92e3efec404fca7e011554738e493e076d89ab",
+          "monotonicNs": 58730483392433,
+          "phase": "request-meta",
+          "pid": 358243,
+          "requestId": "render_2"
+        },
+        {
+          "line": 32,
+          "details": {
+            "detailType": "frame",
+            "message": {
+              "id": "render_2",
+              "kind": "render",
+              "protocol": "document-render"
+            }
+          },
+          "instanceId": "0028e0e1fd92e3efec404fca7e011554738e493e076d89ab",
+          "monotonicNs": 58730483414289,
+          "phase": "pipe-write-complete",
+          "pid": 358243,
+          "requestId": "render_2"
+        },
+        {
+          "line": 33,
+          "details": {
+            "detailType": "frame",
+            "message": {
+              "id": "render_2",
+              "kind": "render",
+              "protocol": "document-render"
+            }
+          },
+          "instanceId": "0028e0e1fd92e3efec404fca7e011554738e493e076d89ab",
+          "monotonicNs": 58730487900830,
+          "phase": "helper-frame-dequeued",
+          "pid": 358379,
+          "requestId": "render_2"
+        },
+        {
+          "line": 34,
+          "details": {
+            "detailType": "frame",
+            "message": {
+              "id": "render_2",
+              "kind": "render",
+              "protocol": "document-render"
+            }
+          },
+          "instanceId": "0028e0e1fd92e3efec404fca7e011554738e493e076d89ab",
+          "monotonicNs": 58730488113510,
+          "phase": "helper-evaluate-submitted",
+          "pid": 358379,
+          "requestId": "render_2"
+        },
+        {
+          "line": 35,
+          "details": {
+            "callback_entry_monotonic_ns": 58730793465977,
+            "detailType": "evaluation",
+            "message": {
+              "id": "render_2",
+              "kind": "render",
+              "protocol": "document-render"
+            },
+            "result_kind": "null",
+            "success": true
+          },
+          "instanceId": "0028e0e1fd92e3efec404fca7e011554738e493e076d89ab",
+          "monotonicNs": 58730793486002,
+          "phase": "helper-evaluate-callback",
+          "pid": 358379,
+          "requestId": "render_2"
+        },
+        {
+          "line": 36,
+          "details": {
+            "detailType": "frame",
+            "message": {
+              "id": "render_2",
+              "kind": "result",
+              "protocol": "document-render"
+            }
+          },
+          "instanceId": "0028e0e1fd92e3efec404fca7e011554738e493e076d89ab",
+          "monotonicNs": 58730800651447,
+          "phase": "helper-result-drained",
+          "pid": 358379,
+          "requestId": "render_2"
+        },
+        {
+          "line": 37,
+          "details": {
+            "detailType": "received",
+            "entry_monotonic_ns": 58730801175638,
+            "message": {
+              "id": "render_2",
+              "kind": "result",
+              "protocol": "document-render"
+            },
+            "ok": true
+          },
+          "instanceId": "0028e0e1fd92e3efec404fca7e011554738e493e076d89ab",
+          "monotonicNs": 58730801176765,
+          "phase": "receive-entry",
+          "pid": 358243,
+          "requestId": "render_2"
+        },
+        {
+          "line": 38,
+          "details": {
+            "detailType": "received",
+            "entry_monotonic_ns": 58730801175638,
+            "message": {
+              "id": "render_2",
+              "kind": "result",
+              "protocol": "document-render"
+            },
+            "ok": true
+          },
+          "instanceId": "0028e0e1fd92e3efec404fca7e011554738e493e076d89ab",
+          "monotonicNs": 58730801257856,
+          "phase": "matching-result-received",
+          "pid": 358243,
+          "requestId": "render_2"
+        },
+        {
+          "line": 39,
+          "details": {
+            "detailType": "settled",
+            "message": {
+              "id": "render_2",
+              "kind": "result",
+              "protocol": "document-render"
+            },
+            "ok": true
+          },
+          "instanceId": "0028e0e1fd92e3efec404fca7e011554738e493e076d89ab",
+          "monotonicNs": 58730801266062,
+          "phase": "result-settled",
+          "pid": 358243,
+          "requestId": "render_2"
+        },
+        {
+          "line": 40,
+          "details": {
+            "detailType": "frame",
+            "message": {
+              "id": "render_2",
+              "kind": "result",
+              "protocol": "document-render"
+            }
+          },
+          "instanceId": "0028e0e1fd92e3efec404fca7e011554738e493e076d89ab",
+          "monotonicNs": 58730801711658,
+          "phase": "helper-result-write-complete",
+          "pid": 358379,
+          "requestId": "render_2"
+        }
+      ],
+      "meta": {
+        "detailType": "request",
+        "from": 108,
+        "source_bytes": 234,
+        "source_sha256": "e51cb79094f8db3d5a6afd84b1b3a9dab0a1a8da503e5d39a1e7733985c0244b",
+        "theme": "light",
+        "to": 342,
+        "width": 1100
+      },
+      "selection": "unknown: native request-meta does not record selection",
+      "sourceCandidates": [
+        {
+          "file": "ordinary.md",
+          "fullDocumentSha256": "a7267df165778c560a8fba59bfbff7065ae63365741e3eb87078783bc865fd4b",
+          "from": 108,
+          "to": 342,
+          "sourceBytes": 234,
+          "sourceSha256": "e51cb79094f8db3d5a6afd84b1b3a9dab0a1a8da503e5d39a1e7733985c0244b",
+          "source": "```mermaid\nblock\ncolumns 1\n  db((\"DB\"))\n  blockArrowId6<[\"&nbsp;&nbsp;&nbsp;\"]>(down)\n  block:ID\n    A\n    B[\"A wide one in the middle\"]\n    C\n  end\n  space\n  D\n  ID --> D\n  C --> D\n  style B fill:#969,stroke:#333,stroke-width:4px\n```",
+          "sampleId": "block-000-first-official-example",
+          "family": "block"
+        }
+      ],
+      "points": {
+        "dispatch": 58730483342435,
+        "pipeWrite": 58730483414289,
+        "dequeued": 58730487900830,
+        "evaluateSubmitted": 58730488113510,
+        "evaluateCallbackEntry": 58730793465977,
+        "evaluateCallbackLogged": 58730793486002,
+        "resultDrained": 58730800651447,
+        "resultWrite": 58730801711658,
+        "receiveEntry": 58730801175638,
+        "matchingResult": 58730801257856,
+        "settled": 58730801266062
+      },
+      "intervals": {
+        "dispatchToPipeWriteMs": 0.071854,
+        "pipeWriteToDequeuedMs": 4.486541,
+        "dequeuedToEvaluateSubmittedMs": 0.21268,
+        "evaluateSubmittedToEvaluateCallbackEntryMs": 305.352467,
+        "evaluateCallbackEntryToEvaluateCallbackLoggedMs": 0.020025,
+        "evaluateCallbackLoggedToResultDrainedMs": 7.165445,
+        "resultDrainedToResultWriteMs": 1.060211,
+        "resultWriteToReceiveEntryMs": -0.53602,
+        "receiveEntryToMatchingResultMs": 0.082218,
+        "matchingResultToSettledMs": 0.008206
+      },
+      "dispatchToSettledMs": 317.923627,
+      "ok": true,
+      "cancelObserved": false,
+      "cancelPhases": [],
+      "complete": true
+    },
+    {
+      "instanceId": "2dde50696c86d909bbf2b195ae830759c23ffaf8309eeee7",
+      "requestId": "render_31",
+      "traces": [
+        {
+          "line": 466,
+          "instanceId": "2dde50696c86d909bbf2b195ae830759c23ffaf8309eeee7",
+          "monotonicNs": 58785701733885,
+          "phase": "dispatch",
+          "pid": 358243,
+          "requestId": "render_31"
+        },
+        {
+          "line": 467,
+          "details": {
+            "detailType": "request",
+            "from": 440,
+            "source_bytes": 529,
+            "source_sha256": "ef80eda5ae0f45a95b22a734fbd6c8d4ef9e4187e6209d4c925164b547767c14",
+            "theme": "light",
+            "to": 969,
+            "width": 1100
+          },
+          "instanceId": "2dde50696c86d909bbf2b195ae830759c23ffaf8309eeee7",
+          "monotonicNs": 58785701787058,
+          "phase": "request-meta",
+          "pid": 358243,
+          "requestId": "render_31"
+        },
+        {
+          "line": 468,
+          "details": {
+            "detailType": "frame",
+            "message": {
+              "id": "render_31",
+              "kind": "render",
+              "protocol": "document-render"
+            }
+          },
+          "instanceId": "2dde50696c86d909bbf2b195ae830759c23ffaf8309eeee7",
+          "monotonicNs": 58785701837853,
+          "phase": "pipe-write-complete",
+          "pid": 358243,
+          "requestId": "render_31"
+        },
+        {
+          "line": 469,
+          "details": {
+            "detailType": "frame",
+            "message": {
+              "id": "render_31",
+              "kind": "render",
+              "protocol": "document-render"
+            }
+          },
+          "instanceId": "2dde50696c86d909bbf2b195ae830759c23ffaf8309eeee7",
+          "monotonicNs": 58785703559606,
+          "phase": "helper-frame-dequeued",
+          "pid": 358544,
+          "requestId": "render_31"
+        },
+        {
+          "line": 470,
+          "details": {
+            "detailType": "frame",
+            "message": {
+              "id": "render_31",
+              "kind": "render",
+              "protocol": "document-render"
+            }
+          },
+          "instanceId": "2dde50696c86d909bbf2b195ae830759c23ffaf8309eeee7",
+          "monotonicNs": 58785703712089,
+          "phase": "helper-evaluate-submitted",
+          "pid": 358544,
+          "requestId": "render_31"
+        },
+        {
+          "line": 471,
+          "details": {
+            "callback_entry_monotonic_ns": 58785866063074,
+            "detailType": "evaluation",
+            "message": {
+              "id": "render_31",
+              "kind": "render",
+              "protocol": "document-render"
+            },
+            "result_kind": "null",
+            "success": true
+          },
+          "instanceId": "2dde50696c86d909bbf2b195ae830759c23ffaf8309eeee7",
+          "monotonicNs": 58785866086490,
+          "phase": "helper-evaluate-callback",
+          "pid": 358544,
+          "requestId": "render_31"
+        },
+        {
+          "line": 472,
+          "details": {
+            "detailType": "frame",
+            "message": {
+              "id": "render_31",
+              "kind": "result",
+              "protocol": "document-render"
+            }
+          },
+          "instanceId": "2dde50696c86d909bbf2b195ae830759c23ffaf8309eeee7",
+          "monotonicNs": 58785996954500,
+          "phase": "helper-result-drained",
+          "pid": 358544,
+          "requestId": "render_31"
+        },
+        {
+          "line": 473,
+          "details": {
+            "detailType": "frame",
+            "message": {
+              "id": "render_31",
+              "kind": "result",
+              "protocol": "document-render"
+            }
+          },
+          "instanceId": "2dde50696c86d909bbf2b195ae830759c23ffaf8309eeee7",
+          "monotonicNs": 58785997064390,
+          "phase": "helper-result-write-complete",
+          "pid": 358544,
+          "requestId": "render_31"
+        },
+        {
+          "line": 474,
+          "details": {
+            "detailType": "received",
+            "entry_monotonic_ns": 58786001070004,
+            "message": {
+              "id": "render_31",
+              "kind": "result",
+              "protocol": "document-render"
+            },
+            "ok": true
+          },
+          "instanceId": "2dde50696c86d909bbf2b195ae830759c23ffaf8309eeee7",
+          "monotonicNs": 58786001071515,
+          "phase": "receive-entry",
+          "pid": 358243,
+          "requestId": "render_31"
+        },
+        {
+          "line": 475,
+          "details": {
+            "detailType": "received",
+            "entry_monotonic_ns": 58786001070004,
+            "message": {
+              "id": "render_31",
+              "kind": "result",
+              "protocol": "document-render"
+            },
+            "ok": true
+          },
+          "instanceId": "2dde50696c86d909bbf2b195ae830759c23ffaf8309eeee7",
+          "monotonicNs": 58786001325594,
+          "phase": "matching-result-received",
+          "pid": 358243,
+          "requestId": "render_31"
+        },
+        {
+          "line": 476,
+          "details": {
+            "detailType": "settled",
+            "message": {
+              "id": "render_31",
+              "kind": "result",
+              "protocol": "document-render"
+            },
+            "ok": true
+          },
+          "instanceId": "2dde50696c86d909bbf2b195ae830759c23ffaf8309eeee7",
+          "monotonicNs": 58786001365657,
+          "phase": "result-settled",
+          "pid": 358243,
+          "requestId": "render_31"
+        }
+      ],
+      "meta": {
+        "detailType": "request",
+        "from": 440,
+        "source_bytes": 529,
+        "source_sha256": "ef80eda5ae0f45a95b22a734fbd6c8d4ef9e4187e6209d4c925164b547767c14",
+        "theme": "light",
+        "to": 969,
+        "width": 1100
+      },
+      "selection": "unknown: native request-meta does not record selection",
+      "sourceCandidates": [
+        {
+          "file": "ordinary.md",
+          "fullDocumentSha256": "a7267df165778c560a8fba59bfbff7065ae63365741e3eb87078783bc865fd4b",
+          "from": 440,
+          "to": 969,
+          "sourceBytes": 529,
+          "sourceSha256": "ef80eda5ae0f45a95b22a734fbd6c8d4ef9e4187e6209d4c925164b547767c14",
+          "source": "```mermaid\n---\ntitle: Animal example\n---\nclassDiagram\n    note \"From Duck till Zebra\"\n    Animal <|-- Duck\n    note for Duck \"can fly<br>can swim<br>can dive<br>can help in debugging\"\n    Animal <|-- Fish\n    Animal <|-- Zebra\n    Animal : +int age\n    Animal : +String gender\n    Animal: +isMammal()\n    Animal: +mate()\n    class Duck{\n        +String beakColor\n        +swim()\n        +quack()\n    }\n    class Fish{\n        -int sizeInFeet\n        -canEat()\n    }\n    class Zebra{\n        +bool is_wild\n        +run()\n    }\n```",
+          "sampleId": "classDiagram-000-first-official-example",
+          "family": "classDiagram"
+        }
+      ],
+      "points": {
+        "dispatch": 58785701733885,
+        "pipeWrite": 58785701837853,
+        "dequeued": 58785703559606,
+        "evaluateSubmitted": 58785703712089,
+        "evaluateCallbackEntry": 58785866063074,
+        "evaluateCallbackLogged": 58785866086490,
+        "resultDrained": 58785996954500,
+        "resultWrite": 58785997064390,
+        "receiveEntry": 58786001070004,
+        "matchingResult": 58786001325594,
+        "settled": 58786001365657
+      },
+      "intervals": {
+        "dispatchToPipeWriteMs": 0.103968,
+        "pipeWriteToDequeuedMs": 1.721753,
+        "dequeuedToEvaluateSubmittedMs": 0.152483,
+        "evaluateSubmittedToEvaluateCallbackEntryMs": 162.350985,
+        "evaluateCallbackEntryToEvaluateCallbackLoggedMs": 0.023416,
+        "evaluateCallbackLoggedToResultDrainedMs": 130.86801,
+        "resultDrainedToResultWriteMs": 0.10989,
+        "resultWriteToReceiveEntryMs": 4.005614,
+        "receiveEntryToMatchingResultMs": 0.25559,
+        "matchingResultToSettledMs": 0.040063
+      },
+      "dispatchToSettledMs": 299.631772,
+      "ok": true,
+      "cancelObserved": false,
+      "cancelPhases": [],
+      "complete": true
+    }
+  ]
+}

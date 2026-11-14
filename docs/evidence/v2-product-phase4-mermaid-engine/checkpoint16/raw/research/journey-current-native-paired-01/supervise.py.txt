@@ -1,0 +1,214 @@
+#!/usr/bin/env python3
+"""External Linux mechanism probe. No UI may be launched until explicit GO.
+Usage: supervise.py --output NEW_DIR -- COMMAND [ARGS...]
+Runs fixed bbox twice in one fresh helper, then synchronous loop. All jobs 2s from native send.
+"""
+import shutil
+import argparse,ctypes,hashlib,json,os,pathlib,selectors,signal,subprocess,time,fcntl
+ap=argparse.ArgumentParser();ap.add_argument('--output',required=True);ap.add_argument('--phase',choices=['capture','paint'],required=True);ap.add_argument('command',nargs=argparse.REMAINDER);args=ap.parse_args()
+cmd=args.command[1:] if args.command and args.command[0]=='--' else args.command
+if not cmd:raise SystemExit('Command required')
+out=pathlib.Path(args.output);out.mkdir(parents=True,exist_ok=False)
+# Adopt/reap this probe's orphan descendants rather than leaving zombie entries to PID1.
+libc=ctypes.CDLL(None,use_errno=True)
+if libc.prctl(36,1,0,0,0)!=0:raise OSError(ctypes.get_errno(),'PR_SET_CHILD_SUBREAPER')
+# Allocate before opening logs. Keep read end >=10 before reserving fd3;
+# dup2 must never overwrite the only copy of the parent's read end.
+raw_read,raw_write=os.pipe2(os.O_CLOEXEC)
+result_read=fcntl.fcntl(raw_read,fcntl.F_DUPFD_CLOEXEC,10)
+os.close(raw_read)
+if raw_write!=3:
+ os.dup2(raw_write,3,inheritable=True);os.close(raw_write)
+else:os.set_inheritable(3,True)
+result_write=3
+trace=[];def_time=time.monotonic();proc=None;generation=None;owned={};stream=b'';results=[]
+def event(kind,**data):trace.append({'kind':kind,'mono':time.monotonic(),'wall':time.time(),**data})
+def stat(pid):
+ try:
+  p=pathlib.Path('/proc')/str(pid);s=(p/'stat').read_text().rsplit(')',1)[1].split()
+  return {'pid':pid,'state':s[0],'ppid':int(s[1]),'pgrp':int(s[2]),'birth':s[19],'utime':int(s[11]),'stime':int(s[12]),'name':(p/'comm').read_text().strip()}
+ except OSError as e:return {'pid':pid,'error':str(e)}
+def members():
+ # Capture both process-group membership and descendant lineage; never assume all
+ # WebKit children retained the helper's original PGID.
+ table={int(p.name):stat(int(p.name)) for p in pathlib.Path('/proc').iterdir() if p.name.isdigit()}
+ selected={pid for pid,row in table.items() if row.get('pgrp')==proc.pid}
+ selected.add(proc.pid)
+ changed=True
+ while changed:
+  extra={pid for pid,row in table.items() if row.get('ppid') in selected}
+  changed=not extra.issubset(selected);selected.update(extra)
+ for pid in selected:
+  row=table.get(pid,{})
+  if 'birth' in row:owned[pid]=row['birth']
+ return [row for pid,row in table.items() if owned.get(pid)==row.get('birth') and 'birth' in row]
+def terminate(reason):
+ global generation
+ before=[{'pid':pid,'birth':birth} for pid,birth in owned.items()];leader=stat(proc.pid)
+ if leader.get('birth') not in (None,generation):raise RuntimeError('PID generation changed; refuse signal')
+ event('terminate-group',reason=reason,pgid=proc.pid,members=before)
+ event('signal-start',pgid=proc.pid)
+ try:os.killpg(proc.pid,signal.SIGKILL)
+ except ProcessLookupError:pass
+ event('signal-return',pgid=proc.pid)
+ escaped=[row for row in members() if row.get('pgrp')!=proc.pid]
+ # Exact, generation-rechecked descendants that escaped the group are owned,
+ # but are recorded as a failure of process-group-only containment.
+ for row in escaped:
+  if stat(row['pid']).get('birth')==row['birth']:
+   try:os.kill(row['pid'],signal.SIGKILL)
+   except ProcessLookupError:pass
+ event('escaped-descendants',processes=escaped)
+ try:proc.wait(timeout=3)
+ except subprocess.TimeoutExpired:event('leader-not-reaped')
+ deadline=time.monotonic()+3;reaped=[]
+ while time.monotonic()<deadline:
+  try:
+   while True:
+    pid,status=os.waitpid(-1,os.WNOHANG)
+    if pid==0:break
+    reaped.append({'pid':pid,'status':status})
+  except ChildProcessError:pass
+  remaining=members()
+  if not remaining:break
+  time.sleep(.02)
+ event('cleanup',reaped=reaped,remainingGroupMembers=members())
+ if members():raise RuntimeError('Owned descendants still have members')
+ if escaped:raise RuntimeError('Descendant escaped original group; exact cleanup performed but group-only containment failed')
+def frame_before(deadline):
+ global stream
+ while True:
+  if time.monotonic()>=deadline:return None
+  if b'\n' in stream:
+   line,stream=stream.split(b'\n',1)
+   try:value=json.loads(line)
+   except (ValueError,UnicodeDecodeError):
+    event('failed-frame',bytes=len(line),utf8=line[:2048].decode('utf-8','replace'),hex=line[:512].hex())
+    raise
+   if time.monotonic()>=deadline:
+    event('late-frame-rejected');return None
+   event('received-frame',frame=value);return value
+  left=deadline-time.monotonic()
+  if left<=0:return None
+  if not sel.select(min(left,.1)):
+   remaining=deadline-time.monotonic()
+   if remaining<=0:return None
+   # No optional whole-proc scans while the fixed execution deadline is armed.
+   continue
+  chunk=os.read(result_read,8192)
+  if not chunk:raise RuntimeError('Helper stdout closed')
+  stream+=chunk
+  if len(stream)>262144:raise RuntimeError('Bounded native frame exceeded')
+try:
+ with (out/'stderr.log').open('wb') as err,(out/'stdout.log').open('wb') as std:
+  proc=subprocess.Popen(cmd,stdin=subprocess.PIPE,stdout=std,stderr=err,start_new_session=True,bufsize=0,pass_fds=(result_write,))
+  os.close(result_write);result_write=None
+  generation=stat(proc.pid)['birth'];event('spawn',pid=proc.pid,birth=generation,command=cmd)
+  sel=selectors.DefaultSelector();sel.register(result_read,selectors.EVENT_READ)
+  deadline=time.monotonic()+10;ready=False
+  while not ready:
+   f=frame_before(deadline)
+   if f is None:raise TimeoutError('Separate preparation deadline 10s')
+   if f.get('type')=='native-policy':assert f['sandbox'] and f['ephemeral'] and not f['tauriBridge']
+   if f.get('type')=='ready':
+    if f['value'].get('bootstrapMissing'):
+     time.sleep(.02);proc.stdin.write(b'bootstrap\n');proc.stdin.flush()
+    else:assert f['value'].get('ready') and not f['value']['hasTauri'];ready=True
+  # Native exact-resource guard: CSP permits same path/query, extension must deny.
+  guard_start=time.monotonic();guard_deadline=guard_start+2
+  while True:
+   proc.stdin.write(b'{"op":"guard"}\n');proc.stdin.flush()
+   f=frame_before(guard_deadline)
+   assert f is not None and f.get('type')=='result',f
+   value=f['value']
+   if value.get('status')!='pending':
+    assert value.get('status')=='blocked',value
+    assert 'GUARD_DENY milkup-render://job/entry.mjs?guard-check' in (out/'stderr.log').read_text(), 'Native guard denial not observed'
+    results.append({'task':'native-resource-guard','elapsed':time.monotonic()-guard_start,'value':value});break
+   time.sleep(.01)
+  event('pre-dispatch-ownership',members=members())
+  root=pathlib.Path(__file__).resolve().parent
+  def command(value,deadline):
+   proc.stdin.write((json.dumps(value,separators=(',',':'))+'\n').encode());proc.stdin.flush()
+   frame=frame_before(deadline)
+   assert frame is not None and frame.get('type')=='result',frame
+   return frame['value']
+  def task(request,label):
+   started=time.monotonic();deadline=started+2
+   event('native-send',task=label,armedMono=started,deadlineMono=deadline)
+   result=command({'op':'start','request':request},deadline);task_id=result['taskId']
+   while True:
+    state=command({'op':'poll','taskId':task_id},deadline)
+    assert state['status'] in ['pending','complete'],state
+    if state['status']=='complete':
+     result=state['result'];assert result.get('ok'),result
+     assert time.monotonic()<deadline,'Post-parse deadline exceeded'
+     event('settled',task=label,elapsed=time.monotonic()-started)
+     return result
+    time.sleep(.01)
+  def inspect(label):
+   value=command({'op':'inspect'},time.monotonic()+2)
+   (out/(label+'-state.json')).write_text(json.dumps(value,indent=2)+'\n')
+   return value
+  def snapshot(label):
+   before=inspect(label+'-before-snapshot')
+   value=command({'op':'snapshot'},time.monotonic()+2)
+   assert value.get('snapshot'),value
+   source=root/'profiles'/out.name/'journey.png';target=out/(label+'.png');shutil.copyfile(source,target)
+   after=inspect(label+'-after-snapshot')
+   for field in ['arm','mode','nodeId','rect','currentSrc','complete','naturalWidth','naturalHeight']:
+    assert before.get(field)==after.get(field),('Snapshot identity/geometry changed',field,before,after)
+   if before.get('preview'):
+    for field in ['top','left','scrollWidth','scrollHeight','clientWidth','clientHeight']:
+     assert before['preview'][field]==after['preview'][field],('Snapshot scroll changed',field)
+   event('paired-snapshot',label=label,sha256=hashlib.sha256(target.read_bytes()).hexdigest(),geometry=value,before=before,after=after)
+  def edges(label):
+   env={**os.environ,'DISPLAY':':128'}
+   def x(*arguments):return subprocess.check_output(['xdotool',*map(str,arguments)],env=env,text=True,timeout=2).strip()
+   windows=x('search','--onlyvisible','--name','^Isolated DOM mechanism probe$').splitlines();assert len(windows)==1,windows
+   window=windows[0]
+   initial=inspect(label+'-initial');viewport=initial['preview'];assert viewport
+   # Sole exact-owned display contains only this helper; window origin is handled by --window.
+   x('windowfocus','--sync',window)
+   left,top,width,height=viewport['rect']
+   x('mousemove','--window',window,round((left+width/2)*2),round((top+height/2)*2))
+   snapshot(label+'-top-left')
+   operations=[]
+   for axis,button,scroll,client in [('top','5','scrollHeight','clientHeight'),('left','7','scrollWidth','clientWidth')]:
+    deadline=time.monotonic()+10;ticks=0
+    while True:
+     current=inspect(label+'-'+axis+'-'+str(ticks))['preview']
+     target=current[scroll]-current[client]
+     if abs(current[axis]-target)<=1:break
+     assert time.monotonic()<deadline and ticks<20,('Bounded wheel edge not reached',axis,current)
+     x('click',button);ticks+=1;time.sleep(.08)
+    operations.append({'axis':axis,'target':target,'actual':current[axis],'ticks':ticks})
+   snapshot(label+'-bottom-right')
+   event('native-wheel-edges',label=label,operations=operations)
+  if args.phase=='capture':
+   request=json.loads((root/'request.json').read_text())
+   value=task(request,'actual-current-renderer')
+   (out/'typed-result.json').write_text(json.dumps(value['typedResult'],ensure_ascii=False,indent=2)+'\n')
+   captured=command({'op':'original-source'},time.monotonic()+2)
+   assert isinstance(captured.get('rawReturnedSvg'),str) and isinstance(captured.get('installedRootSvg'),str)
+   (out/'raw-capture.json').write_text(json.dumps(captured,ensure_ascii=False,indent=2)+'\n')
+   results.append({'status':'capture-complete','scope':'actual current source renderer plus synchronous observation tap'})
+  else:
+   for arm in ['original','canonical']:
+    task({'arm':arm,'mode':'full'},arm+'-full')
+    snapshot(arm+'-full-canvas')
+    task({'arm':arm,'mode':'scroll'},arm+'-scroll')
+    edges(arm)
+   results.append({'status':'paired-complete','scope':'same-capture original and independently canonicalized artifact; no rerender'})
+  terminate('completed-research-cleanup');proc=None
+ event('completed',results=results)
+except BaseException as e:
+ event('failed',error=repr(e))
+ if proc is not None:
+  try:terminate('failure-cleanup')
+  except BaseException as cleanup:event('cleanup-failed',error=repr(cleanup))
+ raise
+finally:
+ os.close(result_read)
+ if result_write is not None:os.close(result_write)
+ (out/'result.json').write_text(json.dumps({'diagnosticOnly':True,'phase':args.phase,'actualCurrentSourceRenderer':args.phase=='capture','productPluginTested':False,'currentCoreValidatedFixedAST':args.phase=='paint','results':results,'events':trace},ensure_ascii=False,indent=2))

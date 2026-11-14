@@ -1,0 +1,324 @@
+// Include inside plugin_dom::process::tests in the independent candidate only.
+// One invocation is exactly one fresh helper. The reviewed external sequence owns
+// four ABBA invocations; each instance receives at most two identical class payloads.
+#[test]
+#[ignore = "explicit isolated ABBA eager-load diagnostic candidate, frozen inputs, native display required"]
+fn real_webkit_eager_loading_cell() {
+    use std::path::{Path, PathBuf};
+    fn save(path: &Path, value: &Value) {
+        let bytes = serde_json::to_vec_pretty(value).unwrap();
+        assert!(bytes.len() < 1024 * 1024, "bounded research artifact");
+        let mut file = std::fs::OpenOptions::new()
+            .write(true)
+            .create_new(true)
+            .open(path)
+            .unwrap();
+        file.write_all(&bytes).unwrap();
+    }
+    fn read_hashed(root: &Path, name: &str, expected: &Value) -> Vec<u8> {
+        assert!(!name.contains('/') && !name.contains(".."));
+        let bytes = std::fs::read(root.join(name)).unwrap();
+        assert_eq!(
+            format!("{:x}", Sha256::digest(&bytes)),
+            expected.as_str().unwrap()
+        );
+        bytes
+    }
+    fn window_snapshot(out: &Path, stage: &str, owners: Value, baseline: Option<&Path>) -> Value {
+        let input = out.join(format!("windows-{stage}-identity.json"));
+        let output = out.join(format!("windows-{stage}.json"));
+        save(
+            &input,
+            &json!({"display":std::env::var("DISPLAY").unwrap(),"owners":owners}),
+        );
+        let mut command = Command::new("/usr/bin/python3");
+        command
+            .arg(std::env::var("MILKUP_EAGER_WINDOW_OBSERVER").unwrap())
+            .arg("--identity-file")
+            .arg(&input)
+            .arg("--output")
+            .arg(&output);
+        if let Some(path) = baseline {
+            command.arg("--baseline").arg(path);
+        }
+        let observed = command.output().unwrap();
+        save(
+            &out.join(format!("windows-{stage}-command.json")),
+            &json!({
+                "exitCode":observed.status.code(),
+                "stdout":String::from_utf8_lossy(&observed.stdout),
+                "stderr":String::from_utf8_lossy(&observed.stderr)
+            }),
+        );
+        assert!(observed.status.success(), "X11 observation failed");
+        let value: Value = serde_json::from_slice(&std::fs::read(output).unwrap()).unwrap();
+        assert_eq!(value["schema"], "milkup.owned-x11-observation.v1");
+        assert_eq!(value["ok"], true);
+        assert_eq!(value["identity"]["allMatched"], true);
+        assert_eq!(value["assessment"]["ownedVisibleToplevelsAbsent"], true);
+        if baseline.is_some() {
+            for key in [
+                "sameDisplay",
+                "focusUnchanged",
+                "activeWindowUnchanged",
+                "noNewVisibleToplevels",
+            ] {
+                assert_eq!(value["comparison"][key], true, "X11 condition {key}");
+            }
+        }
+        value
+    }
+    let fixtures = PathBuf::from(std::env::var("MILKUP_EAGER_FIXTURES").unwrap());
+    let out = PathBuf::from(std::env::var("MILKUP_EAGER_OUTPUT").unwrap());
+    assert!(!out.exists(), "fresh ABBA cell output required");
+    std::fs::create_dir_all(&out).unwrap();
+    let cell = std::env::var("MILKUP_EAGER_CELL").unwrap();
+    assert!(["01-A", "02-B", "03-B", "04-A"].contains(&cell.as_str()));
+    let arm = cell.split_once('-').unwrap().1;
+    assert_eq!(std::env::var("MILKUP_DOM_TIMER_CONTROL").unwrap(), "hidden");
+    assert_eq!(std::env::var("MILKUP_DOM_DIAGNOSTICS").unwrap(), "1");
+    assert_eq!(INIT_DEADLINE, Duration::from_secs(10));
+    assert_eq!(RENDER_DEADLINE, Duration::from_secs(2));
+    let executable = PathBuf::from(std::env::var("MILKUP_DOM_NATIVE_TEST_EXECUTABLE").unwrap());
+    assert_eq!(executable,PathBuf::from("/workspace/milkup-mermaid-engine-evidence/research/native-hidden-timer-candidate-01/bin/milkup-desktop"));
+    assert_eq!(
+        format!("{:x}", Sha256::digest(std::fs::read(&executable).unwrap())),
+        "02b15a8038e694806e4cbc5f8a6b6324160529a0ab3303934a626d7c8e848982"
+    );
+    let observer = PathBuf::from(std::env::var("MILKUP_EAGER_WINDOW_OBSERVER").unwrap());
+    assert_eq!(
+        format!("{:x}", Sha256::digest(std::fs::read(&observer).unwrap())),
+        std::env::var("MILKUP_EAGER_WINDOW_OBSERVER_SHA256").unwrap()
+    );
+    let index_bytes = std::fs::read(fixtures.join("index.json")).unwrap();
+    assert_eq!(
+        format!("{:x}", Sha256::digest(&index_bytes)),
+        std::env::var("MILKUP_EAGER_FIXTURE_INDEX_SHA256").unwrap()
+    );
+    let index: Value = serde_json::from_slice(&index_bytes).unwrap();
+    let config = &index["fixtures"][arm];
+    assert_eq!(config["pluginId"], "milkup.diagrams");
+    assert_eq!(config["rendererId"], "diagrams.mermaid");
+    let module = String::from_utf8(read_hashed(
+        &fixtures,
+        config["module"].as_str().unwrap(),
+        &config["moduleSha256"],
+    ))
+    .unwrap();
+    let manifest: Value = serde_json::from_slice(&read_hashed(
+        &fixtures,
+        config["manifest"].as_str().unwrap(),
+        &config["manifestSha256"],
+    ))
+    .unwrap();
+    let request: Value = serde_json::from_slice(&read_hashed(
+        &fixtures,
+        config["request"].as_str().unwrap(),
+        &config["requestSha256"],
+    ))
+    .unwrap();
+    assert_eq!(request["id"], "render_1");
+    let source = request["payload"]["request"]["source"].as_str().unwrap();
+    assert_eq!(source.len(), 529);
+    assert_eq!(
+        format!("{:x}", Sha256::digest(source.as_bytes())),
+        "ef80eda5ae0f45a95b22a734fbd6c8d4ef9e4187e6209d4c925164b547767c14"
+    );
+    assert_eq!(request["payload"]["request"]["from"], 440);
+    assert_eq!(request["payload"]["request"]["to"], 969);
+    assert_eq!(request["payload"]["request"]["width"], 1100);
+    assert_eq!(request["payload"]["request"]["theme"], "light");
+    let payload_bytes = serde_json::to_vec(&request["payload"]).unwrap();
+    let payload_sha = format!("{:x}", Sha256::digest(&payload_bytes));
+    save(
+        &out.join("input.json"),
+        &json!({"cell":cell,"arm":arm,"container":"hidden","fixture":config,"request":request,
+        "payloadJsonSha256":payload_sha,"classification":"synthetic complete request metadata with exact historical class source/range/width/theme; diagnostic only"}),
+    );
+    window_snapshot(&out, "baseline", json!([]), None);
+    let baseline_path = out.join("windows-baseline.json");
+    let snapshot = Snapshot {
+        manifest: manifest.clone(),
+        sha256: format!("{:x}", Sha256::digest(module.as_bytes())),
+        module,
+    };
+    let (tx, rx) = std::sync::mpsc::channel();
+    let preparation_started = Instant::now();
+    let before_launch_ns = native_diagnostic_time().unwrap();
+    let instance = Instance::launch(
+        "milkup.diagrams".into(),
+        snapshot,
+        Arc::new(move |event| {
+            let _ = tx.send(event);
+        }),
+        executable.clone(),
+    )
+    .unwrap();
+    let after_launch_ns = native_diagnostic_time().unwrap();
+    struct ResearchCleanup(Arc<Instance>);
+    impl Drop for ResearchCleanup {
+        fn drop(&mut self) {
+            let _ = self.0.stop();
+        }
+    }
+    let _cleanup = ResearchCleanup(instance.clone());
+    save(
+        &out.join("instance.json"),
+        &json!({"instanceId":instance.id,"guardianPid":instance.pid,"guardianBirth":instance.birth,
+        "beforeLaunchMonotonicNs":before_launch_ns,"afterLaunchMonotonicNs":after_launch_ns}),
+    );
+    let before_activation_send_ns = native_diagnostic_time().unwrap();
+    instance.send(json!({"protocol":RPC_PROTOCOL,"type":"request","id":"activate_1","method":"activate",
+        "payload":{"pluginId":"milkup.diagrams","manifest":manifest,"permissions":["document:read"],"hostCapabilities":[]}})).unwrap();
+    let activation = rx.recv_timeout(Duration::from_secs(12)).unwrap();
+    let activation_received_ns = native_diagnostic_time().unwrap();
+    let preparation_ms = preparation_started.elapsed().as_secs_f64() * 1000.0;
+    save(
+        &out.join("activation.json"),
+        &serde_json::to_value(&activation).unwrap(),
+    );
+    save(
+        &out.join("preparation-timing.json"),
+        &json!({"beforeLaunchMonotonicNs":before_launch_ns,
+        "afterLaunchMonotonicNs":after_launch_ns,"beforeActivationSendMonotonicNs":before_activation_send_ns,
+        "activationReceivedMonotonicNs":activation_received_ns,"launchToActivationMs":preparation_ms,
+        "nativeInitializationBudgetMs":10000,"meaning":"Observed total preparation wall time including real launch, helper import, activation/fonts/eager work; not CPU or isolated module-load time."}),
+    );
+    assert_eq!(
+        activation.kind, "message",
+        "activation/setup failure stops ABBA"
+    );
+    assert_eq!(activation.instance_id, instance.id);
+    assert_eq!(activation.plugin_id, "milkup.diagrams");
+    let activated = activation.message.as_ref().unwrap();
+    assert_eq!(activated["id"], "activate_1");
+    assert_eq!(activated["ok"], true);
+    assert_eq!(
+        activated["value"]["documentRenderers"],
+        json!(["diagrams.mermaid"])
+    );
+    instance.sample_owned();
+    let owned = instance.owned.lock().unwrap().clone();
+    let mut helpers = Vec::new();
+    let mut candidate_records = Vec::new();
+    for (pid, birth) in &owned {
+        if let Some(row) = proc_stat(*pid) {
+            if row.birth != *birth || row.parent != instance.pid {
+                continue;
+            }
+            let mut raw = Vec::new();
+            let read = File::open(format!("/proc/{pid}/cmdline"))
+                .and_then(|file| file.take(16385).read_to_end(&mut raw));
+            if let Err(error) = read {
+                candidate_records.push(
+                    json!({"pid":pid,"birth":birth,"parent":row.parent,"error":error.to_string()}),
+                );
+                continue;
+            }
+            assert!(raw.len() <= 16384);
+            let args: Vec<_> = raw.split(|v| *v == 0).filter(|v| !v.is_empty()).collect();
+            let matched = args
+                == vec![
+                    executable.to_str().unwrap().as_bytes(),
+                    b"--milkup-internal-dom-helper".as_slice(),
+                ];
+            candidate_records.push(json!({"pid":pid,"birth":birth,"parent":row.parent,"argv":args.iter().map(|v|String::from_utf8_lossy(v)).collect::<Vec<_>>(),"matched":matched}));
+            if matched {
+                helpers.push((*pid, *birth));
+            }
+        }
+    }
+    save(
+        &out.join("helper-candidates.json"),
+        &json!(candidate_records),
+    );
+    assert_eq!(helpers.len(), 1, "unique exact direct helper required");
+    let owners = json!([{"role":"guardian","pid":instance.pid,"birth":instance.birth},{"role":"helper","pid":helpers[0].0,"birth":helpers[0].1}]);
+    save(&out.join("owned.json"), &owners);
+    window_snapshot(&out, "activated", owners.clone(), Some(&baseline_path));
+    let mut request_outcomes = Vec::new();
+    let mut deadline = false;
+    for ordinal in 1..=2 {
+        let request_id = format!("render_{ordinal}");
+        if deadline {
+            request_outcomes.push(json!({"requestId":request_id,"status":"not-executed-censored","reason":"Prior native deadline stopped this instance; no second send or fabricated result"}));
+            break;
+        }
+        let mut current = request.clone();
+        current["id"] = json!(request_id);
+        assert_eq!(
+            current["payload"], request["payload"],
+            "identical payload for both renders"
+        );
+        save(&out.join(format!("request-{ordinal}.json")), &current);
+        let start = Instant::now();
+        let before_send_ns = native_diagnostic_time().unwrap();
+        instance.send(current).unwrap();
+        let event = rx.recv_timeout(Duration::from_secs(7)).unwrap();
+        let received_ns = native_diagnostic_time().unwrap();
+        let elapsed = start.elapsed();
+        save(
+            &out.join(format!("event-{ordinal}.json")),
+            &serde_json::to_value(&event).unwrap(),
+        );
+        assert_eq!(event.instance_id, instance.id);
+        assert_eq!(event.plugin_id, "milkup.diagrams");
+        if event.kind == "document-render-timeout" {
+            assert_eq!(event.request_id.as_deref(), Some(request_id.as_str()));
+            assert!(elapsed >= RENDER_DEADLINE);
+            deadline = true;
+            request_outcomes.push(json!({"requestId":request_id,"status":"native-render-deadline","beforeSendMonotonicNs":before_send_ns,
+                "eventReceivedMonotonicNs":received_ns,"elapsedMs":elapsed.as_secs_f64()*1000.0,"payloadJsonSha256":payload_sha}));
+        } else {
+            assert_eq!(
+                event.kind, "message",
+                "setup/security/native errors stop batch"
+            );
+            let result = event.message.as_ref().unwrap();
+            assert_eq!(result["id"], request_id);
+            assert_eq!(result["protocol"], "milkup.plugin.document-render.v1");
+            assert_eq!(result["type"], "result");
+            assert_eq!(result["ok"], true, "renderer failure stops batch");
+            let value = &result["value"];
+            assert_eq!(value["complete"], true);
+            let fragments = value["fragments"].as_array().unwrap();
+            assert_eq!(fragments.len(), 1);
+            assert_eq!(fragments[0]["status"], "ready");
+            assert_eq!(fragments[0]["from"], 440);
+            assert_eq!(fragments[0]["to"], 969);
+            assert_eq!(fragments[0]["content"]["type"], "svg-image");
+            assert!(fragments[0]["content"]["width"]
+                .as_f64()
+                .is_some_and(|n| n.is_finite() && n > 0.0));
+            assert!(fragments[0]["content"]["height"]
+                .as_f64()
+                .is_some_and(|n| n.is_finite() && n > 0.0));
+            let value_bytes = serde_json::to_vec(value).unwrap();
+            request_outcomes.push(json!({"requestId":request_id,"status":"result","beforeSendMonotonicNs":before_send_ns,
+                "eventReceivedMonotonicNs":received_ns,"elapsedMs":elapsed.as_secs_f64()*1000.0,"payloadJsonSha256":payload_sha,
+                "resultValueJsonBytes":value_bytes.len(),"resultValueJsonSha256":format!("{:x}",Sha256::digest(&value_bytes)),
+                "hashQualification":"Compact serde JSON result hash, NOT host canonical SVG or frontend validation"}));
+            window_snapshot(
+                &out,
+                &format!("rendered-{ordinal}"),
+                owners.clone(),
+                Some(&baseline_path),
+            );
+        }
+    }
+    instance.stop().unwrap();
+    for (pid, birth) in instance.owned.lock().unwrap().iter() {
+        assert!(
+            !proc_stat(*pid).is_some_and(|p| p.birth == *birth),
+            "owned process remains"
+        );
+    }
+    assert!(rx.try_recv().is_err(), "no extra control/result after stop");
+    window_snapshot(&out, "stopped", json!([]), Some(&baseline_path));
+    save(
+        &out.join("outcome.json"),
+        &json!({"cell":cell,"arm":arm,"container":"hidden","launchToActivationMs":preparation_ms,
+        "requests":request_outcomes,"ownedCleanupConfirmed":true,"normalVisibleWindowAbsentAtSnapshots":true,
+        "limits":"ABBA is a mechanism comparison with synthetic full metadata; real class source/width/theme. Native times include overhead, not CPU. No engine/layout/render warmup before first request."}),
+    );
+}

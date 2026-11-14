@@ -1,0 +1,18 @@
+{
+  "name": "milkup-images",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "tsc --noEmit && node scripts/build.mjs",
+    "check": "tsc --noEmit",
+    "test": "vitest run --config vitest.config.ts",
+    "verify:external": "node scripts/verify-external.mjs"
+  },
+  "devDependencies": {
+    "@milkup/plugin-sdk": "0.3.2",
+    "esbuild": "^0.25.0",
+    "typescript": "^5.8.0",
+    "vitest": "^3.2.4"
+  }
+}

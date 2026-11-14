@@ -1,0 +1,28 @@
+from pathlib import Path
+import json,hashlib,shutil
+p=Path(__file__).parent;repo=Path('/workspace/milkup');sha=lambda f:hashlib.sha256(f.read_bytes()).hexdigest()
+r=p/'runs/gantt-product-canonical100-first05';c=p/'runs/product-converter-gantt-fifth01';h=p/'product-converter05-host-validation'
+for name in ['svg-converter.ts','svg-primitives.ts','bounded-opacity.ts','paint-envelope.ts']:
+ assert sha(repo/'plugins/diagrams/src'/name)==sha(p/'revision-product-converter05/src'/name),name
+original=json.loads((c/'scan_022-result.json').read_text());paired=json.loads((r/'scan_022-result.json').read_text());assert original['image']==paired['image']
+trace=[]
+for d in [c,r]:
+ t=json.loads((d/'result.json').read_text());assert any(e['kind']=='completed' for e in t['events']);cleanup=[e for e in t['events'] if e['kind']=='cleanup'];assert cleanup and all(not e['remainingGroupMembers'] for e in cleanup)
+ trace.append({'run':str(d),'results':t['results'],'cleanupRemaining':[]})
+summary={'status':'single-current-Gantt-chain-verified','matrixRerun':False,'scope':'Fresh current product converter source + unchanged fixed official offline Mermaid12.2.0 engine in external native WebKit helper. Independent current core validation/serialization, then actual canonical image pixels. Not final plugin-package build, full app document view, all families, or 125/200 canonical-image acceptance.','native':trace,'host':json.loads((h/'results.json').read_text()),'pixels':json.loads((r/'pixel-comparison.json').read_text()),'actualAstEqualAcrossBothNativeRuns':True,'sourceIdentity':{'revision':'revision-product-converter05','pairedRevision':'revision-gantt-product-paired05','engineSha256':sha(p/'paired-helper/assets/mermaid-full-12.2.0.mjs'),'helperSdkRuntimeInput':False,'explanation':'Converter public SDK imports are type-only and erased by esbuild. Helper converter bundle was prepared before final SDK install; no SDK JS/tarball/lock is consumed by this helper. Final installed SDK types and89tests separately passed under build owner. This is not a final frozen plugin dependency closure proof.','finalSdkReportedByBuildOwner':'1717c0114aa165fa3e48a1bfa7687ffd0d9b2e5392d33e99d8b2dc59a1f3ad4f'},'limitsUnchanged':{'renderMs':2000,'observationMs':2000,'frameBytes':262144},'priorRedPreserved':['runs/gantt-opacity-100-first01','product-converter04-host-validation/results.json'],'visualReviews':[str(r/'pixel-review.json'),str(p/'gantt-product-canonical100-root-review.json')],'remaining':['Final packaged plugin bundle/lock verification and production native integration.','Timeline brightness explicitly unsupported; no stripping or experimental SVG-engine switch.']}
+(p/'product-converter05-summary.json').write_text(json.dumps(summary,indent=2)+'\n')
+base=json.loads((p/'product-converter04-counting-addendum.json').read_text())
+for family,rows in base['families'].items():
+ for row in rows:
+  row['evidenceRevision']='04 prior frozen batch, not rerun after bounded identity change'
+  if row['index']==11:
+   row.update({'host':'accepted','reason':None,'evidenceRevision':'05 fresh current single-case native converter→currentcore→canonicalimg100','pixelStatus':'actual canonical100 controlled three-way PNG byte-equal'})
+base.update({'status':'latest-per-case-observations-mixed-revisions-not-new-matrix-pass','matrixHostAccepted':30,'officialHostAccepted':26,'onlyRerunMatrixIndex':11,'source':'product-converter04-counting-addendum.json + product-converter05-summary.json','caution':'Thirty accepted matrix observations combine29 older04 cases with one fresh05 Gantt. No claim all37 have been rerun against latest converter/core. Seven explicit converter rejections unchanged.31 fixed contracts are historical04; current89 unit tests include11 new bounded-opacity guards.'})
+(p/'product-family-status-after05.json').write_text(json.dumps(base,indent=2)+'\n')
+files=[]
+for d in [r,c,h,p/'revision-product-converter05',p/'revision-gantt-product-paired05']:
+ files += [f for f in d.rglob('*') if f.is_file()]
+for name in ['prepare-product-converter05.py','prepare-gantt-product-paired05.py','product-host-validator05.mjs','validate-product-converter05.mjs','summarize-product-converter05.py','product-converter05-summary.json','product-family-status-after05.json','product-converter-gantt-fifth01.log','gantt-product-canonical100-first05.log','product-converter05-host-validation.log','build-product-converter05.log','build-gantt-product-paired05.log','gantt-product-canonical100-root-review.json']:
+ files.append(p/name)
+selection={'scope':'Current single-Gantt proof and exact source snapshots; no profiles, fixtures unrelated to source, binaries, or generated shared caches.','files':[{'path':str(f),'sha256':sha(f),'bytes':f.stat().st_size} for f in sorted(set(files))]}
+(p/'product-converter05-selection.json').write_text(json.dumps(selection,indent=2)+'\n');print(json.dumps({'selectedFiles':len(selection['files']),'selectedBytes':sum(x['bytes'] for x in selection['files'])}))

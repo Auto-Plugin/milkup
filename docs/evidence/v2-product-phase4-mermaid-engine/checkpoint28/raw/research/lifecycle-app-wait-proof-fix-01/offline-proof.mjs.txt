@@ -1,0 +1,37 @@
+import assert from 'node:assert/strict'
+import { readFile, writeFile } from 'node:fs/promises'
+import { createHash } from 'node:crypto'
+const here = '/workspace/milkup-mermaid-engine-evidence/research/lifecycle-app-wait-proof-fix-01'
+const base = '/workspace/milkup-mermaid-engine-evidence/research/production08-generic-busy-final-01/lifecycle/runs/lifecycle-p08-candidate-remove-01'
+const before = await readFile(`${here}/harness-before.mjs`, 'utf8')
+const after = await readFile('/workspace/milkup/tests/native/tauri-dom-plugin-lifecycle.mjs', 'utf8')
+function proofBody(source) {
+  const start = source.indexOf('    const guardian = bound.selectedGuardian\n    const killStarted = traces.find(')
+  const end = source.indexOf("  } else assert(cleanupTrace, 'Actual fixture guardian ECHILD diagnostic')", start)
+  assert(start > 0 && end > start)
+  return source.slice(start, end)
+}
+const body = proofBody(before)
+assert.equal(proofBody(after), body, 'Existing wm-close proof body remains byte-identical')
+const provenance = JSON.parse(await readFile(`${base}/provenance.json`, 'utf8'))
+const bound = JSON.parse(await readFile(`${base}/process-observer/summary.json`, 'utf8'))
+const events = JSON.parse(await readFile(`${base}/events.json`, 'utf8'))
+const raw = await readFile(`${base}/native-app.log`, 'utf8')
+const traces = [...raw.matchAll(/DOM_NATIVE_TIMING (\{[^\n]+\})/g)].map(m => JSON.parse(m[1])).filter(t => t.instanceId === bound.selectedGuardian.instanceId)
+const busyRequest = events.find(e => e.name === 'actual-webkit-busy').originalDispatch
+const cleanupTrace = traces.find(t => t.phase === 'cleanup-complete')
+const appIdentity = provenance.appIdentity
+assert.equal(appIdentity.pid, bound.root.pid)
+assert.equal(String(appIdentity.birth), String(bound.root.birth))
+assert.equal(bound.selectedGuardian.parent, appIdentity.pid)
+const records = []
+const AsyncFunction = Object.getPrototypeOf(async function () {}).constructor
+await new AsyncFunction('assert', 'bound', 'traces', 'appIdentity', 'busyRequest', 'cleanupTrace', 'record', body)(assert, bound, traces, appIdentity, busyRequest, cleanupTrace, async (name, detail) => records.push({name, ...detail}))
+const cleared = events.find(e => e.name === 'owned-context-cleared')
+assert(cleared.elapsedMs <= 4500)
+assert.equal(cleared.observation.members.length, 0)
+assert.equal(cleared.observation.privateDirectoryExists, false)
+assert.equal(events.find(e => e.name === 'verdict').status, 'failed')
+assert.equal(cleanupTrace, undefined)
+await writeFile(`${here}/offline-proof-result.json`, JSON.stringify({scope:'Offline execution of byte-identical existing wm-close assertion body against frozen first-failure raw traces. Not a native rerun or replacement verdict.', proofBodySha256:createHash('sha256').update(body).digest('hex'), matchedTraceCount:traces.length, records, cleared, originalVerdict:'failed', originalLaterAssertionsNotExecuted:true}, null, 2) + '\n')
+console.log('PASS: unchanged existing wait-proof assertions; original remove verdict remains failed')

@@ -1,0 +1,31 @@
+$ playwright test tests/e2e/desktop-updates.spec.ts --workers=1
+[WebServer] (node:25082) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] $ vite --host 127.0.0.1
+[WebServer] (node:25095) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] (node:25124) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] $ vite --host 127.0.0.1
+[WebServer] (node:25143) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 13 tests using 1 worker
+
+(node:25183) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓   1 [desktop-msedge] › tests/e2e/desktop-updates.spec.ts:82:1 › about uses the real build version and browser preview cannot install updates (3.4s)
+  ✓   2 [desktop-msedge] › tests/e2e/desktop-updates.spec.ts:92:1 › update download, progress, literal release notes, confirmation and cancellation are visible (4.3s)
+  ✓   3 [desktop-msedge] › tests/e2e/desktop-updates.spec.ts:117:1 › signature failure is retryable and never offers installation (3.6s)
+  ✓   4 [desktop-msedge] › tests/e2e/desktop-updates.spec.ts:133:1 › unsaved document must save before install; cancellation preserves content and undo (5.9s)
+  ✓   5 [desktop-msedge] › tests/e2e/desktop-updates.spec.ts:162:1 › save failure blocks update installation and keeps the draft editable after cancelling (3.7s)
+  ✓   6 [desktop-msedge] › tests/e2e/desktop-updates.spec.ts:190:1 › unconfigured and offline checks are distinct and installation failure unlocks editing (3.8s)
+  ✓   7 [desktop-msedge] › tests/e2e/desktop-updates.spec.ts:219:3 › windowed source update guard flushes edits and preserves complete saved Unicode data (4.9s)
+  ✓   8 [desktop-msedge] › tests/e2e/desktop-updates.spec.ts:219:3 › windowed live update guard flushes edits and preserves complete saved Unicode data (3.9s)
+  ✓   9 [desktop-msedge] › tests/e2e/desktop-updates.spec.ts:264:5 › update panel light at 1100 keeps controls reachable (3.4s)
+  ✓  10 [desktop-msedge] › tests/e2e/desktop-updates.spec.ts:264:5 › update panel light at 760 keeps controls reachable (4.2s)
+  ✓  11 [desktop-msedge] › tests/e2e/desktop-updates.spec.ts:264:5 › update panel dark at 1100 keeps controls reachable (3.5s)
+  ✓  12 [desktop-msedge] › tests/e2e/desktop-updates.spec.ts:264:5 › update panel dark at 760 keeps controls reachable (3.2s)
+  ✓  13 [desktop-msedge] › tests/e2e/desktop-updates.spec.ts:290:1 › a completed background download does not steal focus from document editing (3.4s)
+
+  13 passed (59.2s)

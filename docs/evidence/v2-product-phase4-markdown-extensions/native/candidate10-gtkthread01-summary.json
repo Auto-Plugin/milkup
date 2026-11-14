@@ -1,0 +1,60 @@
+{
+  "diagnosticOnly": true,
+  "acceptance": false,
+  "exitCode": 0,
+  "steps": [
+    "00-installed-distribution",
+    "installed-milkup.math",
+    "enabled-milkup.math",
+    "installed-milkup.diagrams",
+    "enabled-milkup.diagrams",
+    "installed-milkup.footnotes",
+    "enabled-milkup.footnotes",
+    "DIAGNOSTIC-GTK-INSTALL-COMPLETE"
+  ],
+  "gtkTrace": "/workspace/milkup-markdown-extensions-phase4-evidence/native/gtk-thread-diagnostic/candidate10-gtkthread01/gtk-threads.log",
+  "symbols": "gtk::rt::init\n??:?\ngtk::auto::functions::main_iteration_do\n??:?\nstd::sys::backtrace::__rust_begin_short_backtrace::<<rfd::backend::gtk3::utils::GtkGlobalThread>::new::{closure#0}, ()>\n??:?\nstd::sys::backtrace::__rust_begin_short_backtrace::<<rfd::backend::gtk3::utils::GtkGlobalThread>::new::{closure#0}, ()>\n??:?\n<rfd::backend::gtk3::file_dialog::dialog_ffi::GtkFileDialog>::new\nrfd.d5292fa57566068a-cgu.2:?\n",
+  "warningCounts": {
+    "statfsBadAddress": 2,
+    "invalidTreeModel": 110,
+    "widgetRealized": 6,
+    "fatalGtk": 0
+  },
+  "actualMaps": "EACCES refused /proc/140757/maps; no actual library-map conclusion, no escalation",
+  "limits": [
+    "Actual main GTK init/iteration_do and separate rfd GtkGlobalThread init/iteration proven byTID+addr2line. This does not prove crash cause.",
+    "Successful install-only does not clear formalGTKfatal; bounded tracer perturbs execution."
+  ],
+  "cleanup": [
+    {
+      "pid": 140696,
+      "argv": [
+        "python3",
+        "/workspace/milkup-markdown-extensions-phase4-evidence/native/gtk-thread-diagnostic/sample-owned-maps.py",
+        "/workspace/milkup-markdown-extensions-phase4-evidence/native/gtk-thread-diagnostic/candidate10-gtkthread01/gtk-threads.log",
+        "/workspace/milkup-markdown-extensions-phase4-evidence/native/gtk-thread-diagnostic/candidate10-gtkthread01/maps",
+        "/workspace/milkup-markdown-extensions-phase4-evidence/native/install-candidate10/usr/bin/milkup-desktop"
+      ]
+    },
+    {
+      "pid": 140711,
+      "argv": [
+        "/workspace/.cargo/bin/tauri-driver",
+        "--port",
+        "4618",
+        "--native-port",
+        "4619",
+        "--native-driver",
+        "/workspace/.cloud/milkup-v2/sysroot/usr/bin/WebKitWebDriver"
+      ]
+    },
+    {
+      "pid": 140712,
+      "argv": [
+        "/workspace/.cloud/milkup-v2/sysroot/usr/bin/WebKitWebDriver",
+        "--port=4619",
+        "--host=127.0.0.1"
+      ]
+    }
+  ]
+}

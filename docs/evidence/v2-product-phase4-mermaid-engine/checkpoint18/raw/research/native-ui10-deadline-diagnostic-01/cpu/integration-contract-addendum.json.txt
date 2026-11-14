@@ -1,0 +1,22 @@
+{
+  "atUtc": "2026-10-16T23:18:59.787955+00:00",
+  "kind": "integration-contract-addendum",
+  "supersedes": "PLAN.md harness finish ordering only; previous files unchanged",
+  "samplerSha256": "e05a926602213ba187408d85e57e161b1f9a77f66f2667b3c49d70385d470415",
+  "preparationRevision03Sha256": "c4760b6566bbb5792483f4afbff182ed000f361cb278c107583a68ffbeddc371",
+  "outputDirectory": "Sampler creates output directory exclusively; harness must not pre-create it.",
+  "finishOrder": [
+    "In catch/finally, if sampler still running, write {\"finish\":\"harness-final\"} followed by newline and end stdin before awaiting page observer export.",
+    "Export the bounded page observer using its existing finally/restoration path.",
+    "Close the App through the original harness cleanup.",
+    "Await sampler natural completion and preserve exit code/reason; do not send signals."
+  ],
+  "rationale": "Freezes the most recent CPU/cgroup window before potentially slow WebDriver page export. Native deadline auto-freeze remains earlier when observed.",
+  "alreadyExited": "If sampler exited after matching native deadline or incomplete condition, do not write finish or restart it.",
+  "limitations": [
+    "No runtime or sampler mainloop was executed to verify this integration.",
+    "This records the native harness owner integration contract; actual harness source review remains separate.",
+    "Sampler code and finite test outputs are unchanged."
+  ],
+  "verifiedRevision03Files": 17
+}

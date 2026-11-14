@@ -1,0 +1,38 @@
+
+Running 1 test using 1 worker
+
+(node:24772) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  1 ../milkup-markdown-extensions-phase4-evidence/browser-updates-diagnosis/controlled-updates.spec.ts:112:5 › original Updates enable assertion with passive startup observation (10.9s)
+
+
+  1) ../milkup-markdown-extensions-phase4-evidence/browser-updates-diagnosis/controlled-updates.spec.ts:112:5 › original Updates enable assertion with passive startup observation 
+
+    Error: expect(locator).toHaveText(expected) failed
+
+    Locator:  locator('.plugin-state')
+    Expected: "已启用"
+    Received: "已禁用"
+    Timeout:  5000ms
+
+    Call log:
+      - Expect "toHaveText" with timeout 5000ms
+      - waiting for locator('.plugin-state')
+        13 × locator resolved to <span class="plugin-state" data-state="disabled">已禁用</span>
+           - unexpected value "已禁用"
+
+
+      94 |   await page.getByRole('button', { name: '批准能力', exact: true }).click()
+      95 |   await page.getByRole('button', { name: '启用', exact: true }).click()
+    > 96 |   await expect(page.locator('.plugin-state')).toHaveText('已启用')
+         |                                               ^
+      97 |   await page.getByRole('button', { name: '打开 软件更新', exact: true }).click()
+      98 |   await expect(page.getByRole('dialog', { name: '软件更新', exact: true })).toBeVisible()
+      99 | }
+        at open (/workspace/milkup-markdown-extensions-phase4-evidence/browser-updates-diagnosis/controlled-updates.spec.ts:96:47)
+        at /workspace/milkup-markdown-extensions-phase4-evidence/browser-updates-diagnosis/controlled-updates.spec.ts:124:141
+
+    Error Context: ../milkup-markdown-extensions-phase4-evidence/browser-updates-diagnosis/controlled-before/controlled-updates-origina-1b717-passive-startup-observation/error-context.md
+
+  1 failed
+    ../milkup-markdown-extensions-phase4-evidence/browser-updates-diagnosis/controlled-updates.spec.ts:112:5 › original Updates enable assertion with passive startup observation 

@@ -1,0 +1,120 @@
+// External, no-UI baseline against the currently built public diagrams plugin.
+import fs from 'node:fs';
+import path from 'node:path';
+import crypto from 'node:crypto';
+import assert from 'node:assert/strict';
+import { pathToFileURL, fileURLToPath } from 'node:url';
+const research = path.dirname(fileURLToPath(import.meta.url));
+const repo = '/workspace/milkup';
+const output = path.join(research, 'current-diagrams-baseline');
+assert(!fs.existsSync(output), 'Preserve previous baseline; do not overwrite');
+const entry = path.join(repo, 'plugins/diagrams/dist/plugin.js');
+const hash = data => crypto.createHash('sha256').update(data).digest('hex');
+const entryBytes = fs.readFileSync(entry);
+const samplesBytes = fs.readFileSync(path.join(research, 'samples.json'));
+const all = JSON.parse(samplesBytes);
+const samples = all.filter(row => row.unmodifiedOfficialBlock === true);
+assert.equal(samples.length, 30);
+const plugin = (await import(pathToFileURL(entry).href)).default;
+const activation = await plugin.activate();
+const renderDocuments = activation.documentRenderers['diagrams.mermaid'];
+assert.equal(typeof renderDocuments, 'function');
+fs.mkdirSync(output);
+function requestFor(body, id) {
+  const open = '```mermaid\n';
+  assert(!/^```/m.test(body), 'Fixture needs a longer fence');
+  const bodyAndEol = body + (body.endsWith('\n') ? '' : '\n');
+  const source = open + bodyAndEol + '```\n';
+  const request = {
+    documentId: `baseline-${id}`, version: 0,
+    source, from: 0, to: source.length, fromLine: 1,
+    toLine: source.split('\n').length,
+    completeStart: true, completeEnd: true, contextKnown: true,
+    protectedRanges: [],
+    blocks: [{kind: 'fence', complete: true, info: 'mermaid', from: 0,
+      to: source.length, contentRanges: [{from: open.length, to: open.length + bodyAndEol.length}]}],
+    selection: {anchor: 0, head: 0}, theme: 'light', target: 'screen', width: 800,
+  };
+  assert.equal(request.source.length, request.to - request.from);
+  assert.equal(source.slice(request.blocks[0].contentRanges[0].from, request.blocks[0].contentRanges[0].to), bodyAndEol);
+  assert(request.toLine <= 256 && source.length <= 65536);
+  return request;
+}
+async function run(row, control = false) {
+  const request = requestFor(row.source, row.id);
+  const originalRequest = JSON.stringify(request);
+  let result, thrown;
+  const began = performance.now();
+  try { result = await renderDocuments(request, {signal: new AbortController().signal}); }
+  catch (error) { thrown = {name: error?.name ?? 'Error', message: String(error?.message ?? error)}; }
+  const elapsedMs = performance.now() - began;
+  assert.equal(JSON.stringify(request), originalRequest, 'Renderer mutated request');
+  const fragment = result?.fragments?.[0];
+  const status = thrown ? 'thrown' : !fragment ? 'no-fragment' : fragment.status;
+  let fallbackBytesEqual = null, fallbackSha256 = null;
+  if (status === 'error') {
+    assert.equal(result.fragments.length, 1);
+    assert.equal(fragment.from, request.from); assert.equal(fragment.to, request.to);
+    assert.equal(fragment.content.type, 'code');
+    assert(fragment.content.children.every(child => child.type === 'text'));
+    const actual = Buffer.from(fragment.content.children.map(child => child.text).join(''), 'utf8');
+    fallbackBytesEqual = actual.equals(Buffer.from(request.source, 'utf8'));
+    fallbackSha256 = hash(actual);
+    assert(fallbackBytesEqual, `${row.id}: source fallback changed bytes`);
+  }
+  const item = {
+    id: row.id, family: row.family, control, officialSource: row.officialSource ?? null,
+    officialLine: row.line ?? null, inputSha256: hash(Buffer.from(row.source)),
+    requestSourceSha256: hash(Buffer.from(request.source)),
+    requestSourceBytes: Buffer.byteLength(request.source), requestSourceUtf16: request.source.length,
+    inputPreservedWithoutRewriting: true,
+    fenceOnlyAddsMissingTrailingEol: !row.source.endsWith('\n'),
+    status, error: thrown ?? fragment?.message ?? null,
+    contentType: fragment?.content?.type ?? null,
+    resultComplete: result?.complete ?? null, fragmentCount: result?.fragments?.length ?? 0,
+    requestUnchanged: true, fallbackBytesEqual, fallbackSha256, elapsedMs,
+    request, result: result ?? null,
+  };
+  if (row.sourceSha256) assert.equal(item.inputSha256, row.sourceSha256);
+  if (control) assert.equal(status, 'ready', `${row.id}: valid supported control failed`);
+  fs.writeFileSync(path.join(output, `${row.id}.json`), JSON.stringify(item, null, 2) + '\n');
+  return item;
+}
+const controls = [];
+for (const row of [
+  {id:'control-flowchart',family:'control',source:'flowchart TD\nA --> B'},
+  {id:'control-sequence',family:'control',source:'sequenceDiagram\nA->>B: hi'},
+  {id:'control-pie',family:'control',source:'pie\n"A" : 40\n"B" : 60'},
+]) controls.push(await run(row, true));
+const results = [];
+for (const row of samples) results.push(await run(row));
+const families = {};
+for (const row of results) {
+  const group = families[row.family] ??= {total:0,ready:0,error:0,thrown:0,noFragment:0,sourceFallbackByteExact:0,ids:[]};
+  group.total++; group[row.status === 'no-fragment' ? 'noFragment' : row.status]++;
+  if(row.fallbackBytesEqual) group.sourceFallbackByteExact++;
+  group.ids.push(row.id);
+}
+const summary = {
+  recordedAt: new Date().toISOString(),
+  command: `node ${fileURLToPath(import.meta.url)}`,
+  scope:'Current built diagrams plugin public document renderer; 30 unmodified official samples only',
+  entry, entrySha256:hash(entryBytes), entryBytes:entryBytes.length,
+  samplesFile:path.join(research,'samples.json'), samplesFileSha256:hash(samplesBytes),
+  scriptSha256:hash(fs.readFileSync(fileURLToPath(import.meta.url))),
+  totalInputSamples:all.length, includedOfficialSamples:results.length,
+  excludedNonOfficialProbeIds:all.filter(x=>!x.unmodifiedOfficialBlock).map(x=>x.id),
+  counts:{ready:results.filter(x=>x.status==='ready').length,error:results.filter(x=>x.status==='error').length,
+    thrown:results.filter(x=>x.status==='thrown').length,noFragment:results.filter(x=>x.status==='no-fragment').length,
+    fallbackByteExact:results.filter(x=>x.fallbackBytesEqual).length},
+  families, controls:controls.map(({id,status})=>({id,status})),
+  limits:['No browser/native/UI, no pixel comparison; ready is only existing renderer status, not full semantics or visual fidelity.',
+    'Exact UTF8 fallback concerns the full constructed Markdown fence returned as code, not live view DOM, saved files or editing history.',
+    'Official diagram source remains unmodified; only surrounding Markdown fences and a missing line separator before closing fence are added.',
+    'No Worker/DOM isolation or deadline behavior is tested by this direct API baseline.'],
+  artifacts:results.map(({id,status,inputSha256,requestSourceSha256,contentType,error,fallbackBytesEqual})=>({file:`${id}.json`,status,inputSha256,requestSourceSha256,contentType,error,fallbackBytesEqual})),
+};
+assert.equal(hash(fs.readFileSync(entry)),summary.entrySha256);
+assert.equal(hash(fs.readFileSync(path.join(research,'samples.json'))),summary.samplesFileSha256);
+fs.writeFileSync(path.join(output,'summary.json'),JSON.stringify(summary,null,2)+'\n');
+console.log(JSON.stringify({output,...summary.counts,families:summary.families,entrySha256:summary.entrySha256},null,2));

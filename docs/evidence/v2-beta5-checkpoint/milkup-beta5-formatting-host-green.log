@@ -1,0 +1,24 @@
+
+ RUN  v3.2.6 /tmp/milkup-windows-manual-candidate/apps/desktop
+
+ ✓ src/desktop-plugin-ui.test.ts (62 tests) 9735ms
+   ✓ generic contextual document toolbar > collapses empty contributions and the entire empty slot, restoring either when content returns  685ms
+   ✓ generic virtual scroll scheduling > publishes a near-edge range within one frame window during sustained scrolling  505ms
+   ✓ generic virtual scroll scheduling > keeps a requested buffer across old-slice echoes without suppressing a newer distant range  1297ms
+   ✓ generic virtual scroll scheduling > lets same-document selection navigation supersede an old echoed scroll buffer  415ms
+   ✓ generic virtual scroll scheduling > lets same-document follow-active navigation supersede an old echoed scroll buffer  396ms
+   ✓ generic virtual scroll scheduling > requests the same position again after a version change with an old echo  325ms
+   ✓ DesktopPluginUiController > requests bounded virtual tree ranges for End, Home and arrow boundary focus  343ms
+   ✓ DesktopPluginUiController > requests a new buffered range when the outline is scrolled outside its rendered slice  625ms
+   ✓ DesktopPluginUiController > does not rerender while outline scrolling remains inside the current overscan buffer  490ms
+   ✓ DesktopPluginUiController > keeps the virtual outline viewport stable while background scanning extends the total  643ms
+   ✓ DesktopPluginUiController > requests one adjacent buffer only after a real user wheel gesture reaches an edge  710ms
+   ✓ DesktopPluginUiController > requests the previous buffer only when the list reaches the exact top edge  382ms
+   ✓ DesktopPluginUiController > does not request an adjacent buffer for a small scroll far from the cache edge  410ms
+   ✓ DesktopPluginUiController > compensates scroll position once when headings are prepended  550ms
+
+ Test Files  1 passed (1)
+      Tests  62 passed (62)
+   Start at  08:19:39
+   Duration  15.65s (transform 2.36s, setup 0ms, collect 3.34s, tests 9.74s, environment 1.43s, prepare 260ms)
+

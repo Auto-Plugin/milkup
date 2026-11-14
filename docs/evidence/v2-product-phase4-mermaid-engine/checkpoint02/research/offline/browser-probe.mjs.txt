@@ -1,0 +1,24 @@
+import mermaid from './dist/mermaid-full-12.2.0.mjs';
+export const config={startOnLoad:false,securityLevel:'strict',htmlLabels:false,suppressErrorRendering:true,maxTextSize:50000,maxEdges:500,deterministicIds:true,deterministicIDSeed:'offline-audit',fontFamily:'Arial, sans-serif',legacyMathML:false,forceLegacyMathML:false,secure:['secure','securityLevel','startOnLoad','maxTextSize','maxEdges','suppressErrorRendering','htmlLabels','fontFamily','themeCSS','legacyMathML','forceLegacyMathML']};
+export async function run(samples){
+ const results=[];
+ for (let i=0;i<samples.length;i++) {
+  const sample=samples[i],host=document.createElement('div');host.style.width='1000px';document.body.append(host);
+  const started=performance.now();
+  try {
+   mermaid.initialize(config);
+   const {svg,diagramType}=await mermaid.render(`audit_${i}`,sample.source,host);
+   const doc=new DOMParser().parseFromString(svg,'image/svg+xml');const nodes=Array.from(doc.querySelectorAll('*'));
+   const tags=Object.fromEntries([...new Set(nodes.map(n=>n.localName))].sort().map(t=>[t,nodes.filter(n=>n.localName===t).length]));
+   const attrs=Object.fromEntries([...new Set(nodes.flatMap(n=>Array.from(n.attributes,a=>a.name)))].sort().map(a=>[a,nodes.filter(n=>n.hasAttribute(a)).length]));
+   const urls=nodes.flatMap(n=>Array.from(n.attributes,a=>({tag:n.localName,name:a.name,value:a.value}))).filter(a=>/href|src/i.test(a.name)||/url\(/i.test(a.value));
+   host.innerHTML=svg;
+   const computedStyles=Array.from(host.querySelectorAll('*')).slice(0,4096).map(n=>{const c=getComputedStyle(n);return {tag:n.localName,id:n.id,class:n.getAttribute('class'),fill:c.fill,stroke:c.stroke,fontFamily:c.fontFamily,fontSize:c.fontSize,fontWeight:c.fontWeight,fontStyle:c.fontStyle,animationName:c.animationName,animationDuration:c.animationDuration,display:c.display};});
+   const styles=nodes.filter(n=>n.localName==='style').map(n=>n.textContent);
+   const foreignObjects=nodes.filter(n=>n.localName.toLowerCase()==='foreignobject').map(n=>n.outerHTML.slice(0,1500));
+   results.push({id:sample.id,family:sample.family,ok:true,diagramType,elapsedMs:performance.now()-started,bytes:new TextEncoder().encode(svg).length,tags,attrs,urls,styles,computedStyles,foreignObjects,animationRules:styles.some(s=>/@keyframes|animation\s*:/.test(s)),svg});
+  } catch(e) { results.push({id:sample.id,family:sample.family,ok:false,elapsedMs:performance.now()-started,error:String(e)}); }
+  finally {host.remove();}
+ }
+ return {config,userAgent:navigator.userAgent,results};
+}

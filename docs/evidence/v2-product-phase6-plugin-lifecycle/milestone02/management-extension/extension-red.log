@@ -1,0 +1,26 @@
+
+ RUN  v3.2.6 /workspace/milkup
+
+
+⎯⎯⎯⎯⎯⎯ Failed Suites 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  plugins/management/src/controller.test.ts [ plugins/management/src/controller.test.ts ]
+Error: Cannot find module './controller' imported from '/workspace/milkup/plugins/management/src/controller.test.ts'
+ ❯ plugins/management/src/controller.test.ts:2:1
+      1| import { expect,it,vi } from 'vitest'
+      2| import { createController } from './controller'
+       | ^
+      3| import { render } from './view'
+      4| const summary={id:'example.plugin',title:'Example',description:'Plugin…
+
+Caused by: Error: Failed to load url ./controller (resolved id: ./controller) in /workspace/milkup/plugins/management/src/controller.test.ts. Does the file exist?
+ ❯ loadAndTransform node_modules/.pnpm/vite@7.3.6_@types+node@24.13.2/node_modules/vite/dist/node/chunks/config.js:22739:33
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  no tests
+   Start at  08:35:58
+   Duration  535ms (transform 59ms, setup 0ms, collect 0ms, tests 0ms, environment 0ms, prepare 84ms)
+

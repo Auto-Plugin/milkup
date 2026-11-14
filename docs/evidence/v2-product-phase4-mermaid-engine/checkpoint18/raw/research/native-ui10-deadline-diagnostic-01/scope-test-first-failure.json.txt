@@ -1,0 +1,9 @@
+{
+  "result": "RED",
+  "test": "new instance after valid settlement is explicitly recorded; callback replacement marks gap",
+  "assertion": "events.some(event.kind === noncurrent-instance-notification-ignored)",
+  "reason": "Diagnostic metadata supplied kind overwrote the event kind. Original foreign-instance rejection and no-freeze assertions passed before this log assertion. Correct metadata key is outerKind.",
+  "stdout": "observer-contract-scope-final.log",
+  "stderr": "AssertionError at observer-contract.test.mjs:328; expected truthy, actual false",
+  "nativeRun": false
+}

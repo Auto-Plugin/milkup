@@ -1,0 +1,26 @@
+import { readFileSync, writeFileSync } from 'node:fs'
+import { MemoryDocumentSource, MemoryTextDocument, copyDocumentPresentationNode, copyDocumentPresentationResult, serializeDocumentPresentationNode } from '/workspace/milkup/packages/core/src/index'
+import { createDesktopDocumentPresentationService } from '/workspace/milkup/apps/desktop/src/document-presentation-service'
+async function main(){
+ const base='/workspace/milkup-mermaid-engine-evidence/research/svg-converter-prototype/native-runner/runs/';
+ const images=['00/scan_000','01/scan_002','02/scan_004'].map(p=>JSON.parse(readFileSync(base+'product-converter-fourth-'+p+'-result.json','utf8')).image);
+ const text=readFileSync('/workspace/milkup-mermaid-engine-evidence/product-ui-runs/runs/mermaid-ui-01/ordinary.md','utf8');
+ const doc=new MemoryTextDocument(text),source=new MemoryDocumentSource({documentId:'diagnostic',version:0,document:doc});
+ const declaration={id:'diagrams',pluginId:'diagnostic',contexts:['fence'] as const,fenceLanguages:['mermaid']};
+ const singles=images.map(image=>{try{copyDocumentPresentationNode(image);return{ok:true,jsonBytes:Buffer.byteLength(JSON.stringify(image)),canonicalBytes:Buffer.byteLength(serializeDocumentPresentationNode(image))}}catch(error){return{ok:false,error:String(error)}}});
+ const observations:unknown[]=[];
+ const service=createDesktopDocumentPresentationService({current:()=>({source,identity:doc}),theme:()=> 'light',renderers:()=>[declaration],render:async(_p,_r,request)=>{
+ const fences=request.blocks.filter(b=>b.kind==='fence'&&b.complete);
+ const result={complete:true,fragments:fences.slice(0,3).map((b,i)=>({from:b.from,to:b.to,layout:'block' as const,accessibleText:'Diagram',content:images[i]}))};
+ let validation;try{copyDocumentPresentationResult(result,request,declaration);validation='accepted'}catch(e){validation=String(e)}
+ observations.push({request:{from:request.from,to:request.to,fromLine:request.fromLine,toLine:request.toLine,contextKnown:request.contextKnown,blocks:request.blocks},jsonBytes:Buffer.byteLength(JSON.stringify(result)),validation});
+ return result;
+ }});
+ for(const toLine of [23,58,73]){
+ const lines=text.split('\n');const sourceText=lines.slice(0,toLine).join('\n');
+ const response=await service.provide({sourceIdentity:doc,sourceVersion:0,source:sourceText,from:0,to:sourceText.length,fromLine:1,toLine,completeStart:true,completeEnd:false,selection:{anchor:1018,head:1085},width:1048},{signal:new AbortController().signal});
+ observations.push({response:{toLine,complete:response.result.complete,fragments:response.result.fragments.length,contextKnown:response.request.contextKnown}});
+ }
+ writeFileSync('/workspace/milkup-mermaid-engine-evidence/research/production-ui-window/budget-probe.json',JSON.stringify({scope:'Controlled public service probe with actual unchanged captured ASTs; not native request tracing',singles,observations},null,2));
+}
+void main()

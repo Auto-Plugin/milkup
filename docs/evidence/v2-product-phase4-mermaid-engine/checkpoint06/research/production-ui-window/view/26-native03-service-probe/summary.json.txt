@@ -1,0 +1,70 @@
+{
+  "status": "controlled probe completed; native UI03 cause remains unresolved",
+  "scope": "Current public ordinary EditorView + real desktop presentation service + historical captured block/class/ER ASTs in Chromium; no official Mermaid engine invocation and no native WebKit execution.",
+  "firstAttempt": {
+    "directory": "../25-native03-diagnostic",
+    "exitCode": 1,
+    "classification": "test fixture API error: Selection.single is not a function; not a product regression",
+    "correction": "Use existing public Selection.range API; original log retained"
+  },
+  "run": {
+    "exitCode": 0,
+    "playwright": "1 observational test passed (29.1 seconds)",
+    "nominalSampling": "90 samples separated by 100 ms timer",
+    "actualLastSampleMs": 15750,
+    "sampleCount": 90,
+    "eventCount": 52,
+    "eventCounts": {
+      "mutation": 15,
+      "provide": 5,
+      "render": 11,
+      "response": 4,
+      "create": 4,
+      "decode-start": 4,
+      "decode-resolved": 4,
+      "revoke": 4,
+      "select-class": 1
+    },
+    "dropped": 0,
+    "observerMeasuredCostMs": 3.499999977648258,
+    "observerMaxCallbackCostMs": 0.8999999985098839,
+    "costLimit": "Observer callback timing does not measure all tracing, serialization, validation or browser overhead; actual duration is 15.75 seconds, not a 9-second native observation."
+  },
+  "outcome": {
+    "sourceUnchanged": true,
+    "selection": {
+      "anchor": 384,
+      "head": 438,
+      "affinity": 1
+    },
+    "lastPreviewRanges": [
+      [
+        "108",
+        "342"
+      ],
+      [
+        "440",
+        "969"
+      ]
+    ],
+    "lastNotice": [
+      "部分内容暂未生成预览，已保留对应 Markdown 源码。"
+    ],
+    "finding": "Class image remains decoded in the stable final sampling interval; persistent native disappearance was not reproduced. Initial startup and selection invalidation include source-only states.",
+    "limitations": [
+      "Historical fixed image ASTs cannot establish whether actual UI03 Mermaid outputs are equal across requests.",
+      "Chromium request width was 1100; native preview width was 1048.",
+      "Native block-only gate passing does not prove class stability: class was outside that gate.",
+      "No service window or aggregate state may be inferred directly from future per-fence transport observations."
+    ]
+  },
+  "product": {
+    "managerSha256": "77ca976c31736df2ce84c10c0ef9da887c2f366609e7badf42b3f5a7ad876a8c",
+    "modifiedDuringThisProbe": false
+  },
+  "cleanup": {
+    "ports1420and5174": "No listeners observed after test completion",
+    "nativeSlot": "Transferred to dom_transport for separate cloned-profile passive observation"
+  },
+  "frozenAtUtc": "2026-10-16T15:35:19.998677+00:00"
+}

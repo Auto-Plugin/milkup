@@ -1,0 +1,51 @@
+
+ RUN  v3.2.6 /workspace/milkup/packages/view-dom
+
+ ❯ src/__tests__/document-presentation-viewport.test.ts (6 tests | 1 failed) 639ms
+   ✓ reports actual visible source instead of overscan or a remote editing selection 79ms
+   ✓ refreshes priority when scrolling inside the same overscan source window 67ms
+   ✓ cancels a stale viewport job without changing source or selection 41ms
+   ✓ maps the bottom of a tall preview to its complete collapsed source block 184ms
+   ✓ keeps a complete response when only visible priority changes inside its source window 62ms
+   × cancels a superseded window job when returning to an already complete cached window 204ms
+     → expected [ { sourceIdentity: {}, …(12) }, …(2) ] to have a length of 2 but got 3
+stdout | src/__tests__/document-presentation-pointer.test.ts > keeps a settled response waiting when a new primary gesture replaces the released lease
+pointer-handoff {"originalConnected":true,"sameButton":true,"activeLease":true,"provided":2,"navigationCalls":0}
+
+ ✓ src/__tests__/document-presentation-pointer.test.ts (23 tests) 1402ms
+   ✓ coalesces Source windows and settles every waiter after up  487ms
+   ✓ keeps a settled response waiting when a new primary gesture replaces the released lease  354ms
+ ✓ src/__tests__/document-presentation.test.ts (70 tests) 4610ms
+   ✓ keeps the reader's inner diagram position through provider refresh (false)  342ms
+ ✓ src/__tests__/document-svg-image.test.ts (52 tests) 4784ms
+   ✓ keeps full mapped source until decode, then mounts an inert owned image (false)  377ms
+   ✓ revokes selection ABA decode and ignores an old image error after replacement (false)  416ms
+ ✓ src/__tests__/document-presentation-preparation.test.ts (17 tests) 159ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/__tests__/document-presentation-viewport.test.ts > cancels a superseded window job when returning to an already complete cached window
+AssertionError: expected [ { sourceIdentity: {}, …(12) }, …(2) ] to have a length of 2 but got 3
+
+- Expected
++ Received
+
+- 2
++ 3
+
+ ❯ src/__tests__/document-presentation-viewport.test.ts:244:17
+    242|   f.scroll(50)
+    243|   await settle()
+    244|   expect(calls).toHaveLength(2)
+       |                 ^
+    245| })
+    246| 
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed | 4 passed (5)
+      Tests  1 failed | 167 passed (168)
+   Start at  14:43:10
+   Duration  11.67s (transform 2.13s, setup 0ms, collect 4.30s, tests 11.59s, environment 6.36s, prepare 1.93s)
+

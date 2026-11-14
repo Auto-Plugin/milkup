@@ -1,0 +1,70 @@
+{
+  "scope": "P3 generic controlled fields, renderer extraction, UI event/focus/CSS, shell preferences migration",
+  "contract": {
+    "type": "field",
+    "kinds": ["text", "number", "select"],
+    "changePayload": ["field", "value"],
+    "rawValue": "string",
+    "disabledButton": "element.disabled only for button"
+  },
+  "verification": {
+    "rendererUnit": {
+      "passed": 9,
+      "log": "renderer-final.txt"
+    },
+    "controllerAndReconciliationUnit": {
+      "passed": 35,
+      "log": "controller-final.txt"
+    },
+    "formBrowser": {
+      "passed": 7,
+      "log": "browser-second.txt"
+    },
+    "existingTreeBrowser": {
+      "passed": 13,
+      "log": "browser-first.txt"
+    },
+    "shellPreferencesWorkerBrowser": {
+      "passed": 2,
+      "log": "shell-preferences-first.txt"
+    },
+    "typecheck": ["@milkup/view-dom passed", "@milkup/desktop passed"]
+  },
+  "beforeAfter": [
+    {
+      "issue": "Replacing an earlier action left the obsolete sibling in place, moved the focused field and caused one blur",
+      "before": "browser-first.txt: first form test fails blurCount=1",
+      "after": "browser-second.txt: exact input identity retained and blurCount=0"
+    },
+    {
+      "issue": "Temporarily disabled save action caused modal focus to fall to body",
+      "before": "disabled-focus-before.txt",
+      "after": "controller-final.txt: holds modal focus while controlled save action temporarily disabled"
+    }
+  ],
+  "screenshots": [
+    "light-narrow-css-100.png",
+    "light-narrow-css-200.png",
+    "dark-narrow-css-100.png",
+    "dark-narrow-css-200.png"
+  ],
+  "boundaries": [
+    "CSS 200% browser coverage is auxiliary, not native WebKit zoom acceptance",
+    "Composition continuity verified with simulated composition lifecycle in unit tests; no OS IME claim",
+    "Browser native select change uses actual ArrowDown; Playwright selectOption is synthetic and intentionally does not carry trusted authority",
+    "No commits, uploads, deployments or release actions"
+  ],
+  "modalFocusFollowup": {
+    "nativeBefore": "../native/focus-before/results.json",
+    "browserBefore": "modal-clip-before.txt",
+    "browserAfter": "modal-clip-final.txt",
+    "browserPassed": 21,
+    "unitPassed": 36,
+    "unitLog": "modal-controller-final.txt",
+    "typecheck": "@milkup/desktop passed",
+    "scope": "Only modal scrolling, active control rect plus 4 CSS-pixel focus ring; focusin animation frame and after restored scroll offsets; no refocus or document scroll",
+    "beforeScreenshot": "focused-control-before.png",
+    "afterScreenshot": "focused-control-layout.png",
+    "pending": "Native production rebuild and real WebKit revalidation by parent/view_fixes"
+  }
+}

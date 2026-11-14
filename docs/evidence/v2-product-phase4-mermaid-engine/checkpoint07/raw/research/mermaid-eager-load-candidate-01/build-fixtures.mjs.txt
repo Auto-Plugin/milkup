@@ -1,0 +1,92 @@
+// External static preparation. Execution requires a separate CPU/build GO.
+import assert from 'node:assert/strict'
+import { createHash } from 'node:crypto'
+import { readFile, realpath, mkdir, writeFile, access } from 'node:fs/promises'
+import { createRequire } from 'node:module'
+import { dirname, resolve, relative, isAbsolute } from 'node:path'
+import { fileURLToPath } from 'node:url'
+
+assert.equal(process.env.MILKUP_EAGER_BUILD_APPROVED, '1', 'Separate root build GO required')
+const root = dirname(fileURLToPath(import.meta.url))
+const dependencyRoot = '/workspace/milkup/plugins/diagrams'
+const sha = bytes => createHash('sha256').update(bytes).digest('hex')
+const json = async path => JSON.parse(await readFile(path, 'utf8'))
+const within = (parent, child) => { const rel = relative(parent, child); return rel && rel !== '..' && !rel.startsWith('../') && !isAbsolute(rel) }
+const freeze = await json(resolve(root, 'source-freeze.json'))
+const profile = await json(resolve(root, 'dependency-profile.json'))
+const fixtures = resolve(root, 'fixtures')
+for (const name of ['A-module.js', 'B-module.js', 'index.json', 'build-result.json']) {
+  try { await access(resolve(fixtures, name)); throw Error(`Refusing to overwrite ${name}`) }
+  catch (error) { if (error.code !== 'ENOENT') throw error }
+}
+async function verifyFrozen() {
+  for (const item of freeze.files) assert.equal(sha(await readFile(resolve(root, item.path))), item.sha256, `Frozen source changed: ${item.path}`)
+  for (const item of freeze.dependencies) assert.equal(sha(await readFile(item.path)), item.sha256, `Frozen dependency metadata changed: ${item.path}`)
+}
+await verifyFrozen()
+assert.equal(profile.target, 'es2024')
+assert.equal(profile.minify, true)
+assert.equal(sha(await readFile(resolve(dependencyRoot, 'vendor/plugin-sdk.tgz'))), profile.sdkTarballSha256)
+const installedRoot = await realpath(resolve(dependencyRoot, 'node_modules'))
+const sdkRoot = await realpath(resolve(installedRoot, '@milkup/plugin-sdk'))
+assert(within(installedRoot, sdkRoot), 'SDK must stay in the installed dependency tree')
+const sdk = await json(resolve(sdkRoot, 'package.json'))
+assert.equal(sdk.name, '@milkup/plugin-sdk')
+assert.equal(sdk.version, '0.3.4')
+assert.equal(sdk.exports['.'].import, './src/index.js')
+const sdkEntry = await realpath(resolve(sdkRoot, 'src/index.js'))
+const approved = new Set([sdkEntry])
+const dependencyFiles = []
+for (const pkg of profile.packages) {
+  const packageRoot = await realpath(resolve(dependencyRoot, pkg.root))
+  assert(within(installedRoot, packageRoot), `Dependency escaped: ${pkg.name}`)
+  const metadata = await json(resolve(packageRoot, 'package.json'))
+  assert.equal(metadata.name, pkg.name)
+  assert.equal(metadata.version, pkg.version)
+  for (const input of pkg.inputs) {
+    const path = await realpath(resolve(packageRoot, input.path))
+    assert(within(packageRoot, path), 'Dependency input escaped')
+    assert.equal(sha(await readFile(path)), input.sha256, `Dependency changed: ${path}`)
+    assert(!approved.has(path), 'Duplicate dependency input')
+    approved.add(path)
+    dependencyFiles.push({ path, sha256: input.sha256 })
+  }
+}
+const require = createRequire(resolve(dependencyRoot, 'package.json'))
+const esbuild = require('esbuild')
+assert.equal(esbuild.version, '0.25.12')
+const artifacts = [], index = { classification: 'DIAGNOSTIC_REAL_INSTANCE_NOT_EDITOR_ACCEPTANCE', fixtures: {} }
+for (const arm of ['A', 'B']) {
+  const sourceRoot = resolve(root, 'source', arm, 'src')
+  const sourceAllowlist = new Set(freeze.files.filter(item => item.path.startsWith(`source/${arm}/src/`)).map(item => resolve(root, item.path)))
+  const result = await esbuild.build({
+    absWorkingDir: root,
+    entryPoints: [resolve(sourceRoot, 'plugin.ts')],
+    bundle: true, format: 'esm', platform: 'browser', target: profile.target,
+    minify: profile.minify, legalComments: 'eof', write: false, metafile: true,
+    outfile: resolve(fixtures, `${arm}-module.js`),
+    nodePaths: [installedRoot], alias: { '@milkup/plugin-sdk': sdkEntry },
+  })
+  assert.equal(result.outputFiles.length, 1)
+  assert(Object.values(result.metafile.outputs).every(output => output.imports.length === 0), 'Runtime import forbidden')
+  const consumed = new Set()
+  for (const name of Object.keys(result.metafile.inputs)) {
+    const path = await realpath(resolve(root, name))
+    if (sourceAllowlist.has(path)) continue
+    assert(approved.has(path), `Unapproved bundle input: ${name}`)
+    consumed.add(path)
+  }
+  for (const path of approved) if (path !== sdkEntry) assert(consumed.has(path), `Reviewed dependency unconsumed: ${path}`)
+  const bytes = result.outputFiles[0].contents
+  assert(bytes.length <= 8 * 1024 * 1024, 'Existing native module cap')
+  await writeFile(resolve(fixtures, `${arm}-module.js`), bytes, { flag: 'wx' })
+  await writeFile(resolve(fixtures, `${arm}-metafile.json`), JSON.stringify(result.metafile, null, 2) + '\n', { flag: 'wx' })
+  const row = { module: `${arm}-module.js`, moduleSha256: sha(bytes), manifest: 'class-manifest.json', manifestSha256: sha(await readFile(resolve(fixtures, 'class-manifest.json'))), request: 'class-request.json', requestSha256: sha(await readFile(resolve(fixtures, 'class-request.json'))), sourceSha256: freeze.sourceSha256, sourceBytes: freeze.sourceBytes, pluginId: 'milkup.diagrams', rendererId: 'diagrams.mermaid' }
+  index.fixtures[arm] = row
+  artifacts.push({ arm, bytes: bytes.length, ...row })
+}
+await verifyFrozen()
+for (const item of dependencyFiles) assert.equal(sha(await readFile(item.path)), item.sha256, 'Dependency changed during build')
+await writeFile(resolve(fixtures, 'index.json'), JSON.stringify(index, null, 2) + '\n', { flag: 'wx' })
+await writeFile(resolve(fixtures, 'build-result.json'), JSON.stringify({ status: 'BUNDLED_NOT_RUNTIME_TESTED', esbuild: esbuild.version, artifacts, runtimeImports: [], sourceFreezeSha256: sha(await readFile(resolve(root, 'source-freeze.json'))), indexSha256: sha(await readFile(resolve(fixtures, 'index.json'))) }, null, 2) + '\n', { flag: 'wx' })
+console.log(JSON.stringify({ artifacts, runtimeTested: false }))

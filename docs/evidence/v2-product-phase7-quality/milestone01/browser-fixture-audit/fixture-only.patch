@@ -1,0 +1,74 @@
+diff --git a/tests/e2e/desktop-shortcuts.spec.ts b/tests/e2e/desktop-shortcuts.spec.ts
+index 7dd311d6..c4fc960a 100644
+--- a/tests/e2e/desktop-shortcuts.spec.ts
++++ b/tests/e2e/desktop-shortcuts.spec.ts
+@@ -26,6 +26,8 @@ async function fixture(page: Page, failPersistence = false) {
+                 manifestPath: '/plugins/shortcuts/plugin.json',
+                 rootPath: '/plugins/shortcuts',
+                 sourcePath: '/plugins/shortcuts/plugin.json',
++                dataRoot: `milkup://plugin-data/${manifest.id}`,
++                storageRoot: `milkup://plugin-storage/${manifest.id}`,
+                 state: 'installed',
+                 enabled: false,
+                 installedAt: 1,
+@@ -217,6 +219,8 @@ test('shadowed plugin defaults retain their context after user rebinding and res
+         manifestPath: `/plugins/${manifest.id}/plugin.json`,
+         rootPath: `/plugins/${manifest.id}`,
+         sourcePath: `/plugins/${manifest.id}/plugin.json`,
++        dataRoot: `milkup://plugin-data/${manifest.id}`,
++        storageRoot: `milkup://plugin-storage/${manifest.id}`,
+         state: 'enabled',
+         enabled: true,
+         installedAt: index + 2,
+diff --git a/tests/e2e/desktop-updates.spec.ts b/tests/e2e/desktop-updates.spec.ts
+index 4b9f7b9a..4b8fd29b 100644
+--- a/tests/e2e/desktop-updates.spec.ts
++++ b/tests/e2e/desktop-updates.spec.ts
+@@ -62,6 +62,8 @@ async function fixture(page: Page, mode = 'valid') {
+         manifestPath: '/plugins/updates/plugin.json',
+         rootPath: '/plugins/updates',
+         sourcePath: '/plugins/updates/plugin.json',
++        dataRoot: `milkup://plugin-data/${manifest.id}`,
++        storageRoot: `milkup://plugin-storage/${manifest.id}`,
+         state: 'installed',
+         enabled: false,
+         installedAt: 1,
+diff --git a/tests/e2e/desktop-workspace.spec.ts b/tests/e2e/desktop-workspace.spec.ts
+index 95fa6824..0413646c 100644
+--- a/tests/e2e/desktop-workspace.spec.ts
++++ b/tests/e2e/desktop-workspace.spec.ts
+@@ -77,6 +77,8 @@ async function fixture(page: Page): Promise<void> {
+         manifestPath: '/plugins/workspace/plugin.json',
+         rootPath: '/plugins/workspace',
+         sourcePath: '/plugins/workspace/plugin.json',
++        dataRoot: `milkup://plugin-data/${manifest.id}`,
++        storageRoot: `milkup://plugin-storage/${manifest.id}`,
+         state: 'installed',
+         enabled: false,
+         installedAt: 1,
+diff --git a/tests/helpers/formatting-plugin.ts b/tests/helpers/formatting-plugin.ts
+index d2de4048..5a377ceb 100644
+--- a/tests/helpers/formatting-plugin.ts
++++ b/tests/helpers/formatting-plugin.ts
+@@ -26,6 +26,8 @@ export async function formattingFixture(page: Page) {
+             manifestPath: '/plugins/formatting/plugin.json',
+             rootPath: '/plugins/formatting',
+             sourcePath: '/plugins/formatting/plugin.json',
++            dataRoot: `milkup://plugin-data/${manifest.id}`,
++            storageRoot: `milkup://plugin-storage/${manifest.id}`,
+             state: 'installed',
+             enabled: false,
+             installedAt: 1,
+diff --git a/tests/helpers/markdown-extension-plugins.ts b/tests/helpers/markdown-extension-plugins.ts
+index e23f0af5..7100bcbd 100644
+--- a/tests/helpers/markdown-extension-plugins.ts
++++ b/tests/helpers/markdown-extension-plugins.ts
+@@ -42,6 +42,8 @@ export async function markdownExtensionFixture(
+       manifestPath: `${recordRoot}/plugin.json`,
+       rootPath: recordRoot,
+       sourcePath: `${recordRoot}/plugin.json`,
++      dataRoot: `milkup://plugin-data/${manifest.id}`,
++      storageRoot: `milkup://plugin-storage/${manifest.id}`,
+       state: 'enabled',
+       enabled: true,
+       installedAt: 1,

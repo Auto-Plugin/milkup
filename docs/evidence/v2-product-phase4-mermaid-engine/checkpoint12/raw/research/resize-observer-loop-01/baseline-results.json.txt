@@ -1,0 +1,173 @@
+{
+  "config": {
+    "argv": [
+      "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+      "/workspace/milkup/node_modules/@playwright/test/cli.js",
+      "test",
+      "--config",
+      "/workspace/milkup-mermaid-engine-evidence/research/resize-observer-loop-01/playwright.config.mjs",
+      "--grep",
+      "presentation resize delivers finite responsive layout"
+    ],
+    "configFile": "/workspace/milkup-mermaid-engine-evidence/research/resize-observer-loop-01/playwright.config.mjs",
+    "rootDir": "/workspace/milkup/tests/e2e",
+    "failOnFlakyTests": false,
+    "forbidOnly": false,
+    "fullyParallel": false,
+    "globalSetup": null,
+    "globalTeardown": null,
+    "globalTimeout": 0,
+    "grep": {},
+    "grepInvert": null,
+    "maxFailures": 0,
+    "metadata": {
+      "actualWorkers": 1
+    },
+    "preserveOutput": "always",
+    "projects": [
+      {
+        "outputDir": "/workspace/milkup-mermaid-engine-evidence/research/resize-observer-loop-01/baseline-artifacts",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "",
+        "name": "",
+        "testDir": "/workspace/milkup/tests/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "desktop-markdown-extensions.spec.ts"
+        ],
+        "timeout": 60000
+      }
+    ],
+    "quiet": false,
+    "reporter": [
+      [
+        "list",
+        null
+      ],
+      [
+        "json",
+        {
+          "outputFile": "/workspace/milkup-mermaid-engine-evidence/research/resize-observer-loop-01/baseline-results.json"
+        }
+      ]
+    ],
+    "reportSlowTests": {
+      "max": 5,
+      "threshold": 300000
+    },
+    "shard": null,
+    "tags": [],
+    "updateSnapshots": "missing",
+    "updateSourceMethod": "patch",
+    "version": "1.61.1",
+    "workers": 1,
+    "webServer": {
+      "command": "pnpm --filter @milkup/desktop dev",
+      "cwd": "/workspace/milkup",
+      "url": "http://127.0.0.1:1420",
+      "reuseExistingServer": false
+    }
+  },
+  "suites": [
+    {
+      "title": "desktop-markdown-extensions.spec.ts",
+      "file": "desktop-markdown-extensions.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "presentation resize delivers finite responsive layout outside ResizeObserver delivery",
+          "ok": false,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "failed",
+                  "duration": 5675,
+                  "error": {
+                    "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoEqual\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // deep equality\u001b[22m\n\n\u001b[32m- Expected  - 1\u001b[39m\n\u001b[31m+ Received  + 3\u001b[39m\n\n\u001b[32m- Array []\u001b[39m\n\u001b[31m+ Array [\u001b[39m\n\u001b[31m+   \"ResizeObserver loop completed with undelivered notifications.\",\u001b[39m\n\u001b[31m+ ]\u001b[39m",
+                    "stack": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoEqual\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // deep equality\u001b[22m\n\n\u001b[32m- Expected  - 1\u001b[39m\n\u001b[31m+ Received  + 3\u001b[39m\n\n\u001b[32m- Array []\u001b[39m\n\u001b[31m+ Array [\u001b[39m\n\u001b[31m+   \"ResizeObserver loop completed with undelivered notifications.\",\u001b[39m\n\u001b[31m+ ]\u001b[39m\n    at /workspace/milkup/tests/e2e/desktop-markdown-extensions.spec.ts:1590:25",
+                    "location": {
+                      "file": "/workspace/milkup/tests/e2e/desktop-markdown-extensions.spec.ts",
+                      "column": 25,
+                      "line": 1590
+                    },
+                    "snippet": "  1588 |   expect(result.destroyCount).toBe(1)\n  1589 |   expect(result.final).toEqual(result.afterDestroy)\n> 1590 |   expect(result.errors).toEqual([])\n       |                         ^\n  1591 | })\n  1592 |"
+                  },
+                  "errors": [
+                    {
+                      "location": {
+                        "file": "/workspace/milkup/tests/e2e/desktop-markdown-extensions.spec.ts",
+                        "column": 25,
+                        "line": 1590
+                      },
+                      "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoEqual\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // deep equality\u001b[22m\n\n\u001b[32m- Expected  - 1\u001b[39m\n\u001b[31m+ Received  + 3\u001b[39m\n\n\u001b[32m- Array []\u001b[39m\n\u001b[31m+ Array [\u001b[39m\n\u001b[31m+   \"ResizeObserver loop completed with undelivered notifications.\",\u001b[39m\n\u001b[31m+ ]\u001b[39m\n\n  1588 |   expect(result.destroyCount).toBe(1)\n  1589 |   expect(result.final).toEqual(result.afterDestroy)\n> 1590 |   expect(result.errors).toEqual([])\n       |                         ^\n  1591 | })\n  1592 |\n    at /workspace/milkup/tests/e2e/desktop-markdown-extensions.spec.ts:1590:25"
+                    }
+                  ],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-16T20:11:04.921Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "resize-evidence",
+                      "contentType": "application/json",
+                      "body": "ewogICJzZXR0bGVkIjogewogICAgImluaXRpYWxIZWlnaHQiOiA0MCwKICAgICJoZWlnaHQiOiA4MCwKICAgICJ3aWR0aCI6IDM2MCwKICAgICJ3aWR0aHMiOiBbCiAgICAgIDMwMCwKICAgICAgMzYwCiAgICBdLAogICAgInRleHQiOiAi5Lit5paH8J+YgCBlzIEgc291cmNlIiwKICAgICJzZWxlY3Rpb24iOiB7CiAgICAgICJhbmNob3IiOiAwLAogICAgICAiaGVhZCI6IDIKICAgIH0sCiAgICAiZXJyb3JzIjogWwogICAgICAiUmVzaXplT2JzZXJ2ZXIgbG9vcCBjb21wbGV0ZWQgd2l0aCB1bmRlbGl2ZXJlZCBub3RpZmljYXRpb25zLiIKICAgIF0KICB9LAogICJkZXN0cm95Q291bnQiOiAxLAogICJhZnRlckRlc3Ryb3kiOiB7CiAgICAibGF5b3V0cyI6IDcsCiAgICAicmVxdWVzdHMiOiAzLAogICAgInRleHQiOiAi5Lit5paH8J+YgCBlzIEgc291cmNlIgogIH0sCiAgImZpbmFsIjogewogICAgImxheW91dHMiOiA3LAogICAgInJlcXVlc3RzIjogMywKICAgICJ0ZXh0IjogIuS4reaWh/CfmIAgZcyBIHNvdXJjZSIKICB9LAogICJlcnJvcnMiOiBbCiAgICAiUmVzaXplT2JzZXJ2ZXIgbG9vcCBjb21wbGV0ZWQgd2l0aCB1bmRlbGl2ZXJlZCBub3RpZmljYXRpb25zLiIKICBdCn0="
+                    },
+                    {
+                      "name": "page-state",
+                      "contentType": "text/plain",
+                      "body": "LSBtYWluOgogIC0gYnV0dG9uICLoj5zljZUiCiAgLSBoZWFkaW5nICLmnKrlkb3lkI0iIFtsZXZlbD0xXQogIC0gcGFyYWdyYXBoOiDmnKrkv53lrZgKICAtIHRleHQ6IOWGmeeCueS7gOS5iOWQpy4uLgogIC0gdGV4dGJveAogIC0gdGV4dGJveCAiTWFya2Rvd24g57yW6L6R5ZmoIgogIC0gYnV0dG9uICLkvqfmoI8iCiAgLSBidXR0b24gIuWunuaXtiIKICAtIHRleHQ6IE1hcmtkb3duIDAg5a2X56ymIOW3suS/neWtmA=="
+                    },
+                    {
+                      "name": "error-context",
+                      "contentType": "text/markdown",
+                      "path": "/workspace/milkup-mermaid-engine-evidence/research/resize-observer-loop-01/baseline-artifacts/desktop-markdown-extension-1ade3-ide-ResizeObserver-delivery/error-context.md"
+                    },
+                    {
+                      "name": "trace",
+                      "contentType": "application/zip",
+                      "path": "/workspace/milkup-mermaid-engine-evidence/research/resize-observer-loop-01/baseline-artifacts/desktop-markdown-extension-1ade3-ide-ResizeObserver-delivery/trace.zip"
+                    }
+                  ],
+                  "errorLocation": {
+                    "file": "/workspace/milkup/tests/e2e/desktop-markdown-extensions.spec.ts",
+                    "column": 25,
+                    "line": 1590
+                  }
+                }
+              ],
+              "status": "unexpected"
+            }
+          ],
+          "id": "941916a62ecab6c0156d-92e832c23f7726b54494",
+          "file": "desktop-markdown-extensions.spec.ts",
+          "line": 1488,
+          "column": 1
+        }
+      ]
+    }
+  ],
+  "errors": [],
+  "stats": {
+    "startTime": "2026-10-16T20:11:00.771Z",
+    "duration": 10707.18,
+    "expected": 0,
+    "skipped": 0,
+    "unexpected": 1,
+    "flaky": 0
+  }
+}

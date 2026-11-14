@@ -1,0 +1,35 @@
+Standalone owned-fork /proc children capability — PREPARED, NOT EXECUTED
+
+Purpose
+Resolve whether exact /proc/PID/task/TID/children can expose a known-live owned child in the execution context. This does not start milkup, reproduce its renderer, diagnose historical CPU, or establish product correctness. Root observed exists=false for a current use_default self children path; that is a separate current self observation, not historical guardian evidence. The prepared probe records actual open errno including ENOENT.
+
+First authorized case only
+Root must approve explicit require_escalated tool execution before invocation. The flag documents the intended context; it does not elevate or verify permission mode. Context records include actual user/pid/mount namespace symlinks and uid/gid maps, to be compared with the authorized tool call.
+
+python3 /workspace/milkup-mermaid-engine-evidence/research/cold-start-cpu-review-01/fork-capability-preparation/fork_capability.py --authorized-context require_escalated --output <NEW-UNUSED-JSON-PATH>
+
+Topology and protocol
+The script's original process is the external observer. It creates one fixture parent, which forks exactly one child. Thus two fork syscalls create a single known parent-child fixture pair plus the separate observer; there is no repeated workload or discovery scan.
+Child emits its exact own PID/birth/context once then waits on a private pipe. Fixture parent receives proof, verifies fork-returned PID, records its own identity and one internal snapshot. Parent sends parent+child proof and snapshot to the observer. While child remains held, the observer performs one outside snapshot on those exact identities. Observer closes its private control pipe; fixture parent observes EOF, closes child hold pipe; child exits normally. Parent waitpid reaps only its own child and reports status; observer waitpid reaps only its own fixture parent. No signals, pid guessing, product process accesses or system changes.
+
+Each snapshot
+- Exact expected parent and child stat before/after: PID, birth, PPID, state, raw bounded stat, readStart/readEnd.
+- Enumerate ONLY /proc/<proven-parent>/task, max8 tids (+1 for bounded cap detection); no /proc root enumeration.
+- Open each known parent task children once; save status, exact errno/error name, bounded raw bytes, parsed child PIDs and timings. Empty read, ENOENT, EACCES and wrong PPID remain distinct.
+- Confirm child PID/birth stable and PPID equals known parent both before/after. A childListed=false value without stable direct relationship is inconclusive.
+- No environment content is read or saved.
+
+Bounds
+One snapshot inside and one outside, no high-frequency polling; pipe frames<=65536B, proc reads<=4096B, task cap8. Overall cooperative deadline8s, child hold<=4s, parent control wait<=3s, startup frame<=3s, direct-child waitpid(WNOHANG) polls10ms under overall deadline. All fixture paths release through EOF/finally and wait/reap; error or unreaped status makes complete=false/exit2. There is no kill fallback. Scheduling or an unexpectedly blocking kernel/file write cannot be preempted by a cooperative deadline; the plan does not falsely promise hard-real-time termination. Any abnormal unreaped report must be handled by root against captured exact identities, not an automatic broad cleanup.
+
+Interpretation
+- Stable known live PPID + children ENOENT proves that named interface was unavailable at those read times in that case. It does not prove why (kernel config, virtualized proc implementation, mount visibility, etc.). The current sampler silently suppresses that branch, so a later reviewed revision could label it explicit coverage failure rather than no-children. No global /proc scan may replace it.
+- Stable child + readable but empty children indicates visibility/information gap requiring context/mount comparison; do not equate to no child.
+- Correct listed child proves capability only for this simple fixture in this context. It does not prove historical guardian discovery or WebKit tree coverage.
+- Inside/outside disagreement with exact birth/PPID preserved is evidence to inspect context or mount boundaries, not an excuse to attach to arbitrary processes.
+
+Optional second case, separate approval
+If root finds a mount comparison necessary, run the same frozen script (still no product) under a minimal bwrap --unshare-user --ro-bind / / --proc /proc and a single writable bind for its designated output directory. Keep the binary/script read-only, preserve the same output guards, and retain wrapper argv/context. This is a separate candidate command to be reviewed after the direct case, not implemented as an automatic second run or an adaptive retry. It only compares an entire fixture's proc mount behavior, not yet an outer-observer/inner-child mixed namespace topology. Do not add --unshare-pid or product helper overlays absent a separate question/approval.
+
+Static checks performed
+AST parse only; source has no os.kill/os.killpg/subprocess launch; no fork, probe, native binary or test was executed during preparation. No claim of dynamic validation. Output path is create-new so prior evidence cannot be overwritten.

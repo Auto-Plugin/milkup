@@ -1,0 +1,41 @@
+  for (const sample of isolatedFallbacks) await isolatedFallback(sample)
+  for (const name of ['ordinary', 'windowed']) {
+    await openDocument(name)
+    await appearance('light', 1)
+    for (const sample of samples) {
+      await seek(sample, 'live')
+      await shot(`coverage-${name}-${sample.id}`, {
+        sample: sample.id,
+        ...(await assertSample(sample, 'live')),
+      })
+    }
+    await sourceSelection(
+      name,
+      matrixSamples.find((sample) => sample.expected === 'ready'),
+    )
+    for (const mode of ['source', 'live']) await history(name, mode)
+  }
+  for (const combination of matrix) {
+    const { view, mode, theme, zoom, narrow, key } = combination
+    await openDocument(view)
+    x('windowsize', nativeWindow, narrow ? '760' : '1100', narrow ? '520' : '760')
+    await appearance(theme, zoom)
+    const before = await app.probe()
+    for (const sample of matrixSamples) {
+      await seek(sample, mode)
+      await shot(`matrix-${key}-${sample.id}`, {
+        combination,
+        sample: sample.id,
+        ...(await assertSample(sample, mode)),
+      })
+      if (mode === 'live' && zoom === 2 && narrow && sample.expected === 'ready')
+        await scrollEdges(sample, key)
+    }
+    assert.equal((await app.probe()).version, before.version)
+    assert.deepEqual(await readFile(activeFile), Buffer.from(contents.get(view)))
+    assert.deepEqual((await observe()).diagnostics.errors, [])
+    await record('matrix-complete-' + key, {
+      combination,
+      exactFileSha256: sha256(await readFile(activeFile)),
+    })
+  }

@@ -1,0 +1,18 @@
+from pathlib import Path
+import datetime,hashlib,json,re
+out=Path(__file__).resolve().parent
+execution=json.loads((out/'execution.json').read_text());assert len(execution)==3 and all('exitCode' in r for r in execution)
+after=json.loads((out/'inputs-after.json').read_text())
+rows=[]
+for line in (out/'test.log').read_text().splitlines():
+ m=re.search(r'^(.*?) test:\s+Tests\s+(\d+) passed',line)
+ if m:rows.append({'workspace':m[1],'passed':int(m[2])})
+node=re.search(r'apps/desktop test: ℹ pass (\d+)',(out/'test.log').read_text());assert node
+summary={'classification':'FIRST_REPOSITORY_TYPE_TEST_FORMAT_RESULTS_NO_ROOT_BUILD','atUtc':datetime.datetime.now(datetime.timezone.utc).isoformat(),'commands':execution,'allPassed':all(r['exitCode']==0 for r in execution),'vitestByWorkspace':rows,'vitestPassed':sum(r['passed']for r in rows),'desktopBootstrapNodePassed':int(node[1]),'sourceChanges':after['changes'],'frontendsUnchanged':after['frontendsUnchanged'],'pluginChecks':'Separate diagrams plugin is outside pnpm workspace; see renderer-exact-memo-product-integration-01 owner evidence. No duplicate plugin build performed here.','rootBuildExecuted':False,'nativeOrBrowserExecuted':False,'scope':'Lint normal scope; source hashes exclude docs/evidence archived raw bytes but include all other tracked/nonignored regular files. No historical evidence modified.'}
+assert not (out/'summary.json').exists();(out/'summary.json').write_text(json.dumps(summary,indent=2)+'\n')
+files=[]
+for p in sorted(out.iterdir()):
+ if p.is_file() and p.name!='completed-manifest.json':
+  b=p.read_bytes();files.append({'path':p.name,'bytes':len(b),'sha256':hashlib.sha256(b).hexdigest()})
+(out/'completed-manifest.json').write_text(json.dumps({'classification':'COMPLETED_REPOSITORY_CHECKS','files':files},indent=2)+'\n')
+print(json.dumps({'allPassed':summary['allPassed'],'vitestPassed':summary['vitestPassed'],'nodePassed':summary['desktopBootstrapNodePassed'],'sourceChanges':len(summary['sourceChanges']),'frontendsUnchanged':summary['frontendsUnchanged'],'summarySha256':hashlib.sha256((out/'summary.json').read_bytes()).hexdigest(),'manifestSha256':hashlib.sha256((out/'completed-manifest.json').read_bytes()).hexdigest()}))

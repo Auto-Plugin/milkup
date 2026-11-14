@@ -1,0 +1,45 @@
+2026-10-16T13:28:41.255Z NATIVE_STARTUP_WINDOW 1372ms
+X Error of failed request:  BadWindow (invalid Window parameter)
+  Major opcode of failed request:  3 (X_GetWindowAttributes)
+  Resource id in failed request:  0x800009
+  Serial number of failed request:  33
+  Current serial number in output stream:  34
+2026-10-16T13:28:45.853Z NATIVE_APPLICATION_CLEANUP 293707
+node:internal/modules/run_main:107
+    triggerUncaughtException(
+    ^
+
+Error: Command failed: xdotool search --onlyvisible --class milkup-desktop
+X Error of failed request:  BadWindow (invalid Window parameter)
+  Major opcode of failed request:  3 (X_GetWindowAttributes)
+  Resource id in failed request:  0x800009
+  Serial number of failed request:  33
+  Current serial number in output stream:  34
+
+    at genericNodeError (node:internal/errors:985:15)
+    at wrappedFn (node:internal/errors:539:14)
+    at checkExecSyncError (node:child_process:942:11)
+    at execFileSync (node:child_process:978:15)
+    at x (file:///workspace/milkup/tests/native/tauri-dom-plugin-lifecycle.mjs:110:24)
+    at file:///workspace/milkup/tests/native/tauri-dom-plugin-lifecycle.mjs:496:19 {
+  status: 1,
+  signal: null,
+  output: [
+    null,
+    '',
+    'X Error of failed request:  BadWindow (invalid Window parameter)\n' +
+      '  Major opcode of failed request:  3 (X_GetWindowAttributes)\n' +
+      '  Resource id in failed request:  0x800009\n' +
+      '  Serial number of failed request:  33\n' +
+      '  Current serial number in output stream:  34\n'
+  ],
+  pid: 293878,
+  stdout: '',
+  stderr: 'X Error of failed request:  BadWindow (invalid Window parameter)\n' +
+    '  Major opcode of failed request:  3 (X_GetWindowAttributes)\n' +
+    '  Resource id in failed request:  0x800009\n' +
+    '  Serial number of failed request:  33\n' +
+    '  Current serial number in output stream:  34\n'
+}
+
+Node.js v24.19.0

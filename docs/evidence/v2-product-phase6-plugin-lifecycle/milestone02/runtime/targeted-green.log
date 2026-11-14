@@ -1,0 +1,58 @@
+
+ RUN  v3.2.6 /workspace/milkup
+
+ ✓ packages/plugin/src/preferences-isolation.test.ts (3 tests) 26ms
+ ❯ packages/plugin/src/editing-isolation.test.ts (3 tests | 1 failed) 46ms
+   × editing/resource isolation lifecycle > Worker capabilities declared=true 29ms
+     → Plugin worker cleanup failed
+   ✓ editing/resource isolation lifecycle > Worker capabilities declared=false 7ms
+   ✓ editing/resource isolation lifecycle > sidecar exposes both protocols and shutdown releases outstanding grants 8ms
+ ✓ packages/plugin/src/isolation-worker.test.ts (25 tests) 63ms
+ ✓ packages/plugin/src/isolation.test.ts (7 tests) 23ms
+ ❯ packages/plugin/src/output-isolation.test.ts (3 tests | 1 failed) 47ms
+   × output isolation wiring > worker capability declared=true, with trusted command transport and revoke 37ms
+     → Plugin worker cleanup failed
+   ✓ output isolation wiring > worker capability declared=false, with trusted command transport and revoke 2ms
+   ✓ output isolation wiring > sidecar shutdown closes the output RPC and releases leases 7ms
+ ✓ packages/plugin/src/runtime.test.ts (18 tests) 53ms
+ ✓ packages/plugin/src/isolation-module-host.test.ts (7 tests) 25ms
+ ✓ packages/plugin/src/worker-supervisor.test.ts (12 tests) 30ms
+ ✓ packages/plugin/src/isolation-rpc.test.ts (6 tests) 32ms
+ ✓ apps/desktop/src/csp-worker.test.ts (3 tests) 13ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  packages/plugin/src/editing-isolation.test.ts > editing/resource isolation lifecycle > Worker capabilities declared=true
+AggregateError: Plugin worker cleanup failed
+ ❯ cleanup packages/plugin/src/isolation-worker.ts:364:32
+    362|       }
+    363|     }
+    364|     if (failures.length) throw new AggregateError(failures, 'Plugin wo…
+       |                                ^
+    365|   }
+    366| 
+ ❯ Object.dispose packages/plugin/src/isolation-worker.ts:426:7
+ ❯ packages/plugin/src/editing-isolation.test.ts:119:10
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯
+
+ FAIL  packages/plugin/src/output-isolation.test.ts > output isolation wiring > worker capability declared=true, with trusted command transport and revoke
+AggregateError: Plugin worker cleanup failed
+ ❯ cleanup packages/plugin/src/isolation-worker.ts:364:32
+    362|       }
+    363|     }
+    364|     if (failures.length) throw new AggregateError(failures, 'Plugin wo…
+       |                                ^
+    365|   }
+    366| 
+ ❯ Object.dispose packages/plugin/src/isolation-worker.ts:426:7
+ ❯ packages/plugin/src/output-isolation.test.ts:97:12
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/2]⎯
+
+
+ Test Files  2 failed | 8 passed (10)
+      Tests  2 failed | 85 passed (87)
+   Start at  08:41:48
+   Duration  2.97s (transform 1.65s, setup 0ms, collect 4.50s, tests 356ms, environment 2ms, prepare 934ms)
+

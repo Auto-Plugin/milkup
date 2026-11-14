@@ -1,0 +1,43 @@
+{
+  "status": "core-sdk-implemented-and-focused-verified; native-converter-and-production-edge-reachability-pending",
+  "before": {
+    "tests": 7,
+    "failed": 6,
+    "passed": 1,
+    "log": "01-before.log",
+    "meaning": "Missing bounds previously accepted; valid new bounds rejected as unknown field. Negative invalid-region test already passed and is not new support evidence."
+  },
+  "after": {
+    "tests": 60,
+    "passed": 60,
+    "failed": 0,
+    "log": "02-after.log",
+    "coreStrict": "03-core-types.log PASS",
+    "sdkStrict": "04-sdk-types.log PASS",
+    "sdkContract": "07-sdk-contract-after.log PASS",
+    "format": "06-format.log PASS"
+  },
+  "fixtureCorrection": {
+    "log": "05-sdk-contract.log",
+    "meaning": "Initial SDK contract compile had unused @ts-expect-error above declaration while error attached to ref property in existing unresolved-local negative fixture. Moved directive to ref; no validator/type relaxation."
+  },
+  "contract": {
+    "field": "required rasterBounds: DocumentSvgBox",
+    "tuple": "[x,y,width,height], root CSS pixels",
+    "default": null,
+    "containRootViewport": true,
+    "integerEdges": "floor(left/top),ceil(right/bottom)",
+    "maxIntegerDimension": 8192,
+    "maxRasterPixels": 16777216,
+    "aggregateWork": 268435456,
+    "innerRoot": "unchanged precise dimensions/viewBox/aspect/clip",
+    "rootRasterWork": "expanded integer region once; independent effects still charged"
+  },
+  "limitations": [
+    "No fresh converter AST or native pixel validation performed in this slot.",
+    "Historical 19 actual AST product acceptance is for the previous schema; their files were not patched.",
+    "Bounds declare converter visual extent; finite host validation does not independently prove all text/marker/shadow ink completeness.",
+    "Negative overflow reachability through the real preview scroll ancestor is owned by the view agent and remains a separate acceptance gate."
+  ],
+  "cpu": "Released sequentially to dom_transport view focused checks, then release_sdk native smoke."
+}

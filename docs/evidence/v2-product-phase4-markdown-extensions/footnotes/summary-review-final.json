@@ -1,0 +1,53 @@
+{
+  "status": "frozen after host integration review",
+  "finalExternalProof": "/workspace/milkup-markdown-extensions-phase4-evidence/footnotes/external-format-final/verification.json",
+  "sdkSha256": "b9a163f32556a77c4ae0f5c5a8cbd8a3eaf1e102e9d3e83f9e76e539a3d89e9f",
+  "workerSha256": "d82f881f3c432f1e63e1a4492f9ca48b906ff9981be40984a2996403a39b0c36",
+  "archiveSha256": "eedf438cb39518795e29c118acb6da837badcde890be0e41a8db4d1cee4def15",
+  "checks": {
+    "externalPluginTests": 14,
+    "externalTypesAndBuildGuard": "pass",
+    "markdownTests": 121,
+    "markdownTypes": "pass",
+    "desktopTypes": "pass",
+    "navigationAndPresentationServiceTests": 10
+  },
+  "regressions": [
+    {
+      "before": "21-service-cas-before.txt",
+      "after": "22-service-cas-after.txt",
+      "description": "Two deferred renderer CAS failures. Before is an isolated reconstruction of the pre-fix service, with repository product files untouched; exact source/tests and reproduction note retained in service-cas-before/."
+    },
+    {
+      "before": "23-navigation-before.txt",
+      "after": "25-navigation-after.txt",
+      "description": "Four new-entry feature tests fail against explicit not-implemented stub, then pass. Host old length-as-zero and unbounded lookup were established by code review, not claimed as executable old-main failures."
+    },
+    {
+      "before": "24-context-budget-before.txt",
+      "after": "26-context-budget-after.txt",
+      "description": "Existing context helper ignored per-operation remaining budgets. One real failing regression, then all 8 helper tests pass."
+    },
+    {
+      "before": "28-selection-cache-before.txt",
+      "after": "33-external-review-final.txt",
+      "description": "Existing plugin selection prefilter changed cached fragments. One real failing regression, then all 14 external plugin tests pass."
+    }
+  ],
+  "reviewFindingsAddressed": [
+    "Parent service captures source object and immutable document ID/version and accepts formal window.documentVersion.",
+    "View owner marks optimistic window text unavailable until committed source version matches.",
+    "New bounded navigation helper avoids optional length and byte length, validates both UTF-16 endpoints, checks cancellation/CAS after each read, and rejects oversized lines.",
+    "Parent service passes remaining scan budgets and stops no-progress retries.",
+    "Footnotes returns selection-independent fragments; host retains editing source and restores previews."
+  ],
+  "limitations": [
+    "Footnote index caps remain 8 Mi UTF-16 / 200000 lines / 4096 combined definitions and references; partial indexes never assert undefined.",
+    "Unsupported nested or unprovable opaque context falls back to source.",
+    "Navigation rejects an oversized intermediate line instead of reading it without a budget.",
+    "Definition preview replaces only the marker; body/continuations retain original editor mapping.",
+    "Native UI acceptance is coordinated by parent and is not claimed by this report."
+  ],
+  "formatEquivalenceProof": "/workspace/milkup-markdown-extensions-phase4-evidence/footnotes/format-final-equivalence.json",
+  "finalExternalLog": "34-external-format-final.txt"
+}

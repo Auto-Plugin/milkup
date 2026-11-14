@@ -1,0 +1,222 @@
+$ tsc -p tsconfig.json --noEmit
+src/document-presentation-service.test.ts(426,56): error TS2379: Argument of type '{ signal: AbortSignal; deadline: number | undefined; }' is not assignable to parameter of type '{ readonly signal: AbortSignal; readonly deadline?: number; }' with 'exactOptionalPropertyTypes: true'. Consider adding 'undefined' to the types of the target's properties.
+  Types of property 'deadline' are incompatible.
+    Type 'number | undefined' is not assignable to type 'number'.
+      Type 'undefined' is not assignable to type 'number'.
+src/output-presentations-queue.test.ts(167,7): error TS2379: Argument of type '{ signal: AbortSignal | undefined; }' is not assignable to parameter of type '{ readonly signal?: AbortSignal; }' with 'exactOptionalPropertyTypes: true'. Consider adding 'undefined' to the types of the target's properties.
+  Types of property 'signal' are incompatible.
+    Type 'AbortSignal | undefined' is not assignable to type 'AbortSignal'.
+      Type 'undefined' is not assignable to type 'AbortSignal'.
+src/output-service.ts(259,17): error TS2322: Type '(pluginId: string, rendererId: string, request: DocumentPresentationRequest, options: { readonly signal: AbortSignal; readonly deadline: number; }) => Promise<...>' is not assignable to type '(pluginId: string, rendererId: string, request: DocumentPresentationRequest, options: { readonly signal: AbortSignal; }) => Promise<DocumentPresentationResult>'.
+  Types of parameters 'options' and 'options' are incompatible.
+    Property 'deadline' is missing in type '{ readonly signal: AbortSignal; }' but required in type '{ readonly signal: AbortSignal; readonly deadline: number; }'.
+../../packages/plugin/src/document-render-rpc.ts(7,79): error TS6059: File '/workspace/milkup/packages/plugin/src/isolation.ts' is not under 'rootDir' '/workspace/milkup/apps/desktop/src'. 'rootDir' is expected to contain all source files.
+  The file is in the program because:
+    Imported via './isolation' from file '/workspace/milkup/packages/plugin/src/document-render-rpc.ts'
+    Imported via './isolation' from file '/workspace/milkup/packages/plugin/src/isolation-rpc.ts'
+    Imported via './isolation' from file '/workspace/milkup/packages/plugin/src/index.ts'
+    Imported via './isolation' from file '/workspace/milkup/packages/plugin/src/isolation-module-host.ts'
+    Imported via './isolation' from file '/workspace/milkup/packages/plugin/src/isolation-sidecar.ts'
+    Imported via './isolation' from file '/workspace/milkup/packages/plugin/src/index.ts'
+    Imported via '../../../packages/plugin/src/isolation' from file '/workspace/milkup/apps/desktop/src/output-presentations-queue.test.ts'
+../../packages/plugin/src/document-render-rpc.ts(9,42): error TS6059: File '/workspace/milkup/packages/plugin/src/render-arbitration.ts' is not under 'rootDir' '/workspace/milkup/apps/desktop/src'. 'rootDir' is expected to contain all source files.
+  The file is in the program because:
+    Imported via './render-arbitration' from file '/workspace/milkup/packages/plugin/src/document-render-rpc.ts'
+    Imported via './render-arbitration' from file '/workspace/milkup/packages/plugin/src/isolation-rpc.ts'
+    Imported via './render-arbitration' from file '/workspace/milkup/packages/plugin/src/index.ts'
+    Imported via './render-arbitration' from file '/workspace/milkup/packages/plugin/src/worker-supervisor.ts'
+../../packages/plugin/src/document-render-rpc.ts(10,42): error TS6059: File '/workspace/milkup/packages/plugin/src/document-render-wire.ts' is not under 'rootDir' '/workspace/milkup/apps/desktop/src'. 'rootDir' is expected to contain all source files.
+  The file is in the program because:
+    Imported via './document-render-wire' from file '/workspace/milkup/packages/plugin/src/document-render-rpc.ts'
+    Imported via './document-render-wire' from file '/workspace/milkup/packages/plugin/src/worker-supervisor.ts'
+../../packages/plugin/src/document-rpc.ts(11,84): error TS6059: File '/workspace/milkup/packages/plugin/src/isolation-rpc.ts' is not under 'rootDir' '/workspace/milkup/apps/desktop/src'. 'rootDir' is expected to contain all source files.
+  The file is in the program because:
+    Imported via './isolation-rpc' from file '/workspace/milkup/packages/plugin/src/document-rpc.ts'
+    Imported via './isolation-rpc' from file '/workspace/milkup/packages/plugin/src/document-render-rpc.ts'
+    Imported via './isolation-rpc' from file '/workspace/milkup/packages/plugin/src/render-arbitration.ts'
+    Imported via './isolation-rpc' from file '/workspace/milkup/packages/plugin/src/ui-rpc.ts'
+    Imported via './isolation-rpc' from file '/workspace/milkup/packages/plugin/src/storage-rpc.ts'
+    Imported via './isolation-rpc' from file '/workspace/milkup/packages/plugin/src/filesystem-rpc.ts'
+    Imported via './isolation-rpc' from file '/workspace/milkup/packages/plugin/src/network-rpc.ts'
+    Imported via './isolation-rpc' from file '/workspace/milkup/packages/plugin/src/index.ts'
+    Imported via './isolation-rpc' from file '/workspace/milkup/packages/plugin/src/output-rpc.ts'
+    Imported via './isolation-rpc' from file '/workspace/milkup/packages/plugin/src/keymap-rpc.ts'
+    Imported via './isolation-rpc' from file '/workspace/milkup/packages/plugin/src/editing-rpc.ts'
+    Imported via './isolation-rpc' from file '/workspace/milkup/packages/plugin/src/resources-rpc.ts'
+    Imported via './isolation-rpc' from file '/workspace/milkup/packages/plugin/src/settings-rpc.ts'
+    Imported via './isolation-rpc' from file '/workspace/milkup/packages/plugin/src/workspace-rpc.ts'
+    Imported via './isolation-rpc' from file '/workspace/milkup/packages/plugin/src/isolation-sidecar.ts'
+    Imported via './isolation-rpc' from file '/workspace/milkup/packages/plugin/src/releases-rpc.ts'
+    Imported via './isolation-rpc' from file '/workspace/milkup/packages/plugin/src/isolation-worker.ts'
+    Imported via './isolation-rpc' from file '/workspace/milkup/packages/plugin/src/worker-supervisor.ts'
+../../packages/plugin/src/index.ts(17,8): error TS6059: File '/workspace/milkup/packages/plugin/src/document-broker.ts' is not under 'rootDir' '/workspace/milkup/apps/desktop/src'. 'rootDir' is expected to contain all source files.
+  The file is in the program because:
+    Imported via './document-broker' from file '/workspace/milkup/packages/plugin/src/index.ts'
+    Imported via './document-broker' from file '/workspace/milkup/packages/plugin/src/document-rpc.ts'
+    Imported via './document-broker' from file '/workspace/milkup/packages/plugin/src/runtime.ts'
+    Imported via './document-broker' from file '/workspace/milkup/packages/plugin/src/isolation-module-host.ts'
+    Imported via './document-broker' from file '/workspace/milkup/packages/plugin/src/isolation-sidecar.ts'
+    Imported via './document-broker' from file '/workspace/milkup/packages/plugin/src/isolation-worker.ts'
+    Imported via './document-broker' from file '/workspace/milkup/packages/plugin/src/index.ts'
+../../packages/plugin/src/isolation-rpc.ts(1,78): error TS6059: File '/workspace/milkup/packages/plugin/src/document-render-rpc.ts' is not under 'rootDir' '/workspace/milkup/apps/desktop/src'. 'rootDir' is expected to contain all source files.
+  The file is in the program because:
+    Imported via './document-render-rpc' from file '/workspace/milkup/packages/plugin/src/isolation-rpc.ts'
+    Imported via './document-render-rpc' from file '/workspace/milkup/packages/plugin/src/index.ts'
+    Imported via '../../../packages/plugin/src/document-render-rpc' from file '/workspace/milkup/apps/desktop/src/output-presentations-queue.test.ts'
+../../packages/plugin/src/isolation.ts(6,38): error TS6059: File '/workspace/milkup/packages/plugin/src/workspace-gesture.ts' is not under 'rootDir' '/workspace/milkup/apps/desktop/src'. 'rootDir' is expected to contain all source files.
+  The file is in the program because:
+    Imported via './workspace-gesture' from file '/workspace/milkup/packages/plugin/src/isolation.ts'
+    Imported via './workspace-gesture' from file '/workspace/milkup/packages/plugin/src/output-broker.ts'
+    Imported via './workspace-gesture' from file '/workspace/milkup/packages/plugin/src/resources-broker.ts'
+    Imported via './workspace-gesture' from file '/workspace/milkup/packages/plugin/src/workspace-broker.ts'
+    Imported via './workspace-gesture' from file '/workspace/milkup/packages/plugin/src/runtime.ts'
+    Imported via './workspace-gesture' from file '/workspace/milkup/packages/plugin/src/ui-broker.ts'
+    Imported via './workspace-gesture' from file '/workspace/milkup/packages/plugin/src/index.ts'
+../../packages/plugin/src/isolation.ts(14,8): error TS6059: File '/workspace/milkup/packages/plugin/src/manifest.ts' is not under 'rootDir' '/workspace/milkup/apps/desktop/src'. 'rootDir' is expected to contain all source files.
+  The file is in the program because:
+    Imported via './manifest' from file '/workspace/milkup/packages/plugin/src/isolation.ts'
+    Imported via './manifest' from file '/workspace/milkup/packages/plugin/src/output-broker.ts'
+    Imported via './manifest' from file '/workspace/milkup/packages/plugin/src/keymap-broker.ts'
+    Imported via './manifest' from file '/workspace/milkup/packages/plugin/src/editing-broker.ts'
+    Imported via './manifest' from file '/workspace/milkup/packages/plugin/src/resources-broker.ts'
+    Imported via './manifest' from file '/workspace/milkup/packages/plugin/src/settings-broker.ts'
+    Imported via './manifest' from file '/workspace/milkup/packages/plugin/src/workspace-broker.ts'
+    Imported via './manifest' from file '/workspace/milkup/packages/plugin/src/filesystem-broker.ts'
+    Imported via './manifest' from file '/workspace/milkup/packages/plugin/src/runtime.ts'
+    Imported via './manifest' from file '/workspace/milkup/packages/plugin/src/network-broker.ts'
+    Imported via './manifest' from file '/workspace/milkup/packages/plugin/src/releases-broker.ts'
+    Imported via './manifest' from file '/workspace/milkup/packages/plugin/src/package.ts'
+    Imported via './manifest' from file '/workspace/milkup/packages/plugin/src/loader.ts'
+    Imported via './manifest' from file '/workspace/milkup/packages/plugin/src/isolation-module-host.ts'
+    Imported via './manifest' from file '/workspace/milkup/packages/plugin/src/isolation-sidecar.ts'
+    Imported via './manifest' from file '/workspace/milkup/packages/plugin/src/isolation-worker.ts'
+    Imported via './manifest' from file '/workspace/milkup/packages/plugin/src/index.ts'
+    Imported via './manifest' from file '/workspace/milkup/packages/plugin/src/registry.ts'
+    Imported via './manifest' from file '/workspace/milkup/packages/plugin/src/index.ts'
+../../packages/plugin/src/isolation.ts(22,8): error TS6059: File '/workspace/milkup/packages/plugin/src/runtime.ts' is not under 'rootDir' '/workspace/milkup/apps/desktop/src'. 'rootDir' is expected to contain all source files.
+  The file is in the program because:
+    Imported via './runtime' from file '/workspace/milkup/packages/plugin/src/isolation.ts'
+    Imported via './runtime' from file '/workspace/milkup/packages/plugin/src/loader.ts'
+    Imported via './runtime' from file '/workspace/milkup/packages/plugin/src/isolation-module-host.ts'
+    Imported via './runtime' from file '/workspace/milkup/packages/plugin/src/isolation-sidecar.ts'
+    Imported via './runtime' from file '/workspace/milkup/packages/plugin/src/index.ts'
+    Imported via './runtime' from file '/workspace/milkup/packages/plugin/src/index.ts'
+    Imported via './runtime' from file '/workspace/milkup/packages/plugin/src/index.ts'
+../../packages/plugin/src/manifest.ts(2,77): error TS6059: File '/workspace/milkup/packages/plugin/src/settings-schema.ts' is not under 'rootDir' '/workspace/milkup/apps/desktop/src'. 'rootDir' is expected to contain all source files.
+  The file is in the program because:
+    Imported via './settings-schema' from file '/workspace/milkup/packages/plugin/src/manifest.ts'
+    Imported via './settings-schema' from file '/workspace/milkup/packages/plugin/src/settings-broker.ts'
+    Imported via './settings-schema' from file '/workspace/milkup/packages/plugin/src/settings-broker.ts'
+    Imported via './settings-schema' from file '/workspace/milkup/packages/plugin/src/settings-rpc.ts'
+../../packages/plugin/src/output-broker.ts(2,62): error TS6059: File '/workspace/milkup/packages/plugin/src/editing-schema.ts' is not under 'rootDir' '/workspace/milkup/apps/desktop/src'. 'rootDir' is expected to contain all source files.
+  The file is in the program because:
+    Imported via './editing-schema' from file '/workspace/milkup/packages/plugin/src/output-broker.ts'
+    Imported via './editing-schema' from file '/workspace/milkup/packages/plugin/src/output-schema.ts'
+    Imported via './editing-schema' from file '/workspace/milkup/packages/plugin/src/editing-broker.ts'
+    Imported via './editing-schema' from file '/workspace/milkup/packages/plugin/src/editing-broker.ts'
+    Imported via './editing-schema' from file '/workspace/milkup/packages/plugin/src/resources-broker.ts'
+    Imported via './editing-schema' from file '/workspace/milkup/packages/plugin/src/resources-broker.ts'
+    Imported via './editing-schema' from file '/workspace/milkup/packages/plugin/src/resources-schema.ts'
+    Imported via './editing-schema' from file '/workspace/milkup/packages/plugin/src/output-rpc.ts'
+    Imported via './editing-schema' from file '/workspace/milkup/packages/plugin/src/editing-rpc.ts'
+    Imported via './editing-schema' from file '/workspace/milkup/packages/plugin/src/resources-rpc.ts'
+../../packages/plugin/src/output-broker.ts(20,8): error TS6059: File '/workspace/milkup/packages/plugin/src/output-schema.ts' is not under 'rootDir' '/workspace/milkup/apps/desktop/src'. 'rootDir' is expected to contain all source files.
+  The file is in the program because:
+    Imported via './output-schema' from file '/workspace/milkup/packages/plugin/src/output-broker.ts'
+    Imported via './output-schema' from file '/workspace/milkup/packages/plugin/src/output-broker.ts'
+    Imported via './output-schema' from file '/workspace/milkup/packages/plugin/src/output-rpc.ts'
+../../packages/plugin/src/resources-broker.ts(20,8): error TS6059: File '/workspace/milkup/packages/plugin/src/resources-schema.ts' is not under 'rootDir' '/workspace/milkup/apps/desktop/src'. 'rootDir' is expected to contain all source files.
+  The file is in the program because:
+    Imported via './resources-schema' from file '/workspace/milkup/packages/plugin/src/resources-broker.ts'
+    Imported via './resources-schema' from file '/workspace/milkup/packages/plugin/src/resources-broker.ts'
+    Imported via './resources-schema' from file '/workspace/milkup/packages/plugin/src/resources-rpc.ts'
+../../packages/plugin/src/runtime.ts(5,8): error TS6059: File '/workspace/milkup/packages/plugin/src/output-broker.ts' is not under 'rootDir' '/workspace/milkup/apps/desktop/src'. 'rootDir' is expected to contain all source files.
+  The file is in the program because:
+    Imported via './output-broker' from file '/workspace/milkup/packages/plugin/src/runtime.ts'
+    Imported via './output-broker' from file '/workspace/milkup/packages/plugin/src/isolation-module-host.ts'
+    Imported via './output-broker' from file '/workspace/milkup/packages/plugin/src/isolation-sidecar.ts'
+    Imported via './output-broker' from file '/workspace/milkup/packages/plugin/src/output-rpc.ts'
+    Imported via './output-broker' from file '/workspace/milkup/packages/plugin/src/output-rpc.ts'
+    Imported via './output-broker' from file '/workspace/milkup/packages/plugin/src/isolation-worker.ts'
+    Imported via './output-broker' from file '/workspace/milkup/packages/plugin/src/index.ts'
+../../packages/plugin/src/runtime.ts(18,8): error TS6059: File '/workspace/milkup/packages/plugin/src/keymap-broker.ts' is not under 'rootDir' '/workspace/milkup/apps/desktop/src'. 'rootDir' is expected to contain all source files.
+  The file is in the program because:
+    Imported via './keymap-broker' from file '/workspace/milkup/packages/plugin/src/runtime.ts'
+    Imported via './keymap-broker' from file '/workspace/milkup/packages/plugin/src/isolation-module-host.ts'
+    Imported via './keymap-broker' from file '/workspace/milkup/packages/plugin/src/isolation-sidecar.ts'
+    Imported via './keymap-broker' from file '/workspace/milkup/packages/plugin/src/keymap-rpc.ts'
+    Imported via './keymap-broker' from file '/workspace/milkup/packages/plugin/src/isolation-worker.ts'
+    Imported via './keymap-broker' from file '/workspace/milkup/packages/plugin/src/index.ts'
+../../packages/plugin/src/runtime.ts(23,8): error TS6059: File '/workspace/milkup/packages/plugin/src/editing-broker.ts' is not under 'rootDir' '/workspace/milkup/apps/desktop/src'. 'rootDir' is expected to contain all source files.
+  The file is in the program because:
+    Imported via './editing-broker' from file '/workspace/milkup/packages/plugin/src/runtime.ts'
+    Imported via './editing-broker' from file '/workspace/milkup/packages/plugin/src/isolation-module-host.ts'
+    Imported via './editing-broker' from file '/workspace/milkup/packages/plugin/src/isolation-sidecar.ts'
+    Imported via './editing-broker' from file '/workspace/milkup/packages/plugin/src/editing-rpc.ts'
+    Imported via './editing-broker' from file '/workspace/milkup/packages/plugin/src/isolation-worker.ts'
+    Imported via './editing-broker' from file '/workspace/milkup/packages/plugin/src/index.ts'
+../../packages/plugin/src/runtime.ts(28,8): error TS6059: File '/workspace/milkup/packages/plugin/src/resources-broker.ts' is not under 'rootDir' '/workspace/milkup/apps/desktop/src'. 'rootDir' is expected to contain all source files.
+  The file is in the program because:
+    Imported via './resources-broker' from file '/workspace/milkup/packages/plugin/src/runtime.ts'
+    Imported via './resources-broker' from file '/workspace/milkup/packages/plugin/src/isolation-module-host.ts'
+    Imported via './resources-broker' from file '/workspace/milkup/packages/plugin/src/isolation-sidecar.ts'
+    Imported via './resources-broker' from file '/workspace/milkup/packages/plugin/src/resources-rpc.ts'
+    Imported via './resources-broker' from file '/workspace/milkup/packages/plugin/src/resources-rpc.ts'
+    Imported via './resources-broker' from file '/workspace/milkup/packages/plugin/src/isolation-worker.ts'
+    Imported via './resources-broker' from file '/workspace/milkup/packages/plugin/src/index.ts'
+../../packages/plugin/src/runtime.ts(33,8): error TS6059: File '/workspace/milkup/packages/plugin/src/settings-broker.ts' is not under 'rootDir' '/workspace/milkup/apps/desktop/src'. 'rootDir' is expected to contain all source files.
+  The file is in the program because:
+    Imported via './settings-broker' from file '/workspace/milkup/packages/plugin/src/runtime.ts'
+    Imported via './settings-broker' from file '/workspace/milkup/packages/plugin/src/isolation-module-host.ts'
+    Imported via './settings-broker' from file '/workspace/milkup/packages/plugin/src/isolation-sidecar.ts'
+    Imported via './settings-broker' from file '/workspace/milkup/packages/plugin/src/settings-rpc.ts'
+    Imported via './settings-broker' from file '/workspace/milkup/packages/plugin/src/isolation-worker.ts'
+    Imported via './settings-broker' from file '/workspace/milkup/packages/plugin/src/index.ts'
+../../packages/plugin/src/runtime.ts(39,8): error TS6059: File '/workspace/milkup/packages/plugin/src/workspace-broker.ts' is not under 'rootDir' '/workspace/milkup/apps/desktop/src'. 'rootDir' is expected to contain all source files.
+  The file is in the program because:
+    Imported via './workspace-broker' from file '/workspace/milkup/packages/plugin/src/runtime.ts'
+    Imported via './workspace-broker' from file '/workspace/milkup/packages/plugin/src/isolation-module-host.ts'
+    Imported via './workspace-broker' from file '/workspace/milkup/packages/plugin/src/isolation-sidecar.ts'
+    Imported via './workspace-broker' from file '/workspace/milkup/packages/plugin/src/workspace-rpc.ts'
+    Imported via './workspace-broker' from file '/workspace/milkup/packages/plugin/src/isolation-worker.ts'
+    Imported via './workspace-broker' from file '/workspace/milkup/packages/plugin/src/index.ts'
+../../packages/plugin/src/runtime.ts(53,73): error TS6059: File '/workspace/milkup/packages/plugin/src/filesystem-broker.ts' is not under 'rootDir' '/workspace/milkup/apps/desktop/src'. 'rootDir' is expected to contain all source files.
+  The file is in the program because:
+    Imported via './filesystem-broker' from file '/workspace/milkup/packages/plugin/src/runtime.ts'
+    Imported via './filesystem-broker' from file '/workspace/milkup/packages/plugin/src/index.ts'
+    Imported via './filesystem-broker' from file '/workspace/milkup/packages/plugin/src/filesystem-rpc.ts'
+    Imported via './filesystem-broker' from file '/workspace/milkup/packages/plugin/src/isolation-module-host.ts'
+    Imported via './filesystem-broker' from file '/workspace/milkup/packages/plugin/src/isolation-worker.ts'
+../../packages/plugin/src/runtime.ts(67,79): error TS6059: File '/workspace/milkup/packages/plugin/src/network-broker.ts' is not under 'rootDir' '/workspace/milkup/apps/desktop/src'. 'rootDir' is expected to contain all source files.
+  The file is in the program because:
+    Imported via './network-broker' from file '/workspace/milkup/packages/plugin/src/runtime.ts'
+    Imported via './network-broker' from file '/workspace/milkup/packages/plugin/src/index.ts'
+    Imported via './network-broker' from file '/workspace/milkup/packages/plugin/src/network-rpc.ts'
+    Imported via './network-broker' from file '/workspace/milkup/packages/plugin/src/isolation-module-host.ts'
+    Imported via './network-broker' from file '/workspace/milkup/packages/plugin/src/isolation-worker.ts'
+../../packages/plugin/src/runtime.ts(72,8): error TS6059: File '/workspace/milkup/packages/plugin/src/releases-broker.ts' is not under 'rootDir' '/workspace/milkup/apps/desktop/src'. 'rootDir' is expected to contain all source files.
+  The file is in the program because:
+    Imported via './releases-broker' from file '/workspace/milkup/packages/plugin/src/runtime.ts'
+    Imported via './releases-broker' from file '/workspace/milkup/packages/plugin/src/isolation-module-host.ts'
+    Imported via './releases-broker' from file '/workspace/milkup/packages/plugin/src/isolation-worker.ts'
+    Imported via './releases-broker' from file '/workspace/milkup/packages/plugin/src/releases-rpc.ts'
+    Imported via './releases-broker' from file '/workspace/milkup/packages/plugin/src/index.ts'
+../../packages/plugin/src/runtime.ts(73,42): error TS6059: File '/workspace/milkup/packages/plugin/src/storage-broker.ts' is not under 'rootDir' '/workspace/milkup/apps/desktop/src'. 'rootDir' is expected to contain all source files.
+  The file is in the program because:
+    Imported via './storage-broker' from file '/workspace/milkup/packages/plugin/src/runtime.ts'
+    Imported via './storage-broker' from file '/workspace/milkup/packages/plugin/src/index.ts'
+    Imported via './storage-broker' from file '/workspace/milkup/packages/plugin/src/storage-rpc.ts'
+    Imported via './storage-broker' from file '/workspace/milkup/packages/plugin/src/isolation-module-host.ts'
+    Imported via './storage-broker' from file '/workspace/milkup/packages/plugin/src/isolation-worker.ts'
+../../packages/plugin/src/runtime.ts(74,88): error TS6059: File '/workspace/milkup/packages/plugin/src/ui-broker.ts' is not under 'rootDir' '/workspace/milkup/apps/desktop/src'. 'rootDir' is expected to contain all source files.
+  The file is in the program because:
+    Imported via './ui-broker' from file '/workspace/milkup/packages/plugin/src/runtime.ts'
+    Imported via './ui-broker' from file '/workspace/milkup/packages/plugin/src/index.ts'
+    Imported via './ui-broker' from file '/workspace/milkup/packages/plugin/src/ui-rpc.ts'
+    Imported via './ui-broker' from file '/workspace/milkup/packages/plugin/src/isolation-module-host.ts'
+    Imported via './ui-broker' from file '/workspace/milkup/packages/plugin/src/isolation-sidecar.ts'
+    Imported via './ui-broker' from file '/workspace/milkup/packages/plugin/src/isolation-worker.ts'
+    Imported via './ui-broker' from file '/workspace/milkup/packages/plugin/src/index.ts'
+/workspace/milkup/apps/desktop:
+[ERR_PNPM_RECURSIVE_RUN_FIRST_FAIL] @milkup/desktop@2.0.0-beta.1 typecheck: `tsc -p tsconfig.json --noEmit`
+Exit status 2

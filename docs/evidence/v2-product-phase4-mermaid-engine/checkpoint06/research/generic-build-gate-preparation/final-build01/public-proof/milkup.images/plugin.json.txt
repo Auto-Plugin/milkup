@@ -1,0 +1,75 @@
+{
+  "id": "milkup.images",
+  "name": "图片与资源",
+  "version": "1.0.0",
+  "description": "选择或粘贴本地图片，先安全保存资源，再插入 Markdown 引用；支持资源目录策略与取消。",
+  "host": "worker",
+  "main": "./dist/plugin.js",
+  "engines": {
+    "milkup": "^2.0.0-0",
+    "pluginSdk": "^0.3.2"
+  },
+  "permissions": ["document:read", "document:write", "images:import"],
+  "icon": "assets/images.png",
+  "resources": ["assets/images.png"],
+  "contributes": {
+    "commands": [
+      {
+        "id": "images.choose",
+        "title": "选择并插入图片",
+        "action": "images.choose"
+      },
+      {
+        "id": "images.paste",
+        "title": "粘贴图片",
+        "action": "images.paste",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "grantId": {
+              "type": "string"
+            }
+          },
+          "required": ["grantId"]
+        }
+      },
+      {
+        "id": "images.change",
+        "title": "修改图片选项",
+        "action": "images.change",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "field": {
+              "type": "string"
+            },
+            "value": {
+              "type": "string"
+            }
+          },
+          "required": ["field", "value"]
+        }
+      },
+      {
+        "id": "images.cancel",
+        "title": "取消图片导入",
+        "action": "images.cancel"
+      }
+    ],
+    "ui": [
+      {
+        "id": "images-panel",
+        "slot": "modal",
+        "title": "图片与资源",
+        "scope": "app",
+        "viewportUpdates": false
+      }
+    ],
+    "pasteHandlers": [
+      {
+        "kind": "image",
+        "command": "images.paste"
+      }
+    ]
+  }
+}

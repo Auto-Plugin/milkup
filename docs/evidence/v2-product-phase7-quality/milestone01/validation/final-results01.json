@@ -1,0 +1,117 @@
+{
+  "steps": [
+    {
+      "name": "format",
+      "command": [
+        "./node_modules/.bin/prettier",
+        "--check",
+        "--ignore-unknown",
+        "apps/desktop/src/controlled-tree-ui.test.ts",
+        "apps/desktop/src/controlled-tree-ui.ts",
+        "apps/desktop/src/desktop-focus.test.ts",
+        "apps/desktop/src/desktop-focus.ts",
+        "apps/desktop/src/desktop-plugin-ui.test.ts",
+        "apps/desktop/src/desktop-plugin-ui.ts",
+        "apps/desktop/src/main.ts",
+        "apps/desktop/src/source-focus-navigation.test.ts",
+        "docs/v2-product-completion-plan.md",
+        "docs/v2-product-phase7-quality-2026-10-19.md",
+        "docs/v2-product-phase7-quality-checklist.md",
+        "packages/view-dom/src/__tests__/p7-document-navigation.test.ts",
+        "packages/view-dom/src/__tests__/p7-input-audit.test.ts",
+        "packages/view-dom/src/__tests__/p7-live-parse-budget.test.ts",
+        "packages/view-dom/src/editor-view.ts",
+        "packages/view-dom/src/source-document-view.ts",
+        "plugins/outline/README.md",
+        "plugins/outline/package.json",
+        "plugins/outline/plugin.json",
+        "plugins/outline/src/outline-index.test.ts",
+        "plugins/outline/src/outline-index.ts",
+        "tests/e2e/desktop-shell.spec.ts",
+        "tests/e2e/desktop-shortcuts.spec.ts",
+        "tests/e2e/desktop-updates.spec.ts",
+        "tests/e2e/desktop-workspace.spec.ts",
+        "tests/helpers/formatting-plugin.ts",
+        "tests/helpers/markdown-extension-plugins.ts",
+        "tests/native/p7-quality-README.md",
+        "tests/native/tauri-p7-all-plugins-disabled.mjs",
+        "tests/native/tauri-p7-outline-performance.mjs",
+        "tests/native/tauri-p7-quality.mjs",
+        "tests/native/tauri-production-latency.mjs",
+        "tests/performance/p7-outline-baseline.mjs"
+      ],
+      "exitCode": 1,
+      "elapsedSeconds": 7.028579680001712,
+      "startedAt": "2026-10-19T11:20:33.162987+00:00",
+      "finishedAt": "2026-10-19T11:20:40.191590+00:00",
+      "log": "/workspace/milkup-p7-quality-evidence/milestone01/validation/final-format-01.log"
+    },
+    {
+      "name": "workspace-tests",
+      "command": [
+        "pnpm",
+        "-r",
+        "test"
+      ],
+      "exitCode": 1,
+      "elapsedSeconds": 3.4811618819949217,
+      "startedAt": "2026-10-19T11:20:40.192361+00:00",
+      "finishedAt": "2026-10-19T11:20:43.673561+00:00",
+      "log": "/workspace/milkup-p7-quality-evidence/milestone01/validation/final-workspace-tests-01.log"
+    },
+    {
+      "name": "workspace-types",
+      "command": [
+        "pnpm",
+        "-r",
+        "typecheck"
+      ],
+      "exitCode": 1,
+      "elapsedSeconds": 2.8932722989993636,
+      "startedAt": "2026-10-19T11:20:43.677334+00:00",
+      "finishedAt": "2026-10-19T11:20:46.570620+00:00",
+      "log": "/workspace/milkup-p7-quality-evidence/milestone01/validation/final-workspace-types-01.log"
+    },
+    {
+      "name": "version",
+      "command": [
+        "pnpm",
+        "version:check"
+      ],
+      "exitCode": 1,
+      "elapsedSeconds": 2.0663734789995942,
+      "startedAt": "2026-10-19T11:20:46.573721+00:00",
+      "finishedAt": "2026-10-19T11:20:48.640101+00:00",
+      "log": "/workspace/milkup-p7-quality-evidence/milestone01/validation/final-version-01.log"
+    },
+    {
+      "name": "workspace-build",
+      "command": [
+        "pnpm",
+        "-r",
+        "build"
+      ],
+      "exitCode": 1,
+      "elapsedSeconds": 1.7786457979964325,
+      "startedAt": "2026-10-19T11:20:48.640522+00:00",
+      "finishedAt": "2026-10-19T11:20:50.419174+00:00",
+      "log": "/workspace/milkup-p7-quality-evidence/milestone01/validation/final-workspace-build-01.log"
+    },
+    {
+      "name": "diff-check",
+      "command": [
+        "git",
+        "diff",
+        "--check",
+        "HEAD"
+      ],
+      "exitCode": 0,
+      "elapsedSeconds": 0.04095700698962901,
+      "startedAt": "2026-10-19T11:20:50.419602+00:00",
+      "finishedAt": "2026-10-19T11:20:50.460566+00:00",
+      "log": "/workspace/milkup-p7-quality-evidence/milestone01/validation/final-diff-check-01.log"
+    }
+  ],
+  "allPassed": false,
+  "scope": "Non-GUI validation only. No corrective edits. Repository source drift must be evaluated using before/after records; generated build outputs are expected."
+}

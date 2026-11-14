@@ -1,0 +1,50 @@
+try {
+  await start()
+  await app.until(async () => (await registry()).length === expectedIds.length, 'bundled distribution registry ready', 30000)
+  await details('milkup.preferences')
+  if (await ui.exists(action('approve', 'milkup.preferences'))) await click(action('approve', 'milkup.preferences'))
+  if (await ui.exists(action('enable', 'milkup.preferences'))) await click(action('enable', 'milkup.preferences'))
+  const requiredActive = ['milkup.preferences','milkup.math','milkup.diagrams','milkup.footnotes']
+  await app.until(async () => {
+    return app.execute(`
+const snapshot=JSON.parse(localStorage.getItem('milkup.desktop.plugins.registry.v1')||'{"records":[],"auditRecords":[]}');
+return arguments[0].every(id => snapshot.records.some(r => r.manifest.id === id &&
+  r.enabled === true && r.state === 'enabled' && r.errors.length === 0) &&
+  (snapshot.auditRecords||[]).some(a => a.pluginId === id && a.operation === 'enable' && !a.denied));`, requiredActive)
+  }, 'preferences and bundled renderers completed actual activation', 10000)
+  await record('SUPPLEMENTAL-ACTIVATION-READY', {requiredActive,registry:await registry(),startupWaitMs:10000,renderBudgetUnchanged:true})
+  await closeUI()
+  const name='windowed',text=contents.get(name)
+  await openDocument(name)
+  x('windowsize', nativeWindow, '1100', '760')
+  await appearance('light', 2)
+  x('windowsize', nativeWindow, '760', '520')
+  await app.until(async () => {const d=await observe();return Math.abs(d.width-380)<2 && Math.abs(d.height-260)<2}, 'native 200 percent narrow window')
+  const sample=samples.find(s=>s.id==='flow')
+  await seek(sample.marker,'live')
+  await assertSample(sample,'live',text)
+  const initial=await app.probe()
+  assert.equal(initial.dirty,false)
+  assert.deepEqual(await readFile(activeFile),Buffer.from(text))
+  await installWindowedScrollObservation(text.indexOf(sample.needle))
+  const steps=await revealVectorEdge(sample,text,'bottom')
+  const after=await app.probe()
+  assert.equal(after.version,initial.version)
+  assert.equal(after.dirty,false)
+  assert.deepEqual(await readFile(activeFile),Buffer.from(text))
+  await persistWindowedScrollObservation('completed')
+  await shot('windowed-light-flow-bottom-diagnostic',{diagnosticOnly:true,steps,initial,after})
+  await record('WINDOWED-SCROLL-DIAGNOSTIC-COMPLETE',{diagnosticOnly:true,formalAcceptance:false,scope:'windowed/light/200/narrow/flow/bottom',windowsTested:false})
+} catch(error) {
+  windowedScrollCollection.error=String(error)
+  await persistWindowedScrollObservation('caught-failure').catch(()=>{})
+  await writeFile(path.join(output,'failure.json'),JSON.stringify({diagnosticOnly:true,error:String(error),stack:error.stack},null,2))
+  if(app)await shot('FAIL',{diagnosticOnly:true,error:String(error)}).catch(()=>{})
+  throw error
+} finally {
+  await persistWindowedScrollObservation('finally').catch(()=>{})
+  if(app){
+    await app.execute('window.__milkupWindowedScrollDiagnostic?.stop()').catch(()=>{})
+    await app.close()
+  }
+}

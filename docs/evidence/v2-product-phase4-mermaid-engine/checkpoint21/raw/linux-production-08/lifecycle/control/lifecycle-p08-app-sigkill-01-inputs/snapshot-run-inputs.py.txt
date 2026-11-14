@@ -1,0 +1,21 @@
+from pathlib import Path
+import sys,json,hashlib,shutil,datetime
+base=Path(__file__).parent;repo=Path('/workspace/milkup');run,case=sys.argv[1:]
+assert run.startswith('lifecycle-p08-') and case in ['timeout','disable','remove','wm-close','app-sigkill']
+provenance=json.loads((base/'provenance.json').read_text())
+assert hashlib.sha256(Path(provenance['binary']['path']).read_bytes()).hexdigest()==provenance['binary']['sha256']
+dest=base/'lifecycle/control'/(run+'-inputs');assert not dest.exists();dest.mkdir(parents=True)
+rows=[]
+seen=set()
+for item in json.loads((base/'source-before.json').read_text())['files']:
+ if not item['path'].startswith(('tests/helpers/','tests/native/','tests/fixtures/dom-plugin-lifecycle/')):continue
+ seen.add(item['path'])
+ expected=item['sha256']
+ p=repo/item['path'];raw=p.read_bytes();assert hashlib.sha256(raw).hexdigest()==expected, 'Unreviewed post-freeze harness change: '+item['path']
+ q=dest/'repo'/item['path'];q.parent.mkdir(parents=True,exist_ok=True);q.write_bytes(raw)
+ rows.append({'source':str(p),'snapshot':str(q.relative_to(dest)),'bytes':len(raw),'sha256':expected})
+for name in ['run-env.sh','driver.sh','launch-driver-reaping.py','snapshot-run-inputs.py','run-case.py','stop-driver.py']:
+ p=base/name;raw=p.read_bytes();(dest/name).write_bytes(raw)
+ rows.append({'source':str(p),'snapshot':name,'bytes':len(raw),'sha256':hashlib.sha256(raw).hexdigest()})
+(dest/'manifest.json').write_text(json.dumps({'atUtc':datetime.datetime.now(datetime.timezone.utc).isoformat(),'run':run,'case':case,'binary':provenance['binary'],'files':rows,'scope':'Exact pre-launch test source and wrapper snapshot. Product build inputs are in production-08 source freeze.','ancestorRole':'subreaper wait-only, no signals or directory deletion'},indent=2)+'\n')
+print('Frozen run inputs',run,len(rows))

@@ -1,0 +1,15 @@
+{
+  "command": [
+    "/workspace/milkup/node_modules/.bin/vitest",
+    "run",
+    "--config",
+    "scripts/ci/outline-tests.config.ts",
+    "--maxWorkers=1",
+    "--minWorkers=1",
+    "-t",
+    "^(?!.*(?:overlaps at most two bounded page reads|drains the sibling page read)).*$"
+  ],
+  "startUtc": "2026-10-19T13:39:23.473579+00:00",
+  "endUtc": "2026-10-19T13:39:33.644248+00:00",
+  "exitCode": 0
+}

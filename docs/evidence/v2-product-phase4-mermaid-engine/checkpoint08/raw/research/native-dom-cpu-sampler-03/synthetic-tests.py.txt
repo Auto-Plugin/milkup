@@ -1,0 +1,235 @@
+"""Finite proc-table fixtures only: no live proc/main/native/child processes."""
+from pathlib import Path
+from types import SimpleNamespace
+import hashlib,json,ast
+ROOT=Path(__file__).resolve().parent
+SECRET='UNOWNED_AND_ENV_SECRET_MUST_NOT_APPEAR'
+NOW=1_000_000_000
+
+
+def load(name):
+ raw=(ROOT/name).read_bytes(); ns={'__name__':'synthetic_module'}
+ exec(compile(raw,name,'exec'),ns)
+ return ns,hashlib.sha256(raw).hexdigest()
+
+
+def stat(pid,parent=100,birth=200,name='owned',state='S'):
+ f=['0']*20;f[0]=state;f[1]=str(parent);f[2]=str(pid);f[19]=str(birth)
+ return f'{pid} ({name}) '.encode()+' '.join(f).encode()
+
+
+class Scan:
+ def __init__(self,entries):self.entries=entries
+ def __enter__(self):return iter(self.entries)
+ def __exit__(self,*a):pass
+
+
+def fixture(ns,entries=None,overrides=None,read_cost_ns=0):
+ table={'/proc/100/stat':stat(100,1,100),'/proc/200/stat':stat(200),'/proc/500/stat':stat(500,1,200,SECRET)}
+ binary=str(ns['EXPECTED_BINARY'])
+ table['/proc/200/cmdline']=(binary+'\0--milkup-internal-dom-helper\0').encode()
+ table['/proc/200/environ']=b'MILKUP_INTERNAL_DOM_INSTANCE_ID=instance\0OTHER='+SECRET.encode()+b'\0'
+ table.update(overrides or {});calls=[];reads={};clock=[NOW]
+ def read(p,limit):
+  p=str(p);calls.append(('read',p));clock[0]+=read_cost_ns
+  if p.endswith('/children'):raise FileNotFoundError(2,'mock kernel has no task children')
+  v=table[p]
+  if isinstance(v,list):
+   i=reads.get(p,0);reads[p]=i+1;v=v[min(i,len(v)-1)]
+  if isinstance(v,Exception):raise v
+  if len(v)>limit:raise ns['ObservationError']('bounded-read-limit')
+  return v
+ def scandir(p):
+  calls.append(('scan',str(p)))
+  names=entries if str(p)=='/proc' and entries is not None else ['100','200','500'] if str(p)=='/proc' else ['100']
+  return Scan([SimpleNamespace(name=n,path=str(p)+'/'+n) for n in names])
+ ns['mono']=lambda:clock[0]
+ ns['os']=SimpleNamespace(scandir=scandir,sysconf=lambda _:100)
+ ns['resource']=SimpleNamespace(RUSAGE_SELF=0,getrusage=lambda _:SimpleNamespace(ru_utime=0,ru_stime=0))
+ o=ns['Sampler'].__new__(ns['Sampler']);o.bounded_read=read
+ o.args=SimpleNamespace(cgroup_cpu_stat=False);o.app={'pid':100,'birth':100}
+ o.anchor={'monotonicNs':NOW,'instanceId':'instance','requestId':'render_1'}
+ o.known={};o.guardian=None;o.errors=[];o.error_count=0;o.guardian_binding=None;o.binding_candidates={};o.proc_scans=[]
+ o.discovery_count=0;o.discovery_times=[]
+ return o,calls,clock
+
+
+def bind(o):
+ try:o.bind_guardian();return 'accepted'
+ except Exception as e:return str(e)
+
+
+old,oldsha=load('base-sampler02.py');new,newsha=load('cpu_sampler.py')
+results=[]
+
+def check(name,fn):
+ detail=fn();results.append({'case':name,'status':'PASS','detail':detail})
+
+
+def binding_case(expected,**kwargs):
+ o,c,t=fixture(new,**kwargs);out=bind(o);assert out==expected,(out,expected)
+ assert SECRET not in json.dumps({'binding':o.guardian_binding,'scans':o.proc_scans})
+ assert not any(p in ['/proc/500/cmdline','/proc/500/environ'] for _,p in c)
+ return {'outcome':out,'scanCount':sum(k=='scan' and p=='/proc' for k,p in c),'tableRecords':len(o.proc_scans)}
+
+
+def baseline():
+ a,ar,_=fixture(old);b,br,_=fixture(new)
+ before,after=bind(a),bind(b)
+ assert before=='guardian-bind-not-unique-or-missing' and after=='accepted'
+ assert a.guardian_binding['readErrors'][0]['errno']==2
+ assert b.guardian['pid']==200 and b.guardian['birth']==200
+ assert sum(k=='scan' and p=='/proc' for k,p in br)==1
+ assert not any(p.endswith('/children') for _,p in br)
+ return {'oldOutcome':before,'newOutcome':after,'baselineRedIsExpected':True}
+
+
+def shared():
+ overrides={'/proc/210/stat':stat(210,200,210),'/proc/220/stat':stat(220,210,220),'/proc/210/cmdline':b'/owned-helper\0','/proc/220/cmdline':b'/owned-web\0'}
+ o,c,_=fixture(new,entries=['100','200','210','220','500'],overrides=overrides)
+ assert bind(o)=='accepted';c.clear();o.discover()
+ assert sum(k=='scan' and p=='/proc' for k,p in c)==1,c
+ assert set(o.known)=={(200,200),(210,210),(220,220)}
+ assert not any(p in ['/proc/500/cmdline','/proc/500/environ'] for _,p in c)
+ return {'oneSharedTable':True,'ownedIdentityCount':len(o.known)}
+
+
+def caps(kind):
+ count=8193 if kind=='entries' else 4097
+ entries=['entry'+str(i) for i in range(count)] if kind=='entries' else [str(i+1000) for i in range(count)]
+ overrides={} if kind=='entries' else {f'/proc/{i+1000}/stat':stat(i+1000,1,200,SECRET) for i in range(count)}
+ o,c,_=fixture(new,entries=entries,overrides=overrides)
+ outcome=bind(o);assert outcome==('proc-entry-limit' if kind=='entries' else 'proc-pid-limit'),outcome
+ assert o.guardian is None and o.guardian_binding['candidates']==[]
+ assert not any(p.endswith('/cmdline') or p.endswith('/environ') for _,p in c)
+ assert o.proc_scans[0]['outcome']=='failed'
+ return {'outcome':outcome,'rowsNotAccepted':True,'readCount':sum(k=='read' for k,p in c)}
+
+
+def wall():
+ o,c,_=fixture(new,read_cost_ns=20_000_000)
+ outcome=bind(o);assert outcome=='proc-scan-wall-limit',outcome
+ assert o.guardian is None
+ return {'outcome':outcome,'durationNs':o.proc_scans[0]['durationNs'],'boundaryOvershootExplicit':True}
+
+
+def childcap():
+ entries=['100']+[str(i) for i in range(200,329)]
+ overrides={f'/proc/{i}/stat':stat(i) for i in range(200,329)}
+ return binding_case('child-candidate-discovery-limit',entries=entries,overrides=overrides)
+
+
+def reuse():
+ overrides={'/proc/200/stat':[stat(200),stat(200,100,201)]}
+ return binding_case('guardian-bind-not-unique-or-missing',overrides=overrides)
+
+
+def owner_after():
+ overrides={'/proc/100/stat':[stat(100,1,100),stat(100,1,100),stat(100,1,101)]}
+ return binding_case('guardian-bind-not-unique-or-missing',overrides=overrides)
+
+
+def summary_bound():
+ o,_,_=fixture(new);assert bind(o)=='accepted'
+ o.started=NOW;o.start_usage=SimpleNamespace(ru_utime=0,ru_stime=0)
+ o.cgroup_before=o.cgroup_after=o.cgroup_path=None
+ o.first_sample=o.last_sample=o.app_exit_observed=o.observed_dispatch=None
+ o.periodic_count=201;o.skipped_slots=0;o.discovery_count=40;o.discovery_times=[1]*64
+ o.live_deltas={};o.previous={};o.truncated=False
+ o.row_bytes=new['TOTAL_BYTES']-new['SUMMARY_RESERVE'];o.rows=['x'*o.row_bytes]
+ o.proc_scans=[dict(o.proc_scans[0]) for _ in range(64)]
+ outputs={}
+ class Out:
+  def __truediv__(self,k):return SimpleNamespace(write_text=lambda v:outputs.update({k:v}))
+ o.out=Out();o.emit=lambda _:None
+ o.finish('synthetic-incomplete')
+ total=sum(len(v.encode()) for v in outputs.values())
+ assert total<=new['TOTAL_BYTES'] and len(outputs['summary.json'].encode())<=new['SUMMARY_RESERVE']
+ assert SECRET not in outputs['summary.json']
+ # Explicit oversize case must fail before either output write.
+ outputs.clear();o.errors=[{'detail':'X'*new['SUMMARY_RESERVE']}]
+ try:o.finish('synthetic-incomplete');raise AssertionError('oversized summary accepted')
+ except new['ObservationError'] as e:assert str(e)=='summary-reserve-exceeded'
+ assert not outputs
+ return {'64ScanRecordsCombinedBytes':total,'oversizeWrites':0}
+
+
+
+def tail_window():
+ o,c,clock=fixture(new);assert bind(o)=='accepted';c.clear()
+ clock[0]=NOW+new['WINDOW_NS']-new['MAX_PROC_SCAN_NS']+1
+ o.discover()
+ assert c==[],c
+ assert o.proc_scans[-1]['outcome']=='skipped-insufficient-window'
+ assert o.guardian['pid']==200 and o.anchor['monotonicNs']==NOW
+ o2,c2,clock2=fixture(new);clock2[0]=NOW+new['WINDOW_NS']-new['MAX_PROC_SCAN_NS']+1
+ assert bind(o2)=='insufficient-window-for-binding-scan'
+ assert c2==[]
+ o3,c3,clock3=fixture(new);assert bind(o3)=='accepted';c3.clear()
+ clock3[0]=NOW+new['WINDOW_NS']-new['MAX_PROC_SCAN_NS']
+ o3.discover()
+ assert sum(k=='scan' and p=='/proc' for k,p in c3)==1
+ return {'remaining49999999Ns':'skip; no proc reads; known identities preserved',
+         'remaining50000000Ns':'scan admitted',
+         'lateInitialBinding':'explicit incomplete, no reanchor',
+         'runAndSampleMethodsUnchanged':True}
+
+
+def maximum_summary_fail_closed():
+ o,_,_=fixture(new);assert bind(o)=='accepted'
+ # Use the actual accepted record, replicated to the diagnostic cap; this is a
+ # serialization stress shape, not a claim that one binding accepted 128 uniquely.
+ candidate=dict(o.guardian_binding['candidates'][0])
+ o.guardian_binding['candidates']=[dict(candidate,pid=1000+i) for i in range(128)]
+ o.known={(1000+i,200):dict(pid=1000+i,birth=200,parent=100,group=1000+i,state='S',userTicks=999999999,systemTicks=999999999,name='X'*64,firstSeenNs=NOW,role='other-owned') for i in range(128)}
+ o.started=NOW;o.start_usage=SimpleNamespace(ru_utime=0,ru_stime=0)
+ o.cgroup_before=o.cgroup_after=o.cgroup_path=None
+ o.first_sample=o.last_sample=o.app_exit_observed=o.observed_dispatch=None
+ o.periodic_count=201;o.skipped_slots=0;o.discovery_count=40;o.discovery_times=[1]*64
+ o.live_deltas={key:999999999 for key in o.known};o.previous={};o.truncated=False
+ o.row_bytes=new['TOTAL_BYTES']-new['SUMMARY_RESERVE'];o.rows=['x'*o.row_bytes]
+ o.proc_scans=[dict(o.proc_scans[0]) for _ in range(64)]
+ o.errors=[{'detail':'X'*160,'category':'identity-read','pid':200,'monoNs':NOW} for _ in range(32)];o.error_count=32
+ writes={}
+ class Out:
+  def __truediv__(self,k):return SimpleNamespace(write_text=lambda v:writes.update({k:v}))
+ o.out=Out();o.emit=lambda _:None
+ try:o.finish('synthetic-incomplete');raise AssertionError('maximum stress shape unexpectedly fit; measure/review expectation')
+ except new['ObservationError'] as e:assert str(e)=='summary-reserve-exceeded'
+ assert writes=={}
+ return {'scanRecords':64,'candidateRecords':128,'knownIdentities':128,'errorRecords':32,'outcome':'summary-reserve-exceeded','outputsWritten':0,'budgetUnchanged':True}
+
+try:
+ check('old-children-ENOENT-red-new-proc-table-green',baseline)
+ check('one-table-shared-across-descendant-tree',shared)
+ check('numeric-pid-cap-no-partial-accept',lambda:caps('pids'))
+ check('directory-entry-cap-no-partial-accept',lambda:caps('entries'))
+ check('wall-cap-no-partial-accept',wall)
+ check('direct-child-cap',childcap)
+ check('candidate-pid-reuse',reuse)
+ check('owner-birth-change-after-table',owner_after)
+ check('argv-rejected',lambda:binding_case('guardian-bind-not-unique-or-missing',overrides={'/proc/200/cmdline':b'/wrong\0--milkup-internal-dom-helper\0'}))
+ check('env-rejected',lambda:binding_case('guardian-bind-not-unique-or-missing',overrides={'/proc/200/environ':b'MILKUP_INTERNAL_DOM_INSTANCE_ID='+SECRET.encode()}))
+ check('env-duplicate-rejected',lambda:binding_case('guardian-bind-not-unique-or-missing',overrides={'/proc/200/environ':b'MILKUP_INTERNAL_DOM_INSTANCE_ID=instance\0MILKUP_INTERNAL_DOM_INSTANCE_ID=instance\0'}))
+ check('global-stat-EACCES-fail-closed',lambda:binding_case('proc-stat-read-or-parse',overrides={'/proc/500/stat':PermissionError(13,'secret text')}))
+ check('vanished-unrelated-entry-counted',lambda:binding_case('accepted',overrides={'/proc/500/stat':FileNotFoundError(2,'secret text')}))
+ check('owned-parent-change-rejected',lambda:binding_case('guardian-bind-not-unique-or-missing',overrides={'/proc/200/stat':[stat(200),stat(200,999)]}))
+ check('final-birth-change-rejected',lambda:binding_case('guardian-bind-not-unique-or-missing',overrides={'/proc/200/stat':[stat(200),stat(200),stat(200,100,201)]}))
+ check('multiple-guardians-rejected',lambda:binding_case('guardian-bind-not-unique-or-missing',entries=['100','200','201'],overrides={'/proc/201/stat':stat(201),'/proc/201/cmdline':(str(new['EXPECTED_BINARY'])+'\0--milkup-internal-dom-helper\0').encode(),'/proc/201/environ':b'MILKUP_INTERNAL_DOM_INSTANCE_ID=instance\0'}))
+ check('summary-and-output-hard-bound',summary_bound)
+ check('tail-window-scan-admission',tail_window)
+ check('maximum-summary-fails-closed',maximum_summary_fail_closed)
+ # Sampling/control methods must remain AST-identical, not just matching constants.
+ aa=ast.parse((ROOT/'base-sampler02.py').read_text());bb=ast.parse((ROOT/'cpu_sampler.py').read_text())
+ def methods(t):return {n.name:n for c in t.body if isinstance(c,ast.ClassDef) and c.name=='Sampler' for n in c.body if isinstance(n,ast.FunctionDef)}
+ am,bm=methods(aa),methods(bb)
+ same=['argv','await_dispatch','bounded_read','cgroup','emit','error','read_root','role','run','sample']
+ assert all(ast.dump(am[n])==ast.dump(bm[n]) for n in same)
+ for n in ['EXPECTED_BINARY','EXPECTED_SHA256','PERIOD_NS','DISCOVERY_NS','WINDOW_NS','WAIT_NS','MAX_PERIODIC','MAX_IDENTITIES','MAX_CHILD_CANDIDATES','TOTAL_BYTES','SUMMARY_RESERVE']:
+  assert old[n]==new[n],n
+ result={'status':'PASS','cases':results,'astIdenticalMethods':same,'baseSha256':oldsha,'samplerSha256':newsha,'qualification':'Finite in-memory tests, not full process-race proof; baseline red is an expected old-tool result, not a failed test.'}
+except Exception as e:
+ result={'status':'FAIL','error':type(e).__name__,'detail':str(e),'completedCases':results,'baseSha256':oldsha,'samplerSha256':newsha}
+(ROOT/'synthetic-review-result.json').write_text(json.dumps(result,indent=2)+'\n')
+print(json.dumps(result,indent=2))
+raise SystemExit(0 if result['status']=='PASS' else 1)

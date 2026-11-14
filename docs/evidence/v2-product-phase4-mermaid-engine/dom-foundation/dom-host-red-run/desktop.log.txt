@@ -1,0 +1,164 @@
+
+ RUN  v3.2.6 /workspace/milkup/apps/desktop
+
+ ❯ src/desktop-plugin-manager-dom.test.ts (9 tests | 9 failed) 45ms
+   × DesktopPluginManager DOM host routing and lifetime > requires explicit DOM approval before preparing or loading its execution host 33ms
+     → Invalid plugin manifest:
+- $.host: Unknown plugin host: dom
+   × DesktopPluginManager DOM host routing and lifetime > passes the native prepared object directly and only lifecycle callbacks, never Worker or host brokers 2ms
+     → Invalid plugin manifest:
+- $.host: Unknown plugin host: dom
+   × DesktopPluginManager DOM host routing and lifetime > reports an unavailable native DOM backend without falling back to another host 1ms
+     → Invalid plugin manifest:
+- $.host: Unknown plugin host: dom
+   × DesktopPluginManager DOM host routing and lifetime > never guesses a native lease from a specifier: {"legacyPrepared":true} 1ms
+     → Invalid plugin manifest:
+- $.host: Unknown plugin host: dom
+   × DesktopPluginManager DOM host routing and lifetime > never guesses a native lease from a specifier: {"missingPreparation":true} 1ms
+     → Invalid plugin manifest:
+- $.host: Unknown plugin host: dom
+   × DesktopPluginManager DOM host routing and lifetime > serializes disable behind in-flight activation and disposes the prepared lease and resulting instance 1ms
+     → Invalid plugin manifest:
+- $.host: Unknown plugin host: dom
+   × DesktopPluginManager DOM host routing and lifetime > ignores old onDocumentRenderTimeout after explicit re-enable 1ms
+     → Invalid plugin manifest:
+- $.host: Unknown plugin host: dom
+   × DesktopPluginManager DOM host routing and lifetime > ignores old onIsolationError after explicit re-enable 1ms
+     → Invalid plugin manifest:
+- $.host: Unknown plugin host: dom
+   × DesktopPluginManager DOM host routing and lifetime > revokes a timed-out instance immediately and waits for its teardown before manual retry 1ms
+     → Invalid plugin manifest:
+- $.host: Unknown plugin host: dom
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 9 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/desktop-plugin-manager-dom.test.ts > DesktopPluginManager DOM host routing and lifetime > requires explicit DOM approval before preparing or loading its execution host
+Error: Invalid plugin manifest:
+- $.host: Unknown plugin host: dom
+ ❯ parsePluginManifest ../../packages/plugin/src/manifest.ts:161:11
+    159| 
+    160|   if (!result.ok || !result.manifest) {
+    161|     throw new Error(
+       |           ^
+    162|       `Invalid plugin manifest:\n${result.errors
+    163|         .map((error) => `- ${error.path}: ${error.message}`)
+ ❯ PluginRegistry.installLocalPlugin ../../packages/plugin/src/registry.ts:184:22
+ ❯ DesktopPluginManager.installManifestPath src/desktop-plugin-manager.ts:437:34
+ ❯ Object.install src/desktop-plugin-manager-dom.test.ts:87:23
+ ❯ src/desktop-plugin-manager-dom.test.ts:97:5
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/9]⎯
+
+ FAIL  src/desktop-plugin-manager-dom.test.ts > DesktopPluginManager DOM host routing and lifetime > passes the native prepared object directly and only lifecycle callbacks, never Worker or host brokers
+Error: Invalid plugin manifest:
+- $.host: Unknown plugin host: dom
+ ❯ parsePluginManifest ../../packages/plugin/src/manifest.ts:161:11
+    159| 
+    160|   if (!result.ok || !result.manifest) {
+    161|     throw new Error(
+       |           ^
+    162|       `Invalid plugin manifest:\n${result.errors
+    163|         .map((error) => `- ${error.path}: ${error.message}`)
+ ❯ PluginRegistry.installLocalPlugin ../../packages/plugin/src/registry.ts:184:22
+ ❯ DesktopPluginManager.installManifestPath src/desktop-plugin-manager.ts:437:34
+ ❯ Object.install src/desktop-plugin-manager-dom.test.ts:87:23
+ ❯ src/desktop-plugin-manager-dom.test.ts:109:5
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/9]⎯
+
+ FAIL  src/desktop-plugin-manager-dom.test.ts > DesktopPluginManager DOM host routing and lifetime > reports an unavailable native DOM backend without falling back to another host
+Error: Invalid plugin manifest:
+- $.host: Unknown plugin host: dom
+ ❯ parsePluginManifest ../../packages/plugin/src/manifest.ts:161:11
+    159| 
+    160|   if (!result.ok || !result.manifest) {
+    161|     throw new Error(
+       |           ^
+    162|       `Invalid plugin manifest:\n${result.errors
+    163|         .map((error) => `- ${error.path}: ${error.message}`)
+ ❯ PluginRegistry.installLocalPlugin ../../packages/plugin/src/registry.ts:184:22
+ ❯ DesktopPluginManager.installManifestPath src/desktop-plugin-manager.ts:437:34
+ ❯ Object.install src/desktop-plugin-manager-dom.test.ts:87:23
+ ❯ src/desktop-plugin-manager-dom.test.ts:126:5
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/9]⎯
+
+ FAIL  src/desktop-plugin-manager-dom.test.ts > DesktopPluginManager DOM host routing and lifetime > never guesses a native lease from a specifier: {"legacyPrepared":true}
+ FAIL  src/desktop-plugin-manager-dom.test.ts > DesktopPluginManager DOM host routing and lifetime > never guesses a native lease from a specifier: {"missingPreparation":true}
+Error: Invalid plugin manifest:
+- $.host: Unknown plugin host: dom
+ ❯ parsePluginManifest ../../packages/plugin/src/manifest.ts:161:11
+    159| 
+    160|   if (!result.ok || !result.manifest) {
+    161|     throw new Error(
+       |           ^
+    162|       `Invalid plugin manifest:\n${result.errors
+    163|         .map((error) => `- ${error.path}: ${error.message}`)
+ ❯ PluginRegistry.installLocalPlugin ../../packages/plugin/src/registry.ts:184:22
+ ❯ DesktopPluginManager.installManifestPath src/desktop-plugin-manager.ts:437:34
+ ❯ Object.install src/desktop-plugin-manager-dom.test.ts:87:23
+ ❯ src/desktop-plugin-manager-dom.test.ts:138:5
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/9]⎯
+
+ FAIL  src/desktop-plugin-manager-dom.test.ts > DesktopPluginManager DOM host routing and lifetime > serializes disable behind in-flight activation and disposes the prepared lease and resulting instance
+Error: Invalid plugin manifest:
+- $.host: Unknown plugin host: dom
+ ❯ parsePluginManifest ../../packages/plugin/src/manifest.ts:161:11
+    159| 
+    160|   if (!result.ok || !result.manifest) {
+    161|     throw new Error(
+       |           ^
+    162|       `Invalid plugin manifest:\n${result.errors
+    163|         .map((error) => `- ${error.path}: ${error.message}`)
+ ❯ PluginRegistry.installLocalPlugin ../../packages/plugin/src/registry.ts:184:22
+ ❯ DesktopPluginManager.installManifestPath src/desktop-plugin-manager.ts:437:34
+ ❯ Object.install src/desktop-plugin-manager-dom.test.ts:87:23
+ ❯ src/desktop-plugin-manager-dom.test.ts:150:5
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/9]⎯
+
+ FAIL  src/desktop-plugin-manager-dom.test.ts > DesktopPluginManager DOM host routing and lifetime > ignores old onDocumentRenderTimeout after explicit re-enable
+ FAIL  src/desktop-plugin-manager-dom.test.ts > DesktopPluginManager DOM host routing and lifetime > ignores old onIsolationError after explicit re-enable
+Error: Invalid plugin manifest:
+- $.host: Unknown plugin host: dom
+ ❯ parsePluginManifest ../../packages/plugin/src/manifest.ts:161:11
+    159| 
+    160|   if (!result.ok || !result.manifest) {
+    161|     throw new Error(
+       |           ^
+    162|       `Invalid plugin manifest:\n${result.errors
+    163|         .map((error) => `- ${error.path}: ${error.message}`)
+ ❯ PluginRegistry.installLocalPlugin ../../packages/plugin/src/registry.ts:184:22
+ ❯ DesktopPluginManager.installManifestPath src/desktop-plugin-manager.ts:437:34
+ ❯ Object.install src/desktop-plugin-manager-dom.test.ts:87:23
+ ❯ src/desktop-plugin-manager-dom.test.ts:166:5
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/9]⎯
+
+ FAIL  src/desktop-plugin-manager-dom.test.ts > DesktopPluginManager DOM host routing and lifetime > revokes a timed-out instance immediately and waits for its teardown before manual retry
+Error: Invalid plugin manifest:
+- $.host: Unknown plugin host: dom
+ ❯ parsePluginManifest ../../packages/plugin/src/manifest.ts:161:11
+    159| 
+    160|   if (!result.ok || !result.manifest) {
+    161|     throw new Error(
+       |           ^
+    162|       `Invalid plugin manifest:\n${result.errors
+    163|         .map((error) => `- ${error.path}: ${error.message}`)
+ ❯ PluginRegistry.installLocalPlugin ../../packages/plugin/src/registry.ts:184:22
+ ❯ DesktopPluginManager.installManifestPath src/desktop-plugin-manager.ts:437:34
+ ❯ Object.install src/desktop-plugin-manager-dom.test.ts:87:23
+ ❯ src/desktop-plugin-manager-dom.test.ts:184:5
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[7/9]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  9 failed (9)
+   Start at  10:04:26
+   Duration  2.02s (transform 824ms, setup 0ms, collect 1.19s, tests 45ms, environment 0ms, prepare 246ms)
+
+undefined
+/workspace/milkup/apps/desktop:
+[ERR_PNPM_RECURSIVE_EXEC_FIRST_FAIL] Command failed with exit code 1: vitest run src/desktop-plugin-manager-dom.test.ts '--maxWorkers=2' '--minWorkers=1'

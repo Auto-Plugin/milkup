@@ -1,0 +1,17 @@
+from pathlib import Path
+import os,json,hashlib,datetime,sys
+root=Path('/workspace/milkup')
+files=set()
+for subtree in ['plugins','packages/plugin-sdk']:
+ for directory,dirs,names in os.walk(root/subtree):
+  dirs[:]=[x for x in dirs if x not in {'node_modules','dist','.git','vendor','.cache'}]
+  for name in names:
+   p=Path(directory)/name
+   if p.is_file():files.add(p)
+for name in ['scripts/ci/public-plugin-build-contract.mjs','scripts/ci/prepare-bundled-plugins.mjs','scripts/ci/verify-public-plugin-builds.mjs','tests/ci/public-plugin-build-contract.test.mjs','tests/ci/public-plugin-dom-build.test.mjs','release/bundled-plugins.json','package.json','pnpm-lock.yaml']:
+ files.add(root/name)
+records=[]
+for p in sorted(files):
+ b=p.read_bytes();records.append({'path':str(p.relative_to(root)),'bytes':len(b),'sha256':hashlib.sha256(b).hexdigest()})
+Path(sys.argv[1]).write_text(json.dumps({'capturedAt':datetime.datetime.now(datetime.timezone.utc).isoformat(),'files':records},indent=2)+'\n')
+print('Snapshot files:',len(records))

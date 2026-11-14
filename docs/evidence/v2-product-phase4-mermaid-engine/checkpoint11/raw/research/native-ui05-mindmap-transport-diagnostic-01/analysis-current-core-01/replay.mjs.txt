@@ -1,0 +1,100 @@
+import assert from 'node:assert/strict'
+import { readFile, writeFile, mkdir, realpath } from 'node:fs/promises'
+import { dirname, resolve } from 'node:path'
+import { fileURLToPath, pathToFileURL } from 'node:url'
+import { createRequire } from 'node:module'
+import { createHash } from 'node:crypto'
+const root=dirname(fileURLToPath(import.meta.url)),run=resolve(root,'../run')
+const sha=b=>createHash('sha256').update(b).digest('hex')
+const read=async p=>JSON.parse(await readFile(p,'utf8'))
+const start=new Date().toISOString()
+const manifest=await read(resolve(root,'source-manifest.json'))
+async function freeze(){for(const f of manifest.files){assert.equal(sha(await readFile(resolve(root,f.copy))),f.sha256);assert.equal(sha(await readFile(f.path)),f.sha256)}}
+await freeze()
+const require=createRequire('/workspace/milkup/plugins/diagrams/package.json')
+const {build,version}=require('esbuild');assert.equal(version,'0.25.12')
+const built=await build({absWorkingDir:root,entryPoints:['entry.ts'],bundle:true,format:'esm',platform:'node',target:'node22',metafile:true,write:false,outfile:'validator.mjs'})
+const allowed=new Set([...manifest.files.map(f=>resolve(root,f.copy)),resolve(root,'entry.ts')])
+for(const key of Object.keys(built.metafile.inputs))assert(allowed.has(await realpath(resolve(root,key))))
+assert.equal(built.outputFiles.length,1);assert(Object.values(built.metafile.outputs).every(o=>o.imports.length===0))
+await writeFile(resolve(root,'validator.mjs'),built.outputFiles[0].contents,{flag:'wx'})
+await writeFile(resolve(root,'validator-metafile.json'),JSON.stringify(built.metafile,null,2)+'\n',{flag:'wx'})
+const core=await import(pathToFileURL(resolve(root,'validator.mjs')).href)
+const inputNames=['transport-observation.json','phases.json','ordinary.md','plan.json']
+const inputProof=[];for(const name of inputNames){const b=await readFile(resolve(run,name));inputProof.push({path:resolve(run,name),bytes:b.length,sha256:sha(b)})}
+const obs=await read(resolve(run,inputNames[0])),phases=await read(resolve(run,inputNames[1])),plan=await read(resolve(run,'plan.json'))
+const fullSource=await readFile(resolve(run,'ordinary.md'),'utf8')
+assert(!fullSource.includes('\r'),'Captured host source must match original LF document without normalization')
+const declarations=plan.archive.manifest.contributes.documentRenderers
+assert.equal(plan.archive.manifest.id,'milkup.diagrams')
+const archiveBytes=await readFile(plan.archive.path);assert.equal(sha(archiveBytes),plan.archive.sha256)
+const archive=JSON.parse(archiveBytes);assert.deepEqual(archive.manifest,plan.archive.manifest)
+inputProof.push({path:plan.archive.path,bytes:archiveBytes.length,sha256:sha(archiveBytes)})
+const declaration=declarations.find(d=>d.id==='diagrams.mermaid');assert(declaration)
+const map=new Map(),cancelled=[]
+for(const event of obs.events){const wire=JSON.parse(event.payload);const message=wire.message;assert.equal(event.instanceId,wire.instanceId)
+ if(message.protocol!=='milkup.plugin.document-render.v1')continue
+ const key=wire.instanceId+'/'+message.id
+ if(event.direction==='outgoing'&&message.type==='render'){
+  assert(!map.has(key),'Duplicate request id within instance');map.set(key,{key,instanceId:wire.instanceId,id:message.id,sentAt:event.at,wirePayloadSha256:sha(event.payload),request:message.payload.request,rendererId:message.payload.rendererId,requestMessage:message})
+ }else if(event.direction==='incoming'&&message.type==='result'){
+  const p=map.get(key);assert(p,'Unpaired captured result');assert(!p.resultMessage,'Duplicate response');p.resultMessage=message;p.receivedAt=event.at;p.resultPayloadSha256=sha(event.payload)
+ }else if(event.direction==='outgoing'&&message.type==='cancel')cancelled.push({key,at:event.at})
+}
+const targetFrom=new Set([3378,3738,4024]);const targets=[...map.values()].filter(p=>targetFrom.has(p.request.from))
+const rows=[]
+await mkdir(resolve(root,'canonical'))
+for(const p of targets){
+ const r=core.copyDocumentPresentationRequest(p.request)
+ assert.equal(r.source,fullSource.slice(r.from,r.to),'Actual request source must equal original document UTF16 range')
+ assert.equal(r.fromLine,fullSource.slice(0,r.from).split('\n').length)
+ assert.equal(r.toLine,r.fromLine+r.source.split('\n').length-1)
+ const row={key:p.key,instanceId:p.instanceId,id:p.id,from:r.from,to:r.to,width:r.width,selection:r.selection,sentAt:p.sentAt,receivedAt:p.receivedAt,elapsedMs:p.receivedAt-p.sentAt,cancelled:cancelled.filter(c=>c.key===p.key),requestPayloadSha256:p.wirePayloadSha256,resultPayloadSha256:p.resultPayloadSha256,sourceSha256:sha(r.source)}
+ try{
+  assert(p.resultMessage,'No captured result');assert.equal(p.resultMessage.ok,true)
+  const value=p.resultMessage.value;row.rawResultBytes=Buffer.byteLength(JSON.stringify(value));row.rawResultSha256=sha(JSON.stringify(value))
+  const checked=core.copyDocumentPresentationResult(value,r,declaration)
+  row.status='accepted';row.complete=checked.complete;row.fragmentStatuses=checked.fragments.map(f=>f.status);row.fragments=checked.fragments.length
+  row.canonical=checked.fragments.map(f=>{const text=core.serializeDocumentPresentationNode(f.content,r);return {bytes:Buffer.byteLength(text),sha256:sha(text)}})
+  const imageBudget=core.createDocumentOutputBudget()
+  for(const f of checked.fragments){assert.equal(f.content.type,'svg-image');core.copyDocumentSvgImage(f.content,imageBudget,1)}
+  row.imageBudget=imageBudget;row.accessibleTextUtf16=checked.fragments.reduce((n,f)=>n+f.accessibleText.length,0)
+  p.checked=checked;p.validRequest=r
+  if(['render_14','render_15','render_16','render_26','render_29'].includes(p.id))await writeFile(resolve(root,'canonical',`${p.id}.svg`),core.serializeDocumentPresentationNode(checked.fragments[0].content,r),{flag:'wx'})
+ }catch(error){row.status='rejected';row.error=String(error);row.code=error.code??null}
+ rows.push(row)
+}
+const find=id=>{const p=targets.filter(x=>x.id===id);assert.equal(p.length,1);assert(p[0].checked);return p[0]}
+function combinedRequest(pairs){
+ const first=pairs[0].validRequest
+ for(const p of pairs)for(const k of ['documentId','version','selection','theme','target','width','contextKnown'])assert.deepEqual(p.validRequest[k],first[k],`Cannot reconstruct mixed ${k}`)
+ const from=Math.min(...pairs.map(p=>p.request.from)),to=Math.max(...pairs.map(p=>p.request.to))
+ const source=fullSource.slice(from,to),fromLine=fullSource.slice(0,from).split('\n').length
+ const unique=xs=>[...new Map(xs.map(v=>[JSON.stringify(v),v])).values()]
+ return core.copyDocumentPresentationRequest({...first,from,to,source,fromLine,toLine:fromLine+source.split('\n').length-1,completeStart:from===0,completeEnd:to===fullSource.length,blocks:unique(pairs.flatMap(p=>p.request.blocks)).sort((a,b)=>a.from-b.from),protectedRanges:unique(pairs.flatMap(p=>p.request.protectedRanges)).sort((a,b)=>a.from-b.from)})
+}
+const groups=[['beforewheel-gantt-gitgraph',['render_15','render_14']],['beforewheel-gantt-mindmap',['render_15','render_16']],['beforewheel-gitgraph-mindmap',['render_14','render_16']],['beforewheel-all-three',['render_15','render_14','render_16']],['postwheel-gitgraph-mindmap',['render_25','render_26']],['postwheel-stable-gitgraph-mindmap',['render_28','render_29']]]
+const aggregates=[]
+for(const [name,ids] of groups){
+ const pairs=ids.map(find),request=combinedRequest(pairs)
+ const value={complete:pairs.every(p=>p.checked.complete),fragments:pairs.flatMap(p=>p.checked.fragments).sort((a,b)=>a.from-b.from||a.to-b.to)}
+ const row={name,ids,instanceIds:[...new Set(pairs.map(p=>p.instanceId))],classification:'RECONSTRUCTED_WHOLE_WINDOW_NOT_CAPTURED_IPC',request:{...request,source:undefined,sourceSha256:sha(request.source),sourceUtf16:request.source.length},rawResultBytes:Buffer.byteLength(JSON.stringify(value)),rawResultSha256:sha(JSON.stringify(value)),sumSingleCanonicalBytes:pairs.reduce((n,p)=>n+rows.find(r=>r.key===p.key).canonical.reduce((a,c)=>a+c.bytes,0),0)}
+ try{const checked=core.copyDocumentPresentationAggregate(value,request,[declaration]);row.status='accepted';row.fragments=checked.fragments.length}catch(error){row.status='rejected';row.error=String(error);row.code=error.code??null}
+ // Supplementary public codec ledger. It excludes accessible text; full aggregate
+ // above remains authoritative and includes it. No budget bypass or modified limit.
+ const budget=core.createDocumentOutputBudget();const steps=[]
+ for(const fragment of value.fragments){
+  try{core.copyDocumentSvgImage(fragment.content,budget,1);steps.push({from:fragment.from,status:'accepted',imageBudget:{...budget}})}
+  catch(error){steps.push({from:fragment.from,status:'rejected',error:String(error),code:error.code??null,imageBudget:{...budget}});break}
+ }
+ row.publicImageCodecLedger=steps;row.accessibleTextUtf16=value.fragments.reduce((n,f)=>n+f.accessibleText.length,0)
+ aggregates.push(row)
+ await writeFile(resolve(root,`${name}-request.json`),JSON.stringify(request,null,2)+'\n',{flag:'wx'})
+}
+const before=rows.find(r=>r.id==='render_16'),wheel=phases.find(p=>p.phase==='bounded-wheel')
+const samples=obs.samples.filter(s=>s.at>=before.receivedAt&&s.at<=wheel.before.at)
+const summary={classification:'ACTUAL_CAPTURED_WIRE_OFFLINE_CURRENT_CORE_REPLAY_NOT_NEW_NATIVE_RUN',inputProof,sourceManifestSha256:sha(await readFile(resolve(root,'source-manifest.json'))),validatorSha256:sha(built.outputFiles[0].contents),observer:{errors:obs.observerErrors,dropped:obs.dropped},declaration,totalPaired:map.size,targetPairs:targets.length,rows,aggregates,beforeWheel:{mindmapResult:before,wheelBeforeAt:wheel.before.at,domSamplesAfterReadyBeforeWheel:samples},limits:['Whole-window requests were reconstructed from this run original LF document and actually captured known-complete fences/protected ranges. They are not observed view windows or evidence of its private visible priority values.','Every aggregate uses same-instance actual results. No old-run image enters the replay.','Public image codec budget is supplementary and excludes accessibleText; full copyDocumentPresentationAggregate admission is authoritative.','This establishes which combinations the current validator accepts, not a direct capture of the earlier service branch or its exact ordering.']}
+await freeze();for(const input of inputProof)assert.equal(sha(await readFile(input.path)),input.sha256,'Raw input changed')
+await writeFile(resolve(root,'results.json'),JSON.stringify(summary,null,2)+'\n',{flag:'wx'})
+await writeFile(resolve(root,'execution.json'),JSON.stringify({started:start,finished:new Date().toISOString(),node:process.version,esbuild:version,scriptSha256:sha(await readFile(fileURLToPath(import.meta.url))),inputsUnchanged:true,sourceUnchanged:true,status:'REPLAY_COMPLETED',nativeOrBrowserStarted:false},null,2)+'\n',{flag:'wx'})
+console.log(JSON.stringify({targets:rows.map(r=>({id:r.id,from:r.from,status:r.status,canonical:r.canonical,imageBudget:r.imageBudget})),aggregates:aggregates.map(r=>({name:r.name,status:r.status,rawResultBytes:r.rawResultBytes,sumSingleCanonicalBytes:r.sumSingleCanonicalBytes,codecLast:r.publicImageCodecLedger.at(-1)}))},null,2))

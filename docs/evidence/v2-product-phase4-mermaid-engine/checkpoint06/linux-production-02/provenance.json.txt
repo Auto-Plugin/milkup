@@ -1,0 +1,188 @@
+{
+  "frozenAtUtc": "2026-10-16T14:15:23.876847+00:00",
+  "scope": "Linux local production build; no Windows/upload/release",
+  "build": {
+    "command": [
+      "bash",
+      "-lc",
+      "source /workspace/.cloud/milkup-v2/env.sh\nunset CARGO_TARGET_X86_64_UNKNOWN_LINUX_GNU_RUNNER PROOT_NO_SECCOMP\nbash scripts/cloud/pnpm.sh --filter @milkup/desktop tauri build --bundles deb"
+    ],
+    "cwd": "/workspace/milkup",
+    "startedUtc": "2026-10-16T14:13:55.397202+00:00",
+    "endedUtc": "2026-10-16T14:15:18.358140+00:00",
+    "exitCode": 0
+  },
+  "binary": {
+    "path": "/workspace/milkup-mermaid-engine-evidence/linux-production-02/install/usr/bin/milkup-desktop",
+    "bytes": 21859568,
+    "sha256": "6e51db6e642207602de326549ab611486fe776484a88cc5fd28ed432a969797a"
+  },
+  "deb": {
+    "path": "/workspace/milkup-mermaid-engine-evidence/linux-production-02/artifacts/milkup_2.0.0-beta.1_amd64.deb",
+    "bytes": 7503288,
+    "sha256": "e1d5025ffc31b37b3ace35ba13eb06a22c93cbcb70fddeb02c97ff05fdbd164b"
+  },
+  "postBundleTarget": {
+    "path": "/workspace/milkup/apps/desktop/src-tauri/target/release/milkup-desktop",
+    "bytes": 21859568,
+    "sha256": "e1e8cfbda8127304a7e275d6910939d903597e4a597177bd8c8b3b8ef2457a8a"
+  },
+  "targetToPackageMapping": {
+    "exactOnlyDifference": "unique __TAURI_BUNDLE_TYPE_VAR_UNK changed to __TAURI_BUNDLE_TYPE_VAR_DEB",
+    "allOtherBytesEqual": true,
+    "attribution": "bundle-marker-attribution.json"
+  },
+  "guard": {
+    "path": "/workspace/milkup-mermaid-engine-evidence/linux-production-02/artifacts/libmilkup_dom_guard.so",
+    "bytes": 15656,
+    "sha256": "5b1082768123b9ac1923eb8ef3f6f8c0bd05ffd5d66b8b2a023f75b69106c44c",
+    "exactBuildPath": "/workspace/milkup/apps/desktop/src-tauri/target/release/build/milkup-desktop-2c39bf60742e8c2c/out/libmilkup_dom_guard.so",
+    "attribution": "single guard in Cargo binary dependency file; complete guard bytes occur in actual extracted executable"
+  },
+  "archive": {
+    "path": "/workspace/milkup-mermaid-engine-evidence/linux-production-02/artifacts/milkup.diagrams-1.1.0.milkup-plugin",
+    "bytes": 5726804,
+    "sha256": "27db9bdefb9b241b03da2f3536f7e50d334117f928f963cfe290543f650b6239"
+  },
+  "sdkTarball": {
+    "path": "/workspace/milkup-mermaid-engine-evidence/linux-production-02/artifacts/plugin-sdk-0.3.4.tgz",
+    "bytes": 22524,
+    "sha256": "1717c0114aa165fa3e48a1bfa7687ffd0d9b2e5392d33e99d8b2dc59a1f3ad4f"
+  },
+  "frontend": [
+    {
+      "path": "/workspace/milkup-mermaid-engine-evidence/linux-production-02/frontend/assets/core-DhEqZVGG.js",
+      "bytes": 2441,
+      "sha256": "8261a5e51510afea7347ee6c40e783127639b88b158982711196012d6d50ceb3"
+    },
+    {
+      "path": "/workspace/milkup-mermaid-engine-evidence/linux-production-02/frontend/assets/event-BK_86lmQ.js",
+      "bytes": 1407,
+      "sha256": "d696b4f6aba82c664602610943df9a2502faa81f4c7329b5a6c27245246dbfe3"
+    },
+    {
+      "path": "/workspace/milkup-mermaid-engine-evidence/linux-production-02/frontend/assets/index-7CeN93Gy.js",
+      "bytes": 7389363,
+      "sha256": "a302f77a742377fb2caf8ab8f4bbaaa56e6e4eb640254a60e746b9bebcf66ae7"
+    },
+    {
+      "path": "/workspace/milkup-mermaid-engine-evidence/linux-production-02/frontend/assets/index-RroQuXw8.css",
+      "bytes": 39895,
+      "sha256": "094f1078f23147fadd25a4e12dc66ccc2e592eafa70af289176420449d8c3359"
+    },
+    {
+      "path": "/workspace/milkup-mermaid-engine-evidence/linux-production-02/frontend/assets/index-lBcCbJoJ.js",
+      "bytes": 291,
+      "sha256": "c7b24d2c99ec9ca2048130db56e3e83f05fadb024bab58c81e6923bc58a443d2"
+    },
+    {
+      "path": "/workspace/milkup-mermaid-engine-evidence/linux-production-02/frontend/assets/large-search-worker-BwuKh3LS.js",
+      "bytes": 1317,
+      "sha256": "ae20f74ce4e2ef1aae7b2f422eec08ded22b3e8ecf51d04922361f39bb8b9ff0"
+    },
+    {
+      "path": "/workspace/milkup-mermaid-engine-evidence/linux-production-02/frontend/assets/plugin-supervisor-DMXL0hVw.js",
+      "bytes": 28729,
+      "sha256": "a1fbb432c1dbeb8c3c8faa2b74eb92e6c72002b73b787cc78b7e3cdd3b576b36"
+    },
+    {
+      "path": "/workspace/milkup-mermaid-engine-evidence/linux-production-02/frontend/assets/plugin-worker-xkEhFf5X.js",
+      "bytes": 125837,
+      "sha256": "d2fa8cd396979f615999004346958c0aba3c4c9c2b1ec57ff715e221c51dcaa0"
+    },
+    {
+      "path": "/workspace/milkup-mermaid-engine-evidence/linux-production-02/frontend/assets/webview-Dd-2IzEi.js",
+      "bytes": 3356,
+      "sha256": "a3db500977b40be13d7f794126a6f6d4323dc447de712d024f0f756307380efb"
+    },
+    {
+      "path": "/workspace/milkup-mermaid-engine-evidence/linux-production-02/frontend/assets/window-6lX1olBp.js",
+      "bytes": 14160,
+      "sha256": "7683cdbb5955d8602822812527dc761c4c8ce7f6cdb1264fc46aaedab3092ba5"
+    },
+    {
+      "path": "/workspace/milkup-mermaid-engine-evidence/linux-production-02/frontend/assets/worker-file-plugin-C6Pu6mbd.js",
+      "bytes": 2793,
+      "sha256": "2ae10766812d3612c76a05bcd67c2243d3c44da13cbe65c4f250d99be8fe240c"
+    },
+    {
+      "path": "/workspace/milkup-mermaid-engine-evidence/linux-production-02/frontend/index.html",
+      "bytes": 670,
+      "sha256": "2fa6473c68c0cb9e10842b85f1c31ebef1992f901d211ce4481400d435c3f622"
+    }
+  ],
+  "environment": [
+    {
+      "path": "/workspace/.cloud/milkup-v2/env.sh",
+      "bytes": 1232,
+      "sha256": "5dbc84116678ed84aae90574d53ddaa83daa286c13c247cf869f498d90ca7527"
+    },
+    {
+      "path": "/workspace/.cloud/milkup-v2/icon.png",
+      "bytes": 11749,
+      "sha256": "cf8930abed8cc9636024d9837d2bec968a71d333e4995112d10d915087c037c1"
+    },
+    {
+      "path": "/workspace/.cloud/milkup-v2/sysroot/usr/include/webkitgtk-4.1/webkit/WebKitVersion.h",
+      "bytes": 1663,
+      "sha256": "4d0f3c13abac72309362468a2c46ee6d3dcb22039fe5f2aa0acb833b424798d6"
+    },
+    {
+      "path": "/workspace/.cloud/milkup-v2/sysroot/usr/lib/x86_64-linux-gnu/pkgconfig/webkit2gtk-4.1.pc",
+      "bytes": 348,
+      "sha256": "80decef7e514f3f04d5dba5b66484dc4cc667e9e5479974e90a647e8f40de708"
+    },
+    {
+      "path": "/workspace/.cloud/milkup-v2/sysroot/usr/lib/x86_64-linux-gnu/libwebkit2gtk-4.1.so.0.21.10",
+      "bytes": 96302176,
+      "sha256": "e5145df62121ee186c4a9bdaebe2ebebb706d8ce400675b131449ecf8bd94889"
+    },
+    {
+      "path": "/workspace/.cloud/milkup-v2/sysroot/usr/bin/WebKitWebDriver",
+      "bytes": 1734952,
+      "sha256": "2a2468b87d02ef056d3768034bbe969e0caad2d05684b6b96414746c4d4e8e06"
+    },
+    {
+      "path": "/workspace/.cargo/bin/tauri-driver",
+      "bytes": 2388160,
+      "sha256": "dafe58ac3b8c4977896c5255aa0a34fa5b87650c338a9718deb36bab3a7e5a41"
+    },
+    {
+      "path": "/workspace/milkup-markdown-extensions-phase4-evidence/native/environment/loaders-sysroot.cache",
+      "bytes": 3337,
+      "sha256": "494443c7c0baaf901b95d76bad96a140f3364688ad46d7e2d5230ca6dc7fffae"
+    },
+    {
+      "path": "/workspace/milkup-mermaid-engine-evidence/linux-production-02/run-env.sh",
+      "bytes": 2262,
+      "sha256": "0c6d62c8070e7f86b1dd7734c927a7f33aaeb412a62a4c7a859287fa2bba0344"
+    },
+    {
+      "path": "/workspace/milkup-mermaid-engine-evidence/linux-production-02/driver.sh",
+      "bytes": 1311,
+      "sha256": "86e90bb7ab356c5abbecb8b45de2b4c89f5c4ba48e028d516e00efab6fdcaa7c"
+    },
+    {
+      "path": "/workspace/milkup-mermaid-engine-evidence/linux-production-02/launch-driver-reaping.py",
+      "bytes": 2903,
+      "sha256": "4d45f1d5bb64c9edf33ae164fc6266f748ba420ca57c46b0feb6ece95b562d71"
+    },
+    {
+      "path": "/workspace/milkup-mermaid-engine-evidence/linux-production-02/run-case.py",
+      "bytes": 1724,
+      "sha256": "cfca36cb2285aa1023f987137abbd193f996113d9db85ce0b84954626ec89af6"
+    }
+  ],
+  "sourceBefore": {
+    "path": "/workspace/milkup-mermaid-engine-evidence/linux-production-02/source-before.json",
+    "bytes": 636693,
+    "sha256": "205a1c7c37804077ff8f8983a0e9830fbea9e823530e576417519fe6576dfbfe"
+  },
+  "sourceAfter": {
+    "atUtc": "2026-10-16T14:15:21.914502+00:00",
+    "filesChecked": 2911,
+    "changes": []
+  },
+  "formatOnlyPreviousFreezeMapping": "/workspace/milkup-mermaid-engine-evidence/research/generic-build-gate-preparation/final-build01/post-freeze-format-only01.json",
+  "runtimeStatus": "not yet executed"
+}

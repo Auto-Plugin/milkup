@@ -1,0 +1,88 @@
+#!/usr/bin/env python3
+"""Read-only preflight apart from a new report file. Does not start any runtime."""
+import argparse
+import hashlib
+import json
+import os
+import socket
+import time
+from pathlib import Path
+
+BASE = Path('/workspace/milkup-mermaid-engine-evidence/research/mermaid-eager-load-candidate-01/harness')
+OLD = Path('/workspace/milkup-mermaid-engine-evidence/research/native-hidden-timer-candidate-01')
+OLD_HARNESS = OLD.parent / 'native-hidden-timer-control-harness-01'
+NATIVE = BASE.parent / 'native'
+CELLS = ['01-A', '02-B', '03-B', '04-A']
+
+
+def record(path):
+    path = Path(path)
+    data = path.read_bytes()
+    return {'path': str(path), 'bytes': len(data), 'sha256': hashlib.sha256(data).hexdigest()}
+
+
+def verified(path, sha, size=None):
+    row = record(path)
+    assert row['sha256'] == sha, str(path)
+    if size is not None:
+        assert row['bytes'] == size, str(path)
+    return row
+
+
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--tests-sha', required=True)
+    parser.add_argument('--output', required=True)
+    args = parser.parse_args()
+    assert len(args.tests_sha) == 64 and all(c in '0123456789abcdef' for c in args.tests_sha), 'No pending/guessed binary identity'
+    preparation = verified(BASE / 'preparation.json', '617a0ccd1e7f1ab2392cffcaf892b51f7800d94c138f16ec7c88afeae10499ed')
+    inputs = [preparation]
+    manifest = json.loads(Path(preparation['path']).read_text())
+    for row in manifest['files'] + [manifest['fixedHelper']]:
+        inputs.append(verified(row['path'], row['sha256'], row['bytes']))
+    supplement = BASE / 'runtime-preparation.json'
+    inputs.append(record(supplement))
+    for row in json.loads(supplement.read_text())['files']:
+        inputs.append(verified(row['path'], row['sha256'], row['bytes']))
+    inputs.append(verified(NATIVE / 'bin/native-tests', args.tests_sha))
+    authority = [verified(OLD_HARNESS / 'summary.json', 'b3b4e564725fafb617d1235e26cb0033ac3c5ca42952b90dfe74254f03b6b6ec')]
+    source_groups = [
+        (OLD, '227fb90116f4fdcacad1cea05a45f8e0c06a8db14e6b0dd2864ffe876f46144a'),
+        (NATIVE, '60d3f64c4b711439d87f3a42a47935f95012df83fb0e96ec0868f126d568dbd1'),
+    ]
+    for directory, sha in source_groups:
+        path = directory / 'final-source-manifest.json'
+        authority.append(verified(path, sha))
+        for row in json.loads(path.read_text())['files']:
+            authority.append(verified(directory / 'source' / row['path'], row['sha256'], row['bytes']))
+    for key in ['LD_PRELOAD', 'WEBKIT_DISABLE_SANDBOX_THIS_IS_DANGEROUS', 'MILKUP_GTK_THREAD_TRACE',
+                'CARGO_TARGET_X86_64_UNKNOWN_LINUX_GNU_RUNNER', 'PROOT_NO_SECCOMP']:
+        assert not os.environ.get(key), 'Forbidden inherited environment: ' + key
+    proc = Path('/proc/288383')
+    argv = proc.joinpath('cmdline').read_bytes().decode().split('\0')
+    birth = int(proc.joinpath('stat').read_text().rsplit(')', 1)[1].split()[19])
+    assert birth == 4366483
+    assert argv == ['Xvfb', ':126', '-screen', '0', '1600x1100x24', '-nolisten', 'tcp', '']
+    assert Path('/tmp/.X11-unix/X126').is_socket()
+    for port in [4626, 4627]:
+        with socket.socket() as connection:
+            assert connection.connect_ex(('127.0.0.1', port)) != 0, 'Unexpected live driver port'
+    assert not (BASE / 'run').exists(), 'No reuse/retry of an existing batch'
+    for cell in CELLS:
+        assert not Path('/tmp', 'milkup-eager-abba01-' + cell).exists()
+    report = {'created': time.time(), 'monotonicNs': time.monotonic_ns(),
+              'classification': 'DIAGNOSTIC_PREFLIGHT_NOT_RUNTIME_AUTHORIZATION',
+              'inputs': inputs, 'authoritySources': authority, 'cells': CELLS,
+              'xvfb': {'pid': 288383, 'birth': birth, 'argv': argv}, 'portsFree': [4626, 4627],
+              'freshPaths': True, 'forbiddenEnvironmentUnset': True, 'runtimeLaunched': False,
+              'limits': ['Exclusive runtime GO must be separately granted by Root.',
+                         'The helper is the prior research hidden/offscreen binary, not production04.',
+                         'A is the common strict-init research control, not unchanged production.']}
+    with Path(args.output).open('x') as output:
+        json.dump(report, output, indent=2)
+        output.write('\n')
+    print(json.dumps({'output': args.output, 'inputs': len(inputs), 'authorityFiles': len(authority), 'runtimeLaunched': False}))
+
+
+if __name__ == '__main__':
+    main()

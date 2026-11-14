@@ -1,0 +1,67 @@
+
+ RUN  v3.2.6 /workspace/milkup/plugins/footnotes
+
+ ❯ src/presentation.test.ts (4 tests | 1 failed) 62ms
+   ✓ renders safe bidirectional references, duplicate and missing diagnostics without replacing definition bodies 16ms
+   ✓ preserves protected/unknown context and never calls partial search missing 6ms
+   ✓ bounds repeated definition summaries and keeps outputs inside fragment and JSON budgets 4ms
+   × returns selection-independent fragments so cached previews recover when the caret leaves 34ms
+     → expected { fragments: [ { …(5) }, …(3) ], …(1) } to deeply equal { fragments: [ …(5) ], complete: true }
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/presentation.test.ts > returns selection-independent fragments so cached previews recover when the caret leaves
+AssertionError: expected { fragments: [ { …(5) }, …(3) ], …(1) } to deeply equal { fragments: [ …(5) ], complete: true }
+
+- Expected
++ Received
+
+@@ -16,31 +16,10 @@
+              "type": "reference",
+            },
+          ],
+          "type": "sup",
+        },
+-       "from": 1,
+-       "layout": "inline",
+-       "to": 5,
+-     },
+-     {
+-       "accessibleText": "脚注 1，x：**strong** `code`",
+-       "content": {
+-         "children": [
+-           {
+-             "label": "1",
+-             "target": {
+-               "documentId": "doc",
+-               "from": 29,
+-               "to": 52,
+-               "version": 2,
+-             },
+-             "type": "reference",
+-           },
+-         ],
+-         "type": "sup",
+-       },
+        "from": 11,
+        "layout": "inline",
+        "to": 15,
+      },
+      {
+
+ ❯ src/presentation.test.ts:90:27
+     88|   const definitionActive = present({ ...request, selection: { anchor: …
+     89|   const inactive = present(request, index)
+     90|   expect(referenceActive).toEqual(inactive)
+       |                           ^
+     91|   expect(definitionActive).toEqual(inactive)
+     92| })
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 3 passed (4)
+   Start at  11:56:24
+   Duration  524ms (transform 86ms, setup 0ms, collect 92ms, tests 62ms, environment 0ms, prepare 78ms)
+

@@ -1,0 +1,50 @@
+{
+  "fixedManagerActions": [
+    {
+      "id": "plugin.installLocal",
+      "registered": true
+    },
+    {
+      "id": "plugin.enable",
+      "registered": true
+    },
+    {
+      "id": "plugin.disable",
+      "registered": true
+    },
+    {
+      "id": "plugin.reload",
+      "registered": true
+    },
+    {
+      "id": "plugin.remove",
+      "registered": true
+    },
+    {
+      "id": "plugin.export",
+      "registered": true
+    },
+    {
+      "id": "plugin.approve",
+      "registered": true
+    },
+    {
+      "id": "plugin.rejectCandidate",
+      "registered": true
+    },
+    {
+      "id": "plugin.revokeApproval",
+      "registered": true
+    }
+  ],
+  "uiLocalActions": [
+    "details",
+    "failure-details",
+    "back"
+  ],
+  "nonRegistryDispatch": {
+    "command": "runDesktopAction(button.dataset.pluginCommand) after contributed command presence",
+    "open-ui": "desktopPluginUi.open(pluginId, button.dataset.pluginUiId)"
+  },
+  "missing": []
+}

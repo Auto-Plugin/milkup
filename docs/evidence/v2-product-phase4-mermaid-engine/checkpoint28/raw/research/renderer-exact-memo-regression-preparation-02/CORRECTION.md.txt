@@ -1,0 +1,11 @@
+# Corrected partial-envelope regression; first failure preserved
+
+The original preparation-01 manifest and every first-red file remain unchanged. Its 48-test baseline run exited 1 with 11 failures. Ten failures concern the deliberately absent memo; one was a faulty test assumption, not a product regression.
+
+The faulty fixture used image.title of 150,000 characters. The wrapper also copies title into accessibleText, so the first fragment alone exceeded the existing 262,144-byte UTF-8 envelope budget. The baseline correctly stopped after one engine call per request (two calls across the repeated request), whereas the test incorrectly expected four calls.
+
+Revision02 changes only that title fixture to 70,000 characters, so the first fragment fits (roughly 140KB including its accessibleText) and the second crosses the combined budget. It also replaces the stale “not executed” comment and removes “baseline RED” from the regression title. No product source changes or memo implementation are included.
+
+Root authorized one focused execution of the corrected partial-result test against the original renderer. That first focused run exited 0: one passed, 47 skipped. It establishes the intended real partial mechanism, with four engine invocations over two incomplete requests. It does not constitute a rerun of the other ten memo RED cases or a passing full suite. Inputs before/after are unchanged. Exact command, logs and actual exit are in partial-only-first.
+
+Use revision02/renderer.test.ts for the next reviewed product test candidate. Retain preparation-01/first-red as the actual first failure record, with this correction attached. The design conclusions in preparation-01/DESIGN.md otherwise stand; its 11-failure count is historical and must be interpreted as ten relevant RED failures plus this corrected fixture error. No product/native execution occurred.

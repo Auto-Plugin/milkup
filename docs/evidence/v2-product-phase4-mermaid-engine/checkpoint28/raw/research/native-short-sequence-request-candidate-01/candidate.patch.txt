@@ -1,0 +1,1128 @@
+--- a/apps/desktop/src-tauri/src/plugin_dom.rs
++++ b/apps/desktop/src-tauri/src/plugin_dom.rs
+@@ -20,6 +20,10 @@
+ #[cfg(target_os = "linux")]
+ #[path = "plugin_dom_process.rs"]
+ mod process;
++
++#[cfg(target_os = "linux")]
++#[path = "plugin_dom_request_diagnostic.rs"]
++mod request_diagnostic;
+ 
+ const MAX_MANIFEST: usize = 1024 * 1024;
+ const MAX_MODULE: usize = 8 * 1024 * 1024;
+--- a/apps/desktop/src-tauri/src/plugin_dom_process.rs
++++ b/apps/desktop/src-tauri/src/plugin_dom_process.rs
+@@ -17,6 +17,7 @@
+ 
+ pub(super) struct Instance {
+     pub id: String,
++    diagnostic: Option<&'static request_diagnostic::Recorder>,
+     plugin_id: String,
+     manifest: Value,
+     child: Mutex<Child>,
+@@ -62,6 +63,8 @@
+         // unit tests. No executable/path option is exposed through a command.
+         let id = opaque_id()?;
+         let start = Instant::now();
++        // Research-only observer initialization stays inside the original init budget.
++        let diagnostic = request_diagnostic::initialize();
+         let extension = helper::private_extension()?;
+         let mut fds = [-1; 2];
+         if unsafe { libc::pipe2(fds.as_mut_ptr(), libc::O_CLOEXEC) } != 0 {
+@@ -129,6 +132,7 @@
+         };
+         let instance = Arc::new(Self {
+             id,
++            diagnostic,
+             plugin_id,
+             manifest: snapshot.manifest.clone(),
+             child: Mutex::new(child),
+@@ -157,6 +161,9 @@
+         // Arm the owner before reading/writing anything to the child.
+         let watcher = instance.clone();
+         thread::spawn(move || watcher.watch());
++        if let Some(recorder) = instance.diagnostic {
++            recorder.guardian(&instance.id, &instance.plugin_id, pid, birth);
++        }
+         // The dedicated guardian discovers and cleans up its descendants. The
+         // production owner does not need a second process-table sampling loop.
+         let output = instance.clone();
+@@ -164,13 +171,33 @@
+             let mut reader = BufReader::new(reader);
+             loop {
+                 match read_frame(&mut reader, OUTPUT_WIRE_LIMIT) {
+-                    Ok(Some(bytes)) => match serde_json::from_slice(&bytes) {
+-                        Ok(message) => output.receive(message),
+-                        Err(_) => {
+-                            output.fail("DOM helper emitted invalid JSON".into());
+-                            break;
++                    Ok(Some(bytes)) => {
++                        let read_at = output.diagnostic.map(|_| request_diagnostic::now());
++                        match serde_json::from_slice::<Value>(&bytes) {
++                            Ok(message) => {
++                                if let Some(at) = read_at {
++                                    let id = if message["protocol"] == RENDER_PROTOCOL {
++                                        valid_id(&message)
++                                    } else {
++                                        None
++                                    };
++                                    output.diagnostic_event(
++                                        "owner-frame-read",
++                                        id,
++                                        at,
++                                        None,
++                                        Some(bytes.len()),
++                                        Some("parsed-id-not-settlement"),
++                                    );
++                                }
++                                output.receive(message)
++                            }
++                            Err(_) => {
++                                output.fail("DOM helper emitted invalid JSON".into());
++                                break;
++                            }
+                         }
+-                    },
++                    }
+                     Ok(None) => {
+                         output.fail("DOM helper result pipe closed".into());
+                         break;
+@@ -205,6 +232,9 @@
+         Ok(instance)
+     }
+     pub fn send(&self, message: Value) -> Result<(), String> {
++        let mut diagnostic_render_accepted = false;
++        let mut diagnostic_accepted_at = None;
++        let mut diagnostic_cancel_at = None;
+         let bytes = serde_json::to_vec(&message).map_err(|e| e.to_string())?;
+         if bytes.len() > INPUT_WIRE_LIMIT {
+             return Err("DOM input frame exceeds its bounded wire budget".into());
+@@ -231,6 +261,8 @@
+                     native_trace("dispatch", Some(&self.id), Some(&id));
+                     control.active = Some((id, Instant::now() + RENDER_DEADLINE));
+                     self.wake.notify_all();
++                    diagnostic_render_accepted = true;
++                    diagnostic_accepted_at = self.diagnostic.map(|_| request_diagnostic::now());
+                 }
+                 (Some(RENDER_PROTOCOL), Some("cancel")) => {
+                     if !keys(&message, &["protocol", "type", "id"]) {
+@@ -242,8 +274,21 @@
+                         .as_ref()
+                         .is_some_and(|(active, _)| active == &id)
+                     {
++                        let at = self.diagnostic.map(|_| request_diagnostic::now());
++                        drop(control);
++                        if let Some(at) = at {
++                            self.diagnostic_event(
++                                "render-cancel",
++                                Some(&id),
++                                at,
++                                Some(false),
++                                None,
++                                Some("not-active-not-forwarded"),
++                            );
++                        }
+                         return Ok(());
+                     }
++                    diagnostic_cancel_at = self.diagnostic.map(|_| request_diagnostic::now());
+                 }
+                 (Some(RPC_PROTOCOL), Some("request")) => {
+                     if !keys(&message, &["protocol", "type", "id", "method", "payload"])
+@@ -282,6 +327,31 @@
+                 _ => return Err("Unsupported DOM message".into()),
+             }
+         }
++        if diagnostic_render_accepted {
++            if let Some(recorder) = self.diagnostic {
++                // Original native dispatch/deadline above remain authoritative.
++                // No I/O, hash, wait, or new lock on this accepted-request path.
++                recorder.render_at(
++                    &self.id,
++                    &self.plugin_id,
++                    valid_id(&message).unwrap_or(""),
++                    self.pid,
++                    self.birth,
++                    &bytes,
++                    diagnostic_accepted_at.unwrap_or(0),
++                );
++            }
++        }
++        if let Some(at) = diagnostic_cancel_at {
++            self.diagnostic_event(
++                "render-cancel",
++                valid_id(&message),
++                at,
++                Some(true),
++                None,
++                Some("active-match-deadline-unchanged"),
++            );
++        }
+         let result = (|| {
+             let mut ready = self.input_ready.lock().map_err(|e| e.to_string())?;
+             while !*ready {
+@@ -304,12 +374,35 @@
+                 .and_then(|_| pipe.flush())
+                 .map_err(|e| e.to_string())
+         })();
++        if self.diagnostic.is_some() {
++            let id = if message["protocol"] == RENDER_PROTOCOL {
++                valid_id(&message)
++            } else {
++                None
++            };
++            let kind = if message["type"] == "cancel" {
++                "cancel"
++            } else if message["type"] == "render" {
++                "render"
++            } else {
++                "lifecycle-rpc"
++            };
++            self.diagnostic_event(
++                "owner-pipe-complete",
++                id,
++                request_diagnostic::now(),
++                Some(result.is_ok()),
++                Some(bytes.len()),
++                Some(kind),
++            );
++        }
+         if let Err(error) = &result {
+             self.fail(error.clone());
+         }
+         result
+     }
+     fn receive(&self, message: Value) {
++        let mut diagnostic_settled_at = None;
+         // All child parsing and payload sizing precede the final monotonic
+         // settlement decision; no expensive serialization owns control.
+         let oversized = message
+@@ -354,6 +447,7 @@
+                 return;
+             }
+             control.active = None;
++            diagnostic_settled_at = self.diagnostic.map(|_| request_diagnostic::now());
+         } else if let Some(id) = &control.rpc {
+             if !is_rpc_result(&message, id) {
+                 return;
+@@ -378,6 +472,16 @@
+         }
+         self.wake.notify_all();
+         drop(control);
++        if let Some(at) = diagnostic_settled_at {
++            self.diagnostic_event(
++                "render-settled",
++                valid_id(&message),
++                at,
++                message["ok"].as_bool(),
++                None,
++                Some("strict-result-after-both-deadline-checks"),
++            );
++        }
+         (self.emit)(self.event("message", Some(message), None, None));
+     }
+     fn watch(&self) {
+@@ -440,11 +544,13 @@
+         }
+     }
+     fn finish(&self, request_id: Option<String>, error: Option<String>) {
++        let diagnostic_terminal_at = self.diagnostic.map(|_| request_diagnostic::now());
+         if request_id.is_some() {
+             native_trace("deadline-observed", Some(&self.id), request_id.as_deref());
+         }
+         self.wake.notify_all();
+         let cleanup = self.kill_owned();
++        let diagnostic_cleanup_ok = cleanup.is_ok();
+         let error = match cleanup {
+             Ok(()) => error,
+             Err(e) => Some(format!(
+@@ -459,6 +565,16 @@
+         } else {
+             "document-render-timeout"
+         };
++        if let (Some(id), Some(at)) = (request_id.as_deref(), diagnostic_terminal_at) {
++            self.diagnostic_event(
++                "render-deadline",
++                Some(id),
++                at,
++                Some(diagnostic_cleanup_ok),
++                None,
++                Some("finish-entry-recorded-after-original-cleanup"),
++            );
++        }
+         native_trace("control-emitted", Some(&self.id), request_id.as_deref());
+         (self.emit)(self.event(kind, None, request_id, error));
+     }
+@@ -470,19 +586,79 @@
+         if control.stopped {
+             return;
+         }
++        let diagnostic_failed = self.diagnostic.map(|_| {
++            (
++                control.active.as_ref().map(|(id, _)| id.clone()),
++                request_diagnostic::now(),
++            )
++        });
+         control.stopped = true;
+         control.active = None;
+         drop(control);
+         self.finish(None, Some(error));
++        if let Some((id, at)) = diagnostic_failed {
++            self.diagnostic_event(
++                "render-failed",
++                id.as_deref(),
++                at,
++                None,
++                None,
++                Some("native-fail-before-active-clear-recorded-after-finish"),
++            );
++        }
+     }
+     pub fn stop(&self) -> Result<(), String> {
++        let diagnostic_stopped;
+         {
+             let mut control = self.control.lock().map_err(|e| e.to_string())?;
++            diagnostic_stopped = self.diagnostic.map(|_| {
++                (
++                    control.active.as_ref().map(|(id, _)| id.clone()),
++                    request_diagnostic::now(),
++                )
++            });
+             control.stopped = true;
+             control.active = None;
+         }
+         self.wake.notify_all();
+-        self.kill_owned()
++        let result = self.kill_owned();
++        if let Some((id, at)) = diagnostic_stopped {
++            self.diagnostic_event(
++                "render-stop",
++                id.as_deref(),
++                at,
++                Some(result.is_ok()),
++                None,
++                Some("explicit-stop-before-active-clear-recorded-after-cleanup"),
++            );
++        }
++        result
++    }
++    fn diagnostic_event(
++        &self,
++        phase: &'static str,
++        request: Option<&str>,
++        at_ns: u64,
++        ok: Option<bool>,
++        bytes: Option<usize>,
++        reason: Option<&'static str>,
++    ) {
++        if let Some(recorder) = self.diagnostic {
++            recorder.event(
++                &self.id,
++                &self.plugin_id,
++                request,
++                self.pid,
++                self.birth,
++                request_diagnostic::Event {
++                    phase,
++                    at_ns,
++                    ok,
++                    bytes,
++                    reason,
++                },
++            );
++        }
+     }
+     fn sample_owned(&self) {
+         #[cfg(test)]
+@@ -821,6 +997,7 @@
+         let (tx, rx) = std::sync::mpsc::channel();
+         let instance = Arc::new(Instance {
+             id: "fixture".into(),
++            diagnostic: None,
+             plugin_id: "test.dom".into(),
+             manifest: json!({"contributes":{"documentRenderers":[{"id":"test.renderer"}]}}),
+             child: Mutex::new(child),
+--- a/apps/desktop/src-tauri/src/plugin_dom_request_diagnostic.rs
++++ b/apps/desktop/src-tauri/src/plugin_dom_request_diagnostic.rs
+@@ -0,0 +1,781 @@
++//! RESEARCH COPY ONLY. Opt-in passive accepted-wire recorder; not product telemetry.
++//! No observer result, queue pressure, or I/O error changes a product result.
++use serde_json::{json, Value};
++use sha2::{Digest, Sha256};
++use std::{
++    fs::{self, OpenOptions},
++    io::Write,
++    os::unix::fs::{DirBuilderExt, OpenOptionsExt},
++    path::PathBuf,
++    sync::{
++        atomic::{AtomicBool, AtomicU64, Ordering},
++        mpsc::{self, Receiver, SyncSender, TrySendError},
++        Arc, OnceLock,
++    },
++    time::{Duration, Instant},
++};
++
++const WIRE_LIMIT: usize = 1024 * 1024;
++const QUEUE_CAP: usize = 8;
++const EVENT_CAP: u64 = 256;
++const WIRE_TOTAL_CAP: u64 = 16 * 1024 * 1024;
++
++#[derive(Default)]
++struct Counters {
++    attempted: AtomicU64,
++    enqueued: AtomicU64,
++    written: AtomicU64,
++    queue_full: AtomicU64,
++    disconnected: AtomicU64,
++    oversize: AtomicU64,
++    capped: AtomicU64,
++    reserved_bytes: AtomicU64,
++    io_errors: AtomicU64,
++    incomplete_timing: AtomicU64,
++    writer_cpu_ns: AtomicU64,
++    capture_ns: AtomicU64,
++    capture_max_ns: AtomicU64,
++    in_flight: AtomicU64,
++    closed: AtomicBool,
++}
++
++pub(super) struct Recorder {
++    sender: SyncSender<Record>,
++    counts: Arc<Counters>,
++    owner_pid: u32,
++    owner_birth: Option<u64>,
++}
++
++struct Record {
++    sequence: u64,
++    kind: &'static str,
++    owner_pid: u32,
++    owner_birth: Option<u64>,
++    instance_id: String,
++    plugin_id: String,
++    request_id: Option<String>,
++    guardian_pid: i32,
++    guardian_birth: u64,
++    before_ns: u64,
++    clone_after_ns: u64,
++    after_ns: Arc<AtomicU64>,
++    wire: Vec<u8>,
++    event: Option<Event>,
++}
++
++/// Native observations only. A frame-read ID is parsed, not settled authority.
++pub(super) struct Event {
++    pub phase: &'static str,
++    pub at_ns: u64,
++    pub ok: Option<bool>,
++    pub bytes: Option<usize>,
++    pub reason: Option<&'static str>,
++}
++
++pub(super) fn now() -> u64 {
++    mono()
++}
++
++fn thread_cpu_ns() -> u64 {
++    let mut now = libc::timespec {
++        tv_sec: 0,
++        tv_nsec: 0,
++    };
++    if unsafe { libc::clock_gettime(libc::CLOCK_THREAD_CPUTIME_ID, &mut now) } != 0 {
++        return 0;
++    }
++    (now.tv_sec as u64) * 1_000_000_000 + now.tv_nsec as u64
++}
++
++fn mono() -> u64 {
++    let mut now = libc::timespec {
++        tv_sec: 0,
++        tv_nsec: 0,
++    };
++    if unsafe { libc::clock_gettime(libc::CLOCK_MONOTONIC, &mut now) } != 0 {
++        return 0;
++    }
++    (now.tv_sec as u64) * 1_000_000_000 + now.tv_nsec as u64
++}
++
++pub(super) fn initialize() -> Option<&'static Recorder> {
++    static RECORDER: OnceLock<Option<Recorder>> = OnceLock::new();
++    RECORDER
++        .get_or_init(|| {
++            prepare(
++                std::env::var_os("MILKUP_COLD_REQUEST_DIAGNOSTICS").as_deref()
++                    == Some(std::ffi::OsStr::new("1")),
++                std::env::var_os("MILKUP_COLD_REQUEST_OUTPUT_DIR").map(PathBuf::from),
++            )
++        })
++        .as_ref()
++}
++
++fn prepare(enabled: bool, directory: Option<PathBuf>) -> Option<Recorder> {
++    if !enabled {
++        return None;
++    }
++    let Some(directory) = directory else {
++        eprintln!("COLD_REQUEST_DIAGNOSTIC unavailable: output directory not configured");
++        return None;
++    };
++    // Initialization runs only in App launch, never in guardian/fork or render().
++    let owner_birth = fs::read_to_string("/proc/self/stat").ok().and_then(|s| {
++        s.rsplit_once(')')
++            .and_then(|(_, tail)| tail.split_whitespace().nth(19))
++            .and_then(|value| value.parse().ok())
++    });
++    let (sender, receiver) = mpsc::sync_channel(QUEUE_CAP);
++    let counts = Arc::new(Counters::default());
++    let worker_counts = counts.clone();
++    let owner_pid = std::process::id();
++    if std::thread::Builder::new()
++        .name("cold-request-recorder".into())
++        .spawn(move || writer(directory, receiver, worker_counts, owner_pid, owner_birth))
++        .is_err()
++    {
++        eprintln!("COLD_REQUEST_DIAGNOSTIC unavailable: writer thread creation failed");
++        return None;
++    }
++    Some(Recorder {
++        sender,
++        counts,
++        owner_pid,
++        owner_birth,
++    })
++}
++
++impl Recorder {
++    pub(super) fn event(
++        &self,
++        instance: &str,
++        plugin: &str,
++        request: Option<&str>,
++        guardian_pid: i32,
++        guardian_birth: u64,
++        event: Event,
++    ) {
++        self.capture_event(
++            event.phase,
++            instance,
++            plugin,
++            request,
++            guardian_pid,
++            guardian_birth,
++            &[],
++            Some(event),
++        );
++    }
++
++    pub(super) fn render_at(
++        &self,
++        instance: &str,
++        plugin: &str,
++        request: &str,
++        guardian_pid: i32,
++        guardian_birth: u64,
++        wire: &[u8],
++        at_ns: u64,
++    ) {
++        self.capture_event(
++            "render-accepted",
++            instance,
++            plugin,
++            Some(request),
++            guardian_pid,
++            guardian_birth,
++            wire,
++            Some(Event {
++                phase: "render-accepted",
++                at_ns,
++                ok: None,
++                bytes: Some(wire.len()),
++                reason: Some("after-original-active-assignment-and-wake"),
++            }),
++        );
++    }
++    pub(super) fn guardian(&self, instance: &str, plugin: &str, pid: i32, birth: u64) {
++        self.capture("guardian-spawn", instance, plugin, None, pid, birth, &[]);
++    }
++
++    pub(super) fn render(
++        &self,
++        instance: &str,
++        plugin: &str,
++        request: &str,
++        guardian_pid: i32,
++        guardian_birth: u64,
++        wire: &[u8],
++    ) {
++        self.capture(
++            "render-accepted",
++            instance,
++            plugin,
++            Some(request),
++            guardian_pid,
++            guardian_birth,
++            wire,
++        );
++    }
++
++    fn capture(
++        &self,
++        kind: &'static str,
++        instance: &str,
++        plugin: &str,
++        request: Option<&str>,
++        guardian_pid: i32,
++        guardian_birth: u64,
++        wire: &[u8],
++    ) {
++        self.capture_event(
++            kind,
++            instance,
++            plugin,
++            request,
++            guardian_pid,
++            guardian_birth,
++            wire,
++            None,
++        );
++    }
++
++    fn capture_event(
++        &self,
++        kind: &'static str,
++        instance: &str,
++        plugin: &str,
++        request: Option<&str>,
++        guardian_pid: i32,
++        guardian_birth: u64,
++        wire: &[u8],
++        event: Option<Event>,
++    ) {
++        let before = mono();
++        self.counts.in_flight.fetch_add(1, Ordering::SeqCst);
++        // Closing is an explicit diagnostic cutoff, never a product stop.
++        if !self.counts.closed.load(Ordering::SeqCst) {
++            let sequence = self.counts.attempted.fetch_add(1, Ordering::Relaxed) + 1;
++            if wire.len() > WIRE_LIMIT {
++                self.counts.oversize.fetch_add(1, Ordering::Relaxed);
++            } else if sequence > EVENT_CAP
++                || self
++                    .counts
++                    .reserved_bytes
++                    .fetch_update(Ordering::Relaxed, Ordering::Relaxed, |n| {
++                        n.checked_add(wire.len() as u64)
++                            .filter(|n| *n <= WIRE_TOTAL_CAP)
++                    })
++                    .is_err()
++            {
++                self.counts.capped.fetch_add(1, Ordering::Relaxed);
++            } else {
++                let after = Arc::new(AtomicU64::new(0));
++                let mut row = Record {
++                    sequence,
++                    kind,
++                    owner_pid: self.owner_pid,
++                    owner_birth: self.owner_birth,
++                    instance_id: instance.to_owned(),
++                    plugin_id: plugin.to_owned(),
++                    request_id: request.map(str::to_owned),
++                    guardian_pid,
++                    guardian_birth,
++                    before_ns: before,
++                    clone_after_ns: 0,
++                    after_ns: after.clone(),
++                    wire: wire.to_vec(),
++                    event,
++                };
++                row.clone_after_ns = mono();
++                match self.sender.try_send(row) {
++                    Ok(()) => {
++                        self.counts.enqueued.fetch_add(1, Ordering::Relaxed);
++                    }
++                    Err(TrySendError::Full(_)) => {
++                        self.counts.queue_full.fetch_add(1, Ordering::Relaxed);
++                    }
++                    Err(TrySendError::Disconnected(_)) => {
++                        self.counts.disconnected.fetch_add(1, Ordering::Relaxed);
++                    }
++                }
++                // Background serialization may wait for this field; the caller never waits.
++                after.store(mono(), Ordering::Release);
++            }
++        }
++        let elapsed = mono().saturating_sub(before);
++        self.counts.capture_ns.fetch_add(elapsed, Ordering::Relaxed);
++        self.counts
++            .capture_max_ns
++            .fetch_max(elapsed, Ordering::Relaxed);
++        self.counts.in_flight.fetch_sub(1, Ordering::SeqCst);
++    }
++}
++
++fn record_value(row: Record, counts: &Counters) -> Value {
++    // A preempted caller can be behind the writer; this background-only wait is bounded.
++    let until = Instant::now() + Duration::from_millis(100);
++    let after = loop {
++        let after = row.after_ns.load(Ordering::Acquire);
++        if after != 0 || Instant::now() >= until {
++            break after;
++        }
++        std::thread::sleep(Duration::from_millis(1));
++    };
++    if after == 0 {
++        counts.incomplete_timing.fetch_add(1, Ordering::Relaxed);
++    }
++    let digest = format!("{:x}", Sha256::digest(&row.wire));
++    let wire = String::from_utf8(row.wire);
++    if wire.is_err() {
++        counts.io_errors.fetch_add(1, Ordering::Relaxed);
++    }
++    let mut value = json!({
++        "schema": "milkup.cold-accepted-wire.v1", "sequence": row.sequence,
++        "kind": row.kind, "ownerPid": row.owner_pid, "ownerBirth": row.owner_birth,
++        "pluginId": row.plugin_id, "instanceId": row.instance_id, "requestId": row.request_id,
++        "guardianPid": row.guardian_pid, "guardianBirth": row.guardian_birth,
++        "monotonicNs": row.before_ns, "captureBeforeNs": row.before_ns,
++        "captureAfterCloneNs": row.clone_after_ns,
++        "captureAfterNs": if after == 0 { None } else { Some(after) },
++        "timestampScope": "after native accepted dispatch/control unlock; original DOM_NATIVE_TIMING dispatch is authoritative",
++    });
++    if row.kind == "render-accepted" {
++        value["wireBytes"] = json!(wire.as_ref().map(|s| s.len()).ok());
++        value["wireSha256"] = json!(digest);
++        value["wire"] = json!(wire.ok());
++    }
++    if let Some(event) = row.event {
++        if event.at_ns == 0 {
++            counts.incomplete_timing.fetch_add(1, Ordering::Relaxed);
++        }
++        value["eventMonotonicNs"] = json!(event.at_ns);
++        value["eventOk"] = json!(event.ok);
++        value["eventBytes"] = json!(event.bytes);
++        value["eventReason"] = json!(event.reason);
++        value["timestampScope"] = json!("eventMonotonicNs is the named native observation; monotonicNs/captureBeforeNs is later recorder entry; enqueue order is not event order");
++        if row.kind != "render-accepted" {
++            value["schema"] = json!("milkup.cold-request-lifecycle.v1");
++        }
++    }
++    value
++}
++
++fn status(counts: &Counters, final_status: bool, pid: u32, birth: Option<u64>) -> Value {
++    let n = |a: &AtomicU64| a.load(Ordering::SeqCst);
++    json!({
++        "schema": "milkup.cold-accepted-wire-status.v1", "monotonicNs": mono(),
++        "ownerPid": pid, "ownerBirth": birth, "final": final_status,
++        "diagnosticClosed": counts.closed.load(Ordering::SeqCst),
++        "attempted": n(&counts.attempted), "enqueued": n(&counts.enqueued),
++        "written": n(&counts.written), "queueFull": n(&counts.queue_full),
++        "disconnected": n(&counts.disconnected), "oversize": n(&counts.oversize),
++        "capped": n(&counts.capped), "reservedWireBytes": n(&counts.reserved_bytes),
++        "ioErrors": n(&counts.io_errors), "incompleteTiming": n(&counts.incomplete_timing),
++        "writerThreadCpuNs": n(&counts.writer_cpu_ns),
++        "writerCpuScope": "App-owned background writer thread through last status checkpoint, excludes final status/complete serialization; included in App own CPU",
++        "captureTotalNs": n(&counts.capture_ns), "captureMaxNs": n(&counts.capture_max_ns),
++        "inFlight": n(&counts.in_flight),
++        "limits": {"queue":QUEUE_CAP,"events":EVENT_CAP,"wireBytes":WIRE_LIMIT,"totalWireBytes":WIRE_TOTAL_CAP},
++        "qualification": "Final only after external finish.request closes observation and drains queue. Future product requests continue unobserved. Missing final or identity or any drops/errors means incomplete."
++    })
++}
++
++fn write_status(directory: &std::path::Path, value: &Value) -> std::io::Result<()> {
++    let mut file = OpenOptions::new()
++        .create(true)
++        .truncate(true)
++        .write(true)
++        .mode(0o600)
++        .open(directory.join("status.pending"))?;
++    serde_json::to_writer(&mut file, value)?;
++    file.write_all(b"\n")?;
++    file.flush()?;
++    fs::rename(
++        directory.join("status.pending"),
++        directory.join("status.json"),
++    )
++}
++
++fn writer(
++    directory: PathBuf,
++    receiver: Receiver<Record>,
++    counts: Arc<Counters>,
++    pid: u32,
++    birth: Option<u64>,
++) {
++    let writer_cpu_start = thread_cpu_ns();
++    let update_cpu = || {
++        counts.writer_cpu_ns.store(
++            thread_cpu_ns().saturating_sub(writer_cpu_start),
++            Ordering::SeqCst,
++        )
++    };
++    let outcome = (|| -> std::io::Result<()> {
++        // Exclusive directory prevents overwriting any prior run or joining another writer.
++        fs::DirBuilder::new().mode(0o700).create(&directory)?;
++        let mut output = OpenOptions::new()
++            .create_new(true)
++            .write(true)
++            .mode(0o600)
++            .open(directory.join("events.jsonl"))?;
++        update_cpu();
++        write_status(&directory, &status(&counts, false, pid, birth))?;
++        loop {
++            if directory.join("finish.request").exists() {
++                counts.closed.store(true, Ordering::SeqCst);
++            }
++            match receiver.recv_timeout(Duration::from_millis(100)) {
++                Ok(row) => {
++                    let value = record_value(row, &counts);
++                    serde_json::to_writer(&mut output, &value)?;
++                    output.write_all(b"\n")?;
++                    output.flush()?;
++                    counts.written.fetch_add(1, Ordering::SeqCst);
++                }
++                Err(mpsc::RecvTimeoutError::Timeout) => {
++                    if counts.closed.load(Ordering::SeqCst)
++                        && counts.in_flight.load(Ordering::SeqCst) == 0
++                        && counts.enqueued.load(Ordering::SeqCst)
++                            == counts.written.load(Ordering::SeqCst)
++                    {
++                        update_cpu();
++                        let final_status = status(&counts, true, pid, birth);
++                        write_status(&directory, &final_status)?;
++                        let mut complete = OpenOptions::new()
++                            .create_new(true)
++                            .write(true)
++                            .mode(0o600)
++                            .open(directory.join("complete.json"))?;
++                        serde_json::to_writer(&mut complete, &final_status)?;
++                        complete.write_all(b"\n")?;
++                        complete.flush()?;
++                        return Ok(());
++                    }
++                }
++                Err(mpsc::RecvTimeoutError::Disconnected) => return Ok(()),
++            }
++            update_cpu();
++            write_status(&directory, &status(&counts, false, pid, birth))?;
++        }
++    })();
++    if let Err(error) = outcome {
++        drop(receiver);
++        counts.io_errors.fetch_add(1, Ordering::SeqCst);
++        // A missing complete.json is a failed diagnostic, never a product error.
++        eprintln!("COLD_REQUEST_DIAGNOSTIC writer failed: {error}");
++    }
++}
++
++#[cfg(test)]
++mod tests {
++    use super::*;
++    fn fixture(capacity: usize) -> (Recorder, Receiver<Record>) {
++        let (sender, receiver) = mpsc::sync_channel(capacity);
++        (
++            Recorder {
++                sender,
++                counts: Arc::new(Counters::default()),
++                owner_pid: 101,
++                owner_birth: Some(202),
++            },
++            receiver,
++        )
++    }
++    #[test]
++    fn lifecycle_keeps_exact_instance_request_and_observation_time() {
++        let (r, rx) = fixture(8);
++        let at = now();
++        for (phase, ok) in [
++            ("render-cancel", Some(true)),
++            ("render-settled", Some(false)),
++            ("render-failed", None),
++            ("render-deadline", Some(true)),
++            ("render-stop", Some(true)),
++            ("owner-pipe-complete", Some(true)),
++            ("owner-frame-read", None),
++        ] {
++            r.event(
++                "instance-b",
++                "plugin",
++                Some("render_1037"),
++                303,
++                404,
++                Event {
++                    phase,
++                    at_ns: at,
++                    ok,
++                    bytes: Some(123),
++                    reason: Some("test-observation"),
++                },
++            );
++            let v = record_value(rx.try_recv().unwrap(), &r.counts);
++            assert_eq!(v["schema"], "milkup.cold-request-lifecycle.v1");
++            assert_eq!(v["kind"], phase);
++            assert_eq!(v["instanceId"], "instance-b");
++            assert_eq!(v["requestId"], "render_1037");
++            assert_eq!(v["eventMonotonicNs"], at);
++            assert_eq!(v["eventOk"], json!(ok));
++            assert!(v["captureBeforeNs"].as_u64().unwrap() >= at);
++            assert!(v.get("wire").is_none());
++        }
++        assert_eq!(r.counts.reserved_bytes.load(Ordering::Relaxed), 0);
++    }
++    #[test]
++    fn accepted_wire_and_cancel_join_without_mutating_wire() {
++        let (r, rx) = fixture(3);
++        let wire = br#"{"protocol":"render","id":"render_9","value":"unchanged"}"#;
++        let accepted_at = now();
++        r.render_at(
++            "instance-a",
++            "plugin",
++            "render_9",
++            303,
++            404,
++            wire,
++            accepted_at,
++        );
++        r.event(
++            "instance-a",
++            "plugin",
++            Some("render_9"),
++            303,
++            404,
++            Event {
++                phase: "render-cancel",
++                at_ns: now(),
++                ok: Some(true),
++                bytes: None,
++                reason: Some("active-match-deadline-unchanged"),
++            },
++        );
++        let a = record_value(rx.try_recv().unwrap(), &r.counts);
++        let c = record_value(rx.try_recv().unwrap(), &r.counts);
++        assert_eq!(a["wire"].as_str().unwrap().as_bytes(), wire);
++        assert_eq!(a["wireSha256"], format!("{:x}", Sha256::digest(wire)));
++        assert_eq!(a["eventMonotonicNs"], accepted_at);
++        for key in [
++            "instanceId",
++            "requestId",
++            "ownerPid",
++            "ownerBirth",
++            "guardianPid",
++            "guardianBirth",
++        ] {
++            assert_eq!(a[key], c[key]);
++        }
++        assert_eq!(c["kind"], "render-cancel");
++        assert_ne!(c["kind"], "render-settled");
++    }
++    #[test]
++    fn lifecycle_uses_same_queue_and_total_event_cap() {
++        let (r, _rx) = fixture(1);
++        r.render("i", "p", "r", 1, 1, b"{}");
++        r.event(
++            "i",
++            "p",
++            Some("r"),
++            1,
++            1,
++            Event {
++                phase: "render-deadline",
++                at_ns: now(),
++                ok: None,
++                bytes: None,
++                reason: None,
++            },
++        );
++        assert_eq!(r.counts.queue_full.load(Ordering::Relaxed), 1);
++        r.counts.attempted.store(EVENT_CAP, Ordering::Relaxed);
++        r.event(
++            "i",
++            "p",
++            Some("r"),
++            1,
++            1,
++            Event {
++                phase: "render-stop",
++                at_ns: now(),
++                ok: None,
++                bytes: None,
++                reason: None,
++            },
++        );
++        assert_eq!(r.counts.capped.load(Ordering::Relaxed), 1);
++        assert_eq!(r.counts.reserved_bytes.load(Ordering::Relaxed), 2);
++    }
++    #[test]
++    fn missing_event_clock_is_explicit_incomplete_and_null_scope_stays_null() {
++        let (r, rx) = fixture(1);
++        r.event(
++            "i",
++            "p",
++            None,
++            1,
++            1,
++            Event {
++                phase: "render-stop",
++                at_ns: 0,
++                ok: None,
++                bytes: None,
++                reason: None,
++            },
++        );
++        let v = record_value(rx.try_recv().unwrap(), &r.counts);
++        assert!(v["requestId"].is_null());
++        assert_eq!(r.counts.incomplete_timing.load(Ordering::Relaxed), 1);
++    }
++    #[test]
++    fn full_queue_and_oversize_are_counted_without_blocking() {
++        let (r, _rx) = fixture(1);
++        r.render("instance-a", "plugin", "render_1", 303, 404, b"{}");
++        r.render("instance-a", "plugin", "render_2", 303, 404, b"{}");
++        r.render(
++            "instance-a",
++            "plugin",
++            "render_3",
++            303,
++            404,
++            &vec![0; WIRE_LIMIT + 1],
++        );
++        let s = status(&r.counts, false, 101, Some(202));
++        assert_eq!(s["attempted"], 3);
++        assert_eq!(s["enqueued"], 1);
++        assert_eq!(s["queueFull"], 1);
++        assert_eq!(s["oversize"], 1);
++    }
++    #[test]
++    fn wire_identity_bytes_and_hash_survive_background_encoding() {
++        let (r, rx) = fixture(1);
++        let wire = "{\"source\":\"中文 é 👩🏽‍💻\",\"id\":\"render_3\"}".as_bytes();
++        r.render("instance-a", "plugin", "render_3", 303, 404, wire);
++        let v = record_value(rx.try_recv().unwrap(), &r.counts);
++        assert_eq!(v["wire"].as_str().unwrap().as_bytes(), wire);
++        assert_eq!(v["wireBytes"], wire.len());
++        assert_eq!(
++            v["wireSha256"],
++            "63d0feed271a095e185a52a5fa4820b83581c01faa268779522f8ecfd2d019a2"
++        );
++        assert_eq!(v["requestId"], "render_3");
++        assert_eq!(v["instanceId"], "instance-a");
++        assert_eq!(v["ownerBirth"], 202);
++        assert_eq!(v["guardianPid"], 303);
++        assert_eq!(v["guardianBirth"], 404);
++        assert!(v["captureAfterNs"].as_u64().unwrap() >= v["captureBeforeNs"].as_u64().unwrap());
++    }
++    #[test]
++    fn event_and_total_byte_caps_reject_before_cloning() {
++        let (r, _rx) = fixture(1);
++        r.counts.attempted.store(EVENT_CAP, Ordering::Relaxed);
++        r.render("i", "p", "r", 1, 1, b"{}");
++        assert_eq!(r.counts.capped.load(Ordering::Relaxed), 1);
++        r.counts.attempted.store(0, Ordering::Relaxed);
++        r.counts
++            .reserved_bytes
++            .store(WIRE_TOTAL_CAP, Ordering::Relaxed);
++        r.render("i", "p", "r", 1, 1, b"{}");
++        assert_eq!(r.counts.capped.load(Ordering::Relaxed), 2);
++        assert_eq!(r.counts.enqueued.load(Ordering::Relaxed), 0);
++    }
++    #[test]
++    fn disabled_observer_creates_no_directory() {
++        let path = std::env::temp_dir().join(format!(
++            "milkup-disabled-diag-{}-{}",
++            std::process::id(),
++            mono()
++        ));
++        assert!(!path.exists());
++        assert!(prepare(false, Some(path.clone())).is_none());
++        assert!(!path.exists());
++    }
++    fn wait_for(mut condition: impl FnMut() -> bool) {
++        let end = Instant::now() + Duration::from_secs(5);
++        while !condition() {
++            assert!(Instant::now() < end, "pure recorder test timed out");
++            std::thread::sleep(Duration::from_millis(5));
++        }
++    }
++    fn temp_path(label: &str) -> PathBuf {
++        std::env::temp_dir().join(format!(
++            "milkup-recorder-{label}-{}-{}",
++            std::process::id(),
++            mono()
++        ))
++    }
++    #[test]
++    fn close_drains_and_finalizes_all_pre_cutoff_inputs() {
++        let path = temp_path("drain");
++        let r = prepare(true, Some(path.clone())).unwrap();
++        r.guardian("instance-a", "plugin", 303, 404);
++        r.render("instance-a", "plugin", "render_1", 303, 404, b"{}");
++        r.render(
++            "instance-a",
++            "plugin",
++            "render_2",
++            303,
++            404,
++            b"{\"value\":1}",
++        );
++        wait_for(|| path.join("status.json").exists());
++        fs::write(path.join("finish.request"), b"close diagnostic only\n").unwrap();
++        wait_for(|| {
++            fs::read(path.join("complete.json"))
++                .ok()
++                .and_then(|b| serde_json::from_slice::<Value>(&b).ok())
++                .is_some()
++        });
++        let complete: Value =
++            serde_json::from_slice(&fs::read(path.join("complete.json")).unwrap()).unwrap();
++        assert_eq!(complete["final"], true);
++        assert_eq!(complete["attempted"], 3);
++        assert_eq!(complete["enqueued"], 3);
++        assert_eq!(complete["written"], 3);
++        for k in [
++            "inFlight",
++            "queueFull",
++            "disconnected",
++            "oversize",
++            "capped",
++            "ioErrors",
++            "incompleteTiming",
++        ] {
++            assert_eq!(complete[k], 0, "{k}");
++        }
++        let lines = fs::read_to_string(path.join("events.jsonl")).unwrap();
++        assert_eq!(lines.lines().count(), 3);
++        let events: Vec<Value> = lines
++            .lines()
++            .map(|s| serde_json::from_str(s).unwrap())
++            .collect();
++        assert_eq!(events[0]["kind"], "guardian-spawn");
++        assert_eq!(events[2]["requestId"], "render_2");
++        r.render("instance-a", "plugin", "render_3", 303, 404, b"{}");
++        assert_eq!(r.counts.attempted.load(Ordering::SeqCst), 3);
++        fs::remove_dir_all(path).unwrap();
++    }
++    #[test]
++    fn exclusive_output_never_overwrites_an_existing_directory() {
++        let path = temp_path("exclusive");
++        fs::create_dir(&path).unwrap();
++        fs::write(path.join("marker"), b"existing evidence").unwrap();
++        let r = prepare(true, Some(path.clone())).unwrap();
++        wait_for(|| r.counts.io_errors.load(Ordering::SeqCst) > 0);
++        assert_eq!(fs::read(path.join("marker")).unwrap(), b"existing evidence");
++        assert!(!path.join("events.jsonl").exists());
++        assert!(!path.join("complete.json").exists());
++        fs::remove_dir_all(path).unwrap();
++    }
++    #[test]
++    fn writer_io_failure_has_no_false_completion() {
++        let parent_file = temp_path("not-directory");
++        fs::write(&parent_file, b"preserved parent file").unwrap();
++        let path = parent_file.join("impossible");
++        let r = prepare(true, Some(path.clone())).unwrap();
++        wait_for(|| r.counts.io_errors.load(Ordering::SeqCst) > 0);
++        r.render("instance-a", "plugin", "render_1", 303, 404, b"{}");
++        assert!(!path.join("complete.json").exists());
++        assert_eq!(fs::read(&parent_file).unwrap(), b"preserved parent file");
++        assert_eq!(r.counts.disconnected.load(Ordering::SeqCst), 1);
++        fs::remove_file(parent_file).unwrap();
++    }
++}

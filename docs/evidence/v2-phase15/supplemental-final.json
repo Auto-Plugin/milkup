@@ -1,0 +1,20 @@
+[
+  {
+    "command": "pnpm --filter @milkup/core exec vitest run src/__tests__/large-edit-session.test.ts",
+    "log": "history-direction-final.log",
+    "exitCode": 0,
+    "passed": 12
+  },
+  {
+    "command": "pnpm --filter @milkup/view-dom exec vitest run src/__tests__/windowed-table.test.ts",
+    "log": "table-boundaries-final.log",
+    "exitCode": 0,
+    "passed": 8
+  },
+  {
+    "command": "MILKUP_NATIVE_EXCLUSIVE_DISPLAY=1 node visual-x11-probe.mjs",
+    "log": "production-toolbar-x11.log",
+    "exitCode": 0,
+    "scope": "Read-only DOM geometry, system screenshot and element hit test after real keyboard editing/save."
+  }
+]

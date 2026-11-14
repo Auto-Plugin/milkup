@@ -1,0 +1,89 @@
+--- full-d150.mjs
++++ corner-smoke.mjs
+@@ -1293,52 +1293,58 @@
+   x('windowsize', nativeWindow, '1100', '760')
+   await coldBundledWindow()
+   await install()
+-  for (const sample of isolatedFallbacks) await isolatedFallback(sample)
+-  for (const name of ['ordinary', 'windowed']) {
+-    await openDocument(name)
+-    await appearance('light', 1)
+-    for (const sample of samples) {
+-      await seek(sample, 'live')
+-      await shot(`coverage-${name}-${sample.id}`, {
+-        sample: sample.id,
+-        ...(await assertSample(sample, 'live')),
+-      })
+-    }
+-    await sourceSelection(
+-      name,
+-      matrixSamples.find((sample) => sample.expected === 'ready'),
+-    )
+-    for (const mode of ['source', 'live']) await history(name, mode)
+-  }
+-  for (const combination of matrix) {
+-    const { view, mode, theme, zoom, narrow, key } = combination
++  for (const combination of [
++    {
++      view: 'ordinary',
++      mode: 'live',
++      theme: 'light',
++      zoom: 2,
++      narrow: true,
++      key: 'ordinary-live-light-200-narrow',
++    },
++    {
++      view: 'windowed',
++      mode: 'live',
++      theme: 'dark',
++      zoom: 2,
++      narrow: true,
++      key: 'windowed-live-dark-200-narrow',
++    },
++  ]) {
++    const { view, mode, theme, zoom, key } = combination
+     await openDocument(view)
+-    x('windowsize', nativeWindow, narrow ? '760' : '1100', narrow ? '520' : '760')
++    x('windowsize', nativeWindow, '760', '520')
+     await appearance(theme, zoom)
+     const before = await app.probe()
+-    for (const sample of matrixSamples) {
++    for (const id of [
++      'classDiagram-000-first-official-example',
++      'userJourney-000-first-official-example',
++    ]) {
++      const sample = samples.find((item) => item.id === id)
++      assert(sample && sample.expected === 'ready')
+       await seek(sample, mode)
+-      await shot(`matrix-${key}-${sample.id}`, {
++      await shot(`smoke-${key}-${sample.id}`, {
+         combination,
+         sample: sample.id,
+         ...(await assertSample(sample, mode)),
+       })
+-      if (mode === 'live' && zoom === 2 && narrow && sample.expected === 'ready')
+-        await scrollEdges(sample, key)
++      await scrollEdges(sample, key)
+     }
+     assert.equal((await app.probe()).version, before.version)
+     assert.deepEqual(await readFile(activeFile), Buffer.from(contents.get(view)))
+     assert.deepEqual((await observe()).diagnostics.errors, [])
+-    await record('matrix-complete-' + key, {
++    await record('smoke-complete-' + key, {
+       combination,
+       exactFileSha256: sha256(await readFile(activeFile)),
+     })
+   }
+   assert.equal(sha256(await readFile(binary)), process.env.MILKUP_MERMAID_BINARY_SHA256)
+   assert.equal(sha256(await readFile(archivePath)), process.env.MILKUP_MERMAID_ARCHIVE_SHA256)
+-  await record('PASS', {
+-    combinations: matrix.length,
+-    samplesPerCombination: matrixSamples.length,
++  await record('SMOKE-PASS', {
++    combinations: 2,
++    samplesPerCombination: 2,
++    corners: 8,
++    scope: 'Bounded corner helper smoke; not complete production UI acceptance',
+     pixelReview: 'required-separately',
+     nativeIsolation: 'not-established-by-this-harness',
+   })

@@ -1,0 +1,11 @@
+{"startupVisibleMs": 1847, "observations": [{"ms": 412, "window": "0x200001 \"milkup-desktop\": (\"milkup-desktop\" \"Milkup-desktop\")  10x10+10+10  +10+10"}, {"ms": 618, "window": "0x200003 \"milkup-desktop\": (\"milkup-desktop\" \"Milkup-desktop\")  200x200+0+0  +0+0"}, {"ms": 618, "window": "0x200001 \"milkup-desktop\": (\"milkup-desktop\" \"Milkup-desktop\")  10x10+10+10  +10+10"}, {"ms": 1845, "window": "0x20000e \"milkup\": (\"milkup-desktop\" \"Milkup-desktop\")  1100x760+0+0  +0+0"}], "window": "0x20000e"}
+Traceback (most recent call last):
+  File "/workspace/milkup/tests/native/x11-windowed-blocks.py", line 103, in <module>
+    check(mode+': list continuation, nested exit and undo caret',lists)
+  File "/workspace/milkup/tests/native/x11-windowed-blocks.py", line 80, in check
+    action()
+  File "/workspace/milkup/tests/native/x11-windowed-blocks.py", line 94, in lists
+    saved(continued,'list continuation')
+  File "/workspace/milkup/tests/native/x11-windowed-blocks.py", line 72, in saved
+    raise AssertionError(f'{label}: disk mismatch; actual={len(actual)} chars, expected={len(expected)}')
+AssertionError: list continuation: disk mismatch; actual=1056621 chars, expected=1056625

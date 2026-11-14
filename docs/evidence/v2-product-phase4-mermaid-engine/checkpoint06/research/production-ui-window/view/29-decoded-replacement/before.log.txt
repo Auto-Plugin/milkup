@@ -1,0 +1,95 @@
+
+ RUN  v3.2.6 /workspace/milkup/packages/view-dom
+
+ ❯ src/__tests__/document-svg-image.test.ts (54 tests | 2 failed | 52 skipped) 190ms
+   ↓ keeps full mapped source until decode, then mounts an inert owned image (false)
+   ↓ restores a whole compound fragment when any decoded image later errors (false)
+   ↓ decode rejection leaves usable original source and an accessible notice (false)
+   ↓ does not hide any compound source while a sibling image is still decoding (false)
+   ↓ bounds a stalled decode and preserves source without retrying it (false)
+   ↓ revokes selection ABA decode and ignores an old image error after replacement (false)
+   ↓ uses integer image pixels inside the exact fractional layout slot (false)
+   ↓ reserves actual negative and positive ink inside the mapped scrollable fragment (false)
+   ↓ distinguishes real fractional overflow from transparent raster rounding (false)
+   ↓ preserves math and reference siblings around an owned image (false)
+   ↓ hard invalidation revokes the pending resource even when the response is equivalent (false)
+   ↓ revokes pending decode on disabled, ignoring its late completion (false)
+   ↓ revokes pending decode on source, ignoring its late completion (false)
+   ↓ revokes pending decode on destroy, ignoring its late completion (false)
+   ↓ releases a successfully mounted URL when the provider is removed (false)
+   ↓ late old-document decode cannot replace the new source (false)
+   ↓ source mode stays literal and does not create image resources (false)
+   ↓ unknown child yields full-source fallback without allocating a URL (false)
+   ↓ keeps full mapped source until decode, then mounts an inert owned image (true)
+   ↓ restores a whole compound fragment when any decoded image later errors (true)
+   ↓ decode rejection leaves usable original source and an accessible notice (true)
+   ↓ does not hide any compound source while a sibling image is still decoding (true)
+   ↓ bounds a stalled decode and preserves source without retrying it (true)
+   ↓ revokes selection ABA decode and ignores an old image error after replacement (true)
+   ↓ uses integer image pixels inside the exact fractional layout slot (true)
+   ↓ reserves actual negative and positive ink inside the mapped scrollable fragment (true)
+   ↓ distinguishes real fractional overflow from transparent raster rounding (true)
+   ↓ preserves math and reference siblings around an owned image (true)
+   ↓ hard invalidation revokes the pending resource even when the response is equivalent (true)
+   ↓ revokes pending decode on disabled, ignoring its late completion (true)
+   ↓ revokes pending decode on source, ignoring its late completion (true)
+   ↓ revokes pending decode on destroy, ignoring its late completion (true)
+   ↓ releases a successfully mounted URL when the provider is removed (true)
+   ↓ late old-document decode cannot replace the new source (true)
+   ↓ source mode stays literal and does not create image resources (true)
+   ↓ unknown child yields full-source fallback without allocating a URL (true)
+   ↓ transfers a decoded node through a same-context source-window replacement without a new URL
+   ↓ the existing synchronous factory cannot create an ownerless image URL
+   ↓ keeps an equivalent decoded image through a validated provider refresh (false)
+   ↓ keeps an equivalent decoded image through a validated provider refresh (true)
+   ↓ does not reuse a decoded owner after theme changes (false)
+   ↓ does not reuse a decoded owner after width changes (false)
+   ↓ does not reuse a decoded owner after content changes (false)
+   ↓ does not reuse a decoded owner after accessibleText changes (false)
+   ↓ does not reuse a decoded owner after declaration changes (false)
+   ↓ does not migrate a pending decode or accept its late completion (false)
+   ↓ does not reuse a decoded owner after theme changes (true)
+   ↓ does not reuse a decoded owner after width changes (true)
+   ↓ does not reuse a decoded owner after content changes (true)
+   ↓ does not reuse a decoded owner after accessibleText changes (true)
+   ↓ does not reuse a decoded owner after declaration changes (true)
+   ↓ does not migrate a pending decode or accept its late completion (true)
+   × keeps the complete previous presentation until a changed image replacement decodes (false) 128ms
+     → expected null to be <img alt="Typed diagram" …(4)></img> // Object.is equality
+   × keeps the complete previous presentation until a changed image replacement decodes (true) 61ms
+     → expected null to be <img alt="Typed diagram" …(4)></img> // Object.is equality
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/__tests__/document-svg-image.test.ts > keeps the complete previous presentation until a changed image replacement decodes (false)
+ FAIL  src/__tests__/document-svg-image.test.ts > keeps the complete previous presentation until a changed image replacement decodes (true)
+AssertionError: expected null to be <img alt="Typed diagram" …(4)></img> // Object.is equality
+
+- Expected: 
+<img
+  alt="Typed diagram"
+  draggable="false"
+  height="96"
+  style="position: absolute; left: 0px; top: 0px; display: block; width: 160px; height: 96px; max-width: none; max-height: none;"
+  width="160"
+/>
+
++ Received: 
+null
+
+ ❯ src/__tests__/document-svg-image.test.ts:674:50
+    672|     await settle()
+    673|     expect(decodes).toHaveLength(2)
+    674|     expect(view.contentDOM.querySelector('img')).toBe(first)
+       |                                                  ^
+    675|     expect(view.contentDOM.textContent).toContain('Revision 0')
+    676|     expect(view.contentDOM.textContent).not.toContain('Revision 1')
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  2 failed | 52 skipped (54)
+   Start at  15:49:30
+   Duration  1.81s (transform 698ms, setup 0ms, collect 882ms, tests 190ms, environment 446ms, prepare 73ms)
+

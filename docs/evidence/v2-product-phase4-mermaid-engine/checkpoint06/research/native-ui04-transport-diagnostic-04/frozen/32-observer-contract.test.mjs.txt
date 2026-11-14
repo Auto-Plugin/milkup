@@ -1,0 +1,68 @@
+import assert from 'node:assert/strict'
+import { readFile } from 'node:fs/promises'
+import vm from 'node:vm'
+const source = await readFile(new URL('./observer.js', import.meta.url), 'utf8')
+const tests = []
+function setup(entryValues, liveValues) {
+  const entries = Object.create(null)
+  for (const [key, value] of entryValues) Object.defineProperty(entries, key, { value, configurable: true })
+  const callbacks = new Map(liveValues)
+  const originalFetch = function () { return 'original-fetch-return' }
+  const window = { __TAURI_INTERNALS__: { callbacks }, __internal_unstable_listeners_object_id__: { 'milkup-plugin-dom-message': entries } }
+  Object.defineProperty(window, 'fetch', { value: originalFetch, configurable: true, enumerable: true, writable: true })
+  let now = 0
+  const context = vm.createContext({ window, Map, Set, TextEncoder, performance: { now: () => (now += 0.01) }, document: { querySelector: () => undefined, querySelectorAll: () => [] }, setInterval: () => 1, setTimeout: () => 2, clearInterval: () => {}, clearTimeout: () => {} })
+  const result = vm.runInContext('(' + source + ')()', context)
+  return { result, window, callbacks, originalFetch, entries }
+}
+function test(name, fn) { fn(); tests.push(name); console.log('PASS ' + name) }
+test('zero live entries refuses without mutation', () => {
+  const x = setup([['old', { handlerId: 10 }]], [])
+  assert.equal(x.result.installed, false); assert.equal(x.window.fetch, x.originalFetch); assert.equal(x.callbacks.size, 0)
+})
+test('two live functions refuse without mutation', () => {
+  const a = () => {}, b = () => {}; const x = setup([['a', { handlerId: 1 }], ['b', { handlerId: 2 }]], [[1, a], [2, b]])
+  assert.equal(x.result.installed, false); assert.equal(x.callbacks.get(1), a); assert.equal(x.callbacks.get(2), b)
+})
+test('malformed entry refuses even with one valid live function', () => {
+  const x = setup([['a', { handlerId: 1 }], ['bad', { handlerId: '2' }]], [[1, () => {}]])
+  assert.equal(x.result.installed, false); assert.equal(x.window.fetch, x.originalFetch)
+})
+test('existing nonfunction callback refuses', () => {
+  const x = setup([['a', { handlerId: 1 }], ['bad', { handlerId: 2 }]], [[1, () => {}], [2, undefined]])
+  assert.equal(x.result.installed, false); assert(x.callbacks.has(2))
+})
+test('duplicate live handler ID refuses', () => {
+  const x = setup([['a', { handlerId: 1 }], ['duplicate', { handlerId: 1 }]], [[1, () => {}]])
+  assert.equal(x.result.installed, false)
+})
+test('one live plus retired wraps only live and restores without reviving retired', () => {
+  const seen = [], returned = { exact: true }
+  const original = function (...args) { seen.push({ receiver: this, args }); return returned }
+  const x = setup([['old', { handlerId: 10 }], ['live', { handlerId: 20 }]], [[20, original]])
+  assert.equal(x.result.installed, true); assert.equal(x.result.retiredEntries.length, 1); assert(!x.callbacks.has(10))
+  const receiver = {}, args = [{ event: 'unrelated' }, 2]
+  assert.equal(x.callbacks.get(20).apply(receiver, args), returned)
+  assert.equal(seen[0].receiver, receiver); assert.deepEqual(seen[0].args, args)
+  x.window.__milkupTransportDiagnostic.stop('test')
+  assert.equal(x.callbacks.get(20), original); assert(!x.callbacks.has(10)); assert.equal(x.window.fetch, x.originalFetch)
+  assert(Object.getOwnPropertyDescriptor(x.entries, 'old'))
+})
+test('synchronous callback exception passes through unchanged', () => {
+  const error = new Error('exact'); const x = setup([['live', { handlerId: 20 }]], [[20, () => { throw error }]])
+  assert.throws(() => x.callbacks.get(20)({ event: 'unrelated' }), e => e === error)
+  x.window.__milkupTransportDiagnostic.stop('test')
+})
+test('stop neither revives removed live callback nor overwrites replacement fetch', () => {
+  const x = setup([['old', { handlerId: 10 }], ['live', { handlerId: 20 }]], [[20, () => {}]])
+  const replacementFetch = () => {}; x.window.fetch = replacementFetch; x.callbacks.delete(20)
+  x.window.__milkupTransportDiagnostic.stop('test')
+  assert(!x.callbacks.has(10)); assert(!x.callbacks.has(20)); assert.equal(x.window.fetch, replacementFetch)
+})
+test('stop preserves a later legitimate callback replacement', () => {
+  const x = setup([['live', { handlerId: 20 }]], [[20, () => {}]])
+  const replacement = () => {}; x.callbacks.set(20, replacement)
+  x.window.__milkupTransportDiagnostic.stop('test')
+  assert.equal(x.callbacks.get(20), replacement)
+})
+console.log(JSON.stringify({ count: tests.length, scope: 'VM diagnostic observer contract only; not native isolation, app behavior, or acceptance evidence' }))

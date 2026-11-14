@@ -1,0 +1,9 @@
+packages/plugin/src/isolation-module-host.ts(114,15): error TS2345: Argument of type 'PluginManagementBroker | undefined' is not assignable to parameter of type '(() => boolean) | undefined'.
+  Type 'PluginManagementBroker' is not assignable to type '() => boolean'.
+    Type 'PluginManagementBroker' provides no match for the signature '(): boolean'.
+packages/plugin/src/isolation-module-host.ts(202,11): error TS2345: Argument of type '() => boolean' is not assignable to parameter of type 'PluginManagementBroker'.
+packages/plugin/src/management-rpc.test.ts(37,5): error TS2322: Type 'Mock<(_input: any, context: any) => Promise<{ status: string; }>>' is not assignable to type '(input: PluginManagementHostViewRequest, context: PluginManagementOperationContext) => Promise<PluginManagementHostViewResult>'.
+  Type 'Promise<{ status: string; }>' is not assignable to type 'Promise<PluginManagementHostViewResult>'.
+    Type '{ status: string; }' is not assignable to type 'PluginManagementHostViewResult'.
+      Types of property 'status' are incompatible.
+        Type 'string' is not assignable to type '"cancelled" | "opened"'.

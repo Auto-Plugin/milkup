@@ -1,0 +1,4253 @@
+{
+  "diagnosticOnly": true,
+  "normalGtkInstallation": true,
+  "productionAssetsUnmodified": true,
+  "mainStallInjected": true,
+  "results": [
+    {
+      "kind": "fast",
+      "registry": {
+        "manifest": {
+          "version": "1.0.0",
+          "engines": {
+            "pluginSdk": "^0.3.3",
+            "milkup": "^2.0.0-0"
+          },
+          "permissions": ["document:read"],
+          "main": "./dist/plugin.js",
+          "host": "worker",
+          "name": "Diagnostic supervisor fast",
+          "contributes": {
+            "documentRenderers": [
+              {
+                "id": "diagnostic.document",
+                "contexts": ["text"]
+              }
+            ]
+          },
+          "id": "diagnostic.supervisor-fast",
+          "description": "Explicit diagnostic fixture only; bounded 50ms render"
+        },
+        "enabled": true,
+        "approvals": {
+          "hosts": ["worker"],
+          "permissions": []
+        },
+        "updatedAt": 1792121205547,
+        "rootPath": "/workspace/milkup-markdown-extensions-phase4-evidence/native/profile-candidate08-production-worker02/data/app.milkup.desktop/plugins/diagnostic.supervisor-fast/package",
+        "dataRoot": "/workspace/milkup-markdown-extensions-phase4-evidence/native/profile-candidate08-production-worker02/data/app.milkup.desktop/plugins/diagnostic.supervisor-fast/data",
+        "state": "enabled",
+        "installedAt": 1792121204282,
+        "errors": [],
+        "trust": "development",
+        "sourcePath": "/workspace/milkup-markdown-extensions-phase4-evidence/native/production-arbitration-fixtures/diagnostic.supervisor-fast-1.0.0.milkup-plugin",
+        "manifestPath": "/workspace/milkup-markdown-extensions-phase4-evidence/native/profile-candidate08-production-worker02/data/app.milkup.desktop/plugins/diagnostic.supervisor-fast/package/plugin.json",
+        "storageRoot": "/workspace/milkup-markdown-extensions-phase4-evidence/native/profile-candidate08-production-worker02/data/app.milkup.desktop/plugins/diagnostic.supervisor-fast/storage"
+      },
+      "trace": {
+        "stalls": [
+          {
+            "worker": "milkup-supervisor-diagnostic.supervisor-fast",
+            "start": 1792121215279,
+            "requestId": "render_4",
+            "end": 1792121217678
+          }
+        ],
+        "events": [
+          {
+            "wall": 1792121205342,
+            "worker": "milkup-supervisor-diagnostic.supervisor-fast",
+            "kind": "new",
+            "url": "tauri://localhost/assets/plugin-supervisor-DDzcaO-I.js"
+          },
+          {
+            "wall": 1792121205343,
+            "worker": "milkup-supervisor-diagnostic.supervisor-fast",
+            "value": {
+              "protocol": "milkup.plugin.worker-supervisor.v1",
+              "type": "forward",
+              "message": {
+                "payload": {
+                  "moduleSpecifier": "blob:tauri://localhost/dfa5559b-6073-4371-9572-0b696154b47f",
+                  "manifest": {
+                    "version": "1.0.0",
+                    "engines": {
+                      "pluginSdk": "^0.3.3",
+                      "milkup": "^2.0.0-0"
+                    },
+                    "permissions": ["document:read"],
+                    "main": "./dist/plugin.js",
+                    "host": "worker",
+                    "name": "Diagnostic supervisor fast",
+                    "contributes": {
+                      "documentRenderers": [
+                        {
+                          "id": "diagnostic.document",
+                          "contexts": ["text"]
+                        }
+                      ]
+                    },
+                    "id": "diagnostic.supervisor-fast",
+                    "description": "Explicit diagnostic fixture only; bounded 50ms render"
+                  }
+                },
+                "protocol": "milkup.plugin.worker.init.v1",
+                "type": "init"
+              }
+            },
+            "kind": "send"
+          },
+          {
+            "wall": 1792121205540,
+            "worker": "milkup-supervisor-diagnostic.supervisor-fast",
+            "value": {
+              "protocol": "milkup.plugin.worker-supervisor.v1",
+              "type": "child",
+              "message": {
+                "protocol": "milkup.plugin.worker.init.v1",
+                "type": "ready"
+              }
+            },
+            "kind": "receive"
+          },
+          {
+            "wall": 1792121205540,
+            "worker": "milkup-supervisor-diagnostic.supervisor-fast",
+            "value": {
+              "protocol": "milkup.plugin.worker-supervisor.v1",
+              "type": "forward",
+              "message": {
+                "payload": {
+                  "manifest": {
+                    "version": "1.0.0",
+                    "engines": {
+                      "pluginSdk": "^0.3.3",
+                      "milkup": "^2.0.0-0"
+                    },
+                    "permissions": ["document:read"],
+                    "main": "./dist/plugin.js",
+                    "host": "worker",
+                    "name": "Diagnostic supervisor fast",
+                    "contributes": {
+                      "documentRenderers": [
+                        {
+                          "id": "diagnostic.document",
+                          "contexts": ["text"]
+                        }
+                      ]
+                    },
+                    "id": "diagnostic.supervisor-fast",
+                    "description": "Explicit diagnostic fixture only; bounded 50ms render"
+                  },
+                  "permissions": ["document:read"],
+                  "hostCapabilities": ["document:read", "ui:update", "storage"],
+                  "pluginId": "diagnostic.supervisor-fast"
+                },
+                "protocol": "milkup.plugin.isolation.rpc.v1",
+                "type": "request",
+                "method": "activate",
+                "id": "mvaep06c-0"
+              }
+            },
+            "kind": "send"
+          },
+          {
+            "wall": 1792121205547,
+            "worker": "milkup-supervisor-diagnostic.supervisor-fast",
+            "value": {
+              "protocol": "milkup.plugin.worker-supervisor.v1",
+              "type": "child",
+              "message": {
+                "protocol": "milkup.plugin.isolation.rpc.v1",
+                "type": "response",
+                "ok": true,
+                "id": "mvaep06c-0",
+                "value": {
+                  "commands": [],
+                  "renderers": [],
+                  "documentRenderers": ["diagnostic.document"]
+                }
+              }
+            },
+            "kind": "receive"
+          },
+          {
+            "wall": 1792121205577,
+            "worker": "milkup-supervisor-diagnostic.supervisor-fast",
+            "value": {
+              "protocol": "milkup.plugin.worker-supervisor.v1",
+              "type": "forward",
+              "message": {
+                "payload": {
+                  "rendererId": "diagnostic.document",
+                  "request": {
+                    "fromLine": 1,
+                    "width": 1100,
+                    "blocks": [
+                      {
+                        "from": 0,
+                        "complete": true,
+                        "kind": "text",
+                        "to": 0,
+                        "contentRanges": [
+                          {
+                            "from": 0,
+                            "to": 0
+                          }
+                        ]
+                      }
+                    ],
+                    "to": 0,
+                    "completeEnd": true,
+                    "source": "",
+                    "protectedRanges": [],
+                    "selection": {
+                      "head": 0,
+                      "anchor": 0
+                    },
+                    "toLine": 1,
+                    "theme": "light",
+                    "completeStart": true,
+                    "documentId": "file:/workspace/milkup-markdown-extensions-phase4-evidence/native/run-candidate08-production-worker02/empty.md",
+                    "target": "screen",
+                    "contextKnown": true,
+                    "from": 0,
+                    "version": 0
+                  },
+                  "pluginId": "diagnostic.supervisor-fast"
+                },
+                "protocol": "milkup.plugin.document-render.v1",
+                "type": "render",
+                "id": "render_1"
+              }
+            },
+            "kind": "send"
+          },
+          {
+            "wall": 1792121205592,
+            "worker": "milkup-supervisor-diagnostic.supervisor-fast",
+            "value": {
+              "protocol": "milkup.plugin.worker-supervisor.v1",
+              "type": "child",
+              "message": {
+                "protocol": "milkup.plugin.document-render.v1",
+                "type": "result",
+                "ok": true,
+                "id": "render_1",
+                "value": {
+                  "complete": true,
+                  "fragments": []
+                }
+              }
+            },
+            "kind": "receive"
+          },
+          {
+            "wall": 1792121210357,
+            "worker": "milkup-supervisor-diagnostic.supervisor-fast",
+            "value": {
+              "protocol": "milkup.plugin.worker-supervisor.v1",
+              "type": "forward",
+              "message": {
+                "payload": {
+                  "rendererId": "diagnostic.document",
+                  "request": {
+                    "fromLine": 1,
+                    "width": 1100,
+                    "blocks": [
+                      {
+                        "from": 0,
+                        "complete": true,
+                        "kind": "text",
+                        "to": 0,
+                        "contentRanges": [
+                          {
+                            "from": 0,
+                            "to": 0
+                          }
+                        ]
+                      }
+                    ],
+                    "to": 0,
+                    "completeEnd": true,
+                    "source": "",
+                    "protectedRanges": [],
+                    "selection": {
+                      "head": 0,
+                      "anchor": 0
+                    },
+                    "toLine": 1,
+                    "theme": "light",
+                    "completeStart": true,
+                    "documentId": "file:/workspace/milkup-markdown-extensions-phase4-evidence/native/run-candidate08-production-worker02/empty.md",
+                    "target": "screen",
+                    "contextKnown": true,
+                    "from": 0,
+                    "version": 0
+                  },
+                  "pluginId": "diagnostic.supervisor-fast"
+                },
+                "protocol": "milkup.plugin.document-render.v1",
+                "type": "render",
+                "id": "render_2"
+              }
+            },
+            "kind": "send"
+          },
+          {
+            "wall": 1792121210367,
+            "worker": "milkup-supervisor-diagnostic.supervisor-fast",
+            "value": {
+              "protocol": "milkup.plugin.worker-supervisor.v1",
+              "type": "child",
+              "message": {
+                "protocol": "milkup.plugin.document-render.v1",
+                "type": "result",
+                "ok": true,
+                "id": "render_2",
+                "value": {
+                  "complete": true,
+                  "fragments": []
+                }
+              }
+            },
+            "kind": "receive"
+          },
+          {
+            "wall": 1792121211235,
+            "worker": "milkup-supervisor-diagnostic.supervisor-cpu",
+            "kind": "new",
+            "url": "tauri://localhost/assets/plugin-supervisor-DDzcaO-I.js"
+          },
+          {
+            "wall": 1792121211236,
+            "worker": "milkup-supervisor-diagnostic.supervisor-cpu",
+            "value": {
+              "protocol": "milkup.plugin.worker-supervisor.v1",
+              "type": "forward",
+              "message": {
+                "payload": {
+                  "moduleSpecifier": "blob:tauri://localhost/f8d25923-6943-4f69-b9b2-ff1ba4863b5b",
+                  "manifest": {
+                    "version": "1.0.0",
+                    "engines": {
+                      "pluginSdk": "^0.3.3",
+                      "milkup": "^2.0.0-0"
+                    },
+                    "permissions": ["document:read"],
+                    "main": "./dist/plugin.js",
+                    "host": "worker",
+                    "name": "Diagnostic supervisor cpu",
+                    "contributes": {
+                      "documentRenderers": [
+                        {
+                          "id": "diagnostic.document",
+                          "contexts": ["text"]
+                        }
+                      ]
+                    },
+                    "id": "diagnostic.supervisor-cpu",
+                    "description": "Explicit diagnostic fixture only; intentionally runs CPU until host termination"
+                  }
+                },
+                "protocol": "milkup.plugin.worker.init.v1",
+                "type": "init"
+              }
+            },
+            "kind": "send"
+          },
+          {
+            "wall": 1792121211374,
+            "worker": "milkup-supervisor-diagnostic.supervisor-cpu",
+            "value": {
+              "protocol": "milkup.plugin.worker-supervisor.v1",
+              "type": "child",
+              "message": {
+                "protocol": "milkup.plugin.worker.init.v1",
+                "type": "ready"
+              }
+            },
+            "kind": "receive"
+          },
+          {
+            "wall": 1792121211375,
+            "worker": "milkup-supervisor-diagnostic.supervisor-cpu",
+            "value": {
+              "protocol": "milkup.plugin.worker-supervisor.v1",
+              "type": "forward",
+              "message": {
+                "payload": {
+                  "manifest": {
+                    "version": "1.0.0",
+                    "engines": {
+                      "pluginSdk": "^0.3.3",
+                      "milkup": "^2.0.0-0"
+                    },
+                    "permissions": ["document:read"],
+                    "main": "./dist/plugin.js",
+                    "host": "worker",
+                    "name": "Diagnostic supervisor cpu",
+                    "contributes": {
+                      "documentRenderers": [
+                        {
+                          "id": "diagnostic.document",
+                          "contexts": ["text"]
+                        }
+                      ]
+                    },
+                    "id": "diagnostic.supervisor-cpu",
+                    "description": "Explicit diagnostic fixture only; intentionally runs CPU until host termination"
+                  },
+                  "permissions": ["document:read"],
+                  "hostCapabilities": ["document:read", "ui:update", "storage"],
+                  "pluginId": "diagnostic.supervisor-cpu"
+                },
+                "protocol": "milkup.plugin.isolation.rpc.v1",
+                "type": "request",
+                "method": "activate",
+                "id": "mvaep4of-0"
+              }
+            },
+            "kind": "send"
+          },
+          {
+            "wall": 1792121211387,
+            "worker": "milkup-supervisor-diagnostic.supervisor-cpu",
+            "value": {
+              "protocol": "milkup.plugin.worker-supervisor.v1",
+              "type": "child",
+              "message": {
+                "protocol": "milkup.plugin.isolation.rpc.v1",
+                "type": "response",
+                "ok": true,
+                "id": "mvaep4of-0",
+                "value": {
+                  "commands": [],
+                  "renderers": [],
+                  "documentRenderers": ["diagnostic.document"]
+                }
+              }
+            },
+            "kind": "receive"
+          },
+          {
+            "wall": 1792121211414,
+            "worker": "milkup-supervisor-diagnostic.supervisor-fast",
+            "value": {
+              "protocol": "milkup.plugin.worker-supervisor.v1",
+              "type": "forward",
+              "message": {
+                "payload": {
+                  "rendererId": "diagnostic.document",
+                  "request": {
+                    "fromLine": 1,
+                    "width": 1100,
+                    "blocks": [
+                      {
+                        "from": 0,
+                        "complete": true,
+                        "kind": "text",
+                        "to": 0,
+                        "contentRanges": [
+                          {
+                            "from": 0,
+                            "to": 0
+                          }
+                        ]
+                      }
+                    ],
+                    "to": 0,
+                    "completeEnd": true,
+                    "source": "",
+                    "protectedRanges": [],
+                    "selection": {
+                      "head": 0,
+                      "anchor": 0
+                    },
+                    "toLine": 1,
+                    "theme": "light",
+                    "completeStart": true,
+                    "documentId": "file:/workspace/milkup-markdown-extensions-phase4-evidence/native/run-candidate08-production-worker02/empty.md",
+                    "target": "screen",
+                    "contextKnown": true,
+                    "from": 0,
+                    "version": 0
+                  },
+                  "pluginId": "diagnostic.supervisor-fast"
+                },
+                "protocol": "milkup.plugin.document-render.v1",
+                "type": "render",
+                "id": "render_3"
+              }
+            },
+            "kind": "send"
+          },
+          {
+            "wall": 1792121211415,
+            "worker": "milkup-supervisor-diagnostic.supervisor-cpu",
+            "value": {
+              "protocol": "milkup.plugin.worker-supervisor.v1",
+              "type": "forward",
+              "message": {
+                "payload": {
+                  "rendererId": "diagnostic.document",
+                  "request": {
+                    "fromLine": 1,
+                    "width": 1100,
+                    "blocks": [
+                      {
+                        "from": 0,
+                        "complete": true,
+                        "kind": "text",
+                        "to": 0,
+                        "contentRanges": [
+                          {
+                            "from": 0,
+                            "to": 0
+                          }
+                        ]
+                      }
+                    ],
+                    "to": 0,
+                    "completeEnd": true,
+                    "source": "",
+                    "protectedRanges": [],
+                    "selection": {
+                      "head": 0,
+                      "anchor": 0
+                    },
+                    "toLine": 1,
+                    "theme": "light",
+                    "completeStart": true,
+                    "documentId": "file:/workspace/milkup-markdown-extensions-phase4-evidence/native/run-candidate08-production-worker02/empty.md",
+                    "target": "screen",
+                    "contextKnown": true,
+                    "from": 0,
+                    "version": 0
+                  },
+                  "pluginId": "diagnostic.supervisor-cpu"
+                },
+                "protocol": "milkup.plugin.document-render.v1",
+                "type": "render",
+                "id": "render_1"
+              }
+            },
+            "kind": "send"
+          },
+          {
+            "wall": 1792121211442,
+            "worker": "milkup-supervisor-diagnostic.supervisor-fast",
+            "value": {
+              "protocol": "milkup.plugin.worker-supervisor.v1",
+              "type": "child",
+              "message": {
+                "protocol": "milkup.plugin.document-render.v1",
+                "type": "result",
+                "ok": true,
+                "id": "render_3",
+                "value": {
+                  "complete": true,
+                  "fragments": []
+                }
+              }
+            },
+            "kind": "receive"
+          },
+          {
+            "wall": 1792121211443,
+            "worker": "milkup-supervisor-diagnostic.supervisor-cpu",
+            "value": {
+              "protocol": "milkup.plugin.worker-supervisor.v1",
+              "type": "child",
+              "message": {
+                "protocol": "milkup.plugin.document-render.v1",
+                "type": "result",
+                "ok": true,
+                "id": "render_1",
+                "value": {
+                  "complete": true,
+                  "fragments": []
+                }
+              }
+            },
+            "kind": "receive"
+          },
+          {
+            "wall": 1792121215254,
+            "worker": "milkup-supervisor-diagnostic.supervisor-fast",
+            "value": {
+              "protocol": "milkup.plugin.worker-supervisor.v1",
+              "type": "forward",
+              "message": {
+                "payload": {
+                  "rendererId": "diagnostic.document",
+                  "request": {
+                    "fromLine": 1,
+                    "width": 1100,
+                    "blocks": [
+                      {
+                        "from": 0,
+                        "complete": true,
+                        "kind": "text",
+                        "to": 12,
+                        "contentRanges": [
+                          {
+                            "from": 0,
+                            "to": 12
+                          }
+                        ]
+                      },
+                      {
+                        "from": 14,
+                        "complete": true,
+                        "kind": "text",
+                        "to": 14,
+                        "contentRanges": [
+                          {
+                            "from": 14,
+                            "to": 14
+                          }
+                        ]
+                      },
+                      {
+                        "from": 16,
+                        "complete": true,
+                        "kind": "text",
+                        "to": 37,
+                        "contentRanges": [
+                          {
+                            "from": 16,
+                            "to": 37
+                          }
+                        ]
+                      },
+                      {
+                        "from": 39,
+                        "complete": true,
+                        "kind": "text",
+                        "to": 39,
+                        "contentRanges": [
+                          {
+                            "from": 39,
+                            "to": 39
+                          }
+                        ]
+                      },
+                      {
+                        "from": 41,
+                        "complete": true,
+                        "kind": "text",
+                        "to": 53,
+                        "contentRanges": [
+                          {
+                            "from": 41,
+                            "to": 53
+                          }
+                        ]
+                      },
+                      {
+                        "from": 55,
+                        "complete": true,
+                        "kind": "text",
+                        "to": 55,
+                        "contentRanges": [
+                          {
+                            "from": 55,
+                            "to": 55
+                          }
+                        ]
+                      },
+                      {
+                        "from": 57,
+                        "complete": true,
+                        "kind": "text",
+                        "to": 60,
+                        "contentRanges": [
+                          {
+                            "from": 57,
+                            "to": 60
+                          }
+                        ]
+                      },
+                      {
+                        "from": 62,
+                        "complete": true,
+                        "kind": "text",
+                        "to": 62,
+                        "contentRanges": [
+                          {
+                            "from": 62,
+                            "to": 62
+                          }
+                        ]
+                      }
+                    ],
+                    "to": 62,
+                    "completeEnd": true,
+                    "source": "# Diagnostic\r\n\r\nSelection stays here.\r\n\r\nFAST-TRIGGER\r\n\r\nEND\r\n",
+                    "protectedRanges": [],
+                    "selection": {
+                      "head": 0,
+                      "anchor": 0
+                    },
+                    "toLine": 8,
+                    "theme": "light",
+                    "completeStart": true,
+                    "documentId": "file:/workspace/milkup-markdown-extensions-phase4-evidence/native/production-arbitration-fixtures/fast.md",
+                    "target": "screen",
+                    "contextKnown": true,
+                    "from": 0,
+                    "version": 0
+                  },
+                  "pluginId": "diagnostic.supervisor-fast"
+                },
+                "protocol": "milkup.plugin.document-render.v1",
+                "type": "render",
+                "id": "render_4"
+              }
+            },
+            "kind": "send"
+          },
+          {
+            "wall": 1792121215259,
+            "worker": "milkup-supervisor-diagnostic.supervisor-cpu",
+            "value": {
+              "protocol": "milkup.plugin.worker-supervisor.v1",
+              "type": "forward",
+              "message": {
+                "payload": {
+                  "rendererId": "diagnostic.document",
+                  "request": {
+                    "fromLine": 1,
+                    "width": 1100,
+                    "blocks": [
+                      {
+                        "from": 0,
+                        "complete": true,
+                        "kind": "text",
+                        "to": 12,
+                        "contentRanges": [
+                          {
+                            "from": 0,
+                            "to": 12
+                          }
+                        ]
+                      },
+                      {
+                        "from": 14,
+                        "complete": true,
+                        "kind": "text",
+                        "to": 14,
+                        "contentRanges": [
+                          {
+                            "from": 14,
+                            "to": 14
+                          }
+                        ]
+                      },
+                      {
+                        "from": 16,
+                        "complete": true,
+                        "kind": "text",
+                        "to": 37,
+                        "contentRanges": [
+                          {
+                            "from": 16,
+                            "to": 37
+                          }
+                        ]
+                      },
+                      {
+                        "from": 39,
+                        "complete": true,
+                        "kind": "text",
+                        "to": 39,
+                        "contentRanges": [
+                          {
+                            "from": 39,
+                            "to": 39
+                          }
+                        ]
+                      },
+                      {
+                        "from": 41,
+                        "complete": true,
+                        "kind": "text",
+                        "to": 53,
+                        "contentRanges": [
+                          {
+                            "from": 41,
+                            "to": 53
+                          }
+                        ]
+                      },
+                      {
+                        "from": 55,
+                        "complete": true,
+                        "kind": "text",
+                        "to": 55,
+                        "contentRanges": [
+                          {
+                            "from": 55,
+                            "to": 55
+                          }
+                        ]
+                      },
+                      {
+                        "from": 57,
+                        "complete": true,
+                        "kind": "text",
+                        "to": 60,
+                        "contentRanges": [
+                          {
+                            "from": 57,
+                            "to": 60
+                          }
+                        ]
+                      },
+                      {
+                        "from": 62,
+                        "complete": true,
+                        "kind": "text",
+                        "to": 62,
+                        "contentRanges": [
+                          {
+                            "from": 62,
+                            "to": 62
+                          }
+                        ]
+                      }
+                    ],
+                    "to": 62,
+                    "completeEnd": true,
+                    "source": "# Diagnostic\r\n\r\nSelection stays here.\r\n\r\nFAST-TRIGGER\r\n\r\nEND\r\n",
+                    "protectedRanges": [],
+                    "selection": {
+                      "head": 0,
+                      "anchor": 0
+                    },
+                    "toLine": 8,
+                    "theme": "light",
+                    "completeStart": true,
+                    "documentId": "file:/workspace/milkup-markdown-extensions-phase4-evidence/native/production-arbitration-fixtures/fast.md",
+                    "target": "screen",
+                    "contextKnown": true,
+                    "from": 0,
+                    "version": 0
+                  },
+                  "pluginId": "diagnostic.supervisor-cpu"
+                },
+                "protocol": "milkup.plugin.document-render.v1",
+                "type": "render",
+                "id": "render_2"
+              }
+            },
+            "kind": "send"
+          },
+          {
+            "wall": 1792121217694,
+            "worker": "milkup-supervisor-diagnostic.supervisor-cpu",
+            "value": {
+              "protocol": "milkup.plugin.worker-supervisor.v1",
+              "type": "child",
+              "message": {
+                "protocol": "milkup.plugin.document-render.v1",
+                "type": "result",
+                "ok": true,
+                "id": "render_2",
+                "value": {
+                  "complete": true,
+                  "fragments": []
+                }
+              }
+            },
+            "kind": "receive"
+          },
+          {
+            "wall": 1792121217697,
+            "worker": "milkup-supervisor-diagnostic.supervisor-fast",
+            "value": {
+              "protocol": "milkup.plugin.worker-supervisor.v1",
+              "type": "child",
+              "message": {
+                "protocol": "milkup.plugin.document-render.v1",
+                "type": "result",
+                "ok": true,
+                "id": "render_4",
+                "value": {
+                  "complete": true,
+                  "fragments": [
+                    {
+                      "layout": "inline",
+                      "from": 41,
+                      "to": 53,
+                      "content": {
+                        "type": "text",
+                        "text": "Accepted production render 1"
+                      },
+                      "accessibleText": "Accepted production render 1"
+                    }
+                  ]
+                }
+              }
+            },
+            "kind": "receive"
+          },
+          {
+            "wall": 1792121217963,
+            "worker": "milkup-supervisor-diagnostic.supervisor-fast",
+            "value": {
+              "protocol": "milkup.plugin.worker-supervisor.v1",
+              "type": "forward",
+              "message": {
+                "payload": {
+                  "rendererId": "diagnostic.document",
+                  "request": {
+                    "fromLine": 1,
+                    "width": 1100,
+                    "blocks": [
+                      {
+                        "from": 0,
+                        "complete": true,
+                        "kind": "text",
+                        "to": 12,
+                        "contentRanges": [
+                          {
+                            "from": 0,
+                            "to": 12
+                          }
+                        ]
+                      },
+                      {
+                        "from": 14,
+                        "complete": true,
+                        "kind": "text",
+                        "to": 14,
+                        "contentRanges": [
+                          {
+                            "from": 14,
+                            "to": 14
+                          }
+                        ]
+                      },
+                      {
+                        "from": 16,
+                        "complete": true,
+                        "kind": "text",
+                        "to": 37,
+                        "contentRanges": [
+                          {
+                            "from": 16,
+                            "to": 37
+                          }
+                        ]
+                      },
+                      {
+                        "from": 39,
+                        "complete": true,
+                        "kind": "text",
+                        "to": 39,
+                        "contentRanges": [
+                          {
+                            "from": 39,
+                            "to": 39
+                          }
+                        ]
+                      },
+                      {
+                        "from": 41,
+                        "complete": true,
+                        "kind": "text",
+                        "to": 53,
+                        "contentRanges": [
+                          {
+                            "from": 41,
+                            "to": 53
+                          }
+                        ]
+                      },
+                      {
+                        "from": 55,
+                        "complete": true,
+                        "kind": "text",
+                        "to": 55,
+                        "contentRanges": [
+                          {
+                            "from": 55,
+                            "to": 55
+                          }
+                        ]
+                      },
+                      {
+                        "from": 57,
+                        "complete": true,
+                        "kind": "text",
+                        "to": 60,
+                        "contentRanges": [
+                          {
+                            "from": 57,
+                            "to": 60
+                          }
+                        ]
+                      },
+                      {
+                        "from": 62,
+                        "complete": true,
+                        "kind": "text",
+                        "to": 62,
+                        "contentRanges": [
+                          {
+                            "from": 62,
+                            "to": 62
+                          }
+                        ]
+                      }
+                    ],
+                    "to": 62,
+                    "completeEnd": true,
+                    "source": "# Diagnostic\r\n\r\nSelection stays here.\r\n\r\nFAST-TRIGGER\r\n\r\nEND\r\n",
+                    "protectedRanges": [],
+                    "selection": {
+                      "head": 62,
+                      "anchor": 62
+                    },
+                    "toLine": 8,
+                    "theme": "light",
+                    "completeStart": true,
+                    "documentId": "file:/workspace/milkup-markdown-extensions-phase4-evidence/native/production-arbitration-fixtures/fast.md",
+                    "target": "screen",
+                    "contextKnown": true,
+                    "from": 0,
+                    "version": 0
+                  },
+                  "pluginId": "diagnostic.supervisor-fast"
+                },
+                "protocol": "milkup.plugin.document-render.v1",
+                "type": "render",
+                "id": "render_5"
+              }
+            },
+            "kind": "send"
+          },
+          {
+            "wall": 1792121217964,
+            "worker": "milkup-supervisor-diagnostic.supervisor-cpu",
+            "value": {
+              "protocol": "milkup.plugin.worker-supervisor.v1",
+              "type": "forward",
+              "message": {
+                "payload": {
+                  "rendererId": "diagnostic.document",
+                  "request": {
+                    "fromLine": 1,
+                    "width": 1100,
+                    "blocks": [
+                      {
+                        "from": 0,
+                        "complete": true,
+                        "kind": "text",
+                        "to": 12,
+                        "contentRanges": [
+                          {
+                            "from": 0,
+                            "to": 12
+                          }
+                        ]
+                      },
+                      {
+                        "from": 14,
+                        "complete": true,
+                        "kind": "text",
+                        "to": 14,
+                        "contentRanges": [
+                          {
+                            "from": 14,
+                            "to": 14
+                          }
+                        ]
+                      },
+                      {
+                        "from": 16,
+                        "complete": true,
+                        "kind": "text",
+                        "to": 37,
+                        "contentRanges": [
+                          {
+                            "from": 16,
+                            "to": 37
+                          }
+                        ]
+                      },
+                      {
+                        "from": 39,
+                        "complete": true,
+                        "kind": "text",
+                        "to": 39,
+                        "contentRanges": [
+                          {
+                            "from": 39,
+                            "to": 39
+                          }
+                        ]
+                      },
+                      {
+                        "from": 41,
+                        "complete": true,
+                        "kind": "text",
+                        "to": 53,
+                        "contentRanges": [
+                          {
+                            "from": 41,
+                            "to": 53
+                          }
+                        ]
+                      },
+                      {
+                        "from": 55,
+                        "complete": true,
+                        "kind": "text",
+                        "to": 55,
+                        "contentRanges": [
+                          {
+                            "from": 55,
+                            "to": 55
+                          }
+                        ]
+                      },
+                      {
+                        "from": 57,
+                        "complete": true,
+                        "kind": "text",
+                        "to": 60,
+                        "contentRanges": [
+                          {
+                            "from": 57,
+                            "to": 60
+                          }
+                        ]
+                      },
+                      {
+                        "from": 62,
+                        "complete": true,
+                        "kind": "text",
+                        "to": 62,
+                        "contentRanges": [
+                          {
+                            "from": 62,
+                            "to": 62
+                          }
+                        ]
+                      }
+                    ],
+                    "to": 62,
+                    "completeEnd": true,
+                    "source": "# Diagnostic\r\n\r\nSelection stays here.\r\n\r\nFAST-TRIGGER\r\n\r\nEND\r\n",
+                    "protectedRanges": [],
+                    "selection": {
+                      "head": 62,
+                      "anchor": 62
+                    },
+                    "toLine": 8,
+                    "theme": "light",
+                    "completeStart": true,
+                    "documentId": "file:/workspace/milkup-markdown-extensions-phase4-evidence/native/production-arbitration-fixtures/fast.md",
+                    "target": "screen",
+                    "contextKnown": true,
+                    "from": 0,
+                    "version": 0
+                  },
+                  "pluginId": "diagnostic.supervisor-cpu"
+                },
+                "protocol": "milkup.plugin.document-render.v1",
+                "type": "render",
+                "id": "render_3"
+              }
+            },
+            "kind": "send"
+          },
+          {
+            "wall": 1792121217989,
+            "worker": "milkup-supervisor-diagnostic.supervisor-cpu",
+            "value": {
+              "protocol": "milkup.plugin.worker-supervisor.v1",
+              "type": "child",
+              "message": {
+                "protocol": "milkup.plugin.document-render.v1",
+                "type": "result",
+                "ok": true,
+                "id": "render_3",
+                "value": {
+                  "complete": true,
+                  "fragments": []
+                }
+              }
+            },
+            "kind": "receive"
+          },
+          {
+            "wall": 1792121218036,
+            "worker": "milkup-supervisor-diagnostic.supervisor-fast",
+            "value": {
+              "protocol": "milkup.plugin.worker-supervisor.v1",
+              "type": "forward",
+              "message": {
+                "protocol": "milkup.plugin.document-render.v1",
+                "type": "cancel",
+                "id": "render_5"
+              }
+            },
+            "kind": "send"
+          },
+          {
+            "wall": 1792121218051,
+            "worker": "milkup-supervisor-diagnostic.supervisor-cpu",
+            "value": {
+              "protocol": "milkup.plugin.worker-supervisor.v1",
+              "type": "forward",
+              "message": {
+                "payload": {
+                  "rendererId": "diagnostic.document",
+                  "request": {
+                    "fromLine": 1,
+                    "width": 1100,
+                    "blocks": [
+                      {
+                        "from": 0,
+                        "complete": true,
+                        "kind": "text",
+                        "to": 12,
+                        "contentRanges": [
+                          {
+                            "from": 0,
+                            "to": 12
+                          }
+                        ]
+                      },
+                      {
+                        "from": 14,
+                        "complete": true,
+                        "kind": "text",
+                        "to": 14,
+                        "contentRanges": [
+                          {
+                            "from": 14,
+                            "to": 14
+                          }
+                        ]
+                      },
+                      {
+                        "from": 16,
+                        "complete": true,
+                        "kind": "text",
+                        "to": 37,
+                        "contentRanges": [
+                          {
+                            "from": 16,
+                            "to": 37
+                          }
+                        ]
+                      },
+                      {
+                        "from": 39,
+                        "complete": true,
+                        "kind": "text",
+                        "to": 39,
+                        "contentRanges": [
+                          {
+                            "from": 39,
+                            "to": 39
+                          }
+                        ]
+                      },
+                      {
+                        "from": 41,
+                        "complete": true,
+                        "kind": "text",
+                        "to": 53,
+                        "contentRanges": [
+                          {
+                            "from": 41,
+                            "to": 53
+                          }
+                        ]
+                      },
+                      {
+                        "from": 55,
+                        "complete": true,
+                        "kind": "text",
+                        "to": 55,
+                        "contentRanges": [
+                          {
+                            "from": 55,
+                            "to": 55
+                          }
+                        ]
+                      },
+                      {
+                        "from": 57,
+                        "complete": true,
+                        "kind": "text",
+                        "to": 60,
+                        "contentRanges": [
+                          {
+                            "from": 57,
+                            "to": 60
+                          }
+                        ]
+                      },
+                      {
+                        "from": 62,
+                        "complete": true,
+                        "kind": "text",
+                        "to": 63,
+                        "contentRanges": [
+                          {
+                            "from": 62,
+                            "to": 63
+                          }
+                        ]
+                      }
+                    ],
+                    "to": 63,
+                    "completeEnd": true,
+                    "source": "# Diagnostic\r\n\r\nSelection stays here.\r\n\r\nFAST-TRIGGER\r\n\r\nEND\r\nx",
+                    "protectedRanges": [],
+                    "selection": {
+                      "head": 63,
+                      "anchor": 63
+                    },
+                    "toLine": 8,
+                    "theme": "light",
+                    "completeStart": true,
+                    "documentId": "file:/workspace/milkup-markdown-extensions-phase4-evidence/native/production-arbitration-fixtures/fast.md",
+                    "target": "screen",
+                    "contextKnown": true,
+                    "from": 0,
+                    "version": 1
+                  },
+                  "pluginId": "diagnostic.supervisor-cpu"
+                },
+                "protocol": "milkup.plugin.document-render.v1",
+                "type": "render",
+                "id": "render_4"
+              }
+            },
+            "kind": "send"
+          },
+          {
+            "wall": 1792121218051,
+            "worker": "milkup-supervisor-diagnostic.supervisor-fast",
+            "value": {
+              "protocol": "milkup.plugin.worker-supervisor.v1",
+              "type": "child",
+              "message": {
+                "protocol": "milkup.plugin.document-render.v1",
+                "type": "result",
+                "ok": true,
+                "id": "render_5",
+                "value": {
+                  "complete": true,
+                  "fragments": [
+                    {
+                      "layout": "inline",
+                      "from": 41,
+                      "to": 53,
+                      "content": {
+                        "type": "text",
+                        "text": "Accepted production render 2"
+                      },
+                      "accessibleText": "Accepted production render 2"
+                    }
+                  ]
+                }
+              }
+            },
+            "kind": "receive"
+          },
+          {
+            "wall": 1792121218051,
+            "worker": "milkup-supervisor-diagnostic.supervisor-fast",
+            "value": {
+              "protocol": "milkup.plugin.worker-supervisor.v1",
+              "type": "forward",
+              "message": {
+                "payload": {
+                  "rendererId": "diagnostic.document",
+                  "request": {
+                    "fromLine": 1,
+                    "width": 1100,
+                    "blocks": [
+                      {
+                        "from": 0,
+                        "complete": true,
+                        "kind": "text",
+                        "to": 12,
+                        "contentRanges": [
+                          {
+                            "from": 0,
+                            "to": 12
+                          }
+                        ]
+                      },
+                      {
+                        "from": 14,
+                        "complete": true,
+                        "kind": "text",
+                        "to": 14,
+                        "contentRanges": [
+                          {
+                            "from": 14,
+                            "to": 14
+                          }
+                        ]
+                      },
+                      {
+                        "from": 16,
+                        "complete": true,
+                        "kind": "text",
+                        "to": 37,
+                        "contentRanges": [
+                          {
+                            "from": 16,
+                            "to": 37
+                          }
+                        ]
+                      },
+                      {
+                        "from": 39,
+                        "complete": true,
+                        "kind": "text",
+                        "to": 39,
+                        "contentRanges": [
+                          {
+                            "from": 39,
+                            "to": 39
+                          }
+                        ]
+                      },
+                      {
+                        "from": 41,
+                        "complete": true,
+                        "kind": "text",
+                        "to": 53,
+                        "contentRanges": [
+                          {
+                            "from": 41,
+                            "to": 53
+                          }
+                        ]
+                      },
+                      {
+                        "from": 55,
+                        "complete": true,
+                        "kind": "text",
+                        "to": 55,
+                        "contentRanges": [
+                          {
+                            "from": 55,
+                            "to": 55
+                          }
+                        ]
+                      },
+                      {
+                        "from": 57,
+                        "complete": true,
+                        "kind": "text",
+                        "to": 60,
+                        "contentRanges": [
+                          {
+                            "from": 57,
+                            "to": 60
+                          }
+                        ]
+                      },
+                      {
+                        "from": 62,
+                        "complete": true,
+                        "kind": "text",
+                        "to": 63,
+                        "contentRanges": [
+                          {
+                            "from": 62,
+                            "to": 63
+                          }
+                        ]
+                      }
+                    ],
+                    "to": 63,
+                    "completeEnd": true,
+                    "source": "# Diagnostic\r\n\r\nSelection stays here.\r\n\r\nFAST-TRIGGER\r\n\r\nEND\r\nx",
+                    "protectedRanges": [],
+                    "selection": {
+                      "head": 63,
+                      "anchor": 63
+                    },
+                    "toLine": 8,
+                    "theme": "light",
+                    "completeStart": true,
+                    "documentId": "file:/workspace/milkup-markdown-extensions-phase4-evidence/native/production-arbitration-fixtures/fast.md",
+                    "target": "screen",
+                    "contextKnown": true,
+                    "from": 0,
+                    "version": 1
+                  },
+                  "pluginId": "diagnostic.supervisor-fast"
+                },
+                "protocol": "milkup.plugin.document-render.v1",
+                "type": "render",
+                "id": "render_6"
+              }
+            },
+            "kind": "send"
+          },
+          {
+            "wall": 1792121218061,
+            "worker": "milkup-supervisor-diagnostic.supervisor-cpu",
+            "value": {
+              "protocol": "milkup.plugin.worker-supervisor.v1",
+              "type": "child",
+              "message": {
+                "protocol": "milkup.plugin.document-render.v1",
+                "type": "result",
+                "ok": true,
+                "id": "render_4",
+                "value": {
+                  "complete": true,
+                  "fragments": []
+                }
+              }
+            },
+            "kind": "receive"
+          },
+          {
+            "wall": 1792121218108,
+            "worker": "milkup-supervisor-diagnostic.supervisor-fast",
+            "value": {
+              "protocol": "milkup.plugin.worker-supervisor.v1",
+              "type": "child",
+              "message": {
+                "protocol": "milkup.plugin.document-render.v1",
+                "type": "result",
+                "ok": true,
+                "id": "render_6",
+                "value": {
+                  "complete": true,
+                  "fragments": [
+                    {
+                      "layout": "inline",
+                      "from": 41,
+                      "to": 53,
+                      "content": {
+                        "type": "text",
+                        "text": "Accepted production render 3"
+                      },
+                      "accessibleText": "Accepted production render 3"
+                    }
+                  ]
+                }
+              }
+            },
+            "kind": "receive"
+          },
+          {
+            "wall": 1792121218444,
+            "worker": "milkup-supervisor-diagnostic.supervisor-fast",
+            "value": {
+              "protocol": "milkup.plugin.worker-supervisor.v1",
+              "type": "forward",
+              "message": {
+                "payload": {
+                  "rendererId": "diagnostic.document",
+                  "request": {
+                    "fromLine": 1,
+                    "width": 1100,
+                    "blocks": [
+                      {
+                        "from": 0,
+                        "complete": true,
+                        "kind": "text",
+                        "to": 12,
+                        "contentRanges": [
+                          {
+                            "from": 0,
+                            "to": 12
+                          }
+                        ]
+                      },
+                      {
+                        "from": 14,
+                        "complete": true,
+                        "kind": "text",
+                        "to": 14,
+                        "contentRanges": [
+                          {
+                            "from": 14,
+                            "to": 14
+                          }
+                        ]
+                      },
+                      {
+                        "from": 16,
+                        "complete": true,
+                        "kind": "text",
+                        "to": 37,
+                        "contentRanges": [
+                          {
+                            "from": 16,
+                            "to": 37
+                          }
+                        ]
+                      },
+                      {
+                        "from": 39,
+                        "complete": true,
+                        "kind": "text",
+                        "to": 39,
+                        "contentRanges": [
+                          {
+                            "from": 39,
+                            "to": 39
+                          }
+                        ]
+                      },
+                      {
+                        "from": 41,
+                        "complete": true,
+                        "kind": "text",
+                        "to": 53,
+                        "contentRanges": [
+                          {
+                            "from": 41,
+                            "to": 53
+                          }
+                        ]
+                      },
+                      {
+                        "from": 55,
+                        "complete": true,
+                        "kind": "text",
+                        "to": 55,
+                        "contentRanges": [
+                          {
+                            "from": 55,
+                            "to": 55
+                          }
+                        ]
+                      },
+                      {
+                        "from": 57,
+                        "complete": true,
+                        "kind": "text",
+                        "to": 60,
+                        "contentRanges": [
+                          {
+                            "from": 57,
+                            "to": 60
+                          }
+                        ]
+                      },
+                      {
+                        "from": 62,
+                        "complete": true,
+                        "kind": "text",
+                        "to": 62,
+                        "contentRanges": [
+                          {
+                            "from": 62,
+                            "to": 62
+                          }
+                        ]
+                      }
+                    ],
+                    "to": 62,
+                    "completeEnd": true,
+                    "source": "# Diagnostic\r\n\r\nSelection stays here.\r\n\r\nFAST-TRIGGER\r\n\r\nEND\r\n",
+                    "protectedRanges": [],
+                    "selection": {
+                      "head": 62,
+                      "anchor": 62
+                    },
+                    "toLine": 8,
+                    "theme": "light",
+                    "completeStart": true,
+                    "documentId": "file:/workspace/milkup-markdown-extensions-phase4-evidence/native/production-arbitration-fixtures/fast.md",
+                    "target": "screen",
+                    "contextKnown": true,
+                    "from": 0,
+                    "version": 2
+                  },
+                  "pluginId": "diagnostic.supervisor-fast"
+                },
+                "protocol": "milkup.plugin.document-render.v1",
+                "type": "render",
+                "id": "render_7"
+              }
+            },
+            "kind": "send"
+          },
+          {
+            "wall": 1792121218445,
+            "worker": "milkup-supervisor-diagnostic.supervisor-cpu",
+            "value": {
+              "protocol": "milkup.plugin.worker-supervisor.v1",
+              "type": "forward",
+              "message": {
+                "payload": {
+                  "rendererId": "diagnostic.document",
+                  "request": {
+                    "fromLine": 1,
+                    "width": 1100,
+                    "blocks": [
+                      {
+                        "from": 0,
+                        "complete": true,
+                        "kind": "text",
+                        "to": 12,
+                        "contentRanges": [
+                          {
+                            "from": 0,
+                            "to": 12
+                          }
+                        ]
+                      },
+                      {
+                        "from": 14,
+                        "complete": true,
+                        "kind": "text",
+                        "to": 14,
+                        "contentRanges": [
+                          {
+                            "from": 14,
+                            "to": 14
+                          }
+                        ]
+                      },
+                      {
+                        "from": 16,
+                        "complete": true,
+                        "kind": "text",
+                        "to": 37,
+                        "contentRanges": [
+                          {
+                            "from": 16,
+                            "to": 37
+                          }
+                        ]
+                      },
+                      {
+                        "from": 39,
+                        "complete": true,
+                        "kind": "text",
+                        "to": 39,
+                        "contentRanges": [
+                          {
+                            "from": 39,
+                            "to": 39
+                          }
+                        ]
+                      },
+                      {
+                        "from": 41,
+                        "complete": true,
+                        "kind": "text",
+                        "to": 53,
+                        "contentRanges": [
+                          {
+                            "from": 41,
+                            "to": 53
+                          }
+                        ]
+                      },
+                      {
+                        "from": 55,
+                        "complete": true,
+                        "kind": "text",
+                        "to": 55,
+                        "contentRanges": [
+                          {
+                            "from": 55,
+                            "to": 55
+                          }
+                        ]
+                      },
+                      {
+                        "from": 57,
+                        "complete": true,
+                        "kind": "text",
+                        "to": 60,
+                        "contentRanges": [
+                          {
+                            "from": 57,
+                            "to": 60
+                          }
+                        ]
+                      },
+                      {
+                        "from": 62,
+                        "complete": true,
+                        "kind": "text",
+                        "to": 62,
+                        "contentRanges": [
+                          {
+                            "from": 62,
+                            "to": 62
+                          }
+                        ]
+                      }
+                    ],
+                    "to": 62,
+                    "completeEnd": true,
+                    "source": "# Diagnostic\r\n\r\nSelection stays here.\r\n\r\nFAST-TRIGGER\r\n\r\nEND\r\n",
+                    "protectedRanges": [],
+                    "selection": {
+                      "head": 62,
+                      "anchor": 62
+                    },
+                    "toLine": 8,
+                    "theme": "light",
+                    "completeStart": true,
+                    "documentId": "file:/workspace/milkup-markdown-extensions-phase4-evidence/native/production-arbitration-fixtures/fast.md",
+                    "target": "screen",
+                    "contextKnown": true,
+                    "from": 0,
+                    "version": 2
+                  },
+                  "pluginId": "diagnostic.supervisor-cpu"
+                },
+                "protocol": "milkup.plugin.document-render.v1",
+                "type": "render",
+                "id": "render_5"
+              }
+            },
+            "kind": "send"
+          },
+          {
+            "wall": 1792121218457,
+            "worker": "milkup-supervisor-diagnostic.supervisor-cpu",
+            "value": {
+              "protocol": "milkup.plugin.worker-supervisor.v1",
+              "type": "child",
+              "message": {
+                "protocol": "milkup.plugin.document-render.v1",
+                "type": "result",
+                "ok": true,
+                "id": "render_5",
+                "value": {
+                  "complete": true,
+                  "fragments": []
+                }
+              }
+            },
+            "kind": "receive"
+          },
+          {
+            "wall": 1792121218535,
+            "worker": "milkup-supervisor-diagnostic.supervisor-fast",
+            "value": {
+              "protocol": "milkup.plugin.worker-supervisor.v1",
+              "type": "child",
+              "message": {
+                "protocol": "milkup.plugin.document-render.v1",
+                "type": "result",
+                "ok": true,
+                "id": "render_7",
+                "value": {
+                  "complete": true,
+                  "fragments": [
+                    {
+                      "layout": "inline",
+                      "from": 41,
+                      "to": 53,
+                      "content": {
+                        "type": "text",
+                        "text": "Accepted production render 4"
+                      },
+                      "accessibleText": "Accepted production render 4"
+                    }
+                  ]
+                }
+              }
+            },
+            "kind": "receive"
+          }
+        ],
+        "arm": null
+      }
+    },
+    {
+      "kind": "cpu",
+      "registry": {
+        "manifest": {
+          "version": "1.0.0",
+          "engines": {
+            "pluginSdk": "^0.3.3",
+            "milkup": "^2.0.0-0"
+          },
+          "permissions": ["document:read"],
+          "main": "./dist/plugin.js",
+          "host": "worker",
+          "name": "Diagnostic supervisor cpu",
+          "contributes": {
+            "documentRenderers": [
+              {
+                "id": "diagnostic.document",
+                "contexts": ["text"]
+              }
+            ]
+          },
+          "id": "diagnostic.supervisor-cpu",
+          "description": "Explicit diagnostic fixture only; intentionally runs CPU until host termination"
+        },
+        "enabled": false,
+        "approvals": {
+          "hosts": ["worker"],
+          "permissions": []
+        },
+        "updatedAt": 1792121224934,
+        "rootPath": "/workspace/milkup-markdown-extensions-phase4-evidence/native/profile-candidate08-production-worker02/data/app.milkup.desktop/plugins/diagnostic.supervisor-cpu/package",
+        "dataRoot": "/workspace/milkup-markdown-extensions-phase4-evidence/native/profile-candidate08-production-worker02/data/app.milkup.desktop/plugins/diagnostic.supervisor-cpu/data",
+        "state": "failed",
+        "installedAt": 1792121210330,
+        "errors": ["Document renderer exceeded its execution deadline; manually enable to retry"],
+        "trust": "development",
+        "sourcePath": "/workspace/milkup-markdown-extensions-phase4-evidence/native/production-arbitration-fixtures/diagnostic.supervisor-cpu-1.0.0.milkup-plugin",
+        "runtimeFailure": {
+          "kind": "renderer-timeout",
+          "message": "Document renderer exceeded its execution deadline; manually enable to retry"
+        },
+        "manifestPath": "/workspace/milkup-markdown-extensions-phase4-evidence/native/profile-candidate08-production-worker02/data/app.milkup.desktop/plugins/diagnostic.supervisor-cpu/package/plugin.json",
+        "storageRoot": "/workspace/milkup-markdown-extensions-phase4-evidence/native/profile-candidate08-production-worker02/data/app.milkup.desktop/plugins/diagnostic.supervisor-cpu/storage"
+      },
+      "trace": {
+        "stalls": [
+          {
+            "worker": "milkup-supervisor-diagnostic.supervisor-fast",
+            "start": 1792121215279,
+            "requestId": "render_4",
+            "end": 1792121217678
+          },
+          {
+            "worker": "milkup-supervisor-diagnostic.supervisor-cpu",
+            "start": 1792121222502,
+            "requestId": "render_6",
+            "end": 1792121224903
+          }
+        ],
+        "events": [
+          {
+            "wall": 1792121205342,
+            "worker": "milkup-supervisor-diagnostic.supervisor-fast",
+            "kind": "new",
+            "url": "tauri://localhost/assets/plugin-supervisor-DDzcaO-I.js"
+          },
+          {
+            "wall": 1792121205343,
+            "worker": "milkup-supervisor-diagnostic.supervisor-fast",
+            "value": {
+              "protocol": "milkup.plugin.worker-supervisor.v1",
+              "type": "forward",
+              "message": {
+                "payload": {
+                  "moduleSpecifier": "blob:tauri://localhost/dfa5559b-6073-4371-9572-0b696154b47f",
+                  "manifest": {
+                    "version": "1.0.0",
+                    "engines": {
+                      "pluginSdk": "^0.3.3",
+                      "milkup": "^2.0.0-0"
+                    },
+                    "permissions": ["document:read"],
+                    "main": "./dist/plugin.js",
+                    "host": "worker",
+                    "name": "Diagnostic supervisor fast",
+                    "contributes": {
+                      "documentRenderers": [
+                        {
+                          "id": "diagnostic.document",
+                          "contexts": ["text"]
+                        }
+                      ]
+                    },
+                    "id": "diagnostic.supervisor-fast",
+                    "description": "Explicit diagnostic fixture only; bounded 50ms render"
+                  }
+                },
+                "protocol": "milkup.plugin.worker.init.v1",
+                "type": "init"
+              }
+            },
+            "kind": "send"
+          },
+          {
+            "wall": 1792121205540,
+            "worker": "milkup-supervisor-diagnostic.supervisor-fast",
+            "value": {
+              "protocol": "milkup.plugin.worker-supervisor.v1",
+              "type": "child",
+              "message": {
+                "protocol": "milkup.plugin.worker.init.v1",
+                "type": "ready"
+              }
+            },
+            "kind": "receive"
+          },
+          {
+            "wall": 1792121205540,
+            "worker": "milkup-supervisor-diagnostic.supervisor-fast",
+            "value": {
+              "protocol": "milkup.plugin.worker-supervisor.v1",
+              "type": "forward",
+              "message": {
+                "payload": {
+                  "manifest": {
+                    "version": "1.0.0",
+                    "engines": {
+                      "pluginSdk": "^0.3.3",
+                      "milkup": "^2.0.0-0"
+                    },
+                    "permissions": ["document:read"],
+                    "main": "./dist/plugin.js",
+                    "host": "worker",
+                    "name": "Diagnostic supervisor fast",
+                    "contributes": {
+                      "documentRenderers": [
+                        {
+                          "id": "diagnostic.document",
+                          "contexts": ["text"]
+                        }
+                      ]
+                    },
+                    "id": "diagnostic.supervisor-fast",
+                    "description": "Explicit diagnostic fixture only; bounded 50ms render"
+                  },
+                  "permissions": ["document:read"],
+                  "hostCapabilities": ["document:read", "ui:update", "storage"],
+                  "pluginId": "diagnostic.supervisor-fast"
+                },
+                "protocol": "milkup.plugin.isolation.rpc.v1",
+                "type": "request",
+                "method": "activate",
+                "id": "mvaep06c-0"
+              }
+            },
+            "kind": "send"
+          },
+          {
+            "wall": 1792121205547,
+            "worker": "milkup-supervisor-diagnostic.supervisor-fast",
+            "value": {
+              "protocol": "milkup.plugin.worker-supervisor.v1",
+              "type": "child",
+              "message": {
+                "protocol": "milkup.plugin.isolation.rpc.v1",
+                "type": "response",
+                "ok": true,
+                "id": "mvaep06c-0",
+                "value": {
+                  "commands": [],
+                  "renderers": [],
+                  "documentRenderers": ["diagnostic.document"]
+                }
+              }
+            },
+            "kind": "receive"
+          },
+          {
+            "wall": 1792121205577,
+            "worker": "milkup-supervisor-diagnostic.supervisor-fast",
+            "value": {
+              "protocol": "milkup.plugin.worker-supervisor.v1",
+              "type": "forward",
+              "message": {
+                "payload": {
+                  "rendererId": "diagnostic.document",
+                  "request": {
+                    "fromLine": 1,
+                    "width": 1100,
+                    "blocks": [
+                      {
+                        "from": 0,
+                        "complete": true,
+                        "kind": "text",
+                        "to": 0,
+                        "contentRanges": [
+                          {
+                            "from": 0,
+                            "to": 0
+                          }
+                        ]
+                      }
+                    ],
+                    "to": 0,
+                    "completeEnd": true,
+                    "source": "",
+                    "protectedRanges": [],
+                    "selection": {
+                      "head": 0,
+                      "anchor": 0
+                    },
+                    "toLine": 1,
+                    "theme": "light",
+                    "completeStart": true,
+                    "documentId": "file:/workspace/milkup-markdown-extensions-phase4-evidence/native/run-candidate08-production-worker02/empty.md",
+                    "target": "screen",
+                    "contextKnown": true,
+                    "from": 0,
+                    "version": 0
+                  },
+                  "pluginId": "diagnostic.supervisor-fast"
+                },
+                "protocol": "milkup.plugin.document-render.v1",
+                "type": "render",
+                "id": "render_1"
+              }
+            },
+            "kind": "send"
+          },
+          {
+            "wall": 1792121205592,
+            "worker": "milkup-supervisor-diagnostic.supervisor-fast",
+            "value": {
+              "protocol": "milkup.plugin.worker-supervisor.v1",
+              "type": "child",
+              "message": {
+                "protocol": "milkup.plugin.document-render.v1",
+                "type": "result",
+                "ok": true,
+                "id": "render_1",
+                "value": {
+                  "complete": true,
+                  "fragments": []
+                }
+              }
+            },
+            "kind": "receive"
+          },
+          {
+            "wall": 1792121210357,
+            "worker": "milkup-supervisor-diagnostic.supervisor-fast",
+            "value": {
+              "protocol": "milkup.plugin.worker-supervisor.v1",
+              "type": "forward",
+              "message": {
+                "payload": {
+                  "rendererId": "diagnostic.document",
+                  "request": {
+                    "fromLine": 1,
+                    "width": 1100,
+                    "blocks": [
+                      {
+                        "from": 0,
+                        "complete": true,
+                        "kind": "text",
+                        "to": 0,
+                        "contentRanges": [
+                          {
+                            "from": 0,
+                            "to": 0
+                          }
+                        ]
+                      }
+                    ],
+                    "to": 0,
+                    "completeEnd": true,
+                    "source": "",
+                    "protectedRanges": [],
+                    "selection": {
+                      "head": 0,
+                      "anchor": 0
+                    },
+                    "toLine": 1,
+                    "theme": "light",
+                    "completeStart": true,
+                    "documentId": "file:/workspace/milkup-markdown-extensions-phase4-evidence/native/run-candidate08-production-worker02/empty.md",
+                    "target": "screen",
+                    "contextKnown": true,
+                    "from": 0,
+                    "version": 0
+                  },
+                  "pluginId": "diagnostic.supervisor-fast"
+                },
+                "protocol": "milkup.plugin.document-render.v1",
+                "type": "render",
+                "id": "render_2"
+              }
+            },
+            "kind": "send"
+          },
+          {
+            "wall": 1792121210367,
+            "worker": "milkup-supervisor-diagnostic.supervisor-fast",
+            "value": {
+              "protocol": "milkup.plugin.worker-supervisor.v1",
+              "type": "child",
+              "message": {
+                "protocol": "milkup.plugin.document-render.v1",
+                "type": "result",
+                "ok": true,
+                "id": "render_2",
+                "value": {
+                  "complete": true,
+                  "fragments": []
+                }
+              }
+            },
+            "kind": "receive"
+          },
+          {
+            "wall": 1792121211235,
+            "worker": "milkup-supervisor-diagnostic.supervisor-cpu",
+            "kind": "new",
+            "url": "tauri://localhost/assets/plugin-supervisor-DDzcaO-I.js"
+          },
+          {
+            "wall": 1792121211236,
+            "worker": "milkup-supervisor-diagnostic.supervisor-cpu",
+            "value": {
+              "protocol": "milkup.plugin.worker-supervisor.v1",
+              "type": "forward",
+              "message": {
+                "payload": {
+                  "moduleSpecifier": "blob:tauri://localhost/f8d25923-6943-4f69-b9b2-ff1ba4863b5b",
+                  "manifest": {
+                    "version": "1.0.0",
+                    "engines": {
+                      "pluginSdk": "^0.3.3",
+                      "milkup": "^2.0.0-0"
+                    },
+                    "permissions": ["document:read"],
+                    "main": "./dist/plugin.js",
+                    "host": "worker",
+                    "name": "Diagnostic supervisor cpu",
+                    "contributes": {
+                      "documentRenderers": [
+                        {
+                          "id": "diagnostic.document",
+                          "contexts": ["text"]
+                        }
+                      ]
+                    },
+                    "id": "diagnostic.supervisor-cpu",
+                    "description": "Explicit diagnostic fixture only; intentionally runs CPU until host termination"
+                  }
+                },
+                "protocol": "milkup.plugin.worker.init.v1",
+                "type": "init"
+              }
+            },
+            "kind": "send"
+          },
+          {
+            "wall": 1792121211374,
+            "worker": "milkup-supervisor-diagnostic.supervisor-cpu",
+            "value": {
+              "protocol": "milkup.plugin.worker-supervisor.v1",
+              "type": "child",
+              "message": {
+                "protocol": "milkup.plugin.worker.init.v1",
+                "type": "ready"
+              }
+            },
+            "kind": "receive"
+          },
+          {
+            "wall": 1792121211375,
+            "worker": "milkup-supervisor-diagnostic.supervisor-cpu",
+            "value": {
+              "protocol": "milkup.plugin.worker-supervisor.v1",
+              "type": "forward",
+              "message": {
+                "payload": {
+                  "manifest": {
+                    "version": "1.0.0",
+                    "engines": {
+                      "pluginSdk": "^0.3.3",
+                      "milkup": "^2.0.0-0"
+                    },
+                    "permissions": ["document:read"],
+                    "main": "./dist/plugin.js",
+                    "host": "worker",
+                    "name": "Diagnostic supervisor cpu",
+                    "contributes": {
+                      "documentRenderers": [
+                        {
+                          "id": "diagnostic.document",
+                          "contexts": ["text"]
+                        }
+                      ]
+                    },
+                    "id": "diagnostic.supervisor-cpu",
+                    "description": "Explicit diagnostic fixture only; intentionally runs CPU until host termination"
+                  },
+                  "permissions": ["document:read"],
+                  "hostCapabilities": ["document:read", "ui:update", "storage"],
+                  "pluginId": "diagnostic.supervisor-cpu"
+                },
+                "protocol": "milkup.plugin.isolation.rpc.v1",
+                "type": "request",
+                "method": "activate",
+                "id": "mvaep4of-0"
+              }
+            },
+            "kind": "send"
+          },
+          {
+            "wall": 1792121211387,
+            "worker": "milkup-supervisor-diagnostic.supervisor-cpu",
+            "value": {
+              "protocol": "milkup.plugin.worker-supervisor.v1",
+              "type": "child",
+              "message": {
+                "protocol": "milkup.plugin.isolation.rpc.v1",
+                "type": "response",
+                "ok": true,
+                "id": "mvaep4of-0",
+                "value": {
+                  "commands": [],
+                  "renderers": [],
+                  "documentRenderers": ["diagnostic.document"]
+                }
+              }
+            },
+            "kind": "receive"
+          },
+          {
+            "wall": 1792121211414,
+            "worker": "milkup-supervisor-diagnostic.supervisor-fast",
+            "value": {
+              "protocol": "milkup.plugin.worker-supervisor.v1",
+              "type": "forward",
+              "message": {
+                "payload": {
+                  "rendererId": "diagnostic.document",
+                  "request": {
+                    "fromLine": 1,
+                    "width": 1100,
+                    "blocks": [
+                      {
+                        "from": 0,
+                        "complete": true,
+                        "kind": "text",
+                        "to": 0,
+                        "contentRanges": [
+                          {
+                            "from": 0,
+                            "to": 0
+                          }
+                        ]
+                      }
+                    ],
+                    "to": 0,
+                    "completeEnd": true,
+                    "source": "",
+                    "protectedRanges": [],
+                    "selection": {
+                      "head": 0,
+                      "anchor": 0
+                    },
+                    "toLine": 1,
+                    "theme": "light",
+                    "completeStart": true,
+                    "documentId": "file:/workspace/milkup-markdown-extensions-phase4-evidence/native/run-candidate08-production-worker02/empty.md",
+                    "target": "screen",
+                    "contextKnown": true,
+                    "from": 0,
+                    "version": 0
+                  },
+                  "pluginId": "diagnostic.supervisor-fast"
+                },
+                "protocol": "milkup.plugin.document-render.v1",
+                "type": "render",
+                "id": "render_3"
+              }
+            },
+            "kind": "send"
+          },
+          {
+            "wall": 1792121211415,
+            "worker": "milkup-supervisor-diagnostic.supervisor-cpu",
+            "value": {
+              "protocol": "milkup.plugin.worker-supervisor.v1",
+              "type": "forward",
+              "message": {
+                "payload": {
+                  "rendererId": "diagnostic.document",
+                  "request": {
+                    "fromLine": 1,
+                    "width": 1100,
+                    "blocks": [
+                      {
+                        "from": 0,
+                        "complete": true,
+                        "kind": "text",
+                        "to": 0,
+                        "contentRanges": [
+                          {
+                            "from": 0,
+                            "to": 0
+                          }
+                        ]
+                      }
+                    ],
+                    "to": 0,
+                    "completeEnd": true,
+                    "source": "",
+                    "protectedRanges": [],
+                    "selection": {
+                      "head": 0,
+                      "anchor": 0
+                    },
+                    "toLine": 1,
+                    "theme": "light",
+                    "completeStart": true,
+                    "documentId": "file:/workspace/milkup-markdown-extensions-phase4-evidence/native/run-candidate08-production-worker02/empty.md",
+                    "target": "screen",
+                    "contextKnown": true,
+                    "from": 0,
+                    "version": 0
+                  },
+                  "pluginId": "diagnostic.supervisor-cpu"
+                },
+                "protocol": "milkup.plugin.document-render.v1",
+                "type": "render",
+                "id": "render_1"
+              }
+            },
+            "kind": "send"
+          },
+          {
+            "wall": 1792121211442,
+            "worker": "milkup-supervisor-diagnostic.supervisor-fast",
+            "value": {
+              "protocol": "milkup.plugin.worker-supervisor.v1",
+              "type": "child",
+              "message": {
+                "protocol": "milkup.plugin.document-render.v1",
+                "type": "result",
+                "ok": true,
+                "id": "render_3",
+                "value": {
+                  "complete": true,
+                  "fragments": []
+                }
+              }
+            },
+            "kind": "receive"
+          },
+          {
+            "wall": 1792121211443,
+            "worker": "milkup-supervisor-diagnostic.supervisor-cpu",
+            "value": {
+              "protocol": "milkup.plugin.worker-supervisor.v1",
+              "type": "child",
+              "message": {
+                "protocol": "milkup.plugin.document-render.v1",
+                "type": "result",
+                "ok": true,
+                "id": "render_1",
+                "value": {
+                  "complete": true,
+                  "fragments": []
+                }
+              }
+            },
+            "kind": "receive"
+          },
+          {
+            "wall": 1792121215254,
+            "worker": "milkup-supervisor-diagnostic.supervisor-fast",
+            "value": {
+              "protocol": "milkup.plugin.worker-supervisor.v1",
+              "type": "forward",
+              "message": {
+                "payload": {
+                  "rendererId": "diagnostic.document",
+                  "request": {
+                    "fromLine": 1,
+                    "width": 1100,
+                    "blocks": [
+                      {
+                        "from": 0,
+                        "complete": true,
+                        "kind": "text",
+                        "to": 12,
+                        "contentRanges": [
+                          {
+                            "from": 0,
+                            "to": 12
+                          }
+                        ]
+                      },
+                      {
+                        "from": 14,
+                        "complete": true,
+                        "kind": "text",
+                        "to": 14,
+                        "contentRanges": [
+                          {
+                            "from": 14,
+                            "to": 14
+                          }
+                        ]
+                      },
+                      {
+                        "from": 16,
+                        "complete": true,
+                        "kind": "text",
+                        "to": 37,
+                        "contentRanges": [
+                          {
+                            "from": 16,
+                            "to": 37
+                          }
+                        ]
+                      },
+                      {
+                        "from": 39,
+                        "complete": true,
+                        "kind": "text",
+                        "to": 39,
+                        "contentRanges": [
+                          {
+                            "from": 39,
+                            "to": 39
+                          }
+                        ]
+                      },
+                      {
+                        "from": 41,
+                        "complete": true,
+                        "kind": "text",
+                        "to": 53,
+                        "contentRanges": [
+                          {
+                            "from": 41,
+                            "to": 53
+                          }
+                        ]
+                      },
+                      {
+                        "from": 55,
+                        "complete": true,
+                        "kind": "text",
+                        "to": 55,
+                        "contentRanges": [
+                          {
+                            "from": 55,
+                            "to": 55
+                          }
+                        ]
+                      },
+                      {
+                        "from": 57,
+                        "complete": true,
+                        "kind": "text",
+                        "to": 60,
+                        "contentRanges": [
+                          {
+                            "from": 57,
+                            "to": 60
+                          }
+                        ]
+                      },
+                      {
+                        "from": 62,
+                        "complete": true,
+                        "kind": "text",
+                        "to": 62,
+                        "contentRanges": [
+                          {
+                            "from": 62,
+                            "to": 62
+                          }
+                        ]
+                      }
+                    ],
+                    "to": 62,
+                    "completeEnd": true,
+                    "source": "# Diagnostic\r\n\r\nSelection stays here.\r\n\r\nFAST-TRIGGER\r\n\r\nEND\r\n",
+                    "protectedRanges": [],
+                    "selection": {
+                      "head": 0,
+                      "anchor": 0
+                    },
+                    "toLine": 8,
+                    "theme": "light",
+                    "completeStart": true,
+                    "documentId": "file:/workspace/milkup-markdown-extensions-phase4-evidence/native/production-arbitration-fixtures/fast.md",
+                    "target": "screen",
+                    "contextKnown": true,
+                    "from": 0,
+                    "version": 0
+                  },
+                  "pluginId": "diagnostic.supervisor-fast"
+                },
+                "protocol": "milkup.plugin.document-render.v1",
+                "type": "render",
+                "id": "render_4"
+              }
+            },
+            "kind": "send"
+          },
+          {
+            "wall": 1792121215259,
+            "worker": "milkup-supervisor-diagnostic.supervisor-cpu",
+            "value": {
+              "protocol": "milkup.plugin.worker-supervisor.v1",
+              "type": "forward",
+              "message": {
+                "payload": {
+                  "rendererId": "diagnostic.document",
+                  "request": {
+                    "fromLine": 1,
+                    "width": 1100,
+                    "blocks": [
+                      {
+                        "from": 0,
+                        "complete": true,
+                        "kind": "text",
+                        "to": 12,
+                        "contentRanges": [
+                          {
+                            "from": 0,
+                            "to": 12
+                          }
+                        ]
+                      },
+                      {
+                        "from": 14,
+                        "complete": true,
+                        "kind": "text",
+                        "to": 14,
+                        "contentRanges": [
+                          {
+                            "from": 14,
+                            "to": 14
+                          }
+                        ]
+                      },
+                      {
+                        "from": 16,
+                        "complete": true,
+                        "kind": "text",
+                        "to": 37,
+                        "contentRanges": [
+                          {
+                            "from": 16,
+                            "to": 37
+                          }
+                        ]
+                      },
+                      {
+                        "from": 39,
+                        "complete": true,
+                        "kind": "text",
+                        "to": 39,
+                        "contentRanges": [
+                          {
+                            "from": 39,
+                            "to": 39
+                          }
+                        ]
+                      },
+                      {
+                        "from": 41,
+                        "complete": true,
+                        "kind": "text",
+                        "to": 53,
+                        "contentRanges": [
+                          {
+                            "from": 41,
+                            "to": 53
+                          }
+                        ]
+                      },
+                      {
+                        "from": 55,
+                        "complete": true,
+                        "kind": "text",
+                        "to": 55,
+                        "contentRanges": [
+                          {
+                            "from": 55,
+                            "to": 55
+                          }
+                        ]
+                      },
+                      {
+                        "from": 57,
+                        "complete": true,
+                        "kind": "text",
+                        "to": 60,
+                        "contentRanges": [
+                          {
+                            "from": 57,
+                            "to": 60
+                          }
+                        ]
+                      },
+                      {
+                        "from": 62,
+                        "complete": true,
+                        "kind": "text",
+                        "to": 62,
+                        "contentRanges": [
+                          {
+                            "from": 62,
+                            "to": 62
+                          }
+                        ]
+                      }
+                    ],
+                    "to": 62,
+                    "completeEnd": true,
+                    "source": "# Diagnostic\r\n\r\nSelection stays here.\r\n\r\nFAST-TRIGGER\r\n\r\nEND\r\n",
+                    "protectedRanges": [],
+                    "selection": {
+                      "head": 0,
+                      "anchor": 0
+                    },
+                    "toLine": 8,
+                    "theme": "light",
+                    "completeStart": true,
+                    "documentId": "file:/workspace/milkup-markdown-extensions-phase4-evidence/native/production-arbitration-fixtures/fast.md",
+                    "target": "screen",
+                    "contextKnown": true,
+                    "from": 0,
+                    "version": 0
+                  },
+                  "pluginId": "diagnostic.supervisor-cpu"
+                },
+                "protocol": "milkup.plugin.document-render.v1",
+                "type": "render",
+                "id": "render_2"
+              }
+            },
+            "kind": "send"
+          },
+          {
+            "wall": 1792121217694,
+            "worker": "milkup-supervisor-diagnostic.supervisor-cpu",
+            "value": {
+              "protocol": "milkup.plugin.worker-supervisor.v1",
+              "type": "child",
+              "message": {
+                "protocol": "milkup.plugin.document-render.v1",
+                "type": "result",
+                "ok": true,
+                "id": "render_2",
+                "value": {
+                  "complete": true,
+                  "fragments": []
+                }
+              }
+            },
+            "kind": "receive"
+          },
+          {
+            "wall": 1792121217697,
+            "worker": "milkup-supervisor-diagnostic.supervisor-fast",
+            "value": {
+              "protocol": "milkup.plugin.worker-supervisor.v1",
+              "type": "child",
+              "message": {
+                "protocol": "milkup.plugin.document-render.v1",
+                "type": "result",
+                "ok": true,
+                "id": "render_4",
+                "value": {
+                  "complete": true,
+                  "fragments": [
+                    {
+                      "layout": "inline",
+                      "from": 41,
+                      "to": 53,
+                      "content": {
+                        "type": "text",
+                        "text": "Accepted production render 1"
+                      },
+                      "accessibleText": "Accepted production render 1"
+                    }
+                  ]
+                }
+              }
+            },
+            "kind": "receive"
+          },
+          {
+            "wall": 1792121217963,
+            "worker": "milkup-supervisor-diagnostic.supervisor-fast",
+            "value": {
+              "protocol": "milkup.plugin.worker-supervisor.v1",
+              "type": "forward",
+              "message": {
+                "payload": {
+                  "rendererId": "diagnostic.document",
+                  "request": {
+                    "fromLine": 1,
+                    "width": 1100,
+                    "blocks": [
+                      {
+                        "from": 0,
+                        "complete": true,
+                        "kind": "text",
+                        "to": 12,
+                        "contentRanges": [
+                          {
+                            "from": 0,
+                            "to": 12
+                          }
+                        ]
+                      },
+                      {
+                        "from": 14,
+                        "complete": true,
+                        "kind": "text",
+                        "to": 14,
+                        "contentRanges": [
+                          {
+                            "from": 14,
+                            "to": 14
+                          }
+                        ]
+                      },
+                      {
+                        "from": 16,
+                        "complete": true,
+                        "kind": "text",
+                        "to": 37,
+                        "contentRanges": [
+                          {
+                            "from": 16,
+                            "to": 37
+                          }
+                        ]
+                      },
+                      {
+                        "from": 39,
+                        "complete": true,
+                        "kind": "text",
+                        "to": 39,
+                        "contentRanges": [
+                          {
+                            "from": 39,
+                            "to": 39
+                          }
+                        ]
+                      },
+                      {
+                        "from": 41,
+                        "complete": true,
+                        "kind": "text",
+                        "to": 53,
+                        "contentRanges": [
+                          {
+                            "from": 41,
+                            "to": 53
+                          }
+                        ]
+                      },
+                      {
+                        "from": 55,
+                        "complete": true,
+                        "kind": "text",
+                        "to": 55,
+                        "contentRanges": [
+                          {
+                            "from": 55,
+                            "to": 55
+                          }
+                        ]
+                      },
+                      {
+                        "from": 57,
+                        "complete": true,
+                        "kind": "text",
+                        "to": 60,
+                        "contentRanges": [
+                          {
+                            "from": 57,
+                            "to": 60
+                          }
+                        ]
+                      },
+                      {
+                        "from": 62,
+                        "complete": true,
+                        "kind": "text",
+                        "to": 62,
+                        "contentRanges": [
+                          {
+                            "from": 62,
+                            "to": 62
+                          }
+                        ]
+                      }
+                    ],
+                    "to": 62,
+                    "completeEnd": true,
+                    "source": "# Diagnostic\r\n\r\nSelection stays here.\r\n\r\nFAST-TRIGGER\r\n\r\nEND\r\n",
+                    "protectedRanges": [],
+                    "selection": {
+                      "head": 62,
+                      "anchor": 62
+                    },
+                    "toLine": 8,
+                    "theme": "light",
+                    "completeStart": true,
+                    "documentId": "file:/workspace/milkup-markdown-extensions-phase4-evidence/native/production-arbitration-fixtures/fast.md",
+                    "target": "screen",
+                    "contextKnown": true,
+                    "from": 0,
+                    "version": 0
+                  },
+                  "pluginId": "diagnostic.supervisor-fast"
+                },
+                "protocol": "milkup.plugin.document-render.v1",
+                "type": "render",
+                "id": "render_5"
+              }
+            },
+            "kind": "send"
+          },
+          {
+            "wall": 1792121217964,
+            "worker": "milkup-supervisor-diagnostic.supervisor-cpu",
+            "value": {
+              "protocol": "milkup.plugin.worker-supervisor.v1",
+              "type": "forward",
+              "message": {
+                "payload": {
+                  "rendererId": "diagnostic.document",
+                  "request": {
+                    "fromLine": 1,
+                    "width": 1100,
+                    "blocks": [
+                      {
+                        "from": 0,
+                        "complete": true,
+                        "kind": "text",
+                        "to": 12,
+                        "contentRanges": [
+                          {
+                            "from": 0,
+                            "to": 12
+                          }
+                        ]
+                      },
+                      {
+                        "from": 14,
+                        "complete": true,
+                        "kind": "text",
+                        "to": 14,
+                        "contentRanges": [
+                          {
+                            "from": 14,
+                            "to": 14
+                          }
+                        ]
+                      },
+                      {
+                        "from": 16,
+                        "complete": true,
+                        "kind": "text",
+                        "to": 37,
+                        "contentRanges": [
+                          {
+                            "from": 16,
+                            "to": 37
+                          }
+                        ]
+                      },
+                      {
+                        "from": 39,
+                        "complete": true,
+                        "kind": "text",
+                        "to": 39,
+                        "contentRanges": [
+                          {
+                            "from": 39,
+                            "to": 39
+                          }
+                        ]
+                      },
+                      {
+                        "from": 41,
+                        "complete": true,
+                        "kind": "text",
+                        "to": 53,
+                        "contentRanges": [
+                          {
+                            "from": 41,
+                            "to": 53
+                          }
+                        ]
+                      },
+                      {
+                        "from": 55,
+                        "complete": true,
+                        "kind": "text",
+                        "to": 55,
+                        "contentRanges": [
+                          {
+                            "from": 55,
+                            "to": 55
+                          }
+                        ]
+                      },
+                      {
+                        "from": 57,
+                        "complete": true,
+                        "kind": "text",
+                        "to": 60,
+                        "contentRanges": [
+                          {
+                            "from": 57,
+                            "to": 60
+                          }
+                        ]
+                      },
+                      {
+                        "from": 62,
+                        "complete": true,
+                        "kind": "text",
+                        "to": 62,
+                        "contentRanges": [
+                          {
+                            "from": 62,
+                            "to": 62
+                          }
+                        ]
+                      }
+                    ],
+                    "to": 62,
+                    "completeEnd": true,
+                    "source": "# Diagnostic\r\n\r\nSelection stays here.\r\n\r\nFAST-TRIGGER\r\n\r\nEND\r\n",
+                    "protectedRanges": [],
+                    "selection": {
+                      "head": 62,
+                      "anchor": 62
+                    },
+                    "toLine": 8,
+                    "theme": "light",
+                    "completeStart": true,
+                    "documentId": "file:/workspace/milkup-markdown-extensions-phase4-evidence/native/production-arbitration-fixtures/fast.md",
+                    "target": "screen",
+                    "contextKnown": true,
+                    "from": 0,
+                    "version": 0
+                  },
+                  "pluginId": "diagnostic.supervisor-cpu"
+                },
+                "protocol": "milkup.plugin.document-render.v1",
+                "type": "render",
+                "id": "render_3"
+              }
+            },
+            "kind": "send"
+          },
+          {
+            "wall": 1792121217989,
+            "worker": "milkup-supervisor-diagnostic.supervisor-cpu",
+            "value": {
+              "protocol": "milkup.plugin.worker-supervisor.v1",
+              "type": "child",
+              "message": {
+                "protocol": "milkup.plugin.document-render.v1",
+                "type": "result",
+                "ok": true,
+                "id": "render_3",
+                "value": {
+                  "complete": true,
+                  "fragments": []
+                }
+              }
+            },
+            "kind": "receive"
+          },
+          {
+            "wall": 1792121218036,
+            "worker": "milkup-supervisor-diagnostic.supervisor-fast",
+            "value": {
+              "protocol": "milkup.plugin.worker-supervisor.v1",
+              "type": "forward",
+              "message": {
+                "protocol": "milkup.plugin.document-render.v1",
+                "type": "cancel",
+                "id": "render_5"
+              }
+            },
+            "kind": "send"
+          },
+          {
+            "wall": 1792121218051,
+            "worker": "milkup-supervisor-diagnostic.supervisor-cpu",
+            "value": {
+              "protocol": "milkup.plugin.worker-supervisor.v1",
+              "type": "forward",
+              "message": {
+                "payload": {
+                  "rendererId": "diagnostic.document",
+                  "request": {
+                    "fromLine": 1,
+                    "width": 1100,
+                    "blocks": [
+                      {
+                        "from": 0,
+                        "complete": true,
+                        "kind": "text",
+                        "to": 12,
+                        "contentRanges": [
+                          {
+                            "from": 0,
+                            "to": 12
+                          }
+                        ]
+                      },
+                      {
+                        "from": 14,
+                        "complete": true,
+                        "kind": "text",
+                        "to": 14,
+                        "contentRanges": [
+                          {
+                            "from": 14,
+                            "to": 14
+                          }
+                        ]
+                      },
+                      {
+                        "from": 16,
+                        "complete": true,
+                        "kind": "text",
+                        "to": 37,
+                        "contentRanges": [
+                          {
+                            "from": 16,
+                            "to": 37
+                          }
+                        ]
+                      },
+                      {
+                        "from": 39,
+                        "complete": true,
+                        "kind": "text",
+                        "to": 39,
+                        "contentRanges": [
+                          {
+                            "from": 39,
+                            "to": 39
+                          }
+                        ]
+                      },
+                      {
+                        "from": 41,
+                        "complete": true,
+                        "kind": "text",
+                        "to": 53,
+                        "contentRanges": [
+                          {
+                            "from": 41,
+                            "to": 53
+                          }
+                        ]
+                      },
+                      {
+                        "from": 55,
+                        "complete": true,
+                        "kind": "text",
+                        "to": 55,
+                        "contentRanges": [
+                          {
+                            "from": 55,
+                            "to": 55
+                          }
+                        ]
+                      },
+                      {
+                        "from": 57,
+                        "complete": true,
+                        "kind": "text",
+                        "to": 60,
+                        "contentRanges": [
+                          {
+                            "from": 57,
+                            "to": 60
+                          }
+                        ]
+                      },
+                      {
+                        "from": 62,
+                        "complete": true,
+                        "kind": "text",
+                        "to": 63,
+                        "contentRanges": [
+                          {
+                            "from": 62,
+                            "to": 63
+                          }
+                        ]
+                      }
+                    ],
+                    "to": 63,
+                    "completeEnd": true,
+                    "source": "# Diagnostic\r\n\r\nSelection stays here.\r\n\r\nFAST-TRIGGER\r\n\r\nEND\r\nx",
+                    "protectedRanges": [],
+                    "selection": {
+                      "head": 63,
+                      "anchor": 63
+                    },
+                    "toLine": 8,
+                    "theme": "light",
+                    "completeStart": true,
+                    "documentId": "file:/workspace/milkup-markdown-extensions-phase4-evidence/native/production-arbitration-fixtures/fast.md",
+                    "target": "screen",
+                    "contextKnown": true,
+                    "from": 0,
+                    "version": 1
+                  },
+                  "pluginId": "diagnostic.supervisor-cpu"
+                },
+                "protocol": "milkup.plugin.document-render.v1",
+                "type": "render",
+                "id": "render_4"
+              }
+            },
+            "kind": "send"
+          },
+          {
+            "wall": 1792121218051,
+            "worker": "milkup-supervisor-diagnostic.supervisor-fast",
+            "value": {
+              "protocol": "milkup.plugin.worker-supervisor.v1",
+              "type": "child",
+              "message": {
+                "protocol": "milkup.plugin.document-render.v1",
+                "type": "result",
+                "ok": true,
+                "id": "render_5",
+                "value": {
+                  "complete": true,
+                  "fragments": [
+                    {
+                      "layout": "inline",
+                      "from": 41,
+                      "to": 53,
+                      "content": {
+                        "type": "text",
+                        "text": "Accepted production render 2"
+                      },
+                      "accessibleText": "Accepted production render 2"
+                    }
+                  ]
+                }
+              }
+            },
+            "kind": "receive"
+          },
+          {
+            "wall": 1792121218051,
+            "worker": "milkup-supervisor-diagnostic.supervisor-fast",
+            "value": {
+              "protocol": "milkup.plugin.worker-supervisor.v1",
+              "type": "forward",
+              "message": {
+                "payload": {
+                  "rendererId": "diagnostic.document",
+                  "request": {
+                    "fromLine": 1,
+                    "width": 1100,
+                    "blocks": [
+                      {
+                        "from": 0,
+                        "complete": true,
+                        "kind": "text",
+                        "to": 12,
+                        "contentRanges": [
+                          {
+                            "from": 0,
+                            "to": 12
+                          }
+                        ]
+                      },
+                      {
+                        "from": 14,
+                        "complete": true,
+                        "kind": "text",
+                        "to": 14,
+                        "contentRanges": [
+                          {
+                            "from": 14,
+                            "to": 14
+                          }
+                        ]
+                      },
+                      {
+                        "from": 16,
+                        "complete": true,
+                        "kind": "text",
+                        "to": 37,
+                        "contentRanges": [
+                          {
+                            "from": 16,
+                            "to": 37
+                          }
+                        ]
+                      },
+                      {
+                        "from": 39,
+                        "complete": true,
+                        "kind": "text",
+                        "to": 39,
+                        "contentRanges": [
+                          {
+                            "from": 39,
+                            "to": 39
+                          }
+                        ]
+                      },
+                      {
+                        "from": 41,
+                        "complete": true,
+                        "kind": "text",
+                        "to": 53,
+                        "contentRanges": [
+                          {
+                            "from": 41,
+                            "to": 53
+                          }
+                        ]
+                      },
+                      {
+                        "from": 55,
+                        "complete": true,
+                        "kind": "text",
+                        "to": 55,
+                        "contentRanges": [
+                          {
+                            "from": 55,
+                            "to": 55
+                          }
+                        ]
+                      },
+                      {
+                        "from": 57,
+                        "complete": true,
+                        "kind": "text",
+                        "to": 60,
+                        "contentRanges": [
+                          {
+                            "from": 57,
+                            "to": 60
+                          }
+                        ]
+                      },
+                      {
+                        "from": 62,
+                        "complete": true,
+                        "kind": "text",
+                        "to": 63,
+                        "contentRanges": [
+                          {
+                            "from": 62,
+                            "to": 63
+                          }
+                        ]
+                      }
+                    ],
+                    "to": 63,
+                    "completeEnd": true,
+                    "source": "# Diagnostic\r\n\r\nSelection stays here.\r\n\r\nFAST-TRIGGER\r\n\r\nEND\r\nx",
+                    "protectedRanges": [],
+                    "selection": {
+                      "head": 63,
+                      "anchor": 63
+                    },
+                    "toLine": 8,
+                    "theme": "light",
+                    "completeStart": true,
+                    "documentId": "file:/workspace/milkup-markdown-extensions-phase4-evidence/native/production-arbitration-fixtures/fast.md",
+                    "target": "screen",
+                    "contextKnown": true,
+                    "from": 0,
+                    "version": 1
+                  },
+                  "pluginId": "diagnostic.supervisor-fast"
+                },
+                "protocol": "milkup.plugin.document-render.v1",
+                "type": "render",
+                "id": "render_6"
+              }
+            },
+            "kind": "send"
+          },
+          {
+            "wall": 1792121218061,
+            "worker": "milkup-supervisor-diagnostic.supervisor-cpu",
+            "value": {
+              "protocol": "milkup.plugin.worker-supervisor.v1",
+              "type": "child",
+              "message": {
+                "protocol": "milkup.plugin.document-render.v1",
+                "type": "result",
+                "ok": true,
+                "id": "render_4",
+                "value": {
+                  "complete": true,
+                  "fragments": []
+                }
+              }
+            },
+            "kind": "receive"
+          },
+          {
+            "wall": 1792121218108,
+            "worker": "milkup-supervisor-diagnostic.supervisor-fast",
+            "value": {
+              "protocol": "milkup.plugin.worker-supervisor.v1",
+              "type": "child",
+              "message": {
+                "protocol": "milkup.plugin.document-render.v1",
+                "type": "result",
+                "ok": true,
+                "id": "render_6",
+                "value": {
+                  "complete": true,
+                  "fragments": [
+                    {
+                      "layout": "inline",
+                      "from": 41,
+                      "to": 53,
+                      "content": {
+                        "type": "text",
+                        "text": "Accepted production render 3"
+                      },
+                      "accessibleText": "Accepted production render 3"
+                    }
+                  ]
+                }
+              }
+            },
+            "kind": "receive"
+          },
+          {
+            "wall": 1792121218444,
+            "worker": "milkup-supervisor-diagnostic.supervisor-fast",
+            "value": {
+              "protocol": "milkup.plugin.worker-supervisor.v1",
+              "type": "forward",
+              "message": {
+                "payload": {
+                  "rendererId": "diagnostic.document",
+                  "request": {
+                    "fromLine": 1,
+                    "width": 1100,
+                    "blocks": [
+                      {
+                        "from": 0,
+                        "complete": true,
+                        "kind": "text",
+                        "to": 12,
+                        "contentRanges": [
+                          {
+                            "from": 0,
+                            "to": 12
+                          }
+                        ]
+                      },
+                      {
+                        "from": 14,
+                        "complete": true,
+                        "kind": "text",
+                        "to": 14,
+                        "contentRanges": [
+                          {
+                            "from": 14,
+                            "to": 14
+                          }
+                        ]
+                      },
+                      {
+                        "from": 16,
+                        "complete": true,
+                        "kind": "text",
+                        "to": 37,
+                        "contentRanges": [
+                          {
+                            "from": 16,
+                            "to": 37
+                          }
+                        ]
+                      },
+                      {
+                        "from": 39,
+                        "complete": true,
+                        "kind": "text",
+                        "to": 39,
+                        "contentRanges": [
+                          {
+                            "from": 39,
+                            "to": 39
+                          }
+                        ]
+                      },
+                      {
+                        "from": 41,
+                        "complete": true,
+                        "kind": "text",
+                        "to": 53,
+                        "contentRanges": [
+                          {
+                            "from": 41,
+                            "to": 53
+                          }
+                        ]
+                      },
+                      {
+                        "from": 55,
+                        "complete": true,
+                        "kind": "text",
+                        "to": 55,
+                        "contentRanges": [
+                          {
+                            "from": 55,
+                            "to": 55
+                          }
+                        ]
+                      },
+                      {
+                        "from": 57,
+                        "complete": true,
+                        "kind": "text",
+                        "to": 60,
+                        "contentRanges": [
+                          {
+                            "from": 57,
+                            "to": 60
+                          }
+                        ]
+                      },
+                      {
+                        "from": 62,
+                        "complete": true,
+                        "kind": "text",
+                        "to": 62,
+                        "contentRanges": [
+                          {
+                            "from": 62,
+                            "to": 62
+                          }
+                        ]
+                      }
+                    ],
+                    "to": 62,
+                    "completeEnd": true,
+                    "source": "# Diagnostic\r\n\r\nSelection stays here.\r\n\r\nFAST-TRIGGER\r\n\r\nEND\r\n",
+                    "protectedRanges": [],
+                    "selection": {
+                      "head": 62,
+                      "anchor": 62
+                    },
+                    "toLine": 8,
+                    "theme": "light",
+                    "completeStart": true,
+                    "documentId": "file:/workspace/milkup-markdown-extensions-phase4-evidence/native/production-arbitration-fixtures/fast.md",
+                    "target": "screen",
+                    "contextKnown": true,
+                    "from": 0,
+                    "version": 2
+                  },
+                  "pluginId": "diagnostic.supervisor-fast"
+                },
+                "protocol": "milkup.plugin.document-render.v1",
+                "type": "render",
+                "id": "render_7"
+              }
+            },
+            "kind": "send"
+          },
+          {
+            "wall": 1792121218445,
+            "worker": "milkup-supervisor-diagnostic.supervisor-cpu",
+            "value": {
+              "protocol": "milkup.plugin.worker-supervisor.v1",
+              "type": "forward",
+              "message": {
+                "payload": {
+                  "rendererId": "diagnostic.document",
+                  "request": {
+                    "fromLine": 1,
+                    "width": 1100,
+                    "blocks": [
+                      {
+                        "from": 0,
+                        "complete": true,
+                        "kind": "text",
+                        "to": 12,
+                        "contentRanges": [
+                          {
+                            "from": 0,
+                            "to": 12
+                          }
+                        ]
+                      },
+                      {
+                        "from": 14,
+                        "complete": true,
+                        "kind": "text",
+                        "to": 14,
+                        "contentRanges": [
+                          {
+                            "from": 14,
+                            "to": 14
+                          }
+                        ]
+                      },
+                      {
+                        "from": 16,
+                        "complete": true,
+                        "kind": "text",
+                        "to": 37,
+                        "contentRanges": [
+                          {
+                            "from": 16,
+                            "to": 37
+                          }
+                        ]
+                      },
+                      {
+                        "from": 39,
+                        "complete": true,
+                        "kind": "text",
+                        "to": 39,
+                        "contentRanges": [
+                          {
+                            "from": 39,
+                            "to": 39
+                          }
+                        ]
+                      },
+                      {
+                        "from": 41,
+                        "complete": true,
+                        "kind": "text",
+                        "to": 53,
+                        "contentRanges": [
+                          {
+                            "from": 41,
+                            "to": 53
+                          }
+                        ]
+                      },
+                      {
+                        "from": 55,
+                        "complete": true,
+                        "kind": "text",
+                        "to": 55,
+                        "contentRanges": [
+                          {
+                            "from": 55,
+                            "to": 55
+                          }
+                        ]
+                      },
+                      {
+                        "from": 57,
+                        "complete": true,
+                        "kind": "text",
+                        "to": 60,
+                        "contentRanges": [
+                          {
+                            "from": 57,
+                            "to": 60
+                          }
+                        ]
+                      },
+                      {
+                        "from": 62,
+                        "complete": true,
+                        "kind": "text",
+                        "to": 62,
+                        "contentRanges": [
+                          {
+                            "from": 62,
+                            "to": 62
+                          }
+                        ]
+                      }
+                    ],
+                    "to": 62,
+                    "completeEnd": true,
+                    "source": "# Diagnostic\r\n\r\nSelection stays here.\r\n\r\nFAST-TRIGGER\r\n\r\nEND\r\n",
+                    "protectedRanges": [],
+                    "selection": {
+                      "head": 62,
+                      "anchor": 62
+                    },
+                    "toLine": 8,
+                    "theme": "light",
+                    "completeStart": true,
+                    "documentId": "file:/workspace/milkup-markdown-extensions-phase4-evidence/native/production-arbitration-fixtures/fast.md",
+                    "target": "screen",
+                    "contextKnown": true,
+                    "from": 0,
+                    "version": 2
+                  },
+                  "pluginId": "diagnostic.supervisor-cpu"
+                },
+                "protocol": "milkup.plugin.document-render.v1",
+                "type": "render",
+                "id": "render_5"
+              }
+            },
+            "kind": "send"
+          },
+          {
+            "wall": 1792121218457,
+            "worker": "milkup-supervisor-diagnostic.supervisor-cpu",
+            "value": {
+              "protocol": "milkup.plugin.worker-supervisor.v1",
+              "type": "child",
+              "message": {
+                "protocol": "milkup.plugin.document-render.v1",
+                "type": "result",
+                "ok": true,
+                "id": "render_5",
+                "value": {
+                  "complete": true,
+                  "fragments": []
+                }
+              }
+            },
+            "kind": "receive"
+          },
+          {
+            "wall": 1792121218535,
+            "worker": "milkup-supervisor-diagnostic.supervisor-fast",
+            "value": {
+              "protocol": "milkup.plugin.worker-supervisor.v1",
+              "type": "child",
+              "message": {
+                "protocol": "milkup.plugin.document-render.v1",
+                "type": "result",
+                "ok": true,
+                "id": "render_7",
+                "value": {
+                  "complete": true,
+                  "fragments": [
+                    {
+                      "layout": "inline",
+                      "from": 41,
+                      "to": 53,
+                      "content": {
+                        "type": "text",
+                        "text": "Accepted production render 4"
+                      },
+                      "accessibleText": "Accepted production render 4"
+                    }
+                  ]
+                }
+              }
+            },
+            "kind": "receive"
+          },
+          {
+            "wall": 1792121222496,
+            "worker": "milkup-supervisor-diagnostic.supervisor-fast",
+            "value": {
+              "protocol": "milkup.plugin.worker-supervisor.v1",
+              "type": "forward",
+              "message": {
+                "payload": {
+                  "rendererId": "diagnostic.document",
+                  "request": {
+                    "fromLine": 1,
+                    "width": 1100,
+                    "blocks": [
+                      {
+                        "from": 0,
+                        "complete": true,
+                        "kind": "text",
+                        "to": 12,
+                        "contentRanges": [
+                          {
+                            "from": 0,
+                            "to": 12
+                          }
+                        ]
+                      },
+                      {
+                        "from": 14,
+                        "complete": true,
+                        "kind": "text",
+                        "to": 14,
+                        "contentRanges": [
+                          {
+                            "from": 14,
+                            "to": 14
+                          }
+                        ]
+                      },
+                      {
+                        "from": 16,
+                        "complete": true,
+                        "kind": "text",
+                        "to": 37,
+                        "contentRanges": [
+                          {
+                            "from": 16,
+                            "to": 37
+                          }
+                        ]
+                      },
+                      {
+                        "from": 39,
+                        "complete": true,
+                        "kind": "text",
+                        "to": 39,
+                        "contentRanges": [
+                          {
+                            "from": 39,
+                            "to": 39
+                          }
+                        ]
+                      },
+                      {
+                        "from": 41,
+                        "complete": true,
+                        "kind": "text",
+                        "to": 52,
+                        "contentRanges": [
+                          {
+                            "from": 41,
+                            "to": 52
+                          }
+                        ]
+                      },
+                      {
+                        "from": 54,
+                        "complete": true,
+                        "kind": "text",
+                        "to": 54,
+                        "contentRanges": [
+                          {
+                            "from": 54,
+                            "to": 54
+                          }
+                        ]
+                      },
+                      {
+                        "from": 56,
+                        "complete": true,
+                        "kind": "text",
+                        "to": 59,
+                        "contentRanges": [
+                          {
+                            "from": 56,
+                            "to": 59
+                          }
+                        ]
+                      },
+                      {
+                        "from": 61,
+                        "complete": true,
+                        "kind": "text",
+                        "to": 61,
+                        "contentRanges": [
+                          {
+                            "from": 61,
+                            "to": 61
+                          }
+                        ]
+                      }
+                    ],
+                    "to": 61,
+                    "completeEnd": true,
+                    "source": "# Diagnostic\r\n\r\nSelection stays here.\r\n\r\nCPU-TRIGGER\r\n\r\nEND\r\n",
+                    "protectedRanges": [],
+                    "selection": {
+                      "head": 0,
+                      "anchor": 0
+                    },
+                    "toLine": 8,
+                    "theme": "light",
+                    "completeStart": true,
+                    "documentId": "file:/workspace/milkup-markdown-extensions-phase4-evidence/native/production-arbitration-fixtures/cpu.md",
+                    "target": "screen",
+                    "contextKnown": true,
+                    "from": 0,
+                    "version": 0
+                  },
+                  "pluginId": "diagnostic.supervisor-fast"
+                },
+                "protocol": "milkup.plugin.document-render.v1",
+                "type": "render",
+                "id": "render_8"
+              }
+            },
+            "kind": "send"
+          },
+          {
+            "wall": 1792121222499,
+            "worker": "milkup-supervisor-diagnostic.supervisor-cpu",
+            "value": {
+              "protocol": "milkup.plugin.worker-supervisor.v1",
+              "type": "forward",
+              "message": {
+                "payload": {
+                  "rendererId": "diagnostic.document",
+                  "request": {
+                    "fromLine": 1,
+                    "width": 1100,
+                    "blocks": [
+                      {
+                        "from": 0,
+                        "complete": true,
+                        "kind": "text",
+                        "to": 12,
+                        "contentRanges": [
+                          {
+                            "from": 0,
+                            "to": 12
+                          }
+                        ]
+                      },
+                      {
+                        "from": 14,
+                        "complete": true,
+                        "kind": "text",
+                        "to": 14,
+                        "contentRanges": [
+                          {
+                            "from": 14,
+                            "to": 14
+                          }
+                        ]
+                      },
+                      {
+                        "from": 16,
+                        "complete": true,
+                        "kind": "text",
+                        "to": 37,
+                        "contentRanges": [
+                          {
+                            "from": 16,
+                            "to": 37
+                          }
+                        ]
+                      },
+                      {
+                        "from": 39,
+                        "complete": true,
+                        "kind": "text",
+                        "to": 39,
+                        "contentRanges": [
+                          {
+                            "from": 39,
+                            "to": 39
+                          }
+                        ]
+                      },
+                      {
+                        "from": 41,
+                        "complete": true,
+                        "kind": "text",
+                        "to": 52,
+                        "contentRanges": [
+                          {
+                            "from": 41,
+                            "to": 52
+                          }
+                        ]
+                      },
+                      {
+                        "from": 54,
+                        "complete": true,
+                        "kind": "text",
+                        "to": 54,
+                        "contentRanges": [
+                          {
+                            "from": 54,
+                            "to": 54
+                          }
+                        ]
+                      },
+                      {
+                        "from": 56,
+                        "complete": true,
+                        "kind": "text",
+                        "to": 59,
+                        "contentRanges": [
+                          {
+                            "from": 56,
+                            "to": 59
+                          }
+                        ]
+                      },
+                      {
+                        "from": 61,
+                        "complete": true,
+                        "kind": "text",
+                        "to": 61,
+                        "contentRanges": [
+                          {
+                            "from": 61,
+                            "to": 61
+                          }
+                        ]
+                      }
+                    ],
+                    "to": 61,
+                    "completeEnd": true,
+                    "source": "# Diagnostic\r\n\r\nSelection stays here.\r\n\r\nCPU-TRIGGER\r\n\r\nEND\r\n",
+                    "protectedRanges": [],
+                    "selection": {
+                      "head": 0,
+                      "anchor": 0
+                    },
+                    "toLine": 8,
+                    "theme": "light",
+                    "completeStart": true,
+                    "documentId": "file:/workspace/milkup-markdown-extensions-phase4-evidence/native/production-arbitration-fixtures/cpu.md",
+                    "target": "screen",
+                    "contextKnown": true,
+                    "from": 0,
+                    "version": 0
+                  },
+                  "pluginId": "diagnostic.supervisor-cpu"
+                },
+                "protocol": "milkup.plugin.document-render.v1",
+                "type": "render",
+                "id": "render_6"
+              }
+            },
+            "kind": "send"
+          },
+          {
+            "wall": 1792121224929,
+            "worker": "milkup-supervisor-diagnostic.supervisor-fast",
+            "value": {
+              "protocol": "milkup.plugin.worker-supervisor.v1",
+              "type": "child",
+              "message": {
+                "protocol": "milkup.plugin.document-render.v1",
+                "type": "result",
+                "ok": true,
+                "id": "render_8",
+                "value": {
+                  "complete": true,
+                  "fragments": []
+                }
+              }
+            },
+            "kind": "receive"
+          },
+          {
+            "wall": 1792121224931,
+            "worker": "milkup-supervisor-diagnostic.supervisor-cpu",
+            "value": {
+              "event": "timeout",
+              "protocol": "milkup.plugin.worker-supervisor.v1",
+              "type": "control",
+              "id": "render_6"
+            },
+            "kind": "receive"
+          },
+          {
+            "wall": 1792121224932,
+            "worker": "milkup-supervisor-diagnostic.supervisor-cpu",
+            "value": {
+              "protocol": "milkup.plugin.worker-supervisor.v1",
+              "type": "forward",
+              "message": {
+                "protocol": "milkup.plugin.document-render.v1",
+                "type": "cancel",
+                "id": "render_6"
+              }
+            },
+            "kind": "send"
+          },
+          {
+            "wall": 1792121224933,
+            "worker": "milkup-supervisor-diagnostic.supervisor-cpu",
+            "value": {
+              "protocol": "milkup.plugin.worker-supervisor.v1",
+              "type": "dispose"
+            },
+            "kind": "send"
+          },
+          {
+            "wall": 1792121224973,
+            "worker": "milkup-supervisor-diagnostic.supervisor-fast",
+            "value": {
+              "protocol": "milkup.plugin.worker-supervisor.v1",
+              "type": "forward",
+              "message": {
+                "payload": {
+                  "rendererId": "diagnostic.document",
+                  "request": {
+                    "fromLine": 1,
+                    "width": 1100,
+                    "blocks": [
+                      {
+                        "from": 0,
+                        "complete": true,
+                        "kind": "text",
+                        "to": 12,
+                        "contentRanges": [
+                          {
+                            "from": 0,
+                            "to": 12
+                          }
+                        ]
+                      },
+                      {
+                        "from": 14,
+                        "complete": true,
+                        "kind": "text",
+                        "to": 14,
+                        "contentRanges": [
+                          {
+                            "from": 14,
+                            "to": 14
+                          }
+                        ]
+                      },
+                      {
+                        "from": 16,
+                        "complete": true,
+                        "kind": "text",
+                        "to": 37,
+                        "contentRanges": [
+                          {
+                            "from": 16,
+                            "to": 37
+                          }
+                        ]
+                      },
+                      {
+                        "from": 39,
+                        "complete": true,
+                        "kind": "text",
+                        "to": 39,
+                        "contentRanges": [
+                          {
+                            "from": 39,
+                            "to": 39
+                          }
+                        ]
+                      },
+                      {
+                        "from": 41,
+                        "complete": true,
+                        "kind": "text",
+                        "to": 52,
+                        "contentRanges": [
+                          {
+                            "from": 41,
+                            "to": 52
+                          }
+                        ]
+                      },
+                      {
+                        "from": 54,
+                        "complete": true,
+                        "kind": "text",
+                        "to": 54,
+                        "contentRanges": [
+                          {
+                            "from": 54,
+                            "to": 54
+                          }
+                        ]
+                      },
+                      {
+                        "from": 56,
+                        "complete": true,
+                        "kind": "text",
+                        "to": 59,
+                        "contentRanges": [
+                          {
+                            "from": 56,
+                            "to": 59
+                          }
+                        ]
+                      },
+                      {
+                        "from": 61,
+                        "complete": true,
+                        "kind": "text",
+                        "to": 61,
+                        "contentRanges": [
+                          {
+                            "from": 61,
+                            "to": 61
+                          }
+                        ]
+                      }
+                    ],
+                    "to": 61,
+                    "completeEnd": true,
+                    "source": "# Diagnostic\r\n\r\nSelection stays here.\r\n\r\nCPU-TRIGGER\r\n\r\nEND\r\n",
+                    "protectedRanges": [],
+                    "selection": {
+                      "head": 0,
+                      "anchor": 0
+                    },
+                    "toLine": 8,
+                    "theme": "light",
+                    "completeStart": true,
+                    "documentId": "file:/workspace/milkup-markdown-extensions-phase4-evidence/native/production-arbitration-fixtures/cpu.md",
+                    "target": "screen",
+                    "contextKnown": true,
+                    "from": 0,
+                    "version": 0
+                  },
+                  "pluginId": "diagnostic.supervisor-fast"
+                },
+                "protocol": "milkup.plugin.document-render.v1",
+                "type": "render",
+                "id": "render_9"
+              }
+            },
+            "kind": "send"
+          },
+          {
+            "wall": 1792121225000,
+            "worker": "milkup-supervisor-diagnostic.supervisor-cpu",
+            "value": {
+              "event": "disposed",
+              "protocol": "milkup.plugin.worker-supervisor.v1",
+              "type": "control"
+            },
+            "kind": "receive"
+          },
+          {
+            "wall": 1792121225000,
+            "worker": "milkup-supervisor-diagnostic.supervisor-cpu",
+            "kind": "terminate"
+          },
+          {
+            "wall": 1792121225004,
+            "worker": "milkup-supervisor-diagnostic.supervisor-fast",
+            "value": {
+              "protocol": "milkup.plugin.worker-supervisor.v1",
+              "type": "child",
+              "message": {
+                "protocol": "milkup.plugin.document-render.v1",
+                "type": "result",
+                "ok": true,
+                "id": "render_9",
+                "value": {
+                  "complete": true,
+                  "fragments": []
+                }
+              }
+            },
+            "kind": "receive"
+          }
+        ],
+        "arm": null
+      }
+    }
+  ]
+}

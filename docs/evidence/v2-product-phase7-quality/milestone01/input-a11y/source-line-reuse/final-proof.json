@@ -1,0 +1,57 @@
+{
+  "status": "implemented-tested-frozen",
+  "timestampUtc": "2026-10-19T12:17:47.701245+00:00",
+  "scope": "One new private ordinary nonvirtual Source helper and its mode branch; one new independent test file",
+  "files": [
+    {
+      "path": "packages/view-dom/src/editor-view.ts",
+      "sha256": "1804fcc263bdc02b855f49c99890cbe0dbbe5f4d5138579f1e3a219c5fe9d4a2"
+    },
+    {
+      "path": "packages/view-dom/src/__tests__/p7-source-line-reuse.test.ts",
+      "sha256": "9dd7a8554b4b761efb49e673e3de58d89db504f60c48137eaa92d9b2a2dc8a7c"
+    },
+    {
+      "path": "packages/view-dom/src/source-document-view.ts",
+      "sha256": "7a025b307338290b4ced9c62a751f89494003e0cb944e670524ea18f9598de6c"
+    }
+  ],
+  "checks": {
+    "red": {
+      "passed": 9,
+      "failed": 17,
+      "exit": 1,
+      "log": "red01.log"
+    },
+    "targetedGreen": {
+      "passed": 26,
+      "exit": 0,
+      "log": "green01.log"
+    },
+    "fullViewDom": {
+      "files": 30,
+      "passed": 791,
+      "exit": 0,
+      "log": "view-dom-full01.log",
+      "workers": 1
+    },
+    "typecheck": {
+      "exit": 0,
+      "log": "typecheck01.log"
+    },
+    "format": {
+      "exit": 0,
+      "log": "format-check01.log"
+    }
+  },
+  "preservedExistingSource": "source-scope-proof.json exactly reconstructs pre-handoff c30235f97433ef2bfc73840538b2d895ea553cfc7fbd99017d560f34686212ae after removing only this helper/call",
+  "boundaries": [
+    "Not evidence that this path caused the prior native latency regression",
+    "Candidate03 native timing not yet executed; no performance-budget pass claim",
+    "Scroll tests preserve jsdom properties, not proof against native wrap/clamp",
+    "Preflight checks child element count, class and line/from/to metadata, not arbitrary text-node tampering",
+    "Pointer tests dispatch actual component click with supplied caret hit-test output; not native pointer geometry",
+    "SourceDocumentView navigation unchanged; Live rendering, parse-cache threading and readonly Tab preserved",
+    "Complex changes, newline/CR, no hints, incomplete metadata DOM, undo/redo and virtual view retain full fallback"
+  ]
+}

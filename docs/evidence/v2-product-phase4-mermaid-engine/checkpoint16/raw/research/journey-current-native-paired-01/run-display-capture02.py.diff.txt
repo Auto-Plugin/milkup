@@ -1,0 +1,27 @@
+--- run-display.py
++++ run-display-capture02.py
+@@ -4,12 +4,13 @@
+ import argparse,hashlib,json,os,signal,subprocess,time
+ R=Path(__file__).resolve().parent
+ p=argparse.ArgumentParser();p.add_argument('phase',choices=['capture','paint']);a=p.parse_args()
+-out=R/'display-logs'/a.phase;out.mkdir(parents=True,exist_ok=False)
++assert a.phase=='capture'
++out=R/'display-logs'/'capture-second02';out.mkdir(parents=True,exist_ok=False)
+ assert not Path('/tmp/.X11-unix/X128').exists() and not Path('/tmp/.X128-lock').exists(),'Refuse existing display128'
+ art=json.loads((R/'build-logs'/f'{a.phase}-artifacts.json').read_text())
+ for row in art['files']:
+  b=Path(row['path']).read_bytes();assert len(b)==row['bytes'] and hashlib.sha256(b).hexdigest()==row['sha256']
+-assert not (R/'runs'/f'{a.phase}-first01').exists()
++assert not (R/'runs'/'capture-second02').exists()
+ command=['/workspace/.cloud/milkup-v2/sysroot/usr/bin/Xvfb',':128','-screen','0','1600x1400x24','-dpi','96','-nolisten','tcp','-ac']
+ env={**os.environ,'LD_LIBRARY_PATH':'/workspace/.cloud/milkup-v2/sysroot/usr/lib/x86_64-linux-gnu'}
+ proc=None;fd=None;record={'phase':a.phase,'command':command,'existingDisplay126':'untouched','started':time.time(),'comparison':'Same WebKit/font/software environment, separate larger display; native zoom and actual geometry recorded independently'}
+@@ -23,7 +24,7 @@
+    assert proc.poll() is None and time.monotonic()<deadline,'Xvfb setup failed'
+    time.sleep(.025)
+   with (out/'namespace.stdout').open('wb') as std,(out/'namespace.stderr').open('wb') as err:
+-   child=subprocess.run(['/usr/bin/bash',str(R/'run-namespace.sh'),a.phase],env=env,stdout=std,stderr=err)
++   child=subprocess.run(['/usr/bin/bash',str(R/'run-namespace-capture02.sh'),a.phase],env=env,stdout=std,stderr=err)
+   record['namespaceExitCode']=child.returncode
+   assert child.returncode==0,'First phase failure; do not retry'
+ finally:

@@ -1,0 +1,47 @@
+
+ RUN  v3.2.6 /workspace/milkup/packages/view-dom
+
+ ❯ src/__tests__/document-presentation-preparation.test.ts (5 tests | 2 failed) 75ms
+   × resumes settled host preparation after its deadline without viewport or selection events 23ms
+     → expected "spy" to be called 2 times, but got 1 times
+   × never overlaps a timed-out native read that has not settled, then resumes after settlement 12ms
+     → expected "spy" to be called 2 times, but got 1 times
+   ✓ does not resume timed-out preparation after destruction 15ms
+   ✓ does not automatically retry ordinary rejection 4ms
+   ✓ does not automatically retry ordinary unknown-context 19ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/__tests__/document-presentation-preparation.test.ts > resumes settled host preparation after its deadline without viewport or selection events
+AssertionError: expected "spy" to be called 2 times, but got 1 times
+ ❯ src/__tests__/document-presentation-preparation.test.ts:91:19
+     89|   expect(provide.mock.calls[0]![1].signal.aborted).toBe(true)
+     90|   await vi.advanceTimersByTimeAsync(1001)
+     91|   expect(provide).toHaveBeenCalledTimes(2)
+       |                   ^
+     92| })
+     93| it('never overlaps a timed-out native read that has not settled, then …
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯
+
+ FAIL  src/__tests__/document-presentation-preparation.test.ts > never overlaps a timed-out native read that has not settled, then resumes after settlement
+AssertionError: expected "spy" to be called 2 times, but got 1 times
+ ❯ src/__tests__/document-presentation-preparation.test.ts:110:19
+    108|   finish()
+    109|   await vi.advanceTimersByTimeAsync(1001)
+    110|   expect(provide).toHaveBeenCalledTimes(2)
+       |                   ^
+    111| })
+    112| it('does not resume timed-out preparation after destruction', async ()…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/2]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  2 failed | 3 passed (5)
+   Start at  02:48:35
+   Duration  1.79s (transform 415ms, setup 0ms, collect 494ms, tests 75ms, environment 709ms, prepare 143ms)
+
+undefined
+/workspace/milkup/packages/view-dom:
+[ERR_PNPM_RECURSIVE_EXEC_FIRST_FAIL] Command failed with exit code 1: vitest run src/__tests__/document-presentation-preparation.test.ts

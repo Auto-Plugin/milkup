@@ -1,0 +1,11 @@
+--- 02-page-evaluate
++++ WebKit-study-page-function
+@@ -1,6 +1,6 @@
+ async ({ text }) => {
+-      const { SourceDocumentView } = await import('/@fs/workspace/milkup/packages/view-dom/src/index.ts')
+-      const { MemoryDocumentSource, Selection } = await import('/@fs/workspace/milkup/packages/core/src/index.ts')
++      const { SourceDocumentView } = (globalThis as any).__milkupMultirowResearch
++      const { MemoryDocumentSource, Selection } = (globalThis as any).__milkupMultirowResearch
+       const store = new MemoryDocumentSource({ documentId: 'multirow-selection-study', text })
+       const first = (await store.readLineWindow(318, 318)).lines[0]
+       const last = (await store.readLineWindow(394, 394)).lines[0]

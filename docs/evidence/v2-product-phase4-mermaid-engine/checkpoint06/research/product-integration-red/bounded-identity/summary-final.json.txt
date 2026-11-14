@@ -1,0 +1,40 @@
+{
+  "status": "focused-verified-not-product-acceptance",
+  "before": {
+    "firstAttempt": "core-before.log",
+    "firstAttemptLimit": "20 failed includes test assertion wording errors: public API intentionally masks internal reason; retained, not claimed as 20 product bugs",
+    "correctedAssertions": "core-before-corrected-assertions.log",
+    "failed": 5,
+    "passed": 15,
+    "failures": "four bounded identity acceptance expectations and one fractional surface undercount"
+  },
+  "after": {
+    "focusedTests": 23,
+    "svgSuiteTests": 93,
+    "svgSuiteFiles": 9,
+    "coreStrictTypecheck": "exit 0",
+    "ownedFormatCheck": "exit 0"
+  },
+  "scope": "No new schema, typed kind or budget. Geometry uncertainty retained; only precise explicit userSpace zero-alpha zero-kernel sRGB identity filter bounds paint. Descendant validation stays independent. Definition and composite surfaces count integer world pixels.",
+  "pixelEvidence": "release_sdk reported original opacity preserved and native 100/125/200 PNG pairs byte-equal; separate external files remain authoritative",
+  "files": [
+    {
+      "path": "/workspace/milkup/packages/core/src/document-svg-image-geometry.ts",
+      "sha256": "77354b9e509f64bc1462fbff3be11b850e08f66ee4f89b666209770facec998a",
+      "bytes": 30773
+    },
+    {
+      "path": "/workspace/milkup/packages/core/src/__tests__/document-svg-image-bounded-identity.test.ts",
+      "sha256": "643abd4cd004132c8c1a084f7b52db35f23615e9f0e781f4dae9e0e158daba7e",
+      "bytes": 8295
+    }
+  ],
+  "remaining": "Converter typed Gantt integration and actual AST host acceptance are release_sdk follow-up; no overall native product acceptance claimed.",
+  "additionalRed": {
+    "log": "css-surface-before.log",
+    "failed": 1,
+    "passed": 22,
+    "cause": "CSS drop shadow counted continuous4096\u00b2 instead of4097\u00b2 intersecting integerpixels; zero kernel .25offset repro",
+    "fix": "all surface work paths now pixelArea; removed unused continuous area helper"
+  }
+}

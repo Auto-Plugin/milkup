@@ -1,0 +1,399 @@
+#!/usr/bin/env python3
+"""Verify an already downloaded beta.6 Actions ZIP; never execute its contents."""
+from __future__ import annotations
+
+import argparse
+from datetime import datetime, timezone
+import hashlib
+import io
+import json
+from pathlib import Path, PurePosixPath
+import re
+import stat
+import subprocess
+import sys
+import zipfile
+
+VERSION = '2.0.0-beta.6'
+BASELINE = '7cc4edc6747abf5fbc31b60cccf4bd73174af6f8'
+BRANCH = 'dot/milkup-v2-beta6-ui-candidate'
+REPOSITORY = 'Auto-Plugin/milkup'
+DIAGRAMS_SHA256 = 'b1c2b8490da465f1c38f4f3886e7fa926978d2e6e2c5081bca4d716659c4acc1'
+# Formatting 1.0.1 after the viewport-loop fix at 66ace39. The independently
+# built npm and reproduced CI/pnpm layouts differ only in one SDK path comment.
+FORMATTING_ARCHIVES = {
+    '4bce37c68e9cce6a93f8f3b416e7fb77bf0459bd45dca95111a6b554003d6b8f':
+        '// node_modules/@milkup/plugin-sdk/src/index.js',
+    '1a69786b8443c4eb534ccc22fa221219d914792e74fdc4e95fe1b2adcc9967d9':
+        '// node_modules/.pnpm/@milkup+plugin-sdk@file+..+sdk+milkup-plugin-sdk-0.3.8.tgz/node_modules/@milkup/plugin-sdk/src/index.js',
+}
+FORMATTING_ENTRY_SHA256 = '842275d01961e8cb5053e402b34760dda6453b7eeca983db3fdb23685ec875db'
+SUPERSEDED_FORMATTING_SHA256 = '26d0684f3df4b2dc29710c52bdca9bb6c5e390035244bea8c51f715a9fe3a7e0'
+MAX_ARCHIVE_BYTES = 50 * 1024 * 1024
+PHASES = [
+    'locked-workspace-restore', 'updater-vendor-provenance', 'source-check-contracts',
+    'public-sdk-build', 'ten-independent-public-plugins', 'ten-independent-plugin-types',
+    'verified-bundle-staging', 'workspace-tests', 'workspace-types', 'workspace-build',
+    'desktop-check-all-targets', 'windows-updater-launch-tests', 'desktop-full-library-tests',
+    'desktop-production-compile-link', 'tracked-source-unchanged',
+]
+SHA256 = re.compile(r'[0-9a-f]{64}\Z')
+COMMIT = re.compile(r'[0-9a-f]{40}\Z')
+
+
+def require(condition, message):
+    if not condition:
+        raise ValueError(message)
+
+
+def digest(data):
+    return hashlib.sha256(data).hexdigest()
+
+
+def unique_object(pairs):
+    result = {}
+    for key, value in pairs:
+        require(key not in result, f'Duplicate JSON key: {key}')
+        result[key] = value
+    return result
+
+
+def parse_json(data):
+    return json.loads(data.decode('utf-8-sig'), object_pairs_hook=unique_object)
+
+
+def verify_reviewed_formatting(data):
+    archive_sha = digest(data)
+    require(archive_sha != SUPERSEDED_FORMATTING_SHA256, 'Superseded Formatting archive lacks viewport-loop fix')
+    require(archive_sha in FORMATTING_ARCHIVES, 'Formatting archive differs from both reviewed viewport-fix builds')
+    contents = parse_json(data)
+    require(set(contents) == {'format', 'version', 'manifest', 'files'}, 'Unexpected Formatting archive fields')
+    require(contents.get('format') == 'milkup-plugin' and contents.get('version') == 1,
+            'Unsupported Formatting archive format')
+    manifest = contents.get('manifest', {})
+    require((manifest.get('id'), manifest.get('version'), manifest.get('host')) ==
+            ('milkup.formatting', '1.0.1', 'worker'), 'Unexpected reviewed Formatting manifest')
+    files = contents.get('files')
+    require(isinstance(files, list) and len(files) == 1, 'Expected exactly one Formatting entry')
+    entry = files[0]
+    require(set(entry) == {'path', 'encoding', 'content'} and entry.get('path') == 'dist/plugin.js' and
+            entry.get('encoding') == 'utf8' and isinstance(entry.get('content'), str),
+            'Unexpected Formatting entry')
+    header, separator, body = entry['content'].partition('\n')
+    require(separator and header == FORMATTING_ARCHIVES[archive_sha], 'Unexpected Formatting SDK path comment')
+    require(digest(body.encode('utf-8')) == FORMATTING_ENTRY_SHA256,
+            'Formatting entry differs from reviewed viewport-loop fix')
+    return {'archiveSha256': archive_sha, 'entryWithoutFirstSdkCommentSha256': FORMATTING_ENTRY_SHA256,
+            'sdkComment': header, 'viewportLoopFixVerified': True,
+            'supersededArchiveRejected': SUPERSEDED_FORMATTING_SHA256}
+
+
+def regular_bytes(path, limit):
+    metadata = path.lstat()
+    require(stat.S_ISREG(metadata.st_mode), f'Not a regular file: {path}')
+    require(metadata.st_size <= limit, f'File exceeds size limit: {path}')
+    data = path.read_bytes()
+    require(len(data) == metadata.st_size and len(data) <= limit, f'File changed: {path}')
+    return data
+
+
+def positive_int(value, label):
+    require(type(value) is int and value > 0, f'Invalid {label}')
+    return value
+
+
+def safe_member(name, directory=False):
+    require(isinstance(name, str) and name and len(name) <= 240, 'Invalid ZIP member name')
+    require(not any(ord(char) < 32 or ord(char) == 127 for char in name), 'Control in ZIP name')
+    require('\\' not in name and ':' not in name and '\x00' not in name, 'Unsafe ZIP name')
+    bare = name[:-1] if directory and name.endswith('/') else name
+    parts = bare.split('/')
+    require(all(part and part not in ('.', '..') for part in parts), 'Unsafe ZIP path component')
+    require(not PurePosixPath(bare).is_absolute(), 'Absolute ZIP path')
+    require(PurePosixPath(bare).as_posix() == bare, 'Noncanonical ZIP path')
+    for part in parts:
+        require(not part.endswith((' ', '.')), 'Windows-ambiguous ZIP path')
+        stem = part.split('.')[0].upper()
+        require(stem not in {'CON', 'PRN', 'AUX', 'NUL'} and
+                not re.fullmatch(r'(?:COM|LPT)[1-9]', stem), 'Windows device ZIP path')
+    return bare
+
+
+def git_bytes(root, *args):
+    result = subprocess.run(
+        ['git', '-C', str(root), *args], check=True, stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE, timeout=30,
+    )
+    return result.stdout
+
+
+def committed_json(root, commit, name):
+    safe_member(name)
+    return parse_json(git_bytes(root, 'show', f'{commit}:{name}'))
+
+
+def verify_manifest(manifest, expected_commit, expected_run):
+    require(manifest.get('version') == VERSION, f'Expected manifest version {VERSION}')
+    require(manifest.get('commit') == expected_commit, 'Manifest commit mismatch')
+    require(manifest.get('baseline') == BASELINE, 'Manifest baseline mismatch')
+    require(str(manifest.get('runId')) == str(expected_run), 'Manifest run ID mismatch')
+    require(manifest.get('runUrl') ==
+            f'https://github.com/{REPOSITORY}/actions/runs/{expected_run}', 'Manifest run URL mismatch')
+    require(manifest.get('status') == 'built-for-user-manual-trial', 'Unexpected delivery status')
+    require(manifest.get('platform') == 'windows-x86_64', 'Unexpected platform')
+    for field in ('installerExecuted', 'guiImeAccepted', 'payloadImageMatchesCheckedBinary'):
+        require(manifest.get(field) is False, f'Unexpected {field}')
+    require(manifest.get('payloadImageMatchesExpectedNsisImage') is True, 'Missing NSIS identity proof')
+    expected_boundary = {
+        'signing': 'unsigned',
+        'webviewMode': 'existing-default-downloadBootstrapper; no full Runtime bundled',
+        'windowsDomPdf': 'disabled',
+        'windowsDiagrams': 'restricted-worker-flowchart-sequence; full Mermaid not supported',
+        'updates': 'built-in About; legacy plugin data retained',
+        'realUpgradeRollback': 'unverified',
+        'productionChannel': 'unconfigured',
+        'artifactRetentionDays': 1,
+        'deliveryDestination': f'{REPOSITORY} Actions artifact and current conversation only',
+    }
+    for key, expected in expected_boundary.items():
+        require(manifest.get(key) == expected, f'Delivery boundary mismatch: {key}')
+    for key in ('installer', 'compiledApplication', 'application', 'extractedApplication'):
+        record = manifest[key]
+        require(record.get('productVersion') == VERSION, f'{key} product version mismatch')
+        require(record.get('fileVersion') == VERSION, f'{key} file version mismatch')
+        require(record.get('signature') == 'NotSigned', f'{key} signature mismatch')
+        positive_int(record.get('bytes'), f'{key} size')
+        require(record['bytes'] < MAX_ARCHIVE_BYTES, f'{key} exceeds bounded trial size')
+        require(SHA256.fullmatch(record.get('sha256', '')), f'Invalid {key} hash')
+    app, compiled, extracted = (manifest[key] for key in
+                                ('application', 'compiledApplication', 'extractedApplication'))
+    require(app['bytes'] == compiled['bytes'] == extracted['bytes'], 'Application size disagreement')
+    require(app['sha256'] == extracted['sha256'] != compiled['sha256'], 'Application hash disagreement')
+    proof = manifest['nsisImageVerification']
+    require(proof.get('status') == 'passed', 'NSIS image proof failed')
+    require(proof.get('transform') == 'tauri-cli-2.11.4-unique-UNK-to-NSS', 'Unknown NSIS transform')
+    require(type(proof.get('changedBytes')) is int and proof['changedBytes'] == 3,
+            'NSIS transform must change exactly three bytes')
+    offset = proof.get('markerOffset')
+    require(type(offset) is int and 0 <= offset <= app['bytes'] - len(b'__TAURI_BUNDLE_TYPE_VAR_NSS'),
+            'Invalid NSIS marker offset')
+    require(proof.get('compiledSha256') == compiled['sha256'] and
+            proof.get('expectedNsisSha256') == app['sha256'], 'NSIS proof hash mismatch')
+    inspected = proof.get('files')
+    require(isinstance(inspected, list) and 0 < len(inspected) <= 100, 'Invalid NSIS file proof')
+    matched = [entry for entry in inspected if entry.get('exactMatch') is True]
+    require(len(matched) == 1, 'NSIS proof must contain exactly one matching application')
+    require(matched[0].get('sha256') == app['sha256'] and matched[0].get('bytes') == app['bytes']
+            and matched[0].get('path') == proof.get('path'), 'NSIS matching image disagreement')
+    require(all(type(entry.get('exactMatch')) is bool for entry in inspected), 'Invalid NSIS match flag')
+    require(len({entry.get('relativePath') for entry in inspected}) == len(inspected),
+            'Duplicate NSIS proof file')
+    phases = manifest['sourceChecks']['phases']
+    require(isinstance(phases, list) and [phase.get('name') for phase in phases] == PHASES,
+            'Expected all fifteen exact Windows source-check phases')
+    for phase in phases:
+        require(phase.get('status') == 'passed', f'Failed source phase: {phase.get("name")}')
+        commands = phase.get('commands')
+        require(isinstance(commands, list) and commands, f'No command proof for {phase["name"]}')
+        require(all(type(command.get('exitCode')) is int and command['exitCode'] == 0
+                    for command in commands), f'Failed command in {phase["name"]}')
+    rust = manifest['sourceChecks']['rust']
+    require(rust.get('status') == 'passed' and type(rust.get('cargoExitCode')) is int and
+            rust['cargoExitCode'] == 0 and rust.get('diagnosticOnly') is False,
+            'Full Windows Rust suite did not pass')
+    require(isinstance(rust.get('testExecutables'), list) and rust['testExecutables'],
+            'Missing executed Rust test suite')
+
+
+def main(argv=None):
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('metadata', type=Path, help='Already downloaded GitHub artifact metadata JSON')
+    parser.add_argument('archive', type=Path, help='Already downloaded Actions artifact ZIP')
+    parser.add_argument('destination', type=Path, help='New directory; created only after all checks pass')
+    parser.add_argument('source', type=Path, help='Local Git repository containing the exact expected commit; manifests are read from that commit')
+    parser.add_argument('--expected-commit', required=True)
+    parser.add_argument('--expected-run', required=True, type=int)
+    parser.add_argument('--proof', type=Path, help='New JSON proof; default: destination parent/download-verification.json')
+    args = parser.parse_args(argv)
+    require(COMMIT.fullmatch(args.expected_commit), 'Expected commit must be exactly 40 lowercase hex digits')
+    positive_int(args.expected_run, 'expected run ID')
+    require(not args.destination.exists() and not args.destination.is_symlink(), 'Destination must be new')
+    proof_path = args.proof or args.destination.parent / 'download-verification.json'
+    require(not proof_path.exists() and not proof_path.is_symlink(), 'Proof path must be new')
+    metadata = parse_json(regular_bytes(args.metadata, 2 * 1024 * 1024))
+    blob = regular_bytes(args.archive, MAX_ARCHIVE_BYTES)
+    require(blob, 'Empty artifact ZIP')
+    zip_hash = digest(blob)
+    require(metadata.get('digest') == f'sha256:{zip_hash}', 'Artifact ZIP SHA-256 mismatch')
+    require(type(metadata.get('size_in_bytes')) is int and metadata['size_in_bytes'] == len(blob),
+            'Artifact ZIP byte count mismatch')
+    require(metadata.get('expired') is False, 'Artifact is expired or expiry is unknown')
+    workflow = metadata['workflow_run']
+    require(workflow.get('id') == args.expected_run and type(workflow.get('id')) is int,
+            'Artifact run ID mismatch')
+    require(workflow.get('head_sha') == args.expected_commit, 'Artifact source SHA mismatch')
+    payload = {}
+    with zipfile.ZipFile(io.BytesIO(blob)) as archive:
+        entries = archive.infolist()
+        require(18 <= len(entries) <= 20, 'Unexpected ZIP entry count')
+        names, folded = set(), set()
+        for entry in entries:
+            directory = entry.is_dir()
+            name = safe_member(entry.filename, directory)
+            require(name not in names and name.casefold() not in folded, 'Duplicate or case-colliding ZIP entry')
+            names.add(name)
+            folded.add(name.casefold())
+            require(not entry.flag_bits & 1, 'Encrypted ZIP member')
+            kind = stat.S_IFMT(entry.external_attr >> 16)
+            require(kind in (0, stat.S_IFDIR if directory else stat.S_IFREG), 'Nonregular ZIP member')
+            if directory:
+                require(name in ('plugins', 'samples') and entry.file_size == 0, 'Unexpected ZIP directory')
+            else:
+                require(0 <= entry.file_size < MAX_ARCHIVE_BYTES, 'ZIP member exceeds size limit')
+        file_names = {entry.filename for entry in entries if not entry.is_dir()}
+        require(len(file_names) == 18, 'Expected exactly eighteen delivered files')
+        require(sum(entry.file_size for entry in entries) < MAX_ARCHIVE_BYTES, 'Expanded ZIP exceeds 50 MiB')
+        require(archive.testzip() is None, 'ZIP CRC check failed')
+
+        def member(name):
+            # Membership is checked before each read, including checksum-supplied names.
+            require(name in file_names, f'File absent from validated ZIP inventory: {name}')
+            if name not in payload:
+                data = archive.read(name)
+                require(len(data) == archive.getinfo(name).file_size, f'ZIP length mismatch: {name}')
+                payload[name] = data
+            return payload[name]
+
+        manifest_bytes = member('manifest.json')
+        manifest = parse_json(manifest_bytes)
+        verify_manifest(manifest, args.expected_commit, args.expected_run)
+        artifact_id = positive_int(metadata.get('id'), 'artifact ID')
+        expected_url = f'https://api.github.com/repos/{REPOSITORY}/actions/artifacts/{artifact_id}'
+        require(metadata.get('url') == expected_url and
+                metadata.get('archive_download_url') == expected_url + '/zip', 'Artifact repository mismatch')
+        require(metadata.get('name') == f'milkup-{VERSION}-windows-x64-{args.expected_commit}',
+                'Artifact name mismatch')
+        require(workflow.get('head_branch') == BRANCH, 'Artifact branch mismatch')
+        expiry = datetime.fromisoformat(metadata['expires_at'].replace('Z', '+00:00'))
+        require(expiry.tzinfo is not None and expiry > datetime.now(timezone.utc), 'Artifact expiry has passed')
+        checksums = {}
+        for line in member('SHA256SUMS.txt').decode('utf-8').splitlines():
+            fields = line.split('  ', 1)
+            require(len(fields) == 2, 'Malformed checksum line')
+            claimed, name = fields
+            require(SHA256.fullmatch(claimed), 'Malformed checksum hash')
+            require(name in file_names and name != 'SHA256SUMS.txt', 'Checksum path outside validated ZIP files')
+            require(name not in checksums, 'Duplicate checksum filename')
+            require(digest(member(name)) == claimed, f'Checksum mismatch: {name}')
+            checksums[name] = claimed
+        require(len(checksums) == 17 and set(checksums) == file_names - {'SHA256SUMS.txt'},
+                'Checksums must cover all seventeen payload files exactly')
+        installer_name = f'milkup-{VERSION}-windows-x64-{args.expected_commit[:12]}-setup.exe'
+        require(manifest['installer'].get('deliveredName') == installer_name, 'Installer filename mismatch')
+        require(checksums.get(installer_name) == manifest['installer']['sha256'] and
+                len(member(installer_name)) == manifest['installer']['bytes'], 'Installer identity mismatch')
+        require(git_bytes(args.source, 'rev-parse', '--verify', f'{args.expected_commit}^{{commit}}').decode('ascii').strip() == args.expected_commit,
+                'Expected source commit is unavailable in the local repository')
+        root_package = committed_json(args.source, args.expected_commit, 'package.json')
+        require(root_package.get('version') == VERSION, 'Source package version mismatch')
+        sdk = committed_json(args.source, args.expected_commit, 'packages/plugin-sdk/package.json')
+        distribution = committed_json(args.source, args.expected_commit, 'release/bundled-plugins.json')
+        source_manifests = {}
+        for entry in distribution:
+            if 'platforms' in entry and 'win32' not in entry['platforms']:
+                continue
+            directory = entry['directory']
+            require(re.fullmatch(r'plugins/[a-z0-9][a-z0-9-]*', directory), 'Unsafe source plugin directory')
+            source_manifest = committed_json(args.source, args.expected_commit, f'{directory}/plugin.json')
+            plugin_id = source_manifest['id']
+            require(plugin_id not in source_manifests, 'Duplicate source plugin ID')
+            require(source_manifest.get('host') == entry.get('host') == 'worker', 'Unexpected Windows plugin host')
+            require(source_manifest.get('permissions') == entry.get('permissions'), 'Source permission mismatch')
+            require(source_manifest.get('engines', {}).get('milkup') == '^2.0.0-0', 'Source app compatibility mismatch')
+            source_manifests[plugin_id] = source_manifest
+        plugins = parse_json(member('plugins.json'))
+        require(isinstance(plugins, list) and len(plugins) == len(source_manifests) == 10,
+                'Expected ten source-matched Windows plugins')
+        require(plugins == manifest['plugins'], 'Plugin inventories disagree')
+        require(len({plugin['id'] for plugin in plugins}) == 10 and
+                {plugin['id'] for plugin in plugins} == set(source_manifests), 'Plugin ID inventory mismatch')
+        require('milkup.updates' not in source_manifests, 'Legacy Updates must not be bundled')
+        for plugin_id, version in (('milkup.diagrams', '1.2.0'), ('milkup.formatting', '1.0.1'),
+                                   ('milkup.outline', '1.3.3')):
+            require(source_manifests[plugin_id].get('version') == version, f'{plugin_id} version mismatch')
+        expected_files = {'README.md', 'FEEDBACK.md', 'manifest.json', 'plugins.json', 'SHA256SUMS.txt',
+                          'samples/basic.md', 'samples/larger.md', installer_name}
+        formatting_review = None
+        for plugin in plugins:
+            source_manifest = source_manifests[plugin['id']]
+            filename = f'{plugin["id"]}-{source_manifest["version"]}.milkup-plugin'
+            require(plugin.get('archive') == filename and '/' not in filename and '\\' not in filename,
+                    'Plugin archive filename mismatch')
+            name = 'plugins/' + filename
+            expected_files.add(name)
+            data = member(name)
+            require(checksums[name] == plugin.get('sha256') and len(data) == plugin.get('bytes'),
+                    f'Plugin archive identity mismatch: {name}')
+            contents = parse_json(data)
+            require(contents.get('format') == 'milkup-plugin' and contents.get('version') == 1,
+                    'Unsupported plugin archive format')
+            require(contents.get('manifest') == source_manifest, 'Bundled manifest differs from exact committed source')
+            for field in ('id', 'version', 'host', 'engines', 'permissions'):
+                require(plugin.get(field) == source_manifest.get(field), f'Plugin inventory field mismatch: {field}')
+            require(plugin.get('sdkVersion') == sdk['version'], 'Plugin SDK version mismatch')
+            require(plugin.get('windowsBackendAvailable') is True, 'Windows plugin backend unavailable')
+            if plugin['id'] == 'milkup.diagrams':
+                require(plugin['sha256'] == DIAGRAMS_SHA256, 'Reviewed Diagrams Worker archive changed')
+            if plugin['id'] == 'milkup.formatting':
+                formatting_review = verify_reviewed_formatting(data)
+        require(formatting_review is not None, 'Missing reviewed Formatting viewport-loop fix')
+        require(file_names == expected_files, 'Unaccounted payload files')
+        require(len(payload) == 18, 'Incomplete verified payload')
+        manual_material = []
+        for name in ('README.md', 'FEEDBACK.md', 'samples/basic.md'):
+            committed = git_bytes(args.source, 'show', f'{args.expected_commit}:docs/manual-windows-beta6/{name}')
+            delivered = member(name)
+            if committed == delivered:
+                transform = 'identical'
+            else:
+                require(b'\r' not in committed and delivered == committed.replace(b'\n', b'\r\n'),
+                        f'Manual material has changes other than exact LF-to-CRLF conversion: {name}')
+                transform = 'exact-LF-to-CRLF'
+            manual_material.append({'name': name, 'sourceSha256': digest(committed),
+                                    'deliveredSha256': digest(delivered), 'sourceBytes': len(committed),
+                                    'deliveredBytes': len(delivered), 'transform': transform})
+
+    result = {
+        'status': 'passed', 'artifactId': metadata['id'], 'artifactZipSha256': zip_hash,
+        'artifactBytes': len(blob), 'expiresAt': metadata['expires_at'],
+        'source': args.expected_commit, 'runId': args.expected_run, 'version': VERSION,
+        'baseline': BASELINE, 'manifestSha256': digest(manifest_bytes),
+        'fileCount': len(payload), 'checksumCount': len(checksums),
+        'files': {name: {'bytes': len(data), 'sha256': digest(data)} for name, data in sorted(payload.items())},
+        'installer': manifest['installer'], 'application': manifest['application'],
+        'compiledApplication': manifest['compiledApplication'], 'extractedApplication': manifest['extractedApplication'],
+        'nsisImageVerification': manifest['nsisImageVerification'], 'plugins': manifest['plugins'],
+        'formattingReview': formatting_review, 'manualMaterial': manual_material,
+        'phaseCount': len(PHASES), 'sourceChecksPassed': True, 'rust': manifest['sourceChecks']['rust'],
+        'installerExecuted': False, 'guiAccepted': False,
+        'method': 'Local artifact metadata, ZIP CRC/path/size, 17 exact checksums, committed source manifests, and recorded Windows build proof. No installer or Windows application executed. Embedded PE/frontend bytes require the separate extraction check.',
+    }
+    args.destination.mkdir(parents=True, exist_ok=False)
+    for name, data in sorted(payload.items()):
+        destination = args.destination.joinpath(*PurePosixPath(name).parts)
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        with destination.open('xb') as output:
+            output.write(data)
+    proof_path.parent.mkdir(parents=True, exist_ok=True)
+    with proof_path.open('x', encoding='utf-8') as output:
+        json.dump(result, output, ensure_ascii=False, indent=2)
+        output.write('\n')
+    print(json.dumps(result, ensure_ascii=False, indent=2))
+
+
+if __name__ == '__main__':
+    try:
+        main()
+    except (ValueError, KeyError, TypeError, OSError, subprocess.SubprocessError, zipfile.BadZipFile) as error:
+        print(f'REJECTED: {error}', file=sys.stderr)
+        sys.exit(1)

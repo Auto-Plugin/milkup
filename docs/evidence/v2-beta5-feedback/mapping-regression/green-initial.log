@@ -1,0 +1,56 @@
+
+ RUN  v3.2.6 /tmp/milkup-windows-manual-candidate/packages/view-dom
+
+ ❯ src/__tests__/beta5-incremental-source-mapping.test.ts (14 tests | 1 failed) 1645ms
+   ✓ ordinary incremental live source mappings > keeps the retained later language control attached to its shifted fence 117ms
+   ✓ ordinary incremental live source mappings > replace preserves reused code/inline ranges and history with "\n" 95ms
+   ✓ ordinary incremental live source mappings > insert preserves reused code/inline ranges and history with "\n" 51ms
+   ✓ ordinary incremental live source mappings > delete preserves reused code/inline ranges and history with "\n" 50ms
+   ✓ ordinary incremental live source mappings > replace preserves reused code/inline ranges and history with "\r\n" 51ms
+   ✓ ordinary incremental live source mappings > insert preserves reused code/inline ranges and history with "\r\n" 50ms
+   ✓ ordinary incremental live source mappings > delete preserves reused code/inline ranges and history with "\r\n" 61ms
+   × windowed incremental live source mappings > keeps the retained later language control attached to its shifted fence 274ms
+     → expected '# Code selection\r\n\r\n```js title="…' to be '# Code selection\r\n\r\n```js title="…' // Object.is equality
+   ✓ windowed incremental live source mappings > replace preserves reused code/inline ranges and history with "\n" 161ms
+   ✓ windowed incremental live source mappings > insert preserves reused code/inline ranges and history with "\n" 162ms
+   ✓ windowed incremental live source mappings > delete preserves reused code/inline ranges and history with "\n" 181ms
+   ✓ windowed incremental live source mappings > replace preserves reused code/inline ranges and history with "\r\n" 123ms
+   ✓ windowed incremental live source mappings > insert preserves reused code/inline ranges and history with "\r\n" 118ms
+   ✓ windowed incremental live source mappings > delete preserves reused code/inline ranges and history with "\r\n" 148ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/__tests__/beta5-incremental-source-mapping.test.ts > windowed incremental live source mappings > keeps the retained later language control attached to its shifted fence
+AssertionError: expected '# Code selection\r\n\r\n```js title="…' to be '# Code selection\r\n\r\n```js title="…' // Object.is equality
+
+- Expected
++ Received
+
+@@ -5,9 +5,9 @@
+  console.log(名)
+  ```
+  
+  After **中文😀** and `é 👩🏽‍💻`
+  
+- ```python
++ ```js
+  const later = "中文😀";
+  ```
+
+
+ ❯ src/__tests__/beta5-incremental-source-mapping.test.ts:158:36
+    156|       picker.dispatchEvent(new Event('change', { bubbles: true }))
+    157|       if (s.view instanceof SourceDocumentView) await s.view.flushPend…
+    158|       expect(s.current().doc.text).toBe(expected.replace('```js\r\n', …
+       |                                    ^
+    159|       expect(s.current().doc.text).toContain('```js title="demo"')
+    160|     })
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 13 passed (14)
+   Start at  09:38:53
+   Duration  3.27s (transform 630ms, setup 0ms, collect 837ms, tests 1.64s, environment 511ms, prepare 99ms)
+

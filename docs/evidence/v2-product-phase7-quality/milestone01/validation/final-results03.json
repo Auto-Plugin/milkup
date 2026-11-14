@@ -1,0 +1,47 @@
+{
+  "steps": [
+    {
+      "name": "presentation-isolated",
+      "command": [
+        "bash",
+        "scripts/cloud/pnpm.sh",
+        "--config.verify-deps-before-run=false",
+        "--config.manage-package-manager-versions=false",
+        "--filter",
+        "@milkup/view-dom",
+        "exec",
+        "vitest",
+        "run",
+        "src/__tests__/presentation.test.ts",
+        "--maxWorkers=1",
+        "--no-file-parallelism"
+      ],
+      "exitCode": 0,
+      "elapsedSeconds": 3.961297130008461,
+      "startedAt": "2026-10-19T11:24:08.126648+00:00",
+      "finishedAt": "2026-10-19T11:24:12.087952+00:00",
+      "log": "/workspace/milkup-p7-quality-evidence/milestone01/validation/final-presentation-isolated-03.log"
+    },
+    {
+      "name": "workspace-tests",
+      "command": [
+        "bash",
+        "scripts/cloud/pnpm.sh",
+        "--config.verify-deps-before-run=false",
+        "--config.manage-package-manager-versions=false",
+        "test"
+      ],
+      "exitCode": 0,
+      "elapsedSeconds": 69.62695279299805,
+      "startedAt": "2026-10-19T11:24:12.088460+00:00",
+      "finishedAt": "2026-10-19T11:25:21.715547+00:00",
+      "log": "/workspace/milkup-p7-quality-evidence/milestone01/validation/final-workspace-tests-03.log"
+    }
+  ],
+  "allPassed": true,
+  "environmentOverrides": {
+    "NPM_CONFIG_VERIFY_DEPS_BEFORE_RUN": "false",
+    "NPM_CONFIG_MANAGE_PACKAGE_MANAGER_VERSIONS": "false"
+  },
+  "scope": "Non-GUI validation only. No corrective edits. Repository source drift must be evaluated using before/after records; generated build outputs are expected."
+}

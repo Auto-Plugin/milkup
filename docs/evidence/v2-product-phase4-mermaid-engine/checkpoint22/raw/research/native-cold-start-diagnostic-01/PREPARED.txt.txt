@@ -1,0 +1,73 @@
+Native cold-start diagnostic 01 — STATIC CANDIDATE, NO RUNTIME / BUILD PERFORMED
+
+Purpose and limits
+Retain production08 first failure unchanged. Exercise the original coldBundledWindow
+using identical fixtures, startup helpers, startup flow, sample assertions and budgets.
+The old late-start UI10 CPU/transport hooks are removed. New external CPU collection
+starts before the harness and binds from the native guardian-spawn identity event.
+After coldBundledWindow returns, emit DIAGNOSTIC_PREFIX_STOP and fullUIAccepted:false.
+This never claims full UI or production acceptance, even if the cold gate passes.
+All unexecuted later workflow function definitions remain copied for auditability.
+
+Files
+native/cold-prefix.mjs: cold-only entry, original catch/failure screenshot/final close.
+Before app.close, request capture sink finish and wait at most 1 second for final:true;
+capture-finalization.json records missing/incomplete capture without replacing failure.
+helpers/: byte-identical historical helper copies; no startup instrumentation added.
+cold-prefix-byte-proof.json + harness.diff: exact fixture/cold/startup evidence.
+static-input-check.json: all 12 production08 frontend hashes and all 2913 frozen source
+inputs verified against current checkout; documentation-only current HEAD is permitted.
+RUN.sh + run-env.sh + driver.sh: original bwrap arguments with independent profile,
+log and run paths, unchanged sandbox and shared dedicated display :126 / ports 4626/27.
+launch-driver-reaping.py: production08 lifecycle wait-only subreaper, unique control path.
+stop-driver.py: original validated PID/birth/PGID group termination plus boot-id check,
+pre/post identity and driver status evidence. Requires ready:true / No sessions first.
+run-harness.py: verify owned driver, wait for external CPU waiting-app, run cold harness,
+stop sampler and preserve status. No retry. Root stops driver after harness completes.
+verify-runtime-go.py: runtime GO binds the complete input manifest hash.
+build-diagnostic.py: future root-authorized build only; explicit manifest/GO required.
+
+Future build (not authorized or executed here)
+1. Root independently reviews native capture candidate, CPU sampler and these scripts.
+2. Freeze build-inputs.json: status ROOT_REVIEWED_BUILD_INPUTS, head:<current HEAD>,
+   files[{path,sha256}],
+   overlays[{repositoryPath,candidatePath,candidateSha256,originalSha256}]. Only the
+   three planned plugin_dom.rs, plugin_dom_process.rs, plugin_dom_request_diagnostic.rs
+   may be overlaid. The new module's originalSha256 must be null.
+3. Root verifies exclusive repository/Cargo target use and writes root-build-go.json
+   {authorized:true,buildInputsSha256:<hash>,exclusiveRepositoryAndCargoTarget:true}.
+4. Execute python3 build-diagnostic.py --execute-root-reviewed-build.
+   Reuses shared release cache, cargo --release --locked --offline with
+   --features tauri/custom-protocol; does not run frontend build or bundle deb.
+   Requires >=800MiB free before build (currently ~1.1GiB). No history auto-deletion.
+   Copies result to build-attempt-01/diagnostic-only-milkup-desktop, never overwrites
+   production08 install binary. Saves original bytes before overlay and finally
+   restores on success, failure, SIGINT or SIGTERM after stopping build children.
+   SIGKILL/power loss cannot run finally; restore/ retains original files for recovery.
+   Frontend 12 hashes checked before/after, production08 binary hash checked unchanged.
+   Cargo UNK bundle marker is explicitly distinct from historical production DEB.
+
+Future runtime (separate GO required)
+Run name: mermaid-ui-cold-diag-01.
+All outputs: this directory/runtime/mermaid-ui-cold-diag-01/.
+Root verifies prior owned driver shutdown, exact dedicated Xvfb identity, ports free,
+all inputs and fresh output paths. No broad process kills, no global process scans.
+reviewed-binary.env contains BINARY=<absolute diagnostic path> and BINARY_SHA=<hash>.
+Freeze runtime-inputs.json with run, classification
+DIAGNOSTIC_PREFIX_ONLY_NOT_PRODUCTION_ACCEPTANCE, binary:{path,sha256},
+sampler:{path,sha256}, and files:[{path,sha256}] covering binary, archive, catalog,
+all native candidates, harness/helpers, wrappers, sampler, source manifests and env.
+Root writes root-runtime-go.json {authorized:true,runtimeInputsSha256:<hash>}.
+Launch launch-driver-reaping.py separately (same approved namespace capability route).
+After driver ready, execute run-harness.py. It starts sampler with --identity-log
+runtime/<run>/native-capture/events.jsonl before invoking the unchanged startup path.
+MILKUP_COLD_REQUEST_DIAGNOSTICS=1 and MILKUP_COLD_REQUEST_OUTPUT_DIR=<fresh capture dir>
+are inherited from RUN.sh. Native sink exclusively creates that capture directory.
+When harness has closed app and sampler has finished, execute stop-driver.py and wait
+for subreaper completion. Preserve first failure, capture dropped counts, CPU identity
+coverage, exact cleanup and manifest hashes. Do not rerun automatically.
+
+Remaining blockers
+No diagnostic binary exists. Candidate capture implementation/sampler must finish
+independent review and be hash-frozen. Build and runtime GO files are intentionally
+absent. Raw cold input and renderer CPU evidence require the future reviewed run.

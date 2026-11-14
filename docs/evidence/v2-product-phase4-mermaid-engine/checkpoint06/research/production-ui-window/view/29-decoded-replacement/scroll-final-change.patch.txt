@@ -1,0 +1,14 @@
+--- /workspace/milkup-mermaid-engine-evidence/research/production-ui-window/view/29-decoded-replacement/manager-before-scroll.ts	2026-10-16 16:12:26.729470964 +0000
++++ /workspace/milkup/packages/view-dom/src/document-presentation.ts	2026-10-16 16:15:22.653681900 +0000
+@@ -1632,10 +1632,7 @@
+     )
+   }
+   private displayedFragment(fragment: DocumentPresentationFragment): DocumentPresentationFragment {
+-    const owner = this.fragmentImages.get(fragment)
+-    return owner && !owner.failed && owner.images.some((image) => image.state !== 'decoded')
+-      ? (this.previousFragmentImages.get(fragmentKey(fragment))?.owner.fragment ?? fragment)
+-      : fragment
++    return this.previousFragmentImages.get(fragmentKey(fragment))?.owner.fragment ?? fragment
+   }
+   /** Keep offsets only within this synchronous replacement, never across documents or edits. */
+   private capturePreviewScroll(): PreviewScroll | undefined {

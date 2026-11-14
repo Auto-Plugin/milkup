@@ -1,0 +1,273 @@
+{
+  "classification": "THREE_CASES_PASS_AFTER_SPECIFIC_TEST_PROOF_FIX",
+  "priorRemoveFailureUnchanged": "/workspace/milkup-mermaid-engine-evidence/research/production08-generic-busy-final-01/completed-manifest.json",
+  "qualification": "New remove validates a specifically corrected test proof; wm-close and app-sigkill were previously pending. Prior timeout and disable passes were not rerun. Native binary/observer/2s/10s/4.5s limits unchanged. Diagnostic timestamps are distinguished from natural exit/Child-wait upper bounds.",
+  "cases": [
+    {
+      "case": "remove",
+      "run": "lifecycle-p08-proof-fix-remove-01",
+      "actualExitCode": 0,
+      "command": {
+        "command": [
+          "bash",
+          "-lc",
+          "source /workspace/milkup-mermaid-engine-evidence/research/production08-generic-busy-proof-fix-01/run-env.sh \"$@\"\nexec node tests/native/tauri-dom-plugin-lifecycle.mjs",
+          "bash",
+          "lifecycle-p08-proof-fix-remove-01",
+          "remove",
+          "/workspace/milkup-mermaid-engine-evidence/linux-production-08/install/usr/bin/milkup-desktop",
+          "cd0f892d274bb363ee663e8b36aead93cbee31a4464bdef26ac849f5018cb304"
+        ],
+        "cwd": "/workspace/milkup",
+        "startedUtc": "2026-10-17T06:53:54.572059+00:00",
+        "exitCode": 0,
+        "endedUtc": "2026-10-17T06:54:17.154287+00:00"
+      },
+      "verdict": {
+        "name": "verdict",
+        "wall": 1792220056907,
+        "monotonicMs": 22279.851781,
+        "monotonicNs": 107669346656021,
+        "status": "passed",
+        "scope": "One full-editor generic DOM lifecycle case; official renderer acceptance separate"
+      },
+      "knownIdentityCount": 20,
+      "allKnownGone": true,
+      "portsFree": true,
+      "xvfbPreserved": true,
+      "waitOnlyReaps": 10,
+      "proof": {
+        "name": "guardian-app-wait-proof",
+        "wall": 1792220056661,
+        "monotonicMs": 22034.054049,
+        "monotonicNs": 107669100856140,
+        "guardian": {
+          "pid": 520688,
+          "birth": 10766449,
+          "parent": 520336,
+          "group": 520688,
+          "state": "S",
+          "ticks": 17,
+          "name": "milkup-desktop",
+          "instanceId": "2b464cb4f127fc01bbfab1d5af490e4c9968fe1ce241d69d"
+        },
+        "appIdentity": {
+          "pid": 520336,
+          "argv": [
+            "/workspace/milkup-mermaid-engine-evidence/linux-production-08/install/usr/bin/milkup-desktop",
+            "/workspace/milkup-mermaid-engine-evidence/research/production08-generic-busy-proof-fix-01/lifecycle/runs/lifecycle-p08-proof-fix-remove-01/document.md",
+            ""
+          ],
+          "birth": "10764734"
+        },
+        "killStarted": {
+          "instanceId": "2b464cb4f127fc01bbfab1d5af490e4c9968fe1ce241d69d",
+          "monotonicNs": 107667535503573,
+          "phase": "kill-start",
+          "pid": 520688,
+          "requestId": null
+        },
+        "confirmed": {
+          "instanceId": "2b464cb4f127fc01bbfab1d5af490e4c9968fe1ce241d69d",
+          "monotonicNs": 107667601822382,
+          "phase": "cleanup-confirmed",
+          "pid": 520336,
+          "requestId": null
+        },
+        "exactEchildMonotonicNs": 107667589357728,
+        "echildCompletedUpperBoundMonotonicNs": 107667601822382,
+        "upperBoundSource": "Exact App Child.try_wait success, then cleanup-confirmed for bound instance",
+        "terminalDiagnostic": "observed"
+      },
+      "ownedContextCleared": [
+        {
+          "name": "owned-context-cleared",
+          "wall": 1792220055603,
+          "monotonicMs": 20975.774041,
+          "monotonicNs": 107668042574147,
+          "elapsedMs": 70.67432199999894,
+          "observation": {
+            "mono": 107668.042048115,
+            "wall": 1792220055.603007,
+            "appAlive": true,
+            "guardians": [],
+            "members": [],
+            "privateDirectory": "/tmp/milkup-dom-8daa10dc1dada5cf5f7a8cbf3a01f5f04d9252164a111579",
+            "privateDirectoryExists": false
+          }
+        }
+      ]
+    },
+    {
+      "case": "wm-close",
+      "run": "lifecycle-p08-proof-fix-wm-close-01",
+      "actualExitCode": 0,
+      "command": {
+        "command": [
+          "bash",
+          "-lc",
+          "source /workspace/milkup-mermaid-engine-evidence/research/production08-generic-busy-proof-fix-01/run-env.sh \"$@\"\nexec node tests/native/tauri-dom-plugin-lifecycle.mjs",
+          "bash",
+          "lifecycle-p08-proof-fix-wm-close-01",
+          "wm-close",
+          "/workspace/milkup-mermaid-engine-evidence/linux-production-08/install/usr/bin/milkup-desktop",
+          "cd0f892d274bb363ee663e8b36aead93cbee31a4464bdef26ac849f5018cb304"
+        ],
+        "cwd": "/workspace/milkup",
+        "startedUtc": "2026-10-17T06:54:55.957405+00:00",
+        "exitCode": 0,
+        "endedUtc": "2026-10-17T06:55:12.701648+00:00"
+      },
+      "verdict": {
+        "name": "verdict",
+        "wall": 1792220112613,
+        "monotonicMs": 16613.061961,
+        "monotonicNs": 107725052100629,
+        "status": "passed",
+        "scope": "One full-editor generic DOM lifecycle case; official renderer acceptance separate"
+      },
+      "knownIdentityCount": 21,
+      "allKnownGone": true,
+      "portsFree": true,
+      "xvfbPreserved": true,
+      "waitOnlyReaps": 11,
+      "proof": {
+        "name": "guardian-app-wait-proof",
+        "wall": 1792220112568,
+        "monotonicMs": 16568.462646,
+        "monotonicNs": 107725007501255,
+        "guardian": {
+          "pid": 521235,
+          "birth": 10772218,
+          "parent": 520893,
+          "group": 521235,
+          "state": "S",
+          "ticks": 10,
+          "name": "milkup-desktop",
+          "instanceId": "5e710e4b7f8be4463a998827e8746c435bded24fbe087d9b"
+        },
+        "appIdentity": {
+          "pid": 520893,
+          "argv": [
+            "/workspace/milkup-mermaid-engine-evidence/linux-production-08/install/usr/bin/milkup-desktop",
+            "/workspace/milkup-mermaid-engine-evidence/research/production08-generic-busy-proof-fix-01/lifecycle/runs/lifecycle-p08-proof-fix-wm-close-01/document.md",
+            ""
+          ],
+          "birth": "10770859"
+        },
+        "killStarted": {
+          "instanceId": "5e710e4b7f8be4463a998827e8746c435bded24fbe087d9b",
+          "monotonicNs": 107724770464451,
+          "phase": "kill-start",
+          "pid": 521235,
+          "requestId": null
+        },
+        "confirmed": {
+          "instanceId": "5e710e4b7f8be4463a998827e8746c435bded24fbe087d9b",
+          "monotonicNs": 107724809161518,
+          "phase": "cleanup-confirmed",
+          "pid": 520893,
+          "requestId": null
+        },
+        "exactEchildMonotonicNs": 107724804378257,
+        "echildCompletedUpperBoundMonotonicNs": 107724809161518,
+        "upperBoundSource": "Exact App Child.try_wait success, then cleanup-confirmed for bound instance",
+        "terminalDiagnostic": "observed"
+      },
+      "ownedContextCleared": [
+        {
+          "name": "owned-context-cleared",
+          "wall": 1792220112564,
+          "monotonicMs": 16564.558304,
+          "monotonicNs": 107725003600111,
+          "elapsedMs": 244.2569510000012,
+          "observation": {
+            "mono": 107725.002918293,
+            "wall": 1792220112.563877,
+            "appAlive": false,
+            "guardians": [],
+            "members": [],
+            "privateDirectory": "/tmp/milkup-dom-2a48867a06aa8a0a33761f472c8d783f75e61f9d8d7f5970",
+            "privateDirectoryExists": false
+          }
+        }
+      ]
+    },
+    {
+      "case": "app-sigkill",
+      "run": "lifecycle-p08-proof-fix-app-sigkill-01",
+      "actualExitCode": 0,
+      "command": {
+        "command": [
+          "bash",
+          "-lc",
+          "source /workspace/milkup-mermaid-engine-evidence/research/production08-generic-busy-proof-fix-01/run-env.sh \"$@\"\nexec node tests/native/tauri-dom-plugin-lifecycle.mjs",
+          "bash",
+          "lifecycle-p08-proof-fix-app-sigkill-01",
+          "app-sigkill",
+          "/workspace/milkup-mermaid-engine-evidence/linux-production-08/install/usr/bin/milkup-desktop",
+          "cd0f892d274bb363ee663e8b36aead93cbee31a4464bdef26ac849f5018cb304"
+        ],
+        "cwd": "/workspace/milkup",
+        "startedUtc": "2026-10-17T06:55:54.092048+00:00",
+        "exitCode": 0,
+        "endedUtc": "2026-10-17T06:56:10.097065+00:00"
+      },
+      "verdict": {
+        "name": "verdict",
+        "wall": 1792220170014,
+        "monotonicMs": 15882.406637,
+        "monotonicNs": 107782453739550,
+        "status": "passed",
+        "scope": "One full-editor generic DOM lifecycle case; official renderer acceptance separate"
+      },
+      "knownIdentityCount": 21,
+      "allKnownGone": true,
+      "portsFree": true,
+      "xvfbPreserved": true,
+      "waitOnlyReaps": 12,
+      "proof": {
+        "name": "guardian-natural-exit-proof",
+        "wall": 1792220169959,
+        "monotonicMs": 15827.394687,
+        "monotonicNs": 107782398725107,
+        "reaped": {
+          "identity": {
+            "pid": 521799,
+            "birth": "10777976",
+            "parent": 521412,
+            "state": "Z",
+            "group": 521799,
+            "name": "milkup-desktop"
+          },
+          "exitedObservedMonotonicNs": 107782355548554,
+          "waitpidCompletedMonotonicNs": 107782356164390,
+          "exitCode": 0,
+          "noSignalSent": true
+        },
+        "exactEchildMonotonicNs": null,
+        "echildCompletedUpperBoundMonotonicNs": 107782355548554,
+        "terminalDiagnostic": "unobservable: best-effort asynchronous trace",
+        "functionalCleanup": "All tracked PID/birth identities and private directory cleared within original 4.5s observer bound"
+      },
+      "ownedContextCleared": [
+        {
+          "name": "owned-context-cleared",
+          "wall": 1792220169948,
+          "monotonicMs": 15815.840704,
+          "monotonicNs": 107782387171334,
+          "elapsedMs": 66.24523899999986,
+          "observation": {
+            "mono": 107782.386493192,
+            "wall": 1792220169.947452,
+            "appAlive": false,
+            "guardians": [],
+            "members": [],
+            "privateDirectory": "/tmp/milkup-dom-e0d3f8387a245eaab07f78d3959dd143175379e3ec6090e3",
+            "privateDirectoryExists": false
+          }
+        }
+      ]
+    }
+  ]
+}

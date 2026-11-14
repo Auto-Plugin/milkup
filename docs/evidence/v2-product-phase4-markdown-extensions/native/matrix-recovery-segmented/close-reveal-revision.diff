@@ -1,0 +1,19 @@
+--- formal-before
++++ formal-after
+@@ -465,8 +465,14 @@
+   await ui.ready('#plugin-detail-title')
+ }
+ async function closeUI() {
+-  for (const selector of [formatting, images, preferences])
+-    if (await ui.exists(selector)) await click(`${selector} .plugin-ui-close`)
++  for (const selector of [formatting, images, preferences]) {
++    if (await ui.exists(selector)) {
++      // Modal content may retain a scroll position below its close control.
++      // Reveal only this public modal control before the strict pointer check.
++      await app.focus(`${selector} .plugin-ui-close`)
++      await click(`${selector} .plugin-ui-close`)
++    }
++  }
+   if (
+     await app.execute('return !!document.querySelector("[data-app-menu]")?.getClientRects().length')
+   )

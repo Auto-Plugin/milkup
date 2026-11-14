@@ -1,0 +1,83 @@
+"""Read-only checks. Prints JSON; never imports or executes the build wrapper."""
+import datetime
+import fcntl
+import hashlib
+import json
+import shutil
+import subprocess
+from pathlib import Path
+
+BASE = Path(__file__).resolve().parent
+REPO = Path('/workspace/milkup')
+PROD = Path('/workspace/milkup-mermaid-engine-evidence/linux-production-08')
+
+
+def sha(path):
+    return hashlib.sha256(Path(path).read_bytes()).hexdigest()
+
+
+inputs = json.loads((BASE / 'build-inputs.json').read_text())
+result = {'atUtc': datetime.datetime.now(datetime.timezone.utc).isoformat(),
+          'scope': 'read-only build preparation; not authorization',
+          'buildInputsSha256': sha(BASE / 'build-inputs.json')}
+try:
+    head = subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=REPO, text=True).strip()
+    assert head == inputs['head']
+    assert subprocess.check_output(['git', 'status', '--porcelain'], cwd=REPO, text=True) == ''
+    result['head'] = head
+    for row in inputs['files']:
+        p = Path(row['path'])
+        assert p.stat().st_size == row['bytes'] and sha(p) == row['sha256'], str(p)
+    result['inputFilesMatched'] = len(inputs['files'])
+    sources = json.loads((PROD / 'source-before.json').read_text())['files']
+    for row in sources:
+        assert sha(REPO / row['path']) == row['sha256'], row['path']
+    result['productionSourceFilesMatched'] = len(sources)
+    provenance = json.loads((PROD / 'provenance.json').read_text())
+    expected = {str(Path(r['path']).relative_to(PROD / 'frontend')): r['sha256']
+                for r in provenance['frontend']}
+    actual = {str(p.relative_to(REPO / 'apps/desktop/dist')): sha(p)
+              for p in (REPO / 'apps/desktop/dist').rglob('*') if p.is_file()}
+    assert len(expected) == 12 and actual == expected
+    result['frontendFilesMatched'] = len(actual)
+    assert sha(provenance['binary']['path']) == provenance['binary']['sha256']
+    result['productionBinaryUnchanged'] = True
+    overlays = inputs['overlays']
+    assert len(overlays) == len({o['repositoryPath'] for o in overlays}) == 8
+    for row in overlays:
+        target = REPO / row['repositoryPath']
+        assert sha(row['candidatePath']) == row['candidateSha256']
+        if row['originalSha256'] is None:
+            assert not target.exists(), str(target)
+        else:
+            assert sha(target) == row['originalSha256'], str(target)
+    result['overlayCount'] = len(overlays)
+    release = REPO / 'apps/desktop/src-tauri/target/release'
+    paths = [release / 'milkup-desktop', *release.glob('build/milkup-desktop-*/out/libmilkup_dom_guard.so')]
+    refs = inputs['priorTargetReferences']
+    assert {str(p) for p in paths} == {r['currentPath'] for r in refs}
+    for row in refs:
+        for key in ('currentPath', 'frozenPath'):
+            p = Path(row[key])
+            assert p.stat().st_size == row['bytes'] and sha(p) == row['sha256']
+    result['priorTargetExactReferencesMatched'] = len(refs)
+    assert not (BASE / 'build-attempt-01').exists()
+    lock_path = BASE.parent / 'native-cold-start-diagnostic-01/build-exclusive.lock'
+    with lock_path.open('r') as lock:
+        fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        result['cooperativeLockAvailableAtCheck'] = True
+    result['lockQualification'] = 'Momentary advisory check only; Root must separately establish exclusive shared Cargo/repository ownership.'
+    free = shutil.disk_usage(BASE).free
+    result['freeBytes'] = free
+    result['freeMiB'] = free / 1048576
+    result['startFloorBytes'] = 800 * 1048576
+    result['startMarginBytes'] = free - result['startFloorBytes']
+    assert free >= result['startFloorBytes'], '800MiB start floor unmet'
+    result['spaceQualification'] = 'Start admission only; compiler transient peak not established. No deletion or threshold reduction.'
+    result['pending'] = inputs['pending']
+    result['status'] = 'READ_ONLY_PREFLIGHT_READY_PENDING_ROOT_GO'
+except Exception as error:
+    result['status'] = 'READ_ONLY_PREFLIGHT_FAILED'
+    result['error'] = repr(error)
+print(json.dumps(result, indent=2))
+raise SystemExit(0 if result['status'] == 'READ_ONLY_PREFLIGHT_READY_PENDING_ROOT_GO' else 1)

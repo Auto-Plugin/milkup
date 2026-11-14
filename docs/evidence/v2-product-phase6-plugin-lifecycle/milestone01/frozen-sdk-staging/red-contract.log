@@ -1,0 +1,88 @@
+✖ frozen SDK is bound to its reviewed tar, independently of host SDK/source (19.086155ms)
+✔ installed package metadata, JavaScript, types and documentation must match archive bytes (15.241784ms)
+✖ reviewed tar hash, local installation and required artifact remain authoritative (8.29995ms)
+✔ rejects unsafe or incomplete reviewed archive shapes without extraction (58.432197ms)
+✔ archive metadata cannot change the SDK name, version grammar or fixed exports (12.392305ms)
+✖ different frozen SDK artifacts resolve separately without changing either tar (8.387711ms)
+ℹ tests 6
+ℹ suites 0
+ℹ pass 3
+ℹ fail 3
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 210.098671
+
+✖ failing tests:
+
+test at tests/ci/public-plugin-sdk-artifact.test.mjs:56:1
+✖ frozen SDK is bound to its reviewed tar, independently of host SDK/source (19.086155ms)
+  AssertionError [ERR_ASSERTION]: SDK package version mismatch
+  + actual - expected
+  
+  + '0.3.4'
+  - undefined
+  
+      at resolvePublicPluginSdkEntry (file:///workspace/milkup/scripts/ci/public-plugin-build-contract.mjs:418:10)
+      at async TestContext.<anonymous> (file:///workspace/milkup/tests/ci/public-plugin-sdk-artifact.test.mjs:61:20)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: '0.3.4',
+    expected: undefined,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at tests/ci/public-plugin-sdk-artifact.test.mjs:78:1
+✖ reviewed tar hash, local installation and required artifact remain authoritative (8.29995ms)
+  AssertionError [ERR_ASSERTION]: The input did not match the regular expression /hash/i. Input:
+  
+  'AssertionError [ERR_ASSERTION]: SDK package version mismatch\n' +
+    '+ actual - expected\n' +
+    '\n' +
+    "+ '0.3.4'\n" +
+    '- undefined\n'
+  
+      at async TestContext.<anonymous> (file:///workspace/milkup/tests/ci/public-plugin-sdk-artifact.test.mjs:80:3)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: AssertionError [ERR_ASSERTION]: SDK package version mismatch
+    + actual - expected
+    
+    + '0.3.4'
+    - undefined
+    
+        at resolvePublicPluginSdkEntry (file:///workspace/milkup/scripts/ci/public-plugin-build-contract.mjs:418:10)
+        at async waitForActual (node:assert:646:5)
+        at async strict.rejects (node:assert:769:25)
+        at async TestContext.<anonymous> (file:///workspace/milkup/tests/ci/public-plugin-sdk-artifact.test.mjs:80:3)
+        at async Test.run (node:internal/test_runner/test:1389:7)
+        at async Test.processPendingSubtests (node:internal/test_runner/test:960:7),
+    expected: /hash/i,
+    operator: 'rejects',
+    diff: 'simple'
+  }
+
+test at tests/ci/public-plugin-sdk-artifact.test.mjs:124:1
+✖ different frozen SDK artifacts resolve separately without changing either tar (8.387711ms)
+  AssertionError [ERR_ASSERTION]: SDK package version mismatch
+  + actual - expected
+  
+  + '0.3.4'
+  - undefined
+  
+      at resolvePublicPluginSdkEntry (file:///workspace/milkup/scripts/ci/public-plugin-build-contract.mjs:418:10)
+      at async TestContext.<anonymous> (file:///workspace/milkup/tests/ci/public-plugin-sdk-artifact.test.mjs:126:17)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: '0.3.4',
+    expected: undefined,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }

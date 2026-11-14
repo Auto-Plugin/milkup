@@ -1,0 +1,33 @@
+{
+  "reviewedBy": "root",
+  "reviewedAt": "2026-10-16T08:09:23.986568+00:00",
+  "method": "Actually opened the original PNG files with view_image; findings describe pixels, not inferred DOM geometry.",
+  "files": [
+    {
+      "path": "run-candidate10-windowed-scroll01/FAIL-x11.png",
+      "sha256": "e4dd70f04142ac9e0e5a93049bb6876b6ec08216069348486a9a6bd482269985",
+      "observed": "Before: after the original bounded 30-notch failure, only the start node and upper diamond are visible; the completion node is below the editor viewport."
+    },
+    {
+      "path": "run-candidate11-reachability01/reach-ordinary-light-flow-bottom-x11.png",
+      "sha256": "c348953894be1888c16a33c18d8a541c6736aee2f3136f425680cfcbbb84dbbf",
+      "observed": "After ordinary light: completion node, arrow and lower border are visible."
+    },
+    {
+      "path": "run-candidate11-reachability01/reach-ordinary-dark-pie-legend-乙-x11.png",
+      "sha256": "78b032634ab75439f5ba4ce4254c75bcdd2009ae4c562e890481dadc204f01e5",
+      "observed": "After ordinary dark: both numbered Chinese legend labels and full percentages are visible after real horizontal scrolling."
+    },
+    {
+      "path": "run-candidate11-reachability01/reach-windowed-light-flow-bottom-x11.png",
+      "sha256": "b6c377734d68150e54970a74fe2fd49f93b6ea907a41286ac2d6e9f13228b174",
+      "observed": "After windowed light: completion node and complete bottom border are visibly inside the editor, with status bar below."
+    },
+    {
+      "path": "run-candidate11-reachability01/reach-windowed-light-flow-bottom-webview.png",
+      "sha256": "5792a7a354347c38e73131a7e7399a72c6e28ef8943eed49ae89ab183ea482fe",
+      "observed": "WebView counterpart agrees with the X11 application region: completion node and border visible."
+    }
+  ],
+  "scope": "This focused comparison establishes the previously failed visible bottom target. Full supplemental image review and formal matrix are recorded separately. No Windows verification."
+}

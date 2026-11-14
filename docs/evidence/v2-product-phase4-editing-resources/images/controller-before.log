@@ -1,0 +1,27 @@
+
+ RUN  v3.2.6 /workspace/milkup/plugins/images
+
+ ✓ src/format.test.ts (14 tests) 7ms
+
+⎯⎯⎯⎯⎯⎯ Failed Suites 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/controller.test.ts [ src/controller.test.ts ]
+Error: Cannot find module './controller' imported from '/workspace/milkup/plugins/images/src/controller.test.ts'
+ ❯ src/controller.test.ts:2:1
+      1| import { describe, expect, it, vi } from 'vitest'
+      2| import { createController, POLICY_KEY } from './controller'
+       | ^
+      3| 
+      4| const deferred = <T>() => {
+
+Caused by: Error: Failed to load url ./controller (resolved id: ./controller) in /workspace/milkup/plugins/images/src/controller.test.ts. Does the file exist?
+ ❯ loadAndTransform ../../node_modules/.pnpm/vite@7.3.6_@types+node@24.13.2/node_modules/vite/dist/node/chunks/config.js:22739:33
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed | 1 passed (2)
+      Tests  14 passed (14)
+   Start at  08:01:07
+   Duration  525ms (transform 197ms, setup 0ms, collect 42ms, tests 7ms, environment 0ms, prepare 219ms)
+

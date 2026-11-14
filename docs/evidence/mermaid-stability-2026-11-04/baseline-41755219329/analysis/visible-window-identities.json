@@ -1,0 +1,465 @@
+{
+  "schema": 1,
+  "readOnlySource": true,
+  "runId": "41755219329",
+  "filter": "consoleCandidate && productObservationInterval && !positiveControlInterval && !baselineVisible && observedVisible",
+  "deduplication": "hwnd:pid:(processCreationFileTime ?? 0)",
+  "canonicalRecordDigest": "Python json.dumps(obj, sort_keys=True, separators=(comma,colon), ensure_ascii=False), UTF-8",
+  "source": {
+    "nativeWindowEvents": {
+      "path": "/workspace/mermaid-stability-evidence/baseline-41755219329/extracted/native-window-events.json",
+      "bytes": 1002544,
+      "sha256": "2428ff62b7593b4f8e500e5e77583d05d3f72872c7bebd42874ac3eb42f74a02"
+    },
+    "guiRegression": {
+      "path": "/workspace/mermaid-stability-evidence/baseline-41755219329/extracted/gui-regression.json",
+      "bytes": 438969,
+      "sha256": "459a0595dec57751b12207c2b7e023e05649880b5d2b87079f3ec24bc0a431b7"
+    }
+  },
+  "sourceCompleteness": {
+    "complete": false,
+    "overflow": true,
+    "retainedEvents": 2048,
+    "retainedProcessRows": 256,
+    "reportedProductVisibleConsoleCount": 17,
+    "reportedUnattributedVisibleConsoleCount": 20
+  },
+  "summary": {
+    "retainedVisibleEvents": 10,
+    "retainedVisibleIdentities": 10,
+    "productTaggedIdentities": 5,
+    "unattributedIdentities": 5,
+    "actualVisibleIdentities": 6,
+    "showEventOnlyIdentities": 4,
+    "exactIcaclsWithTrackedParent": 4
+  },
+  "identities": [
+    {
+      "identity": "0x2024c:5848:134382298988742741",
+      "hwnd": "0x2024c",
+      "pid": 5848,
+      "creationFileTime": "134382298988742741",
+      "eventCount": 1,
+      "attributions": [
+        "unattributed"
+      ],
+      "processLink": null,
+      "pidOnlyRecordCount": 0,
+      "events": [
+        {
+          "eventIndex": 113,
+          "sequence": 114,
+          "elapsedMs": 15614,
+          "nativeEventUptimeMs32": 225812,
+          "phase": "open-ordinary-stable",
+          "kind": "show",
+          "showEvent": true,
+          "visibleNow": false,
+          "cloaked": 0,
+          "rect": [
+            26,
+            26,
+            1019,
+            545
+          ],
+          "positiveRect": true,
+          "actualVisible": false,
+          "showEventOnly": true,
+          "className": "ConsoleWindowClass",
+          "attribution": "unattributed",
+          "eventSha256": "c99e4f3caf1bea5575b7ff0072f76ebbe4659f622940c5ecbbf5cb8d8c653022"
+        }
+      ]
+    },
+    {
+      "identity": "0x40218:8696:134382298990846120",
+      "hwnd": "0x40218",
+      "pid": 8696,
+      "creationFileTime": "134382298990846120",
+      "eventCount": 1,
+      "attributions": [
+        "product-descendant"
+      ],
+      "processLink": {
+        "match": "exact-pid-and-creationFileTime",
+        "processIndex": 42,
+        "processRecordSha256": "762f56e4bc70529890860a0274538edb7e975ce6863e6d5fa12f7ad898d5ba7b",
+        "image": "C:\\Windows\\System32\\icacls.exe",
+        "parentPid": 8048,
+        "trackedParent": {
+          "trackedProductIndex": 0,
+          "pid": 8048,
+          "creationFileTime": "134382298856071738",
+          "image": "C:\\Users\\mkme808e34fa7aab4c\\.milkup-mermaid-product-808e34fa7aab4cd0929ae135d50da255\\install\\milkup-desktop.exe",
+          "childCreatedAfterTrackedProduct": true,
+          "recordSha256": "b7022f95f6f451ecf24c78edea2f748985c565d97b0d7868ea41dae3f4eb003d"
+        }
+      },
+      "pidOnlyRecordCount": 1,
+      "events": [
+        {
+          "eventIndex": 118,
+          "sequence": 119,
+          "elapsedMs": 15860,
+          "nativeEventUptimeMs32": 226062,
+          "phase": "open-ordinary-stable",
+          "kind": "show",
+          "showEvent": true,
+          "visibleNow": false,
+          "cloaked": 0,
+          "rect": [
+            31,
+            78,
+            1024,
+            597
+          ],
+          "positiveRect": true,
+          "actualVisible": false,
+          "showEventOnly": true,
+          "className": "ConsoleWindowClass",
+          "attribution": "product-descendant",
+          "eventSha256": "90106f90172c5f2ef8214e8e7311d11b7e446373b0c434670c22c7d67ebde6eb"
+        }
+      ]
+    },
+    {
+      "identity": "0x8024e:8476:134382299794499116",
+      "hwnd": "0x8024e",
+      "pid": 8476,
+      "creationFileTime": "134382299794499116",
+      "eventCount": 1,
+      "attributions": [
+        "product-descendant"
+      ],
+      "processLink": {
+        "match": "exact-pid-and-creationFileTime",
+        "processIndex": 57,
+        "processRecordSha256": "4cc5731947c348222ae0297a81fd2f37aa78223abffca29a1ec8b936110e8988",
+        "image": "C:\\Windows\\System32\\icacls.exe",
+        "parentPid": 8048,
+        "trackedParent": {
+          "trackedProductIndex": 0,
+          "pid": 8048,
+          "creationFileTime": "134382298856071738",
+          "image": "C:\\Users\\mkme808e34fa7aab4c\\.milkup-mermaid-product-808e34fa7aab4cd0929ae135d50da255\\install\\milkup-desktop.exe",
+          "childCreatedAfterTrackedProduct": true,
+          "recordSha256": "b7022f95f6f451ecf24c78edea2f748985c565d97b0d7868ea41dae3f4eb003d"
+        }
+      },
+      "pidOnlyRecordCount": 1,
+      "events": [
+        {
+          "eventIndex": 274,
+          "sequence": 275,
+          "elapsedMs": 96203,
+          "nativeEventUptimeMs32": 306390,
+          "phase": "open-wide-stable",
+          "kind": "show",
+          "showEvent": true,
+          "visibleNow": false,
+          "cloaked": 0,
+          "rect": [
+            31,
+            156,
+            1024,
+            675
+          ],
+          "positiveRect": true,
+          "actualVisible": false,
+          "showEventOnly": true,
+          "className": "ConsoleWindowClass",
+          "attribution": "product-descendant",
+          "eventSha256": "74be2832c30251192a7c95776e5c85b4f2dc3bfd02354dceb5adb0baaddd35fd"
+        }
+      ]
+    },
+    {
+      "identity": "0x401ee:3420:134382299795279663",
+      "hwnd": "0x401ee",
+      "pid": 3420,
+      "creationFileTime": "134382299795279663",
+      "eventCount": 1,
+      "attributions": [
+        "unattributed"
+      ],
+      "processLink": null,
+      "pidOnlyRecordCount": 0,
+      "events": [
+        {
+          "eventIndex": 281,
+          "sequence": 282,
+          "elapsedMs": 96306,
+          "nativeEventUptimeMs32": 306515,
+          "phase": "open-wide-stable",
+          "kind": "show",
+          "showEvent": true,
+          "visibleNow": true,
+          "cloaked": 0,
+          "rect": [
+            26,
+            26,
+            1019,
+            545
+          ],
+          "positiveRect": true,
+          "actualVisible": true,
+          "showEventOnly": false,
+          "className": "ConsoleWindowClass",
+          "attribution": "unattributed",
+          "eventSha256": "a9ef6668e69e0ef54992e526707c64a50d6e235576002f573018cbc00cfc0d66"
+        }
+      ]
+    },
+    {
+      "identity": "0x501ee:3784:134382299796536351",
+      "hwnd": "0x501ee",
+      "pid": 3784,
+      "creationFileTime": "134382299796536351",
+      "eventCount": 1,
+      "attributions": [
+        "unattributed"
+      ],
+      "processLink": null,
+      "pidOnlyRecordCount": 0,
+      "events": [
+        {
+          "eventIndex": 286,
+          "sequence": 287,
+          "elapsedMs": 96481,
+          "nativeEventUptimeMs32": 306640,
+          "phase": "open-wide-stable",
+          "kind": "show",
+          "showEvent": true,
+          "visibleNow": false,
+          "cloaked": 0,
+          "rect": [
+            31,
+            52,
+            1024,
+            571
+          ],
+          "positiveRect": true,
+          "actualVisible": false,
+          "showEventOnly": true,
+          "className": "ConsoleWindowClass",
+          "attribution": "unattributed",
+          "eventSha256": "b935f14351f19e2b3e9d216280fd5b6df4816cefe0df2e240397bde07f056147"
+        }
+      ]
+    },
+    {
+      "identity": "0x90064:5792:134382299859892376",
+      "hwnd": "0x90064",
+      "pid": 5792,
+      "creationFileTime": "134382299859892376",
+      "eventCount": 1,
+      "attributions": [
+        "product-descendant"
+      ],
+      "processLink": {
+        "match": "exact-pid-and-creationFileTime",
+        "processIndex": 80,
+        "processRecordSha256": "80804f3a0b1dccd4e7278c5735835af4fd293ef7fa866082d1dcc6d01ff541b1",
+        "image": "C:\\Windows\\System32\\icacls.exe",
+        "parentPid": 8048,
+        "trackedParent": {
+          "trackedProductIndex": 0,
+          "pid": 8048,
+          "creationFileTime": "134382298856071738",
+          "image": "C:\\Users\\mkme808e34fa7aab4c\\.milkup-mermaid-product-808e34fa7aab4cd0929ae135d50da255\\install\\milkup-desktop.exe",
+          "childCreatedAfterTrackedProduct": true,
+          "recordSha256": "b7022f95f6f451ecf24c78edea2f748985c565d97b0d7868ea41dae3f4eb003d"
+        }
+      },
+      "pidOnlyRecordCount": 1,
+      "events": [
+        {
+          "eventIndex": 1100,
+          "sequence": 1101,
+          "elapsedMs": 102703,
+          "nativeEventUptimeMs32": null,
+          "phase": "open-wide-stable",
+          "kind": "poll",
+          "showEvent": false,
+          "visibleNow": true,
+          "cloaked": 0,
+          "rect": [
+            31,
+            156,
+            1024,
+            675
+          ],
+          "positiveRect": true,
+          "actualVisible": true,
+          "showEventOnly": false,
+          "className": "ConsoleWindowClass",
+          "attribution": "product-descendant",
+          "eventSha256": "ad9ad8d61872db14648495e491298e0b618655f88ed6cb2eb796b8daf5d83a9b"
+        }
+      ]
+    },
+    {
+      "identity": "0x8008e:4204:134382299883273722",
+      "hwnd": "0x8008e",
+      "pid": 4204,
+      "creationFileTime": "134382299883273722",
+      "eventCount": 1,
+      "attributions": [
+        "unattributed"
+      ],
+      "processLink": null,
+      "pidOnlyRecordCount": 0,
+      "events": [
+        {
+          "eventIndex": 1521,
+          "sequence": 1522,
+          "elapsedMs": 105044,
+          "nativeEventUptimeMs32": 315250,
+          "phase": "open-wide-stable",
+          "kind": "create",
+          "showEvent": false,
+          "visibleNow": true,
+          "cloaked": 0,
+          "rect": [
+            31,
+            104,
+            1024,
+            623
+          ],
+          "positiveRect": true,
+          "actualVisible": true,
+          "showEventOnly": false,
+          "className": "ConsoleWindowClass",
+          "attribution": "unattributed",
+          "eventSha256": "5ac3eb25c56f79ae4180ad532748f879d7e53855c97c8247e19fd51ddce2269c"
+        }
+      ]
+    },
+    {
+      "identity": "0x9008e:6304:134382299883893911",
+      "hwnd": "0x9008e",
+      "pid": 6304,
+      "creationFileTime": "134382299883893911",
+      "eventCount": 1,
+      "attributions": [
+        "product-descendant"
+      ],
+      "processLink": null,
+      "pidOnlyRecordCount": 1,
+      "events": [
+        {
+          "eventIndex": 1523,
+          "sequence": 1524,
+          "elapsedMs": 105095,
+          "nativeEventUptimeMs32": null,
+          "phase": "open-wide-stable",
+          "kind": "poll",
+          "showEvent": false,
+          "visibleNow": true,
+          "cloaked": 0,
+          "rect": [
+            31,
+            130,
+            1024,
+            649
+          ],
+          "positiveRect": true,
+          "actualVisible": true,
+          "showEventOnly": false,
+          "className": "ConsoleWindowClass",
+          "attribution": "product-descendant",
+          "eventSha256": "54cd1cd32ae15dc12e0c19fcdd8f5b8744ffb2eec0019931e5b8eb87cee40e9b"
+        }
+      ]
+    },
+    {
+      "identity": "0xf01ee:6832:134382300682158877",
+      "hwnd": "0xf01ee",
+      "pid": 6832,
+      "creationFileTime": "134382300682158877",
+      "eventCount": 1,
+      "attributions": [
+        "product-descendant"
+      ],
+      "processLink": {
+        "match": "exact-pid-and-creationFileTime",
+        "processIndex": 100,
+        "processRecordSha256": "ce6f413791d9780da0d7cfc6369e748ac52940b02bf9834f466b04246e08f466",
+        "image": "C:\\Windows\\System32\\icacls.exe",
+        "parentPid": 8048,
+        "trackedParent": {
+          "trackedProductIndex": 0,
+          "pid": 8048,
+          "creationFileTime": "134382298856071738",
+          "image": "C:\\Users\\mkme808e34fa7aab4c\\.milkup-mermaid-product-808e34fa7aab4cd0929ae135d50da255\\install\\milkup-desktop.exe",
+          "childCreatedAfterTrackedProduct": true,
+          "recordSha256": "b7022f95f6f451ecf24c78edea2f748985c565d97b0d7868ea41dae3f4eb003d"
+        }
+      },
+      "pidOnlyRecordCount": 1,
+      "events": [
+        {
+          "eventIndex": 1964,
+          "sequence": 1965,
+          "elapsedMs": 184928,
+          "nativeEventUptimeMs32": null,
+          "phase": "resize-wide",
+          "kind": "poll",
+          "showEvent": false,
+          "visibleNow": true,
+          "cloaked": 0,
+          "rect": [
+            31,
+            156,
+            1024,
+            675
+          ],
+          "positiveRect": true,
+          "actualVisible": true,
+          "showEventOnly": false,
+          "className": "ConsoleWindowClass",
+          "attribution": "product-descendant",
+          "eventSha256": "eaf3699eeff5d98ae163dfa600a5b3e42052bb977b053de560edb6754ea94984"
+        }
+      ]
+    },
+    {
+      "identity": "0xd0046:5084:134382300682792781",
+      "hwnd": "0xd0046",
+      "pid": 5084,
+      "creationFileTime": "134382300682792781",
+      "eventCount": 1,
+      "attributions": [
+        "unattributed"
+      ],
+      "processLink": null,
+      "pidOnlyRecordCount": 0,
+      "events": [
+        {
+          "eventIndex": 1966,
+          "sequence": 1967,
+          "elapsedMs": 184982,
+          "nativeEventUptimeMs32": null,
+          "phase": "resize-wide",
+          "kind": "poll",
+          "showEvent": false,
+          "visibleNow": true,
+          "cloaked": 0,
+          "rect": [
+            26,
+            26,
+            1019,
+            545
+          ],
+          "positiveRect": true,
+          "actualVisible": true,
+          "showEventOnly": false,
+          "className": "ConsoleWindowClass",
+          "attribution": "unattributed",
+          "eventSha256": "8182654e28f8694474e2890ad87ed3a98500e2ee2d6eed4aa0e9796400e932fd"
+        }
+      ]
+    }
+  ]
+}

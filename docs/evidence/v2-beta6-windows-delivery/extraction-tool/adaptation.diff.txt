@@ -1,0 +1,53 @@
+--- beta5/extract-embedded.py
++++ beta6/extract-embedded.py
+@@ -1,7 +1,7 @@
+ #!/usr/bin/env python3
+-"""Verify and extract beta.5 embedded frontend bytes without executing Windows code.
+-
+-Adapted from docs/evidence/v2-beta4-running-version/extract-embedded.py.
++"""Verify and extract beta.6 embedded frontend bytes without executing Windows code.
++
++Adapted from /tmp/milkup-beta5-evidence/extract-embedded.py; all extraction bounds and image gates retained.
+ Requires Python 3.9+ with lzma and the system libbrotlidec.so.1 shared library.
+ No downloads, subprocesses, installer execution, or GUI/runtime acceptance.
+ """
+@@ -20,8 +20,8 @@
+ from html.parser import HTMLParser
+ 
+ 
+-VERSION = "2.0.0-beta.5"
+-BASELINE = "0e74d9fad211c304ef68449fa6becb7450dfffef"
++VERSION = "2.0.0-beta.6"
++BASELINE = "7cc4edc6747abf5fbc31b60cccf4bd73174af6f8"
+ FORMATTING_ARCHIVE_HASHES = {
+     "4bce37c68e9cce6a93f8f3b416e7fb77bf0459bd45dca95111a6b554003d6b8f",
+     "1a69786b8443c4eb534ccc22fa221219d914792e74fdc4e95fe1b2adcc9967d9",
+@@ -148,7 +148,7 @@
+ 
+ def validate_evidence(manifest_path, verification_path, commit, expected_run):
+     manifest_bytes, manifest = read_json(manifest_path)
+-    require(manifest.get("version") == VERSION, "Manifest version must be 2.0.0-beta.5")
++    require(manifest.get("version") == VERSION, "Manifest version must be 2.0.0-beta.6")
+     require(manifest.get("baseline") == BASELINE, "Unexpected manifest baseline")
+     require(manifest.get("commit") == commit, "Manifest commit differs from expected commit")
+     require(run_id(manifest.get("runId")) == expected_run, "Manifest run differs from expected run")
+@@ -395,13 +395,14 @@
+     key = "/" + normalized
+     require(key in assets, f"Entry script referenced by index.html was not extracted: {key}")
+     js = assets[key].decode("utf-8")
+-    # These literal UI strings were observed in the current built entry module.
++    # Required literal UI strings bind the extracted entry to the reviewed source.
+     # Their presence establishes embedded bytes, never successful UI behavior.
+     stable = ["data-application-update-action", "enableFromUserIntent", 'data-plugin-action="toggle"',
+-              "关于", "milkup-code-closing", "milkup-code-language", "document-toolbar"]
+-    counts = {marker: js.count(marker) for marker in [VERSION, "2.0.0-beta.4", "2.0.0-beta.3", *stable]}
+-    require(counts[VERSION] >= 1, "Entry script lacks beta.5 version marker")
+-    require(counts["2.0.0-beta.4"] == counts["2.0.0-beta.3"] == 0, "Entry script contains an old beta version marker")
++              "关于", "milkup-code-closing", "milkup-code-language", "document-toolbar",
++              "data-editor-context-menu", "hostContextCommand", "floating-document-toolbar"]
++    counts = {marker: js.count(marker) for marker in [VERSION, "2.0.0-beta.5", "2.0.0-beta.4", "2.0.0-beta.3", *stable]}
++    require(counts[VERSION] >= 1, "Entry script lacks beta.6 version marker")
++    require(counts["2.0.0-beta.5"] == counts["2.0.0-beta.4"] == counts["2.0.0-beta.3"] == 0, "Entry script contains an old beta version marker")
+     for marker in stable:
+         require(counts[marker] >= 1, f"Entry script lacks stable UI marker: {marker}")
+     return key, source, counts

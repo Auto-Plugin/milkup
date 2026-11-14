@@ -1,0 +1,133 @@
+   Compiling milkup-mermaid-engine v0.1.0 (/workspace/milkup-mermaid-rebuild/apps/desktop/src-tauri/mermaid-engine)
+warning: multiple variants are never constructed
+  --> src/ipc_observation.rs:14:5
+   |
+12 | pub(crate) enum Phase {
+   |                 ----- variants in this enum
+13 |     Created = 0,
+14 |     ReadyFrame,
+   |     ^^^^^^^^^^
+15 |     ReadyEvent,
+   |     ^^^^^^^^^^
+16 |     ResultFrame,
+   |     ^^^^^^^^^^^
+17 |     PngBody,
+   |     ^^^^^^^
+18 |     ResultEvent,
+   |     ^^^^^^^^^^^
+19 |     TrailingByte,
+20 |     StderrRead,
+   |     ^^^^^^^^^^
+21 |     StdinWrite,
+   |     ^^^^^^^^^^
+22 |     StdinFlush,
+   |     ^^^^^^^^^^
+23 |     WrittenEvent,
+   |     ^^^^^^^^^^^^
+   |
+   = note: `Phase` has a derived impl for the trait `Clone`, but this is intentionally ignored during dead code analysis
+   = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: multiple variants are never constructed
+  --> src/ipc_observation.rs:30:5
+   |
+28 | pub(crate) enum Completion {
+   |                 ---------- variants in this enum
+29 |     Pending = 0,
+30 |     Eof,
+   |     ^^^
+31 |     BrokenPipe,
+   |     ^^^^^^^^^^
+32 |     Written,
+   |     ^^^^^^^
+33 |     ReadError,
+34 |     SchemaError,
+   |     ^^^^^^^^^^^
+35 |     ChannelError,
+   |     ^^^^^^^^^^^^
+36 |     TrailingData,
+   |     ^^^^^^^^^^^^
+37 |     BudgetError,
+   |     ^^^^^^^^^^^
+38 |     WriteError,
+   |     ^^^^^^^^^^
+   |
+   = note: `Completion` has a derived impl for the trait `Clone`, but this is intentionally ignored during dead code analysis
+
+warning: `milkup-mermaid-engine` (lib test) generated 2 warnings
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.78s
+     Running unittests src/lib.rs (apps/desktop/src-tauri/mermaid-engine/target/debug/deps/milkup_mermaid_engine-6e40006c1bd89489)
+
+running 66 tests
+test audit::tests::a_disconnected_writer_is_an_explicit_flush_failure ... ok
+test audit::tests::barrier_covers_all_prior_lines_and_writer_flush_without_stopping_worker ... ok
+test audit::tests::a_dropped_oversized_record_keeps_later_flushes_uncertain ... ok
+test audit::tests::cleanup_failure_diagnostics_only_preserve_bounded_closed_kinds ... ok
+test audit::tests::cancelled_or_expired_render_keeps_png_evidence_without_claiming_publication ... ok
+test audit::tests::cleanup_observations_are_bounded_numeric_facts_and_do_not_override_failure ... ok
+test audit::tests::diagnostics_only_copy_closed_ownership_fields_never_source_paths_or_errors ... ok
+test audit::tests::helper_exit_observation_is_closed_and_never_overrides_cleanup_failure ... ok
+test audit::tests::filtered_account_facts_are_closed_and_do_not_claim_pure_standard ... ok
+test audit::tests::ipc_diagnostics_keep_only_ten_typed_fields_and_three_rows ... ok
+test audit::tests::ipc_diagnostics_reject_unknown_streams_coercions_and_out_of_range_error_codes ... ok
+test audit::tests::protocol_handle_proof_requires_verified_native_ready_and_a_boolean ... ok
+NATIVE_AUDIT_BUDGET phase="started" bytes=4293 limit=8192
+NATIVE_AUDIT_BUDGET phase="finished" bytes=7772 limit=8192
+test audit::tests::queue_overflow_is_nonblocking_and_stays_uncertain_after_drain ... ok
+test audit::tests::four_maximum_token_views_and_cleanup_fit_original_audit_budget ... ok
+test audit::tests::renderer_error_kind_only_accepts_fixed_bootstrap_error_envelope ... ok
+test audit::tests::stderr_failure_only_exposes_closed_kind_boolean_and_nullable_u32 ... ok
+test audit::tests::stdout_failure_never_infers_kind_or_win32_code_from_injected_text ... ok
+test audit::tests::stdout_failure_only_exposes_the_closed_observed_stage_and_stop_sample ... ok
+test audit::tests::write_and_flush_failures_remain_uncertain_after_output_recovers ... ok
+test audit::tests::renderer_status_and_captured_png_size_cannot_be_spoofed_by_other_fields ... ok
+test cleanup::tests::access_denied_retry_success_records_numeric_error_and_retry_eligibility ... ok
+test cleanup::tests::cleanup_sid_cannot_name_groups_or_inject_acl_arguments ... ok
+test cleanup::tests::legacy_observation_prefix_and_original_error_are_retained ... ok
+test cleanup::tests::actual_owned_tree_is_absent_after_success ... ok
+test cleanup::tests::observed_absence_error_is_the_final_error_and_is_never_retried ... ok
+test cleanup::tests::observed_existing_tree_stays_an_error_even_after_remove_not_found ... ok
+test cleanup::tests::observed_exhausted_retries_remain_bounded_and_do_not_probe_absence ... ok
+test cleanup::tests::observed_facts_are_closed_and_do_not_serialize_error_text_or_paths ... ok
+test cleanup::tests::observed_nonretryable_error_is_preserved_without_pause_or_absence_probe ... ok
+test cleanup::tests::observed_retry_success_counts_the_successful_remove_call ... ok
+test cleanup::tests::observed_success_and_not_found_both_require_independent_absence ... ok
+test cleanup::tests::other_error_after_access_denied_retry_returns_that_exact_error_immediately ... ok
+test cleanup::tests::retry_selected_windows_errors_with_a_bound ... ok
+test cleanup::tests::persistent_access_denied_exhausts_the_same_attempt_bound_and_stays_failed ... ok
+test ipc_observation::tests::blocked_reader_progress_and_cancelled_completion_remain_distinct_from_eof ... ok
+test tests::cancel_before_start_and_retired_owner_cannot_publish_or_launch ... ok
+test tests::closed_text_contract_rejects_code_options_and_malformed_input ... ok
+test tests::complete_png_validation_rejects_truncation_trailing_bytes_and_crc ... ok
+test tests::leases_are_owned_and_released_without_cross_scope_or_owner ... ok
+test audit::tests::a_timed_out_barrier_can_be_retried_without_destroying_the_worker ... ok
+test tests::shutdown_never_accepts_uncertain_cleanup_and_clears_completed_leases ... ok
+test tests::shutdown_retry_does_not_extend_deadline_or_hide_unsettled_work ... ok
+test tests::uncertain_cleanup_prevents_later_jobs_and_budget_counts_old_plus_new ... ok
+test token_diagnostic_format::child_record_requires_single_closed_bounded_marker ... ok
+test token_diagnostic_format::object_query_requires_success_and_exact_documented_length ... ok
+test token_diagnostic_format::privilege_array_uses_actual_bytes_instead_of_rounded_storage ... ok
+test token_diagnostic_format::privilege_names_are_bounded_canonical_identifiers ... ok
+test token_policy::tests::classifies_real_authority_without_relabeling_filtered_as_pure_standard ... ok
+test token_policy::tests::closed_audit_facts_do_not_relabel_or_leak_unknown_fields ... ok
+test tests::shutdown_closes_admission_cancels_and_waits_for_owned_backend_cleanup ... ok
+test token_policy::tests::compact_proof_remains_below_1600_bytes_at_accepted_field_bounds ... ok
+test token_policy::tests::compact_proof_verifies_then_rebuilds_only_closed_required_fields ... ok
+test token_policy::tests::default_sandbox_rejects_query_attempts_and_residual_target_observations ... ok
+test token_policy::tests::conditional_sandbox_accepts_only_the_observed_default_and_limited_shapes ... ok
+test token_policy::tests::deny_only_cannot_hide_enabled_default_enabled_or_owner_bits ... ok
+test token_policy::tests::full_no_uac_unknown_uiaccess_privileged_and_cross_session_hosts_are_rejected ... ok
+test token_policy::tests::limited_sandbox_rejects_failed_queries_primary_targets_and_other_levels ... ok
+test token_policy::tests::linked_identification_never_relaxes_current_token_restrictions ... ok
+test token_policy::tests::missing_or_mistyped_token_evidence_never_defaults_to_safe ... ok
+test token_policy::tests::neither_sandbox_class_accepts_unknown_or_present_caller_thread_authority ... ok
+test tests::cancellation_rejects_late_result_and_original_deadline_includes_queue ... ok
+test token_policy::tests::linked_evidence_is_required_closed_and_explicitly_nullable ... ok
+test token_policy::tests::sandbox_requires_low_unprivileged_identity_and_exact_fresh_profile ... ok
+test token_ready::cancellation_during_job_sampling_never_publishes_unstarted_helper_proof ... ok
+NATIVE_READY_BUDGET bytes=1840 limit=4096
+test token_ready::two_maximum_native_proofs_fit_original_ready_budget_and_are_identity_bound ... ok
+test audit::tests::queue_admission_and_acknowledgement_share_one_deadline ... ok
+
+test result: ok. 66 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.41s
+

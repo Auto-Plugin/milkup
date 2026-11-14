@@ -1,0 +1,30 @@
+$ pnpm -r build
+Scope: 14 of 15 workspace projects
+packages/assets build$ tsc -p tsconfig.json
+packages/core build$ tsc -p tsconfig.json
+packages/input build$ tsc -p tsconfig.json
+packages/markdown build$ tsc -p tsconfig.json
+packages/assets build: Done
+packages/input build: Done
+packages/markdown build: Done
+packages/core build: Done
+packages/export build$ tsc -p tsconfig.json
+packages/mcp build$ tsc -p tsconfig.json && vite build
+packages/plugin-sdk build$ tsc -p tsconfig.json
+packages/tauri-bridge build$ tsc -p tsconfig.json
+packages/plugin-sdk build: Done
+packages/view-dom build$ tsc -p tsconfig.json
+packages/export build: Done
+packages/tauri-bridge build: Done
+packages/mcp build: Done
+packages/view-dom build: Done
+packages/plugin build$ tsc -p tsconfig.json
+tests/regressions build$ tsc -p tsconfig.json
+tests/regressions build: Done
+packages/plugin build: Done
+apps/desktop build$ vite build
+packages/cli build$ tsc -p tsconfig.json && vite build
+apps/playground build$ vite build
+apps/playground build: Done
+apps/desktop build: Done
+packages/cli build: Done

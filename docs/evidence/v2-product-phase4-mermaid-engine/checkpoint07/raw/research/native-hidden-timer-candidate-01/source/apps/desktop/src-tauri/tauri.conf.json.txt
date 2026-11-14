@@ -1,0 +1,63 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "milkup",
+  "version": "../../../package.json",
+  "identifier": "app.milkup.desktop",
+  "build": {
+    "beforeDevCommand": "pnpm dev",
+    "beforeBuildCommand": "pnpm build",
+    "devUrl": "http://127.0.0.1:1420",
+    "frontendDist": "../dist"
+  },
+  "app": {
+    "windows": [
+      {
+        "title": "milkup",
+        "width": 1100,
+        "height": 760,
+        "minWidth": 760,
+        "minHeight": 520,
+        "visible": false,
+        "decorations": false,
+        "theme": "Light",
+        "backgroundColor": [244, 246, 248, 255]
+      }
+    ]
+  },
+  "bundle": {
+    "active": true,
+    "targets": ["nsis"],
+    "publisher": "milkup",
+    "category": "Productivity",
+    "shortDescription": "Markdown editor for structured writing.",
+    "longDescription": "milkup is a desktop Markdown editor focused on local documents and reliable file workflows.",
+    "icon": ["icons/icon.ico"],
+    "resources": {
+      "icons/file.ico": "file.ico"
+    },
+    "fileAssociations": [
+      {
+        "ext": ["md", "markdown", "mdown", "mkd"],
+        "name": "Markdown Document",
+        "description": "Markdown document",
+        "mimeType": "text/markdown",
+        "role": "Editor"
+      }
+    ],
+    "windows": {
+      "nsis": {
+        "installerIcon": "icons/icon.ico",
+        "uninstallerIcon": "icons/icon.ico",
+        "installerHooks": "nsis-hooks.nsh",
+        "displayLanguageSelector": false,
+        "installMode": "currentUser"
+      }
+    }
+  },
+  "plugins": {
+    "updater": {
+      "pubkey": "",
+      "endpoints": []
+    }
+  }
+}

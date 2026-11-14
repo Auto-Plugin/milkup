@@ -1,0 +1,92 @@
+{
+  "classification": "DIAGNOSTIC_ONLY_NOT_PRODUCTION_ACCEPTANCE",
+  "rows": [
+    {
+      "cell": "01-A",
+      "launchToActivationMs": 1225.596546,
+      "requests": [
+        {
+          "requestId": "render_1",
+          "status": "result",
+          "nativeDispatchToSettledMs": 581.370977,
+          "resultValueJsonSha256": "d8b7fb9173da8fcb50553a0012f112c281c457ca0acfb7cfdca81fb311bab289"
+        },
+        {
+          "requestId": "render_2",
+          "status": "result",
+          "nativeDispatchToSettledMs": 228.746809,
+          "resultValueJsonSha256": "c343fd3f75291ad068154181a91438912887a0d5a3ff619b3a29ca1de19aaf74"
+        }
+      ]
+    },
+    {
+      "cell": "02-B",
+      "launchToActivationMs": 1166.761672,
+      "requests": [
+        {
+          "requestId": "render_1",
+          "status": "result",
+          "nativeDispatchToSettledMs": 589.092911,
+          "resultValueJsonSha256": "317f221eca016551bd3f0d381f2455dfce13c7904569ec6280bff0cf69bab0c5"
+        },
+        {
+          "requestId": "render_2",
+          "status": "result",
+          "nativeDispatchToSettledMs": 247.294897,
+          "resultValueJsonSha256": "0a37c35182be0daa35772e7b5edf55bd5ef5336b9fe0e38b72477e50aec824c4"
+        }
+      ]
+    },
+    {
+      "cell": "03-B",
+      "launchToActivationMs": 1038.937596,
+      "requests": [
+        {
+          "requestId": "render_1",
+          "status": "result",
+          "nativeDispatchToSettledMs": 559.612712,
+          "resultValueJsonSha256": "1d96cd0621c6516a9f52455de28aca63fc1be474e10cf8844e00cec29034c649"
+        },
+        {
+          "requestId": "render_2",
+          "status": "result",
+          "nativeDispatchToSettledMs": 224.494862,
+          "resultValueJsonSha256": "ecc1f4612a9cdf1052567070036c4ed6f12ce70d80e51d1fc269edf329f55730"
+        }
+      ]
+    },
+    {
+      "cell": "04-A",
+      "launchToActivationMs": 864.8567270000001,
+      "requests": [
+        {
+          "requestId": "render_1",
+          "status": "result",
+          "nativeDispatchToSettledMs": 594.433378,
+          "resultValueJsonSha256": "de90b277c52862fbb1842ae7c8ba60bdcda2ec3dc416e4cee68e064d79011b44"
+        },
+        {
+          "requestId": "render_2",
+          "status": "result",
+          "nativeDispatchToSettledMs": 233.408184,
+          "resultValueJsonSha256": "fd7612a9bc73e599208582fe7626ef64ba19a29fc8339293e8007a96fcaed281"
+        }
+      ]
+    }
+  ],
+  "conclusions": [
+    "All4fresh hidden instances activated and all8 actual class requests returned before original native deadlines.",
+    "This small ordered ABBA has no clear eager-loading performance effect; no product change is justified by these timings alone.",
+    "Each second render is faster in this run; two actual class renders are an explicit design, not a hidden warmup.",
+    "Preparation times include real guard/setup/spawn/import/fonts/preload and observation work; neither preparation nor render intervals are CPU-only.",
+    "A contains common strict initialization changes and is not byte-identical production.",
+    "All8 compact typed-result hashes differ; current-core aggregate/canonical comparison has not been run by this harness.",
+    "Formal UI04 timeout evidence remains unresolved; this is a different controlled mechanism experiment."
+  ],
+  "nativeDeadlineCount": 0,
+  "normalResults": 8,
+  "x11SnapshotsPassed": 20,
+  "exactGuardianHelperOwnersAbsent": 8,
+  "inputAuthorityFilesUnchanged": 129,
+  "validatorExecuted": false
+}

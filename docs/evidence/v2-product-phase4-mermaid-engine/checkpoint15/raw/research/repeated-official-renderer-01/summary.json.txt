@@ -1,0 +1,347 @@
+{
+  "status": "REPEAT_REGRESSION_PASS_WITH_PIXEL_DIFFERENCES_RECORDED",
+  "before": "3 ready independently validated typed results differ; exact equality fails; exit1",
+  "after": "same unmodified runner/request/assertion: 3 ready complete typed results equal; exit0",
+  "guards": "5 variants each repeated twice; source/theme/width change image; frontmatter and directive seed0 do not override configured secure seed",
+  "sourceUnchangedAfterGreenAndGuards": true,
+  "pixelComparisons": [
+    {
+      "a": "before-original",
+      "b": "before-canonical",
+      "size": [
+        1200,
+        900
+      ],
+      "differentPixels": 5,
+      "maxChannelDelta": 1,
+      "differenceBounds": [
+        134,
+        99,
+        245,
+        238
+      ],
+      "samples": [
+        [
+          134,
+          99,
+          [
+            151,
+            119,
+            221,
+            255
+          ],
+          [
+            151,
+            118,
+            221,
+            255
+          ]
+        ],
+        [
+          245,
+          231,
+          [
+            100,
+            100,
+            100,
+            255
+          ],
+          [
+            101,
+            101,
+            101,
+            255
+          ]
+        ],
+        [
+          244,
+          232,
+          [
+            148,
+            148,
+            148,
+            255
+          ],
+          [
+            149,
+            149,
+            149,
+            255
+          ]
+        ],
+        [
+          241,
+          236,
+          [
+            139,
+            139,
+            139,
+            255
+          ],
+          [
+            140,
+            140,
+            140,
+            255
+          ]
+        ],
+        [
+          239,
+          238,
+          [
+            227,
+            227,
+            227,
+            255
+          ],
+          [
+            228,
+            228,
+            228,
+            255
+          ]
+        ]
+      ]
+    },
+    {
+      "a": "after-original",
+      "b": "after-canonical",
+      "size": [
+        1200,
+        900
+      ],
+      "differentPixels": 4,
+      "maxChannelDelta": 1,
+      "differenceBounds": [
+        239,
+        231,
+        245,
+        238
+      ],
+      "samples": [
+        [
+          245,
+          231,
+          [
+            100,
+            100,
+            100,
+            255
+          ],
+          [
+            101,
+            101,
+            101,
+            255
+          ]
+        ],
+        [
+          244,
+          232,
+          [
+            148,
+            148,
+            148,
+            255
+          ],
+          [
+            149,
+            149,
+            149,
+            255
+          ]
+        ],
+        [
+          241,
+          236,
+          [
+            139,
+            139,
+            139,
+            255
+          ],
+          [
+            140,
+            140,
+            140,
+            255
+          ]
+        ],
+        [
+          239,
+          238,
+          [
+            227,
+            227,
+            227,
+            255
+          ],
+          [
+            228,
+            228,
+            228,
+            255
+          ]
+        ]
+      ]
+    },
+    {
+      "a": "before-original",
+      "b": "after-original",
+      "size": [
+        1200,
+        900
+      ],
+      "differentPixels": 3268,
+      "maxChannelDelta": 11,
+      "differenceBounds": [
+        7,
+        58,
+        586,
+        427
+      ],
+      "samples": [
+        [
+          136,
+          58,
+          [
+            158,
+            127,
+            223,
+            255
+          ],
+          [
+            158,
+            126,
+            222,
+            255
+          ]
+        ],
+        [
+          137,
+          58,
+          [
+            158,
+            127,
+            223,
+            255
+          ],
+          [
+            159,
+            129,
+            222,
+            255
+          ]
+        ],
+        [
+          139,
+          58,
+          [
+            158,
+            127,
+            223,
+            255
+          ],
+          [
+            157,
+            126,
+            221,
+            255
+          ]
+        ],
+        [
+          140,
+          58,
+          [
+            158,
+            127,
+            223,
+            255
+          ],
+          [
+            160,
+            129,
+            223,
+            255
+          ]
+        ],
+        [
+          141,
+          58,
+          [
+            157,
+            127,
+            222,
+            255
+          ],
+          [
+            158,
+            127,
+            223,
+            255
+          ]
+        ],
+        [
+          142,
+          58,
+          [
+            159,
+            128,
+            222,
+            255
+          ],
+          [
+            157,
+            126,
+            221,
+            255
+          ]
+        ],
+        [
+          143,
+          58,
+          [
+            158,
+            127,
+            223,
+            255
+          ],
+          [
+            159,
+            128,
+            221,
+            255
+          ]
+        ],
+        [
+          145,
+          58,
+          [
+            158,
+            127,
+            223,
+            255
+          ],
+          [
+            157,
+            126,
+            221,
+            255
+          ]
+        ]
+      ]
+    }
+  ],
+  "actualPixelReview": {
+    "viewed": [
+      "before-original.png",
+      "before-canonical.png",
+      "after-original.png",
+      "after-canonical.png"
+    ],
+    "observation": "All four complete diagrams contain title, Animal/Fish/Zebra/Duck class boxes, attributes/methods, two notes and connectors. No missing text or clipped overall diagram is visible. Tiny inline/image differences are retained rather than asserted zero. Fixed seed produces slightly different boundaries/layout from one sampled random original; no original-random exact-pixel promise.",
+    "scope": "1200x900 Linux Chromium, light, width1100, scale1; no native WebKit or high zoom acceptance."
+  },
+  "cleanup": "Playwright browsers closed by finally; no HTTP/Vite/native server launched. CPU released.",
+  "firstSetupFailure": "before/ default browser executable missing; not product RED; before-02 uses installed /usr/bin/chromium"
+}

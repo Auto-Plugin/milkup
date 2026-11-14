@@ -1,0 +1,160 @@
+# Instructions
+
+- Following Playwright test failed.
+- Explain why, be concise, respect Playwright best practices.
+- Provide a snippet of code with the fix, if possible.
+
+# Test info
+
+- Name: desktop-markdown-extensions.spec.ts >> presentation resize delivers finite responsive layout outside ResizeObserver delivery
+- Location: tests/e2e/desktop-markdown-extensions.spec.ts:1488:1
+
+# Error details
+
+```
+Error: expect(received).toEqual(expected) // deep equality
+
+- Expected  - 1
++ Received  + 3
+
+- Array []
++ Array [
++   "ResizeObserver loop completed with undelivered notifications.",
++ ]
+```
+
+# Page snapshot
+
+```yaml
+- main [ref=e3]:
+  - generic [ref=e4]:
+    - button "菜单" [ref=e5] [cursor=pointer]:
+      - img [ref=e6]
+    - generic [ref=e7]:
+      - heading "未命名" [level=1] [ref=e8]
+      - paragraph [ref=e9]: 未保存
+  - generic [ref=e12]:
+    - text: 写点什么吧...
+    - generic [ref=e13]:
+      - textbox [ref=e14]
+      - textbox "Markdown 编辑器" [active]
+  - generic [ref=e16]:
+    - generic [ref=e17]:
+      - button "侧栏" [ref=e18] [cursor=pointer]:
+        - img [ref=e19]
+      - button "实时" [ref=e21] [cursor=pointer]:
+        - img [ref=e22]
+    - generic [ref=e25]:
+      - generic [ref=e26]: Markdown
+      - generic [ref=e27]: 0 字符
+      - generic [ref=e30]: 已保存
+```
+
+# Test source
+
+```ts
+  1490 |   const result = await page.evaluate(async ({ module }) => {
+  1491 |     const { DocumentPresentation } = await import(module)
+  1492 |     const errors: string[] = []
+  1493 |     const onError = (event: ErrorEvent) => errors.push(event.message)
+  1494 |     window.addEventListener('error', onError)
+  1495 |     const root = document.createElement('section')
+  1496 |     Object.assign(root.style, {
+  1497 |       position: 'fixed', top: '50px', left: '20px', width: '300px',
+  1498 |       padding: '0', border: '0', zIndex: '20000', background: 'white',
+  1499 |     })
+  1500 |     const content = document.createElement('div')
+  1501 |     content.style.height = '40px'
+  1502 |     const source = '中文😀 é source'
+  1503 |     const line = document.createElement('div')
+  1504 |     line.className = 'milkup-line'
+  1505 |     Object.assign(line.dataset, { line: '1', from: '0', to: String(source.length) })
+  1506 |     line.textContent = source
+  1507 |     content.append(line)
+  1508 |     root.append(content)
+  1509 |     document.body.append(root)
+  1510 |     const identity = {}
+  1511 |     const selection = { anchor: 0, head: 2 }
+  1512 |     const widths: number[] = []
+  1513 |     let layouts = 0
+  1514 |     const manager = new DocumentPresentation(root, content, {
+  1515 |       provide(window) {
+  1516 |         widths.push(window.width)
+  1517 |         return {
+  1518 |           declarations: [],
+  1519 |           request: {
+  1520 |             documentId: 'finite-resize', version: 0, source: window.source,
+  1521 |             from: window.from, to: window.to, fromLine: window.fromLine,
+  1522 |             toLine: window.toLine, completeStart: window.completeStart,
+  1523 |             completeEnd: window.completeEnd, selection: window.selection,
+  1524 |             width: window.width, contextKnown: true, protectedRanges: [], blocks: [],
+  1525 |             theme: 'light', target: 'screen',
+  1526 |           },
+  1527 |           result: { complete: true, fragments: [] },
+  1528 |         }
+  1529 |       },
+  1530 |     }, () => ({
+  1531 |       mode: 'live', sourceIdentity: identity, sourceVersion: 0, selection,
+  1532 |       lineCount: 1, read: (from: number, to: number) => source.slice(from, to),
+  1533 |     }), () => {
+  1534 |       layouts++
+  1535 |       // Finite, idempotent responsive layout: one height transition, no oscillation.
+  1536 |       const height = root.getBoundingClientRect().width >= 360 ? '80px' : '40px'
+  1537 |       if (content.style.height !== height) content.style.height = height
+  1538 |     }, () => {})
+  1539 |     const frames = async (count: number) => {
+  1540 |       for (let i = 0; i < count; i++)
+  1541 |         await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()))
+  1542 |     }
+  1543 |     try {
+  1544 |       manager.schedule()
+  1545 |       await frames(4)
+  1546 |       const initialHeight = root.getBoundingClientRect().height
+  1547 |       root.style.width = '360px'
+  1548 |       await frames(6)
+  1549 |       const settled = {
+  1550 |         initialHeight, height: root.getBoundingClientRect().height,
+  1551 |         width: root.getBoundingClientRect().width, widths: [...widths],
+  1552 |         text: content.textContent, selection: { ...selection }, errors: [...errors],
+  1553 |       }
+  1554 |       // Destroy during a real resize notification, before a deferred layout can run.
+  1555 |       let destroyCount = 0
+  1556 |       const destroyObserver = new ResizeObserver(() => {
+  1557 |         if (root.getBoundingClientRect().width !== 400) return
+  1558 |         manager.destroy()
+  1559 |         destroyCount++
+  1560 |         destroyObserver.disconnect()
+  1561 |       })
+  1562 |       destroyObserver.observe(root)
+  1563 |       root.style.width = '400px'
+  1564 |       await frames(2)
+  1565 |       const afterDestroy = { layouts, requests: widths.length, text: content.textContent }
+  1566 |       root.style.width = '420px'
+  1567 |       await frames(4)
+  1568 |       return {
+  1569 |         settled, destroyCount, afterDestroy,
+  1570 |         final: { layouts, requests: widths.length, text: content.textContent },
+  1571 |         errors,
+  1572 |       }
+  1573 |     } finally {
+  1574 |       manager.destroy()
+  1575 |       root.remove()
+  1576 |       window.removeEventListener('error', onError)
+  1577 |     }
+  1578 |   }, { module: `/@fs${resolve('packages/view-dom/src/document-presentation.ts')}` })
+  1579 |   await test.info().attach('resize-evidence', {
+  1580 |     body: JSON.stringify(result, null, 2), contentType: 'application/json',
+  1581 |   })
+  1582 |   expect(result.settled.initialHeight).toBe(40)
+  1583 |   expect(result.settled.height).toBe(80)
+  1584 |   expect(result.settled.width).toBe(360)
+  1585 |   expect(result.settled.widths).toContain(360)
+  1586 |   expect(result.settled.text).toBe('中文😀 é source')
+  1587 |   expect(result.settled.selection).toEqual({ anchor: 0, head: 2 })
+  1588 |   expect(result.destroyCount).toBe(1)
+  1589 |   expect(result.final).toEqual(result.afterDestroy)
+> 1590 |   expect(result.errors).toEqual([])
+       |                         ^ Error: expect(received).toEqual(expected) // deep equality
+  1591 | })
+  1592 | 
+```

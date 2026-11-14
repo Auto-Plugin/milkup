@@ -1,0 +1,55 @@
+{
+  "status": "focused verification passed; final Linux candidate native verification remains with parent/native owner",
+  "cause": "Each compliant provider invalidation called the hard invalidation path, restoring literal source before asynchronous replacement. This changed visible-window geometry and caused a second request after previews returned. Native repeated larger windows correlate with footnote invalidation, rather than an autonomous loop.",
+  "product_change": "Add refreshDocumentPresentation on both views. Same configuration, source identity/version, selection, live mode and validated response retain presentation/navigation while a new epoch job runs. All other states use hard invalidate. Existing setConfig/theme invalidation, error/timeout fallback and stale-job guards remain.",
+  "not_changed": [
+    "Worker deadline",
+    "SDK/core contracts",
+    "window/cache size budgets",
+    "source virtual-height measurement",
+    "source/selection/history data"
+  ],
+  "native_before_sequence": "93-background-refresh-native-sequence.json",
+  "browser_before": {
+    "log": "86-background-refresh-browser-before.log",
+    "fixture_modes": ["ordinary", "windowed"],
+    "refreshes_each": 6,
+    "empty_preview_mutations_each": 6,
+    "provider_requests_each": 12,
+    "data": "86-background-refresh-before/"
+  },
+  "browser_after": {
+    "log": "89-background-refresh-browser-after.log",
+    "passed": 7,
+    "refreshes_each": 6,
+    "empty_preview_mutations_each": 0,
+    "provider_requests_each": 6,
+    "data": "89-background-refresh-after/"
+  },
+  "unit_before": {
+    "log": "87-background-refresh-unit-before.log",
+    "authentic_failures": 2,
+    "assertion": "original preview/control disconnected during background refresh"
+  },
+  "unit_after": {
+    "log": "92-background-refresh-focused.log",
+    "passed": 231,
+    "breakdown": {
+      "presentation": 44,
+      "ordinary": 123,
+      "windowed": 64
+    }
+  },
+  "types": "91-background-refresh-types.log",
+  "format": "90-background-refresh-format.log",
+  "limitations": [
+    "This fix does not establish why native math render exceeded its watchdog. Worker timing is separately investigated.",
+    "Native candidate04 remains failed; new production candidate needs real native validation.",
+    "The browser fixture tests public views and fake safe-provider response geometry, not OS file save or actual native Worker delivery."
+  ],
+  "diagnostic_attempts": {
+    "84-window-cycle-browser-before.log": "Fixture called nonexistent view.focus; not a product regression.",
+    "85-window-cycle-browser-before.log": "Without provider invalidation, source fixture settles; this disproved autonomous-loop hypothesis."
+  },
+  "final_test_only_strengthening": "After browser pass, added equivalent portable import paths plus ordinary own document/undo and exact selection assertions; parent full browser run will verify those final assertions."
+}

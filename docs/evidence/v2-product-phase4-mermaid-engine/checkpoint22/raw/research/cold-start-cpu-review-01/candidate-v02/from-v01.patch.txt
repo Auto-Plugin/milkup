@@ -1,0 +1,95 @@
+--- candidate/cpu_sampler.py
++++ candidate-v02/cpu_sampler.py
+@@ -81,7 +81,7 @@
+         self.log_read_ns = 0; self.log_bytes = 0
+         self.identity_offset=0;self.identity_pending=b'';self.identity_file=None
+         self.identity_skipping=False;self.payload_lines_skipped=0;self.identity_read_ns=0
+-        self.binding_events=[];self.waiting_cpu_ns=None
++        self.binding_events=[];self.waiting_cpu_ns=None;self.native_identity_source=None
+ 
+     def error(self, stage, exc):
+         self.error_count += 1
+@@ -152,8 +152,12 @@
+     def check_budget(self, budget):
+         if self.now() >= budget['end']: raise TimeoutError('discovery-wall-budget')
+ 
+-    def bind_identity_event(self, event):
++    def bind_identity_event(self, event, native_record_proof=None):
+         if event.get('kind') != 'guardian-spawn': return
++        if self.native_identity_source is None or native_record_proof != self.native_identity_source:
++            raise ValueError('guardian-native-creation-proof-required')
++        if event.get('schema') != 'milkup.cold-accepted-wire.v1':
++            raise ValueError('guardian-native-schema')
+         ns=event.get('monotonicNs')
+         if type(ns) is not int or not self.started <= ns <= self.now():
+             raise ValueError('identity-event-outside-observer-lifetime')
+@@ -175,10 +179,17 @@
+             raise ValueError('guardian-identity-parent')
+         if self.argv(guardian_pid)!=[self.binary,'--milkup-internal-dom-helper']:
+             raise ValueError('guardian-argv')
+-        env=self.read(f'/proc/{guardian_pid}/environ',65536).split(b'\0')
+-        vals=[x.split(b'=',1)[1] for x in env if x.startswith(b'MILKUP_INTERNAL_DOM_INSTANCE_ID=')]
+-        if vals != [instance.encode('ascii')]: raise ValueError('guardian-instance-environment')
+-        self.same(row);self.same(self.app)
++        environment_check={'status':'matched'}
++        try:
++            env=self.read(f'/proc/{guardian_pid}/environ',65536).split(b'\0')
++            vals=[x.split(b'=',1)[1] for x in env if x.startswith(b'MILKUP_INTERNAL_DOM_INSTANCE_ID=')]
++            if vals != [instance.encode('ascii')]: raise ValueError('guardian-instance-environment')
++        except PermissionError as exc:
++            # Instance comes ONLY from the App-owned native creation record.
++            # Missing optional environment access never supplies or guesses it.
++            environment_check={'status':'unavailable','errorClass':'PermissionError','errno':exc.errno}
++        if self.same(row)['parent'] != owner_pid: raise ValueError('guardian-parent-changed')
++        self.same(self.app)
+         previous=self.guardians.get(instance)
+         if previous and (previous['pid'],previous['birth'])!=(guardian_pid,guardian_birth):
+             raise ValueError('ambiguous-guardian-instance')
+@@ -186,7 +197,9 @@
+         self.add(row,'guardian',instance,dict(pid=owner_pid,birth=owner_birth))
+         if len(self.binding_events)<MAX_IDENTITIES:
+             self.binding_events.append(dict(pid=guardian_pid,birth=guardian_birth,instanceId=instance,
+-                                            sourceMonoNs=ns,observedMonoNs=self.now(),instanceEnvironmentMatched=True))
++                                            sourceMonoNs=ns,observedMonoNs=self.now(),
++                                            instanceEnvironmentMatched=True if environment_check['status']=='matched' else None,
++                                            instanceEnvironmentCheck=environment_check,nativeCreationProof=dict(native_record_proof)))
+ 
+     def poll_identity_log(self,path):
+         start=self.now()
+@@ -195,6 +208,7 @@
+                 st=os.fstat(f.fileno());ident=(st.st_dev,st.st_ino)
+                 if self.identity_file is not None and self.identity_file!=ident:raise ValueError('identity-log-replaced')
+                 self.identity_file=ident
++                self.native_identity_source=dict(path=str(path),device=st.st_dev,inode=st.st_ino,kind='configured-app-owned-native-sink')
+                 if st.st_size<self.identity_offset:raise ValueError('identity-log-truncated')
+                 f.seek(self.identity_offset);raw=f.read(65536);self.identity_offset+=len(raw)
+             # Request wire payloads belong to request audit, not CPU sampling. Skip
+@@ -208,7 +222,7 @@
+                             raise ValueError('oversize-non-request-capture-line')
+                         self.identity_pending=b'';self.identity_skipping=True;self.payload_lines_skipped+=1
+                 if newline:
+-                    if not self.identity_skipping:self.bind_identity_event(json.loads(self.identity_pending))
++                    if not self.identity_skipping:self.bind_identity_event(json.loads(self.identity_pending),self.native_identity_source)
+                     self.identity_pending=b'';self.identity_skipping=False
+         except FileNotFoundError:pass
+         finally:self.identity_read_ns+=self.now()-start
+@@ -318,7 +332,8 @@
+                     samplePeriodNs=SAMPLE_NS,discoveryPeriodNs=DISCOVERY_NS,
+                     clockTicksPerSecond=os.sysconf('SC_CLK_TCK'),nativeEvents=self.events,
+                     eventDrops=self.event_drops,logBytes=self.log_bytes,logReadNs=self.log_read_ns,
+-                    guardianBindingEvents=self.binding_events,identityLogBytes=self.identity_offset,
++                    guardianBindingEvents=self.binding_events,
++                    environmentUnavailableBindings=sum(e['instanceEnvironmentCheck']['status']=='unavailable' for e in self.binding_events),identityLogBytes=self.identity_offset,
+                     requestPayloadLinesSkipped=self.payload_lines_skipped,identityLogReadNs=self.identity_read_ns,
+                     sampleCount=self.sample_count,sampleIncomplete=self.sample_incomplete,retainedSamples=len(self.rows),evictedRows=self.evicted_rows,
+                     skippedSlots=self.skipped_slots,maxLateNs=self.late_max_ns,
+@@ -333,7 +348,8 @@
+                     errors=self.errors,errorCount=self.error_count,
+                     limits=dict(identities=MAX_IDENTITIES,tasksPerDiscovery=MAX_TASKS,childrenPerParent=MAX_CHILDREN,
+                                 discoveryWallBudgetNs=DISCOVERY_BUDGET_NS,sampleWallBudgetNs=SAMPLE_BUDGET_NS,sampleBytes=MAX_SAMPLE_BYTES,maxSeconds=MAX_SECONDS),
+-                    qualifications=['Oversized render-accepted payload lines are intentionally skipped; this is not an identity-loss counter.',
++                    qualifications=['Guardian environ PermissionError is an explicit optional-check gap; native creation proof plus live exact identities remain required.',
++                                    'Oversized render-accepted payload lines are intentionally skipped; this is not an identity-loss counter.',
+                                     'Process CPU is own process utime/stime; guardian and App separate from renderer tree.',
+                                     'schedstat is leader-thread only, not process-wide; zero may mean accounting unavailable.',
+                                     'Short-lived and pre-discovery CPU is not reconstructed; parent linkage is not atomic.',

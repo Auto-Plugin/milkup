@@ -1,0 +1,47 @@
+{
+  "frozenAtUtc": "2026-10-17T01:21:26.781990+00:00",
+  "state": "STATIC_REVIEW_ONLY_NOT_BUILT_NOT_NATIVE_RUN",
+  "files": [
+    {
+      "path": "/workspace/milkup-mermaid-engine-evidence/research/cold-start-request-review-01/candidate/apps/desktop/src-tauri/src/plugin_dom.rs",
+      "sha256": "17d2d10ee4a7e49947d33957c980e9a04ee2bb2f2e92c8646f828b9025cd0395",
+      "bytes": 27566,
+      "baseline": "/workspace/milkup/apps/desktop/src-tauri/src/plugin_dom.rs",
+      "baselineSha256": "195cfffdd1a69456b66ea2f860a3b195b9e5bc94152e93aa31a46c022eca097a"
+    },
+    {
+      "path": "/workspace/milkup-mermaid-engine-evidence/research/cold-start-request-review-01/candidate/apps/desktop/src-tauri/src/plugin_dom_process.rs",
+      "sha256": "0dc26665eb164a3698454f105bc1196d0bd1815c87754a2a2e213a9e8e943d20",
+      "bytes": 47476,
+      "baseline": "/workspace/milkup/apps/desktop/src-tauri/src/plugin_dom_process.rs",
+      "baselineSha256": "c6540ffc4d11e61050379d68bad0342c0cfaf8ec4a6fe60075b18ddecd851702"
+    },
+    {
+      "path": "/workspace/milkup-mermaid-engine-evidence/research/cold-start-request-review-01/candidate/apps/desktop/src-tauri/src/plugin_dom_request_diagnostic.rs",
+      "sha256": "a6487c0b061358abff4f626525a1fbd72b4ad8fe527a55f7590e4ccea61597e4",
+      "bytes": 20361,
+      "baseline": null,
+      "baselineSha256": null
+    }
+  ],
+  "diff": {
+    "path": "/workspace/milkup-mermaid-engine-evidence/research/cold-start-request-review-01/candidate.patch",
+    "sha256": "66483599541f37959135dd3aa249dafcffddf4e106ad978ecc4efe0737a9497e"
+  },
+  "staticChecks": {
+    "plugin_dom.rsBaselineLinesPreservedInOrder": true,
+    "plugin_dom_process.rsBaselineLinesPreservedInOrder": true,
+    "const INIT_DEADLINE: Duration = Duration::from_secs(10);": true,
+    "const RENDER_DEADLINE: Duration = Duration::from_secs(2);": true,
+    "                    control.active = Some((id, Instant::now() + RENDER_DEADLINE));": true,
+    "                init_deadline: start + INIT_DEADLINE,": true,
+    "WatchFinishCleanupRemainderUnchanged": true,
+    "NativeTraceFunctionAndRestUnchanged": true
+  },
+  "formatCheck": "rustfmt --edition 2021 --config skip_children=true --check: exit0 for all3 files",
+  "logicTests": {
+    "manifest": "/workspace/milkup-mermaid-engine-evidence/research/cold-start-request-review-01/logic-tests/Cargo.toml",
+    "count": 7,
+    "executed": false
+  }
+}

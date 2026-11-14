@@ -1,0 +1,81 @@
+--- UI03/350401/tauri-mermaid-ui.mjs
++++ UI04/2b0ec01d/tauri-mermaid-ui.mjs
+@@ -247,13 +247,63 @@
+   )
+   assert.equal(dom.previews.length, 0, stage + ': single fallback remains full source')
+ }
++let assertionFailureSequence = 0
++async function preserveAssertion(kind, dom, expected, stage, document = null) {
++  try {
++    if (kind === 'preview') assertCapturedPreview(dom, expected, stage)
++    else assertCapturedNotice(dom, expected, stage)
++  } catch (error) {
++    const file =
++      'assertion-failure-' +
++      String(++assertionFailureSequence).padStart(3, '0') +
++      '-' +
++      kind +
++      '-' +
++      stage.replaceAll(' ', '-') +
++      '.json'
++    // Preserve the observations already made by the failing check. A before-shot
++    // check has no document probe; do not add one and change the observed timing.
++    await writeFile(
++      path.join(output, file),
++      JSON.stringify(
++        {
++          recordedAt: new Date().toISOString(),
++          kind,
++          stage,
++          document,
++          documentBoundary:
++            document === null
++              ? 'Not read at this stage; no extra browser observation was made.'
++              : 'Already-read public document probe from this record call.',
++          dom,
++          expected,
++          error: {
++            message: String(error),
++            stack: error.stack,
++            actual: error.actual,
++            actualIsUndefined: error.actual === undefined,
++            expected: error.expected,
++            operator: error.operator,
++          },
++        },
++        null,
++        2,
++      ) + '\n',
++      { flag: 'wx' },
++    ).catch((writeError) => {
++      console.error('Failed to preserve assertion snapshot ' + file + ': ' + String(writeError))
++    })
++    throw error
++  }
++}
+ async function record(name, extra = {}) {
+   const document = await app.probe()
+   const dom = await observe()
+-  if (extra.preview) assertCapturedPreview(dom, extra.preview, 'after screenshot')
++  if (extra.preview)
++    await preserveAssertion('preview', dom, extra.preview, 'after screenshot', document)
+   if (extra.fallbackNotice) {
+     assert.equal(document.path, activeFile)
+-    assertCapturedNotice(dom, extra.fallbackNotice, 'after screenshot')
++    await preserveAssertion('notice', dom, extra.fallbackNotice, 'after screenshot', document)
+   }
+   const currentRegistry = await registry()
+   const audit = await diagramsAudit()
+@@ -282,9 +332,10 @@
+ }
+ async function shot(name, extra = {}) {
+   await app.delay(250)
+-  if (extra.preview) assertCapturedPreview(await observe(), extra.preview, 'before screenshot')
++  if (extra.preview)
++    await preserveAssertion('preview', await observe(), extra.preview, 'before screenshot')
+   if (extra.fallbackNotice)
+-    assertCapturedNotice(await observe(), extra.fallbackNotice, 'before screenshot')
++    await preserveAssertion('notice', await observe(), extra.fallbackNotice, 'before screenshot')
+   await app.shot(name + '-webview')
+   execFileSync('import', ['-window', 'root', path.join(output, name + '-x11.png')], {
+     env: process.env,

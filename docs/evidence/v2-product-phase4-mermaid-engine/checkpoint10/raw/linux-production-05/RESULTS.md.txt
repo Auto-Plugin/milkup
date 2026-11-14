@@ -1,0 +1,25 @@
+# Production05 build and generic DOM lifecycle results
+
+The real Linux deb build and all five first-attempt lifecycle cases passed. No retries, changed deadlines, post-freeze harness edits, or additional product changes were made. Formal Mermaid UI05 is a separate suite and is not covered by this completed evidence set.
+
+Build duration: 89.871030s. The actual extracted executable is `/workspace/milkup-mermaid-engine-evidence/linux-production-05/install/usr/bin/milkup-desktop`, SHA `63205c85b11fbaa7ec0ec0316737eabb8fe9a96115a4a06367dbd8d59322af7a`, 21872816 bytes. Deb SHA `a061fa33821a10f6b4dc26dd815ed9ae51bedeee91a8bb5533a6d094eb1d7376`. This is production05, not the diagnostic8041 or02b15 executable.
+
+2912 captured source files match both post-build and final audits. Process source at capture has SHA `c6540ffc4d11e61050379d68bad0342c0cfaf8ec4a6fe60075b18ddecd851702`. The complete guard remains5b108…, official diagrams archive27db…, SDK1717…. Provenance records complete hashes and byte counts. Only the unique three-byte Tauri bundle marker differs between target and extracted binary, with equal ELF build IDs.
+
+The non-test Rust release build emitted no warnings. Vite retained the existing warning about chunks exceeding500kB. Build log remains unedited.
+
+| Case | First attempt | Trusted input DOM ms | Two-rAF ms |
+|---|---|---:|---:|
+| timeout | PASS |10|31|
+| disable | PASS |5|16|
+| remove | PASS |9|21|
+| wm-close | PASS |not measured|not measured|
+| app-sigkill | PASS |not measured|not measured|
+
+Each original case required nine exact DOM PID/birth identities and private-directory cleanup. Final read-only audit found all45 DOM identities plus five owned drivers and five wait-only ancestors absent:55 total. Ports4626/4627 were empty when the slot was handed back. Xvfb126 remains available for the next separately owned suite. No new signals or cleanup were applied beyond the reviewed exact driver-group teardown after each product verdict.
+
+The product harness commands all exited0. The driver ancestor tools ended241 because the reviewed explicit cleanup sends SIGTERM to their exact owned wrapper group (recorded child exit-15); this is intentional harness teardown after PASS, not a product-test failure. Natural guardian exit and all reaps are retained in per-run records. No missing asynchronous phase is assigned an invented timestamp; observed cleanup or natural exit provides the original harness's qualified upper bound where applicable.
+
+Screenshots are retained for all five safe previews and the timeout/disable/remove completed UI states. The owner actually inspected timeout `02-timeout-failed-card.png`: the fixture appears failed with the execution-deadline message and manual-enable button. Root separately inspected timeout/disable/remove PNGs and all5 raw verdicts; its completed review was copied byte-for-byte from `/workspace/milkup-mermaid-engine-evidence/research/root-production05-lifecycle-review.json` to `root-lifecycle-review.json`.
+
+Input-to-two-rAF values are individual samples, not maximum frame-delay or universal responsiveness claims. Page/process observation overhead is not subtracted. This suite establishes the unchanged generic DOM lifecycle assertions for the actual05 binary, not the official Mermaid31×2/64×5 rendering matrix. Historical formalUI04 RED remains preserved.

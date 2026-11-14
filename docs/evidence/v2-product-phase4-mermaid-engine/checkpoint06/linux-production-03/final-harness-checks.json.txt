@@ -1,0 +1,37 @@
+[
+  {
+    "command": [
+      "node",
+      "node_modules/prettier/bin/prettier.cjs",
+      "--check",
+      "tests/native/tauri-dom-plugin-lifecycle.mjs",
+      "tests/fixtures/dom-plugin-lifecycle/README.md"
+    ],
+    "startedUtc": "2026-10-16T15:23:57.904046+00:00",
+    "exitCode": 0,
+    "stdout": "Checking formatting...\nAll matched files use Prettier code style!\n",
+    "stderr": ""
+  },
+  {
+    "command": [
+      "node",
+      "--check",
+      "tests/native/tauri-dom-plugin-lifecycle.mjs"
+    ],
+    "startedUtc": "2026-10-16T15:23:58.306592+00:00",
+    "exitCode": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "command": [
+      "python3",
+      "-c",
+      "import ast;from pathlib import Path;ast.parse(Path('tests/helpers/native-gtk-picker-observer.py').read_text());ast.parse(Path('tests/helpers/native-dom-process-observer.py').read_text())"
+    ],
+    "startedUtc": "2026-10-16T15:23:58.347758+00:00",
+    "exitCode": 0,
+    "stdout": "",
+    "stderr": ""
+  }
+]

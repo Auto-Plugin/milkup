@@ -1,0 +1,70 @@
+{
+  "status": "EXPERIMENT_COMPLETE_NO_PRODUCT_PATCH",
+  "scope": "Native WebKit helper from frozen f2991198 production binary, fixed actual StaticRenderer output plus evidence-only layout positioning. Not a GUI production export artifact.",
+  "baseCommit": "7241f8b8",
+  "productChanges": false,
+  "baselineSerializerSourceHashMatchesCurrent": true,
+  "references": [
+    {
+      "url": "https://www.w3.org/TR/css-break-3/#unforced-breaks",
+      "finding": "Avoid constraints can be relaxed when insufficient breakpoints remain. The standard does not specify the exact engine choice."
+    },
+    {
+      "url": "https://www.w3.org/TR/CSS22/tables.html#table-display",
+      "finding": "A table-header-group can be repeated in print; moving the heading there risks duplicate headings. Separate auto-layout tables no longer share column sizing."
+    }
+  ],
+  "candidateFindings": {
+    "baseline": "Reproduced current long table/code/list orphaning; short whole-unit wrapper still works.",
+    "chain": "FAIL: keep original DOM, relax ancestor inside-avoid and chain heading/nextblock/thead/first-row or first-li avoidance. Long orphaning unchanged and short cases regress, so reject.",
+    "caption-chain": "FAIL: one original table retained, heading moved once to caption with caption/thead/first-row avoid chain. No long-table fix; reject.",
+    "split-first": "PARTIAL EXPERIMENT ONLY: first actual code newline / first complete list item grouped with heading. CODE575 title/first line both page22, LIST575 both page27; table remains failed. Joined DOM text identical, marker checks show no missing/duplicates, but splits semantic code/list containers and has not passed copy/selection/screen/accessibility/oversized-first-piece review. Not adopted."
+  },
+  "allVariants": {
+    "baseline": {
+      "pages": 36,
+      "blankPages": [],
+      "missingMarkers": 0,
+      "duplicateMarkers": 0
+    },
+    "chain": {
+      "pages": 36,
+      "blankPages": [],
+      "missingMarkers": 0,
+      "duplicateMarkers": 0
+    },
+    "caption-chain": {
+      "pages": 36,
+      "blankPages": [],
+      "missingMarkers": 0,
+      "duplicateMarkers": 0
+    },
+    "split-first": {
+      "pages": 36,
+      "blankPages": [],
+      "missingMarkers": 0,
+      "duplicateMarkers": 0
+    }
+  },
+  "candidateDOMTextUnchanged": {
+    "chain": true,
+    "caption-chain": true,
+    "split-first": true
+  },
+  "pixelsInspected": [
+    "split-code-22.png",
+    "split-list-27.png"
+  ],
+  "pixelObservations": "Candidate code/list title and first unit visibly share the page; subsequent content appears continuous on those inspected pages. No all-pages pixel or Unicode fidelity claim.",
+  "execution": "Default sandbox namespace creation failed uid-map read-only; normal reviewed require_escalated run succeeded. Four guardians exited0; owned :127 Xvfb cleanup recorded; display released to native Unicode agent.",
+  "nextDecision": "Parent evaluating Chromium alternative for original-glyph Unicode preservation. Compare unchanged baseline HTML in candidate engine before adopting structural workaround that might become unnecessary.",
+  "futureRegressionRequirements": [
+    "same single table structure, column widths and original header/source order",
+    "all ordinary and presentation anchors remain unique and same absolute offsets",
+    "code joined text and copy preserve leading/trailing whitespace, blank first lines, CR/LF, tabs, surrogate pairs, combining marks, ZWJ; no character-count split",
+    "ordered non-1 list start and continuous numbering, source order, nested raw fallback untouched",
+    "first real row/code line/item itself taller than page must naturally fragment with every marker retained",
+    "short blocks remain together; no forced blank pages/excess whitespace; actual PDF geometry and pixels required"
+  ],
+  "baselinePixelReview": "baseline-pixel-review.json: six full pages visibly reproduce TABLE575 16/17, CODE575 21/22, LIST575 26/27 orphan pairs."
+}

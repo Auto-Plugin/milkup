@@ -1,0 +1,7 @@
+# Existing DOM blocked-pipe regression: retained first failure
+
+`desktop-native-tests.log` reports 180 passed, 1 failed, 5 ignored. The failed assertion is `blocked_pipe_write_does_not_block_native_watchdog`, receiving no event within its five-second `recv_timeout`. The cloud wrapper exit code zero does not change that Rust test failure. `desktop-native-tests-serial.log`, rerun on unchanged DOM source, reports 181 passed, 0 failed, 5 ignored. Both results must be retained.
+
+The five-second receiver timer begins immediately after spawning the sender thread. The authoritative two-second render deadline is created later inside `send`, after scheduling, JSON serialization and validation. Watchdog expiration calls `finish`; `finish` waits for owned-process cleanup before delivering the timeout event. This test uses the standalone fixture cleanup path rather than the production guardian: it scans `/proc` and allows up to three seconds for cleanup, with additional scheduling/scan work. Consequently the receiver's five seconds cover more than the two-second execution limit and may race the combined dispatch/cleanup cost under load.
+
+The existing failure log has no phase timings proving which component caused this occurrence. Serial success supports a concurrency-sensitive test observation, but does not prove a pure environment cause or establish that the production watchdog missed its hard execution deadline. No product change, increased deadline, relaxed assertion, new run or UI action was made for this review.

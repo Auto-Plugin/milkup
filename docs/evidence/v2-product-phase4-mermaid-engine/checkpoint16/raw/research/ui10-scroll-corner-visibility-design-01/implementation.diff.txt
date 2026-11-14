@@ -1,0 +1,266 @@
+--- before-tauri-mermaid-ui.mjs
++++ after-tauri-mermaid-ui.mjs
+@@ -206,7 +206,12 @@
+ const observe = () =>
+   app.execute(`
+ const rect=e=>e.getBoundingClientRect().toJSON(),editor=document.querySelector('.milkup-editor');
+-return {width:innerWidth,height:innerHeight,theme:document.documentElement.dataset.theme,zoom:Number(document.querySelector('#app')?.dataset.appearanceZoom),windowed:!!document.querySelector('.milkup-source-document-view'),editor:rect(editor),fonts:document.fonts.status,previews:[...document.querySelectorAll('[data-document-presentation]')].map(e=>({from:Number(e.dataset.presentationFrom),to:Number(e.dataset.presentationTo),label:e.getAttribute('aria-label'),rect:rect(e),top:e.scrollTop,left:e.scrollLeft,scrollWidth:e.scrollWidth,clientWidth:e.clientWidth,scrollHeight:e.scrollHeight,clientHeight:e.clientHeight,inlineSvg:e.querySelectorAll('svg,foreignObject,script').length,images:[...e.querySelectorAll('img')].map(i=>({src:i.currentSrc,complete:i.complete,naturalWidth:i.naturalWidth,naturalHeight:i.naturalHeight,width:i.width,height:i.height,draggable:i.draggable,tabIndex:i.tabIndex,rect:rect(i),slot:rect(i.parentElement),ink:rect(i.parentElement.parentElement),offset:{left:i.style.left,top:i.style.top,slotLeft:i.parentElement.style.left,slotTop:i.parentElement.style.top},slotOverflow:getComputedStyle(i.parentElement).overflow}))})),notices:[...document.querySelectorAll('[data-document-presentation-notice]')].map(e=>e.textContent),noticeBoxes:[...document.querySelectorAll('[data-document-presentation-notice]')].map(e=>({text:e.textContent,rect:rect(e),display:getComputedStyle(e).display,visibility:getComputedStyle(e).visibility,opacity:Number(getComputedStyle(e).opacity)})),diagnostics:window.__productionDiagnostics}
++const clientRect=e=>{const r=e.getBoundingClientRect(),left=r.left+e.clientLeft,top=r.top+e.clientTop;return {left,top,right:left+e.clientWidth,bottom:top+e.clientHeight,width:e.clientWidth,height:e.clientHeight};};
++const client=clientRect(editor),editorViewport={top:Math.max(0,client.top),bottom:Math.min(innerHeight,client.bottom),left:Math.max(0,client.left),right:Math.min(innerWidth,client.right)};
++const gutterY=editorViewport.top+Math.min(40,(editorViewport.bottom-editorViewport.top)/3);
++let editorGutter;
++for(const px of [editorViewport.left+4,editorViewport.right-4]) {const hit=document.elementFromPoint(px,gutterY);if(px>editorViewport.left&&px<editorViewport.right&&hit&&editor.contains(hit)&&!hit.closest('[data-document-presentation],input,textarea,button,[role="scrollbar"]')) {editorGutter={x:px,y:gutterY};break;}}
++return {width:innerWidth,height:innerHeight,theme:document.documentElement.dataset.theme,zoom:Number(document.querySelector('#app')?.dataset.appearanceZoom),windowed:!!document.querySelector('.milkup-source-document-view'),editor:rect(editor),editorViewport,editorGutter,fonts:document.fonts.status,previews:[...document.querySelectorAll('[data-document-presentation]')].map(e=>({from:Number(e.dataset.presentationFrom),to:Number(e.dataset.presentationTo),label:e.getAttribute('aria-label'),rect:rect(e),clientRect:clientRect(e),top:e.scrollTop,left:e.scrollLeft,scrollWidth:e.scrollWidth,clientWidth:e.clientWidth,scrollHeight:e.scrollHeight,clientHeight:e.clientHeight,inlineSvg:e.querySelectorAll('svg,foreignObject,script').length,images:[...e.querySelectorAll('img')].map(i=>({src:i.currentSrc,complete:i.complete,naturalWidth:i.naturalWidth,naturalHeight:i.naturalHeight,width:i.width,height:i.height,draggable:i.draggable,tabIndex:i.tabIndex,rect:rect(i),slot:rect(i.parentElement),ink:rect(i.parentElement.parentElement),offset:{left:i.style.left,top:i.style.top,slotLeft:i.parentElement.style.left,slotTop:i.parentElement.style.top},slotOverflow:getComputedStyle(i.parentElement).overflow}))})),notices:[...document.querySelectorAll('[data-document-presentation-notice]')].map(e=>e.textContent),noticeBoxes:[...document.querySelectorAll('[data-document-presentation-notice]')].map(e=>({text:e.textContent,rect:rect(e),display:getComputedStyle(e).display,visibility:getComputedStyle(e).visibility,opacity:Number(getComputedStyle(e).opacity)})),diagnostics:window.__productionDiagnostics}
+ `)
+ const selectorFor = (sample) =>
+   `[data-document-presentation][data-presentation-from="${sample.from}"]`
+@@ -264,6 +269,51 @@
+     assert(Math.abs(actual[axis] - clamped) <= 1, stage + ': preserves reached offset ' + axis)
+   }
+ }
++function assertCapturedScrollCorner(dom, expected, stage) {
++  const actual = dom.previews.find((item) => item.from === expected.from && item.to === expected.to)
++  assert(actual, stage + ': corner preview remains mounted')
++  const rect = actual.clientRect,
++    viewport = dom.editorViewport
++  assert(
++    rect &&
++      viewport &&
++      [
++        rect.left,
++        rect.right,
++        rect.top,
++        rect.bottom,
++        viewport.left,
++        viewport.right,
++        viewport.top,
++        viewport.bottom,
++      ].every(Number.isFinite) &&
++      rect.right > rect.left &&
++      rect.bottom > rect.top &&
++      viewport.right > viewport.left &&
++      viewport.bottom > viewport.top,
++    stage + ': finite nonempty corner client geometry',
++  )
++  if (expected.corner === 'bottom-right') {
++    assert(
++      rect.right <= viewport.right && rect.right > viewport.left,
++      stage + ': right corner is inside editor viewport',
++    )
++    assert(
++      rect.bottom <= viewport.bottom && rect.bottom > viewport.top,
++      stage + ': bottom corner is inside editor viewport',
++    )
++  } else {
++    assert.equal(expected.corner, 'top-left', stage + ': known visible corner')
++    assert(
++      rect.left >= viewport.left && rect.left < viewport.right,
++      stage + ': left corner is inside editor viewport',
++    )
++    assert(
++      rect.top >= viewport.top && rect.top < viewport.bottom,
++      stage + ': top corner is inside editor viewport',
++    )
++  }
++}
+ function noticeIsVisible(notice, dom) {
+   const rect = notice.rect
+   return (
+@@ -289,8 +339,11 @@
+ async function preserveAssertion(kind, dom, expected, stage, document = null) {
+   try {
+     if (kind === 'preview') assertCapturedPreview(dom, expected, stage)
+-    else if (kind === 'scroll-edge') assertCapturedScrollEdge(dom, expected, stage)
+-    else assertCapturedNotice(dom, expected, stage)
++    else if (kind === 'scroll-edge-offset') assertCapturedScrollEdge(dom, expected, stage)
++    else if (kind === 'scroll-edge') {
++      assertCapturedScrollEdge(dom, expected, stage)
++      assertCapturedScrollCorner(dom, expected, stage)
++    } else assertCapturedNotice(dom, expected, stage)
+   } catch (error) {
+     const file =
+       'assertion-failure-' +
+@@ -1032,33 +1085,112 @@
+   await app.key('ctrl+z')
+   await saved(original)
+ }
++async function alignScrollCorner(sample, expected) {
++  const before = await app.probe()
++  const projectionBefore = await sampleSelectionProjection(sample, 'before-corner-alignment')
++  const fileBefore = await readFile(activeFile)
++  const started = Date.now(),
++    observations = []
++  let ticks = 0,
++    reversals = 0,
++    previousDirection,
++    failure,
++    completed = false
++  try {
++    // Independent finite alignment stage: at most 5 seconds / 10 single ticks /
++    // 2 reversals per corner. Existing sample and inner-wheel budgets are unchanged.
++    while (Date.now() - started < 5000) {
++      const dom = await observe()
++      observations.push({ elapsedMs: Date.now() - started, ticks, reversals, dom })
++      await preserveAssertion('scroll-edge-offset', dom, expected, 'during corner alignment')
++      const actual = dom.previews.find(
++        (item) => item.from === expected.from && item.to === expected.to,
++      )
++      const rect = actual.clientRect,
++        viewport = dom.editorViewport
++      const bottomRight = expected.corner === 'bottom-right'
++      assert(
++        bottomRight
++          ? rect.right <= viewport.right && rect.right > viewport.left
++          : rect.left >= viewport.left && rect.left < viewport.right,
++        'Corner alignment: corresponding horizontal edge must already be inside editor viewport',
++      )
++      const edge = bottomRight ? rect.bottom : rect.top
++      const aligned = bottomRight
++        ? edge <= viewport.bottom && edge > viewport.top
++        : edge >= viewport.top && edge < viewport.bottom
++      if (aligned) {
++        assert(Date.now() - started < 5000, 'Corner alignment: five-second bound reached')
++        await preserveAssertion('scroll-edge', dom, expected, 'after corner alignment')
++        completed = true
++        break
++      }
++      assert(ticks < 10, 'Corner alignment: ten-wheel-tick bound reached')
++      assert(dom.editorGutter, 'Corner alignment: real non-preview editor gutter hit required')
++      const direction = bottomRight
++        ? edge > viewport.bottom
++          ? '5'
++          : '4'
++        : edge < viewport.top
++          ? '4'
++          : '5'
++      if (previousDirection && direction !== previousDirection) reversals++
++      assert(reversals <= 2, 'Corner alignment: two-direction-reversal bound reached')
++      const scale =
++        Number(/WIDTH=(\d+)/.exec(x('getwindowgeometry', '--shell', nativeWindow))[1]) / dom.width
++      assert(Number.isFinite(scale) && scale > 0, 'Corner alignment: actual native scale required')
++      assert(Date.now() - started < 5000, 'Corner alignment: five-second bound reached')
++      x(
++        'mousemove',
++        '--window',
++        nativeWindow,
++        String(Math.round(dom.editorGutter.x * scale)),
++        String(Math.round(dom.editorGutter.y * scale)),
++        'click',
++        direction,
++      )
++      previousDirection = direction
++      ticks++
++      await app.delay(120)
++    }
++    assert(completed, 'Corner alignment: required edge must be visible within five seconds')
++  } catch (error) {
++    failure = error
++  }
++  const after = await app.probe()
++  const projectionAfter = await sampleSelectionProjection(sample, 'after-corner-alignment').catch(
++    (error) => {
++      if (!failure) failure = error
++      return { error: String(error) }
++    },
++  )
++  const fileUnchanged = (await readFile(activeFile)).equals(fileBefore)
++  await appendFile(
++    path.join(output, 'corner-alignment.jsonl'),
++    JSON.stringify({
++      sample: sample.id,
++      expected,
++      elapsedMs: Date.now() - started,
++      ticks,
++      reversals,
++      completed,
++      error: failure ? String(failure) : undefined,
++      before,
++      after,
++      selectionProjection: { before: projectionBefore, after: projectionAfter },
++      fileUnchanged,
++      observations,
++    }) + '\n',
++  )
++  if (failure) throw failure
++  assert.equal(after.path, before.path, 'Corner alignment must preserve document path')
++  assert.equal(after.version, before.version, 'Corner alignment must preserve source version')
++  assert.equal(after.dirty, before.dirty, 'Corner alignment must preserve dirty state')
++  assert(fileUnchanged, 'Corner alignment must preserve exact saved file bytes')
++}
+ async function scrollEdges(sample, key) {
+   const read = async () => (await observe()).previews.find((p) => p.from === sample.from)
+   const before = await read()
+-  const dom = await observe(),
+-    rect = before.rect
+-  const px =
+-    (Math.max(rect.left, dom.editor.left) + Math.min(rect.right, dom.editor.right, dom.width)) / 2
+-  const py =
+-    (Math.max(rect.top, dom.editor.top) + Math.min(rect.bottom, dom.editor.bottom, dom.height)) / 2
+-  assert(
+-    await app.execute(
+-      'return document.querySelector(arguments[0])?.contains(document.elementFromPoint(arguments[1],arguments[2]))',
+-      selectorFor(sample),
+-      px,
+-      py,
+-    ),
+-    'Real wheel target hit test',
+-  )
+-  const scale =
+-    Number(/WIDTH=(\d+)/.exec(x('getwindowgeometry', '--shell', nativeWindow))[1]) / dom.width
+-  x(
+-    'mousemove',
+-    '--window',
+-    nativeWindow,
+-    String(Math.round(px * scale)),
+-    String(Math.round(py * scale)),
+-  )
+   for (const [corner, axes] of [
+     [
+       'bottom-right',
+@@ -1075,6 +1207,31 @@
+       ],
+     ],
+   ]) {
++    const dom = await observe()
++    const preview = dom.previews.find((item) => item.from === before.from && item.to === before.to)
++    assert(preview, 'Inner wheel target must remain mounted')
++    const rect = preview.clientRect,
++      viewport = dom.editorViewport
++    const px = (Math.max(rect.left, viewport.left) + Math.min(rect.right, viewport.right)) / 2
++    const py = (Math.max(rect.top, viewport.top) + Math.min(rect.bottom, viewport.bottom)) / 2
++    assert(
++      await app.execute(
++        'return document.querySelector(arguments[0])?.contains(document.elementFromPoint(arguments[1],arguments[2]))',
++        selectorFor(sample),
++        px,
++        py,
++      ),
++      'Real wheel target hit test',
++    )
++    const scale =
++      Number(/WIDTH=(\d+)/.exec(x('getwindowgeometry', '--shell', nativeWindow))[1]) / dom.width
++    x(
++      'mousemove',
++      '--window',
++      nativeWindow,
++      String(Math.round(px * scale)),
++      String(Math.round(py * scale)),
++    )
+     for (const [button, axis, target] of axes) {
+       for (let step = 0; step < 30 && Math.abs((await read())[axis] - target) > 1; step++) {
+         x('click', '--repeat', '3', '--delay', '70', button)
+@@ -1086,11 +1243,13 @@
+       )
+     }
+     const after = await read()
++    const scrollEdge = { from: before.from, to: before.to, corner, after }
++    await alignScrollCorner(sample, scrollEdge)
+     await shot(`edges-${key}-${sample.id}-${corner}`, {
+       sample: sample.id,
+       before,
+       after,
+-      scrollEdge: { from: before.from, to: before.to, corner, after },
++      scrollEdge,
+     })
+   }
+ }

@@ -1,0 +1,57 @@
+
+Running 2 tests using 1 worker
+
+(node:50786) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  1 tests/e2e/desktop-sidebar-resize.spec.ts:46:1 › visible separators resize their DOM neighbours after document remount and collapse (1.2s)
+(node:50930) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  2 tests/e2e/desktop-sidebar-resize.spec.ts:68:1 › resized panels keep their minimum and fit a changed viewport without clipping siblings (6.1s)
+
+
+  1) tests/e2e/desktop-sidebar-resize.spec.ts:46:1 › visible separators resize their DOM neighbours after document remount and collapse 
+
+    Error: expect(received).toBeCloseTo(expected, precision)
+
+    Expected: 337.65625
+    Received: 277.65625
+
+    Expected precision:    0
+    Expected difference: < 0.5
+    Received difference:   60
+
+      49 |   const before = await Promise.all(['a', 'b', 'c'].map((id) => height(page, id)))
+      50 |   await drag(page, 'a', 60)
+    > 51 |   expect(await height(page, 'a')).toBeCloseTo(before[0]! + 60, 0)
+         |                                   ^
+      52 |   expect(await height(page, 'b')).toBeCloseTo(before[1]! - 60, 0)
+      53 |   expect(await height(page, 'c')).toBeCloseTo(before[2]!, 0)
+      54 |   await panel(page, 'b').getByRole('button', { name: 'Panel b', exact: true }).click()
+        at /tmp/milkup-windows-manual-candidate/tests/e2e/desktop-sidebar-resize.spec.ts:51:35
+
+    Error Context: test-results/desktop-sidebar-resize-vis-e95b7-cument-remount-and-collapse/error-context.md
+
+  2) tests/e2e/desktop-sidebar-resize.spec.ts:68:1 › resized panels keep their minimum and fit a changed viewport without clipping siblings 
+
+    Error: expect(received).toBeLessThanOrEqual(expected)
+
+    Expected: <= 1
+    Received:    169
+
+    Call Log:
+    - Timeout 5000ms exceeded while waiting on the predicate
+
+      75 |     const last = (await panel(page, 'c').boundingBox())!
+      76 |     return last.y + last.height - parent.y - parent.height
+    > 77 |   }).toBeLessThanOrEqual(1)
+         |      ^
+      78 |   await drag(page, 'a', -1000)
+      79 |   expect(await height(page, 'a')).toBeCloseTo(96, 0)
+      80 |   await drag(page, 'a', 1000)
+        at /tmp/milkup-windows-manual-candidate/tests/e2e/desktop-sidebar-resize.spec.ts:77:6
+
+    Error Context: test-results/desktop-sidebar-resize-res-a44ff-t-without-clipping-siblings/error-context.md
+
+  2 failed
+    tests/e2e/desktop-sidebar-resize.spec.ts:46:1 › visible separators resize their DOM neighbours after document remount and collapse 
+    tests/e2e/desktop-sidebar-resize.spec.ts:68:1 › resized panels keep their minimum and fit a changed viewport without clipping siblings 

@@ -1,0 +1,44 @@
+{
+  "status": "PASS",
+  "exitCode": 0,
+  "finishedAt": "2026-10-15T07:36:03.146Z",
+  "records": 111,
+  "binarySha256": "e749904c26dc6f83d1dd5cb9f4709f170abc93e58c9ef5fdbf1a960c08451654",
+  "debSha256": "cafbbfc0c66463d01faf9669d04774d06d394b231c50b4cbd90f15496f74a10d",
+  "provenance": "provenance.json",
+  "results": "results.json",
+  "matrix": {
+    "editor": 64,
+    "panel": 16,
+    "themes": ["light", "dark"],
+    "zoom": [1, 1.25, 1.5, 2],
+    "windowPixels": [
+      [1100, 760],
+      [760, 520]
+    ],
+    "panelFocusAssertion": "entire focused control plus 4 CSS px ring within modal client bounds",
+    "editorAssertion": "End caret horizontally visible before ShiftHome selection; screenshots show selection after ShiftHome",
+    "manifest": "matrix-x11-manifest.json"
+  },
+  "coverage": [
+    "ordinary and windowed source/live full byte CRLF + Unicode editing, undo/redo and save",
+    "font families, size, line width and line height preview, cancel, reset, save and restart",
+    "future four-space and tab indentation and outdent byte round trip",
+    "ordinary and windowed live centered gutters exact UTF-16 endpoints, input, save and drag selection",
+    "preference disable/uninstall keeps committed host settings and editing after restart",
+    "shortcut conflict, cancel, actual Mod+K save, previous Mod+S inactive, process restart, restore defaults"
+  ],
+  "priorFailuresPreserved": [
+    "run-03-centered-margin",
+    "run-final",
+    "run-final2/visual-review-verdict.json",
+    "focus-before",
+    "run-final3/failure-analysis.json",
+    "pointer-diagnostic"
+  ],
+  "pointerRaceVerification": "pointer-after: 12 unique physical Save click events across six 150/200 cycles, all command=preferences.save",
+  "limitations": [
+    "Linux production only; no Windows or system IME certification",
+    "Offscreen windowed live heights remain estimates until bounded visible measurement"
+  ]
+}

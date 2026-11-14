@@ -1,0 +1,11 @@
+# Marker reference-coordinate review
+
+Primary sources: https://www.w3.org/TR/SVG2/painting.html#MarkerElement and https://www.w3.org/TR/SVG2/painting.html#RenderingMarkers . SVG 2 defines references in marker-content coordinates, percentages against the viewBox width/height, and its equivalent-rendering example scales the reference translation by the viewBox scale. Consequently a mapped ink rectangle must subtract the reference mapped by the same affine matrix. Mapping both also cancels viewBox-origin and preserveAspectRatio alignment translations correctly.
+
+Confirmed static defect: core maps ink but subtracts a reference resolved against markerWidth/Height without mapping. Plugin paint-envelope already maps both; it needs regressions, not the same fix.
+
+Minimal geometric counterexample: viewBox [0,0,5,5], viewport 10×10, ref [5,5], rect [0,0,5,5]. Content maps to [0,0,10,10], reference to [10,10]. The corner-relative offset is [-10,-10], while the old calculation only encloses ±5 per axis. Reflected placement preserves this underestimation. With viewBox [1,2,5,5], ref [6,7], both mapping translations cancel and the same offset results.
+
+Public cost fixture scales the example to marker viewport 2000×2000 / viewBox 1000×1000, applies a parent opacity layer, and requires rejection at the existing 16,777,216 intermediate-surface limit. No quota changes are proposed. Executed before: five failures and one pass; after: six new reference/inheritance tests and eight existing cost tests passed. See summary.json and raw logs.
+
+Additional distinct issue found in the same official section: marker contents do not inherit from the referencing shape. Both implementations currently pass that shape context. Reported to parent before any scope change; subsequently authorized and fixed in both geometry modules, with independent red/green tests. The codec DAG owner is handling the corresponding gradient-expansion accounting separately.

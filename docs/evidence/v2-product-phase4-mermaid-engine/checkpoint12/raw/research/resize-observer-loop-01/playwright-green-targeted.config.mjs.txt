@@ -1,0 +1,9 @@
+export default {
+ testDir: '/workspace/milkup/tests/e2e',
+ testMatch: 'desktop-markdown-extensions.spec.ts',
+ timeout: 60000, retries: 0, workers: 1,
+ outputDir: '/workspace/milkup-mermaid-engine-evidence/research/resize-observer-loop-01/green-targeted-artifacts',
+ reporter: [['list'], ['json', {outputFile: '/workspace/milkup-mermaid-engine-evidence/research/resize-observer-loop-01/green-targeted-results.json'}]],
+ use: {baseURL:'http://127.0.0.1:1420', headless:true, launchOptions:{executablePath:'/usr/bin/chromium'},trace:'on'},
+ webServer: {command:'pnpm --filter @milkup/desktop dev',cwd:'/workspace/milkup',url:'http://127.0.0.1:1420',reuseExistingServer:false},
+}

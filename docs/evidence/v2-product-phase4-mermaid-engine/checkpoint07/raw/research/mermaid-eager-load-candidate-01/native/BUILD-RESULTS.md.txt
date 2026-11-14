@@ -1,0 +1,13 @@
+# ABBA native test build — no runtime
+
+The frozen cargo test --release --locked --offline --features tauri/custom-protocol --lib --no-run command succeeded on its first invocation in 50.199836s. No tests or helper processes were executed.
+
+Frozen test executable: native/bin/native-tests, SHA256 2594fe243d01b37d518e72adbab13720b7c170a24e0ed8197170cd2cdeacf303, 17293832 bytes, ELF buildID f1b19c4b987e7f8b30192f4fe24c84a388dbffff.
+
+The existing helper remains /workspace/milkup-mermaid-engine-evidence/research/native-hidden-timer-candidate-01/bin/milkup-desktop, SHA256 02b15a8038e694806e4cbc5f8a6b6324160529a0ab3303934a626d7c8e848982, unchanged and not rebuilt. Guard SHA 5b1082768123b9ac1923eb8ef3f6f8c0bd05ffd5d66b8b2a023f75b69106c44c, 15656 bytes, complete byte sequence at new test binary offset 1676760 and reused helper offset 3562647.
+
+Cargo's actual compiler-artifact selected the output; the frozen copy has identical bytes and a distinct inode. All51 new source files match final-source-manifest.json after compilation. Original A/C51 source files and helper SHA were rechecked unchanged. Only the old stage target was mutable compilation cache.
+
+The sole compiler warning is the existing unused Arc import at piece_tree.rs:1029. No unrelated edit or retry was made. test-build01.jsonl and test-build01.stderr.log preserve original compiler output; test-build01-command.json records exact argv/env/timestamps/exit. provenance.json links all identities and19 evidence files.
+
+This is a test-only native mechanism artifact, not a production DEB or runtime PASS. Runtime still requires root's separate GO.

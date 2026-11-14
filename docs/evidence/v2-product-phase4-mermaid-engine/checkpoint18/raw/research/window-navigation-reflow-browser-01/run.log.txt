@@ -1,0 +1,53 @@
+
+[WebServer] (node:444181) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+[WebServer] $ vite --host 127.0.0.1
+
+[WebServer] (node:444194) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+[WebServer] (node:444219) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+[WebServer] $ vite --host 127.0.0.1
+
+[WebServer] (node:444234) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 1 test using 1 worker
+
+
+(node:444268) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+[1/1] [desktop-msedge] › tests/e2e/desktop-window-navigation-reflow.spec.ts:5:1 › windowed navigation retains mounted marker through controlled image shrink after selection assignment
+  1) [desktop-msedge] › tests/e2e/desktop-window-navigation-reflow.spec.ts:5:1 › windowed navigation retains mounted marker through controlled image shrink after selection assignment 
+
+    Error: expect(received).toBeGreaterThanOrEqual(expected)
+
+    Expected: >= 37
+    Received:    36.78125
+
+      337 |     expect(result.final.selection).toMatchObject({ anchor: result.from, head: result.to })
+      338 |     expect(result.final.marker).not.toBeNull()
+    > 339 |     expect(result.final.marker!.top).toBeGreaterThanOrEqual(result.final.viewport!.top)
+          |                                      ^
+      340 |     expect(result.final.marker!.bottom).toBeLessThanOrEqual(result.final.viewport!.bottom)
+      341 |     expect(result.final.overlays.length).toBeGreaterThan(0)
+      342 |     expect(
+        at /workspace/milkup/tests/e2e/desktop-window-navigation-reflow.spec.ts:339:38
+
+    Error Context: ../milkup-mermaid-engine-evidence/research/window-navigation-reflow-browser-01/artifacts/desktop-window-navigation--56a9e--after-selection-assignment-desktop-msedge/error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    ../milkup-mermaid-engine-evidence/research/window-navigation-reflow-browser-01/artifacts/desktop-window-navigation--56a9e--after-selection-assignment-desktop-msedge/trace.zip
+    Usage:
+
+        npx playwright show-trace ../milkup-mermaid-engine-evidence/research/window-navigation-reflow-browser-01/artifacts/desktop-window-navigation--56a9e--after-selection-assignment-desktop-msedge/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+  1 failed
+    [desktop-msedge] › tests/e2e/desktop-window-navigation-reflow.spec.ts:5:1 › windowed navigation retains mounted marker through controlled image shrink after selection assignment 

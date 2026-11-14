@@ -1,0 +1,17 @@
+# A/C candidate build results — no runtime
+
+Both frozen native Cargo commands succeeded on their first invocation. Release build: 111.469162s. Test executable build with --no-run: 128.831681s. No tests, GTK/WebKit process, Vite, DEB, Windows build or upload were run.
+
+Frozen binary: bin/milkup-desktop, SHA256 02b15a8038e694806e4cbc5f8a6b6324160529a0ab3303934a626d7c8e848982, 21932608 bytes, ELF build ID 944b68f992f5b28f1ae448eebd956faf24e1f6a8.
+
+Frozen ignored-test executable: bin/native-tests, SHA256 e28fa09de3dade21d62e7e5dfe93b2047d93358778f2d76716adee881bcea499, 17308560 bytes, ELF build ID 22cfb4b0b6d1d0c84063adcf364b110c0d71e5b0.
+
+Guard: bin/libmilkup_dom_guard.so, SHA256 5b1082768123b9ac1923eb8ef3f6f8c0bd05ffd5d66b8b2a023f75b69106c44c, 15656 bytes. Its entire bytes are embedded at binary offset 3562647 and test-binary offset 1652742.
+
+Cargo compiler-artifact events selected actual output paths; copied outputs have distinct inodes and identical bytes. The old stage target was used only as mutable compiler cache. All51 source files remained byte-identical to final-source-manifest.json after each build. Original stage50 source files and its frozen8041 binary were rechecked unchanged.
+
+The sole reported warning is an existing unused std::sync::Arc import in piece_tree.rs:1029 during test compilation. It was not changed.
+
+provenance.json lists exact commands, logs, artifacts, source audits and fixture/review identities. The two *.jsonl files are original Cargo stdout, *.stderr.log files original stderr. There were no retries or compiler failures. Runtime is pending separate approval, and successful compilation is not evidence of timer/visibility behavior.
+
+The later WebKit nesting-threshold addendum qualifies the hypothesis: single/double explicit timers do not themselves prove the level10 hidden alignment applies. Preserve the predeclared controls; no deeper nesting or dummy prewarm was added.

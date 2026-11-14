@@ -1,0 +1,179 @@
+import assert from 'node:assert/strict'
+import { createNavigationRing } from './helpers/native-production.mjs'
+const cases = []
+function test(name, fn) {
+  fn()
+  cases.push(name)
+  console.log('PASS', name)
+}
+const snapshot = (index = 0) => ({
+  timeOrigin: 100,
+  now: index,
+  readMs: 0.25,
+  editor: { scrollTop: 42 },
+  probe: { version: 0, dirty: false },
+})
+test('clock-only changes deduplicate without hiding sample/read cost', () => {
+  const ring = createNavigationRing()
+  ring.record('start', snapshot(0), true)
+  for (let i = 1; i <= 100; i++) ring.record('poll', snapshot(i))
+  assert.equal(ring.state.rows.length, 1)
+  assert.equal(ring.state.duplicates, 100)
+  assert.equal(ring.state.observedSnapshots, 101)
+  assert.equal(ring.state.captureMs, 25.25)
+})
+test('explicit key phases retain one atomic snapshot without double counting read cost', () => {
+  const ring = createNavigationRing(),
+    value = snapshot()
+  ring.record('poll', value)
+  ring.record('search-ready', value, true)
+  ring.record('terminal', value, true)
+  assert.equal(ring.state.rows.length, 3)
+  assert.equal(ring.state.captureMs, 0.25)
+  assert.equal(ring.state.observedSnapshots, 1)
+})
+test('changed-state count cap preserves initial and terminal phases', () => {
+  const ring = createNavigationRing()
+  ring.record('start', snapshot(), true)
+  for (let i = 0; i < 300; i++) ring.record('poll', { ...snapshot(i), editor: { scrollTop: i } })
+  ring.record('terminal', snapshot(301), true)
+  assert(ring.state.rows.length <= 128)
+  assert.equal(ring.state.rows[0].phase, 'start')
+  assert.equal(ring.state.rows.at(-1).phase, 'terminal')
+  assert(ring.state.evicted > 0)
+})
+test('total UTF8 byte bound includes newline and evicts ordinary rows first', () => {
+  const ring = createNavigationRing()
+  ring.record('start', snapshot(), true)
+  for (let i = 0; i < 128; i++)
+    ring.record('poll', { ...snapshot(i), data: '中'.repeat(3000), index: i })
+  ring.record('terminal', snapshot(129), true)
+  assert(Buffer.byteLength(JSON.stringify(ring.state) + '\n') <= 262144)
+  assert.equal(ring.state.rows[0].phase, 'start')
+  assert.equal(ring.state.rows.at(-1).phase, 'terminal')
+})
+test('single oversize state retains explicit omission and key phase', () => {
+  const ring = createNavigationRing()
+  ring.record('terminal', { ...snapshot(), data: 'x'.repeat(20000) }, true)
+  assert.equal(ring.state.rows[0].omitted, 'snapshot-row-cap')
+  assert(ring.state.incomplete.includes('row-cap'))
+  assert.equal(ring.state.rows[0].phase, 'terminal')
+})
+test('missing page snapshot remains missing, never synthesized as successful DOM', () => {
+  const ring = createNavigationRing()
+  ring.record('timeout-final', undefined, true)
+  assert.equal(ring.state.rows.length, 0)
+  assert(ring.state.incomplete.includes('missing-snapshot'))
+})
+console.log(
+  JSON.stringify({
+    cases: cases.length,
+    scope: 'Pure in-memory ring only; no browser/driver/sampler execution',
+  }),
+)
+// The constructed page task must preserve every original probe value.
+const { readFileSync } = await import('node:fs')
+const { default: vm } = await import('node:vm')
+const { navigationSnapshot } = await import('./helpers/native-production.mjs')
+const helper = readFileSync(new URL('./helpers/native-production.mjs', import.meta.url), 'utf8')
+const probeSource = /const originalProbeScript = `([^`]+)`/.exec(helper)[1]
+test('same page task preserves original probe values and reports absent public DOM honestly', () => {
+  const context = vm.createContext({
+    document: { querySelector: () => null, querySelectorAll: () => [], activeElement: null },
+    location: { href: 'tauri://localhost' },
+    performance: { now: () => 17, timeOrigin: 100 },
+    innerWidth: 1100,
+    innerHeight: 760,
+  })
+  const before = vm.runInContext('(function(){' + probeSource + '})()', context)
+  const script =
+    probeSource.replace('return {', 'const result = {') +
+    ';result.navigation=(' +
+    navigationSnapshot.toString() +
+    ')(arguments[0],result);return result'
+  const after = vm.runInContext(
+    '(function(){' + script + '})({markerLine:1,markerFrom:0,markerTo:5})',
+    context,
+  )
+  assert.equal(after.navigation.editor, null)
+  assert.equal(after.navigation.content, null)
+  assert.equal(after.navigation.targets.length, 5)
+  assert(after.navigation.targets.every((row) => row.row === null))
+  delete after.navigation
+  assert.equal(JSON.stringify(after), JSON.stringify(before))
+  assert(Number.isNaN(after.cursor))
+})
+console.log(
+  JSON.stringify({
+    finalCases: cases.length,
+    scope: 'Pure memory and fake public DOM only; no page, process or browser launched',
+  }),
+)
+test('unmounted target still captures bounded actual mounted preview and flags child-scan truncation', () => {
+  const bounds = () => ({ left: 0, top: 37, right: 1100, bottom: 730, width: 1100, height: 693 })
+  const image = {
+    complete: true,
+    naturalWidth: 1002,
+    naturalHeight: 436,
+    getBoundingClientRect: bounds,
+  }
+  const preview = {
+    dataset: { presentationFrom: '8878', presentationTo: '9181' },
+    getBoundingClientRect: bounds,
+    scrollTop: 0,
+    scrollLeft: 0,
+    querySelector: (selector) => (selector === 'img' ? image : null),
+  }
+  const nodes = Array.from({ length: 140 }, (_, i) => ({
+    dataset: { line: String(500 + i), from: String(10000 + i), to: String(10001 + i) },
+    hidden: false,
+    matches: (selector) => selector === '.milkup-line',
+    getBoundingClientRect: bounds,
+    querySelector: () => (i === 100 ? preview : null),
+    closest: () => null,
+  }))
+  nodes.forEach((node, index) => {
+    node.nextElementSibling = nodes[index + 1] ?? null
+    node.previousElementSibling = nodes[index - 1] ?? null
+  })
+  const content = {
+    dataset: { fromLine: '500', toLine: '639' },
+    firstElementChild: nodes[0],
+    lastElementChild: nodes.at(-1),
+    querySelector: () => null,
+    getBoundingClientRect: bounds,
+  }
+  const editor = {
+    dataset: { mode: 'live' },
+    clientLeft: 0,
+    clientTop: 0,
+    clientWidth: 1100,
+    clientHeight: 693,
+    scrollTop: 4000,
+    scrollHeight: 100000,
+    getBoundingClientRect: bounds,
+    querySelector: (selector) => (selector === '.milkup-editor-content' ? content : null),
+  }
+  const context = vm.createContext({
+    document: {
+      querySelector: (selector) => (selector === '.milkup-editor' ? editor : null),
+      activeElement: null,
+    },
+    performance: { now: () => 17, timeOrigin: 100 },
+    innerWidth: 1100,
+    innerHeight: 760,
+  })
+  const result = vm.runInContext(
+    '(' +
+      navigationSnapshot.toString() +
+      ')({markerLine:400,markerFrom:8103,markerTo:8160},{selection:[]})',
+    context,
+  )
+  assert(result.targets.every((row) => row.row === null))
+  assert.equal(result.previews.length, 1)
+  assert.equal(result.previews[0].from, 8878)
+  assert.equal(result.previews[0].images[0].complete, true)
+  assert.equal(result.previewScan.visitedChildren, 128)
+  assert.equal(result.previewScan.truncated, true)
+})
+console.log(JSON.stringify({ finalReviewedCases: cases.length, nativeRuntime: false }))

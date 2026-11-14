@@ -1,0 +1,912 @@
+{
+  "clockBoundary": "Browser observed timestamps are inclusive request-to-callback elapsed, not pure engine execution. Native monotonic phases independently keyed by exact instance/request.",
+  "items": [
+    {
+      "instanceId": "2a335fcb86916dcf2876804a34f71e5acf47b8244c55a93e",
+      "requestId": "render_34",
+      "render": {
+        "atMsFromObserverStart": 132.00000000000364,
+        "payloadFile": "decoded/outgoing-render_34-render.json",
+        "payloadSha256": "008c75c8cc1f977750e751e7717dbc022c1760923c48869ca04a0a4702838d34",
+        "observedSerializationMs": 0,
+        "from": 440,
+        "to": 969,
+        "selection": {
+          "anchor": 1018,
+          "head": 1085
+        },
+        "width": 1100,
+        "theme": "light",
+        "source": "```mermaid\n---\ntitle: Animal example\n---\nclassDiagram\n    note \"From Duck till Zebra\"\n    Animal <|-- Duck\n    note for Duck \"can fly<br>can swim<br>can dive<br>can help in debugging\"\n    Animal <|-- Fish\n    Animal <|-- Zebra\n    Animal : +int age\n    Animal : +String gender\n    Animal: +isMammal()\n    Animal: +mate()\n    class Duck{\n        +String beakColor\n        +swim()\n        +quack()\n    }\n    class Fish{\n        -int sizeInFeet\n        -canEat()\n    }\n    class Zebra{\n        +bool is_wild\n        +run()\n    }\n```",
+        "sourceSha256": "ef80eda5ae0f45a95b22a734fbd6c8d4ef9e4187e6209d4c925164b547767c14"
+      },
+      "cancel": null,
+      "result": {
+        "atMsFromObserverStart": 423,
+        "payloadFile": "decoded/incoming-render_34-result.json",
+        "payloadSha256": "a39dd824e120679f5a2c8cf4b2cc2f911d282e5df2843af83e7c9826ddfa69fd",
+        "observedSerializationMs": 1,
+        "ok": true,
+        "error": null,
+        "fragmentRanges": [
+          {
+            "from": 440,
+            "to": 969
+          }
+        ]
+      },
+      "nativePhases": [
+        {
+          "instanceId": "2a335fcb86916dcf2876804a34f71e5acf47b8244c55a93e",
+          "monotonicNs": 56553662009724,
+          "phase": "dispatch",
+          "pid": 354885,
+          "requestId": "render_34"
+        }
+      ],
+      "observedRequestToResultMs": 290.99999999999636,
+      "family": "classDiagram",
+      "sampleId": "classDiagram-000-first-official-example",
+      "requestCanonicalJsonSha256": "0b10274125647f6397f417220f5e71e59cbc09855889ca42fac763677de806d2"
+    },
+    {
+      "instanceId": "2a335fcb86916dcf2876804a34f71e5acf47b8244c55a93e",
+      "requestId": "render_35",
+      "render": {
+        "atMsFromObserverStart": 599,
+        "payloadFile": "decoded/outgoing-render_35-render.json",
+        "payloadSha256": "8bc00de70491afdef0463a5f19adfa5cb1835a674a439831d78723ee242ef7c5",
+        "observedSerializationMs": 0,
+        "from": 1087,
+        "to": 1257,
+        "selection": {
+          "anchor": 1018,
+          "head": 1085
+        },
+        "width": 1100,
+        "theme": "light",
+        "source": "```mermaid\n---\ntitle: Order example\n---\nerDiagram\n    CUSTOMER ||--o{ ORDER : places\n    ORDER ||--|{ LINE-ITEM : contains\n    CUSTOMER }|..|{ DELIVERY-ADDRESS : uses\n```",
+        "sourceSha256": "895354fc25512f2596fb5d5c02cf508321018f50ba41bf88c1d06876d2b24a61"
+      },
+      "cancel": {
+        "atMsFromObserverStart": 665,
+        "payloadFile": "decoded/outgoing-render_35-cancel.json",
+        "payloadSha256": "1c04cbf2f9a377b180d0f028f24b97b5aabf9b5d7614682b23e770c06dc53adf",
+        "observedSerializationMs": 0
+      },
+      "result": {
+        "atMsFromObserverStart": 733,
+        "payloadFile": "decoded/incoming-render_35-result.json",
+        "payloadSha256": "1f18558ecbdb968581c72cce4ff08c946002cdc8841a35cbb6ce266764d649fa",
+        "observedSerializationMs": 0,
+        "ok": false,
+        "error": "unavailable",
+        "fragmentRanges": []
+      },
+      "nativePhases": [
+        {
+          "instanceId": "2a335fcb86916dcf2876804a34f71e5acf47b8244c55a93e",
+          "monotonicNs": 56554140108039,
+          "phase": "dispatch",
+          "pid": 354885,
+          "requestId": "render_35"
+        }
+      ],
+      "observedRequestToResultMs": 134,
+      "observedCancelToResultMs": 68,
+      "family": "entityRelationshipDiagram",
+      "sampleId": "entityRelationshipDiagram-000-first-official-example",
+      "requestCanonicalJsonSha256": "f657e7016d4e5e0020eaddf06837c12f6f257ea67816f609885076f8df1016ce"
+    },
+    {
+      "instanceId": "2a335fcb86916dcf2876804a34f71e5acf47b8244c55a93e",
+      "requestId": "render_36",
+      "render": {
+        "atMsFromObserverStart": 733,
+        "payloadFile": "decoded/outgoing-render_36-render.json",
+        "payloadSha256": "09a6d20616d687b82629fad4a98422383454d4eda68e87a61e5eca81e71b58db",
+        "observedSerializationMs": 0,
+        "from": 108,
+        "to": 342,
+        "selection": {
+          "anchor": 11,
+          "head": 18
+        },
+        "width": 1100,
+        "theme": "light",
+        "source": "```mermaid\nblock\ncolumns 1\n  db((\"DB\"))\n  blockArrowId6<[\"&nbsp;&nbsp;&nbsp;\"]>(down)\n  block:ID\n    A\n    B[\"A wide one in the middle\"]\n    C\n  end\n  space\n  D\n  ID --> D\n  C --> D\n  style B fill:#969,stroke:#333,stroke-width:4px\n```",
+        "sourceSha256": "e51cb79094f8db3d5a6afd84b1b3a9dab0a1a8da503e5d39a1e7733985c0244b"
+      },
+      "cancel": null,
+      "result": {
+        "atMsFromObserverStart": 905,
+        "payloadFile": "decoded/incoming-render_36-result.json",
+        "payloadSha256": "cc6c13a2e70bb94f29b1f5273b68f7a3cbebe14eab047eda32e388a0a5647108",
+        "observedSerializationMs": 0,
+        "ok": true,
+        "error": null,
+        "fragmentRanges": [
+          {
+            "from": 108,
+            "to": 342
+          }
+        ]
+      },
+      "nativePhases": [
+        {
+          "instanceId": "2a335fcb86916dcf2876804a34f71e5acf47b8244c55a93e",
+          "monotonicNs": 56554264597153,
+          "phase": "dispatch",
+          "pid": 354885,
+          "requestId": "render_36"
+        }
+      ],
+      "observedRequestToResultMs": 172,
+      "family": "block",
+      "sampleId": "block-000-first-official-example",
+      "requestCanonicalJsonSha256": "9ed85ebc903eee7f54d4870493825ffcca0bd01a994ae35fdfc89ddd82e22ddd"
+    },
+    {
+      "instanceId": "2a335fcb86916dcf2876804a34f71e5acf47b8244c55a93e",
+      "requestId": "render_37",
+      "render": {
+        "atMsFromObserverStart": 972,
+        "payloadFile": "decoded/outgoing-render_37-render.json",
+        "payloadSha256": "d6629741260214fa2baddfad70e30a918342e0515b54b4e80ee5c4ed1d5e79af",
+        "observedSerializationMs": 0,
+        "from": 440,
+        "to": 969,
+        "selection": {
+          "anchor": 11,
+          "head": 18
+        },
+        "width": 1100,
+        "theme": "light",
+        "source": "```mermaid\n---\ntitle: Animal example\n---\nclassDiagram\n    note \"From Duck till Zebra\"\n    Animal <|-- Duck\n    note for Duck \"can fly<br>can swim<br>can dive<br>can help in debugging\"\n    Animal <|-- Fish\n    Animal <|-- Zebra\n    Animal : +int age\n    Animal : +String gender\n    Animal: +isMammal()\n    Animal: +mate()\n    class Duck{\n        +String beakColor\n        +swim()\n        +quack()\n    }\n    class Fish{\n        -int sizeInFeet\n        -canEat()\n    }\n    class Zebra{\n        +bool is_wild\n        +run()\n    }\n```",
+        "sourceSha256": "ef80eda5ae0f45a95b22a734fbd6c8d4ef9e4187e6209d4c925164b547767c14"
+      },
+      "cancel": null,
+      "result": {
+        "atMsFromObserverStart": 1318.0000000000036,
+        "payloadFile": "decoded/incoming-render_37-result.json",
+        "payloadSha256": "face2ef508b483866ec27c48f7175ed7b319a9d7bfe1039568f8ff9924c2d6fc",
+        "observedSerializationMs": 0.999999999996362,
+        "ok": true,
+        "error": null,
+        "fragmentRanges": [
+          {
+            "from": 440,
+            "to": 969
+          }
+        ]
+      },
+      "nativePhases": [
+        {
+          "instanceId": "2a335fcb86916dcf2876804a34f71e5acf47b8244c55a93e",
+          "monotonicNs": 56554501097125,
+          "phase": "dispatch",
+          "pid": 354885,
+          "requestId": "render_37"
+        }
+      ],
+      "observedRequestToResultMs": 346.00000000000364,
+      "family": "classDiagram",
+      "sampleId": "classDiagram-000-first-official-example",
+      "requestCanonicalJsonSha256": "fdfba3d557d95761c9ac441d031a3f99702d09b638413dc6c80b17ffff383cf5"
+    },
+    {
+      "instanceId": "2a335fcb86916dcf2876804a34f71e5acf47b8244c55a93e",
+      "requestId": "render_38",
+      "render": {
+        "atMsFromObserverStart": 1972,
+        "payloadFile": "decoded/outgoing-render_38-render.json",
+        "payloadSha256": "9dd38f2c53884e6076d2d8a566a853d250cf864d8404544e1fc82a835de48e5c",
+        "observedSerializationMs": 0,
+        "from": 1087,
+        "to": 1257,
+        "selection": {
+          "anchor": 1319,
+          "head": 1360
+        },
+        "width": 1100,
+        "theme": "light",
+        "source": "```mermaid\n---\ntitle: Order example\n---\nerDiagram\n    CUSTOMER ||--o{ ORDER : places\n    ORDER ||--|{ LINE-ITEM : contains\n    CUSTOMER }|..|{ DELIVERY-ADDRESS : uses\n```",
+        "sourceSha256": "895354fc25512f2596fb5d5c02cf508321018f50ba41bf88c1d06876d2b24a61"
+      },
+      "cancel": null,
+      "result": {
+        "atMsFromObserverStart": 2500,
+        "payloadFile": "decoded/incoming-render_38-result.json",
+        "payloadSha256": "a24b7648af609075efb8af203116b8f5b626f0684625e1f70723033c3734dc2e",
+        "observedSerializationMs": 4.000000000003638,
+        "ok": true,
+        "error": null,
+        "fragmentRanges": [
+          {
+            "from": 1087,
+            "to": 1257
+          }
+        ]
+      },
+      "nativePhases": [
+        {
+          "instanceId": "2a335fcb86916dcf2876804a34f71e5acf47b8244c55a93e",
+          "monotonicNs": 56555501264580,
+          "phase": "dispatch",
+          "pid": 354885,
+          "requestId": "render_38"
+        }
+      ],
+      "observedRequestToResultMs": 528,
+      "family": "entityRelationshipDiagram",
+      "sampleId": "entityRelationshipDiagram-000-first-official-example",
+      "requestCanonicalJsonSha256": "f58b24c077cdfc4e56dbe80644d045684ef4d98907bd6f1b3f41638170ced0a2"
+    },
+    {
+      "instanceId": "2a335fcb86916dcf2876804a34f71e5acf47b8244c55a93e",
+      "requestId": "render_39",
+      "render": {
+        "atMsFromObserverStart": 2621,
+        "payloadFile": "decoded/outgoing-render_39-render.json",
+        "payloadSha256": "7e3174e57f1767ea8bb42c3c7108aa25127d7f44a7f2a81a045be75ca66b85de",
+        "observedSerializationMs": 1,
+        "from": 440,
+        "to": 969,
+        "selection": {
+          "anchor": 1319,
+          "head": 1360
+        },
+        "width": 1100,
+        "theme": "light",
+        "source": "```mermaid\n---\ntitle: Animal example\n---\nclassDiagram\n    note \"From Duck till Zebra\"\n    Animal <|-- Duck\n    note for Duck \"can fly<br>can swim<br>can dive<br>can help in debugging\"\n    Animal <|-- Fish\n    Animal <|-- Zebra\n    Animal : +int age\n    Animal : +String gender\n    Animal: +isMammal()\n    Animal: +mate()\n    class Duck{\n        +String beakColor\n        +swim()\n        +quack()\n    }\n    class Fish{\n        -int sizeInFeet\n        -canEat()\n    }\n    class Zebra{\n        +bool is_wild\n        +run()\n    }\n```",
+        "sourceSha256": "ef80eda5ae0f45a95b22a734fbd6c8d4ef9e4187e6209d4c925164b547767c14"
+      },
+      "cancel": {
+        "atMsFromObserverStart": 2657,
+        "payloadFile": "decoded/outgoing-render_39-cancel.json",
+        "payloadSha256": "a1928205f4ca69f4b2f7c58e473c31a945b4032093595eee0a93496c961e6acb",
+        "observedSerializationMs": 0
+      },
+      "result": {
+        "atMsFromObserverStart": 2853.0000000000036,
+        "payloadFile": "decoded/incoming-render_39-result.json",
+        "payloadSha256": "5465970ac9d5eb3af1bbd2a21e39baf3b4756ace633530e10e72450407d6ebe8",
+        "observedSerializationMs": 0,
+        "ok": false,
+        "error": "unavailable",
+        "fragmentRanges": []
+      },
+      "nativePhases": [
+        {
+          "instanceId": "2a335fcb86916dcf2876804a34f71e5acf47b8244c55a93e",
+          "monotonicNs": 56556154613362,
+          "phase": "dispatch",
+          "pid": 354885,
+          "requestId": "render_39"
+        }
+      ],
+      "observedRequestToResultMs": 232.00000000000364,
+      "observedCancelToResultMs": 196.00000000000364,
+      "family": "classDiagram",
+      "sampleId": "classDiagram-000-first-official-example",
+      "requestCanonicalJsonSha256": "faa21ac25ddaa0be8a480b1e468057fa2e9d5ed8c7d5c940c317f9e42329ca65"
+    },
+    {
+      "instanceId": "2a335fcb86916dcf2876804a34f71e5acf47b8244c55a93e",
+      "requestId": "render_41",
+      "render": {
+        "atMsFromObserverStart": 2853.0000000000036,
+        "payloadFile": "decoded/outgoing-render_41-render.json",
+        "payloadSha256": "1151f0aaf5cdcb5a280da69770a75ac84c88afea037b5f21eda9b44ce298bc77",
+        "observedSerializationMs": 0,
+        "from": 1087,
+        "to": 1257,
+        "selection": {
+          "anchor": 1319,
+          "head": 1370
+        },
+        "width": 1100,
+        "theme": "light",
+        "source": "```mermaid\n---\ntitle: Order example\n---\nerDiagram\n    CUSTOMER ||--o{ ORDER : places\n    ORDER ||--|{ LINE-ITEM : contains\n    CUSTOMER }|..|{ DELIVERY-ADDRESS : uses\n```",
+        "sourceSha256": "895354fc25512f2596fb5d5c02cf508321018f50ba41bf88c1d06876d2b24a61"
+      },
+      "cancel": null,
+      "result": {
+        "atMsFromObserverStart": 2952.0000000000036,
+        "payloadFile": "decoded/incoming-render_41-result.json",
+        "payloadSha256": "3b5039f93115b89b5829e48212cbd80dc14bb21bafa1d8a102ea9463e58bab12",
+        "observedSerializationMs": 0,
+        "ok": true,
+        "error": null,
+        "fragmentRanges": [
+          {
+            "from": 1087,
+            "to": 1257
+          }
+        ]
+      },
+      "nativePhases": [
+        {
+          "instanceId": "2a335fcb86916dcf2876804a34f71e5acf47b8244c55a93e",
+          "monotonicNs": 56556381898794,
+          "phase": "dispatch",
+          "pid": 354885,
+          "requestId": "render_41"
+        }
+      ],
+      "observedRequestToResultMs": 99.0,
+      "family": "entityRelationshipDiagram",
+      "sampleId": "entityRelationshipDiagram-000-first-official-example",
+      "requestCanonicalJsonSha256": "ba7546d1be7295c404a7064eeb3b1bd4338da5ed0a8c90b64d290f3bf77aa4ae"
+    },
+    {
+      "instanceId": "2a335fcb86916dcf2876804a34f71e5acf47b8244c55a93e",
+      "requestId": "render_42",
+      "render": {
+        "atMsFromObserverStart": 3061,
+        "payloadFile": "decoded/outgoing-render_42-render.json",
+        "payloadSha256": "25cb097be17a0fe4fc797e72a61af1d41cfa431e0e5922bb6e0ec82586ee4537",
+        "observedSerializationMs": 0,
+        "from": 440,
+        "to": 969,
+        "selection": {
+          "anchor": 1319,
+          "head": 1370
+        },
+        "width": 1100,
+        "theme": "light",
+        "source": "```mermaid\n---\ntitle: Animal example\n---\nclassDiagram\n    note \"From Duck till Zebra\"\n    Animal <|-- Duck\n    note for Duck \"can fly<br>can swim<br>can dive<br>can help in debugging\"\n    Animal <|-- Fish\n    Animal <|-- Zebra\n    Animal : +int age\n    Animal : +String gender\n    Animal: +isMammal()\n    Animal: +mate()\n    class Duck{\n        +String beakColor\n        +swim()\n        +quack()\n    }\n    class Fish{\n        -int sizeInFeet\n        -canEat()\n    }\n    class Zebra{\n        +bool is_wild\n        +run()\n    }\n```",
+        "sourceSha256": "ef80eda5ae0f45a95b22a734fbd6c8d4ef9e4187e6209d4c925164b547767c14"
+      },
+      "cancel": null,
+      "result": {
+        "atMsFromObserverStart": 3390,
+        "payloadFile": "decoded/incoming-render_42-result.json",
+        "payloadSha256": "09d6c4153b185f4032c0153a1d694012de1b5b14225a0ff9e61a6b8aa2166791",
+        "observedSerializationMs": 1.000000000003638,
+        "ok": true,
+        "error": null,
+        "fragmentRanges": [
+          {
+            "from": 440,
+            "to": 969
+          }
+        ]
+      },
+      "nativePhases": [
+        {
+          "instanceId": "2a335fcb86916dcf2876804a34f71e5acf47b8244c55a93e",
+          "monotonicNs": 56556596463758,
+          "phase": "dispatch",
+          "pid": 354885,
+          "requestId": "render_42"
+        }
+      ],
+      "observedRequestToResultMs": 329,
+      "family": "classDiagram",
+      "sampleId": "classDiagram-000-first-official-example",
+      "requestCanonicalJsonSha256": "626a6ddcd17ade703116e57cdca25294720275fe28d808841d2f528ff78aa290"
+    },
+    {
+      "instanceId": "2a335fcb86916dcf2876804a34f71e5acf47b8244c55a93e",
+      "requestId": "render_43",
+      "render": {
+        "atMsFromObserverStart": 3562,
+        "payloadFile": "decoded/outgoing-render_43-render.json",
+        "payloadSha256": "6c7926eb91a02a735a7aead81c0c8ea2ddb34805d56030771fa60107301d12e4",
+        "observedSerializationMs": 0,
+        "from": 1372,
+        "to": 1426,
+        "selection": {
+          "anchor": 1319,
+          "head": 1370
+        },
+        "width": 1100,
+        "theme": "light",
+        "source": "```mermaid\n---\ntitle: Node\n---\nflowchart LR\n    id\n```",
+        "sourceSha256": "3a26e6ecd16fb9f6cc14b18ae7dd793f7c3611dcc6820baecccc3670d86aa5ba"
+      },
+      "cancel": null,
+      "result": {
+        "atMsFromObserverStart": 3617,
+        "payloadFile": "decoded/incoming-render_43-result.json",
+        "payloadSha256": "1336066606e42b1371a02d8d954c3e2de870a469526abd2245dc8f369f5af93d",
+        "observedSerializationMs": 1,
+        "ok": true,
+        "error": null,
+        "fragmentRanges": [
+          {
+            "from": 1372,
+            "to": 1426
+          }
+        ]
+      },
+      "nativePhases": [
+        {
+          "instanceId": "2a335fcb86916dcf2876804a34f71e5acf47b8244c55a93e",
+          "monotonicNs": 56557090457414,
+          "phase": "dispatch",
+          "pid": 354885,
+          "requestId": "render_43"
+        }
+      ],
+      "observedRequestToResultMs": 55,
+      "family": "flowchart",
+      "sampleId": "flowchart-000-first-official-example",
+      "requestCanonicalJsonSha256": "34aad7375869769b640e5a4c80525fec7b93d14b2c04d4c2fdd37ee162c01d0d"
+    },
+    {
+      "instanceId": "2a335fcb86916dcf2876804a34f71e5acf47b8244c55a93e",
+      "requestId": "render_44",
+      "render": {
+        "atMsFromObserverStart": 4045.0000000000036,
+        "payloadFile": "decoded/outgoing-render_44-render.json",
+        "payloadSha256": "a2a0d139f4cae8a6782bdfab456562b984e76129cc30b0633a392fbd4fecefe3",
+        "observedSerializationMs": 0,
+        "from": 1087,
+        "to": 1257,
+        "selection": {
+          "anchor": 1319,
+          "head": 1370
+        },
+        "width": 1100,
+        "theme": "light",
+        "source": "```mermaid\n---\ntitle: Order example\n---\nerDiagram\n    CUSTOMER ||--o{ ORDER : places\n    ORDER ||--|{ LINE-ITEM : contains\n    CUSTOMER }|..|{ DELIVERY-ADDRESS : uses\n```",
+        "sourceSha256": "895354fc25512f2596fb5d5c02cf508321018f50ba41bf88c1d06876d2b24a61"
+      },
+      "cancel": null,
+      "result": {
+        "atMsFromObserverStart": 4159,
+        "payloadFile": "decoded/incoming-render_44-result.json",
+        "payloadSha256": "e76562ee1b93ca65e07cf143cd6d25374cebb5c83c4971da2abd8404f3421a3c",
+        "observedSerializationMs": 0,
+        "ok": true,
+        "error": null,
+        "fragmentRanges": [
+          {
+            "from": 1087,
+            "to": 1257
+          }
+        ]
+      },
+      "nativePhases": [
+        {
+          "instanceId": "2a335fcb86916dcf2876804a34f71e5acf47b8244c55a93e",
+          "monotonicNs": 56557574406348,
+          "phase": "dispatch",
+          "pid": 354885,
+          "requestId": "render_44"
+        }
+      ],
+      "observedRequestToResultMs": 113.99999999999636,
+      "family": "entityRelationshipDiagram",
+      "sampleId": "entityRelationshipDiagram-000-first-official-example",
+      "requestCanonicalJsonSha256": "ba7546d1be7295c404a7064eeb3b1bd4338da5ed0a8c90b64d290f3bf77aa4ae"
+    },
+    {
+      "instanceId": "2a335fcb86916dcf2876804a34f71e5acf47b8244c55a93e",
+      "requestId": "render_45",
+      "render": {
+        "atMsFromObserverStart": 4216,
+        "payloadFile": "decoded/outgoing-render_45-render.json",
+        "payloadSha256": "3cdd191def163ba7d3f99743e5d540f6cd4378ef3e8fd04d17f8dcab627eaf33",
+        "observedSerializationMs": 0,
+        "from": 1372,
+        "to": 1426,
+        "selection": {
+          "anchor": 1319,
+          "head": 1370
+        },
+        "width": 1100,
+        "theme": "light",
+        "source": "```mermaid\n---\ntitle: Node\n---\nflowchart LR\n    id\n```",
+        "sourceSha256": "3a26e6ecd16fb9f6cc14b18ae7dd793f7c3611dcc6820baecccc3670d86aa5ba"
+      },
+      "cancel": null,
+      "result": {
+        "atMsFromObserverStart": 4274,
+        "payloadFile": "decoded/incoming-render_45-result.json",
+        "payloadSha256": "cd75b2b4f04b4fbaa325f9128c12f1b9748c9ae1a106dc758cce5409c8f6f2c7",
+        "observedSerializationMs": 0,
+        "ok": true,
+        "error": null,
+        "fragmentRanges": [
+          {
+            "from": 1372,
+            "to": 1426
+          }
+        ]
+      },
+      "nativePhases": [
+        {
+          "instanceId": "2a335fcb86916dcf2876804a34f71e5acf47b8244c55a93e",
+          "monotonicNs": 56557746489340,
+          "phase": "dispatch",
+          "pid": 354885,
+          "requestId": "render_45"
+        }
+      ],
+      "observedRequestToResultMs": 58,
+      "family": "flowchart",
+      "sampleId": "flowchart-000-first-official-example",
+      "requestCanonicalJsonSha256": "34aad7375869769b640e5a4c80525fec7b93d14b2c04d4c2fdd37ee162c01d0d"
+    },
+    {
+      "instanceId": "2a335fcb86916dcf2876804a34f71e5acf47b8244c55a93e",
+      "requestId": "render_46",
+      "render": {
+        "atMsFromObserverStart": 4318.000000000004,
+        "payloadFile": "decoded/outgoing-render_46-render.json",
+        "payloadSha256": "99f47dbf79f89f13668f049e0e9d9c840e9b4dd0092e631e966fcb63262f54bf",
+        "observedSerializationMs": 0,
+        "from": 1517,
+        "to": 1693,
+        "selection": {
+          "anchor": 1319,
+          "head": 1370
+        },
+        "width": 1100,
+        "theme": "light",
+        "source": "```mermaid\n---\nconfig:\n  htmlLabels: false\n---\nflowchart LR\n    markdown[\"`This **is** _Markdown_`\"]\n    newLines[\"`Line1\n    Line 2\n    Line 3`\"]\n    markdown --> newLines\n```",
+        "sourceSha256": "5c939c1708e242e5068acb75669bb928dae16a3a6354a116ff582524626f1a6f"
+      },
+      "cancel": null,
+      "result": {
+        "atMsFromObserverStart": 4405,
+        "payloadFile": "decoded/incoming-render_46-result.json",
+        "payloadSha256": "75e364bee090b79f01740d6e63f760105580ee22ed185713d99e772b099b7e76",
+        "observedSerializationMs": 0,
+        "ok": true,
+        "error": null,
+        "fragmentRanges": [
+          {
+            "from": 1517,
+            "to": 1693
+          }
+        ]
+      },
+      "nativePhases": [
+        {
+          "instanceId": "2a335fcb86916dcf2876804a34f71e5acf47b8244c55a93e",
+          "monotonicNs": 56557848247360,
+          "phase": "dispatch",
+          "pid": 354885,
+          "requestId": "render_46"
+        }
+      ],
+      "observedRequestToResultMs": 86.99999999999636,
+      "family": "flowchart",
+      "sampleId": "flowchart-003-markdown-label",
+      "requestCanonicalJsonSha256": "ea5c6e306634561ab51aab69244a8a9d686b0938b2422c47fa7465030f922394"
+    },
+    {
+      "instanceId": "2a335fcb86916dcf2876804a34f71e5acf47b8244c55a93e",
+      "requestId": "render_47",
+      "render": {
+        "atMsFromObserverStart": 4766.000000000004,
+        "payloadFile": "decoded/outgoing-render_47-render.json",
+        "payloadSha256": "c1dcd42be6b470548a8c2295e91a6341ddab7370279221ff624061c9392ec690",
+        "observedSerializationMs": 0,
+        "from": 1087,
+        "to": 1257,
+        "selection": {
+          "anchor": 1319,
+          "head": 1370
+        },
+        "width": 1100,
+        "theme": "light",
+        "source": "```mermaid\n---\ntitle: Order example\n---\nerDiagram\n    CUSTOMER ||--o{ ORDER : places\n    ORDER ||--|{ LINE-ITEM : contains\n    CUSTOMER }|..|{ DELIVERY-ADDRESS : uses\n```",
+        "sourceSha256": "895354fc25512f2596fb5d5c02cf508321018f50ba41bf88c1d06876d2b24a61"
+      },
+      "cancel": null,
+      "result": {
+        "atMsFromObserverStart": 4889,
+        "payloadFile": "decoded/incoming-render_47-result.json",
+        "payloadSha256": "43064e98b54435e25b78d7c8b1b30c1b95531fad957cd3dd8d3ce6c1ce5ef397",
+        "observedSerializationMs": 0,
+        "ok": true,
+        "error": null,
+        "fragmentRanges": [
+          {
+            "from": 1087,
+            "to": 1257
+          }
+        ]
+      },
+      "nativePhases": [
+        {
+          "instanceId": "2a335fcb86916dcf2876804a34f71e5acf47b8244c55a93e",
+          "monotonicNs": 56558296448643,
+          "phase": "dispatch",
+          "pid": 354885,
+          "requestId": "render_47"
+        }
+      ],
+      "observedRequestToResultMs": 122.99999999999636,
+      "family": "entityRelationshipDiagram",
+      "sampleId": "entityRelationshipDiagram-000-first-official-example",
+      "requestCanonicalJsonSha256": "ba7546d1be7295c404a7064eeb3b1bd4338da5ed0a8c90b64d290f3bf77aa4ae"
+    },
+    {
+      "instanceId": "2a335fcb86916dcf2876804a34f71e5acf47b8244c55a93e",
+      "requestId": "render_48",
+      "render": {
+        "atMsFromObserverStart": 4945,
+        "payloadFile": "decoded/outgoing-render_48-render.json",
+        "payloadSha256": "9d8bdd679eb3c96d9e9f06c9de0f7c5071b549ae9ea8199486b1c0b974ae60cf",
+        "observedSerializationMs": 0,
+        "from": 1372,
+        "to": 1426,
+        "selection": {
+          "anchor": 1319,
+          "head": 1370
+        },
+        "width": 1100,
+        "theme": "light",
+        "source": "```mermaid\n---\ntitle: Node\n---\nflowchart LR\n    id\n```",
+        "sourceSha256": "3a26e6ecd16fb9f6cc14b18ae7dd793f7c3611dcc6820baecccc3670d86aa5ba"
+      },
+      "cancel": null,
+      "result": {
+        "atMsFromObserverStart": 4995,
+        "payloadFile": "decoded/incoming-render_48-result.json",
+        "payloadSha256": "56ae1c51674d9c61ed1c478639d1dea87cc40d21e604add63228a8090b952d82",
+        "observedSerializationMs": 0,
+        "ok": true,
+        "error": null,
+        "fragmentRanges": [
+          {
+            "from": 1372,
+            "to": 1426
+          }
+        ]
+      },
+      "nativePhases": [
+        {
+          "instanceId": "2a335fcb86916dcf2876804a34f71e5acf47b8244c55a93e",
+          "monotonicNs": 56558473456417,
+          "phase": "dispatch",
+          "pid": 354885,
+          "requestId": "render_48"
+        }
+      ],
+      "observedRequestToResultMs": 50,
+      "family": "flowchart",
+      "sampleId": "flowchart-000-first-official-example",
+      "requestCanonicalJsonSha256": "34aad7375869769b640e5a4c80525fec7b93d14b2c04d4c2fdd37ee162c01d0d"
+    },
+    {
+      "instanceId": "2a335fcb86916dcf2876804a34f71e5acf47b8244c55a93e",
+      "requestId": "render_49",
+      "render": {
+        "atMsFromObserverStart": 5032,
+        "payloadFile": "decoded/outgoing-render_49-render.json",
+        "payloadSha256": "a6f9eb220475b384e9e00a0d38dda2d5484b5f0029c399ceba547fd7422fec1f",
+        "observedSerializationMs": 0,
+        "from": 1517,
+        "to": 1693,
+        "selection": {
+          "anchor": 1319,
+          "head": 1370
+        },
+        "width": 1100,
+        "theme": "light",
+        "source": "```mermaid\n---\nconfig:\n  htmlLabels: false\n---\nflowchart LR\n    markdown[\"`This **is** _Markdown_`\"]\n    newLines[\"`Line1\n    Line 2\n    Line 3`\"]\n    markdown --> newLines\n```",
+        "sourceSha256": "5c939c1708e242e5068acb75669bb928dae16a3a6354a116ff582524626f1a6f"
+      },
+      "cancel": null,
+      "result": {
+        "atMsFromObserverStart": 5128,
+        "payloadFile": "decoded/incoming-render_49-result.json",
+        "payloadSha256": "63dbc5a775d565404238799f645019e0893811a58963e9f91268b83da3dc36ce",
+        "observedSerializationMs": 1.000000000003638,
+        "ok": true,
+        "error": null,
+        "fragmentRanges": [
+          {
+            "from": 1517,
+            "to": 1693
+          }
+        ]
+      },
+      "nativePhases": [
+        {
+          "instanceId": "2a335fcb86916dcf2876804a34f71e5acf47b8244c55a93e",
+          "monotonicNs": 56558560362891,
+          "phase": "dispatch",
+          "pid": 354885,
+          "requestId": "render_49"
+        }
+      ],
+      "observedRequestToResultMs": 96,
+      "family": "flowchart",
+      "sampleId": "flowchart-003-markdown-label",
+      "requestCanonicalJsonSha256": "ea5c6e306634561ab51aab69244a8a9d686b0938b2422c47fa7465030f922394"
+    }
+  ],
+  "identicalRequestGroups": [
+    {
+      "requestCanonicalJsonSha256": "0b10274125647f6397f417220f5e71e59cbc09855889ca42fac763677de806d2",
+      "requestIds": [
+        "render_34"
+      ],
+      "count": 1
+    },
+    {
+      "requestCanonicalJsonSha256": "f657e7016d4e5e0020eaddf06837c12f6f257ea67816f609885076f8df1016ce",
+      "requestIds": [
+        "render_35"
+      ],
+      "count": 1
+    },
+    {
+      "requestCanonicalJsonSha256": "9ed85ebc903eee7f54d4870493825ffcca0bd01a994ae35fdfc89ddd82e22ddd",
+      "requestIds": [
+        "render_36"
+      ],
+      "count": 1
+    },
+    {
+      "requestCanonicalJsonSha256": "fdfba3d557d95761c9ac441d031a3f99702d09b638413dc6c80b17ffff383cf5",
+      "requestIds": [
+        "render_37"
+      ],
+      "count": 1
+    },
+    {
+      "requestCanonicalJsonSha256": "f58b24c077cdfc4e56dbe80644d045684ef4d98907bd6f1b3f41638170ced0a2",
+      "requestIds": [
+        "render_38"
+      ],
+      "count": 1
+    },
+    {
+      "requestCanonicalJsonSha256": "faa21ac25ddaa0be8a480b1e468057fa2e9d5ed8c7d5c940c317f9e42329ca65",
+      "requestIds": [
+        "render_39"
+      ],
+      "count": 1
+    },
+    {
+      "requestCanonicalJsonSha256": "ba7546d1be7295c404a7064eeb3b1bd4338da5ed0a8c90b64d290f3bf77aa4ae",
+      "requestIds": [
+        "render_41",
+        "render_44",
+        "render_47"
+      ],
+      "count": 3
+    },
+    {
+      "requestCanonicalJsonSha256": "626a6ddcd17ade703116e57cdca25294720275fe28d808841d2f528ff78aa290",
+      "requestIds": [
+        "render_42"
+      ],
+      "count": 1
+    },
+    {
+      "requestCanonicalJsonSha256": "34aad7375869769b640e5a4c80525fec7b93d14b2c04d4c2fdd37ee162c01d0d",
+      "requestIds": [
+        "render_43",
+        "render_45",
+        "render_48"
+      ],
+      "count": 3
+    },
+    {
+      "requestCanonicalJsonSha256": "ea5c6e306634561ab51aab69244a8a9d686b0938b2422c47fa7465030f922394",
+      "requestIds": [
+        "render_46",
+        "render_49"
+      ],
+      "count": 2
+    }
+  ],
+  "familyRoundtripObservations": {
+    "classDiagram": [
+      {
+        "requestId": "render_34",
+        "roundtripMs": 290.99999999999636,
+        "cancelled": false,
+        "ok": true
+      },
+      {
+        "requestId": "render_37",
+        "roundtripMs": 346.00000000000364,
+        "cancelled": false,
+        "ok": true
+      },
+      {
+        "requestId": "render_39",
+        "roundtripMs": 232.00000000000364,
+        "cancelled": true,
+        "ok": false
+      },
+      {
+        "requestId": "render_42",
+        "roundtripMs": 329,
+        "cancelled": false,
+        "ok": true
+      }
+    ],
+    "entityRelationshipDiagram": [
+      {
+        "requestId": "render_35",
+        "roundtripMs": 134,
+        "cancelled": true,
+        "ok": false
+      },
+      {
+        "requestId": "render_38",
+        "roundtripMs": 528,
+        "cancelled": false,
+        "ok": true
+      },
+      {
+        "requestId": "render_41",
+        "roundtripMs": 99.0,
+        "cancelled": false,
+        "ok": true
+      },
+      {
+        "requestId": "render_44",
+        "roundtripMs": 113.99999999999636,
+        "cancelled": false,
+        "ok": true
+      },
+      {
+        "requestId": "render_47",
+        "roundtripMs": 122.99999999999636,
+        "cancelled": false,
+        "ok": true
+      }
+    ],
+    "block": [
+      {
+        "requestId": "render_36",
+        "roundtripMs": 172,
+        "cancelled": false,
+        "ok": true
+      }
+    ],
+    "flowchart": [
+      {
+        "requestId": "render_43",
+        "roundtripMs": 55,
+        "cancelled": false,
+        "ok": true
+      },
+      {
+        "requestId": "render_45",
+        "roundtripMs": 58,
+        "cancelled": false,
+        "ok": true
+      },
+      {
+        "requestId": "render_46",
+        "roundtripMs": 86.99999999999636,
+        "cancelled": false,
+        "ok": true
+      },
+      {
+        "requestId": "render_48",
+        "roundtripMs": 50,
+        "cancelled": false,
+        "ok": true
+      },
+      {
+        "requestId": "render_49",
+        "roundtripMs": 96,
+        "cancelled": false,
+        "ok": true
+      }
+    ]
+  },
+  "capturedBoundary": {
+    "capturedRequestsWithoutResult": [],
+    "capturedResultsWithoutRequest": [],
+    "firstCapturedEventMs": 132,
+    "lastCapturedEventMs": 5128,
+    "observationDeadlineMs": 10000,
+    "limits": "All15 requests visible in this window have visible results; no cap drops. Pre-installation jobs and any post-deadline callbacks are outside capture; no retroactive completeness claim about warmup. No pure helper CPU-duration claim."
+  }
+}

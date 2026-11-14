@@ -1,0 +1,16 @@
+from pathlib import Path
+import datetime,hashlib,json,subprocess,sys
+root=Path('/workspace/milkup');out=Path(__file__).resolve().parent
+assert (out/'inputs-before.json').exists(),'Capture final frozen inputs before running'
+assert not (out/'execution.json').exists(),'No overwrite/retry'
+records=[]
+for name,task in [('typecheck','typecheck'),('test','test'),('format','lint')]:
+ command=['bash','scripts/cloud/pnpm.sh',task]
+ row={'name':name,'command':command,'cwd':str(root),'startedUtc':datetime.datetime.now(datetime.timezone.utc).isoformat()}
+ records.append(row);(out/'execution.json').write_text(json.dumps(records,indent=2)+'\n')
+ with (out/(name+'.log')).open('xb') as stream:
+  result=subprocess.run(command,cwd=root,stdout=stream,stderr=subprocess.STDOUT)
+ row.update(exitCode=result.returncode,finishedUtc=datetime.datetime.now(datetime.timezone.utc).isoformat(),log=name+'.log',logSha256=hashlib.sha256((out/(name+'.log')).read_bytes()).hexdigest())
+ (out/'execution.json').write_text(json.dumps(records,indent=2)+'\n');print(json.dumps(row),flush=True)
+ # Root explicitly requests each independent first result, including after a lint/test failure.
+sys.exit(0 if all(r['exitCode']==0 for r in records) else 1)

@@ -1,0 +1,42 @@
+# Linux native DOM helper: observed results
+
+This is external research, not a product implementation or cross-platform acceptance. No repository product source was changed. All failed runs are retained. The original broad-root command was rejected before execution; subsequent runs used the reviewed empty-root namespace, explicit read-only runtime/resource mounts, isolated network/PID/IPC namespaces, dedicated X118 socket, and per-run writable profile. No sandbox-disable option was used.
+
+## Fixed mechanism — mechanism-narrow-11, exit 0
+
+The frozen implementation uses public **webkit2gtk 2.0.2 + Tao 0.35.3**, with native ephemeral WebContext creation and sandbox enablement before WebView construction. Wry was removed after actual runs established that setting sandbox after Wry construction is too late and its created context reported sandbox=false. No Wry fork was introduced. The runtime reported sandbox=true, ephemeral=true and absence of a Tauri command bridge.
+
+Preparation took 0.955 s. The known HTTP and file fetches were rejected with `connect-src` policy-violation events. Two calls in the same helper measured SVG text `真实 DOM 中文 é ∫ x²` at 227×29, taking 54.9 ms and 39.4 ms. This is real DOM geometry with installed fonts; it is not a font-equivalence or pixel review.
+
+The synchronous infinite-loop task produced no result. Relative to its native deadline arming timestamp, the parent observed cutoff at 2.000667 s, began SIGKILL at 2.000984 s, returned from the signal syscall at 2.001848 s and verified cleanup at 2.135871 s. The owned WebKitWebProcess accumulated 170 CPU ticks at 100 Hz during sampled execution; all recorded owned descendants disappeared and no escaped process group was observed. These are measured timings, not a hard-real-time zero-latency promise. The `native-send` event was emitted after a process snapshot; calculations correctly use `deadlineMono - 2`, not that later event timestamp.
+
+Raw evidence: `narrow-runs/mechanism-narrow-11/`; compact result: `mechanism-summary.json`; immutable source/binary/config/runner/evidence snapshot: `frozen-mechanism-11/manifest.json`.
+
+## Actual official engine — mermaid-narrow-01, exit 0
+
+The official offline Mermaid 12.2.0 single-module bundle is unchanged: SHA-256 `043c33385b8b41bb628872f4e419c7f20886403152b045736382db36072d8c0c`. Only three exact resource URLs are admitted: fixed index, observation entry, full official module. The scheme is registered as CORS-enabled for module loading; this does not add network destinations. No external fonts or images are admitted.
+
+Module import plus existing-font readiness took 2.884 s within the independent 10-second preparation deadline. Preparation does not parse or render a diagram. Each following case has one 2-second budget from native `start` dispatch through parsing, layout, observation, serialization, polling, transfer and parent JSON parsing. Each result frame remains limited to 256 KiB. Inputs were copied unchanged from `research/samples.json` and their source hashes were verified.
+
+| Original sample | Profile | Native elapsed | Result JSON bytes |
+|---|---|---:|---:|
+| flowchart first official example | baseline | 1.083 s | 51,109 |
+| userJourney first official example | baseline | 0.319 s | 49,745 |
+| same userJourney source | classic-tspan | 0.079 s | 42,247 |
+| sankey first official example | baseline | 0.519 s | 220,228 |
+| sequenceDiagram first official example | baseline | 0.118 s | 48,384 |
+
+These are five light-theme research invocations, not a general Mermaid performance bound. The SVG and computed-style observations are saved unmodified. Baseline journey contains seven foreignObject nodes; the pre-render classic-tspan profile contains none. Sankey contains 68 gradients and 136 stops. Baseline flow and sequence contain filters/drop shadows. Those structures must be handled or explicitly rejected by the future static-artifact validation/conversion contract; they are not silently stripped by this probe.
+
+A separate native-request test dynamically requested `entry.mjs?guard-check`, which matches the CSP script path but not the native exact-resource allowlist. The WebProcess extension logged `GUARD_DENY milkup-render://job/entry.mjs?guard-check`; the custom protocol handler did not receive that request. This establishes a real native send-request denial for the tested custom-scheme path, independently of the earlier CSP fetch rejection. It is not a blanket proof for every resource/request class.
+
+Cleanup recorded no remaining owned processes. Raw requests, SVG, results and logs: `mermaid-runs/mermaid-narrow-01/`. Compact report: `mermaid-summary.json`. Frozen build/input/artifact inventory: `frozen-mermaid-native-01/manifest.json`.
+
+## Important implementation and failure evidence
+
+* The original execution approval rejection remains in `mechanism-01-approval-block.json`.
+* Narrow run 01 failed because WebKit sandbox was configured after subprocess creation; run 02 refused actual sandbox=false. Both are genuine preparation failures, not renderer timeouts.
+* Native context setup resolved that ordering, then runs 03/04 exposed missing nested-sandbox paths and the compiled xdg-dbus-proxy path. Only empty `/sys` directories and the official proxy's exact read-only mapping were added; no host `/sys` or device tree was exposed.
+* Runs 05–10 retain bootstrap and diagnostic-protocol failures. AT-SPI emitted a textual startup line on inherited stdout. The result protocol now uses a dedicated pipe on fd3, passed to the helper and immediately marked CLOEXEC before WebKit children are spawned; stdout and stderr are separate logs. Bad JSON is still fatal and logged, never ignored. Bubblewrap 0.12.0 passes inherited FDs to its child by default; the attempted unsupported `--preserve-fds` option failed before launch and was removed based on upstream source inspection.
+* Bootstrap success followed explicit Content-Type headers and readiness polling within the same original 10 seconds. Since those two fixes landed together, the evidence does not isolate a single cause for every earlier bootstrap failure.
+* All implementation changes remain under the external prototype directory. Windows/macOS process lifetime, product routing, independent SVG validation, export integration and visual fidelity remain unverified.

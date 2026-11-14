@@ -1,0 +1,539 @@
+{
+  "knownIdentities": [
+    {
+      "pid": 471101,
+      "birth": 9048074,
+      "role": "App",
+      "instanceId": null,
+      "parentIdentity": null,
+      "firstSeenNs": 90484935473558,
+      "firstSampleNs": 90484935868846,
+      "argvEvidence": null
+    },
+    {
+      "pid": 471230,
+      "birth": 9048492,
+      "role": "guardian",
+      "instanceId": "95dc66282a839dd15baf4f1cc4e26ea61af30a9d0c007bab",
+      "parentIdentity": {
+        "pid": 471101,
+        "birth": 9048074
+      },
+      "firstSeenNs": 90484935761132,
+      "firstSampleNs": 90484935919463,
+      "argvEvidence": null
+    },
+    {
+      "pid": 471235,
+      "birth": 9048502,
+      "role": "renderer-leader",
+      "instanceId": "95dc66282a839dd15baf4f1cc4e26ea61af30a9d0c007bab",
+      "parentIdentity": {
+        "pid": 471230,
+        "birth": 9048492
+      },
+      "firstSeenNs": 90485487361819,
+      "firstSampleNs": 90485686244926,
+      "argvEvidence": {
+        "rawHex": "2f776f726b73706163652f6d696c6b75702d6d65726d6169642d656e67696e652d65766964656e63652f72657365617263682f6e61746976652d636f6c642d73746172742d646961676e6f737469632d30322f646961676e6f737469632d62696e6172792f6d696c6b75702d6465736b746f70002d2d6d696c6b75702d696e7465726e616c2d646f6d2d68656c70657200",
+        "parsed": [
+          "/workspace/milkup-mermaid-engine-evidence/research/native-cold-start-diagnostic-02/diagnostic-binary/milkup-desktop",
+          "--milkup-internal-dom-helper"
+        ],
+        "readStartNs": 90485487187266,
+        "readEndNs": 90485487204106,
+        "byteLimit": 4096,
+        "scope": "binding-time argv only; later exec is not monitored"
+      }
+    },
+    {
+      "pid": 471238,
+      "birth": 9048508,
+      "role": "webkit-network",
+      "instanceId": "95dc66282a839dd15baf4f1cc4e26ea61af30a9d0c007bab",
+      "parentIdentity": {
+        "pid": 471235,
+        "birth": 9048502
+      },
+      "firstSeenNs": 90485489142316,
+      "firstSampleNs": 90485686327086,
+      "argvEvidence": {
+        "rawHex": "2f7573722f6c69622f7838365f36342d6c696e75782d676e752f7765626b69743267746b2d342e312f5765624b69744e6574776f726b50726f63657373003100313000",
+        "parsed": [
+          "/usr/lib/x86_64-linux-gnu/webkit2gtk-4.1/WebKitNetworkProcess",
+          "1",
+          "10"
+        ],
+        "readStartNs": 90485488223363,
+        "readEndNs": 90485488239863,
+        "byteLimit": 4096,
+        "scope": "binding-time argv only; later exec is not monitored"
+      }
+    },
+    {
+      "pid": 471277,
+      "birth": 9048524,
+      "role": "renderer-descendant",
+      "instanceId": "95dc66282a839dd15baf4f1cc4e26ea61af30a9d0c007bab",
+      "parentIdentity": {
+        "pid": 471235,
+        "birth": 9048502
+      },
+      "firstSeenNs": 90485489202593,
+      "firstSampleNs": 90485686385336,
+      "argvEvidence": {
+        "rawHex": "2f7573722f62696e2f6277726170002d2d61726773003235002d2d002f7573722f6c69622f7838365f36342d6c696e75782d676e752f7765626b69743267746b2d342e312f5765624b697457656250726f63657373003400313600",
+        "parsed": [
+          "/usr/bin/bwrap",
+          "--args",
+          "25",
+          "--",
+          "/usr/lib/x86_64-linux-gnu/webkit2gtk-4.1/WebKitWebProcess",
+          "4",
+          "16"
+        ],
+        "readStartNs": 90485488688418,
+        "readEndNs": 90485488777008,
+        "byteLimit": 4096,
+        "scope": "binding-time argv only; later exec is not monitored"
+      }
+    },
+    {
+      "pid": 471272,
+      "birth": 9048522,
+      "role": "renderer-descendant",
+      "instanceId": "95dc66282a839dd15baf4f1cc4e26ea61af30a9d0c007bab",
+      "parentIdentity": {
+        "pid": 471235,
+        "birth": 9048502
+      },
+      "firstSeenNs": 90485489205106,
+      "firstSampleNs": 90485686420151,
+      "argvEvidence": {
+        "rawHex": "2f7573722f62696e2f6277726170002d2d61726773003239002d2d002f7573722f62696e2f7864672d646275732d70726f7879002d2d617267733d323500",
+        "parsed": [
+          "/usr/bin/bwrap",
+          "--args",
+          "29",
+          "--",
+          "/usr/bin/xdg-dbus-proxy",
+          "--args=25"
+        ],
+        "readStartNs": 90485489014047,
+        "readEndNs": 90485489056273,
+        "byteLimit": 4096,
+        "scope": "binding-time argv only; later exec is not monitored"
+      }
+    }
+  ],
+  "sampleCount": 20,
+  "coverage": {
+    "status": "incomplete",
+    "childrenInterfaceGapCount": 44,
+    "childrenInterfaceGapExamples": [
+      {
+        "ownerPid": 471230,
+        "ownerBirth": 9048492,
+        "tid": 471230,
+        "path": "/proc/471230/task/471230/children",
+        "errno": 2,
+        "errorClass": "FileNotFoundError",
+        "readStartNs": 90484936303289,
+        "readEndNs": 90484936327984,
+        "qualification": "Missing children interface or disappearing task; not an empty child list."
+      },
+      {
+        "ownerPid": 471230,
+        "ownerBirth": 9048492,
+        "tid": 471230,
+        "path": "/proc/471230/task/471230/children",
+        "errno": 2,
+        "errorClass": "FileNotFoundError",
+        "readStartNs": 90485486996954,
+        "readEndNs": 90485487028819,
+        "qualification": "Missing children interface or disappearing task; not an empty child list."
+      },
+      {
+        "ownerPid": 471235,
+        "ownerBirth": 9048502,
+        "tid": 471235,
+        "path": "/proc/471235/task/471235/children",
+        "errno": 2,
+        "errorClass": "FileNotFoundError",
+        "readStartNs": 90485487532465,
+        "readEndNs": 90485487543373,
+        "qualification": "Missing children interface or disappearing task; not an empty child list."
+      },
+      {
+        "ownerPid": 471238,
+        "ownerBirth": 9048508,
+        "tid": 471238,
+        "path": "/proc/471238/task/471238/children",
+        "errno": 2,
+        "errorClass": "FileNotFoundError",
+        "readStartNs": 90485489362815,
+        "readEndNs": 90485489380777,
+        "qualification": "Missing children interface or disappearing task; not an empty child list."
+      },
+      {
+        "ownerPid": 471230,
+        "ownerBirth": 9048492,
+        "tid": 471230,
+        "path": "/proc/471230/task/471230/children",
+        "errno": 2,
+        "errorClass": "FileNotFoundError",
+        "readStartNs": 90486037444242,
+        "readEndNs": 90486037475130,
+        "qualification": "Missing children interface or disappearing task; not an empty child list."
+      },
+      {
+        "ownerPid": 471235,
+        "ownerBirth": 9048502,
+        "tid": 471235,
+        "path": "/proc/471235/task/471235/children",
+        "errno": 2,
+        "errorClass": "FileNotFoundError",
+        "readStartNs": 90486037814400,
+        "readEndNs": 90486037822099,
+        "qualification": "Missing children interface or disappearing task; not an empty child list."
+      },
+      {
+        "ownerPid": 471238,
+        "ownerBirth": 9048508,
+        "tid": 471238,
+        "path": "/proc/471238/task/471238/children",
+        "errno": 2,
+        "errorClass": "FileNotFoundError",
+        "readStartNs": 90486038687633,
+        "readEndNs": 90486038695871,
+        "qualification": "Missing children interface or disappearing task; not an empty child list."
+      },
+      {
+        "ownerPid": 471277,
+        "ownerBirth": 9048524,
+        "tid": 471277,
+        "path": "/proc/471277/task/471277/children",
+        "errno": 2,
+        "errorClass": "FileNotFoundError",
+        "readStartNs": 90486039060375,
+        "readEndNs": 90486039087653,
+        "qualification": "Missing children interface or disappearing task; not an empty child list."
+      },
+      {
+        "ownerPid": 471272,
+        "ownerBirth": 9048522,
+        "tid": 471272,
+        "path": "/proc/471272/task/471272/children",
+        "errno": 2,
+        "errorClass": "FileNotFoundError",
+        "readStartNs": 90486039460768,
+        "readEndNs": 90486039467876,
+        "qualification": "Missing children interface or disappearing task; not an empty child list."
+      },
+      {
+        "ownerPid": 471230,
+        "ownerBirth": 9048492,
+        "tid": 471230,
+        "path": "/proc/471230/task/471230/children",
+        "errno": 2,
+        "errorClass": "FileNotFoundError",
+        "readStartNs": 90486587874507,
+        "readEndNs": 90486587902903,
+        "qualification": "Missing children interface or disappearing task; not an empty child list."
+      },
+      {
+        "ownerPid": 471235,
+        "ownerBirth": 9048502,
+        "tid": 471235,
+        "path": "/proc/471235/task/471235/children",
+        "errno": 2,
+        "errorClass": "FileNotFoundError",
+        "readStartNs": 90486588325702,
+        "readEndNs": 90486588334386,
+        "qualification": "Missing children interface or disappearing task; not an empty child list."
+      },
+      {
+        "ownerPid": 471238,
+        "ownerBirth": 9048508,
+        "tid": 471238,
+        "path": "/proc/471238/task/471238/children",
+        "errno": 2,
+        "errorClass": "FileNotFoundError",
+        "readStartNs": 90486591170732,
+        "readEndNs": 90486591480218,
+        "qualification": "Missing children interface or disappearing task; not an empty child list."
+      },
+      {
+        "ownerPid": 471277,
+        "ownerBirth": 9048524,
+        "tid": 471277,
+        "path": "/proc/471277/task/471277/children",
+        "errno": 2,
+        "errorClass": "FileNotFoundError",
+        "readStartNs": 90486591820054,
+        "readEndNs": 90486591826789,
+        "qualification": "Missing children interface or disappearing task; not an empty child list."
+      },
+      {
+        "ownerPid": 471272,
+        "ownerBirth": 9048522,
+        "tid": 471272,
+        "path": "/proc/471272/task/471272/children",
+        "errno": 2,
+        "errorClass": "FileNotFoundError",
+        "readStartNs": 90486591950956,
+        "readEndNs": 90486591955939,
+        "qualification": "Missing children interface or disappearing task; not an empty child list."
+      },
+      {
+        "ownerPid": 471230,
+        "ownerBirth": 9048492,
+        "tid": 471230,
+        "path": "/proc/471230/task/471230/children",
+        "errno": 2,
+        "errorClass": "FileNotFoundError",
+        "readStartNs": 90487139436810,
+        "readEndNs": 90487139468464,
+        "qualification": "Missing children interface or disappearing task; not an empty child list."
+      },
+      {
+        "ownerPid": 471235,
+        "ownerBirth": 9048502,
+        "tid": 471235,
+        "path": "/proc/471235/task/471235/children",
+        "errno": 2,
+        "errorClass": "FileNotFoundError",
+        "readStartNs": 90487139913208,
+        "readEndNs": 90487139923402,
+        "qualification": "Missing children interface or disappearing task; not an empty child list."
+      },
+      {
+        "ownerPid": 471238,
+        "ownerBirth": 9048508,
+        "tid": 471238,
+        "path": "/proc/471238/task/471238/children",
+        "errno": 2,
+        "errorClass": "FileNotFoundError",
+        "readStartNs": 90487141314955,
+        "readEndNs": 90487141329233,
+        "qualification": "Missing children interface or disappearing task; not an empty child list."
+      },
+      {
+        "ownerPid": 471277,
+        "ownerBirth": 9048524,
+        "tid": 471277,
+        "path": "/proc/471277/task/471277/children",
+        "errno": 2,
+        "errorClass": "FileNotFoundError",
+        "readStartNs": 90487141815783,
+        "readEndNs": 90487141825305,
+        "qualification": "Missing children interface or disappearing task; not an empty child list."
+      },
+      {
+        "ownerPid": 471272,
+        "ownerBirth": 9048522,
+        "tid": 471272,
+        "path": "/proc/471272/task/471272/children",
+        "errno": 2,
+        "errorClass": "FileNotFoundError",
+        "readStartNs": 90487142066135,
+        "readEndNs": 90487142075386,
+        "qualification": "Missing children interface or disappearing task; not an empty child list."
+      },
+      {
+        "ownerPid": 471230,
+        "ownerBirth": 9048492,
+        "tid": 471230,
+        "path": "/proc/471230/task/471230/children",
+        "errno": 2,
+        "errorClass": "FileNotFoundError",
+        "readStartNs": 90487686512821,
+        "readEndNs": 90487686537613,
+        "qualification": "Missing children interface or disappearing task; not an empty child list."
+      },
+      {
+        "ownerPid": 471235,
+        "ownerBirth": 9048502,
+        "tid": 471235,
+        "path": "/proc/471235/task/471235/children",
+        "errno": 2,
+        "errorClass": "FileNotFoundError",
+        "readStartNs": 90487686813031,
+        "readEndNs": 90487686819827,
+        "qualification": "Missing children interface or disappearing task; not an empty child list."
+      },
+      {
+        "ownerPid": 471238,
+        "ownerBirth": 9048508,
+        "tid": 471238,
+        "path": "/proc/471238/task/471238/children",
+        "errno": 2,
+        "errorClass": "FileNotFoundError",
+        "readStartNs": 90487687882249,
+        "readEndNs": 90487687891148,
+        "qualification": "Missing children interface or disappearing task; not an empty child list."
+      },
+      {
+        "ownerPid": 471277,
+        "ownerBirth": 9048524,
+        "tid": 471277,
+        "path": "/proc/471277/task/471277/children",
+        "errno": 2,
+        "errorClass": "FileNotFoundError",
+        "readStartNs": 90487688339940,
+        "readEndNs": 90487688348647,
+        "qualification": "Missing children interface or disappearing task; not an empty child list."
+      },
+      {
+        "ownerPid": 471272,
+        "ownerBirth": 9048522,
+        "tid": 471272,
+        "path": "/proc/471272/task/471272/children",
+        "errno": 2,
+        "errorClass": "FileNotFoundError",
+        "readStartNs": 90487688501788,
+        "readEndNs": 90487688507468,
+        "qualification": "Missing children interface or disappearing task; not an empty child list."
+      },
+      {
+        "ownerPid": 471230,
+        "ownerBirth": 9048492,
+        "tid": 471230,
+        "path": "/proc/471230/task/471230/children",
+        "errno": 2,
+        "errorClass": "FileNotFoundError",
+        "readStartNs": 90488240283817,
+        "readEndNs": 90488240307138,
+        "qualification": "Missing children interface or disappearing task; not an empty child list."
+      },
+      {
+        "ownerPid": 471235,
+        "ownerBirth": 9048502,
+        "tid": 471235,
+        "path": "/proc/471235/task/471235/children",
+        "errno": 2,
+        "errorClass": "FileNotFoundError",
+        "readStartNs": 90488240777653,
+        "readEndNs": 90488240789777,
+        "qualification": "Missing children interface or disappearing task; not an empty child list."
+      },
+      {
+        "ownerPid": 471238,
+        "ownerBirth": 9048508,
+        "tid": 471238,
+        "path": "/proc/471238/task/471238/children",
+        "errno": 2,
+        "errorClass": "FileNotFoundError",
+        "readStartNs": 90488241803639,
+        "readEndNs": 90488241813674,
+        "qualification": "Missing children interface or disappearing task; not an empty child list."
+      },
+      {
+        "ownerPid": 471277,
+        "ownerBirth": 9048524,
+        "tid": 471277,
+        "path": "/proc/471277/task/471277/children",
+        "errno": 2,
+        "errorClass": "FileNotFoundError",
+        "readStartNs": 90488242158612,
+        "readEndNs": 90488242165530,
+        "qualification": "Missing children interface or disappearing task; not an empty child list."
+      },
+      {
+        "ownerPid": 471272,
+        "ownerBirth": 9048522,
+        "tid": 471272,
+        "path": "/proc/471272/task/471272/children",
+        "errno": 2,
+        "errorClass": "FileNotFoundError",
+        "readStartNs": 90488242289139,
+        "readEndNs": 90488242293993,
+        "qualification": "Missing children interface or disappearing task; not an empty child list."
+      },
+      {
+        "ownerPid": 471230,
+        "ownerBirth": 9048492,
+        "tid": 471230,
+        "path": "/proc/471230/task/471230/children",
+        "errno": 2,
+        "errorClass": "FileNotFoundError",
+        "readStartNs": 90488787053757,
+        "readEndNs": 90488787087543,
+        "qualification": "Missing children interface or disappearing task; not an empty child list."
+      },
+      {
+        "ownerPid": 471235,
+        "ownerBirth": 9048502,
+        "tid": 471235,
+        "path": "/proc/471235/task/471235/children",
+        "errno": 2,
+        "errorClass": "FileNotFoundError",
+        "readStartNs": 90488787535101,
+        "readEndNs": 90488787558118,
+        "qualification": "Missing children interface or disappearing task; not an empty child list."
+      },
+      {
+        "ownerPid": 471238,
+        "ownerBirth": 9048508,
+        "tid": 471238,
+        "path": "/proc/471238/task/471238/children",
+        "errno": 2,
+        "errorClass": "FileNotFoundError",
+        "readStartNs": 90488789068272,
+        "readEndNs": 90488789086538,
+        "qualification": "Missing children interface or disappearing task; not an empty child list."
+      }
+    ],
+    "pidfdDirectChildCoverage": "limited-verified-direct-children",
+    "pidfdTargetIdentities": [
+      {
+        "pid": 471235,
+        "birth": 9048502
+      },
+      {
+        "pid": 471238,
+        "birth": 9048508
+      },
+      {
+        "pid": 471272,
+        "birth": 9048522
+      },
+      {
+        "pid": 471277,
+        "birth": 9048524
+      }
+    ],
+    "pidfdGapCount": 2,
+    "fullRendererTreeCoverage": false
+  },
+  "failure": null,
+  "stopReason": "controller-stop",
+  "overhead": {
+    "observerOwnCpuNs": 82223314,
+    "prelaunchHashCpuNs": 25281424,
+    "afterReadyCpuNs": 56945087,
+    "procReads": 1694,
+    "readTotalNs": 23882614,
+    "readMaxNs": 6330800,
+    "sampleTotalNs": 5780106,
+    "sampleMaxNs": 435706,
+    "discoveryTotalNs": 35744625,
+    "discoveryMaxNs": 9479359
+  },
+  "cold": {
+    "sample": "block-000-first-official-example",
+    "range": [
+      108,
+      342
+    ],
+    "imageComplete": true,
+    "naturalWidth": 663,
+    "naturalHeight": 281,
+    "inlineSvg": 0,
+    "documentNotice": "",
+    "diagnostics": {
+      "errors": [],
+      "cspViolations": []
+    }
+  }
+}

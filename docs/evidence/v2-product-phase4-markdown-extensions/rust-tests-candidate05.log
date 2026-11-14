@@ -1,0 +1,156 @@
+warning: unused import: `std::sync::Arc`
+    --> src/piece_tree.rs:1029:9
+     |
+1029 |     use std::sync::Arc;
+     |         ^^^^^^^^^^^^^^
+     |
+     = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: `milkup-desktop` (lib test) generated 1 warning (run `cargo fix --lib -p milkup-desktop --tests` to apply 1 suggestion)
+   Compiling milkup-desktop v2.0.0-beta.1 (/workspace/milkup/apps/desktop/src-tauri)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 4.32s
+     Running unittests src/lib.rs (apps/desktop/src-tauri/target/debug/deps/milkup_desktop_lib-af882897d4fd716d)
+
+running 127 tests
+test native_search::tests::cancellation_and_document_close_release_preparations_indexes_and_history ... ok
+test native_search::tests::complete_dense_search_pages_all_hits_without_materializing_them ... ok
+test native_search::tests::disk_budget_and_preparation_io_failure_do_not_mutate_the_document ... ok
+test native_search::tests::oversized_line_fails_explicitly_and_close_removes_private_artifacts ... ok
+test native_search::tests::preparation_cancel_and_stale_commit_leave_document_unchanged ... ok
+test native_search::tests::repeated_clock_ticks_and_existing_directories_never_share_search_storage ... ok
+test native_search::tests::replace_all_and_whole_history_preserve_utf16_encoding_and_crlf_disk_bytes ... ok
+test native_search::tests::replacement_undo_restores_unsaved_piece_tree_edits_not_the_original_file ... ok
+test native_search::tests::selected_dense_member_and_empty_replacement_preserve_surrounding_text ... ok
+test native_search::tests::stale_queries_and_mutated_documents_never_publish_current_results ... ok
+test native_search::tests::unicode_fallback_validates_utf16_and_does_not_repeat_payload_on_ack ... ok
+test native_search::tests::unicode_sensitive_batch_boundary_and_empty_query_results ... ok
+test piece_tree::tests::closes_session_files_before_cleanup ... ok
+test piece_tree::tests::edits_and_saves_utf16le_bom_files_without_changing_the_encoding ... ok
+test piece_tree::tests::edits_unicode_and_reads_lines_without_materializing_document ... ok
+test piece_tree::tests::randomized_edits_match_a_string_reference ... ok
+test piece_tree::tests::reads_line_ending_after_a_multibyte_character ... ok
+test piece_tree::tests::reads_line_windows_after_newline_insertion_and_deletion ... ok
+test piece_tree::tests::rejects_surrogate_boundaries_and_overlapping_batches_atomically ... ok
+test piece_tree::tests::reports_utf8_boundary_errors_without_decoding_partial_prefixes ... ok
+test piece_tree::tests::snapshot_descriptor_budget_is_checked_before_copying_text ... ok
+test piece_tree::tests::streaming_snapshot_survives_concurrent_edit_save_and_close ... ok
+test piece_tree::tests::utf16_checkpoints_flush_multiple_buffers_and_preserve_bom_and_crlf ... ok
+test plugin_icon::tests::bounded_installed_png_and_invalid_resources ... ok
+test plugin_icon::tests::rejects_symlinked_package_and_icon ... ok
+test plugin_icon::tests::rejects_urls_traversal_and_active_images ... ok
+test plugin_sidecar::tests::blocked_stdin_cannot_block_watchdog_or_another_process ... ok
+test plugin_sidecar::tests::busy_process_is_reaped_before_timeout_notification_even_without_ui_polling ... ok
+test plugin_sidecar::tests::cancellation_and_forged_messages_do_not_clear_or_extend_deadline ... ok
+test plugin_sidecar::tests::fast_result_survives_ui_delivery_stall_and_keeps_process_alive ... ok
+test plugin_sidecar::tests::old_stop_and_old_stdout_cannot_reach_replacement_instance ... ok
+test plugin_sidecar::tests::process_exit_revokes_pending_work_without_waiting_for_deadline ... ok
+test plugin_sidecar::tests::result_after_native_deadline_cannot_win_the_race ... ok
+test plugin_sidecar::tests::result_envelope_matches_the_frontend_rpc_validation ... ok
+test recovery::tests::captured_native_snapshot_allows_save_close_and_reopen_before_streaming ... ok
+test recovery::tests::checkpoints_are_complete_hashed_and_keep_previous_committed_generation ... ok
+test recovery::tests::completed_native_snapshot_releases_registry_during_validation_and_publication ... ok
+test recovery::tests::corruption_is_detected_without_modifying_payload_or_original ... ok
+test recovery::tests::full_directory_refuses_new_checkpoint_without_eviction ... ok
+test recovery::tests::identifiers_cannot_escape_recovery_root_and_live_owner_is_retained ... ok
+test recovery::tests::interrupted_post_write_validation_keeps_previous_manifest_and_both_payloads ... ok
+test recovery::tests::kernel_disk_full_error_leaves_published_checkpoint_intact ... ok
+test recovery::tests::partial_write_and_failed_publish_preserve_last_valid_manifest ... ok
+test recovery::tests::quota_does_not_block_verified_export_or_overwrite_an_existing_target ... ok
+test recovery::tests::recovery_resources_copy_from_record_origin_and_resolve_after_reopen_without_touching_original ... ok
+test recovery::tests::recovery_resources_missing_and_conflicting_images_preserve_record_and_originals ... ok
+test recovery::tests::recovery_resources_reject_symlink_source_directories_without_archiving ... ok
+test recovery::tests::recovery_resources_reject_unrelated_or_modified_documents_and_missing_origins ... ok
+test recovery_storage::tests::capacity_keeps_write_peak_and_free_space_reserve_without_eviction ... ok
+test recovery_storage::tests::counts_archived_partial_and_unknown_files_and_serializes_independent_handles ... ok
+test recovery_storage::tests::does_not_follow_links_or_accept_unbounded_nested_directories ... ok
+test resources::tests::abort_removes_only_unchanged_owned_files_and_accepted_assets_survive ... ok
+test resources::tests::accepts_three_decodable_formats_and_rejects_forged_truncated_and_oversize_images ... ok
+test resources::tests::first_save_without_resources_needs_only_a_chosen_target_and_serializes_flat_images ... ok
+test resources::tests::markdown_committed_before_index_failure_keeps_copied_resources_on_abort ... ok
+test resources::tests::misleading_extension_does_not_override_decoded_format_or_written_extension ... ok
+test resources::tests::pixel_budget_rejects_decodable_images_with_individually_valid_dimensions ... ok
+test resources::tests::relocation_conflicts_do_not_overwrite_and_partial_copies_roll_back ... ok
+test resources::tests::relocation_preserves_references_and_originals_and_is_readable_after_reopen ... ok
+test resources::tests::resolver_reopens_managed_images_and_rejects_network_absolute_and_traversal ... ok
+test resources::tests::resource_scan_reads_current_piece_tree_with_utf8_boundaries_and_version_guard ... ok
+test resources::tests::simultaneous_identical_imports_have_distinct_exclusive_files ... ok
+test resources::tests::sources_are_document_scoped_single_use_and_content_verified ... ok
+test resources::tests::symlink_directories_files_and_replaced_ancestors_do_not_escape ... ok
+test search_profile_baseline::profile_legacy_search_windows ... ignored, explicit same-fixture native search transport baseline
+test tests::atomic_replace_and_cleanup_permission_failure_preserves_original_and_reports_temp ... ok
+test tests::atomic_save_does_not_overwrite_new_destination_created_during_staging ... ok
+test tests::atomic_save_preserves_original_and_cleans_temp_after_partial_write_failure ... ok
+test tests::atomic_save_preserves_permissions_symlinks_and_readonly_files ... ok
+test tests::atomic_save_rechecks_external_changes_after_staging ... ok
+test tests::bounded_line_windows_use_utf16_before_text_allocation ... ok
+test tests::cleanup_preserves_active_process_working_files ... ok
+test tests::cleanup_requires_exact_app_filename_shape_and_preserves_unknown_ownership ... ok
+test tests::large_file_applies_non_overlapping_utf16_changes_safely ... ok
+test tests::large_file_chunk_ranges_must_align_to_utf8_boundaries ... ok
+test tests::large_file_commit_preserves_mode_and_rejects_readonly_destination ... ok
+test tests::large_file_commit_rechecks_disk_after_staging_and_cleans_failed_temp ... ok
+test tests::large_file_flush_commits_memory_snapshot_and_clears_edit_log ... ok
+test tests::large_file_flush_rejects_external_modification_after_visible_edit ... ok
+test tests::large_file_flush_writes_atomically_to_disk ... ok
+test tests::large_file_line_index_handles_lf_crlf_and_trailing_newline ... ok
+test tests::large_file_line_window_accepts_utf8_character_before_lf ... ok
+test tests::large_file_line_windows_validate_bounds ... ok
+test tests::large_file_maps_utf8_bytes_to_utf16_offsets ... ok
+test tests::large_file_open_and_window_reads_do_not_materialize_full_text ... ok
+test tests::large_file_open_preserves_unrecoverable_stale_buffers ... ok
+test tests::large_file_registry_drop_removes_active_working_temps ... ok
+test tests::large_file_save_as_to_same_path_preserves_external_conflict_guard ... ok
+test tests::large_file_save_as_writes_memory_snapshot_without_overwriting_original ... ok
+test tests::large_file_temp_cleanup_retains_dead_owner_and_unknown_buffers ... ok
+test tests::large_file_visible_edit_uses_memory_snapshot_without_working_file ... ok
+test tests::legacy_asset_commands_cannot_overwrite_arbitrary_existing_files ... ok
+test tests::line_window_offsets_match_unicode_crlf_and_piece_boundaries_after_edits ... ok
+test tests::open_and_reload_markdown_files_preserve_document_identity ... ok
+test tests::plugin_file_commands_resolve_and_mutate_canonical_paths ... ok
+test tests::plugin_package_paths_cannot_escape_the_plugin_root ... ok
+test tests::plugin_sidecar_event_uses_camel_case_payload ... ok
+test tests::plugin_sidecar_executable_must_be_absolute ... ok
+test tests::profiles_distant_line_windows_with_unicode_crlf_fixture ... ok
+test tests::save_as_copy_allows_rescue_but_same_path_preserves_conflict_guard ... ok
+test tests::save_markdown_file_rejects_unobserved_external_changes_and_deletion ... ok
+test tests::save_markdown_file_writes_text_and_returns_matching_document_id ... ok
+test tests::stale_cleanup_retains_files_when_unlink_is_denied ... ok
+test tests::stat_text_file_reports_size_and_readonly_flag ... ok
+test updates::tests::absent_channel_is_unavailable_and_partial_or_insecure_configuration_is_rejected ... ok
+test updates::tests::http_failure_truncation_oversize_and_cancellation_never_return_installable_bytes ... ok
+test updates::tests::modified_bytes_invalid_signature_and_wrong_public_key_fail_real_verification ... ok
+test updates::tests::real_manifest_check_handles_no_update_bad_metadata_http_errors_and_timeout ... ok
+test updates::tests::real_updater_download_accepts_the_published_signed_vector_and_reports_verification ... ok
+test updates::tests::semver_update_policy_never_downgrades_or_sends_a_beta_to_stable_users ... ok
+test workspace::tests::atomic_sibling_save_preserves_file_entry_but_invalidates_old_directory_cursor ... ok
+test workspace::tests::cancellation_interrupts_hash_at_the_next_bounded_chunk ... ok
+test workspace::tests::cancellation_interrupts_snapshot_copy_and_index_and_cleans_partial_work ... ok
+test workspace::tests::cancelling_cursor_and_releasing_scope_revoke_existing_tokens ... ok
+test workspace::tests::changed_file_after_prepare_cannot_return_content_or_be_accepted ... ok
+test workspace::tests::incremental_pagination_has_default_max_and_scan_budgets ... ok
+test workspace::tests::opaque_scoped_tokens_and_stable_root_keys_do_not_expose_paths ... ok
+test workspace::tests::prepared_large_cleanup_and_acceptance_keep_existing_document_semantics ... ok
+test workspace::tests::private_snapshot_can_outlive_the_document_for_recovery_streaming ... ok
+test workspace::tests::rejects_traversal_absolute_ads_control_and_ambiguous_windows_paths ... ok
+test workspace::tests::replaced_or_deleted_target_and_replaced_ancestor_invalidate_entry ... ok
+test workspace::tests::revoked_open_rejects_late_large_publication_and_removes_working_files ... ok
+test workspace::tests::root_replacement_changes_stable_key_and_old_tokens_stay_invalid ... ok
+test workspace::tests::sparse_directory_returns_empty_continuation_instead_of_scanning_everything ... ok
+test workspace::tests::symlinks_and_symlink_roots_are_not_capabilities ... ok
+test workspace::tests::utf16_large_file_uses_descriptor_and_existing_encoding_roundtrip ... ok
+test workspace::tests::verified_descriptor_never_follows_a_later_ancestor_swap ... ok
+
+test result: ok. 126 passed; 0 failed; 1 ignored; 0 measured; 0 filtered out; finished in 16.11s
+
+     Running unittests src/main.rs (apps/desktop/src-tauri/target/debug/deps/milkup_desktop-77056a0aff12c05b)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests milkup_desktop_lib
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+

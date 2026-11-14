@@ -1,0 +1,157 @@
+
+ RUN  v3.2.6 /workspace/milkup/plugins/footnotes
+
+ ✓ src/indexer.test.ts (9 tests) 38ms
+ ✓ src/presentation.test.ts (4 tests) 11ms
+ ❯ src/controller.test.ts (16 tests | 8 failed) 75ms
+   × returns immediately then indexes bounded pages and invalidates its own presentation 25ms
+     → expected { fragments: [], complete: false } to deeply equal { Object (fragments, complete, ...) }
+   ✓ cancels delayed old-version scans and disposal without leaving stale output 6ms
+   ✓ ignores a late read after document change and keeps a failed scan partial 5ms
+   ✓ does not notify for slow plain-text pages and flushes completion exactly once 4ms
+   ✓ flushes new references, definitions, cross-page bodies and duplicates, but skips ordinary pages 3ms
+   ✓ coalesces rapid dirty pages and delays the final dirty flush to preserve the 250ms bound 6ms
+   ✓ cancels a pending final dirty flush when disposed 2ms
+   ✓ flushes a terminal partial reason so unresolved references never become false missing diagnoses 2ms
+   ✓ keeps a failed notification dirty and retries only within the notification rate bound 2ms
+   × marks only an unfinished index pending for screen, including documents without footnotes 3ms
+     → expected { fragments: [], complete: false } to deeply equal { Object (fragments, complete, ...) }
+   × marks only an unfinished index pending for export, including documents without footnotes 2ms
+     → expected { fragments: [], complete: false } to deeply equal { Object (fragments, complete, ...) }
+   × starts new-version readiness without reusing an old complete index 3ms
+     → expected { fragments: [], complete: false } to deeply equal { Object (fragments, complete, ...) }
+   × does not advertise terminal scan-limit as preparation pending 4ms
+     → expected { fragments: [], complete: false } to match object { pending: true, complete: false }
+(1 matching property omitted from actual)
+   × does not advertise terminal read-failure as preparation pending 1ms
+     → expected { fragments: [], complete: false } to match object { pending: true, complete: false }
+(1 matching property omitted from actual)
+   × does not advertise terminal nested-context as preparation pending 1ms
+     → expected { fragments: [], complete: false } to match object { pending: true, complete: false }
+(1 matching property omitted from actual)
+   × never marks unknown context, aborted calls or disposed controllers pending 3ms
+     → expected { fragments: [], complete: false } to match object { pending: true }
+(2 matching properties omitted from actual)
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 8 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/controller.test.ts > returns immediately then indexes bounded pages and invalidates its own presentation
+AssertionError: expected { fragments: [], complete: false } to deeply equal { Object (fragments, complete, ...) }
+
+- Expected
++ Received
+
+  {
+    "complete": false,
+    "fragments": [],
+-   "pending": true,
+  }
+
+ ❯ src/controller.test.ts:56:80
+     54|   const api = host(),
+     55|     controller = createFootnoteController(api)
+     56|   expect(controller.render(request, { signal: new AbortController().si…
+       |                                                                                ^
+     57|     fragments: [],
+     58|     complete: false,
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/8]⎯
+
+ FAIL  src/controller.test.ts > marks only an unfinished index pending for screen, including documents without footnotes
+ FAIL  src/controller.test.ts > marks only an unfinished index pending for export, including documents without footnotes
+AssertionError: expected { fragments: [], complete: false } to deeply equal { Object (fragments, complete, ...) }
+
+- Expected
++ Received
+
+  {
+    "complete": false,
+    "fragments": [],
+-   "pending": true,
+  }
+
+ ❯ src/controller.test.ts:254:50
+    252|     const input = { ...request, target }
+    253|     const signal = new AbortController().signal
+    254|     expect(controller.render(input, { signal })).toEqual({
+       |                                                  ^
+    255|       fragments: [], complete: false, pending: true,
+    256|     })
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/8]⎯
+
+ FAIL  src/controller.test.ts > starts new-version readiness without reusing an old complete index
+AssertionError: expected { fragments: [], complete: false } to deeply equal { Object (fragments, complete, ...) }
+
+- Expected
++ Received
+
+  {
+    "complete": false,
+    "fragments": [],
+-   "pending": true,
+  }
+
+ ❯ src/controller.test.ts:278:47
+    276|   vi.mocked(api.readWindow).mockImplementation(async (...args) => ({ .…
+    277|   const next = { ...request, version: 2, target: 'export' as const }
+    278|   expect(controller.render(next, { signal })).toEqual({ fragments: [],…
+       |                                               ^
+    279|   await vi.runAllTimersAsync()
+    280|   const result = controller.render(next, { signal })
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/8]⎯
+
+ FAIL  src/controller.test.ts > does not advertise terminal scan-limit as preparation pending
+ FAIL  src/controller.test.ts > does not advertise terminal read-failure as preparation pending
+ FAIL  src/controller.test.ts > does not advertise terminal nested-context as preparation pending
+AssertionError: expected { fragments: [], complete: false } to match object { pending: true, complete: false }
+(1 matching property omitted from actual)
+
+- Expected
++ Received
+
+  {
+    "complete": false,
+-   "pending": true,
+  }
+
+ ❯ src/controller.test.ts:295:52
+    293|     const controller = createFootnoteController(api, failure === 'scan…
+    294|     const signal = new AbortController().signal
+    295|     expect(controller.render(request, { signal })).toMatchObject({ pen…
+       |                                                    ^
+    296|     await vi.runAllTimersAsync()
+    297|     const result = controller.render(request, { signal })
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/8]⎯
+
+ FAIL  src/controller.test.ts > never marks unknown context, aborted calls or disposed controllers pending
+AssertionError: expected { fragments: [], complete: false } to match object { pending: true }
+(2 matching properties omitted from actual)
+
+- Expected
++ Received
+
+  {
+-   "pending": true,
++   "complete": false,
++   "fragments": [],
+  }
+
+ ❯ src/controller.test.ts:314:50
+    312|   const signal = new AbortController().signal
+    313|   expect(controller.render({ ...request, contextKnown: false }, { sign…
+    314|   expect(controller.render(request, { signal })).toMatchObject({ pendi…
+       |                                                  ^
+    315|   const aborted = new AbortController()
+    316|   aborted.abort()
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/8]⎯
+
+
+ Test Files  1 failed | 2 passed (3)
+      Tests  8 failed | 21 passed (29)
+   Start at  07:16:58
+   Duration  1.65s (transform 522ms, setup 0ms, collect 804ms, tests 124ms, environment 1ms, prepare 769ms)
+

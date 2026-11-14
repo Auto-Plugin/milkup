@@ -1,0 +1,65 @@
+# Raw acceptance evidence and the exact original failure fixture retain source bytes.
+docs/evidence/v2-product-phase5-export-print/milestone06/** -whitespace
+tests/fixtures/p5-output/milestone06/print04-regression.source -whitespace
+
+# P6 immutable acceptance evidence includes original Markdown and raw logs.
+docs/evidence/v2-product-phase6-plugin-lifecycle/milestone01/** -whitespace
+
+# Frozen Windows catalog logs and hash records are byte-preserving evidence.
+docs/evidence/v2-product-phase6-plugin-lifecycle/milestone03/** -text -whitespace
+
+# P7 raw measurements, screenshots and losslessly compressed fixtures retain exact bytes.
+docs/evidence/v2-product-phase7-quality/milestone01/** -text -whitespace
+docs/evidence/v2-product-phase7-quality/milestone02/** -text -whitespace
+
+# These reviewed Mermaid inputs are verified by exact SHA-256 on every platform.
+plugins/diagrams/pnpm-lock.yaml text eol=lf
+plugins/diagrams/build-dependencies.json text eol=lf
+plugins/diagrams/THIRD-PARTY-NOTICES.txt text eol=lf
+
+# These extracted official parsers are audited against exact upstream source bytes.
+plugins/diagrams-worker/src/vendor/flow-parser.mjs -text
+plugins/diagrams-worker/src/vendor/sequence-parser.mjs -text
+# Preserve the raw resources embedded in the platform-specific Worker archive.
+plugins/diagrams-worker/dependency-provenance.json text eol=lf
+plugins/diagrams-worker/THIRD-PARTY-NOTICES.txt text eol=lf
+
+# The same-version updater patch is audited against exact upstream source bytes.
+vendor/tauri-plugin-updater/** -text
+
+# Unified-diff context lines are immutable patch evidence.
+vendor/tauri-plugin-updater/MILKUP-PATCH.diff -whitespace
+
+# Raw self-authored Linux render fixtures and hashes retain exact bytes.
+docs/evidence/v2-beta7-linux-diagrams/** -text -whitespace
+
+# Exact failed-pending recovery fixtures and saved acceptance hashes.
+docs/evidence/v2-beta7-pending-recovery/** -text -whitespace
+
+# Frozen self-authored beta.7 input and appearance evidence; validate exact hashes.
+docs/evidence/v2-beta7-input-appearance/** -text -whitespace
+
+# Frozen beta.7 Windows package verification; preserve original evidence bytes.
+docs/evidence/v2-beta7-windows-delivery/** -text -whitespace
+
+# Independent Mermaid rebuild fixtures, screenshots and execution logs preserve bytes.
+docs/evidence/mermaid-rebuild-2026-11-03/** -text -whitespace
+docs/evidence/mermaid-windows-trial-2026-11-03/** -text -whitespace
+docs/evidence/mermaid-account-compat-2026-11-03/** -text -whitespace
+docs/evidence/mermaid-windows-trial-beta9-2026-11-03/** -text -whitespace
+docs/evidence/mermaid-stability-2026-11-04/** -text -whitespace
+
+# Tauri writes these capability schemas as LF on every platform.
+# Keep Windows checkout bytes aligned with the generator and the strict source gate.
+/apps/desktop/src-tauri/gen/schemas/desktop-schema.json text eol=lf
+/apps/desktop/src-tauri/gen/schemas/windows-schema.json text eol=lf
+
+# Tauri CLI normalizes the desktop manifest when preparing a release bundle.
+# Keep the exact checkout bytes stable; all dirty source still fails validation.
+/apps/desktop/src-tauri/Cargo.toml text eol=lf
+# Historical beta.9 audit contract is checked against its exact original LF bytes.
+/tests/windows/mermaid-beta9-audit-fixture.mjs text eol=lf
+
+# CSP seals and the native fixed response require identical frontend bytes.
+/apps/desktop/src/frontend-mermaid/frame.js text eol=lf
+/apps/desktop/src/frontend-mermaid/frame.html text eol=lf

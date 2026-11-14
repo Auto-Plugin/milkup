@@ -1,0 +1,299 @@
+# Instructions
+
+- Following Playwright test failed.
+- Explain why, be concise, respect Playwright best practices.
+- Provide a snippet of code with the fix, if possible.
+
+# Test info
+
+- Name: desktop-formatting.spec.ts >> formatting context menu submits its command before hiding and restores editor focus on Escape
+- Location: tests/e2e/desktop-formatting.spec.ts:174:1
+
+# Error details
+
+```
+Test timeout of 60000ms exceeded.
+```
+
+```
+Error: locator.click: Test timeout of 60000ms exceeded.
+Call log:
+  - waiting for getByRole('menu', { name: '编辑操作', exact: true }).getByRole('button', { name: '删除线', exact: true })
+
+```
+
+# Page snapshot
+
+```yaml
+- main [ref=e3]:
+  - generic [ref=e4]:
+    - button "菜单" [ref=e5] [cursor=pointer]:
+      - img [ref=e6]
+    - generic [ref=e7]:
+      - heading "未命名" [level=1] [ref=e8]
+      - paragraph [ref=e9]: 未保存
+  - generic [ref=e13]:
+    - textbox [ref=e14]:
+      - generic [ref=e15]: context 中文
+    - textbox "Markdown 编辑器"
+  - menu "编辑操作" [ref=e16]:
+    - group [ref=e17]:
+      - menuitem "复制 Ctrl+C" [active] [ref=e18]:
+        - img [ref=e20]
+        - generic [ref=e23]: 复制
+        - generic [ref=e24]: Ctrl+C
+      - menuitem "剪切 Ctrl+X" [ref=e25]:
+        - img [ref=e27]
+        - generic [ref=e33]: 剪切
+        - generic [ref=e34]: Ctrl+X
+      - menuitem "粘贴 Ctrl+V" [ref=e35]:
+        - img [ref=e37]
+        - generic [ref=e42]: 粘贴
+        - generic [ref=e43]: Ctrl+V
+      - menuitem "全选 Ctrl+A" [ref=e44]:
+        - img [ref=e46]
+        - generic [ref=e51]: 全选
+        - generic [ref=e52]: Ctrl+A
+      - separator [ref=e53]
+      - menuitem "撤销 Ctrl+Z" [ref=e54]:
+        - img [ref=e56]
+        - generic [ref=e59]: 撤销
+        - generic [ref=e60]: Ctrl+Z
+      - menuitem "重做 Ctrl+Shift+Z" [disabled] [ref=e61]:
+        - img [ref=e63]
+        - generic [ref=e66]: 重做
+        - generic [ref=e67]: Ctrl+Shift+Z
+      - separator [ref=e68]
+      - menuitem "插入" [ref=e69]:
+        - img [ref=e71]
+        - generic [ref=e72]: 插入
+        - img [ref=e74]
+    - group "扩展操作" [ref=e76]:
+      - region "格式" [ref=e77]:
+        - menuitem "一级标题" [ref=e78]:
+          - img [ref=e80]
+          - generic [ref=e82]: 一级标题
+        - menuitem "二级标题" [ref=e83]:
+          - img [ref=e85]
+          - generic [ref=e87]: 二级标题
+        - menuitem "粗体" [ref=e88]:
+          - img [ref=e90]
+          - generic [ref=e92]: 粗体
+  - generic [ref=e93]:
+    - generic [ref=e94]:
+      - button "侧栏" [ref=e95] [cursor=pointer]:
+        - img [ref=e96]
+      - button "源码" [ref=e98] [cursor=pointer]:
+        - img [ref=e99]
+    - generic [ref=e103]:
+      - generic [ref=e104]: Markdown
+      - generic [ref=e105]: 10 字符
+      - generic [ref=e108]: 未保存
+```
+
+# Test source
+
+```ts
+  82  | })
+  83  | test('formatting table UI performs real row, column and alignment edits with one-step undo', async ({
+  84  |   page,
+  85  | }) => {
+  86  |   await formattingFixture(page)
+  87  |   await seed(page, '| A | B |\n| --- | --- |\n| x | y |')
+  88  |   await page.keyboard.press('Control+Home')
+  89  |   await page.keyboard.press('ArrowRight')
+  90  |   await page.keyboard.press('ArrowRight')
+  91  |   await open(page, 'table-toolbar')
+  92  |   await expect(modal(page).getByRole('button', { name: '删除行', exact: true })).toBeDisabled()
+  93  |   await expect(modal(page).getByRole('button', { name: '删除列', exact: true })).toBeDisabled()
+  94  |   await modal(page).getByRole('button', { name: '右侧加列', exact: true }).click()
+  95  |   await expect(page.locator('.milkup-line[data-line="1"]')).toHaveText('| A |  | B |')
+  96  |   await modal(page).getByRole('button', { name: '列居中', exact: true }).click()
+  97  |   await expect(page.locator('.milkup-line[data-line="2"]')).toHaveText('| --- | :---: | --- |')
+  98  |   await modal(page).getByRole('button', { name: '下方加行', exact: true }).click()
+  99  |   await expect(page.locator('.milkup-line')).toHaveCount(4)
+  100 |   await page.keyboard.press('Escape')
+  101 |   await page.locator('.milkup-input-proxy').focus()
+  102 |   await page.keyboard.press('Control+z')
+  103 |   await expect(page.locator('.milkup-line')).toHaveCount(3)
+  104 |   await page.keyboard.press('Control+s')
+  105 |   await expect(page.locator('[data-save-dot]')).not.toHaveClass(/is-dirty/)
+  106 | })
+  107 | test('formatting toolbar follows table selection and clears when switching documents', async ({
+  108 |   page,
+  109 | }) => {
+  110 |   await formattingFixture(page)
+  111 |   const text = '正文中文😀\n\n| A | B |\n| --- | --- |\n| x | y |\n\n尾部正文'
+  112 |   await seed(page, text)
+  113 |   await page.keyboard.press('Control+Home')
+  114 |   await expect(toolbar(page)).toBeHidden()
+  115 |   const enterTable = async () => {
+  116 |     await page.keyboard.press('Control+Home')
+  117 |     for (let line = 0; line < 4; line++) await page.keyboard.press('ArrowDown')
+  118 |     await page.keyboard.press('Home')
+  119 |     await page.keyboard.press('ArrowRight')
+  120 |     await page.keyboard.press('ArrowRight')
+  121 |     await expect(toolbar(page).getByRole('button', { name: '下方加行', exact: true })).toBeEnabled()
+  122 |   }
+  123 |   await enterTable()
+  124 |   await page.keyboard.press('Control+End')
+  125 |   await expect(toolbar(page).locator('button')).toHaveCount(0)
+  126 |   await expect(toolbar(page)).toBeHidden()
+  127 |   await enterTable()
+  128 |   await page.keyboard.press('Control+n')
+  129 |   await page.getByRole('button', { name: '不保存并新建文档', exact: true }).click()
+  130 |   await expect(toolbar(page).locator('button')).toHaveCount(0)
+  131 |   await expect(toolbar(page)).toBeHidden()
+  132 |   await seed(page, '新文档中文😀')
+  133 |   await expect(page.locator('.milkup-line[data-line="1"]')).toHaveText('新文档中文😀')
+  134 |   await expect(toolbar(page)).toBeHidden()
+  135 | })
+  136 | test('disabling formatting removes its contributions and retains basic editing/history/save', async ({
+  137 |   page,
+  138 | }) => {
+  139 |   await formattingFixture(page)
+  140 |   const table = '| A | B |\n| --- | --- |\n| x | y |'
+  141 |   await seed(page, table)
+  142 |   await page.keyboard.press('Control+Home')
+  143 |   await page.keyboard.press('ArrowRight')
+  144 |   await page.keyboard.press('ArrowRight')
+  145 |   await expect(toolbar(page).getByRole('button', { name: '格式', exact: true })).toBeVisible()
+  146 |   await openPlugins(page)
+  147 |   const toggle = formattingCard(page).getByRole('switch')
+  148 |   await toggle.click()
+  149 |   await expect(toggle).toHaveAttribute('aria-checked', 'false')
+  150 |   await expect(toggle).not.toHaveAttribute('aria-busy', 'true')
+  151 |   await expect(formattingCard(page).locator('[data-plugin-action="open-ui"]')).toHaveCount(0)
+  152 |   await expect(toolbar(page).locator('button')).toHaveCount(0)
+  153 |   await expect(toolbar(page)).toBeHidden()
+  154 |   await page.locator('[data-menu-close]').click()
+  155 |   await seed(page, 'without formatting')
+  156 |   await page.keyboard.press('Control+z')
+  157 |   await expect(page.locator('.milkup-line[data-line="1"]')).toHaveText('| A | B |')
+  158 |   await page.keyboard.press('Control+Shift+z')
+  159 |   await page.keyboard.press('Control+s')
+  160 |   await expect(page.locator('.milkup-line[data-line="1"]')).toHaveText('without formatting')
+  161 |   await expect(page.locator('[data-save-dot]')).not.toHaveClass(/is-dirty/)
+  162 |   await openPlugins(page)
+  163 |   await toggle.click()
+  164 |   await expect(toggle).toHaveAttribute('aria-checked', 'true')
+  165 |   await expect(toggle).not.toHaveAttribute('aria-busy', 'true')
+  166 |   await page.locator('[data-menu-close]').click()
+  167 |   await expect(toolbar(page)).toBeHidden()
+  168 |   await seed(page, table)
+  169 |   await page.keyboard.press('Control+Home')
+  170 |   await page.keyboard.press('ArrowRight')
+  171 |   await page.keyboard.press('ArrowRight')
+  172 |   await expect(toolbar(page).getByRole('button', { name: '下方加行', exact: true })).toBeEnabled()
+  173 | })
+  174 | test('formatting context menu submits its command before hiding and restores editor focus on Escape', async ({
+  175 |   page,
+  176 | }) => {
+  177 |   await formattingFixture(page)
+  178 |   await seed(page, 'context 中文')
+  179 |   await page.keyboard.press('Shift+F10')
+  180 |   const menu = page.getByRole('menu', { name: '编辑操作', exact: true })
+  181 |   await expect(menu).toBeVisible()
+> 182 |   await menu.getByRole('menuitem', { name: '删除线', exact: true }).click()
+      |                                                                ^ Error: locator.click: Test timeout of 60000ms exceeded.
+  183 |   await expect(menu).toBeHidden()
+  184 |   await expect(page.locator('.milkup-line[data-line="1"]')).toHaveText('~~context 中文~~')
+  185 |   await page.locator('.milkup-input-proxy').focus()
+  186 |   await page.keyboard.press('Shift+F10')
+  187 |   await expect(menu).toBeVisible()
+  188 |   await page.keyboard.press('Escape')
+  189 |   await expect(menu).toBeHidden()
+  190 |   await expect(page.locator('.milkup-input-proxy')).toBeFocused()
+  191 | })
+  192 | 
+  193 | // Native webview zoom reduces the CSS viewport. These browser cases exercise
+  194 | // that equivalent layout; production OS screenshots verify actual native zoom.
+  195 | for (const size of [
+  196 |   { width: 1100, height: 760 },
+  197 |   { width: 760, height: 520 },
+  198 | ])
+  199 |   for (const theme of ['light', 'dark'])
+  200 |     for (const zoom of [1, 1.25, 1.5, 2])
+  201 |       test(`formatting toolbar geometry ${size.width}x${size.height} ${theme} ${zoom * 100}%`, async ({
+  202 |         page,
+  203 |       }) => {
+  204 |         await page.addInitScript((theme) => {
+  205 |           localStorage.setItem('milkup.desktop.appearance.v1', JSON.stringify({ theme, zoom: 1 }))
+  206 |         }, theme)
+  207 |         await formattingFixture(page)
+  208 |         await seed(page, '| A | B |\n| --- | --- |\n| x | y |')
+  209 |         await page.keyboard.press('Control+Home')
+  210 |         await page.keyboard.press('ArrowDown')
+  211 |         await page.keyboard.press('ArrowDown')
+  212 |         await page.keyboard.press('Home')
+  213 |         await page.keyboard.press('ArrowRight')
+  214 |         await page.keyboard.press('ArrowRight')
+  215 |         await expect(
+  216 |           toolbar(page).getByRole('button', { name: '下方加行', exact: true }),
+  217 |         ).toBeEnabled()
+  218 |         await page.setViewportSize({
+  219 |           width: Math.floor(size.width / zoom),
+  220 |           height: Math.floor(size.height / zoom),
+  221 |         })
+  222 |         for (const platform of ['linux', 'windows']) {
+  223 |           // Exercise both platform CSS layouts without invoking native APIs.
+  224 |           await page.locator('#app').evaluate((app, platform) => {
+  225 |             app.setAttribute('data-platform', platform)
+  226 |             app.setAttribute('data-custom-chrome', String(platform === 'windows'))
+  227 |           }, platform)
+  228 |           const geometry = await page.evaluate(() => {
+  229 |             const box = (selector: string) => {
+  230 |               const r = document.querySelector(selector)!.getBoundingClientRect()
+  231 |               return {
+  232 |                 left: r.left,
+  233 |                 right: r.right,
+  234 |                 top: r.top,
+  235 |                 bottom: r.bottom,
+  236 |                 width: r.width,
+  237 |                 height: r.height,
+  238 |               }
+  239 |             }
+  240 |             return {
+  241 |               title: box('.document-title'),
+  242 |               menu: box('[data-menu-toggle]'),
+  243 |               slot: box('[data-plugin-slot="document-toolbar"]'),
+  244 |               controls: box('.window-controls'),
+  245 |               width: innerWidth,
+  246 |             }
+  247 |           })
+  248 |           await test.info().attach(`toolbar-${platform}-bounds`, {
+  249 |             body: JSON.stringify(geometry, null, 2),
+  250 |             contentType: 'application/json',
+  251 |           })
+  252 |           await writeFile(
+  253 |             test.info().outputPath(`toolbar-${platform}-bounds.json`),
+  254 |             JSON.stringify(geometry, null, 2),
+  255 |           )
+  256 |           expect(geometry.slot.top).toBeGreaterThanOrEqual(geometry.title.bottom)
+  257 |           expect(geometry.slot.top).toBeGreaterThanOrEqual(geometry.menu.bottom)
+  258 |           expect(geometry.slot.left).toBeGreaterThanOrEqual(0)
+  259 |           expect(geometry.slot.right).toBeLessThanOrEqual(geometry.width)
+  260 |           expect(geometry.title.left).toBeGreaterThanOrEqual(geometry.menu.right)
+  261 |           if (platform === 'windows') {
+  262 |             expect(geometry.controls.width).toBeGreaterThan(0)
+  263 |             expect(geometry.title.right).toBeLessThanOrEqual(geometry.controls.left)
+  264 |             expect(geometry.controls.right).toBeLessThanOrEqual(geometry.width)
+  265 |             expect(geometry.slot.top).toBeGreaterThanOrEqual(geometry.controls.bottom)
+  266 |           }
+  267 |           const buttons = toolbar(page).locator('button:not([disabled])')
+  268 |           const editorScroll = await page.locator('.milkup-editor').evaluate((editor) => ({
+  269 |             top: editor.scrollTop,
+  270 |             left: editor.scrollLeft,
+  271 |             pageTop: window.scrollY,
+  272 |             pageLeft: window.scrollX,
+  273 |           }))
+  274 |           await buttons.first().focus()
+  275 |           const focusedBounds = []
+  276 |           for (let i = 0; i < (await buttons.count()); i++) {
+  277 |             if (i) await page.keyboard.press('Tab')
+  278 |             await expect(buttons.nth(i)).toBeFocused()
+  279 |             const button = await buttons.nth(i).boundingBox()
+  280 |             focusedBounds.push({
+  281 |               label: await buttons.nth(i).getAttribute('aria-label'),
+  282 |               ...button,
+```

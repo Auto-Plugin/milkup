@@ -1,0 +1,239 @@
+--- baseline-test
++++ green-test
+@@ -1484,100 +1484,139 @@
+   expect(await sourceLines(page)).toEqual(source.split('\n'))
+ })
+ 
+-
+-test('presentation resize delivers finite responsive layout outside ResizeObserver delivery', async ({ page }) => {
++test('presentation resize delivers finite responsive layout outside ResizeObserver delivery', async ({
++  page,
++}) => {
+   await page.goto('/')
+-  const result = await page.evaluate(async ({ module }) => {
+-    const { DocumentPresentation } = await import(module)
+-    const errors: string[] = []
+-    const onError = (event: ErrorEvent) => errors.push(event.message)
+-    window.addEventListener('error', onError)
+-    const root = document.createElement('section')
+-    Object.assign(root.style, {
+-      position: 'fixed', top: '50px', left: '20px', width: '300px',
+-      padding: '0', border: '0', zIndex: '20000', background: 'white',
+-    })
+-    const content = document.createElement('div')
+-    content.style.height = '40px'
+-    const source = '中文😀 é source'
+-    const line = document.createElement('div')
+-    line.className = 'milkup-line'
+-    Object.assign(line.dataset, { line: '1', from: '0', to: String(source.length) })
+-    line.textContent = source
+-    content.append(line)
+-    root.append(content)
+-    document.body.append(root)
+-    const identity = {}
+-    const selection = { anchor: 0, head: 2 }
+-    const widths: number[] = []
+-    let layouts = 0
+-    const manager = new DocumentPresentation(root, content, {
+-      provide(window) {
+-        widths.push(window.width)
++  const result = await page.evaluate(
++    async ({ module }) => {
++      const { DocumentPresentation } = await import(module)
++      const errors: string[] = []
++      const onError = (event: ErrorEvent) => errors.push(event.message)
++      window.addEventListener('error', onError)
++      const root = document.createElement('section')
++      Object.assign(root.style, {
++        position: 'fixed',
++        top: '50px',
++        left: '20px',
++        width: '300px',
++        padding: '0',
++        border: '0',
++        zIndex: '20000',
++        background: 'white',
++      })
++      const content = document.createElement('div')
++      content.style.height = '40px'
++      const source = '中文😀 é source'
++      const line = document.createElement('div')
++      line.className = 'milkup-line'
++      Object.assign(line.dataset, { line: '1', from: '0', to: String(source.length) })
++      line.textContent = source
++      content.append(line)
++      root.append(content)
++      document.body.append(root)
++      const identity = {}
++      const selection = { anchor: 0, head: 2 }
++      const widths: number[] = []
++      let layouts = 0
++      const manager = new DocumentPresentation(
++        root,
++        content,
++        {
++          provide(window) {
++            widths.push(window.width)
++            return {
++              declarations: [],
++              request: {
++                documentId: 'finite-resize',
++                version: 0,
++                source: window.source,
++                from: window.from,
++                to: window.to,
++                fromLine: window.fromLine,
++                toLine: window.toLine,
++                completeStart: window.completeStart,
++                completeEnd: window.completeEnd,
++                selection: window.selection,
++                width: window.width,
++                contextKnown: true,
++                protectedRanges: [],
++                blocks: [],
++                theme: 'light',
++                target: 'screen',
++              },
++              result: { complete: true, fragments: [] },
++            }
++          },
++        },
++        () => ({
++          mode: 'live',
++          sourceIdentity: identity,
++          sourceVersion: 0,
++          selection,
++          lineCount: 1,
++          read: (from: number, to: number) => source.slice(from, to),
++        }),
++        () => {
++          layouts++
++          // Finite, idempotent responsive layout: one height transition, no oscillation.
++          const height = root.getBoundingClientRect().width >= 360 ? '80px' : '40px'
++          if (content.style.height !== height) content.style.height = height
++        },
++        () => {},
++      )
++      const frames = async (count: number) => {
++        for (let i = 0; i < count; i++)
++          await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()))
++      }
++      try {
++        manager.schedule()
++        await frames(4)
++        const initialHeight = root.getBoundingClientRect().height
++        root.style.width = '360px'
++        await frames(6)
++        const settled = {
++          initialHeight,
++          height: root.getBoundingClientRect().height,
++          width: root.getBoundingClientRect().width,
++          widths: [...widths],
++          text: content.textContent,
++          selection: { ...selection },
++          errors: [...errors],
++        }
++        // Destroy during a real resize notification, before a deferred layout can run.
++        let destroyCount = 0
++        let afterDestroy: { layouts: number; requests: number; text: string | null } | undefined
++        const destroyObserver = new ResizeObserver(() => {
++          if (root.getBoundingClientRect().width !== 400) return
++          manager.destroy()
++          afterDestroy = { layouts, requests: widths.length, text: content.textContent }
++          destroyCount++
++          destroyObserver.disconnect()
++        })
++        destroyObserver.observe(root)
++        root.style.width = '400px'
++        await frames(2)
++        root.style.width = '420px'
++        await frames(4)
+         return {
+-          declarations: [],
+-          request: {
+-            documentId: 'finite-resize', version: 0, source: window.source,
+-            from: window.from, to: window.to, fromLine: window.fromLine,
+-            toLine: window.toLine, completeStart: window.completeStart,
+-            completeEnd: window.completeEnd, selection: window.selection,
+-            width: window.width, contextKnown: true, protectedRanges: [], blocks: [],
+-            theme: 'light', target: 'screen',
+-          },
+-          result: { complete: true, fragments: [] },
++          settled,
++          destroyCount,
++          afterDestroy,
++          final: { layouts, requests: widths.length, text: content.textContent },
++          errors,
+         }
+-      },
+-    }, () => ({
+-      mode: 'live', sourceIdentity: identity, sourceVersion: 0, selection,
+-      lineCount: 1, read: (from: number, to: number) => source.slice(from, to),
+-    }), () => {
+-      layouts++
+-      // Finite, idempotent responsive layout: one height transition, no oscillation.
+-      const height = root.getBoundingClientRect().width >= 360 ? '80px' : '40px'
+-      if (content.style.height !== height) content.style.height = height
+-    }, () => {})
+-    const frames = async (count: number) => {
+-      for (let i = 0; i < count; i++)
+-        await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()))
+-    }
+-    try {
+-      manager.schedule()
+-      await frames(4)
+-      const initialHeight = root.getBoundingClientRect().height
+-      root.style.width = '360px'
+-      await frames(6)
+-      const settled = {
+-        initialHeight, height: root.getBoundingClientRect().height,
+-        width: root.getBoundingClientRect().width, widths: [...widths],
+-        text: content.textContent, selection: { ...selection }, errors: [...errors],
++      } finally {
++        manager.destroy()
++        root.remove()
++        window.removeEventListener('error', onError)
+       }
+-      // Destroy during a real resize notification, before a deferred layout can run.
+-      let destroyCount = 0
+-      const destroyObserver = new ResizeObserver(() => {
+-        if (root.getBoundingClientRect().width !== 400) return
+-        manager.destroy()
+-        destroyCount++
+-        destroyObserver.disconnect()
+-      })
+-      destroyObserver.observe(root)
+-      root.style.width = '400px'
+-      await frames(2)
+-      const afterDestroy = { layouts, requests: widths.length, text: content.textContent }
+-      root.style.width = '420px'
+-      await frames(4)
+-      return {
+-        settled, destroyCount, afterDestroy,
+-        final: { layouts, requests: widths.length, text: content.textContent },
+-        errors,
+-      }
+-    } finally {
+-      manager.destroy()
+-      root.remove()
+-      window.removeEventListener('error', onError)
+-    }
+-  }, { module: `/@fs${resolve('packages/view-dom/src/document-presentation.ts')}` })
++    },
++    { module: `/@fs${resolve('packages/view-dom/src/document-presentation.ts')}` },
++  )
+   await test.info().attach('resize-evidence', {
+-    body: JSON.stringify(result, null, 2), contentType: 'application/json',
++    body: JSON.stringify(result, null, 2),
++    contentType: 'application/json',
+   })
+   expect(result.settled.initialHeight).toBe(40)
+   expect(result.settled.height).toBe(80)
+@@ -1586,6 +1625,7 @@
+   expect(result.settled.text).toBe('中文😀 é source')
+   expect(result.settled.selection).toEqual({ anchor: 0, head: 2 })
+   expect(result.destroyCount).toBe(1)
++  expect(result.afterDestroy).toBeDefined()
+   expect(result.final).toEqual(result.afterDestroy)
+   expect(result.errors).toEqual([])
+ })

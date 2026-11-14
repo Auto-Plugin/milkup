@@ -1,0 +1,203 @@
+--- frozen-original-92870.mjs
++++ full-workflow-diagnostic.mjs
+@@ -2,7 +2,8 @@
+ // Reuses P4 GTK/XTest startup and controls; page execution observes public DOM or
+ // focuses public controls. No editor/plugin internals, raw SVG or IPC are injected.
+ import assert from 'node:assert/strict'
+-import { execFileSync } from 'node:child_process'
++import { execFileSync, spawn } from 'node:child_process'
++import { openSync, closeSync } from 'node:fs'
+ import { createHash } from 'node:crypto'
+ import { mkdir, readFile, writeFile, realpath, appendFile } from 'node:fs/promises'
+ import path from 'node:path'
+@@ -190,6 +191,159 @@
+     2,
+   ) + '\n',
+ )
++
++// DIAGNOSTIC INSERT: external process and transport observation only.
++let cpuChild,
++  cpuCompletion,
++  cpuExited = false,
++  diagnosticFinished = false
++const diagnosticStatus = { cpuStarted: false, cpuErrors: [], observerInstalled: false }
++async function startCpuDiagnostic(owner) {
++  const cpuOutput = path.join(output, 'cpu-observer')
++  let stdout, stderr
++  try {
++    stdout = openSync(path.join(output, 'cpu-stdout.log'), 'wx')
++    stderr = openSync(path.join(output, 'cpu-stderr.log'), 'wx')
++    cpuChild = spawn(
++      '/usr/bin/python3',
++      [
++        new URL('../cpu/app_cpu_ring.py', import.meta.url).pathname,
++        '--output',
++        cpuOutput,
++        '--app-log',
++        process.env.MILKUP_NATIVE_APP_LOG,
++      ],
++      { stdio: ['pipe', stdout, stderr] },
++    )
++    cpuCompletion = new Promise((resolve) => {
++      cpuChild.once('error', (error) => {
++        cpuExited = true
++        resolve({ error: String(error) })
++      })
++      cpuChild.once('exit', (code, signal) => {
++        cpuExited = true
++        resolve({ code, signal })
++      })
++    })
++    cpuChild.stdin.on('error', (error) => {
++      if (diagnosticStatus.cpuErrors.length < 32)
++        diagnosticStatus.cpuErrors.push(String(error).slice(0, 256))
++    })
++    cpuChild.stdin.write(
++      JSON.stringify({
++        pid: owner.identity.pid,
++        birth: owner.identity.birth,
++        argv: owner.identity.argv,
++      }) + '\n',
++    )
++    diagnosticStatus.cpuStarted = true
++    await writeFile(
++      path.join(output, 'cpu-launch.json'),
++      JSON.stringify(
++        {
++          pid: cpuChild.pid,
++          app: owner.identity,
++          scope: 'exact App CPU only; observer cgroup is shared',
++          startedAt: Date.now(),
++          startsBeforeColdWorkflow: true,
++        },
++        null,
++        2,
++      ) + '\n',
++    )
++  } catch (error) {
++    diagnosticStatus.cpuErrors.push(String(error).slice(0, 256))
++  } finally {
++    for (const fd of [stdout, stderr]) {
++      if (fd !== undefined) {
++        try {
++          closeSync(fd)
++        } catch (error) {
++          diagnosticStatus.cpuErrors.push(String(error).slice(0, 256))
++        }
++      }
++    }
++  }
++}
++async function installDeadlineDiagnostic() {
++  try {
++    const code = await readFile(new URL('../observer.js', import.meta.url), 'utf8')
++    const result = await app.execute('return (' + code + ')()')
++    diagnosticStatus.observerInstalled = result.installed === true
++    await writeFile(
++      path.join(output, 'transport-install.json'),
++      JSON.stringify(
++        {
++          ...result,
++          scope:
++            'After independent install; cold/startup/install gap explicit; complete subsequent original workflow',
++        },
++        null,
++        2,
++      ) + '\n',
++    )
++  } catch (error) {
++    diagnosticStatus.observerError = String(error).slice(0, 512)
++  }
++  assert(
++    diagnosticStatus.observerInstalled,
++    'DIAGNOSTIC SETUP: transport observer must install before coverage',
++  )
++}
++async function finishDeadlineDiagnostic(reason, originalFailure) {
++  if (diagnosticFinished) return
++  diagnosticFinished = true
++  diagnosticStatus.finishReason = reason
++  diagnosticStatus.originalFailureObservedAt = originalFailure ? Date.now() : null
++  if (originalFailure) diagnosticStatus.originalFailure = String(originalFailure).slice(0, 512)
++  // Finish CPU before any potentially slow page export or failure screenshot. The
++  // independent sampler can already have frozen on the native deadline log.
++  if (cpuChild && !cpuExited) {
++    try {
++      cpuChild.stdin.end(JSON.stringify({ finish: 'harness-final' }) + '\n')
++    } catch (error) {
++      diagnosticStatus.cpuErrors.push(String(error).slice(0, 256))
++    }
++  }
++  if (app && diagnosticStatus.observerInstalled) {
++    try {
++      const snapshot = await app.execute(
++        `const o=window.__milkupTransportDiagnostic;
++        if(!o)return {missing:true};o.stop(arguments[0]);return o.state`,
++        reason,
++      )
++      const serialized = JSON.stringify(snapshot, null, 0)
++      if (Buffer.byteLength(serialized) + 1 > 2097152) throw Error('Observer export exceeds2MiB')
++      await writeFile(path.join(output, 'transport-ring.json'), serialized + '\n')
++    } catch (error) {
++      diagnosticStatus.exportError = String(error).slice(0, 512)
++    }
++  }
++  if (cpuCompletion) {
++    let timer
++    diagnosticStatus.cpuCompletion = await Promise.race([
++      cpuCompletion,
++      new Promise((resolve) => {
++        timer = setTimeout(
++          () =>
++            resolve({
++              incomplete: 'sampler-natural-exit-not-observed-within5s',
++              pid: cpuChild.pid,
++            }),
++          5000,
++        )
++      }),
++    ])
++    clearTimeout(timer)
++  }
++  await writeFile(
++    path.join(output, 'diagnostic-completion.json'),
++    JSON.stringify(diagnosticStatus, null, 2) + '\n',
++  ).catch((error) =>
++    console.error('Diagnostic status persistence failed:', String(error).slice(0, 512)),
++  )
++}
++// END DIAGNOSTIC INSERT.
+ 
+ let app, nativeWindow, activeFile
+ const ui = nativeFixture(() => app),
+@@ -1412,6 +1566,7 @@
+     JSON.stringify({ ...owner.identity, runtimeUrl: runtimeUrl.href, verifiedProfile }, null, 2) +
+       '\n',
+   )
++  await startCpuDiagnostic(owner)
+   await app.execute(
+     `window.__productionDiagnostics={errors:[],cspViolations:[]};addEventListener('error',e=>window.__productionDiagnostics.errors.push(e.message));addEventListener('unhandledrejection',e=>window.__productionDiagnostics.errors.push(String(e.reason)));addEventListener('securitypolicyviolation',e=>window.__productionDiagnostics.cspViolations.push({directive:e.violatedDirective,blocked:e.blockedURI}));`,
+   )
+@@ -1419,6 +1574,7 @@
+   x('windowsize', nativeWindow, '1100', '760')
+   await coldBundledWindow()
+   await install()
++  await installDeadlineDiagnostic()
+   for (const sample of isolatedFallbacks) await isolatedFallback(sample)
+   for (const name of ['ordinary', 'windowed']) {
+     await openDocument(name)
+@@ -1469,6 +1625,7 @@
+     nativeIsolation: 'not-established-by-this-harness',
+   })
+ } catch (error) {
++  await finishDeadlineDiagnostic('harness-first-failure', error).catch(() => {})
+   await writeFile(
+     path.join(output, 'failure.json'),
+     JSON.stringify({ error: String(error), stack: error.stack }, null, 2) + '\n',
+@@ -1476,5 +1633,6 @@
+   if (app) await shot('FAIL', { error: String(error) }).catch(() => {})
+   throw error
+ } finally {
++  await finishDeadlineDiagnostic('harness-final').catch(() => {})
+   if (app) await app.close()
+ }

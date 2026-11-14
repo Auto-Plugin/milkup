@@ -1,0 +1,416 @@
+{
+  "at": "2026-10-16T19:00:31.045249+00:00",
+  "classification": "SINGLE_COLD03_DIAGNOSTIC_FIRST_OBSERVER_SCAN_CAP_FAILURE",
+  "productColdGate": "PASS",
+  "harnessExitCode": 1,
+  "samplerExitCode": 2,
+  "samplerFailure": "proc-scan-wall-limit",
+  "attemptedRuns": 1,
+  "maximumRuns": 1,
+  "retries": 0,
+  "diagnosticBinarySha256": "8041da503dac6cc0ff5d45d4c11982ca4b6a898930f3e4ecc3442d8cb1e4d140",
+  "samplerSha256": "f109f8ee86061e9f37b1e561a7964e3b4c830bb58957832acfc480d06d2089f0",
+  "inputManifestSha256": "e7c31687c6e14bf020a4970f2c504954eee775b797e2fb2517abd29de92f4102",
+  "binding": {
+    "startedNs": 64726675905539,
+    "endedNs": 64726726107770,
+    "ownerBefore": {},
+    "ownerAfterCandidates": {},
+    "procScanIndex": 0,
+    "rawChildCount": 0,
+    "retainedDirectChildCount": 0,
+    "discoveryOutcome": "not-started",
+    "matchingCount": null,
+    "outcome": "not-completed",
+    "candidates": [],
+    "readErrorCount": 0,
+    "readErrors": [],
+    "omittedReadErrorCount": 0
+  },
+  "procScans": [
+    {
+      "startedNs": 64726675913481,
+      "endedNs": 64726726102691,
+      "durationNs": 50189210,
+      "entriesObserved": 1251,
+      "numericPidsObserved": 1200,
+      "statParsed": 1200,
+      "vanished": 0,
+      "outcome": "failed",
+      "ownerBefore": {
+        "pid": 369238,
+        "expectedBirth": 6472126,
+        "birthMatches": true,
+        "birth": 6472126,
+        "parent": 369189,
+        "state": "S"
+      },
+      "ownerAfter": {},
+      "errorClass": "ObservationError",
+      "errno": null,
+      "failure": "proc-scan-wall-limit"
+    }
+  ],
+  "cpuSamples": 0,
+  "cgroupCounters": {
+    "path": null,
+    "before": null,
+    "after": null,
+    "rawDelta": null,
+    "scope": "Shared cgroup counters, not DOM-exclusive; actual read timestamps retained"
+  },
+  "samplerSelfCpuSeconds": {
+    "user": 0.062318,
+    "system": 0.008068
+  },
+  "nativeTrace": {
+    "records": 74,
+    "dispatch": 6,
+    "complete": 5,
+    "okTrue": 5,
+    "deadlineRecords": 0,
+    "mappedSources": 6,
+    "slowestComplete": {
+      "requestId": "render_3",
+      "sample": "classDiagram-000-first-official-example",
+      "dispatchToSettledMs": 663.936425
+    },
+    "incomplete": [
+      {
+        "requestId": "render_6",
+        "source": [
+          {
+            "file": "ordinary.md",
+            "fullDocumentSha256": "a7267df165778c560a8fba59bfbff7065ae63365741e3eb87078783bc865fd4b",
+            "from": 1087,
+            "to": 1257,
+            "sourceBytes": 170,
+            "sourceSha256": "895354fc25512f2596fb5d5c02cf508321018f50ba41bf88c1d06876d2b24a61",
+            "source": "```mermaid\n---\ntitle: Order example\n---\nerDiagram\n    CUSTOMER ||--o{ ORDER : places\n    ORDER ||--|{ LINE-ITEM : contains\n    CUSTOMER }|..|{ DELIVERY-ADDRESS : uses\n```",
+            "sampleId": "entityRelationshipDiagram-000-first-official-example",
+            "family": "entityRelationshipDiagram"
+          }
+        ],
+        "reason": "No retained complete result before normal App close; not inferred timeout"
+      }
+    ]
+  },
+  "cleanup": {
+    "time": 1792177169.7917938,
+    "harnessExitCode": 1,
+    "samplerExitCode": 2,
+    "driverExitCode": 0,
+    "portsFree": [
+      4626,
+      4627
+    ],
+    "identities": [
+      {
+        "pid": 369188,
+        "exists": false,
+        "expectedBirth": 6469985
+      },
+      {
+        "pid": 369238,
+        "exists": false,
+        "expectedBirth": "6472126"
+      },
+      {
+        "pid": 369370,
+        "exists": true,
+        "state": "Z",
+        "parent": 1,
+        "birth": 6472432,
+        "expectedBirth": null,
+        "sameBirth": null
+      },
+      {
+        "pid": 369376,
+        "exists": false,
+        "expectedBirth": null
+      }
+    ],
+    "limit": "Trace-only PID without prior retained birth is current proc state, not reconstructed exact ownership. No unrelated process signaled."
+  },
+  "integrity": {
+    "all452InputsHistoryUnchanged": true,
+    "ordinarySource": {
+      "path": "/workspace/milkup-mermaid-engine-evidence/research/native-cold-cpu-single-03/run/ordinary.md",
+      "bytes": 11914,
+      "sha256": "a7267df165778c560a8fba59bfbff7065ae63365741e3eb87078783bc865fd4b"
+    }
+  },
+  "limitations": [
+    "First stat-table scan failed closed at50.189210ms against unchanged50ms limit after1200parsed numericPIDs/1251entries. Partial table was discarded, not accepted.",
+    "Owner-before birth passed. Scan aborted before owner-after or exact guardian argv/env acceptance, so this run has no valid guardian binding.",
+    "Zero retained DOM CPU samples and no shared cgroup counters: no CPU, workload, throttling, WebKit scheduler or historical timeout inference.",
+    "Sampler self CPU and scan wall overhead are recorded separately; their effect on concurrent rendering is not attributed or subtracted.",
+    "Native6metadata requests were matched with JavaScript UTF16 slice and UTF8 SHA against actual ordinary.md;5settledtrue/0deadline, render_6ER censored at normalclose.",
+    "UIcoldPASS only in this diagnostic sample; formalUI04 failure and full31x2/UI64 remain unresolved.",
+    "Traceguardian PID369370 currentlyZ,parent1; failedsampler retained no independent birth, so no reconstructed exactidentity claim.",
+    "Original budgets unchanged; no retry/profile2, no product/security change."
+  ],
+  "cpuUiReleased": true,
+  "manifest": [
+    {
+      "path": "analysis-first.log",
+      "bytes": 7413,
+      "sha256": "3af04b8b6c731287dac0f5df81c4e86e2e481406103341a5e9a6b7cd0afb2eb3"
+    },
+    {
+      "path": "analyze.mjs",
+      "bytes": 5241,
+      "sha256": "055e1a04520d2c1f8cbf2ca720569d51ffd78baae56f5076601c2419a9497a17"
+    },
+    {
+      "path": "cleanup.json",
+      "bytes": 749,
+      "sha256": "689aec8a893cd30826ccb9f1ecb38f60b26bd5640f9ba7ceb2a731e13da68643"
+    },
+    {
+      "path": "cold-diagnostic.mjs",
+      "bytes": 35927,
+      "sha256": "cc701be3719d95aac956ab671e7b20e5a19de3ea4a9f609aad399c7a66157328"
+    },
+    {
+      "path": "driver-cleanup-signal.json",
+      "bytes": 425,
+      "sha256": "de7d59b16bc3f064e8fc45f2790a85f377463e2e764f2ad414c6081aa7ca60cf"
+    },
+    {
+      "path": "driver-ready.json",
+      "bytes": 431,
+      "sha256": "616a5497a92c469e009d007c0cfabdcdbffd12463c3e81ae95350240757092c1"
+    },
+    {
+      "path": "driver.sh",
+      "bytes": 1435,
+      "sha256": "a6ab8ffca0c9db4c1667c30fc7d8da6b3a01a6579cc9de533b1a701620c90bbd"
+    },
+    {
+      "path": "env.sh",
+      "bytes": 1376,
+      "sha256": "cfb9ba5caeb0a337dd62d99639a50c8bef7a3f3a4b00778f72c61ac80ef99642"
+    },
+    {
+      "path": "execution.json",
+      "bytes": 929,
+      "sha256": "3b8d46d3fcd0cfe271d3758bf18089586128592982b07f1b52f689cf7161b428"
+    },
+    {
+      "path": "from-single02-final.diff",
+      "bytes": 6324,
+      "sha256": "c4149757a9c787aacbab783383cc4f41840852f5ed45221eb46de474bf852bd7"
+    },
+    {
+      "path": "from-single02-pending.diff",
+      "bytes": 4190,
+      "sha256": "a9c58df74208efb7bcfe51007d293870e745409dbd28fbb8e6888de47eb0deaf"
+    },
+    {
+      "path": "gate-records/independent-static-review.json",
+      "bytes": 2224,
+      "sha256": "98347da806e87c44bf3569887e3f55a9bedc0f04c23a033665b17f0a4952c258"
+    },
+    {
+      "path": "gate-records/provenance.json",
+      "bytes": 429,
+      "sha256": "5e77580c9f0b39b27058447363c18a10f05d6c0e28cea3d57c23f63a6e9ffe09"
+    },
+    {
+      "path": "harness-first.log",
+      "bytes": 584,
+      "sha256": "43b5d42f8fd2bc728c83ad972f24f46d03d7c04a8962301fe5dcf588451065bf"
+    },
+    {
+      "path": "integrity-after.json",
+      "bytes": 156733,
+      "sha256": "3822d5829cab9e885794f1c21800c340e79b0469f4c32b61c75d2d61dc39d831"
+    },
+    {
+      "path": "native-driver-first.log",
+      "bytes": 22888,
+      "sha256": "8670be5c08a9e407b0f7645fc1a36a107e5485ffaba8701cddd02109996ed5fe"
+    },
+    {
+      "path": "parsed-trace.json",
+      "bytes": 29204,
+      "sha256": "846f640954619cca1061fa6e469d37b3fe713365c463d45ed3f0588a8f3c0671"
+    },
+    {
+      "path": "pending01/driver.sh",
+      "bytes": 1435,
+      "sha256": "a6ab8ffca0c9db4c1667c30fc7d8da6b3a01a6579cc9de533b1a701620c90bbd"
+    },
+    {
+      "path": "pending01/env.sh",
+      "bytes": 1336,
+      "sha256": "01e6e98b2f220ee938d5ff9f5dfb17bdbae766812de9cd42e0f755236d1589d9"
+    },
+    {
+      "path": "pending01/from-single02-pending.diff",
+      "bytes": 4190,
+      "sha256": "a9c58df74208efb7bcfe51007d293870e745409dbd28fbb8e6888de47eb0deaf"
+    },
+    {
+      "path": "pending01/preparation-pending01.json",
+      "bytes": 4040,
+      "sha256": "ebe857778150fd36da2f88adabcb4774778457e155a05b9f32502725e9211d01"
+    },
+    {
+      "path": "pending01/run-harness.sh",
+      "bytes": 436,
+      "sha256": "52a30e608b478dfa9cbe3c4b8ee0f657ea6ef2150630053fa55b29414ee1113c"
+    },
+    {
+      "path": "preflight-execution.json",
+      "bytes": 1458,
+      "sha256": "a9f57ec87b2ff67d3c8704dd2eef53f7f3d3cbc9ee0a2ba2cbcd1a49fa04fedf"
+    },
+    {
+      "path": "preparation-pending01.json",
+      "bytes": 4040,
+      "sha256": "ebe857778150fd36da2f88adabcb4774778457e155a05b9f32502725e9211d01"
+    },
+    {
+      "path": "prepared-inputs.json",
+      "bytes": 19444,
+      "sha256": "e7c31687c6e14bf020a4970f2c504954eee775b797e2fb2517abd29de92f4102"
+    },
+    {
+      "path": "read-only-preflight.json",
+      "bytes": 112879,
+      "sha256": "3216e88627f2f68703370e8b9a8f1c9e33f68b083e3b51a3630fca55f44cd9f2"
+    },
+    {
+      "path": "read-only-preflight.py",
+      "bytes": 3730,
+      "sha256": "8de636b537951c61ae41d20a12a4e84fb10ff95699ff3c72df754eb1ad41e903"
+    },
+    {
+      "path": "request-mapping.json",
+      "bytes": 46002,
+      "sha256": "0946011564cd48085f8d25230257bebb4abdba2427fa0f4b2e8d8d9d1bd82e87"
+    },
+    {
+      "path": "root-wrapper-review.json",
+      "bytes": 641,
+      "sha256": "1660856e4abfedca387f101de3fbb83634e4f193124c693ca02e80ab323cdca0"
+    },
+    {
+      "path": "run/cpu-observer/samples.ndjson",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "run/cpu-observer/summary.json",
+      "bytes": 4312,
+      "sha256": "78c0d7eb49a5b0b824f81756c3f12df17e221b3a55d8ad9924d03bf9e9e3b2c9"
+    },
+    {
+      "path": "run/cpu-sampler-completion.json",
+      "bytes": 60,
+      "sha256": "b5c0af8650937225eaa94fd7e6c9185848066d30f37c1c6b01c0c1ad561a36a1"
+    },
+    {
+      "path": "run/cpu-sampler-handshake.json",
+      "bytes": 285,
+      "sha256": "625ddea83b66c738bd5e5be2cd7764bd27bf8cd2679648dde9f6a3768eba4cd4"
+    },
+    {
+      "path": "run/cpu-sampler-stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "run/cpu-sampler-stdout.log",
+      "bytes": 779,
+      "sha256": "5bb993aea3430e6f3bfecf2bb765ac3bf8e9824cf26c01824191fa7164fdb30d"
+    },
+    {
+      "path": "run/fallback-flowchart-069-image.md",
+      "bytes": 255,
+      "sha256": "7e5a5d4ad09b011f5bf3996a930e1011bdf4e87861359a957f964a94c338f775"
+    },
+    {
+      "path": "run/fallback-flowchart-086-animated-edge.md",
+      "bytes": 143,
+      "sha256": "8218dda63a5944e3938a3ec617b1a3d28f28e6b37f8db19adab548ad7fd4472b"
+    },
+    {
+      "path": "run/fallback-flowchart-088-classDef.md",
+      "bytes": 230,
+      "sha256": "7fa2b07706261cf7743957a4a7d5a8079cd46c3c57d0f1663c3b8ece6c6e21d4"
+    },
+    {
+      "path": "run/fallback-timeline-000-first-official-example.md",
+      "bytes": 258,
+      "sha256": "c4bac2bb982fad00fc43c6900436974d5ed0fed676cd3745dd97d5ca7502d7c4"
+    },
+    {
+      "path": "run/native-owned-profile.json",
+      "bytes": 768,
+      "sha256": "2173d54a01b8316082242d5f4d31fdbab1dce85eadff515b9ec499bb46e5f6de"
+    },
+    {
+      "path": "run/ordinary.md",
+      "bytes": 11914,
+      "sha256": "a7267df165778c560a8fba59bfbff7065ae63365741e3eb87078783bc865fd4b"
+    },
+    {
+      "path": "run/plan.json",
+      "bytes": 46136,
+      "sha256": "ee82fb84d21c1c1ca56da7db1a3d2611cb7f61d50606e7f7e94558b83995dfed"
+    },
+    {
+      "path": "run/preinstalled-cold-window-webview.png",
+      "bytes": 53735,
+      "sha256": "5f12fc6b354c0232f92471c2b361bff95acdabff91612844aac84eda9ecfcbe2"
+    },
+    {
+      "path": "run/preinstalled-cold-window-x11.png",
+      "bytes": 57686,
+      "sha256": "99616cc917aa69d785473ec9a9336534b319e190ea76f8b7d3383f3970c02a6d"
+    },
+    {
+      "path": "run/production-origin.json",
+      "bytes": 253,
+      "sha256": "70fca1f334270776f547e3726811b13bb8f9b98e27728d0148c7ed69b8db4ded"
+    },
+    {
+      "path": "run/provenance.json",
+      "bytes": 1799,
+      "sha256": "abfcccd07ab4122c362e365af704ec052a8e9e776f8f96c813d654c2db1ecedf"
+    },
+    {
+      "path": "run/results.json",
+      "bytes": 24576,
+      "sha256": "ee4e0803cccc985cb4fec9d61e4a7777a349f3ca7eefe661e443e9632669fc3c"
+    },
+    {
+      "path": "run/windowed.md",
+      "bytes": 7851914,
+      "sha256": "84e661fa8af75731cbe8ff0c89c8b135303432307d7464f74a22cfceb7d1534d"
+    },
+    {
+      "path": "run-harness.sh",
+      "bytes": 436,
+      "sha256": "52a30e608b478dfa9cbe3c4b8ee0f657ea6ef2150630053fa55b29414ee1113c"
+    },
+    {
+      "path": "static-final-checks.json",
+      "bytes": 954,
+      "sha256": "b02e1c868ba3191a2c748caffd123daec06c50b6866e85058f59690a4653b698"
+    },
+    {
+      "path": "trace-summary.json",
+      "bytes": 45308,
+      "sha256": "336d783b18d8a24832357f4e91d5a7a691b53fb52628e74b137a96123b6bd948"
+    },
+    {
+      "path": "visual-review.json",
+      "bytes": 761,
+      "sha256": "ed622295eb9992b4f2f777569da07992d3993779eae813af9e7994077569095b"
+    }
+  ]
+}

@@ -1,0 +1,202 @@
+{
+  "status": "static-review-and-plan-only",
+  "executed": false,
+  "productFilesChanged": false,
+  "claims": {
+    "candidate": "Public version-locked module initialization optimization; not complete warm-up or a demonstrated fix for earlier deadlines.",
+    "documentWork": "Audited orchestration invokes loader/module evaluation, registration and optional injectUtils; no supplied document parse/render invocation. Transitive modules are not claimed side-effect-free.",
+    "lazyRemainder": "Layout loader invocation remains in actual render. Layout/JIT/font-use/conversion cold costs may remain.",
+    "startup": "Import registers load listener; default startOnLoad true. Both future arms must disable public startOnLoad and initialize the same strict config before yielding.",
+    "failure": "Promise.allSettled loads all detectors; failed loaders are deleted then aggregate failure throws. Fail preparation and destroy the instance; do not silently continue."
+  },
+  "sources": [
+    {
+      "path": "/workspace/milkup/plugins/diagrams/node_modules/mermaid/dist/mermaid.d.ts",
+      "bytes": 7695,
+      "sha256": "3ece6e9c2534a3f95304b7d415d270ccf040091e76dee3f6146164010b420139",
+      "id": "public-api",
+      "lines": [
+        80,
+        87
+      ]
+    },
+    {
+      "path": "/workspace/milkup/plugins/diagrams/node_modules/mermaid/dist/mermaid.core.mjs",
+      "bytes": 55022,
+      "sha256": "4d085c790146a42c65d51ea21170427b24bc706de970df570331321996cbdbaf",
+      "id": "builtin-registration",
+      "lines": [
+        752,
+        827
+      ]
+    },
+    {
+      "path": "/workspace/milkup/plugins/diagrams/node_modules/mermaid/dist/mermaid.core.mjs",
+      "bytes": 55022,
+      "sha256": "4d085c790146a42c65d51ea21170427b24bc706de970df570331321996cbdbaf",
+      "id": "load-all",
+      "lines": [
+        830,
+        859
+      ]
+    },
+    {
+      "path": "/workspace/milkup/plugins/diagrams/node_modules/mermaid/dist/mermaid.core.mjs",
+      "bytes": 55022,
+      "sha256": "4d085c790146a42c65d51ea21170427b24bc706de970df570331321996cbdbaf",
+      "id": "public-call-and-auto-start",
+      "lines": [
+        1590,
+        1613
+      ]
+    },
+    {
+      "path": "/workspace/milkup/plugins/diagrams/node_modules/mermaid/dist/chunks/mermaid.core/chunk-DSNLSHJZ.mjs",
+      "bytes": 276663,
+      "sha256": "d5097d3469d77fe5b3e9f2623a1bb943d7b55279a88af5c254feb28c198a1123",
+      "id": "style-registration",
+      "lines": [
+        5688,
+        5692
+      ]
+    },
+    {
+      "path": "/workspace/milkup/plugins/diagrams/node_modules/mermaid/dist/chunks/mermaid.core/chunk-DSNLSHJZ.mjs",
+      "bytes": 276663,
+      "sha256": "d5097d3469d77fe5b3e9f2623a1bb943d7b55279a88af5c254feb28c198a1123",
+      "id": "diagram-registration",
+      "lines": [
+        5740,
+        5759
+      ]
+    },
+    {
+      "path": "/workspace/milkup/plugins/diagrams/node_modules/mermaid/dist/chunks/mermaid.core/chunk-EJLWFMJV.mjs",
+      "bytes": 3910,
+      "sha256": "ba28f6cba12da3c5e421ec60762b44f02fa85ffdf855a3f5d9ad2dfcd32cb1b6",
+      "id": "layout-still-lazy",
+      "lines": [
+        65,
+        110
+      ]
+    },
+    {
+      "path": "/workspace/milkup/plugins/diagrams/src/renderer.ts",
+      "bytes": 7154,
+      "sha256": "d50faff2f803ac2f0a174f8d5b24933d22fd0527e314935e1feebbd6bac9774c",
+      "id": "current-product-preparation",
+      "lines": [
+        1,
+        13
+      ]
+    },
+    {
+      "path": "/workspace/milkup/plugins/diagrams/src/renderer.ts",
+      "bytes": 7154,
+      "sha256": "d50faff2f803ac2f0a174f8d5b24933d22fd0527e314935e1feebbd6bac9774c",
+      "id": "current-product-config",
+      "lines": [
+        108,
+        149
+      ]
+    }
+  ],
+  "artifacts": [
+    {
+      "path": "/workspace/milkup-mermaid-engine-evidence/research/offline/build.mjs",
+      "bytes": 436,
+      "sha256": "69c0d577469567e7d4ab218e0598fc2ea71fc2603cfd8b5b1b3a8e6360391469"
+    },
+    {
+      "path": "/workspace/milkup-mermaid-engine-evidence/research/offline/bundle-metafile.json",
+      "bytes": 1425875,
+      "sha256": "952d69a9780c2d34edd0fa2144692d12419db4230d32504b7ab831e43d1bde8d"
+    },
+    {
+      "path": "/workspace/milkup-mermaid-engine-evidence/research/offline/dist/mermaid-full-12.2.0.mjs",
+      "bytes": 5254581,
+      "sha256": "043c33385b8b41bb628872f4e419c7f20886403152b045736382db36072d8c0c"
+    },
+    {
+      "path": "/workspace/milkup-mermaid-engine-evidence/research/samples.json",
+      "bytes": 22964,
+      "sha256": "fef63220c07200b92054006ef60645b09db76f58da21b065abc98bfb4bd0dc87"
+    },
+    {
+      "path": "/workspace/milkup-mermaid-engine-evidence/research/svg-converter-prototype/native-runner/revision-product-converter05/entry.mjs",
+      "bytes": 12013,
+      "sha256": "201ab389ac3eb657328367a847a0f539881faa5a83722a5fbeebaddca9241ab9"
+    },
+    {
+      "path": "/workspace/milkup-mermaid-engine-evidence/research/svg-converter-prototype/native-runner/revision-product-converter05/run-product-converter05.sh",
+      "bytes": 3534,
+      "sha256": "498dac06e376656d7f70c7788cefa3e9de61fbdb06404c84bd7f0d96506c3565"
+    },
+    {
+      "path": "/workspace/milkup-mermaid-engine-evidence/research/svg-converter-prototype/native-runner/supervise-product-converter05.py",
+      "bytes": 9357,
+      "sha256": "015032537f49870c4462c719f7cc68a2aca1a6f723ea0dd5dfba630a0d328e5b"
+    },
+    {
+      "path": "/workspace/milkup-mermaid-engine-evidence/research/svg-converter-prototype/native-runner/helper/src/main.rs",
+      "bytes": 9951,
+      "sha256": "aea6da71c7e48d5b8030d47e6f272f71315d3fff6e79dfb250d6a7feda6db4c7"
+    },
+    {
+      "path": "/workspace/milkup/plugins/diagrams/src/svg-converter.ts",
+      "bytes": 61388,
+      "sha256": "581897015ab7c91d06cdb3ebed9b83c1b659c3104deb48b96fe6d277090af924"
+    }
+  ],
+  "offlineAudit": {
+    "uniqueCoreDiagramImportTargets": 36,
+    "missingFromMetafile": [],
+    "outputImports": {
+      "dist/mermaid-full-12.2.0.mjs.LEGAL.txt": [],
+      "dist/mermaid-full-12.2.0.mjs": []
+    },
+    "layoutChunks": [
+      "node_modules/mermaid/dist/chunks/mermaid.core/elk-QONTBCTQ.mjs",
+      "node_modules/mermaid/dist/chunks/mermaid.core/dagre-NK4GIZVX.mjs",
+      "node_modules/mermaid/dist/chunks/mermaid.core/swimlanes-B3ENRKFQ.mjs",
+      "node_modules/mermaid/dist/chunks/mermaid.core/cose-bilkent-JH36ORCC.mjs"
+    ]
+  },
+  "officialUrls": [
+    "https://mermaid.js.org/config/setup/mermaid/interfaces/Mermaid.html",
+    "https://github.com/mermaid-js/mermaid/blob/mermaid%4012.2.0/packages/mermaid/src/mermaid.ts",
+    "https://github.com/mermaid-js/mermaid/blob/mermaid%4012.2.0/packages/mermaid/src/diagram-api/loadDiagram.ts",
+    "https://github.com/mermaid-js/mermaid/blob/mermaid%4012.2.0/packages/mermaid/src/diagram-api/diagramAPI.ts"
+  ],
+  "sample": {
+    "id": "classDiagram-000-first-official-example",
+    "family": "classDiagram",
+    "source": "---\ntitle: Animal example\n---\nclassDiagram\n    note \"From Duck till Zebra\"\n    Animal <|-- Duck\n    note for Duck \"can fly<br>can swim<br>can dive<br>can help in debugging\"\n    Animal <|-- Fish\n    Animal <|-- Zebra\n    Animal : +int age\n    Animal : +String gender\n    Animal: +isMammal()\n    Animal: +mate()\n    class Duck{\n        +String beakColor\n        +swim()\n        +quack()\n    }\n    class Fish{\n        -int sizeInFeet\n        -canEat()\n    }\n    class Zebra{\n        +bool is_wild\n        +run()\n    }\n",
+    "sourceSha256": "01f53b9e79db0fe31e23e5b0bd74fde68bf38de3255c838d9effb67403ffb77b",
+    "officialSource": "https://github.com/mermaid-js/mermaid/blob/mermaid%4012.2.0/packages/mermaid/src/docs/syntax/classDiagram.md",
+    "line": 11,
+    "unmodifiedOfficialBlock": true
+  },
+  "plan": {
+    "order": [
+      "01-A",
+      "02-B",
+      "03-B",
+      "04-A"
+    ],
+    "freshInstances": 4,
+    "requestsPerInstance": 2,
+    "preparationSeconds": 10,
+    "requestSeconds": 2,
+    "maxResultBytes": 262144,
+    "armA": "Common strict initialization and font preparation only.",
+    "armB": "Same common initialization plus await registerExternalDiagrams([], {lazyLoad:false}) before ready.",
+    "runnerState": "New adapter/entry not implemented or built. Exact planned invocation contract in commands.plan.txt. Existing research helper cannot select A/B without this explicitly documented adaptation.",
+    "limitations": [
+      "Process-cold is not OS cache-cold.",
+      "Four instances are a small controlled screen, not statistical proof.",
+      "Historic timeout payloads remain unknown.",
+      "Older frozen probe config differs from current product; copy and hash current strict product config/converter into both arms rather than claiming legacy probe is production-equivalent."
+    ]
+  }
+}

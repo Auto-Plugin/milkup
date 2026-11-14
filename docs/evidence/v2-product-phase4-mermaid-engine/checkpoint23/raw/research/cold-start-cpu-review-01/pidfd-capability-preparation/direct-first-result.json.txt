@@ -1,0 +1,540 @@
+{
+  "schema": "milkup.owned-fork-pidfd-capability.v1",
+  "startedNs": 89618661769852,
+  "totalBudgetNs": 8000000000,
+  "observerContext": {
+    "pid": 470390,
+    "uid": 1000,
+    "gid": 1000,
+    "namespaces": {
+      "user": "user:[4026531837]",
+      "pid": "pid:[4026532200]",
+      "mnt": "mnt:[4026532201]"
+    },
+    "uidMap": {
+      "path": "/proc/self/uid_map",
+      "readStartNs": 89618661846470,
+      "status": "read",
+      "bytes": 33,
+      "raw": "         0          0 4294967295\n",
+      "readEndNs": 89618661870987
+    },
+    "gidMap": {
+      "path": "/proc/self/gid_map",
+      "readStartNs": 89618661872505,
+      "status": "read",
+      "bytes": 33,
+      "raw": "         0          0 4294967295\n",
+      "readEndNs": 89618661883274
+    }
+  },
+  "productStarted": false,
+  "globalProcScans": 0,
+  "signalsSent": 0,
+  "fixtureProof": {
+    "event": "fixture-ready",
+    "parent": {
+      "pid": 470393,
+      "birth": 8961866,
+      "parent": 470390,
+      "state": "R"
+    },
+    "child": {
+      "pid": 470394,
+      "birth": 8961866,
+      "parent": 470393,
+      "state": "R"
+    },
+    "parentContext": {
+      "pid": 470393,
+      "uid": 1000,
+      "gid": 1000,
+      "namespaces": {
+        "user": "user:[4026531837]",
+        "pid": "pid:[4026532200]",
+        "mnt": "mnt:[4026532201]"
+      },
+      "uidMap": {
+        "path": "/proc/self/uid_map",
+        "readStartNs": 89618668374390,
+        "status": "read",
+        "bytes": 33,
+        "raw": "         0          0 4294967295\n",
+        "readEndNs": 89618668391553
+      },
+      "gidMap": {
+        "path": "/proc/self/gid_map",
+        "readStartNs": 89618668392578,
+        "status": "read",
+        "bytes": 33,
+        "raw": "         0          0 4294967295\n",
+        "readEndNs": 89618668401849
+      }
+    },
+    "childContext": {
+      "pid": 470394,
+      "uid": 1000,
+      "gid": 1000,
+      "namespaces": {
+        "user": "user:[4026531837]",
+        "pid": "pid:[4026532200]",
+        "mnt": "mnt:[4026532201]"
+      },
+      "uidMap": {
+        "path": "/proc/self/uid_map",
+        "readStartNs": 89618665713365,
+        "status": "read",
+        "bytes": 33,
+        "raw": "         0          0 4294967295\n",
+        "readEndNs": 89618665731241
+      },
+      "gidMap": {
+        "path": "/proc/self/gid_map",
+        "readStartNs": 89618665732487,
+        "status": "read",
+        "bytes": 33,
+        "raw": "         0          0 4294967295\n",
+        "readEndNs": 89618665750925
+      }
+    },
+    "pidfdOpen": {
+      "status": "opened"
+    },
+    "inside": {
+      "observedNs": 89618667512196,
+      "parentExpected": {
+        "pid": 470393,
+        "birth": 8961866,
+        "parent": 470390,
+        "state": "R"
+      },
+      "parentBefore": {
+        "path": "/proc/470393/stat",
+        "readStartNs": 89618667519266,
+        "status": "read",
+        "bytes": 290,
+        "raw": "470393 (python3) R 470390 470390 470390 0 -1 4194368 448 0 0 0 0 0 0 0 20 0 1 0 8961866 37744640 1823 18446744073709551615 4329472 32290168 140724496488080 0 0 0 0 16781312 2 0 0 0 17 0 0 0 0 0 0 23068672 32290168 521150464 140724496491148 140724496491459 140724496491459 140724496494510 0\n",
+        "readEndNs": 89618667557800,
+        "identity": {
+          "pid": 470393,
+          "birth": 8961866,
+          "parent": 470390,
+          "state": "R"
+        }
+      },
+      "fdinfoRecords": [
+        {
+          "fd": 0,
+          "before": {
+            "path": "/proc/470393/fdinfo/0",
+            "readStartNs": 89618667808371,
+            "status": "read",
+            "bytes": 40,
+            "raw": "pos:\t0\nflags:\t0100000\nmnt_id:\t54\nino:\t9\n",
+            "readEndNs": 89618667825219
+          },
+          "status": "not-pidfd"
+        },
+        {
+          "fd": 1,
+          "before": {
+            "path": "/proc/470393/fdinfo/1",
+            "readStartNs": 89618667863544,
+            "status": "read",
+            "bytes": 41,
+            "raw": "pos:\t0\nflags:\t01\nmnt_id:\t13\nino:\t2228001\n",
+            "readEndNs": 89618667875924
+          },
+          "status": "not-pidfd"
+        },
+        {
+          "fd": 2,
+          "before": {
+            "path": "/proc/470393/fdinfo/2",
+            "readStartNs": 89618667882404,
+            "status": "read",
+            "bytes": 41,
+            "raw": "pos:\t0\nflags:\t01\nmnt_id:\t13\nino:\t2228002\n",
+            "readEndNs": 89618667887866
+          },
+          "status": "not-pidfd"
+        },
+        {
+          "fd": 3,
+          "before": {
+            "path": "/proc/470393/fdinfo/3",
+            "readStartNs": 89618667891256,
+            "status": "read",
+            "bytes": 46,
+            "raw": "pos:\t0\nflags:\t02100001\nmnt_id:\t52\nino:\t706972\n",
+            "readEndNs": 89618667897072
+          },
+          "status": "not-pidfd"
+        },
+        {
+          "fd": 4,
+          "before": {
+            "path": "/proc/470393/fdinfo/4",
+            "readStartNs": 89618667899571,
+            "status": "read",
+            "bytes": 47,
+            "raw": "pos:\t0\nflags:\t02000000\nmnt_id:\t13\nino:\t2229467\n",
+            "readEndNs": 89618667904706
+          },
+          "status": "not-pidfd"
+        },
+        {
+          "fd": 5,
+          "before": {
+            "path": "/proc/470393/fdinfo/5",
+            "readStartNs": 89618667907410,
+            "status": "read",
+            "bytes": 71,
+            "raw": "pos:\t0\nflags:\t02000002\nmnt_id:\t4\nino:\t474998\nPid:\t470394\nNSpid:\t470394\n",
+            "readEndNs": 89618667917506
+          },
+          "status": "verified-direct-child",
+          "pidFields": {
+            "pid": 470394,
+            "nspid": [
+              470394
+            ]
+          },
+          "targetBefore": {
+            "path": "/proc/470394/stat",
+            "readStartNs": 89618667954989,
+            "status": "read",
+            "bytes": 290,
+            "raw": "470394 (python3) S 470393 470390 470390 0 -1 4194368 407 0 0 0 0 0 0 0 20 0 1 0 8961866 37744640 1823 18446744073709551615 4329472 32290168 140724496488080 0 0 0 0 16781312 2 1 0 0 17 4 0 0 0 0 0 23068672 32290168 521150464 140724496491148 140724496491459 140724496491459 140724496494510 0\n",
+            "readEndNs": 89618668046793,
+            "identity": {
+              "pid": 470394,
+              "birth": 8961866,
+              "parent": 470393,
+              "state": "S"
+            }
+          },
+          "after": {
+            "path": "/proc/470393/fdinfo/5",
+            "readStartNs": 89618668058637,
+            "status": "read",
+            "bytes": 71,
+            "raw": "pos:\t0\nflags:\t02000002\nmnt_id:\t4\nino:\t474998\nPid:\t470394\nNSpid:\t470394\n",
+            "readEndNs": 89618668073828
+          },
+          "targetAfter": {
+            "path": "/proc/470394/stat",
+            "readStartNs": 89618668075442,
+            "status": "read",
+            "bytes": 290,
+            "raw": "470394 (python3) S 470393 470390 470390 0 -1 4194368 407 0 0 0 0 0 0 0 20 0 1 0 8961866 37744640 1823 18446744073709551615 4329472 32290168 140724496488080 0 0 0 0 16781312 2 1 0 0 17 4 0 0 0 0 0 23068672 32290168 521150464 140724496491148 140724496491459 140724496491459 140724496494510 0\n",
+            "readEndNs": 89618668085504,
+            "identity": {
+              "pid": 470394,
+              "birth": 8961866,
+              "parent": 470393,
+              "state": "S"
+            }
+          }
+        },
+        {
+          "fd": 6,
+          "before": {
+            "path": "/proc/470393/fdinfo/6",
+            "readStartNs": 89618668093343,
+            "status": "read",
+            "bytes": 47,
+            "raw": "pos:\t0\nflags:\t02000001\nmnt_id:\t13\nino:\t2226964\n",
+            "readEndNs": 89618668099203
+          },
+          "status": "not-pidfd"
+        },
+        {
+          "fd": 7,
+          "before": {
+            "path": "/proc/470393/fdinfo/7",
+            "readStartNs": 89618668103114,
+            "status": "read",
+            "bytes": 47,
+            "raw": "pos:\t0\nflags:\t02000001\nmnt_id:\t13\nino:\t2229468\n",
+            "readEndNs": 89618668108245
+          },
+          "status": "not-pidfd"
+        },
+        {
+          "fd": 8,
+          "before": {
+            "path": "/proc/470393/fdinfo/8",
+            "readStartNs": 89618668110171,
+            "status": "error",
+            "errorClass": "FileNotFoundError",
+            "errno": 2,
+            "errnoName": "ENOENT",
+            "readEndNs": 89618668216103
+          },
+          "status": "fdinfo-unavailable"
+        }
+      ],
+      "acceptedTargets": [
+        {
+          "pid": 470394,
+          "birth": 8961866,
+          "parent": 470393,
+          "state": "S"
+        }
+      ],
+      "oracleChild": {
+        "pid": 470394,
+        "birth": 8961866,
+        "parent": 470393,
+        "state": "R"
+      },
+      "scope": "known owner fdinfo only; direct child, not full descendant tree",
+      "fdEnumeration": {
+        "status": "read",
+        "entries": 9
+      },
+      "parentAfter": {
+        "path": "/proc/470393/stat",
+        "readStartNs": 89618668218440,
+        "status": "read",
+        "bytes": 290,
+        "raw": "470393 (python3) R 470390 470390 470390 0 -1 4194368 526 0 0 0 0 0 0 0 20 0 1 0 8961866 37744640 1887 18446744073709551615 4329472 32290168 140724496488080 0 0 0 0 16781312 2 0 0 0 17 0 0 0 0 0 0 23068672 32290168 521150464 140724496491148 140724496491459 140724496491459 140724496494510 0\n",
+        "readEndNs": 89618668231113,
+        "identity": {
+          "pid": 470393,
+          "birth": 8961866,
+          "parent": 470390,
+          "state": "R"
+        }
+      },
+      "parentStable": true,
+      "status": "recorded",
+      "oracleMatched": true,
+      "finishedNs": 89618668273618
+    }
+  },
+  "outside": {
+    "observedNs": 89618669421402,
+    "parentExpected": {
+      "pid": 470393,
+      "birth": 8961866,
+      "parent": 470390,
+      "state": "R"
+    },
+    "parentBefore": {
+      "path": "/proc/470393/stat",
+      "readStartNs": 89618669427834,
+      "status": "read",
+      "bytes": 290,
+      "raw": "470393 (python3) S 470390 470390 470390 0 -1 4194368 599 0 0 0 0 0 0 0 20 0 1 0 8961866 37744640 1919 18446744073709551615 4329472 32290168 140724496488080 0 0 0 0 16781312 2 1 0 0 17 0 0 0 0 0 0 23068672 32290168 521150464 140724496491148 140724496491459 140724496491459 140724496494510 0\n",
+      "readEndNs": 89618669483307,
+      "identity": {
+        "pid": 470393,
+        "birth": 8961866,
+        "parent": 470390,
+        "state": "S"
+      }
+    },
+    "fdinfoRecords": [
+      {
+        "fd": 0,
+        "before": {
+          "path": "/proc/470393/fdinfo/0",
+          "readStartNs": 89618669691436,
+          "status": "read",
+          "bytes": 40,
+          "raw": "pos:\t0\nflags:\t0100000\nmnt_id:\t54\nino:\t9\n",
+          "readEndNs": 89618669707025
+        },
+        "status": "not-pidfd"
+      },
+      {
+        "fd": 1,
+        "before": {
+          "path": "/proc/470393/fdinfo/1",
+          "readStartNs": 89618669792985,
+          "status": "read",
+          "bytes": 41,
+          "raw": "pos:\t0\nflags:\t01\nmnt_id:\t13\nino:\t2228001\n",
+          "readEndNs": 89618669805414
+        },
+        "status": "not-pidfd"
+      },
+      {
+        "fd": 2,
+        "before": {
+          "path": "/proc/470393/fdinfo/2",
+          "readStartNs": 89618669811967,
+          "status": "read",
+          "bytes": 41,
+          "raw": "pos:\t0\nflags:\t01\nmnt_id:\t13\nino:\t2228002\n",
+          "readEndNs": 89618669818240
+        },
+        "status": "not-pidfd"
+      },
+      {
+        "fd": 3,
+        "before": {
+          "path": "/proc/470393/fdinfo/3",
+          "readStartNs": 89618669821677,
+          "status": "read",
+          "bytes": 46,
+          "raw": "pos:\t0\nflags:\t02100001\nmnt_id:\t52\nino:\t706972\n",
+          "readEndNs": 89618669830826
+        },
+        "status": "not-pidfd"
+      },
+      {
+        "fd": 4,
+        "before": {
+          "path": "/proc/470393/fdinfo/4",
+          "readStartNs": 89618669834507,
+          "status": "read",
+          "bytes": 47,
+          "raw": "pos:\t0\nflags:\t02000000\nmnt_id:\t13\nino:\t2229467\n",
+          "readEndNs": 89618669842648
+        },
+        "status": "not-pidfd"
+      },
+      {
+        "fd": 5,
+        "before": {
+          "path": "/proc/470393/fdinfo/5",
+          "readStartNs": 89618669845122,
+          "status": "read",
+          "bytes": 71,
+          "raw": "pos:\t0\nflags:\t02000002\nmnt_id:\t4\nino:\t474998\nPid:\t470394\nNSpid:\t470394\n",
+          "readEndNs": 89618669851039
+        },
+        "status": "verified-direct-child",
+        "pidFields": {
+          "pid": 470394,
+          "nspid": [
+            470394
+          ]
+        },
+        "targetBefore": {
+          "path": "/proc/470394/stat",
+          "readStartNs": 89618669865498,
+          "status": "read",
+          "bytes": 290,
+          "raw": "470394 (python3) S 470393 470390 470390 0 -1 4194368 407 0 0 0 0 0 0 0 20 0 1 0 8961866 37744640 1823 18446744073709551615 4329472 32290168 140724496488080 0 0 0 0 16781312 2 1 0 0 17 4 0 0 0 0 0 23068672 32290168 521150464 140724496491148 140724496491459 140724496491459 140724496494510 0\n",
+          "readEndNs": 89618669878614,
+          "identity": {
+            "pid": 470394,
+            "birth": 8961866,
+            "parent": 470393,
+            "state": "S"
+          }
+        },
+        "after": {
+          "path": "/proc/470393/fdinfo/5",
+          "readStartNs": 89618669887832,
+          "status": "read",
+          "bytes": 71,
+          "raw": "pos:\t0\nflags:\t02000002\nmnt_id:\t4\nino:\t474998\nPid:\t470394\nNSpid:\t470394\n",
+          "readEndNs": 89618669893959
+        },
+        "targetAfter": {
+          "path": "/proc/470394/stat",
+          "readStartNs": 89618669894830,
+          "status": "read",
+          "bytes": 290,
+          "raw": "470394 (python3) S 470393 470390 470390 0 -1 4194368 407 0 0 0 0 0 0 0 20 0 1 0 8961866 37744640 1823 18446744073709551615 4329472 32290168 140724496488080 0 0 0 0 16781312 2 1 0 0 17 4 0 0 0 0 0 23068672 32290168 521150464 140724496491148 140724496491459 140724496491459 140724496494510 0\n",
+          "readEndNs": 89618669900790,
+          "identity": {
+            "pid": 470394,
+            "birth": 8961866,
+            "parent": 470393,
+            "state": "S"
+          }
+        }
+      },
+      {
+        "fd": 6,
+        "before": {
+          "path": "/proc/470393/fdinfo/6",
+          "readStartNs": 89618669907886,
+          "status": "read",
+          "bytes": 47,
+          "raw": "pos:\t0\nflags:\t02000001\nmnt_id:\t13\nino:\t2226964\n",
+          "readEndNs": 89618669913472
+        },
+        "status": "not-pidfd"
+      },
+      {
+        "fd": 7,
+        "before": {
+          "path": "/proc/470393/fdinfo/7",
+          "readStartNs": 89618669916731,
+          "status": "read",
+          "bytes": 47,
+          "raw": "pos:\t0\nflags:\t02000001\nmnt_id:\t13\nino:\t2229468\n",
+          "readEndNs": 89618669922028
+        },
+        "status": "not-pidfd"
+      }
+    ],
+    "acceptedTargets": [
+      {
+        "pid": 470394,
+        "birth": 8961866,
+        "parent": 470393,
+        "state": "S"
+      }
+    ],
+    "oracleChild": {
+      "pid": 470394,
+      "birth": 8961866,
+      "parent": 470393,
+      "state": "R"
+    },
+    "scope": "known owner fdinfo only; direct child, not full descendant tree",
+    "fdEnumeration": {
+      "status": "read",
+      "entries": 8
+    },
+    "parentAfter": {
+      "path": "/proc/470393/stat",
+      "readStartNs": 89618669924470,
+      "status": "read",
+      "bytes": 290,
+      "raw": "470393 (python3) S 470390 470390 470390 0 -1 4194368 599 0 0 0 0 0 0 0 20 0 1 0 8961866 37744640 1919 18446744073709551615 4329472 32290168 140724496488080 0 0 0 0 16781312 2 1 0 0 17 0 0 0 0 0 0 23068672 32290168 521150464 140724496491148 140724496491459 140724496491459 140724496494510 0\n",
+      "readEndNs": 89618669930281,
+      "identity": {
+        "pid": 470393,
+        "birth": 8961866,
+        "parent": 470390,
+        "state": "S"
+      }
+    },
+    "parentStable": true,
+    "status": "recorded",
+    "oracleMatched": true,
+    "finishedNs": 89618670018501
+  },
+  "fixtureFinal": {
+    "event": "fixture-finished",
+    "releaseReason": "pipe-eof",
+    "childReap": {
+      "pid": 470394,
+      "reaped": true,
+      "waitStatus": 0,
+      "exitCode": 0,
+      "atNs": 89618680248654
+    }
+  },
+  "parentReap": {
+    "pid": 470393,
+    "reaped": true,
+    "waitStatus": 0,
+    "exitCode": 0,
+    "atNs": 89618690582795
+  },
+  "finishedNs": 89618690626559,
+  "elapsedNs": 28856707,
+  "complete": true,
+  "directPidfdCapabilityObserved": true,
+  "fullDescendantTreeCoverage": false
+}

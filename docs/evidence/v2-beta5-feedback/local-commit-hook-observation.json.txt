@@ -1,0 +1,10 @@
+{
+  "kind": "operator observation of tool results, not a raw process transcript",
+  "oldHead": "a5930de52773fd5a55ff11bdc6d40a0113d2d0f9",
+  "hook": "/workspace/milkup/.git/hooks/pre-commit",
+  "command": "npx lint-staged",
+  "finding": "Shared legacy hook invokes a tool not declared/configured in this v2 checkout. Commit remained blocked and HEAD unchanged. Only owned hook/npm processes were terminated.",
+  "failure": "error: /workspace/milkup/.git/hooks/pre-commit died of signal 15",
+  "resolution": "Per-command SKIP_SIMPLE_GIT_HOOKS=1 using the hook's documented branch; no hook file or permanent Git configuration changed. Applicable v2 Prettier, diff and type/test checks passed.",
+  "commit": "e22e79e7d251c4980a8b7349f9c33db2a5c1172e"
+}

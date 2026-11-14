@@ -1,0 +1,118 @@
+--- diagnostic03/observer.js
++++ diagnostic04/observer.js
+@@ -34,21 +34,53 @@
+       coreDescriptors,
+     };
+   }
+-  const handlers = Object.getOwnPropertyNames(entries)
+-    .map((key) => Object.getOwnPropertyDescriptor(entries, key)?.value)
+-    .map((entry) => ({
+-      id: entry.handlerId,
+-      original: callbacks.get(entry.handlerId),
+-    }));
+-  if (
+-    handlers.length !== 1 ||
+-    handlers.some((entry) => typeof entry.original !== "function")
+-  ) {
++  const handlers = [];
++  const retiredEntries = [];
++  const allEntries = [];
++  const liveIds = new Set();
++  let invalidEntry = false;
++  for (const key of Object.getOwnPropertyNames(entries)) {
++    const entryDescriptor = Object.getOwnPropertyDescriptor(entries, key);
++    const entry = entryDescriptor?.value;
++    const idDescriptor =
++      entry && typeof entry === "object" && !Array.isArray(entry)
++        ? Object.getOwnPropertyDescriptor(entry, "handlerId")
++        : undefined;
++    const id = idDescriptor?.value;
++    const validId = Number.isInteger(id) && id >= 0 && id <= 0xffffffff;
++    const present = validId && callbacks.has(id);
++    const original = present ? callbacks.get(id) : undefined;
++    allEntries.push({
++      key,
++      id: validId ? id : null,
++      validId,
++      callbackPresent: present,
++      callbackType: typeof original,
++      descriptor: describe(entryDescriptor),
++    });
++    if (!validId) {
++      invalidEntry = true;
++      continue;
++    }
++    if (!present) {
++      retiredEntries.push({ key, id });
++      continue;
++    }
++    if (typeof original !== "function" || liveIds.has(id)) {
++      invalidEntry = true;
++      continue;
++    }
++    liveIds.add(id);
++    handlers.push({ id, original });
++  }
++  if (invalidEntry || handlers.length !== 1) {
+     return {
+       installed: false,
+-      reason: "Expected one existing function callback; no mutation performed",
++      reason:
++        "Expected exactly one live function callback and valid unique entries; no mutation performed",
+       handlerCount: handlers.length,
+-      entryTypes: handlers.map((x) => typeof x.original),
++      retiredEntries,
++      allEntries,
+       coreDescriptors,
+     };
+   }
+@@ -73,6 +105,8 @@
+     maxBytes: 2097152,
+     coreDescriptors,
+     fetchBefore: describe(descriptor),
++    retiredEntries,
++    allEntries,
+     callbackEntryTypes: handlers.map((x) => ({
+       id: x.id,
+       type: typeof x.original,
+@@ -277,5 +311,7 @@
+     fetchBefore: state.fetchBefore,
+     coreDescriptors,
+     callbackEntryTypes: state.callbackEntryTypes,
++    retiredEntries: state.retiredEntries,
++    allEntries: state.allEntries,
+   };
+ }
+
+--- diagnostic03/diagnostic.mjs
++++ diagnostic04/diagnostic.mjs
+@@ -833,7 +833,7 @@
+     })
+   }
+   const observerSource = await readFile(
+-    '/workspace/milkup-mermaid-engine-evidence/research/native-ui04-transport-diagnostic-03/observer.js',
++    '/workspace/milkup-mermaid-engine-evidence/research/native-ui04-transport-diagnostic-04/observer.js',
+     'utf8',
+   )
+   const observerInstalledAt = Date.now()
+
+--- diagnostic03/env.sh
++++ diagnostic04/env.sh
+@@ -1,3 +1,3 @@
+-source /workspace/milkup-mermaid-engine-evidence/research/product-ui-preparation/run-env.sh mermaid-ui-04-diagnostic-03 /workspace/milkup-mermaid-engine-evidence/linux-production-04/install/usr/bin/milkup-desktop 323213867fda26d1de66f67c5a428dd26d0a78f0334d40f8d15f1e94b161a172 /workspace/milkup-mermaid-engine-evidence/research/generic-build-gate-preparation/final-build01/standalone/plugin/dist/milkup.diagrams-1.1.0.milkup-plugin 27db9bdefb9b241b03da2f3536f7e50d334117f928f963cfe290543f650b6239
+-export MILKUP_NATIVE_EVIDENCE_DIR=/workspace/milkup-mermaid-engine-evidence/research/native-ui04-transport-diagnostic-03/run
+-export MILKUP_NATIVE_APP_LOG=/workspace/milkup-mermaid-engine-evidence/research/native-ui04-transport-diagnostic-03/native-driver-first.log
++source /workspace/milkup-mermaid-engine-evidence/research/product-ui-preparation/run-env.sh mermaid-ui-04-diagnostic-04 /workspace/milkup-mermaid-engine-evidence/linux-production-04/install/usr/bin/milkup-desktop 323213867fda26d1de66f67c5a428dd26d0a78f0334d40f8d15f1e94b161a172 /workspace/milkup-mermaid-engine-evidence/research/generic-build-gate-preparation/final-build01/standalone/plugin/dist/milkup.diagrams-1.1.0.milkup-plugin 27db9bdefb9b241b03da2f3536f7e50d334117f928f963cfe290543f650b6239
++export MILKUP_NATIVE_EVIDENCE_DIR=/workspace/milkup-mermaid-engine-evidence/research/native-ui04-transport-diagnostic-04/run
++export MILKUP_NATIVE_APP_LOG=/workspace/milkup-mermaid-engine-evidence/research/native-ui04-transport-diagnostic-04/native-driver-first.log
+
+--- diagnostic03/driver.sh
++++ diagnostic04/driver.sh
+@@ -1,6 +1,6 @@
+ #!/usr/bin/env bash
+ set -euo pipefail
+-source /workspace/milkup-mermaid-engine-evidence/research/native-ui04-transport-diagnostic-03/env.sh
++source /workspace/milkup-mermaid-engine-evidence/research/native-ui04-transport-diagnostic-04/env.sh
+ # A fresh profile, log and evidence directory are mandatory for each attempt.
+ [[ ! -e "$XDG_RUNTIME_DIR" && ! -e "$MILKUP_NATIVE_PROFILE_ROOT" && ! -e "$MILKUP_NATIVE_APP_LOG" && ! -e "$MILKUP_NATIVE_EVIDENCE_DIR" ]]
+ mkdir -p "$XDG_CONFIG_HOME" "$XDG_CACHE_HOME" "$XDG_DATA_HOME" "$(dirname "$MILKUP_NATIVE_APP_LOG")" "$(dirname "$MILKUP_NATIVE_EVIDENCE_DIR")"

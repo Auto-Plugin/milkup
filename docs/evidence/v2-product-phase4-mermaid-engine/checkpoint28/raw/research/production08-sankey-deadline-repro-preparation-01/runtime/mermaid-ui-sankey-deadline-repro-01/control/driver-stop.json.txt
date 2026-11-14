@@ -1,0 +1,50 @@
+{
+  "startedUtc": "2026-10-17T06:23:56.713150+00:00",
+  "owner": {
+    "pid": 508319,
+    "birth": "10577773",
+    "bootId": "dbd08833-6204-4080-9084-7b5e12bb7f3d",
+    "group": 508319,
+    "ancestorPid": 508314,
+    "ancestorRole": "subreaper wait-only, no signals or directory deletion",
+    "startedUtc": "2026-10-17T06:22:45.296751+00:00",
+    "command": [
+      "bash",
+      "/workspace/milkup-mermaid-engine-evidence/research/production08-sankey-deadline-repro-preparation-01/RUN.sh",
+      "driver"
+    ]
+  },
+  "statusBefore": {
+    "response": {
+      "value": {
+        "ready": true,
+        "message": "No sessions"
+      }
+    }
+  },
+  "identityBefore": {
+    "pid": 508319,
+    "birth": "10577773",
+    "group": 508319,
+    "state": "S"
+  },
+  "cleanupMethod": "existing production08 owned process group after exact PID/birth/PGID and no active App session; no descendant discovery",
+  "signal": "SIGTERM",
+  "signalTarget": {
+    "group": 508319,
+    "verifiedLeader": {
+      "pid": 508319,
+      "birth": "10577773",
+      "group": 508319,
+      "state": "S"
+    }
+  },
+  "signalRequestedUtc": "2026-10-17T06:23:56.731630+00:00",
+  "signalResult": "sent",
+  "result": "signal sent; inspect exact post-state and ancestor reap record",
+  "endedUtc": "2026-10-17T06:23:56.738225+00:00",
+  "identityAfter": null,
+  "statusAfter": {
+    "unavailable": "URLError(ConnectionRefusedError(111, 'Connection refused'))"
+  }
+}

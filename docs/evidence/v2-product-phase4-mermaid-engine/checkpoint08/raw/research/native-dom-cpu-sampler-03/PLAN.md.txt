@@ -1,0 +1,29 @@
+# Sampler03: bounded proc stat discovery
+
+Sampler02 is immutable. Single-cold02 returned incomplete with zero CPU samples: three exact App birth checks passed, 36 thread children reads returned ENOENT, raw candidates were zero. Its actual summary is copied byte-for-byte here. A separate self-only capability check confirmed that an existing own task directory has no children entry. This identifies the observed discovery-interface failure in 02; it neither reconstructs 01 nor establishes a product deadline cause or specific kernel configuration.
+
+## Exact change and unchanged trust boundary
+
+Replace task/children traversal with one stat-only table per binding pass and at most one table per later discovery call. Tables are shared across the whole owned-tree walk, never rescanned for each parent. No name-based global process adoption. The global table retains only numeric PID, PPID and start time in memory, up to 4096 rows. Unrelated names, CPU counters, command lines and environments are not recorded; unrelated cmdline/environ are never read.
+
+Before and after building the table, verify the exact root owner PID/birth (App for binding, already-bound guardian for subsequent discovery). Before and after each children filter, reverify that owner. Only table rows with its PPID become candidate children, capped at 128; each gets a fresh stat identity check against the table birth, current PPID and birth>=owner. Guardian binding still requires exact two-item argv, exactly one matching instance environment key, last same-birth check, and exactly one candidate. Later owned-tree acceptance still uses the original role read plus final same-birth check. No broader acceptance fallback is added.
+
+Discovery tables are non-atomic snapshots, not proof that every transient child was observed. Vanished stat files are counted and omitted; other read/parse errors fail closed. Owner change discards the table. PID reuse, reparenting and previously unseen processes between scans remain observation limits, not reconstructed CPU intervals.
+
+## Fixed caps, scheduling and overhead
+
+Predefined caps: 8192 directory entries (one overflow sentinel), 4096 numeric PID stat reads (reject before reading a 4097th), 4096 bytes per stat, 50,000,000ns table phase, 64 retained scan records, 128 direct candidates and original 128 known identities. Overflows/errors discard the partial table and stop incomplete; no retry, partial-table acceptance or automatic limit increase.
+
+Time is checked before/after reads and enumeration steps. Python cannot preempt an individual kernel read; observed wall time may exceed 50ms before rejection, and its actual duration is recorded. Before any table scan, if fewer than 50ms remain before the original anchor+10s, record skipped-insufficient-window and perform no scan. A later discovery returns with known identities unchanged; unchanged run/sample scheduling continues to the original endpoint. An initial binding with that little time returns explicit insufficient-window-for-binding-scan, not reanchoring. Exactly 50ms remaining admits a scan. This avoids mislabeling normal window exhaustion as a scan cost failure.
+
+Original first-retained exact-App render_1 anchor/uncertainty, 10s window, 50ms sample period, 250ms discovery interval, 201 periodic cap, terminal CPU rules and shared cgroup treatment remain. run/sample/await_dispatch and other control methods are AST-identical to sampler02. Global scan overhead is retained in per-scan duration and self CPU, not subtracted. One predeclared read-only capability measurement scanned 1776 numeric PIDs among 1827 entries in 33.655747ms. This is substantial measurement overhead and not a universal cost bound; actual cold load may trigger the 50ms limit, requiring that single attempt to remain incomplete. No retry or limit increase is authorized by this preparation.
+
+Binding and immediate initial discovery each build their own table because they are separate phases; their two consecutive costs may delay the first sample. The firstSampleLateGap and selected-dispatch uncertainty remain explicit. A 250ms discovery can miss short-lived descendants; CPU between snapshots, first appearance and termination is not recovered. High/low observed CPU alone does not identify a product cause.
+
+## Output and validation evidence
+
+The original 2MiB combined output limit and 128KiB summary reserve are unchanged. Global table rows are not serialized. At most 64 scan records report counts, owner identity and duration/error enums; binding retains only its bounded owned candidates. A synthetic 64-scan shape fits at 2,007,932 combined bytes with a full sample allowance. A stress shape with 64 scans + 128 candidates + 128 known identities + 32 errors exceeds the summary reserve and correctly throws before either output write. This means extreme diagnostics can leave no summary; it is not claimed as complete evidence, and no budget was raised.
+
+First finite test execution: 17 cases PASS against first-tested source 960aaea7d7d375cfadff4dc685b5823fbe97c327ec77120ac81bbdd4d1c0a074. Both its source and test script/result are preserved. Review revision: 19 cases PASS, adding tail-window admission and maximum-summary fail-closed. The old mocked ENOENT tool result is explicitly RED while new bounded table binds the exact expected guardian, with no relaxed acceptance. Other cases cover one shared table, count/time caps, PID reuse, owner/child reparent/birth changes, argv/environment rejection, ambiguity, global EACCES, vanished entries and output privacy.
+
+Tests run only finite in-memory fixtures: no live proc reads, sampler main/run, child process, UI or signal. Separately authorized one-time proc capability measurement is the only live process-table read in this preparation. No production source, old sampler or old run was changed. New native observation remains subject to Root GO after this single review.

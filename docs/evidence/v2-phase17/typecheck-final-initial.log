@@ -1,0 +1,12 @@
+$ tsc -p tsconfig.json --noEmit
+src/recovery.test.ts(27,5): error TS2322: Type 'Mock<(includeText: boolean) => RecoveryDocument | { text: undefined; documentId: string; originalPath?: string; version: number; nativeVersion?: number; dirty: boolean; }>' is not assignable to type '(includeText: boolean) => RecoveryDocument'.
+  Type 'RecoveryDocument | { text: undefined; documentId: string; originalPath?: string; version: number; nativeVersion?: number; dirty: boolean; }' is not assignable to type 'RecoveryDocument' with 'exactOptionalPropertyTypes: true'. Consider adding 'undefined' to the types of the target's properties.
+    Type '{ text: undefined; documentId: string; originalPath?: string; version: number; nativeVersion?: number; dirty: boolean; }' is not assignable to type 'RecoveryDocument' with 'exactOptionalPropertyTypes: true'. Consider adding 'undefined' to the types of the target's properties.
+      Types of property 'text' are incompatible.
+        Type 'undefined' is not assignable to type 'string'.
+src/recovery.test.ts(117,9): error TS2379: Argument of type '{ nativeVersion: number; text: undefined; }' is not assignable to parameter of type 'Partial<RecoveryDocument>' with 'exactOptionalPropertyTypes: true'. Consider adding 'undefined' to the types of the target's properties.
+  Types of property 'text' are incompatible.
+    Type 'undefined' is not assignable to type 'string'.
+/workspace/milkup/apps/desktop:
+[ERR_PNPM_RECURSIVE_RUN_FIRST_FAIL] @milkup/desktop@0.1.0 typecheck: `tsc -p tsconfig.json --noEmit`
+Exit status 2

@@ -1,0 +1,270 @@
+
+ RUN  v3.2.6 /workspace/milkup
+
+ ❯ apps/desktop/src/desktop-plugin-manager.test.ts (26 tests | 5 failed) 151ms
+   × DesktopPluginManager > rejects a temporary-store plugin on SDK 0.1.0 before executing its module 19ms
+     → promise resolved "{ manifest: { …(7) }, …(12) }" instead of rejecting
+   × DesktopPluginManager > rejects incompatible upgrade {"pluginSdk":"^9.0.0"} before writing or changing the enabled installation 9ms
+     → promise resolved "{ manifest: { …(8) }, …(12) }" instead of rejecting
+   × DesktopPluginManager > rejects incompatible upgrade {"milkup":"^9.0.0"} before writing or changing the enabled installation 4ms
+     → promise resolved "{ manifest: { …(8) }, …(12) }" instead of rejecting
+   × DesktopPluginManager > does not create files, directories or registry records for a new incompatible archive 2ms
+     → promise resolved "{ manifest: { …(7) }, …(12) }" instead of rejecting
+   × DesktopPluginManager > does not create files, directories or registry records for a new incompatible manifest 2ms
+     → promise resolved "{ manifest: { …(7) }, …(12) }" instead of rejecting
+   ✓ DesktopPluginManager > cleans temporary stores on disable and close, and permits a fresh activation after close fails 13ms
+   ✓ DesktopPluginManager > loads a relative entry from the plugin root and cleans runtime resources on disable 10ms
+   ✓ DesktopPluginManager > reports error Worker startup failure and releases the Worker 5ms
+   ✓ DesktopPluginManager > reports silent Worker startup failure and releases the Worker 1ms
+   ✓ DesktopPluginManager > reports transport Worker startup failure and releases the Worker 1ms
+   ✓ DesktopPluginManager > reactivates persisted enabled plugins during startup 1ms
+   ✓ DesktopPluginManager > exports a validated local development package with its entry and resources 2ms
+   ✓ DesktopPluginManager > exports installed PNG icons as base64 and preserves them when reinstalling the archive 3ms
+   ✓ DesktopPluginManager > keeps invalid manifests visible as install failures without damaging installed records 1ms
+   ✓ DesktopPluginManager > honors keymap when contexts and exposes conflicts in manager markup 2ms
+   ✓ DesktopPluginManager > runs ChatGPT-style importers and returns generated Markdown without a source file identity 2ms
+   ✓ DesktopPluginManager > requires explicit approval for file capabilities and revokes enabled resources 2ms
+   ✓ DesktopPluginManager > gates workspace scope creation on explicit approval and revokes captured brokers before unload 3ms
+   ✓ DesktopPluginManager > keeps sidecar plugins disabled until their host is explicitly approved 1ms
+   ✓ DesktopPluginManager > provides document scan capabilities to plugins with document read permission 6ms
+   ✓ DesktopPluginManager > permits explicit retry after a render timeout while keeping the old broker revoked 2ms
+   ✓ DesktopPluginManager > ignores a retired worker timeout callback after a new activation 1ms
+   ✓ DesktopPluginManager > records a host failure distinctly and permits explicit retry without reviving its old callbacks 1ms
+   ✓ DesktopPluginManager > preserves host failure provenance across restart for explicit retry 1ms
+   ✓ DesktopPluginManager > waits for timed-out activation cleanup before publishing a replacement 52ms
+   ✓ resolvePluginEntryPath > resolves package entries and rejects paths outside the package 1ms
+ ✓ apps/desktop/src/desktop-plugin-manager-dom.test.ts (10 tests) 125ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 5 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  apps/desktop/src/desktop-plugin-manager.test.ts > DesktopPluginManager > rejects a temporary-store plugin on SDK 0.1.0 before executing its module
+AssertionError: promise resolved "{ manifest: { …(7) }, …(12) }" instead of rejecting
+
+- Expected
++ Received
+
+- Error {
+-   "message": "rejected promise",
++ {
++   "approvals": {
++     "hosts": [
++       "worker",
++     ],
++     "permissions": [],
++   },
++   "dataRoot": "milkup://plugin-data/example-tools",
++   "enabled": false,
++   "errors": [
++     "Requires plugin SDK ^0.1.1",
++   ],
++   "installedAt": 1792394798393,
++   "manifest": {
++     "contributes": {
++       "commands": [
++         {
++           "action": "example.insert",
++           "id": "example.insert",
++           "permissions": [
++             "document:write",
++           ],
++           "title": "Insert example",
++         },
++       ],
++       "keymaps": [
++         {
++           "command": "example.insert",
++           "key": "Mod+Alt+T",
++           "when": "editorFocus",
++         },
++       ],
++     },
++     "engines": {
++       "pluginSdk": "^0.1.1",
++     },
++     "id": "example-tools",
++     "main": "./dist/plugin.js",
++     "name": "Example Tools",
++     "permissions": [
++       "document:write",
++     ],
++     "version": "1.0.0",
++   },
++   "manifestPath": "D:/plugins/new/plugin.json",
++   "rootPath": "D:/plugins/new",
++   "sourcePath": "D:/plugins/new/plugin.json",
++   "state": "failed",
++   "storageRoot": "milkup://plugin-storage/example-tools",
++   "trust": "development",
++   "updatedAt": 1792394798395,
+  }
+
+ ❯ apps/desktop/src/desktop-plugin-manager.test.ts:31:75
+     29|         JSON.stringify({ ...pluginManifest(), engines: { pluginSdk: '^…
+     30|     })
+     31|     await expect(manager.installManifestPath('D:/plugins/new/plugin.js…
+       |                                                                           ^
+     32|     expect(manager.state().records).toEqual([])
+     33|     expect(manager.state().installFailures).toMatchObject([
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/5]⎯
+
+ FAIL  apps/desktop/src/desktop-plugin-manager.test.ts > DesktopPluginManager > rejects incompatible upgrade {"pluginSdk":"^9.0.0"} before writing or changing the enabled installation
+ FAIL  apps/desktop/src/desktop-plugin-manager.test.ts > DesktopPluginManager > rejects incompatible upgrade {"milkup":"^9.0.0"} before writing or changing the enabled installation
+AssertionError: promise resolved "{ manifest: { …(8) }, …(12) }" instead of rejecting
+
+- Expected
++ Received
+
+- Error {
+-   "message": "rejected promise",
++ {
++   "approvals": {
++     "hosts": [
++       "worker",
++     ],
++     "permissions": [],
++   },
++   "dataRoot": "/data/example-tools",
++   "enabled": false,
++   "errors": [
++     "Requires plugin SDK ^9.0.0",
++   ],
++   "installedAt": 1792394798410,
++   "manifest": {
++     "contributes": {
++       "commands": [
++         {
++           "action": "example.insert",
++           "id": "example.insert",
++           "permissions": [
++             "document:write",
++           ],
++           "title": "Insert example",
++         },
++       ],
++       "keymaps": [
++         {
++           "command": "example.insert",
++           "key": "Mod+Alt+T",
++           "when": "editorFocus",
++         },
++       ],
++     },
++     "engines": {
++       "pluginSdk": "^9.0.0",
++     },
++     "id": "example-tools",
++     "main": "./dist/plugin.js",
++     "name": "Example Tools",
++     "permissions": [
++       "document:write",
++     ],
++     "settings": {
++       "defaults": {
++         "compact": false,
++       },
++       "schema": {
++         "compact": {
++           "type": "boolean",
++         },
++       },
++     },
++     "version": "2.0.0",
++   },
++   "manifestPath": "/installed/example-tools/plugin.json",
++   "rootPath": "/installed/example-tools",
++   "sourcePath": "/candidate.milkup-plugin",
++   "state": "failed",
++   "storageRoot": "/storage/example-tools",
++   "trust": "development",
++   "updatedAt": 1792394798415,
+  }
+
+ ❯ apps/desktop/src/desktop-plugin-manager.test.ts:95:75
+     93|       candidate = { ...oldManifest, version: '2.0.0', engines }
+     94| 
+     95|       await expect(manager.installManifestPath('/candidate.milkup-plug…
+       |                                                                           ^
+     96|       expect(installPackage).not.toHaveBeenCalled()
+     97|       expect(ensureDataDirectories).not.toHaveBeenCalled()
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/5]⎯
+
+ FAIL  apps/desktop/src/desktop-plugin-manager.test.ts > DesktopPluginManager > does not create files, directories or registry records for a new incompatible archive
+ FAIL  apps/desktop/src/desktop-plugin-manager.test.ts > DesktopPluginManager > does not create files, directories or registry records for a new incompatible manifest
+AssertionError: promise resolved "{ manifest: { …(7) }, …(12) }" instead of rejecting
+
+- Expected
++ Received
+
+- Error {
+-   "message": "rejected promise",
++ {
++   "approvals": {
++     "hosts": [
++       "worker",
++     ],
++     "permissions": [],
++   },
++   "dataRoot": "milkup://plugin-data/example-tools",
++   "enabled": false,
++   "errors": [
++     "Requires plugin SDK ^9.0.0",
++   ],
++   "installedAt": 1792394798421,
++   "manifest": {
++     "contributes": {
++       "commands": [
++         {
++           "action": "example.insert",
++           "id": "example.insert",
++           "permissions": [
++             "document:write",
++           ],
++           "title": "Insert example",
++         },
++       ],
++       "keymaps": [
++         {
++           "command": "example.insert",
++           "key": "Mod+Alt+T",
++           "when": "editorFocus",
++         },
++       ],
++     },
++     "engines": {
++       "pluginSdk": "^9.0.0",
++     },
++     "id": "example-tools",
++     "main": "./dist/plugin.js",
++     "name": "Example Tools",
++     "permissions": [
++       "document:write",
++     ],
++     "version": "1.0.0",
++   },
++   "manifestPath": "/new",
++   "rootPath": "",
++   "sourcePath": "/new",
++   "state": "failed",
++   "storageRoot": "milkup://plugin-storage/example-tools",
++   "trust": "development",
++   "updatedAt": 1792394798421,
+  }
+
+ ❯ apps/desktop/src/desktop-plugin-manager.test.ts:136:55
+    134|       })
+    135|       await manager.ready
+    136|       await expect(manager.installManifestPath('/new')).rejects.toThro…
+       |                                                       ^
+    137|       expect(installPackage).not.toHaveBeenCalled()
+    138|       expect(ensureDataDirectories).not.toHaveBeenCalled()
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/5]⎯
+
+
+ Test Files  1 failed | 1 passed (2)
+      Tests  5 failed | 31 passed (36)
+   Start at  07:26:37
+   Duration  1.88s (transform 632ms, setup 0ms, collect 1.00s, tests 276ms, environment 0ms, prepare 138ms)
+

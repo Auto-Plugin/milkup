@@ -1,0 +1,76 @@
+
+ RUN  v3.2.6 /workspace/milkup/packages/plugin
+
+ ❯ src/registry.test.ts (30 tests | 1 failed) 39ms
+   × plugin registry > revalidates restored enabled plugins against the upgraded application before loading 25ms
+     → expected { manifest: { …(7) }, …(12) } to match object { enabled: false, …(2) }
+(19 matching properties omitted from actual)
+   ✓ plugin registry > enforces SDK range ^0.1.1 against 0.1.0 2ms
+   ✓ plugin registry > enforces SDK range ^0.1.1 against 0.1.1 0ms
+   ✓ plugin registry > enforces SDK range ^0.1.1 against 0.1.9 0ms
+   ✓ plugin registry > enforces SDK range ^0.1.1 against 0.2.0 0ms
+   ✓ plugin registry > enforces SDK range ^0.0.2 against 0.0.1 0ms
+   ✓ plugin registry > enforces SDK range ^0.0.2 against 0.0.2 0ms
+   ✓ plugin registry > enforces SDK range ^0.0.2 against 0.0.3 0ms
+   ✓ plugin registry > enforces SDK range ^1.2.3 against 1.2.2 1ms
+   ✓ plugin registry > enforces SDK range ^1.2.3 against 1.9.0 0ms
+   ✓ plugin registry > enforces SDK range ^1.2.3 against 2.0.0 0ms
+   ✓ plugin registry > enforces SDK range ^0.1.0 against 0.1.1 0ms
+   ✓ plugin registry > enforces SDK range >=0.1.1 against 0.1.0 0ms
+   ✓ plugin registry > enforces SDK range >=0.1.1 against 0.2.0 0ms
+   ✓ plugin registry > enforces SDK range ^0.1.1 against 0.1.1-beta 0ms
+   ✓ plugin registry > enforces SDK range ^garbage against 0.1.1 0ms
+   ✓ plugin registry > enforces SDK range ^0.1 against 0.1.1 0ms
+   ✓ plugin registry > enforces SDK range ^0.1.1 against 0.1.1+build.2 1ms
+   ✓ plugin registry > enforces SDK range ^2.0.0-0 against 2.0.0-beta.1 0ms
+   ✓ plugin registry > enforces SDK range ^2.0.0-0 against 2.0.0 0ms
+   ✓ plugin registry > enforces SDK range ^2.0.0-0 against 2.4.0 0ms
+   ✓ plugin registry > enforces SDK range ^2.0.0-0 against 2.1.0-beta.1 0ms
+   ✓ plugin registry > enforces SDK range ^2.0.0-0 against 3.0.0 0ms
+   ✓ plugin registry > enforces SDK range ^2.0.0 against 2.0.0-beta.1 0ms
+   ✓ plugin registry > enforces SDK range >=2.0.0-beta.2 against 2.0.0-beta.10 0ms
+   ✓ plugin registry > enforces SDK range >=2.0.0-beta.2 against 2.0.0-beta.1 0ms
+   ✓ plugin registry > installs local plugins, persists enable state, and restores records 1ms
+   ✓ plugin registry > marks incompatible plugins as failed and keeps sidecar approval explicit 1ms
+   ✓ plugin registry > indexes enabled contributions and makes keymap priority deterministic 2ms
+   ✓ plugin registry > isolates plugin storage keys 0ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/registry.test.ts > plugin registry > revalidates restored enabled plugins against the upgraded application before loading
+AssertionError: expected { manifest: { …(7) }, …(12) } to match object { enabled: false, …(2) }
+(19 matching properties omitted from actual)
+
+- Expected
++ Received
+
+  {
+-   "enabled": false,
+-   "errors": [
+-     "Requires Milkup ^0.1.0",
+-   ],
+-   "state": "failed",
++   "enabled": true,
++   "errors": [],
++   "state": "enabled",
+  }
+
+ ❯ src/registry.test.ts:19:43
+     17|     const upgraded = new PluginRegistry({ compatibility: { milkupVersi…
+     18|     upgraded.restore(snapshot)
+     19|     expect(upgraded.get('example-tools')).toMatchObject({ enabled: fal…
+       |                                           ^
+     20|     expect(snapshot.records[0]!.enabled).toBe(true)
+     21|     expect(upgraded.get('example-tools')!.approvals).toEqual(snapshot.…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 29 passed (30)
+   Start at  02:34:58
+   Duration  581ms (transform 148ms, setup 0ms, collect 187ms, tests 39ms, environment 0ms, prepare 114ms)
+
+undefined
+/workspace/milkup/packages/plugin:
+[ERR_PNPM_RECURSIVE_EXEC_FIRST_FAIL] Command failed with exit code 1: vitest run src/registry.test.ts

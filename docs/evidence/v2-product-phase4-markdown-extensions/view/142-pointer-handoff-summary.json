@@ -1,0 +1,36 @@
+{
+  "scope": "Final pointer-lease handoff correction; native candidate09 cause remains unproven",
+  "before": {
+    "log": "139-pointer-handoff-before.log",
+    "status": "1 real unit failure, 22 skipped",
+    "sequence": "Provider settled and waiting; pointerup queues release timer; next primary pointerdown synchronously releases old waiter and establishes new lease; old waiter resumes before new gesture ends.",
+    "observed": {
+      "originalConnected": false,
+      "sameButton": false,
+      "activeLease": false,
+      "provided": 2,
+      "navigationCalls": 0
+    }
+  },
+  "change": "Replace the single provider wait with while-valid rechecking the current pointer lease. Keep one result in the same job closure; source gate and budgets unchanged.",
+  "termination": [
+    "Invalid/aborted job exits the while condition and fails the final validity check.",
+    "No current valid lease or an aborted signal yields undefined and breaks; no resolved-promise polling loop.",
+    "An active lease supplies an unresolved waiter removed on abort or resolved on gesture release. If another lease replaced it, the continuation waits for that current lease."
+  ],
+  "after": {
+    "log": "140-pointer-handoff-after.log",
+    "status": "23/23 guard tests PASS",
+    "observed": {
+      "originalConnected": true,
+      "sameButton": true,
+      "activeLease": true,
+      "provided": 2,
+      "navigationCalls": 0
+    },
+    "completion": "The second gesture click navigates once, then its release permits the pending replacement.",
+    "types": "141-pointer-handoff-types.log PASS",
+    "formatAndDiff": "Changed files formatted; git diff --check PASS"
+  },
+  "freeze": "Product/test frozen. No browser rerun in this correction; root owns the new complete candidate10-final gates. Earlier candidate10 gates remain intermediate evidence."
+}

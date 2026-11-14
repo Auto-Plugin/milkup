@@ -1,0 +1,65 @@
+{
+  "reviewedAt": "2026-10-19T12:17:17.035648+00:00",
+  "assessment": "ACCEPTABLE_FOR_CANDIDATE03_MEASUREMENT_NO_BLOCKING_SOURCE_FINDING",
+  "scope": "Independent read-only review of renderChangedSourceLine and 26 regression cases. No product changes, test execution, or native execution by this reviewer. Existing live parse-cache/read-only Tab changes were not reimplemented.",
+  "sourceInputs": [
+    {
+      "path": "packages/view-dom/src/editor-view.ts",
+      "bytes": 108668,
+      "sha256": "1804fcc263bdc02b855f49c99890cbe0dbbe5f4d5138579f1e3a219c5fe9d4a2"
+    },
+    {
+      "path": "packages/view-dom/src/__tests__/p7-source-line-reuse.test.ts",
+      "bytes": 12517,
+      "sha256": "9dd7a8554b4b761efb49e673e3de58d89db504f60c48137eaa92d9b2a2dc8a7c"
+    }
+  ],
+  "findings": [
+    {
+      "location": "editor-view.ts:772-781 and changedDocumentLineNumbers:3473-3499",
+      "assessment": "Explicit virtual fallback; exactly one transaction/change, unchanged line count, old start/end and new insertion endpoint confined to one line; CR/LF in insertion or removed bytes rejected. Existing live branch remains separate."
+    },
+    {
+      "location": "editor-view.ts:785-799",
+      "assessment": "All direct row count, class and line/from/to metadata are validated before any replacement or suffix update; failure returns to full rendering without a partial patch."
+    },
+    {
+      "location": "editor-view.ts:800-813",
+      "assessment": "Changed row uses existing plain text renderer. Every later from/to is read from new state.doc.line, preserving UTF-16 offsets and CRLF display/source distinction; no visible-character delta assumption. Empty-line placeholder remains display-only."
+    },
+    {
+      "location": "editor-view.ts:815-819",
+      "assessment": "Outer scrollTop/scrollLeft and changed-row scrollLeft explicitly restored; normal renderSelectionAndCursor refreshes selection/search overlays and input proxy. Existing updateState cursor reveal remains in control when selection changes."
+    },
+    {
+      "location": "p7-source-line-reuse.test.ts:72-292",
+      "assessment": "Tests assert unrelated node identity, independent text/offset oracle, Unicode grow/shrink/replacement at start/middle/end, CRLF, empty line/EOF, reversed selection, history, retained-row click mapping, scroll properties, newline/CR/multiple/untracked fallback, missing-row repair, bounded virtual fallback."
+    }
+  ],
+  "nonBlockingLimitations": [
+    {
+      "location": "editor-view.ts:783-798",
+      "detail": "Preflight covers row metadata/identity shape, not equality of old textContent or prohibition of nested child elements. Do not claim general arbitrary DOM corruption repair; source DOM is internally owned."
+    },
+    {
+      "location": "p7-source-line-reuse.test.ts:195-207",
+      "detail": "jsdom scroll property preservation does not establish browser wrapping, scrollbar clamping or actual native scroll behavior. Candidate03 measurement remains necessary."
+    },
+    {
+      "detail": "The new 26 cases contain no dedicated search-highlight assertion; helper preserves the existing renderSelectionAndCursor path, which rerenders search highlights. No new history mapping or controlled renderer path was added."
+    },
+    {
+      "detail": "Suffix metadata/preflight remain linear in ordinary row count. Reduced DOM reconstruction does not establish the cause of the original slow sample or a native tail-latency budget pass."
+    }
+  ],
+  "ownerEvidenceReadOnly": {
+    "red01.exit": 1,
+    "redCases": "17 failed / 9 passed (owner report; first raw result retained)",
+    "green01.exit": 0,
+    "greenCases": 26,
+    "view-dom-full01.exit": 0,
+    "viewDomFullCases": 791,
+    "viewDomFullFiles": 30
+  },
+  "remainingGate": "Root-coordinated candidate03 actual native timing and behavior; no native acceptance claimed."
+}

@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+set -euo pipefail
+source /workspace/.cloud/milkup-v2/env.sh
+export CARGO_BUILD_JOBS=3
+export CARGO_TARGET_DIR=/workspace/milkup-mermaid-engine-evidence/research/svg-converter-prototype/native-runner/target
+cd /workspace/milkup-mermaid-engine-evidence/research/svg-converter-prototype/native-runner
+cc -shared -fPIC -O2 extensions/paired_resource_guard.c -o extensions/libpaired_resource_guard.so $(pkg-config --cflags --libs webkit2gtk-web-extension-4.1)
+cargo build --offline --manifest-path paired-helper/Cargo.toml

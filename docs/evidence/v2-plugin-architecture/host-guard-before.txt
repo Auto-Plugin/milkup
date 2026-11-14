@@ -1,0 +1,252 @@
+
+ RUN  v3.2.6 /workspace/milkup/apps/desktop
+
+ ❯ src/protected-install.test.ts (9 tests | 2 failed) 25ms
+   ✓ trusted install gate > waits for explicit transition confirmation even for an otherwise idle clean document 4ms
+   ✓ trusted install gate > expires unconfirmed requests after nine minutes, leaving stale confirmation inert 7ms
+   ✓ trusted install gate > does not install after cancel during document preparation 1ms
+   ✓ trusted install gate > does not install after abort during document preparation 1ms
+   ✓ trusted install gate > keeps installation blocked when prepare rejects and allows a new confirmation 2ms
+   × trusted install gate > cleans up after synchronous transition failure so another request can be made 6ms
+     → expected '2.0.1' to be undefined
+   × trusted install gate > executes preparation and installation once if the confirmation callback is replayed 1ms
+     → expected "spy" to be called 1 times, but got 2 times
+   ✓ trusted install gate > rejects concurrent/busy requests and honours an already aborted signal 1ms
+   ✓ trusted install gate > unlocks and surfaces native install errors 1ms
+ ❯ src/plugin-release-service.test.ts (15 tests | 8 failed) 55ms
+   ✓ desktop release capability adapter > maps only its issued opaque release ID to the native token and exposes no URL or token 20ms
+   ✓ desktop release capability adapter > returns from stage before download completes and marks ready only after native verification succeeds 3ms
+   × desktop release capability adapter > ignores late progress after terminal ready 13ms
+     → expected { phase: 'downloading', …(2) } to match object { phase: 'ready' }
+(2 matching properties omitted from actual)
+   × desktop release capability adapter > ignores late progress after terminal error 2ms
+     → expected { phase: 'downloading', …(2) } to match object { phase: 'error' }
+(2 matching properties omitted from actual)
+   ✓ desktop release capability adapter > retries failed verification without allowing old progress to affect the retry 1ms
+   × desktop release capability adapter > blocks stage while cancellation is pending 1ms
+     → promise resolved "undefined" instead of rejecting
+   × desktop release capability adapter > blocks check while cancellation is pending 2ms
+     → promise resolved "{ configured: true, …(3) }" instead of rejecting
+   × desktop release capability adapter > blocks requestInstall while cancellation is pending 1ms
+     → promise resolved "{ status: 'cancelled' }" instead of rejecting
+   ✓ desktop release capability adapter > cancels downloads and ignores old callbacks before a subsequent retry 1ms
+   × desktop release capability adapter > releases a native candidate returned after disposal 1ms
+     → expected "spy" to be called with arguments: [ 42 ]
+
+Number of calls: 0
+
+   × desktop release capability adapter > does not start another native check after disposal during old-candidate cancellation 1ms
+     → expected "spy" to be called 1 times, but got 2 times
+   ✓ desktop release capability adapter > invalidates old release IDs when checking again 1ms
+   × desktop release capability adapter > seals installation callbacks after confirmation cancellation 4ms
+     → promise resolved "undefined" instead of rejecting
+   ✓ desktop release capability adapter > cancels trusted pending confirmation when the service is disposed 1ms
+   ✓ desktop release capability adapter > installs once through trusted confirmation and reports native installation failure 1ms
+
+⎯⎯⎯⎯⎯⎯ Failed Tests 10 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/plugin-release-service.test.ts > desktop release capability adapter > ignores late progress after terminal ready
+AssertionError: expected { phase: 'downloading', …(2) } to match object { phase: 'ready' }
+(2 matching properties omitted from actual)
+
+- Expected
++ Received
+
+  {
+-   "phase": "ready",
++   "phase": "downloading",
+  }
+
+ ❯ src/plugin-release-service.test.ts:78:40
+     76|     await flush()
+     77|     f.downloads[0]!.progress({ phase: 'downloading', received: 3, tota…
+     78|     expect(await f.adapter.status(id)).toMatchObject({ phase })
+       |                                        ^
+     79|     f.dispose()
+     80|   })
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/10]⎯
+
+ FAIL  src/plugin-release-service.test.ts > desktop release capability adapter > ignores late progress after terminal error
+AssertionError: expected { phase: 'downloading', …(2) } to match object { phase: 'error' }
+(2 matching properties omitted from actual)
+
+- Expected
++ Received
+
+  {
+-   "phase": "error",
++   "phase": "downloading",
+  }
+
+ ❯ src/plugin-release-service.test.ts:78:40
+     76|     await flush()
+     77|     f.downloads[0]!.progress({ phase: 'downloading', received: 3, tota…
+     78|     expect(await f.adapter.status(id)).toMatchObject({ phase })
+       |                                        ^
+     79|     f.dispose()
+     80|   })
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/10]⎯
+
+ FAIL  src/plugin-release-service.test.ts > desktop release capability adapter > blocks stage while cancellation is pending
+AssertionError: promise resolved "undefined" instead of rejecting
+
+- Expected:
+Error {
+  "message": "rejected promise",
+}
+
++ Received:
+undefined
+
+ ❯ src/plugin-release-service.test.ts:104:27
+    102|     const pending = f.adapter.cancel(id)
+    103|     const attempted = method === 'check' ? f.adapter.check() : f.adapt…
+    104|     await expect(attempted).rejects.toThrow()
+       |                           ^
+    105|     expect(f.confirmInstall).not.toHaveBeenCalled()
+    106|     cancellation.resolve(); await pending
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/10]⎯
+
+ FAIL  src/plugin-release-service.test.ts > desktop release capability adapter > blocks check while cancellation is pending
+AssertionError: promise resolved "{ configured: true, …(3) }" instead of rejecting
+
+- Expected
++ Received
+
+- Error {
+-   "message": "rejected promise",
++ {
++   "channel": "stable",
++   "configured": true,
++   "currentVersion": "2.0.0",
++   "release": {
++     "date": null,
++     "id": "bfbcd130-686c-47fd-84c7-b12589d6d757",
++     "notes": "notes",
++     "version": "2.0.1",
++   },
+  }
+
+ ❯ src/plugin-release-service.test.ts:104:27
+    102|     const pending = f.adapter.cancel(id)
+    103|     const attempted = method === 'check' ? f.adapter.check() : f.adapt…
+    104|     await expect(attempted).rejects.toThrow()
+       |                           ^
+    105|     expect(f.confirmInstall).not.toHaveBeenCalled()
+    106|     cancellation.resolve(); await pending
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/10]⎯
+
+ FAIL  src/plugin-release-service.test.ts > desktop release capability adapter > blocks requestInstall while cancellation is pending
+AssertionError: promise resolved "{ status: 'cancelled' }" instead of rejecting
+
+- Expected
++ Received
+
+- Error {
+-   "message": "rejected promise",
++ {
++   "status": "cancelled",
+  }
+
+ ❯ src/plugin-release-service.test.ts:104:27
+    102|     const pending = f.adapter.cancel(id)
+    103|     const attempted = method === 'check' ? f.adapter.check() : f.adapt…
+    104|     await expect(attempted).rejects.toThrow()
+       |                           ^
+    105|     expect(f.confirmInstall).not.toHaveBeenCalled()
+    106|     cancellation.resolve(); await pending
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/10]⎯
+
+ FAIL  src/plugin-release-service.test.ts > desktop release capability adapter > releases a native candidate returned after disposal
+AssertionError: expected "spy" to be called with arguments: [ 42 ]
+
+Number of calls: 0
+
+ ❯ src/plugin-release-service.test.ts:137:32
+    135|     f.dispose(); check.resolve(metadata)
+    136|     await rejected
+    137|     expect(f.transport.cancel).toHaveBeenCalledWith(42)
+       |                                ^
+    138|   })
+    139|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/10]⎯
+
+ FAIL  src/plugin-release-service.test.ts > desktop release capability adapter > does not start another native check after disposal during old-candidate cancellation
+AssertionError: expected "spy" to be called 1 times, but got 2 times
+ ❯ src/plugin-release-service.test.ts:149:31
+    147|     f.dispose(); cancellation.resolve()
+    148|     await rejected
+    149|     expect(f.transport.check).toHaveBeenCalledTimes(1)
+       |                               ^
+    150|   })
+    151|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[7/10]⎯
+
+ FAIL  src/plugin-release-service.test.ts > desktop release capability adapter > seals installation callbacks after confirmation cancellation
+AssertionError: promise resolved "undefined" instead of rejecting
+
+- Expected:
+Error {
+  "message": "rejected promise",
+}
+
++ Received:
+undefined
+
+ ❯ src/plugin-release-service.test.ts:166:25
+    164|     expect(await f.adapter.requestInstall(id)).toEqual({ status: 'canc…
+    165|     const stale = f.confirmInstall.mock.calls[0]![0].install
+    166|     await expect(stale()).rejects.toThrow()
+       |                         ^
+    167|     expect(f.transport.install).not.toHaveBeenCalled()
+    168|     f.dispose()
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[8/10]⎯
+
+ FAIL  src/protected-install.test.ts > trusted install gate > cleans up after synchronous transition failure so another request can be made
+AssertionError: expected '2.0.1' to be undefined
+
+- Expected:
+undefined
+
++ Received:
+"2.0.1"
+
+ ❯ src/protected-install.test.ts:91:28
+     89|     f.options.requestTransition.mockImplementationOnce(() => { throw E…
+     90|     await expect(f.request()).rejects.toThrow('transition failed')
+     91|     expect(f.gate.version).toBeUndefined()
+       |                            ^
+     92|     expect(f.options.cancelTransition).toHaveBeenCalledTimes(1)
+     93|     const retry = f.request()
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[9/10]⎯
+
+ FAIL  src/protected-install.test.ts > trusted install gate > executes preparation and installation once if the confirmation callback is replayed
+AssertionError: expected "spy" to be called 1 times, but got 2 times
+ ❯ src/protected-install.test.ts:108:39
+    106|     await Promise.all([first, replay])
+    107|     expect(await pending).toEqual({ status: 'installing' })
+    108|     expect(f.options.prepareDocument).toHaveBeenCalledTimes(1)
+       |                                       ^
+    109|     expect(f.install).toHaveBeenCalledTimes(1)
+    110|   })
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[10/10]⎯
+
+
+ Test Files  2 failed (2)
+      Tests  10 failed | 14 passed (24)
+   Start at  03:20:48
+   Duration  505ms (transform 119ms, setup 0ms, collect 144ms, tests 81ms, environment 0ms, prepare 156ms)
+
+undefined
+/workspace/milkup/apps/desktop:
+[ERR_PNPM_RECURSIVE_EXEC_FIRST_FAIL] Command failed with exit code 1: vitest run src/plugin-release-service.test.ts src/protected-install.test.ts

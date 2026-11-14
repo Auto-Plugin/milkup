@@ -1,0 +1,1682 @@
+import {
+  sealRegistryFixture,
+  sealWorkerFixture,
+  installImagesFixture,
+  installPreferencesFixture,
+} from '../helpers/sealed-plugin-fixture'
+import { expect, test } from '@playwright/test'
+import { readFileSync } from 'node:fs'
+import type { Page } from '@playwright/test'
+import { outlineRegistry } from '../helpers/outline-fixture.mjs'
+import { formattingFixture } from '../helpers/formatting-plugin'
+
+async function runMenuCommand(page: Page, name: string): Promise<void> {
+  await page.getByRole('button', { name: '菜单' }).click()
+  await page.getByRole('button', { name: '文件', exact: true }).click()
+  await page.getByRole('button', { name, exact: true }).click()
+}
+
+async function installFileWatchProbe(page: Page): Promise<void> {
+  await page.route(/\/src\/file-service\.ts(?:\?|$)/, async (route) => {
+    const response = await route.fetch()
+    const body = (await response.text()).replace(
+      'async listenToFileWatchEvents() {',
+      'async listenToFileWatchEvents(handler) { window.__milkupFileWatch = handler;',
+    )
+    await route.fulfill({ response, body })
+  })
+}
+
+async function emitExternalChange(page: Page, kind: 'modified' | 'deleted'): Promise<void> {
+  await page.evaluate((kind) => {
+    const host = window as unknown as { __milkupFileWatch: (event: unknown) => void }
+    host.__milkupFileWatch({
+      kind,
+      documentId: document.querySelector('[data-stat="document-id"]')!.textContent,
+      file: { path: 'D:/notes/sample.md' },
+    })
+  }, kind)
+}
+
+test('desktop shell loads editor and tracks dirty session state', async ({ page }) => {
+  await installFileWatchProbe(page)
+  await page.goto('/')
+
+  await expect(page.getByRole('heading', { name: '未命名' })).toBeVisible()
+  await expect(page.locator('.milkup-editor')).toHaveAttribute('data-mode', 'live')
+  await expect(page.locator('#app')).toHaveAttribute('data-sidebar-collapsed', 'true')
+  await expect(page.locator('#app')).toHaveAttribute('data-empty-document', 'true')
+  await expect(page.locator('[data-save-label]')).toContainText('已保存')
+  await expect(page.locator('[data-title-path]')).toHaveText('未保存')
+  await expect(page.locator('[data-stat="char-count"]')).toHaveText('0 字符')
+  await expect(page.locator('[data-stat="notice"]')).toHaveCount(0)
+  await expect(page.locator('[data-stat="version"]')).toHaveText('0')
+  await expect(page.locator('[data-stat="saved"]')).toHaveText('0')
+  await expect(page.locator('[data-stat="line-ending"]')).toHaveText('lf')
+
+  await runMenuCommand(page, '打开')
+
+  await expect(page.getByRole('heading', { name: 'sample' })).toBeVisible()
+  await expect(page.locator('[data-title-path]')).toHaveText('D:/notes')
+  await expect(page.locator('[data-save-label]')).toContainText('已保存')
+  await expect(page.locator('[data-stat="document-id"]')).toHaveText('file:D:/notes/sample.md')
+  await expect(page.locator('[data-stat="line-ending"]')).toHaveText('crlf')
+  await expect(page.locator('[data-stat="version"]')).toHaveText('0')
+  await expect(page.locator('[data-stat="saved"]')).toHaveText('0')
+
+  await runMenuCommand(page, '在文件夹中显示')
+
+  await expect(page.locator('[data-stat="document-id"]')).toHaveText('file:D:/notes/sample.md')
+
+  await page.keyboard.type('hello')
+
+  await expect(page.locator('[data-save-label]')).toContainText('未保存')
+  await expect(page.locator('[data-stat="char-count"]')).toHaveText('66 字符')
+  await expect(page.locator('[data-stat="version"]')).toHaveText('5')
+  await expect(page.locator('[data-stat="saved"]')).toHaveText('0')
+
+  await page.keyboard.press('Control+1')
+
+  await expect(page.locator('.milkup-editor')).toHaveAttribute('data-mode', 'source')
+  await page.getByRole('button', { name: '源码' }).click()
+  await expect(page.locator('.milkup-editor')).toHaveAttribute('data-mode', 'live')
+  await expect(page.locator('[data-save-label]')).toContainText('未保存')
+
+  await runMenuCommand(page, '保存')
+
+  await expect(page.locator('[data-save-label]')).toContainText('已保存')
+  await expect(page.locator('[data-stat="version"]')).toHaveText('5')
+  await expect(page.locator('[data-stat="saved"]')).toHaveText('5')
+  await expect(page.locator('[data-stat="line-ending"]')).toHaveText('crlf')
+
+  await page.keyboard.type('!')
+
+  await expect(page.locator('[data-save-label]')).toContainText('未保存')
+  await expect(page.locator('[data-stat="version"]')).toHaveText('6')
+  await expect(page.locator('[data-stat="saved"]')).toHaveText('5')
+
+  await runMenuCommand(page, '另存为')
+
+  await expect(page.locator('[data-save-label]')).toContainText('已保存')
+  await expect(page.locator('[data-title-path]')).toHaveText('D:/notes')
+  await expect(page.locator('[data-stat="version"]')).toHaveText('6')
+  await expect(page.locator('[data-stat="saved"]')).toHaveText('6')
+
+  await emitExternalChange(page, 'modified')
+
+  await expect(page.locator('[data-stat="external"]')).toHaveText('modified-clean')
+  await expect(page.locator('[data-save-label]')).toContainText('已保存')
+
+  await runMenuCommand(page, '重新载入外部更改')
+
+  await expect(page.getByRole('heading', { name: 'sample' })).toBeVisible()
+  await expect(page.locator('[data-stat="external"]')).toHaveText('none')
+  await expect(page.locator('[data-save-label]')).toContainText('已保存')
+  await expect(page.locator('[data-stat="version"]')).toHaveText('7')
+  await expect(page.locator('[data-stat="saved"]')).toHaveText('7')
+  await expect(page.locator('[data-stat="line-ending"]')).toHaveText('crlf')
+
+  await emitExternalChange(page, 'deleted')
+
+  await expect(page.locator('[data-stat="external"]')).toHaveText('deleted-clean')
+  await expect(page.locator('[data-save-label]')).toContainText('已保存')
+  await runMenuCommand(page, '保存')
+
+  await expect(page.locator('[data-stat="external"]')).toHaveText('deleted-clean')
+
+  await page.keyboard.type('?')
+
+  await expect(page.locator('[data-save-label]')).toContainText('未保存')
+  await expect(page.locator('[data-stat="external"]')).toHaveText('conflict')
+  await runMenuCommand(page, '关闭标签')
+
+  await expect(page.locator('[data-save-label]')).toContainText('未保存')
+  await expect(page.locator('[data-stat="document-id"]')).toHaveText('file:D:/notes/sample.md')
+
+  await page.keyboard.press('Escape')
+  await emitExternalChange(page, 'modified')
+
+  await expect(page.locator('[data-stat="external"]')).toHaveText('conflict')
+  await runMenuCommand(page, '保存')
+
+  await expect(page.locator('[data-save-label]')).toContainText('未保存')
+  await expect(page.locator('[data-stat="external"]')).toHaveText('conflict')
+
+  await runMenuCommand(page, '新建')
+  await page.getByRole('button', { name: '不保存并新建文档', exact: true }).click()
+  await runMenuCommand(page, '在文件夹中显示')
+
+  await expect(page.getByRole('heading', { name: '未命名' })).toBeVisible()
+  await expect(page.locator('[data-stat="document-id"]')).toContainText('desktop-untitled')
+})
+
+test('plugin manager restores, executes, disables, and reenables a Worker plugin', async ({
+  page,
+}) => {
+  const manifest = {
+    id: 'e2e-tools',
+    name: 'E2E Tools',
+    version: '1.0.0',
+    main: './dist/plugin.js',
+    contributes: {
+      commands: [{ id: 'e2e.hello', title: 'Plugin Hello', action: 'e2e.hello' }],
+      keymaps: [{ command: 'e2e.hello', key: 'Mod+Alt+H', when: 'editorFocus' }],
+    },
+  }
+  await sealWorkerFixture(
+    page,
+    manifest,
+    'D:/plugins/e2e/plugin.json',
+    "export default { commands: { 'e2e.hello': () => 'hello from plugin' } }",
+  )
+  await page.addInitScript((manifest) => {
+    const record = {
+      manifest,
+      manifestPath: 'D:/plugins/e2e/plugin.json',
+      rootPath: 'D:/plugins/e2e',
+      sourcePath: 'D:/plugins/e2e/plugin.json',
+      state: 'enabled',
+      enabled: true,
+      installedAt: 1,
+      updatedAt: 1,
+      trust: 'development',
+      dataRoot: 'milkup://plugin-data/e2e-tools',
+      storageRoot: 'milkup://plugin-storage/e2e-tools',
+      approvals: { permissions: [], hosts: ['worker'] },
+      errors: [],
+    }
+    localStorage.setItem(
+      'milkup.desktop.plugins.registry.v1',
+      JSON.stringify({ version: 1, records: [record], auditRecords: [] }),
+    )
+  }, manifest)
+  await page.goto('/')
+  await page.getByRole('button', { name: '菜单' }).click()
+  await page.getByRole('button', { name: '插件', exact: true }).click()
+
+  await page.getByRole('button', { name: 'E2E Tools 详情', exact: true }).click()
+  await expect(page.getByRole('heading', { name: 'E2E Tools' })).toBeVisible()
+  await expect(page.locator('.plugin-state')).toHaveText('已启用')
+  await page.getByRole('button', { name: '返回插件列表', exact: true }).click()
+  const card = page.locator('.plugin-summary-card[data-plugin-id="e2e-tools"]')
+  await card.locator('[data-plugin-card-more-trigger]').click()
+  await card.getByRole('button', { name: 'Plugin Hello' }).click()
+  await card.getByRole('switch').click()
+  await expect(card.getByRole('switch')).toHaveAttribute('aria-checked', 'false')
+  await expect(card.getByRole('button', { name: 'Plugin Hello' })).toHaveCount(0)
+  await card.getByRole('switch').click()
+  await expect(card.getByRole('switch')).toHaveAttribute('aria-checked', 'true')
+  await card.getByRole('button', { name: 'E2E Tools 详情', exact: true }).click()
+  await expect(page.locator('.plugin-state')).toHaveText('已启用')
+  await expect(page.getByText('Mod+Alt+H')).toBeVisible()
+})
+
+test('desktop shell rejects image paste without approved plugin authority', async ({ page }) => {
+  await installImagesFixture(page, { enabled: false, approved: false })
+  await page.goto('/')
+  await runMenuCommand(page, '打开')
+  await expect(page.locator('#app')).toHaveAttribute('data-loading', 'ready')
+  const original = await page.locator('.milkup-editor-content').textContent()
+  await pasteSyntheticImage(page)
+  await expect(page.locator('[data-notice]')).toContainText('请先启用并授权图片插件')
+  await expect(page.locator('.milkup-editor-content')).toHaveText(original!)
+  await expect(page.locator('[data-save-label]')).toContainText('已保存')
+  await expect(page.locator('[data-stat="version"]')).toHaveText('0')
+})
+
+test('desktop search highlights matches and moves the active result', async ({ page }) => {
+  await page.goto('/')
+  await page.keyboard.type('alpha target beta target')
+  await page.keyboard.press('Control+F')
+
+  const search = page.getByRole('searchbox', { name: '搜索' })
+  await search.fill('target')
+
+  await expect(page.locator('[data-search-result-count]')).toHaveText('1/2')
+  await expect(page.locator('.milkup-search-highlight')).toHaveCount(2)
+  await expect(page.locator('.milkup-search-highlight.is-active')).toHaveAttribute(
+    'data-index',
+    '0',
+  )
+
+  await page.getByRole('button', { name: '下一个结果' }).click()
+  await expect(page.locator('[data-search-result-count]')).toHaveText('2/2')
+  await expect(page.locator('.milkup-search-highlight.is-active')).toHaveAttribute(
+    'data-index',
+    '1',
+  )
+})
+
+test('closing search cancels the active scan and clears highlights', async ({ page }) => {
+  await page.goto('/')
+  await page.keyboard.type('alpha target beta target')
+  await page.keyboard.press('Control+F')
+
+  await page.evaluate(() => {
+    const input = document.querySelector<HTMLInputElement>('[data-search-input]')
+    const close = document.querySelector<HTMLButtonElement>('[data-search-close]')
+
+    if (!input || !close) {
+      throw new Error('Search controls are unavailable')
+    }
+
+    input.value = 'target'
+    input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }))
+    close.click()
+  })
+
+  await expect(page.locator('[data-floating-search]')).toBeHidden()
+  await expect(page.locator('[data-search-loading]')).toBeHidden()
+  await expect(page.locator('[data-search-idle-icon]')).not.toHaveAttribute('hidden', '')
+  await expect(page.locator('.milkup-search-highlight')).toHaveCount(0)
+  await page.waitForTimeout(100)
+  await expect(page.locator('.milkup-search-highlight')).toHaveCount(0)
+})
+
+test('desktop shell routes primary shortcuts through active document actions', async ({ page }) => {
+  await page.goto('/')
+
+  await page.keyboard.press('Control+O')
+  await expect(page.getByRole('heading', { name: 'sample' })).toBeVisible()
+  await expect(page.locator('[data-title-path]')).toHaveText('D:/notes')
+
+  await page.keyboard.type('shortcut-save-token')
+  await expect(page.locator('[data-save-label]')).toContainText('未保存')
+
+  await page.keyboard.press('Control+S')
+  await expect(page.locator('[data-save-label]')).toContainText('已保存')
+
+  await page.keyboard.type(' shortcut-save-as-token')
+  await page.keyboard.press('Control+Shift+S')
+  await expect(page.locator('[data-save-label]')).toContainText('已保存')
+
+  await page.keyboard.press('Control+2')
+  await expect(page.locator('.milkup-editor')).toHaveAttribute('data-mode', 'live')
+  await page.keyboard.press('Control+1')
+  await expect(page.locator('.milkup-editor')).toHaveAttribute('data-mode', 'source')
+  await page.keyboard.press('Control+/')
+  await expect(page.locator('.milkup-editor')).toHaveAttribute('data-mode', 'live')
+  await page.keyboard.press('Control+/')
+  await expect(page.locator('.milkup-editor')).toHaveAttribute('data-mode', 'source')
+  await page.keyboard.press('Control+/')
+  await expect(page.locator('.milkup-editor')).toHaveAttribute('data-mode', 'live')
+
+  await page.keyboard.press('Control+F')
+  await expect(page.getByRole('searchbox', { name: '搜索' })).toBeVisible()
+  await page.getByRole('button', { name: '关闭搜索' }).click()
+  await expect(page.getByRole('searchbox', { name: '搜索' })).toBeHidden()
+
+  await page.keyboard.type(' shortcut-undo-token')
+  await expect(page.locator('.milkup-editor-content')).toContainText('shortcut-undo-token')
+  await page.keyboard.press('Control+Z')
+  await expect(page.locator('.milkup-editor-content')).not.toContainText('shortcut-undo-token')
+  await page.keyboard.press('Control+Y')
+  await expect(page.locator('.milkup-editor-content')).toContainText('shortcut-undo-token')
+
+  await page.keyboard.press('Control+A')
+  const cutText = await page.evaluate(() => {
+    const input = document.querySelector<HTMLTextAreaElement>('.milkup-input-proxy')
+
+    if (!input) {
+      throw new Error('Editor input proxy was not found')
+    }
+
+    const clipboardData = new DataTransfer()
+    const event = new ClipboardEvent('cut', {
+      bubbles: true,
+      cancelable: true,
+    })
+
+    Object.defineProperty(event, 'clipboardData', {
+      value: clipboardData,
+    })
+    input.dispatchEvent(event)
+
+    return clipboardData.getData('text/plain')
+  })
+
+  expect(cutText).toContain('shortcut-undo-token')
+  await expect(page.locator('.milkup-editor-content')).not.toContainText('shortcut-undo-token')
+  await expect(page.locator('[data-save-label]')).toContainText('未保存')
+
+  await page.keyboard.press('Control+W')
+  await expect(page.locator('[data-save-label]')).toContainText('未保存')
+
+  await page.keyboard.press('Escape')
+  await page.keyboard.press('Control+S')
+  await expect(page.locator('[data-save-label]')).toContainText('已保存')
+  await page.keyboard.press('Control+W')
+  await expect(page.getByRole('heading', { name: '未命名' })).toBeVisible()
+
+  await page.keyboard.press('Control+N')
+  await expect(page.getByRole('heading', { name: '未命名' })).toBeVisible()
+})
+
+test('desktop shell confirms before closing a dirty window', async ({ page }) => {
+  await page.addInitScript(() => {
+    Object.defineProperty(navigator, 'platform', {
+      value: 'Win32',
+    })
+  })
+  await page.goto('/')
+
+  await page.keyboard.type('dirty')
+  await expect(page.locator('[data-save-label]')).toContainText('未保存')
+
+  await page.locator('#app').evaluate((app) => {
+    app.setAttribute('data-custom-chrome', 'true')
+  })
+  await page.locator('[data-window-control="close"]').click()
+
+  const dialog = page.getByRole('dialog', { name: '文档尚未保存' })
+  await expect(dialog).toBeVisible()
+  await expect(dialog.getByRole('button', { name: '取消' })).toBeVisible()
+  await expect(dialog.getByRole('button', { name: '保存并退出', exact: true })).toBeVisible()
+  await expect(dialog.getByRole('button', { name: '不保存并退出' })).toBeVisible()
+
+  await dialog.getByRole('button', { name: '取消' }).click()
+  await expect(dialog).toBeHidden()
+  await expect(page.locator('[data-save-label]')).toContainText('未保存')
+
+  await page.locator('[data-window-control="close"]').click()
+  await dialog.getByRole('button', { name: '保存并退出', exact: true }).click()
+  await expect(dialog).toBeHidden()
+  await expect(page.locator('[data-save-label]')).toContainText('已保存')
+})
+
+// Exercise the real desktop UI while controlling only its asynchronous file adapter.
+async function installSaveProbe(page: Page): Promise<void> {
+  await page.route(/\/src\/file-service\.ts(?:\?|$)/, async (route) => {
+    const response = await route.fetch()
+    const body = (await response.text()).replace(
+      'function createDesktopFileService() {',
+      `function createDesktopFileService() {
+        const service = createMockFileService();
+        const probe = window.__milkupSaveProbe = { calls: 0, outcome: 'success', text: '', open: 'success' };
+        service.saveFile = async (session, text) => {
+          probe.calls++; probe.text = text;
+          let outcome = probe.outcome;
+          if (outcome === 'pending') outcome = await new Promise(resolve => { probe.release = resolve; });
+          if (outcome === 'cancel') return undefined;
+          if (outcome === 'error') throw new Error('disk full');
+          return { documentId: session.documentId, file: { path: '/notes/saved.md' }, diskSnapshotHash: 'saved:' + text };
+        };
+        service.saveFileAs = service.saveFile;
+        service.listenToFileWatchEvents = async handler => { window.__milkupFileWatch = handler; return () => {}; };
+        const openPath = service.openPath.bind(service);
+        service.selectOpenFile = async () => probe.open === 'cancel' ? undefined : '/notes/next.md';
+        service.openPath = async (...args) => {
+          if (probe.open === 'error') throw new Error('cannot read file');
+          return openPath(...args);
+        };
+        return service;`,
+    )
+    await route.fulfill({ response, body })
+  })
+}
+
+for (const outcome of ['success', 'cancel', 'error'] as const) {
+  test(`existing-file ${outcome} keeps subsequent input and history dirty until their own save`, async ({
+    page,
+  }) => {
+    await installSaveProbe(page)
+    await page.goto('/')
+    await page.keyboard.insertText('base')
+    await page.keyboard.press('Control+s')
+    await expect(page.locator('[data-save-label]')).toContainText('已保存')
+    await page.keyboard.press('Enter')
+    await page.evaluate("window.__milkupSaveProbe.outcome = 'pending'")
+    await page.keyboard.press('Control+s')
+    await expect(page.locator('#app')).toHaveAttribute('data-saving', 'true')
+    await page.keyboard.press('Control+z')
+    await expect(page.locator('.milkup-editor-content')).toHaveText('base')
+    await page.keyboard.press('Control+y')
+    await page.keyboard.insertText('R')
+    await expect(page.locator('.milkup-line')).toHaveText(['base', 'R'])
+    expect(await page.evaluate('window.__milkupSaveProbe.text')).toBe('base\n')
+    await page.evaluate((result) => {
+      ;(
+        window as unknown as { __milkupSaveProbe: { release: (value: string) => void } }
+      ).__milkupSaveProbe.release(result)
+    }, outcome)
+    await expect(page.locator('#app')).toHaveAttribute('data-saving', 'false')
+    await expect(page.locator('[data-save-label]')).toContainText('未保存')
+    await page.evaluate("window.__milkupSaveProbe.outcome = 'success'")
+    await page.keyboard.press('Control+s')
+    await expect(page.locator('[data-save-label]')).toContainText('已保存')
+    expect(await page.evaluate('window.__milkupSaveProbe.text')).toBe('base\nR')
+  })
+}
+
+for (const [shortcut, action] of [
+  ['Control+n', '新建文档'],
+  ['Control+o', '打开另一份文档'],
+  ['Control+w', '关闭文档'],
+] as const) {
+  test(`dirty ${shortcut} supports cancel, focus containment and explicit discard`, async ({
+    page,
+  }) => {
+    await page.goto('/')
+    await page.keyboard.type('KEEP-MY-DRAFT')
+    const originalId = await page.locator('[data-stat="document-id"]').textContent()
+    await page.keyboard.press(shortcut)
+    const dialog = page.getByRole('dialog', { name: '文档尚未保存' })
+    await expect(dialog).toBeVisible()
+    await expect(dialog.locator('.dialog-button[data-close-confirm-action="cancel"]')).toBeFocused()
+    for (let i = 0; i < 6; i++) await page.keyboard.press('Tab')
+    expect(await dialog.evaluate((element) => element.contains(document.activeElement))).toBe(true)
+    await page.keyboard.press('Shift+Tab')
+    expect(await dialog.evaluate((element) => element.contains(document.activeElement))).toBe(true)
+    await page.keyboard.press('Control+n')
+    await page.keyboard.press('Control+o')
+    await expect(
+      dialog.getByRole('button', { name: `不保存并${action}`, exact: true }),
+    ).toBeVisible()
+    await page.keyboard.press('Escape')
+    await expect(dialog).toBeHidden()
+    await expect(page.locator('[data-stat="document-id"]')).toHaveText(originalId!)
+    await expect(page.locator('.milkup-editor-content')).toContainText('KEEP-MY-DRAFT')
+    await expect(page.locator('.milkup-input-proxy')).toBeFocused()
+    await page.keyboard.type('-still-editable')
+    await expect(page.locator('.milkup-editor-content')).toContainText('still-editable')
+    await page.keyboard.press(shortcut)
+    await dialog.getByRole('button', { name: `不保存并${action}`, exact: true }).click()
+    await expect(dialog).toBeHidden()
+    await expect(page.locator('.milkup-editor-content')).not.toContainText('KEEP-MY-DRAFT')
+  })
+}
+
+test('save before new retains the draft after cancellation or failure and supports retry', async ({
+  page,
+}) => {
+  await installSaveProbe(page)
+  await page.goto('/')
+  await page.keyboard.type('ONLY-SAVED-WHEN-WRITTEN')
+  await page.evaluate("window.__milkupSaveProbe.outcome = 'cancel'")
+  await page.keyboard.press('Control+n')
+  const dialog = page.getByRole('dialog', { name: '文档尚未保存' })
+  await dialog.getByRole('button', { name: '保存并新建文档', exact: true }).click()
+  await expect(dialog.getByRole('alert')).toContainText('已取消保存')
+  await expect(page.locator('[data-save-label]')).toContainText('未保存')
+  await page.evaluate("window.__milkupSaveProbe.outcome = 'error'")
+  await dialog.getByRole('button', { name: '保存并新建文档', exact: true }).click()
+  await expect(dialog.getByRole('alert')).toContainText('disk full')
+  await expect(page.locator('.milkup-editor-content')).toContainText('ONLY-SAVED-WHEN-WRITTEN')
+  await page.evaluate("window.__milkupSaveProbe.outcome = 'success'")
+  await dialog.getByRole('button', { name: '保存并新建文档', exact: true }).click()
+  await expect(dialog).toBeHidden()
+  await expect(page.locator('.milkup-editor-content')).not.toContainText('ONLY-SAVED-WHEN-WRITTEN')
+  expect(await page.evaluate('window.__milkupSaveProbe.text')).toBe('ONLY-SAVED-WHEN-WRITTEN')
+  expect(await page.evaluate('window.__milkupSaveProbe.calls')).toBe(3)
+})
+
+test('cancelling a pending save continuation never navigates after the write completes', async ({
+  page,
+}) => {
+  await installSaveProbe(page)
+  await page.goto('/')
+  await page.keyboard.type('SAVE-BUT-STAY')
+  const originalId = await page.locator('[data-stat="document-id"]').textContent()
+  await page.evaluate("window.__milkupSaveProbe.outcome = 'pending'")
+  await page.keyboard.press('Control+n')
+  await page.getByRole('button', { name: '保存并新建文档', exact: true }).click()
+  await expect(page.locator('#app')).toHaveAttribute('data-saving', 'true')
+  await expect(page.locator('[data-close-confirm-action="save"]')).toBeDisabled()
+  await expect(page.locator('[data-close-confirm-action="discard"]')).toBeDisabled()
+  await page.keyboard.press('Control+s')
+  await page.keyboard.press('Escape')
+  await page.keyboard.press('Control+n')
+  await page.evaluate("window.__milkupSaveProbe.release('success')")
+  await expect(page.locator('#app')).toHaveAttribute('data-saving', 'false')
+  await expect(page.locator('[data-close-confirm]')).toBeHidden()
+  await expect(page.locator('[data-stat="document-id"]')).toHaveText(originalId!)
+  await expect(page.locator('.milkup-editor-content')).toContainText('SAVE-BUT-STAY')
+  await expect(page.locator('[data-save-label]')).toContainText('已保存')
+  expect(await page.evaluate('window.__milkupSaveProbe.calls')).toBe(1)
+  await page.keyboard.type('-MORE')
+  await expect(page.locator('[data-save-label]')).toContainText('未保存')
+})
+
+test('window close requested during a save is retained and still protects a failed save', async ({
+  page,
+}) => {
+  await page.addInitScript(() => Object.defineProperty(navigator, 'platform', { value: 'Win32' }))
+  await installSaveProbe(page)
+  await page.goto('/')
+  await page.keyboard.insertText('KEEP-AFTER-FAILED-SAVE')
+  await page.evaluate("window.__milkupSaveProbe.outcome = 'pending'")
+  await page.keyboard.press('Control+s')
+  await expect(page.locator('#app')).toHaveAttribute('data-saving', 'true')
+  await page.locator('[data-window-control="close"]').click()
+  await expect(page.locator('[data-close-confirm]')).toBeHidden()
+  await page.evaluate("window.__milkupSaveProbe.release('error')")
+  await expect(page.locator('#app')).toHaveAttribute('data-saving', 'false')
+  const dialog = page.getByRole('dialog', { name: '文档尚未保存' })
+  await expect(dialog).toBeVisible()
+  await expect(dialog.getByRole('button', { name: '保存并退出', exact: true })).toBeVisible()
+  await dialog.getByRole('button', { name: '取消', exact: true }).click()
+  await expect(page.locator('.milkup-editor-content')).toContainText('KEEP-AFTER-FAILED-SAVE')
+  await expect(page.locator('[data-save-label]')).toContainText('未保存')
+})
+
+for (const outcome of ['cancel', 'error']) {
+  test(`opening ${outcome} after discard preserves original content and history`, async ({
+    page,
+  }) => {
+    await installSaveProbe(page)
+    await page.goto('/')
+    await page.keyboard.type('ORIGINAL')
+    await page.evaluate(`window.__milkupSaveProbe.open = '${outcome}'`)
+    await page.keyboard.press('Control+o')
+    await page.getByRole('button', { name: '不保存并打开另一份文档', exact: true }).click()
+    await expect(page.locator('#app')).toHaveAttribute(
+      'data-loading',
+      outcome === 'error' ? 'failed' : 'ready',
+    )
+    if (outcome === 'error') {
+      await expect(page.locator('[data-loading-dismiss]')).toBeFocused()
+      await page.keyboard.press('Escape')
+      await expect(page.locator('.milkup-input-proxy')).toBeFocused()
+    }
+    await expect(page.locator('.milkup-editor-content')).toContainText('ORIGINAL')
+    await expect(page.locator('[data-save-label]')).toContainText('未保存')
+    await page.keyboard.press('Control+z')
+    await expect(page.locator('.milkup-editor-content')).not.toContainText('ORIGINAL')
+  })
+}
+
+test('ordinary save failures are visible without developer diagnostics and recover on retry', async ({
+  page,
+}) => {
+  await installSaveProbe(page)
+  await page.goto('/')
+  await page.keyboard.type('RECOVERABLE')
+  await page.evaluate("window.__milkupSaveProbe.outcome = 'error'")
+  await page.keyboard.press('Control+s')
+  await expect(page.locator('[data-notice]')).toBeVisible()
+  await expect(page.locator('[data-notice]')).toContainText('disk full')
+  await expect(page.locator('[data-save-label]')).toContainText('未保存')
+  await page.evaluate("window.__milkupSaveProbe.outcome = 'success'")
+  await page.keyboard.press('Control+s')
+  await expect(page.locator('[data-save-label]')).toContainText('已保存')
+  await expect(page.locator('[data-notice]')).toBeHidden()
+})
+
+test('browser reload cancellation keeps the unsaved editor alive', async ({ page }) => {
+  await page.goto('/')
+  await page.keyboard.type('RELOAD-PROTECTED')
+  const pendingDialog = page.waitForEvent('dialog')
+  const reload = page.reload({ timeout: 5000 }).catch(() => null)
+  const dialog = await pendingDialog
+  expect(dialog.type()).toBe('beforeunload')
+  await dialog.dismiss()
+  await reload
+  await expect(page.locator('.milkup-editor-content')).toContainText('RELOAD-PROTECTED')
+  await page.keyboard.type('-still-alive')
+  await expect(page.locator('.milkup-editor-content')).toContainText('still-alive')
+})
+
+for (const mode of ['source', 'live'] as const) {
+  test(`synthetic composition cancellation preserves selected text and history in ${mode}`, async ({
+    page,
+  }) => {
+    await page.goto('/')
+    await page.keyboard.press(mode === 'source' ? 'Control+1' : 'Control+2')
+    await page.keyboard.insertText('保留原文')
+    await page.keyboard.press('Control+a')
+    const version = await page.locator('[data-stat="version"]').textContent()
+    await page.evaluate(() => {
+      const input = document.querySelector<HTMLTextAreaElement>('.milkup-input-proxy')!
+      input.dispatchEvent(new CompositionEvent('compositionstart', { bubbles: true }))
+      input.value = 'zhong'
+      input.dispatchEvent(
+        new CompositionEvent('compositionupdate', { data: 'zhong', bubbles: true }),
+      )
+      input.dispatchEvent(
+        new KeyboardEvent('keydown', {
+          key: 'n',
+          ctrlKey: true,
+          isComposing: true,
+          bubbles: true,
+          cancelable: true,
+        }),
+      )
+      input.value = ''
+      input.dispatchEvent(new CompositionEvent('compositionend', { data: '', bubbles: true }))
+    })
+    await expect(page.locator('[data-close-confirm]')).toBeHidden()
+    await expect(page.locator('[data-stat="version"]')).toHaveText(version!)
+    await expect(page.locator('.milkup-editor-content')).toContainText('保留原文')
+    await expect(page.locator('.milkup-selection')).toHaveCount(1)
+    await page.evaluate(() => {
+      const input = document.querySelector<HTMLTextAreaElement>('.milkup-input-proxy')!
+      input.dispatchEvent(new CompositionEvent('compositionstart', { bubbles: true }))
+      input.value = '中文'
+      input.dispatchEvent(new CompositionEvent('compositionend', { data: '中文', bubbles: true }))
+      input.dispatchEvent(
+        new InputEvent('input', {
+          bubbles: true,
+          data: '中文',
+          inputType: 'insertCompositionText',
+        }),
+      )
+    })
+    await expect(page.locator('.milkup-editor-content')).toContainText('中文')
+    await expect(page.locator('.milkup-editor-content')).not.toContainText('保留原文')
+    await page.keyboard.press('Control+z')
+    await expect(page.locator('.milkup-editor-content')).toContainText('保留原文')
+    await expect(page.locator('.milkup-selection')).toHaveCount(1)
+    await page.keyboard.press('Control+Shift+z')
+    await expect(page.locator('.milkup-editor-content')).toContainText('中文')
+    await expect(page.locator('.milkup-input-proxy')).toBeFocused()
+  })
+}
+
+test('multiline code paste and following typing undo independently across mode changes', async ({
+  page,
+}) => {
+  await page.goto('/')
+  await page.keyboard.type('KEEP ')
+  await page.evaluate(() => {
+    const data = new DataTransfer()
+    data.setData('text/plain', '\n```python\nfirst()\n\n\nsecond()\n```\n')
+    document
+      .querySelector('.milkup-input-proxy')!
+      .dispatchEvent(
+        new ClipboardEvent('paste', { clipboardData: data, bubbles: true, cancelable: true }),
+      )
+  })
+  await page.keyboard.type('TAIL')
+  await page.keyboard.press('Control+1')
+  await page.keyboard.press('Control+z')
+  await expect(page.locator('.milkup-editor-content')).not.toContainText('TAIL')
+  await expect(page.locator('.milkup-editor-content')).toContainText('second()')
+  await page.keyboard.press('Control+2')
+  await page.keyboard.press('Control+z')
+  await expect(page.locator('.milkup-editor-content')).toContainText('KEEP')
+  await expect(page.locator('.milkup-editor-content')).not.toContainText('first()')
+  await page.keyboard.press('Control+Shift+z')
+  await page.keyboard.press('Control+Shift+z')
+  await expect(page.locator('.milkup-editor-content')).toContainText('TAIL')
+})
+
+test('typing after cursor movement restores only the local edit on undo', async ({ page }) => {
+  await page.goto('/')
+  await page.keyboard.type('AB')
+  await page.keyboard.press('ArrowLeft')
+  await page.keyboard.type('X')
+  await page.keyboard.press('Control+z')
+  await expect(page.locator('.milkup-editor-content')).toContainText('AB')
+  await expect(page.locator('.milkup-cursor')).toHaveAttribute('data-position', '1')
+  await page.keyboard.press('Control+Shift+z')
+  await expect(page.locator('.milkup-editor-content')).toContainText('AXB')
+})
+
+test('cancelled and failed Save As preserve the path and dirty content', async ({ page }) => {
+  await installSaveProbe(page)
+  await page.goto('/')
+  await page.keyboard.type('SAVE-AS-DRAFT')
+  for (const outcome of ['cancel', 'error']) {
+    await page.evaluate(`window.__milkupSaveProbe.outcome = '${outcome}'`)
+    await page.keyboard.press('Control+Shift+s')
+    await expect(page.locator('[data-notice]')).toContainText(
+      outcome === 'cancel' ? '取消另存为' : 'disk full',
+    )
+    await expect(page.locator('[data-title-path]')).toHaveText('未保存')
+    await expect(page.locator('[data-save-label]')).toContainText('未保存')
+    await expect(page.locator('.milkup-editor-content')).toContainText('SAVE-AS-DRAFT')
+  }
+})
+
+test('windowed memory documents keep finalized composition separate from adjacent typing', async ({
+  page,
+}) => {
+  await page.route(/\/src\/file-service\.ts(?:\?|$)/, async (route) => {
+    const response = await route.fetch()
+    const body = (await response.text()).replace(
+      'function createDesktopFileService() {',
+      `function createDesktopFileService() {
+      const service = createMockFileService();
+      const text = 'ORIGINAL\\n' + 'body line\\n'.repeat(16000);
+      service.getFileMetadata = async path => ({ path, sizeBytes: text.length, readonly: false });
+      service.openPath = async path => ({ documentId: 'windowed', file: {path}, text, diskSnapshotHash: 'initial' });
+      return service;`,
+    )
+    await route.fulfill({ response, body })
+  })
+  await page.goto('/')
+  await runMenuCommand(page, '打开')
+  await expect(page.locator('#app')).toHaveAttribute('data-loading', 'ready')
+  await expect(page.locator('.milkup-source-document-view')).toBeVisible()
+  await page.keyboard.press('Control+1')
+  await page.keyboard.type('A')
+  await expect(page.locator('[data-stat="version"]')).toHaveText('1')
+  await page.evaluate(() => {
+    const input = document.querySelector<HTMLTextAreaElement>('.milkup-input-proxy')!
+    input.dispatchEvent(new CompositionEvent('compositionstart', { bubbles: true }))
+    input.value = '中'
+    input.dispatchEvent(new CompositionEvent('compositionend', { data: '中', bubbles: true }))
+  })
+  await expect(page.locator('[data-stat="version"]')).toHaveText('2')
+  await page.keyboard.type('X')
+  await expect(page.locator('[data-stat="version"]')).toHaveText('3')
+  await expect(page.locator('.milkup-line[data-line="1"]')).toHaveText('A中XORIGINAL')
+  await page.keyboard.press('Control+z')
+  await expect(page.locator('.milkup-line[data-line="1"]')).toHaveText('A中ORIGINAL')
+  await page.keyboard.press('Control+z')
+  await expect(page.locator('.milkup-line[data-line="1"]')).toHaveText('AORIGINAL')
+})
+
+// These browser cases exercise the real SDK Worker and reject untrusted ClipboardEvents.
+// Delayed native stage/CAS/disposal races live in resource-service.test.ts and
+// plugins/images/src/controller.test.ts; actual chooser/clipboard success requires native evidence.
+const imageFixtureBytes = Array.from(
+  readFileSync(new URL('../../plugins/images/assets/images.png', import.meta.url)),
+)
+const imagesPanel = (page: Page) => page.locator('[data-plugin-ui="milkup.images:images-panel"]')
+async function openImagesPanel(page: Page): Promise<void> {
+  await page.getByRole('button', { name: '菜单', exact: true }).click()
+  await page.getByRole('button', { name: '插件', exact: true }).click()
+  await page
+    .locator(
+      '[data-plugin-action="open-ui"][data-plugin-id="milkup.images"][data-plugin-ui-id="images-panel"]',
+    )
+    .click()
+  await expect(imagesPanel(page).getByLabel('资源目录', { exact: true })).toBeEnabled()
+}
+async function closeImagesPanel(page: Page): Promise<void> {
+  await page.keyboard.press('Escape')
+  await expect(imagesPanel(page)).toHaveCount(0)
+  if (await page.locator('[data-menu-close]').isVisible())
+    await page.locator('[data-menu-close]').click()
+  await page.locator('.milkup-input-proxy').focus()
+}
+async function setupImagesWorker(page: Page): Promise<void> {
+  await installImagesFixture(page, { enabled: true, approved: true })
+  await page.goto('/')
+  await expect(page.locator('#app')).toHaveAttribute('data-loading', /^(idle|ready)$/)
+  await openImagesPanel(page)
+  await closeImagesPanel(page)
+}
+async function pasteSyntheticImage(page: Page): Promise<void> {
+  await page.locator('.milkup-input-proxy').evaluate((input, bytes) => {
+    const data = new DataTransfer()
+    data.items.add(new File([new Uint8Array(bytes)], 'valid-image.png', { type: 'image/png' }))
+    const event = new ClipboardEvent('paste', {
+      clipboardData: data,
+      bubbles: true,
+      cancelable: true,
+    })
+    if (event.isTrusted) throw new Error('This negative fixture must remain an untrusted event')
+    input.dispatchEvent(event)
+  }, imageFixtureBytes)
+}
+
+test('rejected synthetic image paste cannot inject references into a newly created document', async ({
+  page,
+}) => {
+  await setupImagesWorker(page)
+  await pasteSyntheticImage(page)
+  await expect(page.locator('[data-notice]')).toContainText('图片粘贴未完成')
+  const previousId = await page.locator('[data-stat="document-id"]').textContent()
+  await page.keyboard.press('Control+n')
+  await expect(page.locator('[data-stat="document-id"]')).not.toHaveText(previousId!)
+  await page.evaluate(() => new Promise(requestAnimationFrame))
+  await expect(page.locator('[data-stat="char-count"]')).toHaveText('0 字符')
+  await expect(page.locator('[data-save-label]')).toContainText('已保存')
+  await page.keyboard.type('NEW')
+  await page.keyboard.press('Control+z')
+  await expect(page.locator('[data-stat="char-count"]')).toHaveText('0 字符')
+})
+
+for (const kind of ['modified', 'deleted', 'own-save'] as const) {
+  test(`pending save reconciles ${kind} events before allowing navigation`, async ({ page }) => {
+    await installSaveProbe(page)
+    await page.goto('/')
+    await page.keyboard.type('KEEP')
+    await page.keyboard.press('Control+s')
+    await expect(page.locator('[data-save-label]')).toContainText('已保存')
+    await page.keyboard.type('!')
+    const previousId = await page.locator('[data-stat="document-id"]').textContent()
+    await page.evaluate("window.__milkupSaveProbe.outcome = 'pending'")
+    await page.keyboard.press('Control+n')
+    const dialog = page.getByRole('dialog', { name: '文档尚未保存' })
+    await dialog.getByRole('button', { name: '保存并新建文档', exact: true }).click()
+    await expect.poll(() => page.evaluate('window.__milkupSaveProbe.calls')).toBe(2)
+    await page.evaluate((kind) => {
+      const host = window as unknown as {
+        __milkupFileWatch: (event: unknown) => void
+        __milkupSaveProbe: { text: string; release: (value: string) => void }
+      }
+      host.__milkupFileWatch({
+        kind: kind === 'deleted' ? 'deleted' : 'modified',
+        documentId: document.querySelector('[data-stat="document-id"]')!.textContent,
+        file: { path: '/notes/saved.md' },
+        ...(kind === 'own-save'
+          ? { diskSnapshotHash: 'saved:' + host.__milkupSaveProbe.text }
+          : {}),
+      })
+      host.__milkupSaveProbe.release('success')
+    }, kind)
+    if (kind === 'own-save') {
+      await expect(dialog).toBeHidden()
+      await expect(page.locator('[data-stat="document-id"]')).not.toHaveText(previousId!)
+    } else {
+      await expect(dialog.getByRole('alert')).toContainText('外部')
+      await expect(page.locator('[data-stat="document-id"]')).toHaveText(previousId!)
+      await expect(page.locator('.milkup-editor-content')).toContainText('KEEP!')
+      await expect(page.locator('[data-stat="external"]')).not.toHaveText('none')
+      await page.keyboard.press('Escape')
+      await page.keyboard.press('Control+s')
+      expect(await page.evaluate('window.__milkupSaveProbe.calls')).toBe(2)
+    }
+  })
+}
+
+test('saving after rejected synthetic image paste preserves the exact saved snapshot', async ({
+  page,
+}) => {
+  await installSaveProbe(page)
+  const errors: string[] = []
+  page.on('pageerror', (error) => errors.push(error.message))
+  await setupImagesWorker(page)
+  const original = 'BEFORE 中文 👩🏽‍💻'
+  await page.keyboard.insertText(original)
+  const version = await page.locator('[data-stat="version"]').textContent()
+  await pasteSyntheticImage(page)
+  await expect(page.locator('[data-notice]')).toContainText('图片粘贴未完成')
+  await page.keyboard.press('Control+s')
+  await expect(page.locator('[data-save-label]')).toContainText('已保存')
+  await expect(page.locator('.milkup-editor-content')).toHaveText(original)
+  await expect(page.locator('[data-stat="version"]')).toHaveText(version!)
+  expect(await page.evaluate('window.__milkupSaveProbe.text')).toBe(original)
+  expect(errors).toEqual([])
+})
+
+test('browser image chooser failure and retry preserve the document and editable history', async ({
+  page,
+}) => {
+  const errors: string[] = []
+  page.on('pageerror', (error) => errors.push(error.message))
+  await setupImagesWorker(page)
+  await runMenuCommand(page, '打开')
+  await expect(page.locator('#app')).toHaveAttribute('data-loading', 'ready')
+  const original = await page.locator('.milkup-editor-content').textContent()
+  const version = await page.locator('[data-stat="version"]').textContent()
+  await openImagesPanel(page)
+  await imagesPanel(page).getByRole('button', { name: '选择并插入图片', exact: true }).click()
+  await expect(imagesPanel(page).getByRole('alert')).toContainText('暂不支持')
+  const renderedAgain = imagesPanel(page).evaluate(
+    (element) =>
+      new Promise<void>((resolve) => {
+        const observer = new MutationObserver(() => {
+          observer.disconnect()
+          resolve()
+        })
+        observer.observe(element, { childList: true, subtree: true, characterData: true })
+      }),
+  )
+  await imagesPanel(page).getByRole('button', { name: '重新选择图片', exact: true }).click()
+  await renderedAgain
+  await expect(
+    imagesPanel(page).getByRole('button', { name: '重新选择图片', exact: true }),
+  ).toBeEnabled()
+  await expect(imagesPanel(page).getByRole('alert')).toContainText('暂不支持')
+  await closeImagesPanel(page)
+  await expect(page.locator('.milkup-editor-content')).toHaveText(original!)
+  await expect(page.locator('[data-stat="version"]')).toHaveText(version!)
+  await expect(page.locator('[data-save-label]')).toContainText('已保存')
+  await page.keyboard.type('AFTER')
+  await page.keyboard.press('Control+z')
+  await expect(page.locator('.milkup-editor-content')).toHaveText(original!)
+  expect(errors).toEqual([])
+})
+
+for (const mode of ['source', 'live'] as const) {
+  test(`Unicode graphemes survive keyboard selection, deletion and undo in ${mode}`, async ({
+    page,
+  }) => {
+    await page.goto('/')
+    if (mode === 'source') await page.keyboard.press('Control+1')
+    await page.keyboard.insertText('A👩🏽‍💻B')
+    await page.keyboard.press('ArrowLeft')
+    await page.keyboard.press('Backspace')
+    await expect(page.locator('.milkup-editor-content')).toHaveText('AB')
+    await page.keyboard.press('Control+z')
+    await expect(page.locator('.milkup-editor-content')).toHaveText('A👩🏽‍💻B')
+    await page.keyboard.press('Control+a')
+    await page.keyboard.press('ArrowLeft')
+    await page.keyboard.press('ArrowRight')
+    await page.keyboard.press('Shift+ArrowRight')
+    await page.keyboard.press('Delete')
+    await expect(page.locator('.milkup-editor-content')).toHaveText('AB')
+    await page.keyboard.press('Control+z')
+    await expect(page.locator('.milkup-editor-content')).toHaveText('A👩🏽‍💻B')
+    await page.keyboard.press('Control+Shift+z')
+    await expect(page.locator('.milkup-editor-content')).toHaveText('AB')
+  })
+}
+
+for (const mode of ['source', 'live'] as const) {
+  test(`windowed ${mode} keyboard edits preserve whole graphemes and undo`, async ({ page }) => {
+    await page.route(/\/src\/file-service\.ts(?:\?|$)/, async (route) => {
+      const response = await route.fetch()
+      const body = (await response.text()).replace(
+        'function createDesktopFileService() {',
+        `function createDesktopFileService() {
+          const service = createMockFileService();
+          const text = 'A👩🏽‍💻B\\r\\n' + 'body line\\r\\n'.repeat(16000);
+          service.getFileMetadata = async path => ({ path, sizeBytes: text.length, readonly: false });
+          service.openPath = async path => ({ documentId: 'unicode-window', file: {path}, text, diskSnapshotHash: 'initial' });
+          return service;`,
+      )
+      await route.fulfill({ response, body })
+    })
+    await page.goto('/')
+    await runMenuCommand(page, '打开')
+    await expect(page.locator('#app')).toHaveAttribute('data-loading', 'ready')
+    await expect(page.locator('.milkup-source-document-view')).toBeVisible()
+    if (mode === 'source') await page.keyboard.press('Control+1')
+    await page.locator('.milkup-input-proxy').focus()
+    await page.keyboard.press('ArrowRight')
+    await page.keyboard.press('ArrowRight')
+    await expect(page.locator('.milkup-cursor')).toHaveAttribute('data-position', '8')
+    await page.keyboard.press('Backspace')
+    await expect(page.locator('.milkup-line[data-line="1"]')).toHaveText('AB')
+    await page.keyboard.press('Control+z')
+    await expect(page.locator('.milkup-line[data-line="1"]')).toHaveText('A👩🏽‍💻B')
+    await page.keyboard.press('Control+Shift+z')
+    await expect(page.locator('.milkup-line[data-line="1"]')).toHaveText('AB')
+  })
+}
+
+test('issue 255 bracket typing keeps its position after delayed rendering', async ({ page }) => {
+  await page.goto('/')
+  const input = page.locator('.milkup-input-proxy')
+  await input.focus()
+  await page.keyboard.type('()tail')
+  await page.keyboard.press('Control+a')
+  await page.keyboard.press('ArrowLeft')
+  await page.keyboard.press('ArrowRight')
+  await page.keyboard.type('abc123')
+  await expect(page.locator('.milkup-cursor')).toHaveAttribute('data-position', '7')
+  // The historical report specifically describes a 1–2 second delayed jump.
+  await page.waitForTimeout(2500)
+  await expect(page.locator('.milkup-cursor')).toHaveAttribute('data-position', '7')
+  await page.keyboard.type('X')
+  await expect(page.locator('.milkup-line[data-line="1"]')).toHaveText('(abc123X)tail')
+})
+
+test('issue 255 single-space headings render immediately after an image line', async ({ page }) => {
+  await page.goto('/')
+  await page.locator('.milkup-input-proxy').focus()
+  await page.keyboard.type('![alt](missing.png)')
+  await page.keyboard.press('Enter')
+  await page.keyboard.type('## 3')
+  await page.keyboard.press('Enter')
+  await expect(page.locator('.milkup-line[data-line="2"] .milkup-heading-content')).toHaveText('3')
+  await page.keyboard.type('## title')
+  await page.keyboard.press('Enter')
+  await expect(page.locator('.milkup-line[data-line="3"] .milkup-heading-content')).toHaveText(
+    'title',
+  )
+})
+
+for (const mode of ['source', 'live'] as const) {
+  test(`${mode} list keyboard nesting, exit and undo survive mode changes`, async ({ page }) => {
+    await page.goto('/')
+    if (mode === 'source') await page.keyboard.press('Control+1')
+    await page.locator('.milkup-input-proxy').focus()
+    await page.keyboard.type('- item')
+    await page.keyboard.press('Tab')
+    await expect(page.locator('.milkup-cursor')).toHaveAttribute('data-position', '8')
+    await page.keyboard.press(mode === 'source' ? 'Control+2' : 'Control+1')
+    await expect(page.locator('.milkup-cursor')).toHaveAttribute('data-position', '8')
+    await page.keyboard.press(mode === 'source' ? 'Control+1' : 'Control+2')
+    await page.keyboard.press('Shift+Tab')
+    await page.keyboard.press('Enter')
+    await expect(page.locator('.milkup-cursor')).toHaveAttribute('data-position', '9')
+    await page.keyboard.press('Enter')
+    await expect(page.locator('.milkup-cursor')).toHaveAttribute('data-position', '7')
+    await page.keyboard.press('Control+z')
+    await expect(page.locator('.milkup-cursor')).toHaveAttribute('data-position', '9')
+    await page.keyboard.press('Control+1')
+    await expect(page.locator('.milkup-line[data-line="2"]')).toHaveText('-')
+    await page.keyboard.press('Backspace')
+    await expect(page.locator('.milkup-cursor')).toHaveAttribute('data-position', '7')
+  })
+  test(`${mode} code block Enter preserves literal markers and blank lines`, async ({ page }) => {
+    await page.goto('/')
+    if (mode === 'source') await page.keyboard.press('Control+1')
+    await page.locator('.milkup-input-proxy').focus()
+    const code = '```js\n- literal\n  value\n```'
+    await page.keyboard.insertText(code)
+    // Live navigation skips the hidden opening fence. Locate the visible line
+    // with a real click, then verify the exact source position before Enter.
+    await page.locator('.milkup-line[data-line="2"]').click()
+    await page.keyboard.press('End')
+    await expect(page.locator('.milkup-cursor')).toHaveAttribute(
+      'data-position',
+      String(code.indexOf('\n  value')),
+    )
+    await page.keyboard.press('Enter')
+    await expect
+      .poll(() =>
+        page
+          .locator('.milkup-line[data-line="3"]')
+          .evaluate((el) => el.textContent?.replace(/\u200b/g, '')),
+      )
+      .toBe('')
+    await page.keyboard.press('Control+z')
+    await expect
+      .poll(() => page.locator('.milkup-line[data-line="3"]').evaluate((el) => el.textContent))
+      .toBe('  value')
+    await page.keyboard.press('ArrowDown')
+    await page.keyboard.press('Enter')
+    await expect
+      .poll(() =>
+        page
+          .locator('.milkup-line[data-line="4"]')
+          .evaluate((el) => el.textContent?.replace(/\u200b/g, '')),
+      )
+      .toBe('  ')
+    await page.keyboard.press(mode === 'source' ? 'Control+2' : 'Control+1')
+    await page.keyboard.press('Control+z')
+    await expect(page.locator('.milkup-line[data-line="4"]')).toHaveText('```')
+  })
+}
+
+const editableTable = '| Name | Value |\n| --- | --- |\n| A | 1 |\n| B | 2 |'
+async function openEditableTable(page: Page): Promise<void> {
+  await formattingFixture(page)
+  await page.keyboard.press('Control+2')
+  await page.locator('.milkup-input-proxy').focus()
+  await page.keyboard.insertText(editableTable)
+  await page.locator('.milkup-line[data-line="3"] .milkup-table-cell').first().click()
+  // Native Shift+Tab/Tab selects the first body cell without a modal focus hop.
+  await page.keyboard.press('Tab')
+  await page.keyboard.press('Shift+Tab')
+}
+test('live table navigation replaces one cell, keeps line breaks and supports undo', async ({
+  page,
+}) => {
+  await openEditableTable(page)
+  await page.keyboard.press('Tab')
+  await page.keyboard.type('x')
+  await expect(page.locator('.milkup-line[data-line="3"] .milkup-table-cell').nth(1)).toHaveText(
+    'x',
+  )
+  await page.keyboard.press('Control+z')
+  await page.keyboard.press('Shift+Tab')
+  await page.keyboard.press('Enter')
+  await page.keyboard.type('second')
+  await expect(page.locator('.milkup-line[data-line="4"] .milkup-table-cell').first()).toHaveText(
+    'second',
+  )
+  await page.keyboard.press('Shift+Enter')
+  // Assert one committed input undo boundary independently of host key dispatch latency.
+  await page.keyboard.insertText('line|value')
+  await expect(page.locator('.milkup-line[data-line="4"] .milkup-table-cell')).toHaveCount(2)
+  await expect(page.locator('.milkup-line[data-line="4"] .milkup-table-cell br')).toHaveCount(1)
+  await page.keyboard.press('Control+1')
+  await expect(page.locator('.milkup-line[data-line="4"]')).toHaveText(
+    '| second<br>line\\|value | 2 |',
+  )
+  await page.keyboard.press('Control+z')
+  await expect(page.locator('.milkup-line[data-line="4"]')).toHaveText('| second<br> | 2 |')
+  await page.keyboard.press('Control+z')
+  await expect(page.locator('.milkup-line[data-line="4"]')).toHaveText('| second | 2 |')
+})
+test('table toolbar preserves row and column content through undo and redo', async ({ page }) => {
+  await openEditableTable(page)
+  await page.getByRole('button', { name: '右侧加列', exact: true }).click()
+  await expect(page.locator('.milkup-line[data-line="1"] .milkup-table-cell')).toHaveCount(3)
+  const cellBox = await page
+    .locator('.milkup-line[data-line="3"] .milkup-table-cell')
+    .nth(1)
+    .boundingBox()
+  const cursorBox = await page.locator('.milkup-cursor').boundingBox()
+  expect(cursorBox!.x).toBeGreaterThanOrEqual(cellBox!.x)
+  expect(cursorBox!.x).toBeLessThan(cellBox!.x + cellBox!.width)
+  await page.getByRole('button', { name: '删除列', exact: true }).click()
+  await expect(page.locator('.milkup-line[data-line="1"] .milkup-table-cell')).toHaveCount(2)
+  await page.keyboard.press('Control+z')
+  await expect(page.locator('.milkup-line[data-line="1"] .milkup-table-cell')).toHaveCount(3)
+  await page.keyboard.press('Control+Shift+z')
+  await expect(page.locator('.milkup-line[data-line="1"] .milkup-table-cell')).toHaveCount(2)
+  await page.getByRole('button', { name: '下方加行', exact: true }).click()
+  await expect(page.locator('.milkup-line')).toHaveCount(5)
+  await expect(page.locator('.milkup-input-proxy')).toBeFocused()
+  await page.keyboard.type('new')
+  await expect(page.locator('.milkup-line[data-line="4"] .milkup-table-cell').nth(1)).toHaveText(
+    'new',
+  )
+  await page.getByRole('button', { name: '删除行', exact: true }).click()
+  await expect(page.locator('.milkup-line[data-line="4"] .milkup-table-cell').first()).toHaveText(
+    'B',
+  )
+  await page.keyboard.press('Control+z')
+  await expect(page.locator('.milkup-line[data-line="4"] .milkup-table-cell').nth(1)).toHaveText(
+    'new',
+  )
+})
+test('rendered table copy offers HTML and exact Markdown; source copy stays plain', async ({
+  page,
+  context,
+}) => {
+  await context.grantPermissions(['clipboard-read', 'clipboard-write'])
+  await page.goto('/')
+  const source = '| 名称 | Value |\n| :--- | ---: |\n| A & <x> | **1**<br>two |'
+  await page.locator('.milkup-input-proxy').focus()
+  await page.keyboard.insertText(source)
+  await page.keyboard.press('Control+a')
+  await page.keyboard.press('Control+c')
+  const payload = await page.evaluate(async () => {
+    const item = (await navigator.clipboard.read())[0]!
+    return {
+      text: await (await item.getType('text/plain')).text(),
+      html: await (await item.getType('text/html')).text(),
+    }
+  })
+  expect(payload.text).toBe(source)
+  const structure = await page.evaluate((html) => {
+    const doc = new DOMParser().parseFromString(html, 'text/html')
+    return {
+      rows: doc.querySelectorAll('table tr').length,
+      headers: doc.querySelectorAll('th').length,
+      cell: doc.querySelector('td')?.textContent,
+      breaks: doc.querySelectorAll('td br').length,
+      scripts: doc.querySelectorAll('script').length,
+    }
+  }, payload.html)
+  expect(structure).toEqual({ rows: 2, headers: 2, cell: 'A & <x>', breaks: 1, scripts: 0 })
+  await page.keyboard.press('Control+1')
+  await page.keyboard.press('Control+c')
+  expect(
+    await page.evaluate(async () => (await navigator.clipboard.read())[0]!.types),
+  ).not.toContain('text/html')
+  expect(await page.evaluate(() => navigator.clipboard.readText())).toBe(source)
+})
+test('native-style multiline clipboard paste stays within a cell and table exit is undoable', async ({
+  page,
+  context,
+}) => {
+  await context.grantPermissions(['clipboard-read', 'clipboard-write'])
+  await openEditableTable(page)
+  await page.evaluate(() => navigator.clipboard.writeText('one\ntwo|three'))
+  await page.keyboard.press('Control+v')
+  await expect(page.locator('.milkup-line[data-line="3"] .milkup-table-cell')).toHaveCount(2)
+  await page.keyboard.press('Control+1')
+  await expect(page.locator('.milkup-line[data-line="3"]')).toHaveText('| one<br>two\\|three | 1 |')
+  await page.keyboard.press('Control+2')
+  await page.keyboard.press('Control+z')
+  await page.getByRole('button', { name: '退出表格', exact: true }).click()
+  // The public Worker command commits asynchronously; observe its structural
+  // result before issuing the next, independent typing transaction.
+  await expect(page.locator('.milkup-line[data-line="6"]')).toHaveCount(1)
+  await expect(page.locator('.milkup-input-proxy')).toBeFocused()
+  await page.keyboard.type('after')
+  await expect(page.locator('.milkup-line[data-line="6"]')).toHaveText('after')
+  await page.keyboard.press('Control+z')
+  await page.keyboard.press('Control+z')
+  await expect(page.locator('.milkup-line')).toHaveCount(4)
+})
+
+test('phase9 search updates queries and keeps keyboard navigation in the search box', async ({
+  page,
+}) => {
+  await page.goto('/')
+  await page.locator('.milkup-input-proxy').focus()
+  await page.keyboard.insertText('alpha target beta target')
+  await page.keyboard.press('Control+f')
+  const search = page.getByRole('searchbox', { name: '搜索', exact: true })
+  await search.fill('target')
+  await expect(page.locator('[data-search-result-count]')).toHaveText('1/2')
+  await expect(search).toBeFocused()
+  await search.press('Enter')
+  await expect(page.locator('[data-search-result-count]')).toHaveText('2/2')
+  await search.press('Shift+Enter')
+  await expect(page.locator('[data-search-result-count]')).toHaveText('1/2')
+  await search.fill('missing')
+  await expect(page.locator('[data-search-result-count]')).toHaveText('0/0')
+  await expect(page.locator('.milkup-search-highlight')).toHaveCount(0)
+})
+
+test('phase9 outline updates renamed headings and highlights the current section', async ({
+  page,
+}) => {
+  await page.addInitScript(
+    (registry) => localStorage.setItem('milkup.desktop.plugins.registry.v1', registry),
+    await sealRegistryFixture(page, outlineRegistry(600)),
+  )
+  await page.goto('/')
+  await page.locator('.milkup-input-proxy').focus()
+  await page.keyboard.insertText('# First\nbody\n### Third\ntext')
+  await page.getByRole('button', { name: '侧栏', exact: true }).click()
+  const outline = page.locator('[data-plugin-ui="milkup.outline:outline-panel"]')
+  await expect(
+    outline.getByRole('treeitem', { name: '跳转到 First，第 1 行', exact: true }),
+  ).toBeVisible()
+  await outline.getByRole('treeitem', { name: '跳转到 First，第 1 行', exact: true }).click()
+  await expect(page.locator('.milkup-input-proxy')).toBeFocused()
+  await page.keyboard.press('End')
+  await page.keyboard.insertText(' renamed')
+  await expect(
+    outline.getByRole('treeitem', { name: '跳转到 First renamed，第 1 行', exact: true }),
+  ).toBeVisible()
+})
+
+test('phase9 literal replacement preserves Unicode offsets and one undo boundary', async ({
+  page,
+}) => {
+  await page.goto('/')
+  await page.keyboard.insertText('İ foo 😀 FOO [x] .*')
+  await page.keyboard.press('Control+f')
+  const search = page.getByRole('searchbox', { name: '搜索', exact: true })
+  await search.fill('foo')
+  await expect(page.locator('[data-search-result-count]')).toHaveText('1/2')
+  await page.getByRole('button', { name: '区分大小写', exact: true }).click()
+  await expect(page.locator('[data-search-result-count]')).toHaveText('1/1')
+  await page.getByRole('textbox', { name: '替换为', exact: true }).fill('$1中')
+  await page.getByRole('button', { name: '替换', exact: true }).click()
+  await expect(page.locator('.milkup-editor-content')).toHaveText('İ $1中 😀 FOO [x] .*')
+  await expect(page.locator('[data-search-message]')).toHaveText('没有匹配结果')
+  await search.focus()
+  await search.press('Control+a')
+  await search.press('Backspace')
+  await search.press('f')
+  await expect(search).toHaveValue('f')
+  await expect(page.locator('.milkup-editor-content')).toHaveText('İ $1中 😀 FOO [x] .*')
+  await search.press('Escape')
+  await expect(page.locator('.milkup-input-proxy')).toBeFocused()
+  await page.keyboard.press('Control+z')
+  await expect(page.locator('.milkup-editor-content')).toHaveText('İ foo 😀 FOO [x] .*')
+  await page.keyboard.press('Control+Shift+z')
+  await expect(page.locator('.milkup-editor-content')).toHaveText('İ $1中 😀 FOO [x] .*')
+})
+
+test('phase9 replace all deletes literally and rejects a stale query', async ({ page }) => {
+  await page.goto('/')
+  await page.keyboard.insertText('aa .* aa .*')
+  await page.keyboard.press('Control+h')
+  await expect(page.getByRole('textbox', { name: '替换为', exact: true })).toBeFocused()
+  const search = page.getByRole('searchbox', { name: '搜索', exact: true })
+  await search.fill('.*')
+  await expect(page.locator('[data-search-result-count]')).toHaveText('1/2')
+  await page.getByRole('button', { name: '全部替换', exact: true }).click()
+  await expect(page.locator('.milkup-editor-content')).toHaveText('aa  aa ')
+  await expect(page.locator('[data-search-result-count]')).toHaveText('0/0')
+  await search.fill('[')
+  await expect(page.locator('[data-search-message]')).toHaveText('没有匹配结果')
+  await expect(page.getByRole('button', { name: '全部替换', exact: true })).toBeDisabled()
+  await search.press('Escape')
+  await page.keyboard.press('Control+z')
+  await expect(page.locator('.milkup-editor-content')).toHaveText('aa .* aa .*')
+})
+
+test('phase9 editing refreshes results without moving the caret and switching documents clears them', async ({
+  page,
+}) => {
+  await page.goto('/')
+  await page.keyboard.insertText('target target')
+  await page.keyboard.press('Control+f')
+  const search = page.getByRole('searchbox', { name: '搜索', exact: true })
+  await search.fill('target')
+  await expect(page.locator('[data-search-result-count]')).toHaveText('1/2')
+  await search.press('F3')
+  await expect(page.locator('[data-search-result-count]')).toHaveText('2/2')
+  await search.press('Shift+F3')
+  await expect(page.locator('[data-search-result-count]')).toHaveText('1/2')
+  await page.locator('.milkup-input-proxy').focus()
+  await page.keyboard.insertText('changed')
+  await expect(page.locator('[data-search-result-count]')).toHaveText('1/1')
+  await page.keyboard.insertText('!')
+  await expect(page.locator('.milkup-editor-content')).toHaveText('changed! target')
+  await page.keyboard.press('Control+n')
+  await page.locator('[data-close-confirm-action="discard"].dialog-button').click()
+  await expect(page.locator('.milkup-editor-content')).toHaveText('')
+  await expect(page.locator('[data-search-result-count]')).toHaveText('0/0')
+  await expect(page.locator('.milkup-search-highlight')).toHaveCount(0)
+})
+
+test('phase9 truncated results are explicit and cannot be replaced as a complete set', async ({
+  page,
+}) => {
+  await page.goto('/')
+  await page.keyboard.insertText('target '.repeat(205))
+  await page.keyboard.press('Control+f')
+  await page.getByRole('searchbox', { name: '搜索', exact: true }).fill('target')
+  await expect(page.locator('[data-search-result-count]')).toHaveText('1/200+')
+  await expect(page.locator('[data-search-message]')).toContainText('仅显示前 200 处')
+  await expect(page.getByRole('button', { name: '全部替换', exact: true })).toBeDisabled()
+  await expect(page.getByRole('button', { name: '替换', exact: true })).toBeEnabled()
+})
+
+test('phase9 narrow search and outline stay reachable and source mode removes inline code styling', async ({
+  page,
+}) => {
+  await page.addInitScript(
+    (registry) => localStorage.setItem('milkup.desktop.plugins.registry.v1', registry),
+    await sealRegistryFixture(page, outlineRegistry()),
+  )
+  await page.setViewportSize({ width: 760, height: 520 })
+  await page.goto('/')
+  await page.keyboard.insertText('# Heading\ntext `code` tail\n### Child\nbody')
+  await page.getByRole('button', { name: '侧栏', exact: true }).click()
+  await page.keyboard.press('Control+f')
+  await page.getByRole('searchbox', { name: '搜索', exact: true }).fill('code')
+  await expect(page.locator('[data-search-result-count]')).toHaveText('1/1')
+  await expect(page.locator('[data-replace-cancel]')).toBeHidden()
+  const bounds = await page.evaluate(() => {
+    const search = document.querySelector('[data-floating-search]')!.getBoundingClientRect()
+    const editor = document.querySelector('[data-editor-host]')!.getBoundingClientRect()
+    return {
+      right: search.right,
+      bottom: search.bottom,
+      editorTop: editor.top,
+      editorHeight: editor.height,
+      overflow: document.documentElement.scrollWidth > innerWidth,
+      controls: Array.from(
+        document.querySelectorAll('[data-floating-search] button, [data-floating-search] input'),
+      )
+        .filter((e) => e.getClientRects().length > 0)
+        .every((e) => {
+          const r = e.getBoundingClientRect()
+          return r.left >= search.left && r.right <= search.right
+        }),
+    }
+  })
+  expect(bounds.right).toBeLessThanOrEqual(760)
+  expect(bounds.bottom).toBeLessThanOrEqual(bounds.editorTop)
+  expect(bounds.overflow).toBe(false)
+  expect(bounds.controls).toBe(true)
+  expect(bounds.editorHeight).toBeGreaterThanOrEqual(200)
+  await page.keyboard.press('Escape')
+  for (let i = 0; i < 3; i++) {
+    await page.keyboard.press('Control+1')
+    await expect(page.locator('.milkup-editor')).toHaveAttribute('data-mode', 'source')
+    await expect(page.locator('.milkup-line[data-line="2"]')).toHaveText('text `code` tail')
+    const styles = await page.locator('.milkup-line[data-line="2"]').evaluate((e) =>
+      Array.from(e.querySelectorAll('*')).map((n) => ({
+        background: getComputedStyle(n).backgroundColor,
+        font: getComputedStyle(n).fontFamily,
+        border: getComputedStyle(n).borderWidth,
+      })),
+    )
+    expect(styles.every((s) => s.background === 'rgba(0, 0, 0, 0)' && s.border === '0px')).toBe(
+      true,
+    )
+    await page.keyboard.press('Control+2')
+  }
+  await page.getByRole('button', { name: '侧栏', exact: true }).click()
+  const child = page.getByRole('treeitem', {
+    name: '跳转到 Child，第 3 行',
+    exact: true,
+    includeHidden: true,
+  })
+  await child.focus()
+  await child.press('Enter')
+  await expect(page.locator('.milkup-input-proxy')).toBeFocused()
+  await expect(child).toHaveAttribute('aria-current', 'location')
+})
+
+test('phase10 live table arrows skip delimiters and protect shifted cell selections', async ({
+  page,
+}, testInfo) => {
+  await openEditableTable(page)
+  await page.keyboard.press('ArrowRight')
+  await page.keyboard.press('ArrowRight')
+  await expect(page.locator('.milkup-cursor')).toHaveAttribute(
+    'data-position',
+    String(editableTable.indexOf('1')),
+  )
+  await page.keyboard.press('ArrowLeft')
+  await page.keyboard.press('Home')
+  await page.keyboard.press('ArrowUp')
+  await expect(page.locator('.milkup-cursor')).toHaveAttribute(
+    'data-position',
+    String(editableTable.indexOf('Name')),
+  )
+  await page.keyboard.press('ArrowDown')
+  await page.keyboard.press('Shift+ArrowLeft')
+  await page.keyboard.press('Shift+ArrowRight')
+  await page.keyboard.press('Shift+ArrowRight')
+  await page.keyboard.type('x')
+  await page.keyboard.press('Control+1')
+  await expect(page.locator('.milkup-line[data-line="3"]')).toHaveText('| x | 1 |')
+  await page.keyboard.press('Control+z')
+  await expect(page.locator('.milkup-line[data-line="3"]')).toHaveText('| A | 1 |')
+  await page.keyboard.press('Control+2')
+  await page.screenshot({ path: testInfo.outputPath('table-arrows.png') })
+})
+
+test('menu and titlebar contain keyboard focus and close ahead of background search', async ({
+  page,
+}) => {
+  await page.goto('/')
+  await page.keyboard.type('keep')
+  await page.keyboard.press('Control+f')
+  await page.getByRole('button', { name: '菜单', exact: true }).click()
+  await page.keyboard.press('Shift+Tab')
+  await page.keyboard.press('Shift+Tab')
+  expect(
+    await page
+      .locator('[data-app-menu]')
+      .evaluate(
+        (e) =>
+          e.contains(document.activeElement) ||
+          !!document.querySelector('.titlebar')?.contains(document.activeElement),
+      ),
+  ).toBe(true)
+  await page.keyboard.press('Escape')
+  await expect(page.locator('[data-app-menu]')).toBeHidden()
+  await expect(page.locator('[data-floating-search]')).toBeVisible()
+  // P7 returns to the menu invoker while retaining the background search.
+  await expect(page.getByRole('button', { name: '菜单', exact: true })).toBeFocused()
+  await page.getByRole('button', { name: '菜单', exact: true }).click()
+  await page.keyboard.press('Control+n')
+  await expect(page.locator('[data-close-confirm]')).toBeVisible()
+  await page.keyboard.press('Escape')
+  await expect(page.locator('[data-app-menu]')).toBeHidden()
+  await expect(page.locator('.milkup-input-proxy')).toBeFocused()
+})
+
+test('phase16 F6 reaches shell without plugins and keeps basic table navigation and document text', async ({
+  page,
+}) => {
+  await page.goto('/')
+  await page.locator('.milkup-input-proxy').focus()
+  await page.keyboard.insertText(editableTable)
+  await page.locator('.milkup-line[data-line="3"] .milkup-table-cell').first().click()
+  await page.keyboard.press('Tab')
+  await page.keyboard.press('Shift+Tab')
+  const before = await page.locator('.milkup-editor-content').textContent()
+  await page.keyboard.press('F6')
+  await expect(page.locator('[data-sidebar-toggle]')).toBeFocused()
+  await page.keyboard.press('F6')
+  await expect(page.locator('[data-menu-toggle]')).toBeFocused()
+  await page.keyboard.press('Enter')
+  await page.keyboard.press('Escape')
+  // P7 restores the actual menu opener; F6 still returns to the document.
+  await expect(page.locator('[data-menu-toggle]')).toBeFocused()
+  await page.keyboard.press('F6')
+  await expect(page.locator('.milkup-input-proxy')).toBeFocused()
+  await expect(page.locator('.milkup-input-proxy')).toHaveAttribute('aria-label', 'Markdown 编辑器')
+  await expect(page.locator('.milkup-input-proxy')).not.toHaveAttribute('aria-hidden', 'true')
+  await expect(page.locator('.milkup-editor-content')).toHaveText(before!)
+})
+
+test('phase16 confirmation remains scrollable at a 380 by 260 effective viewport', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 380, height: 260 })
+  await page.goto('/')
+  await page.keyboard.type('keep')
+  await page.keyboard.press('Control+n')
+  const dialog = page.getByRole('dialog', { name: '文档尚未保存' })
+  const rect = await dialog.boundingBox()
+  expect(rect!.y).toBeGreaterThanOrEqual(0)
+  expect(rect!.y + rect!.height).toBeLessThanOrEqual(260)
+  await page.keyboard.press('Tab')
+  await page.keyboard.press('Tab')
+  const save = page.locator('[data-close-confirm-action="save"]')
+  await expect(save).toBeFocused()
+  const button = await save.boundingBox()
+  expect(button!.y).toBeGreaterThanOrEqual(0)
+  expect(button!.y + button!.height).toBeLessThanOrEqual(260)
+  await page.keyboard.press('Escape')
+  await expect(page.locator('.milkup-input-proxy')).toBeFocused()
+})
+
+test('phase18 theme follows system only when selected, persists explicit dark and keeps contrast', async ({
+  page,
+}) => {
+  await installPreferencesFixture(page, { enabled: true, approved: true })
+  await page.emulateMedia({ colorScheme: 'light' })
+  await page.goto('/')
+  await page.keyboard.insertText('# Heading\n\ntext `code` and [link](https://example.com)\n')
+  await page.getByRole('button', { name: '菜单', exact: true }).click()
+  await page.getByRole('button', { name: '插件', exact: true }).click()
+  await page
+    .locator(
+      '[data-plugin-action="open-ui"][data-plugin-id="milkup.preferences"][data-plugin-ui-id="preferences-panel"]',
+    )
+    .click()
+  await page.getByRole('combobox', { name: '外观主题', exact: true }).selectOption('dark')
+  await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark')
+  const contrast = await page.evaluate(() => {
+    const css = getComputedStyle(document.documentElement)
+    const rgb = (value: string) => {
+      const node = document.createElement('span')
+      node.style.color = value
+      document.body.append(node)
+      const valueRgb = getComputedStyle(node).color
+      node.remove()
+      return valueRgb
+        .match(/[\d.]+/g)!
+        .slice(0, 3)
+        .map(Number)
+    }
+    const light = (value: string) =>
+      rgb(value)
+        .map((n) => {
+          const v = n / 255
+          return v <= 0.04045 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4
+        })
+        .reduce((a, v, i) => a + v * [0.2126, 0.7152, 0.0722][i]!, 0)
+    return [
+      ['--text', '--panel-bg'],
+      ['--text-muted', '--panel-bg'],
+      ['--code-text', '--code-bg'],
+      ['--inline-code-text', '--inline-code-bg'],
+      ['--on-primary', '--primary-bg'],
+      ['--danger', '--danger-soft'],
+    ].map(([fg, bg]) => {
+      const a = light(css.getPropertyValue(fg!)),
+        b = light(css.getPropertyValue(bg!))
+      return (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05)
+    })
+  })
+  expect(contrast.every((r) => r >= 4.5)).toBe(true)
+  await page.emulateMedia({ colorScheme: 'light' })
+  await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark')
+  // Preferences commits through the real Worker broker and host persistence.
+  const preferences = page.locator('[data-plugin-ui="milkup.preferences:preferences-panel"]')
+  await preferences.getByRole('button', { name: '保存', exact: true }).click()
+  await expect(preferences.getByRole('status')).toHaveText('偏好已保存。')
+  // Browser preview must report unsupported native zoom without pretending to apply it.
+  await preferences.getByRole('combobox', { name: '界面缩放', exact: true }).selectOption('1.25')
+  await expect(preferences.getByRole('alert')).toBeVisible()
+  await expect(page.locator('#app')).toHaveAttribute('data-appearance-zoom', '1')
+  await preferences.getByRole('button', { name: '取消更改', exact: true }).click()
+  await expect(preferences.getByRole('combobox', { name: '界面缩放', exact: true })).toHaveValue(
+    '1',
+  )
+  await page.keyboard.press('Escape')
+  await page.keyboard.press('Control+s')
+  await page.reload()
+  await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark')
+  await page.getByRole('button', { name: '菜单', exact: true }).click()
+  await page.getByRole('button', { name: '插件', exact: true }).click()
+  await page
+    .locator(
+      '[data-plugin-action="open-ui"][data-plugin-id="milkup.preferences"][data-plugin-ui-id="preferences-panel"]',
+    )
+    .click()
+  await page.getByRole('combobox', { name: '外观主题', exact: true }).selectOption('system')
+  await expect(page.locator('html')).toHaveAttribute('data-theme', 'light')
+  await page.emulateMedia({ colorScheme: 'dark' })
+  await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark')
+})
+
+test('phase18 narrow sidebar overlays without shrinking text and search controls remain reachable', async ({
+  page,
+}) => {
+  await page.addInitScript(
+    (registry) => localStorage.setItem('milkup.desktop.plugins.registry.v1', registry),
+    await sealRegistryFixture(page, outlineRegistry()),
+  )
+  await installPreferencesFixture(page, { enabled: true, approved: true })
+  await page.setViewportSize({ width: 380, height: 260 })
+  await page.goto('/')
+  await page.keyboard.insertText('# Heading\nbody\n## Child\ntail')
+  const before = await page.locator('[data-editor-host]').boundingBox()
+  await page.getByRole('button', { name: '侧栏', exact: true }).click()
+  await expect(page.locator('[data-sidebar-close]')).toBeFocused()
+  const after = await page.locator('[data-editor-host]').boundingBox()
+  expect(after!.width).toBe(before!.width)
+  expect(after!.height).toBe(before!.height)
+  await page.keyboard.press('Escape')
+  await expect(page.locator('.milkup-input-proxy')).toBeFocused()
+  await page.keyboard.press('Control+f')
+  await page.getByRole('searchbox', { name: '搜索', exact: true }).fill('body')
+  await expect(page.locator('[data-search-result-count]')).toHaveText('1/1')
+  const reachable = await page.locator('[data-floating-search]').evaluate((root) =>
+    Array.from(root.querySelectorAll('input,button'))
+      .filter((e) => e.getClientRects().length)
+      .every((e) => {
+        const r = e.getBoundingClientRect()
+        return r.left >= 0 && r.right <= innerWidth
+      }),
+  )
+  expect(reachable).toBe(true)
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
+  await page.keyboard.press('Escape')
+  await page.locator('[data-menu-toggle]').click()
+  await page.getByRole('button', { name: '插件', exact: true }).click()
+  await page
+    .locator(
+      '[data-plugin-action="open-ui"][data-plugin-id="milkup.preferences"][data-plugin-ui-id="preferences-panel"]',
+    )
+    .click()
+  const content = await page
+    .locator('[data-plugin-ui="milkup.preferences:preferences-panel"]')
+    .boundingBox()
+  expect(content!.height).toBeGreaterThanOrEqual(120)
+  await page.getByRole('combobox', { name: '外观主题', exact: true }).focus()
+  const field = await page.getByRole('combobox', { name: '外观主题', exact: true }).boundingBox()
+  expect(field!.y).toBeGreaterThanOrEqual(content!.y)
+  expect(field!.y + field!.height).toBeLessThanOrEqual(content!.y + content!.height)
+})
+
+test('menu preserves the interactive titlebar and retains an accessible close button', async ({
+  page,
+}) => {
+  await page.goto('/')
+  await page.getByRole('button', { name: '菜单', exact: true }).click()
+  expect(
+    await page.locator('[data-app-menu]').evaluate((menu) => {
+      const rect = menu.getBoundingClientRect()
+      const top = document.elementFromPoint(20, 10)
+      const titlebar = document.querySelector<HTMLElement>('.titlebar')!
+      return (
+        rect.top === titlebar.getBoundingClientRect().bottom &&
+        !titlebar.inert &&
+        !!top &&
+        titlebar.contains(top)
+      )
+    }),
+  ).toBe(true)
+  await page.getByRole('button', { name: '关闭菜单', exact: true }).click()
+  await expect(page.locator('[data-app-menu]')).toBeHidden()
+})

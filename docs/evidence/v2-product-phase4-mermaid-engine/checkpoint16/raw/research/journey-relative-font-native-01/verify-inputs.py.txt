@@ -1,0 +1,9 @@
+from pathlib import Path
+import hashlib,json
+r=Path(__file__).resolve().parent
+m=json.loads((r/'prepared-inputs.json').read_text())
+for item in m['files']:
+ p=r/item['path'];b=p.read_bytes();assert len(b)==item['bytes'] and hashlib.sha256(b).hexdigest()==item['sha256'],item['path']
+for item in m['frozenSourceArtifacts']:
+ p=Path(item['path']);b=p.read_bytes();assert len(b)==item['bytes'] and hashlib.sha256(b).hexdigest()==item['sha256'],item['path']
+print('Prepared local files and referenced frozen source artifacts match; no runtime acceptance implied.')

@@ -1,0 +1,46 @@
+{
+  "status": "Copy/search fidelity FAIL; bounded CSS/font changes show partial mitigation only",
+  "runtimeDocumentEvidence": "Actual new production PDF contains no ActualText in672 decoded streams; 19/157 ToUnicode CMaps contain Kangxi mappings.",
+  "fontEvidence": "Installed Noto Sans CJK SC maps 文/⽂, 一/⼀, 人/⼈, 口/⼝ pairs to identical glyph IDs. Glyph IDs alone cannot distinguish original strings.",
+  "sourceMechanismContext": {
+    "providedByRoot": "WebKitGTK2.52.6 FontSkia buildTextBlob supplies glyph IDs/positions, no source UTF8/cluster text; Skia PDF ActualText/extended mapping requires source text.",
+    "primaryReferences": [
+      "https://raw.githubusercontent.com/WebKit/WebKit/webkitgtk-2.52.6/Source/WebCore/platform/graphics/skia/FontSkia.cpp",
+      "https://raw.githubusercontent.com/google/skia/main/src/pdf/SkPDFDevice.cpp"
+    ],
+    "qualification": "Consistent with actual PDF and font evidence, not runtime symbol-level proof; Skia main is explanatory source, not an established exact binary revision."
+  },
+  "boundedExperiment": {
+    "font-base": {
+      "pdfSha256": "079f378863791379eb26b4ed5d95a34da88f0552e24f144bf38705981fbc9afc",
+      "pages": 3,
+      "codeQuoteLiteral": false,
+      "emojiExact": false,
+      "diagramFullLabels": {
+        "中文输入": false,
+        "冻结内容": false,
+        "打印": false
+      },
+      "compatibilityMappings": 68,
+      "copySearchFullFidelity": "FAIL"
+    },
+    "font-features": {
+      "pdfSha256": "6ac9ee606cf6725e8d8090456a681fa4b7a1c9779dd6eeef7f2780b8d589ed26",
+      "pages": 3,
+      "codeQuoteLiteral": false,
+      "emojiExact": false,
+      "diagramFullLabels": {
+        "中文输入": true,
+        "冻结内容": true,
+        "打印": true
+      },
+      "compatibilityMappings": 70,
+      "copySearchFullFidelity": "FAIL",
+      "codeQuoteCharactersRestored": true,
+      "exactExtractedCodeLine": "const message = '   中文代码 P5-CODE-MARKER'",
+      "qualification": "Combined existing-font precedence and ligature/locl changes restore the sampled diagram labels and ASCII quote glyphs, but introduce/retain extraction whitespace differences; individual changes not isolated and full Unicode fidelity remains FAIL."
+    }
+  },
+  "safeFixBoundary": "A full fix must preserve original Unicode and shaping cluster information through the printing engine into PDF ActualText/ToUnicode. App CSS cannot recover original aliases from identical glyph IDs; blindly replacing extracted characters or normalizing whole PDF would corrupt distinctions. No engine replacement, font installation, source-aware hidden text layer or PDF normalization was performed.",
+  "nextVerificationIfEngineFixIsScoped": "A separately scoped engine patch/build should test distinct literal Unicode aliases, code punctuation, combining sequences, emoji ZWJ/skin-tone sequences, SVG text and mathematical text with unchanged page geometry and extraction equality before claiming a full fix."
+}

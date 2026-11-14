@@ -1,0 +1,310 @@
+
+ RUN  v3.2.6 /workspace/milkup/packages/plugin
+
+ ❯ src/registry-dom.test.ts (2 tests | 2 failed) 13ms
+   × DOM host approval isolation > does not inherit an explicitly approved Worker host when the same plugin changes host 11ms
+     → Invalid plugin manifest:
+- $.host: Unknown plugin host: dom
+   × DOM host approval isolation > preserves explicit DOM approval through snapshot restore without inventing sidecar approval 1ms
+     → Invalid plugin manifest:
+- $.host: Unknown plugin host: dom
+ ❯ src/manifest-dom.test.ts (32 tests | 22 failed) 35ms
+   × DOM-only plugin manifest profile > accepts an independent read-only document renderer without changing its host 17ms
+     → expected [ { path: '$.host', …(1) } ] to deeply equal []
+   × DOM-only plugin manifest profile > rejects non-package DOM main "https://example.test/plugin.js" 2ms
+     → expected false to be true // Object.is equality
+   × DOM-only plugin manifest profile > rejects non-package DOM main "data:text/javascript,export{}" 1ms
+     → expected false to be true // Object.is equality
+   × DOM-only plugin manifest profile > rejects non-package DOM main "blob:example" 1ms
+     → expected false to be true // Object.is equality
+   × DOM-only plugin manifest profile > rejects non-package DOM main "file:///tmp/plugin.js" 1ms
+     → expected false to be true // Object.is equality
+   × DOM-only plugin manifest profile > rejects non-package DOM main "milkup://plugin/main.js" 1ms
+     → expected false to be true // Object.is equality
+   × DOM-only plugin manifest profile > rejects non-package DOM main "/tmp/plugin.js" 2ms
+     → expected false to be true // Object.is equality
+   × DOM-only plugin manifest profile > rejects non-package DOM main "C:\\plugin.js" 1ms
+     → expected false to be true // Object.is equality
+   × DOM-only plugin manifest profile > rejects non-package DOM main "../plugin.js" 1ms
+     → expected false to be true // Object.is equality
+   × DOM-only plugin manifest profile > rejects non-package DOM main "dist/../../plugin.js" 1ms
+     → expected false to be true // Object.is equality
+   × DOM-only plugin manifest profile > rejects non-package DOM main "dist/\u0000plugin.js" 0ms
+     → expected false to be true // Object.is equality
+   ✓ DOM-only plugin manifest profile > rejects non-package DOM main "" 0ms
+   × DOM-only plugin manifest profile > requires a main entry and at least one document renderer 1ms
+     → expected false to be true // Object.is equality
+   ✓ DOM-only plugin manifest profile > permits only document:read, not %j 0ms
+   ✓ DOM-only plugin manifest profile > permits only document:read, not "document:read" 0ms
+   ✓ DOM-only plugin manifest profile > permits only document:read, not "document:read" 0ms
+   ✓ DOM-only plugin manifest profile > permits only document:read, not "document:read" 0ms
+   ✓ DOM-only plugin manifest profile > permits only document:read, not "document:read" 0ms
+   ✓ DOM-only plugin manifest profile > permits only document:read, not "document:read" 0ms
+   × DOM-only plugin manifest profile > rejects raw commands contribution keys even when empty 0ms
+     → expected false to be true // Object.is equality
+   × DOM-only plugin manifest profile > rejects raw keymaps contribution keys even when empty 0ms
+     → expected false to be true // Object.is equality
+   × DOM-only plugin manifest profile > rejects raw pasteHandlers contribution keys even when empty 1ms
+     → expected false to be true // Object.is equality
+   × DOM-only plugin manifest profile > rejects raw ui contribution keys even when empty 0ms
+     → expected false to be true // Object.is equality
+   × DOM-only plugin manifest profile > rejects raw renderers contribution keys even when empty 1ms
+     → expected false to be true // Object.is equality
+   × DOM-only plugin manifest profile > rejects raw markdownSyntax contribution keys even when empty 0ms
+     → expected false to be true // Object.is equality
+   × DOM-only plugin manifest profile > rejects raw importers contribution keys even when empty 0ms
+     → expected false to be true // Object.is equality
+   × DOM-only plugin manifest profile > rejects raw documentTypes contribution keys even when empty 0ms
+     → expected false to be true // Object.is equality
+   × DOM-only plugin manifest profile > rejects raw unknownExecution contribution keys even when empty 0ms
+     → expected false to be true // Object.is equality
+   × DOM-only plugin manifest profile > rejects declared network origins independently of an omitted network permission 1ms
+     → expected false to be true // Object.is equality
+   ✓ DOM-only plugin manifest profile > retains strict renderer declarations instead of accepting a second execution schema 0ms
+   ✓ DOM-only plugin manifest profile > does not apply the pure DOM profile to existing worker plugins 0ms
+   ✓ DOM-only plugin manifest profile > does not apply the pure DOM profile to existing sidecar plugins 0ms
+ ❯ src/package-dom.test.ts (4 tests | 4 failed) 39ms
+   × DOM plugin packages > round-trips a package-local UTF-8 ESM entry and declared resources 24ms
+     → Invalid plugin manifest:
+- $.host: Unknown plugin host: dom
+   × DOM plugin packages > rejects a missing DOM entry instead of accepting manifest-only execution 7ms
+     → expected [Function] to throw error matching /entry is missing/ but got 'Invalid plugin manifest:\n- $.host: U…'
+   × DOM plugin packages > rejects a base64 DOM entry even when a decoder could turn it into JavaScript 1ms
+     → expected [Function] to throw error matching /utf.?8/i but got 'Invalid plugin manifest:\n- $.host: U…'
+   × DOM plugin packages > rejects missing declared resources 5ms
+     → expected [Function] to throw error matching /resource is missing/ but got 'Invalid plugin manifest:\n- $.host: U…'
+
+⎯⎯⎯⎯⎯⎯ Failed Tests 28 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/manifest-dom.test.ts > DOM-only plugin manifest profile > accepts an independent read-only document renderer without changing its host
+AssertionError: expected [ { path: '$.host', …(1) } ] to deeply equal []
+
+- Expected
++ Received
+
+- []
++ [
++   {
++     "message": "Unknown plugin host: dom",
++     "path": "$.host",
++   },
++ ]
+
+ ❯ src/manifest-dom.test.ts:16:27
+     14|     const input = domManifest()
+     15|     const result = validatePluginManifest(input)
+     16|     expect(result.errors).toEqual([])
+       |                           ^
+     17|     expect(result.manifest).toMatchObject(input)
+     18|   })
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/28]⎯
+
+ FAIL  src/manifest-dom.test.ts > DOM-only plugin manifest profile > rejects non-package DOM main "https://example.test/plugin.js"
+ FAIL  src/manifest-dom.test.ts > DOM-only plugin manifest profile > rejects non-package DOM main "data:text/javascript,export{}"
+ FAIL  src/manifest-dom.test.ts > DOM-only plugin manifest profile > rejects non-package DOM main "blob:example"
+ FAIL  src/manifest-dom.test.ts > DOM-only plugin manifest profile > rejects non-package DOM main "file:///tmp/plugin.js"
+ FAIL  src/manifest-dom.test.ts > DOM-only plugin manifest profile > rejects non-package DOM main "milkup://plugin/main.js"
+ FAIL  src/manifest-dom.test.ts > DOM-only plugin manifest profile > rejects non-package DOM main "/tmp/plugin.js"
+ FAIL  src/manifest-dom.test.ts > DOM-only plugin manifest profile > rejects non-package DOM main "C:\\plugin.js"
+ FAIL  src/manifest-dom.test.ts > DOM-only plugin manifest profile > rejects non-package DOM main "../plugin.js"
+ FAIL  src/manifest-dom.test.ts > DOM-only plugin manifest profile > rejects non-package DOM main "dist/../../plugin.js"
+ FAIL  src/manifest-dom.test.ts > DOM-only plugin manifest profile > rejects non-package DOM main "dist/\u0000plugin.js"
+AssertionError: expected false to be true // Object.is equality
+
+- Expected
++ Received
+
+- true
++ false
+
+ ❯ src/manifest-dom.test.ts:23:66
+     21|     const result = validatePluginManifest({ ...domManifest(), main })
+     22|     expect(result.ok).toBe(false)
+     23|     expect(result.errors.some(error => error.path === '$.main')).toBe(…
+       |                                                                  ^
+     24|   })
+     25| 
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/28]⎯
+
+ FAIL  src/manifest-dom.test.ts > DOM-only plugin manifest profile > requires a main entry and at least one document renderer
+AssertionError: expected false to be true // Object.is equality
+
+- Expected
++ Received
+
+- true
++ false
+
+ ❯ src/manifest-dom.test.ts:28:91
+     26|   it('requires a main entry and at least one document renderer', () =>…
+     27|     const { main: _main, ...missing } = domManifest()
+     28|     expect(validatePluginManifest(missing).errors.some(error => error.…
+       |                                                                                           ^
+     29|     for (const contributes of [{}, { documentRenderers: [] }]) {
+     30|       expect(validatePluginManifest({ ...domManifest(), contributes })…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/28]⎯
+
+ FAIL  src/manifest-dom.test.ts > DOM-only plugin manifest profile > rejects raw commands contribution keys even when empty
+ FAIL  src/manifest-dom.test.ts > DOM-only plugin manifest profile > rejects raw keymaps contribution keys even when empty
+ FAIL  src/manifest-dom.test.ts > DOM-only plugin manifest profile > rejects raw pasteHandlers contribution keys even when empty
+ FAIL  src/manifest-dom.test.ts > DOM-only plugin manifest profile > rejects raw ui contribution keys even when empty
+ FAIL  src/manifest-dom.test.ts > DOM-only plugin manifest profile > rejects raw renderers contribution keys even when empty
+ FAIL  src/manifest-dom.test.ts > DOM-only plugin manifest profile > rejects raw markdownSyntax contribution keys even when empty
+ FAIL  src/manifest-dom.test.ts > DOM-only plugin manifest profile > rejects raw importers contribution keys even when empty
+ FAIL  src/manifest-dom.test.ts > DOM-only plugin manifest profile > rejects raw documentTypes contribution keys even when empty
+ FAIL  src/manifest-dom.test.ts > DOM-only plugin manifest profile > rejects raw unknownExecution contribution keys even when empty
+AssertionError: expected false to be true // Object.is equality
+
+- Expected
++ Received
+
+- true
++ false
+
+ ❯ src/manifest-dom.test.ts:44:81
+     42|     const result = validatePluginManifest({ ...manifest, contributes: …
+     43|     expect(result.ok).toBe(false)
+     44|     expect(result.errors.some(error => error.path.startsWith('$.contri…
+       |                                                                                 ^
+     45|   })
+     46| 
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/28]⎯
+
+ FAIL  src/manifest-dom.test.ts > DOM-only plugin manifest profile > rejects declared network origins independently of an omitted network permission
+AssertionError: expected false to be true // Object.is equality
+
+- Expected
++ Received
+
+- true
++ false
+
+ ❯ src/manifest-dom.test.ts:50:84
+     48|     const result = validatePluginManifest({ ...domManifest(), networkO…
+     49|     expect(result.ok).toBe(false)
+     50|     expect(result.errors.some(error => error.path.startsWith('$.networ…
+       |                                                                                    ^
+     51|   })
+     52| 
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/28]⎯
+
+ FAIL  src/package-dom.test.ts > DOM plugin packages > round-trips a package-local UTF-8 ESM entry and declared resources
+Error: Invalid plugin manifest:
+- $.host: Unknown plugin host: dom
+ ❯ parsePluginManifest src/manifest.ts:161:11
+    159| 
+    160|   if (!result.ok || !result.manifest) {
+    161|     throw new Error(
+       |           ^
+    162|       `Invalid plugin manifest:\n${result.errors
+    163|         .map((error) => `- ${error.path}: ${error.message}`)
+ ❯ parsePluginPackageArchive src/package.ts:34:20
+ ❯ createPluginPackageArchive src/package.ts:74:10
+ ❯ src/package-dom.test.ts:13:21
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/28]⎯
+
+ FAIL  src/package-dom.test.ts > DOM plugin packages > rejects a missing DOM entry instead of accepting manifest-only execution
+AssertionError: expected [Function] to throw error matching /entry is missing/ but got 'Invalid plugin manifest:\n- $.host: U…'
+
+- Expected: 
+/entry is missing/
+
++ Received: 
+"Invalid plugin manifest:
+- $.host: Unknown plugin host: dom"
+
+ ❯ src/package-dom.test.ts:18:60
+     16|   })
+     17|   it('rejects a missing DOM entry instead of accepting manifest-only e…
+     18|     expect(() => createPluginPackageArchive(manifest, [])).toThrow(/en…
+       |                                                            ^
+     19|   })
+     20|   it('rejects a base64 DOM entry even when a decoder could turn it int…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[7/28]⎯
+
+ FAIL  src/package-dom.test.ts > DOM plugin packages > rejects a base64 DOM entry even when a decoder could turn it into JavaScript
+AssertionError: expected [Function] to throw error matching /utf.?8/i but got 'Invalid plugin manifest:\n- $.host: U…'
+
+- Expected: 
+/utf.?8/i
+
++ Received: 
+"Invalid plugin manifest:
+- $.host: Unknown plugin host: dom"
+
+ ❯ src/package-dom.test.ts:21:129
+     19|   })
+     20|   it('rejects a base64 DOM entry even when a decoder could turn it int…
+     21|     expect(() => createPluginPackageArchive(manifest, [{ ...entry, enc…
+       |                                                                                                                                 ^
+     22|   })
+     23|   it('rejects missing declared resources', () => {
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[8/28]⎯
+
+ FAIL  src/package-dom.test.ts > DOM plugin packages > rejects missing declared resources
+AssertionError: expected [Function] to throw error matching /resource is missing/ but got 'Invalid plugin manifest:\n- $.host: U…'
+
+- Expected: 
+/resource is missing/
+
++ Received: 
+"Invalid plugin manifest:
+- $.host: Unknown plugin host: dom"
+
+ ❯ src/package-dom.test.ts:24:106
+     22|   })
+     23|   it('rejects missing declared resources', () => {
+     24|     expect(() => createPluginPackageArchive({ ...manifest, resources: …
+       |                                                                                                          ^
+     25|   })
+     26| })
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[9/28]⎯
+
+ FAIL  src/registry-dom.test.ts > DOM host approval isolation > does not inherit an explicitly approved Worker host when the same plugin changes host
+Error: Invalid plugin manifest:
+- $.host: Unknown plugin host: dom
+ ❯ parsePluginManifest src/manifest.ts:161:11
+    159| 
+    160|   if (!result.ok || !result.manifest) {
+    161|     throw new Error(
+       |           ^
+    162|       `Invalid plugin manifest:\n${result.errors
+    163|         .map((error) => `- ${error.path}: ${error.message}`)
+ ❯ PluginRegistry.installLocalPlugin src/registry.ts:184:22
+ ❯ src/registry-dom.test.ts:17:32
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[10/28]⎯
+
+ FAIL  src/registry-dom.test.ts > DOM host approval isolation > preserves explicit DOM approval through snapshot restore without inventing sidecar approval
+Error: Invalid plugin manifest:
+- $.host: Unknown plugin host: dom
+ ❯ parsePluginManifest src/manifest.ts:161:11
+    159| 
+    160|   if (!result.ok || !result.manifest) {
+    161|     throw new Error(
+       |           ^
+    162|       `Invalid plugin manifest:\n${result.errors
+    163|         .map((error) => `- ${error.path}: ${error.message}`)
+ ❯ PluginRegistry.installLocalPlugin src/registry.ts:184:22
+ ❯ src/registry-dom.test.ts:26:14
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[11/28]⎯
+
+
+ Test Files  3 failed (3)
+      Tests  28 failed | 10 passed (38)
+   Start at  10:04:23
+   Duration  1.32s (transform 604ms, setup 0ms, collect 961ms, tests 88ms, environment 1ms, prepare 332ms)
+
+undefined
+/workspace/milkup/packages/plugin:
+[ERR_PNPM_RECURSIVE_EXEC_FIRST_FAIL] Command failed with exit code 1: vitest run src/manifest-dom.test.ts src/package-dom.test.ts src/registry-dom.test.ts '--maxWorkers=2' '--minWorkers=1'

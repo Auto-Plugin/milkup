@@ -1,0 +1,45 @@
+// Runs only after the sole capture has passed. Never renders Mermaid a second time.
+import assert from 'node:assert/strict'
+import {readFile,writeFile,access} from 'node:fs/promises'
+import {fileURLToPath,pathToFileURL} from 'node:url'
+import path from 'node:path'
+import {createHash} from 'node:crypto'
+const root=path.dirname(fileURLToPath(import.meta.url))
+const sha=x=>createHash('sha256').update(x).digest('hex')
+const output=path.join(root,'paint-evidence.json')
+await assert.rejects(access(output), 'Fresh output required; do not overwrite a first result')
+const read=async n=>JSON.parse(await readFile(path.join(root,n),'utf8'))
+const run=await read('runs/capture-second02/result.json')
+assert.equal(run.results.at(-1)?.status,'capture-complete')
+assert(run.events.some(x=>x.kind==='cleanup' && x.remainingGroupMembers.length===0))
+const request=await read('request-capture02.json'),typed=await read('runs/capture-second02/typed-result.json'),capture=await read('runs/capture-second02/raw-capture.json')
+const core=await import(pathToFileURL(path.join(root,'current-core.mjs')).href)
+const validRequest=core.copyDocumentPresentationRequest(request)
+const archivePath='/workspace/milkup-mermaid-engine-evidence/diagrams-gate07/standalone/plugin/dist/milkup.diagrams-1.1.0.milkup-plugin'
+const archiveBytes=await readFile(archivePath)
+assert.equal(sha(archiveBytes),'9889f1796f9080ff230a1c51147522e83e065bc191a258035208f69403a327df')
+const archive=JSON.parse(archiveBytes.toString('utf8'))
+const declarations=archive.manifest.contributes.documentRenderers
+const matched=declarations.filter(d=>d.id==='diagrams.mermaid')
+assert.equal(matched.length,1)
+const declaration=matched[0]
+const validated=core.copyDocumentPresentationResult(typed,validRequest,declaration)
+assert.equal(validated.complete,true);assert.equal(validated.fragments.length,1)
+const fragment=validated.fragments[0]
+assert.equal(fragment.status,'ready');assert.equal(fragment.content.type,'svg-image')
+const image=fragment.content,canonical=core.serializeDocumentPresentationNode(image)
+assert(Buffer.byteLength(canonical)<=262144)
+assert(capture.rawReturnedSvg.startsWith('<svg') && capture.installedRootSvg.startsWith('<svg'))
+assert.equal(capture.geometry.parentRect[2],380)
+const [x,y,w,h]=image.rasterBounds
+const raster={left:Math.floor(x),top:Math.floor(y),right:Math.ceil(x+w),bottom:Math.ceil(y+h)}
+const inset={left:Math.max(0,-raster.left),top:Math.max(0,-raster.top),right:x+w>image.width?raster.right-image.width:0,bottom:y+h>image.height?raster.bottom-image.height:0}
+const evidence={image,raster,inset,capture,request,declaration,archivePath,canonicalSha256:sha(canonical),typedResultSha256:sha(await readFile(path.join(root,'runs/capture-second02/typed-result.json'))),archiveSha256:'9889f1796f9080ff230a1c51147522e83e065bc191a258035208f69403a327df',scope:'Same-capture raw original and current-core validated image; research source tap, not official archive execution'}
+await writeFile(output,JSON.stringify(evidence,null,2)+'\n')
+await writeFile(path.join(root,'canonical.svg'),canonical)
+await writeFile(path.join(root,'original-returned.svg'),capture.rawReturnedSvg)
+await writeFile(path.join(root,'original-installed.svg'),capture.installedRootSvg)
+await writeFile(path.join(root,'paint-helper/assets/canonical.svg'),canonical)
+const template=await readFile(path.join(root,'paint-entry-template.mjs'),'utf8')
+assert.equal(template.split('/*__CAPTURE__*/null').length,2)
+await writeFile(path.join(root,'paint-helper/assets/entry.mjs'),template.replace('/*__CAPTURE__*/null',JSON.stringify(evidence)))

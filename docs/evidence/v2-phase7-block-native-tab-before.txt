@@ -1,0 +1,70 @@
+
+ RUN  v3.2.6 /workspace/milkup/packages/view-dom
+
+ ❯ src/__tests__/block-keyboard.test.ts (32 tests | 2 failed) 980ms
+   ✓ source daily block keyboard > exits an empty -  item without another marker 165ms
+   ✓ source daily block keyboard > exits an empty 1.  item without another marker 21ms
+   ✓ source daily block keyboard > exits an empty - [ ]  item without another marker 21ms
+   ✓ source daily block keyboard > outdents an empty nested item before exiting the list 31ms
+   ✓ source daily block keyboard > continues ordered and task items 14ms
+   ✓ source daily block keyboard > does not duplicate a marker when splitting before it 20ms
+   ✓ source daily block keyboard > Tab and Shift+Tab nest a list while preserving caret and undo 79ms
+   ✓ source daily block keyboard > indents a reversed multiline selection without swallowing its text 72ms
+   ✓ source daily block keyboard > does not indent the next line when selection ends at its start 30ms
+   ✓ source daily block keyboard > Backspace at list content start removes structure one level at a time 19ms
+   ✓ source daily block keyboard > keeps list-looking text literal inside a fenced code block 26ms
+   ✓ source daily block keyboard > preserves code indentation and blank lines 31ms
+   ✓ source daily block keyboard > Tab indents code, Backspace removes one indent step, and closing fence exits normally 36ms
+   ✓ source daily block keyboard > does not treat the line after a closed code fence as code 26ms
+   × source daily block keyboard > handles native WebKit Shift+Tab reported as Unidentified with a Tab code 39ms
+     → expected false to be true // Object.is equality
+   ✓ source daily block keyboard > selection Backspace removes only the selection, even in a list 18ms
+   ✓ live daily block keyboard > exits an empty -  item without another marker 21ms
+   ✓ live daily block keyboard > exits an empty 1.  item without another marker 24ms
+   ✓ live daily block keyboard > exits an empty - [ ]  item without another marker 21ms
+   ✓ live daily block keyboard > outdents an empty nested item before exiting the list 39ms
+   ✓ live daily block keyboard > continues ordered and task items 8ms
+   ✓ live daily block keyboard > does not duplicate a marker when splitting before it 7ms
+   ✓ live daily block keyboard > Tab and Shift+Tab nest a list while preserving caret and undo 16ms
+   ✓ live daily block keyboard > indents a reversed multiline selection without swallowing its text 58ms
+   ✓ live daily block keyboard > does not indent the next line when selection ends at its start 15ms
+   ✓ live daily block keyboard > Backspace at list content start removes structure one level at a time 19ms
+   ✓ live daily block keyboard > keeps list-looking text literal inside a fenced code block 15ms
+   ✓ live daily block keyboard > preserves code indentation and blank lines 26ms
+   ✓ live daily block keyboard > Tab indents code, Backspace removes one indent step, and closing fence exits normally 27ms
+   ✓ live daily block keyboard > does not treat the line after a closed code fence as code 10ms
+   × live daily block keyboard > handles native WebKit Shift+Tab reported as Unidentified with a Tab code 5ms
+     → expected false to be true // Object.is equality
+   ✓ live daily block keyboard > selection Backspace removes only the selection, even in a list 13ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/__tests__/block-keyboard.test.ts > source daily block keyboard > handles native WebKit Shift+Tab reported as Unidentified with a Tab code
+ FAIL  src/__tests__/block-keyboard.test.ts > live daily block keyboard > handles native WebKit Shift+Tab reported as Unidentified with a Tab code
+AssertionError: expected false to be true // Object.is equality
+
+- Expected
++ Received
+
+- true
++ false
+
+ ❯ src/__tests__/block-keyboard.test.ts:155:38
+    153|       const event = new KeyboardEvent('keydown', { key: 'Unidentified'…
+    154|       s.view.inputDOM.dispatchEvent(event)
+    155|       expect(event.defaultPrevented).toBe(true)
+       |                                      ^
+    156|       expect(s.text()).toBe('- item')
+    157|       s.undo()
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  2 failed | 30 passed (32)
+   Start at  10:03:54
+   Duration  5.39s (transform 1.13s, setup 0ms, collect 1.42s, tests 980ms, environment 2.24s, prepare 245ms)
+
+undefined
+/workspace/milkup/packages/view-dom:
+[ERR_PNPM_RECURSIVE_EXEC_FIRST_FAIL] Command failed with exit code 1: vitest run src/__tests__/block-keyboard.test.ts '--maxWorkers=1'

@@ -1,0 +1,107 @@
+[WebServer] (node:235329) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 2 tests using 1 worker
+
+(node:235361) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  1 tests/e2e/desktop-floating-toolbar.spec.ts:237:3 › floating toolbar ordinary commands retain editing and clear on disable/document switch (1.0m)
+(node:235930) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  2 tests/e2e/desktop-floating-toolbar.spec.ts:237:3 › floating toolbar windowed commands retain editing and clear on disable/document switch (22.9s)
+
+
+  1) tests/e2e/desktop-floating-toolbar.spec.ts:237:3 › floating toolbar ordinary commands retain editing and clear on disable/document switch 
+
+    Test timeout of 60000ms exceeded.
+
+    Error: locator.click: Test timeout of 60000ms exceeded.
+    Call log:
+      - waiting for getByRole('button', { name: '插件', exact: true })
+
+
+       at ../helpers/formatting-plugin.ts:100
+
+       98 |     await page.getByRole('button', { name: '菜单', exact: true }).click()
+       99 |     phase('menu-clicked')
+    > 100 |     await page.getByRole('button', { name: '插件', exact: true }).click()
+          |                                                                 ^
+      101 |     phase('plugins-clicked')
+      102 |     const toggle = page.locator(
+      103 |       '.plugin-summary-card[data-plugin-id="milkup.formatting"] [role="switch"]',
+        at formattingFixture (/tmp/milkup-windows-manual-candidate/tests/helpers/formatting-plugin.ts:100:65)
+        at openDocument (/tmp/milkup-windows-manual-candidate/tests/e2e/desktop-floating-toolbar.spec.ts:34:3)
+        at /tmp/milkup-windows-manual-candidate/tests/e2e/desktop-floating-toolbar.spec.ts:240:5
+
+    attachment #2: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ../milkup-beta6-floating-provisional-interaction/desktop-floating-toolbar-f-f4d74--on-disable-document-switch/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #3: floating-toolbar-state (text/plain) ─────────────────────────────────────────────
+    - main:
+      - button "菜单"
+      - heading "未命名" [level=1]
+      - paragraph: 未保存
+      - button "最小化"
+      - button "最大化"
+      - button "关闭窗口"
+      - button "侧栏"
+      - button "实时"
+      - text: Markdown 0 字符 已保存
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #5: formatting-fixture-body (text/plain) ────────────────────────────────────────────
+    Snapshot unavailable: Error: locator.ariaSnapshot: Target page, context or browser has been closed
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ../milkup-beta6-floating-provisional-interaction/desktop-floating-toolbar-f-f4d74--on-disable-document-switch/error-context.md
+
+  2) tests/e2e/desktop-floating-toolbar.spec.ts:237:3 › floating toolbar windowed commands retain editing and clear on disable/document switch 
+
+    Test was interrupted.
+
+    Error: locator.click: Test ended.
+    Call log:
+      - waiting for getByRole('button', { name: '插件', exact: true })
+
+
+       at ../helpers/formatting-plugin.ts:100
+
+       98 |     await page.getByRole('button', { name: '菜单', exact: true }).click()
+       99 |     phase('menu-clicked')
+    > 100 |     await page.getByRole('button', { name: '插件', exact: true }).click()
+          |                                                                 ^
+      101 |     phase('plugins-clicked')
+      102 |     const toggle = page.locator(
+      103 |       '.plugin-summary-card[data-plugin-id="milkup.formatting"] [role="switch"]',
+        at formattingFixture (/tmp/milkup-windows-manual-candidate/tests/helpers/formatting-plugin.ts:100:65)
+        at openDocument (/tmp/milkup-windows-manual-candidate/tests/e2e/desktop-floating-toolbar.spec.ts:34:3)
+        at /tmp/milkup-windows-manual-candidate/tests/e2e/desktop-floating-toolbar.spec.ts:240:5
+
+    attachment #2: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ../milkup-beta6-floating-provisional-interaction/desktop-floating-toolbar-f-67cf6--on-disable-document-switch/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #3: floating-toolbar-state (text/plain) ─────────────────────────────────────────────
+    - main:
+      - button "菜单"
+      - heading "未命名" [level=1]
+      - paragraph: 未保存
+      - button "最小化"
+      - button "最大化"
+      - button "关闭窗口"
+      - button "侧栏"
+      - button "实时"
+      - text: Markdown 0 字符 已保存
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #5: formatting-fixture-body (text/plain) ────────────────────────────────────────────
+    Snapshot unavailable: Error: locator.ariaSnapshot: Target page, context or browser has been closed
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ../milkup-beta6-floating-provisional-interaction/desktop-floating-toolbar-f-67cf6--on-disable-document-switch/error-context.md
+
+  1 failed
+    tests/e2e/desktop-floating-toolbar.spec.ts:237:3 › floating toolbar ordinary commands retain editing and clear on disable/document switch 
+  1 interrupted
+    tests/e2e/desktop-floating-toolbar.spec.ts:237:3 › floating toolbar windowed commands retain editing and clear on disable/document switch 

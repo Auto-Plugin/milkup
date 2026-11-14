@@ -1,0 +1,67 @@
+{
+  "reviewedAtUtc": "2026-10-19T13:44:07.256951+00:00",
+  "conclusion": "NO_BLOCKING_FINDING_IN_REVIEWED_PREFETCH_DIFF",
+  "reviewMode": "Read-only source/log inspection; no reviewer test/build/formatter/GUI execution",
+  "finalFreezeHashesMatched": true,
+  "sources": [
+    {
+      "path": "/workspace/milkup/plugins/outline/src/outline-index.ts",
+      "sha256": "62bb234b996c6d5c8351f95851cb064d2294fe15b9c6beae168faa42273086c7"
+    },
+    {
+      "path": "/workspace/milkup/plugins/outline/src/outline-index.test.ts",
+      "sha256": "d04eb99deb8751b7639d3d842bb3417dfe68829c054c25d055c5d8b26480e215"
+    },
+    {
+      "path": "/workspace/milkup/plugins/outline/src/plugin.ts",
+      "sha256": "3fa3d659e3934a1ecd1763741979fac4a60f6b5247c4974111fa0d16152e083d"
+    },
+    {
+      "path": "/workspace/milkup/plugins/outline/src/plugin.test.ts",
+      "sha256": "64591ee78c73bea1948f4bdac62f3361ec9cad0acc8908c0cfdcb565b10491d0"
+    }
+  ],
+  "authorPackage": {
+    "version": "1.3.3",
+    "sdkVersion": "0.3.7",
+    "archiveSha256": "80a9ce947c4abf2998eb72c36c327d5d826f0d30fa22dad61f903ff4713ca5c6",
+    "runtimeImports": 0,
+    "sourceInputsMatchReview": true
+  },
+  "report": {
+    "path": "/workspace/milkup-p7-quality-evidence/milestone02/review/outline-prefetch-independent.md",
+    "sha256": "5baacf87e9c61b18a3ca19ba01d8cee6535f03391c94cb1bc4f6b2c29d8c5c42"
+  },
+  "readEvidence": [
+    {
+      "path": "/workspace/milkup-p7-quality-evidence/milestone02/outline/prefetch/red-01.log",
+      "sha256": "7c3f682d6aea5bc3aef7f096032c4a4646b0d17f63d5934f6c5a345b34f52d24"
+    },
+    {
+      "path": "/workspace/milkup-p7-quality-evidence/milestone02/outline/prefetch/green-01.log",
+      "sha256": "035428d1f718805a6bbb6dbdf521b3e1d6cd8fb84510a0a235ee615715eca249"
+    },
+    {
+      "path": "/workspace/milkup-p7-quality-evidence/milestone02/outline/external-1.3.3/verification.json",
+      "sha256": "c9c4e9f05f7e14868cead4fe9c0e441bad8e7ef4e1934bc06884034afb0c8f54"
+    },
+    {
+      "path": "/workspace/milkup-p7-quality-evidence/milestone02/outline/external-1.3.3/tests-final.log",
+      "sha256": "34f030bacfc37d56ef60f6ddac5d989d95a60b2e16b027e3b31644a84cce62dd"
+    },
+    {
+      "path": "/workspace/milkup-p7-quality-evidence/milestone02/outline/external-1.3.3/test-types.log",
+      "sha256": "42a5deda3f097bb6fb1abc35209ae3091be1c0948eb3f249e8c4ab74b0bbcc58"
+    },
+    {
+      "path": "/workspace/milkup-p7-quality-evidence/milestone02/outline/external-1.3.3/test-types-final.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  ],
+  "limits": [
+    "Not native performance proof",
+    "Malformed later JSON may retain earlier valid cache inserts; unchanged partial-cache semantics",
+    "512 KiB bounds serialized UTF-8 response payload, not total JS heap",
+    "Existing session queue/lifecycle contract required; not arbitrary concurrent Index caller safety"
+  ]
+}

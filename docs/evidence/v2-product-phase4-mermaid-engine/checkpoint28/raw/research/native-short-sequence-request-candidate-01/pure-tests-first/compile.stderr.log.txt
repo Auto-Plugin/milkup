@@ -1,0 +1,23 @@
+warning: use of deprecated method `std::sync::atomic::Atomic::<u64>::fetch_update`: renamed to `try_update` for consistency
+   --> /workspace/milkup-mermaid-engine-evidence/research/native-short-sequence-request-candidate-01/tests/../candidate/apps/desktop/src-tauri/src/plugin_dom_request_diagnostic.rs:265:22
+    |
+265 |                     .fetch_update(Ordering::Relaxed, Ordering::Relaxed, |n| {
+    |                      ^^^^^^^^^^^^
+    |
+    = note: `#[warn(deprecated)]` on by default
+help: replace the use of the deprecated method
+    |
+265 -                     .fetch_update(Ordering::Relaxed, Ordering::Relaxed, |n| {
+265 +                     .try_update(Ordering::Relaxed, Ordering::Relaxed, |n| {
+    |
+
+warning: function `initialize` is never used
+   --> /workspace/milkup-mermaid-engine-evidence/research/native-short-sequence-request-candidate-01/tests/../candidate/apps/desktop/src-tauri/src/plugin_dom_request_diagnostic.rs:101:15
+    |
+101 | pub(super) fn initialize() -> Option<&'static Recorder> {
+    |               ^^^^^^^^^^
+    |
+    = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: 2 warnings emitted
+

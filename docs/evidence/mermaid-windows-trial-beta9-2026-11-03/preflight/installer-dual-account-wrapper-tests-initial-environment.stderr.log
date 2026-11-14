@@ -1,0 +1,16 @@
+Unhandled exception. System.TypeInitializationException: The type initializer for 'System.Management.Automation.Configuration.PowerShellConfig' threw an exception.
+ ---> System.TypeInitializationException: The type initializer for 'System.Management.Automation.Platform' threw an exception.
+ ---> System.IO.IOException: Read-only file system : '/home/agent/.cache/powershell'
+   at System.IO.FileSystem.CreateDirectory(String fullPath, UnixFileMode unixCreateMode)
+   at System.IO.Directory.CreateDirectory(String path)
+   at System.Management.Automation.Platform.SelectProductNameForDirectory(XDG_Type dirpath)
+   at System.Management.Automation.Platform..cctor()
+   --- End of inner exception stack trace ---
+   at System.Management.Automation.Configuration.PowerShellConfig..ctor()
+   at System.Management.Automation.Configuration.PowerShellConfig..cctor()
+   --- End of inner exception stack trace ---
+   at System.Management.Automation.Utils.GetPolicySettingFromConfigFile[T](ConfigScope[] preferenceOrder)
+   at Microsoft.PowerShell.CommandLineParameterParser.GetConfigurationNameFromGroupPolicy()
+   at Microsoft.PowerShell.ConsoleHost.ParseCommandLine(String[] args)
+   at Microsoft.PowerShell.UnmanagedPSEntry.Start(String[] args, Int32 argc)
+   at Microsoft.PowerShell.ManagedPSEntry.Main(String[] args)

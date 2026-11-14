@@ -1,0 +1,269 @@
+#!/usr/bin/env python3
+"""Read only frozen evidence. Never attaches to a process or writes input files."""
+import argparse
+import hashlib
+import json
+from pathlib import Path
+import re
+import sys
+
+PROTOCOL = 'milkup.plugin.document-render.v1'
+REQUEST_KEYS = {'documentId', 'version', 'from', 'to', 'source', 'fromLine', 'toLine',
+                'completeStart', 'completeEnd', 'contextKnown', 'protectedRanges',
+                'blocks', 'selection', 'theme', 'target', 'width'}
+ZERO_COUNTERS = ('queueFull', 'disconnected', 'oversize', 'capped', 'ioErrors',
+                 'incompleteTiming', 'inFlight')
+
+
+def digest(raw):
+    return hashlib.sha256(raw).hexdigest()
+
+
+def utf16(raw):
+    return raw.encode('utf-16-le', errors='surrogatepass')
+
+
+def integer(value):
+    return isinstance(value, int) and not isinstance(value, bool)
+
+
+def require(condition, reason):
+    if not condition:
+        raise ValueError(reason)
+
+
+def strict_json(raw):
+    def unique_pairs(pairs):
+        result = {}
+        for key, value in pairs:
+            require(key not in result, 'duplicate JSON object key: ' + key)
+            result[key] = value
+        return result
+    return json.loads(raw, object_pairs_hook=unique_pairs,
+                      parse_constant=lambda value: (_ for _ in ()).throw(ValueError('invalid JSON number ' + value)))
+
+
+def frozen_inputs(manifest_path, paths):
+    """Require a separately frozen hash list; never generate a freeze from live files."""
+    manifest_raw = manifest_path.read_bytes()
+    manifest = strict_json(manifest_raw)
+    require(isinstance(manifest.get('frozenAtUtc'), str) and manifest['frozenAtUtc'],
+            'freeze manifest requires frozenAtUtc, supplied only after parent confirms run frozen')
+    require(isinstance(manifest.get('files'), list), 'freeze manifest requires files list')
+    base = Path(manifest.get('root', manifest_path.parent)).resolve()
+    expected = {}
+    for entry in manifest['files']:
+        name = Path(entry['path'])
+        name = (base / name).resolve() if not name.is_absolute() else name.resolve()
+        require(name not in expected, 'duplicate freeze manifest path: ' + str(name))
+        require(re.fullmatch('[0-9a-f]{64}', entry.get('sha256', '')), 'invalid frozen SHA256')
+        expected[name] = entry
+    loaded, evidence = {}, []
+    for path in paths:
+        path = path.resolve()
+        require(path in expected, 'required input absent from freeze manifest: ' + str(path))
+        # Read each file once; audit exactly these verified bytes, not a later re-open.
+        raw = path.read_bytes()
+        require(digest(raw) == expected[path]['sha256'], 'frozen input hash mismatch: ' + str(path))
+        if 'bytes' in expected[path]:
+            require(len(raw) == expected[path]['bytes'], 'frozen input byte count mismatch: ' + str(path))
+        loaded[path] = raw
+        evidence.append({'path': str(path), 'bytes': len(raw), 'sha256': digest(raw)})
+    return loaded, {'manifest': str(manifest_path.resolve()), 'manifestSha256': digest(manifest_raw),
+                    'frozenAtUtc': manifest['frozenAtUtc'], 'verifiedInputs': evidence}
+
+
+def range_pair(row, lower, upper, label):
+    a, b = row.get('from'), row.get('to')
+    require(integer(a) and integer(b) and lower <= a <= b <= upper,
+            'invalid UTF16 range: ' + label)
+    return a, b
+
+
+def verify_wire(row, fixture, samples):
+    wire = row.get('wire')
+    require(isinstance(wire, str), 'missing complete wire')
+    wire_bytes = wire.encode('utf-8', errors='strict')
+    require(integer(row.get('wireBytes')) and row['wireBytes'] == len(wire_bytes), 'wire byte length mismatch')
+    require(row.get('wireSha256') == digest(wire_bytes), 'wire SHA256 mismatch')
+    message = strict_json(wire)
+    require(set(message) == {'protocol', 'type', 'id', 'payload'}, 'unexpected render envelope shape')
+    require(message['protocol'] == PROTOCOL and message['type'] == 'render', 'not a render input')
+    require(message['id'] == row.get('requestId'), 'wire message.id differs from accepted requestId')
+    require(isinstance(message['id'], str) and re.fullmatch('[a-zA-Z0-9_-]{1,80}', message['id']), 'invalid requestId')
+    payload = message['payload']
+    require(isinstance(payload, dict) and set(payload) == {'pluginId', 'rendererId', 'request'}, 'payload shape')
+    require(payload['pluginId'] == row.get('pluginId'), 'wire plugin differs from instance metadata')
+    require(isinstance(payload['rendererId'], str), 'missing rendererId')
+    request = payload['request']
+    require(isinstance(request, dict) and set(request) == REQUEST_KEYS, 'incomplete/extra request fields')
+    require(isinstance(request['source'], str), 'source is not a string')
+    a, b = range_pair(request, 0, len(fixture) // 2, 'request')
+    source = utf16(request['source'])
+    require(len(source) == (b - a) * 2, 'source UTF16 length does not match range')
+    require(source == fixture[a * 2:b * 2], 'source differs from frozen fixture at absolute UTF16 range')
+    require(isinstance(request['blocks'], list) and isinstance(request['protectedRanges'], list), 'range lists missing')
+    blocks = []
+    for index, block in enumerate(request['blocks']):
+        x, y = range_pair(block, a, b, 'block ' + str(index))
+        require(isinstance(block.get('contentRanges'), list), 'block contentRanges missing')
+        bodies = []
+        for body in block['contentRanges']:
+            p, q = range_pair(body, x, y, 'contentRanges')
+            bodies.append({'from': p, 'to': q,
+                           'fixtureUtf16LeSha256': digest(fixture[p * 2:q * 2])})
+        blocks.append({'from': x, 'to': y, 'kind': block.get('kind'),
+                       'info': block.get('info'), 'complete': block.get('complete'),
+                       'contentRanges': bodies, 'fixtureUtf16LeSha256': digest(fixture[x * 2:y * 2])})
+    for protected in request['protectedRanges']:
+        range_pair(protected, a, b, 'protectedRanges')
+    overlaps = []
+    for sample in samples:
+        x, y = sample.get('from'), sample.get('to')
+        if integer(x) and integer(y) and a < y and b > x:
+            overlaps.append({'sampleId': sample.get('id'), 'from': x, 'to': y,
+                             'entireSampleRangeInInput': a <= x and y <= b})
+    return {'rendererId': payload['rendererId'], 'wireBytes': len(wire_bytes),
+            'wireSha256': digest(wire_bytes), 'documentId': request['documentId'],
+            'version': request['version'], 'from': a, 'to': b,
+            'sourceUtf16Units': len(source) // 2, 'sourceUtf16LeSha256': digest(source),
+            'sourceExactlyMatchesFrozenFixture': True,
+            'fromLine': request['fromLine'], 'toLine': request['toLine'],
+            'selection': request['selection'], 'theme': request['theme'], 'target': request['target'],
+            'width': request['width'], 'completeStart': request['completeStart'],
+            'completeEnd': request['completeEnd'], 'contextKnown': request['contextKnown'],
+            'protectedRanges': request['protectedRanges'], 'blocks': blocks,
+            'sampleRangeOverlaps': overlaps,
+            'qualification': 'Input membership only. Neither sample overlap nor block order identifies an internal block executing at timeout.'}
+
+
+def audit(events_raw, status_raw, complete_raw, log_raw, fixture_raw, plan_raw=None):
+    errors = []
+    def check(condition, reason):
+        if not condition:
+            errors.append(reason)
+    status, complete = strict_json(status_raw), strict_json(complete_raw)
+    check(status == complete, 'status snapshot differs from final complete acknowledgment')
+    check(complete.get('schema') == 'milkup.cold-accepted-wire-status.v1', 'status schema mismatch')
+    check(complete.get('final') is True and complete.get('diagnosticClosed') is True, 'recorder not finalized/closed')
+    for counter in ZERO_COUNTERS:
+        check(integer(complete.get(counter)) and complete[counter] == 0, 'nonzero/missing diagnostic counter ' + counter)
+    for counter in ('attempted', 'enqueued', 'written'):
+        check(integer(complete.get(counter)) and complete[counter] >= 0, 'invalid counter ' + counter)
+    if all(integer(complete.get(k)) for k in ('attempted', 'enqueued', 'queueFull', 'disconnected', 'oversize', 'capped')):
+        check(complete['attempted'] == sum(complete[k] for k in ('enqueued', 'queueFull', 'disconnected', 'oversize', 'capped')), 'admission accounting does not balance')
+    check(complete.get('enqueued') == complete.get('written'), 'enqueued inputs not all written')
+    owner = (complete.get('ownerPid'), complete.get('ownerBirth'))
+    check(all(integer(v) and v > 0 for v in owner), 'missing exact App PID/birth')
+    check(events_raw.endswith(b'\n'), 'event file lacks final newline')
+    events = [strict_json(line) for line in events_raw.splitlines() if line]
+    check(len(events) == complete.get('written'), 'event count differs from written count')
+    sequences = [e.get('sequence') for e in events]
+    check(all(integer(n) for n in sequences) and sorted(sequences, key=lambda n: -1 if n is None else n) == list(range(1, len(events) + 1)), 'missing/duplicate event sequence')
+    guardians, accepted = {}, {}
+    for row in events:
+        check(row.get('schema') == 'milkup.cold-accepted-wire.v1', 'event schema mismatch')
+        check((row.get('ownerPid'), row.get('ownerBirth')) == owner, 'event App identity differs from final status')
+        identity = (row.get('ownerPid'), row.get('ownerBirth'), row.get('guardianPid'), row.get('guardianBirth'), row.get('pluginId'))
+        check(all(integer(v) and v > 0 for v in identity[:4]), 'invalid guardian/App PID or birth')
+        instance = row.get('instanceId')
+        check(isinstance(instance, str) and bool(re.fullmatch('[a-zA-Z0-9_-]{1,128}', instance)), 'invalid instanceId')
+        timestamps = [row.get(k) for k in ('captureBeforeNs', 'captureAfterCloneNs', 'captureAfterNs')]
+        check(all(integer(t) and t > 0 for t in timestamps) and timestamps == sorted(timestamps, key=lambda x: -1 if x is None else x), 'invalid capture timing order')
+        check(row.get('monotonicNs') == row.get('captureBeforeNs'), 'capture timestamp differs from monotonicNs')
+        if row.get('kind') == 'guardian-spawn':
+            check(instance not in guardians, 'duplicate guardian identity event')
+            check(row.get('requestId') is None, 'guardian event has requestId')
+            guardians[instance] = identity
+        elif row.get('kind') == 'render-accepted':
+            check(instance in guardians and guardians.get(instance) == identity, 'accepted render lacks matching prior guardian identity')
+            key = (instance, row.get('requestId'))
+            check(key not in accepted, 'duplicate accepted request key')
+            accepted[key] = row
+        else:
+            errors.append('unexpected event kind')
+    traces, other_lines = [], 0
+    for line in log_raw.decode('utf-8', errors='strict').splitlines():
+        if line.startswith('DOM_NATIVE_TIMING '):
+            traces.append(strict_json(line[len('DOM_NATIVE_TIMING '):]))
+        else:
+            other_lines += 1
+    dispatch, deadlines, controls = {}, {}, {}
+    for row in traces:
+        if row.get('phase') not in ('dispatch', 'deadline-observed', 'control-emitted'):
+            continue
+        if row.get('requestId') is None:
+            continue
+        if row.get('pid') != owner[0]:
+            continue
+        key = (row.get('instanceId'), row.get('requestId'))
+        target = {'dispatch': dispatch, 'deadline-observed': deadlines, 'control-emitted': controls}[row['phase']]
+        target.setdefault(key, []).append(row)
+    check(set(dispatch) == set(accepted), 'accepted-wire/native-dispatch key sets differ (native trace may drop; completeness not established)')
+    for key in deadlines:
+        check(key in accepted, 'deadline has no captured input: ' + repr(key))
+    fixture = utf16(fixture_raw.decode('utf-8', errors='strict'))
+    samples = strict_json(plan_raw).get('samples', []) if plan_raw else []
+    requests = []
+    for key, row in accepted.items():
+        result = {'pluginId': row.get('pluginId'), 'instanceId': key[0], 'requestId': key[1],
+                  'guardianPid': row.get('guardianPid'), 'guardianBirth': row.get('guardianBirth')}
+        try:
+            result['input'] = verify_wire(row, fixture, samples)
+        except (ValueError, KeyError, TypeError, UnicodeError) as error:
+            errors.append('wire ' + repr(key) + ': ' + str(error))
+            result['inputError'] = str(error)
+        records = dispatch.get(key, [])
+        check(len(records) == 1, 'native dispatch must occur exactly once: ' + repr(key))
+        result['nativeDispatch'] = records
+        result['nativeDeadlines'] = deadlines.get(key, [])
+        result['nativeControls'] = controls.get(key, [])
+        check(len(result['nativeDeadlines']) <= 1, 'multiple deadline traces for key ' + repr(key))
+        if len(records) == 1:
+            start = records[0]['monotonicNs']
+            check(row['captureBeforeNs'] >= start, 'capture appears before authoritative native dispatch')
+            result['dispatchToCaptureMs'] = (row['captureBeforeNs'] - start) / 1e6
+            if len(result['nativeDeadlines']) == 1:
+                end = result['nativeDeadlines'][0]['monotonicNs']
+                check(end >= start, 'deadline before dispatch')
+                result['dispatchToDeadlineMs'] = (end - start) / 1e6
+        result['timeoutObserved'] = bool(result['nativeDeadlines'])
+        result['noDeadlineQualification'] = 'No deadline trace is not proof of successful settlement.'
+        requests.append(result)
+    return {'schema': 'milkup.cold-accepted-wire-audit.v1', 'ok': not errors, 'errors': errors,
+            'owner': {'pid': owner[0], 'birth': owner[1]}, 'finalStatus': complete,
+            'counts': {'events': len(events), 'acceptedRequests': len(accepted), 'nativeDispatchKeys': len(dispatch),
+                       'nativeDeadlineKeys': len(deadlines), 'otherNativeLogLines': other_lines},
+            'requests': requests,
+            'qualification': 'Verified diagnostic input and native request association only; no production acceptance, renderer CPU attribution, image decoder cause, or internal timed-out block attribution.'}
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--freeze-manifest', type=Path, required=True)
+    parser.add_argument('--capture-dir', type=Path, required=True)
+    parser.add_argument('--native-log', type=Path, required=True)
+    parser.add_argument('--fixture', type=Path, required=True)
+    parser.add_argument('--fixture-sha256', required=True)
+    parser.add_argument('--plan', type=Path)
+    args = parser.parse_args()
+    event_path, status_path, complete_path = [args.capture_dir / p for p in ('events.jsonl', 'status.json', 'complete.json')]
+    paths = [event_path, status_path, complete_path, args.native_log, args.fixture]
+    if args.plan:
+        paths.append(args.plan)
+    try:
+        loaded, provenance = frozen_inputs(args.freeze_manifest, paths)
+        get = lambda p: loaded[p.resolve()]
+        require(digest(get(args.fixture)) == args.fixture_sha256, 'fixture differs from explicit frozen fixture SHA256')
+        result = audit(get(event_path), get(status_path), get(complete_path), get(args.native_log),
+                       get(args.fixture), get(args.plan) if args.plan else None)
+        result['provenance'] = provenance
+    except (ValueError, OSError, KeyError, TypeError, UnicodeError) as error:
+        result = {'schema': 'milkup.cold-accepted-wire-audit.v1', 'ok': False,
+                  'errors': [str(error)], 'qualification': 'Audit stopped; no inference from incomplete/unfrozen input.'}
+    print(json.dumps(result, ensure_ascii=False, indent=2))
+    return 0 if result['ok'] else 1
+
+
+if __name__ == '__main__':
+    sys.exit(main())

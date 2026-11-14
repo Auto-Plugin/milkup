@@ -1,0 +1,284 @@
+
+[WebServer] (node:313653) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+[WebServer] $ vite --host 127.0.0.1
+
+[WebServer] (node:313666) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+[WebServer] (node:313691) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+[WebServer] $ vite --host 127.0.0.1
+
+[WebServer] (node:313707) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 34 tests using 1 worker
+
+
+(node:313768) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+[1/34] [desktop-msedge] › tests/e2e/desktop-markdown-extensions.spec.ts:45:1 › real math and footnotes plus controlled image Worker preserve source/history
+  1) [desktop-msedge] › tests/e2e/desktop-markdown-extensions.spec.ts:45:1 › real math and footnotes plus controlled image Worker preserve source/history 
+
+    Error: expect(received).toBe(expected) // Object.is equality
+
+    Expected: true
+    Received: false
+
+      58 |           img.complete && img.naturalWidth > 0 && img.src.startsWith('blob:'),
+      59 |       ),
+    > 60 |   ).toBe(true)
+         |     ^
+      61 |   await expect(page.locator('.milkup-document-reference').first()).toBeVisible()
+      62 |   await expect(page.locator('.milkup-document-presentation mtable')).toHaveCount(1)
+      63 |   const metrics = await page.locator('.milkup-document-presentation').evaluateAll((elements) =>
+        at /workspace/milkup/tests/e2e/desktop-markdown-extensions.spec.ts:60:5
+
+    attachment #1: page-state (text/plain) ─────────────────────────────────────────────────────────
+    - main:
+      - button "菜单"
+      - heading "未命名" [level=1]
+      - paragraph: 未保存
+      - button "最小化"
+      - button "最大化"
+      - button "关闭窗口"
+      - textbox:
+        - 'group "$x^2 + \\frac{1}{2}$"':
+          - math: x 2 + 1 2
+        - 'group "$$ \\begin{pmatrix}a&b\\\\c&d\\end{pmatrix} $$"':
+          - math: ( a b c d )
+        - group ...
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ../milkup-mermaid-engine-evidence/research/production-ui-window/view/16-browser-after/artifacts/desktop-markdown-extension-c83e5-ker-preserve-source-history-desktop-msedge/error-context.md
+
+
+
+(node:313952) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+[2/34] [desktop-msedge] › tests/e2e/desktop-markdown-extensions.spec.ts:86:1 › opaque code and controlled provider errors stay literal without executable content
+[3/34] [desktop-msedge] › tests/e2e/desktop-markdown-extensions.spec.ts:119:1 › footnote navigation reveals editable original and remains read only
+[4/34] [desktop-msedge] › tests/e2e/desktop-markdown-extensions.spec.ts:141:1 › disabled renderers disappear and leave Unicode editing and save available
+[5/34] [desktop-msedge] › tests/e2e/desktop-markdown-extensions.spec.ts:173:1 › search keeps the selected marker visible while asynchronous block previews settle
+  2) [desktop-msedge] › tests/e2e/desktop-markdown-extensions.spec.ts:173:1 › search keeps the selected marker visible while asynchronous block previews settle 
+
+    Test timeout of 60000ms exceeded.
+
+    Error: locator.click: Test timeout of 60000ms exceeded.
+    Call log:
+      - waiting for locator('.milkup-document-presentation').filter({ has: locator('mroot') })
+        - locator resolved to <span role="group" data-presentation-to="67" data-presentation-from="40" data-document-presentation="inline" class="milkup-document-presentation" aria-label="$\frac{x_1^2}{\sqrt[3]{y}}$">…</span>
+      - attempting click action
+        - waiting for element to be visible, enabled and stable
+        - element is not stable
+      - retrying click action
+        - waiting for element to be visible, enabled and stable
+      - element was detached from the DOM, retrying
+        - locator resolved to <span role="group" data-presentation-to="67" data-presentation-from="40" data-document-presentation="inline" class="milkup-document-presentation" aria-label="$\frac{x_1^2}{\sqrt[3]{y}}$">…</span>
+      - attempting click action
+        - waiting for element to be visible, enabled and stable
+        - element is visible, enabled and stable
+        - scrolling into view if needed
+      2 × element was detached from the DOM, retrying
+          - locator resolved to <span role="group" data-presentation-to="67" data-presentation-from="40" data-document-presentation="inline" class="milkup-document-presentation" aria-label="$\frac{x_1^2}{\sqrt[3]{y}}$">…</span>
+        - attempting click action
+          - waiting for element to be visible, enabled and stable
+        - element is not stable
+      - retrying click action
+        5 × waiting for element to be visible, enabled and stable
+        - element was detached from the DOM, retrying
+          - locator resolved to <span role="group" data-presentation-to="67" data-presentation-from="40" data-document-presentation="inline" class="milkup-document-presentation" aria-label="$\frac{x_1^2}{\sqrt[3]{y}}$">…</span>
+        - attempting click action
+        2 × waiting for element to be visible, enabled and stable
+          - element is not stable
+        - retrying click action
+          - waiting for element to be visible, enabled and stable
+        - element was detached from the DOM, retrying
+          - locator resolved to <span role="group" data-presentation-to="67" data-presentation-from="40" data-document-presentation="inline" class="milkup-document-presentation" aria-label="$\frac{x_1^2}{\sqrt[3]{y}}$">…</span>
+        - attempting click action
+        5 × waiting for element to be visible, enabled and stable
+        - element was detached from the DOM, retrying
+          - locator resolved to <span role="group" data-presentation-to="67" data-presentation-from="40" data-document-presentation="inline" class="milkup-document-presentation" aria-label="$\frac{x_1^2}{\sqrt[3]{y}}$">…</span>
+        - attempting click action
+        - waiting for element to be visible, enabled and stable
+        - element is not stable
+      - retrying click action
+        4 × waiting for element to be visible, enabled and stable
+        - element was detached from the DOM, retrying
+          - locator resolved to <span role="group" data-presentation-to="67" data-presentation-from="40" data-document-presentation="inline" class="milkup-document-presentation" aria-label="$\frac{x_1^2}{\sqrt[3]{y}}$">…</span>
+        - attempting click action
+        - waiting for element to be visible, enabled and stable
+        - element is visible, enabled and stable
+        - scrolling into view if needed
+      4 × element was detached from the DOM, retrying
+          - locator resolved to <span role="group" data-presentation-to="67" data-presentation-from="40" data-document-presentation="inline" class="milkup-document-presentation" aria-label="$\frac{x_1^2}{\sqrt[3]{y}}$">…</span>
+        - attempting click action
+          - waiting for element to be visible, enabled and stable
+        2 × element is not stable
+        - retrying click action
+          - waiting for element to be visible, enabled and stable
+        - element was detached from the DOM, retrying
+          - locator resolved to <span role="group" data-presentation-to="67" data-presentation-from="40" data-document-presentation="inline" class="milkup-document-presentation" aria-label="$\frac{x_1^2}{\sqrt[3]{y}}$">…</span>
+        - attempting click action
+          - waiting for element to be visible, enabled and stable
+      13 × element was detached from the DOM, retrying
+           - locator resolved to <span role="group" data-presentation-to="67" data-presentation-from="40" data-document-presentation="inline" class="milkup-document-presentation" aria-label="$\frac{x_1^2}{\sqrt[3]{y}}$">…</span>
+         - attempting click action
+           - waiting for element to be visible, enabled and stable
+        - element is not stable
+      - retrying click action
+        5 × waiting for element to be visible, enabled and stable
+        - element was detached from the DOM, retrying
+          - locator resolved to <span role="group" data-presentation-to="67" data-presentation-from="40" data-document-presentation="inline" class="milkup-document-presentation" aria-label="$\frac{x_1^2}{\sqrt[3]{y}}$">…</span>
+        - attempting click action
+        - waiting for element to be visible, enabled and stable
+        - element is not stable
+      - retrying click action
+        3 × waiting for element to be visible, enabled and stable
+        - element was detached from the DOM, retrying
+          - locator resolved to <span role="group" data-presentation-to="67" data-presentation-from="40" data-document-presentation="inline" class="milkup-document-presentation" aria-label="$\frac{x_1^2}{\sqrt[3]{y}}$">…</span>
+        - attempting click action
+        3 × waiting for element to be visible, enabled and stable
+          - element is not stable
+        - retrying click action
+          - waiting for element to be visible, enabled and stable
+        - element was detached from the DOM, retrying
+          - locator resolved to <span role="group" data-presentation-to="67" data-presentation-from="40" data-document-presentation="inline" class="milkup-document-presentation" aria-label="$\frac{x_1^2}{\sqrt[3]{y}}$">…</span>
+        - attempting click action
+        2 × waiting for element to be visible, enabled and stable
+        - element was detached from the DOM, retrying
+          - locator resolved to <span role="group" data-presentation-to="67" data-presentation-from="40" data-document-presentation="inline" class="milkup-document-presentation" aria-label="$\frac{x_1^2}{\sqrt[3]{y}}$">…</span>
+        - attempting click action
+        - waiting for element to be visible, enabled and stable
+        - element is not stable
+      - retrying click action
+        5 × waiting for element to be visible, enabled and stable
+        - element was detached from the DOM, retrying
+          - locator resolved to <span role="group" data-presentation-to="67" data-presentation-from="40" data-document-presentation="inline" class="milkup-document-presentation" aria-label="$\frac{x_1^2}{\sqrt[3]{y}}$">…</span>
+        - attempting click action
+        2 × waiting for element to be visible, enabled and stable
+          - element is not stable
+        - retrying click action
+          - waiting for element to be visible, enabled and stable
+        - element was detached from the DOM, retrying
+          - locator resolved to <span role="group" data-presentation-to="67" data-presentation-from="40" data-document-presentation="inline" class="milkup-document-presentation" aria-label="$\frac{x_1^2}{\sqrt[3]{y}}$">…</span>
+        - attempting click action
+        2 × waiting for element to be visible, enabled and stable
+        - element was detached from the DOM, retrying
+          - locator resolved to <span role="group" data-presentation-to="67" data-presentation-from="40" data-document-presentation="inline" class="milkup-document-presentation" aria-label="$\frac{x_1^2}{\sqrt[3]{y}}$">…</span>
+        - attempting click action
+        - waiting for element to be visible, enabled and stable
+        - element is not stable
+      - retrying click action
+        6 × waiting for element to be visible, enabled and stable
+        - element was detached from the DOM, retrying
+          - locator resolved to <span role="group" data-presentation-to="67" data-presentation-from="40" data-document-presentation="inline" class="milkup-document-presentation" aria-label="$\frac{x_1^2}{\sqrt[3]{y}}$">…</span>
+        - attempting click action
+        - waiting for element to be visible, enabled and stable
+        - element is visible, enabled and stable
+        - scrolling into view if needed
+        - done scrolling
+        - element is not visible
+      - retrying click action
+        4 × waiting for element to be visible, enabled and stable
+        - element was detached from the DOM, retrying
+          - locator resolved to <span role="group" data-presentation-to="67" data-presentation-from="40" data-document-presentation="inline" class="milkup-document-presentation" aria-label="$\frac{x_1^2}{\sqrt[3]{y}}$">…</span>
+        - attempting click action
+        - waiting for element to be visible, enabled and stable
+        - element is not stable
+      - retrying click action
+        3 × waiting for element to be visible, enabled and stable
+        - element was detached from the DOM, retrying
+          - locator resolved to <span role="group" data-presentation-to="67" data-presentation-from="40" data-document-presentation="inline" class="milkup-document-presentation" aria-label="$\frac{x_1^2}{\sqrt[3]{y}}$">…</span>
+        - attempting click action
+        2 × waiting for element to be visible, enabled and stable
+          - element is not stable
+        - retrying click action
+          - waiting for element to be visible, enabled and stable
+        - element was detached from the DOM, retrying
+          - locator resolved to <span role="group" data-presentation-to="67" data-presentation-from="40" data-document-presentation="inline" class="milkup-document-presentation" aria-label="$\frac{x_1^2}{\sqrt[3]{y}}$">…</span>
+        - attempting click action
+          - waiting for element to be visible, enabled and stable
+        - element was detached from the DOM, retrying
+          - locator resolved to <span role="group" data-presentation-to="67" data-presentation-from="40" data-document-presentation="inline" class="milkup-document-presentation" aria-label="$\frac{x_1^2}{\sqrt[3]{y}}$">…</span>
+        - attempting click action
+        - waiting for element to be visible, enabled and stable
+        - element is not stable
+      - retrying click action
+        - waiting for element to be visible, enabled and stable
+      - element was detached from the DOM, retrying
+        - locator resolved to <span role="group" data-presentation-to="67" data-presentation-from="40" data-document-presentation="inline" class="milkup-document-presentation" aria-label="$\frac{x_1^2}{\sqrt[3]{y}}$">…</span>
+      - attempting click action
+        - waiting for element to be visible, enabled and stable
+      - element was detached from the DOM, retrying
+
+
+      216 |     .locator('.milkup-document-presentation')
+      217 |     .filter({ has: page.locator('mroot') })
+    > 218 |     .click()
+          |      ^
+      219 |   await expect(page.locator('.milkup-line[data-line="4"]')).toContainText('\\frac')
+      220 |   await expect(page.locator('.milkup-input-proxy')).toBeFocused()
+      221 |   const revealed = []
+        at /workspace/milkup/tests/e2e/desktop-markdown-extensions.spec.ts:218:6
+
+    attachment #2: page-state (text/plain) ─────────────────────────────────────────────────────────
+    - main:
+      - button "菜单"
+      - heading "未命名" [level=1]
+      - paragraph: 未保存
+      - button "最小化"
+      - button "最大化"
+      - button "关闭窗口"
+      - status: Controlled fixture error; original source retained
+      - textbox:
+        - 'group "$\\frac{x_1^2}{\\sqrt[3]{y}}$"':
+          - math: x 1 2 y 3
+        - group "$\\int_0^\\infty ...
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ../milkup-mermaid-engine-evidence/research/production-ui-window/view/16-browser-after/artifacts/desktop-markdown-extension-f2bb0-onous-block-previews-settle-desktop-msedge/error-context.md
+
+
+
+(node:314350) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+[6/34] [desktop-msedge] › tests/e2e/desktop-markdown-extensions.spec.ts:268:3 › background preview refresh preserves layout (false)
+[7/34] [desktop-msedge] › tests/e2e/desktop-markdown-extensions.spec.ts:268:3 › background preview refresh preserves layout (true)
+[8/34] [desktop-msedge] › tests/e2e/desktop-markdown-extensions.spec.ts:668:3 › last preview reference supports native Tab round trip (false)
+[9/34] [desktop-msedge] › tests/e2e/desktop-markdown-extensions.spec.ts:698:3 › ordinary proxy focus retains Tab indentation (false)
+[10/34] [desktop-msedge] › tests/e2e/desktop-markdown-extensions.spec.ts:668:3 › last preview reference supports native Tab round trip (true)
+[11/34] [desktop-msedge] › tests/e2e/desktop-markdown-extensions.spec.ts:698:3 › ordinary proxy focus retains Tab indentation (true)
+[12/34] [desktop-msedge] › tests/e2e/desktop-markdown-extensions.spec.ts:717:5 › preview proxy navigation ends after arrow (false)
+[13/34] [desktop-msedge] › tests/e2e/desktop-markdown-extensions.spec.ts:717:5 › preview proxy navigation ends after text (false)
+[14/34] [desktop-msedge] › tests/e2e/desktop-markdown-extensions.spec.ts:717:5 › preview proxy navigation ends after pointer (false)
+[15/34] [desktop-msedge] › tests/e2e/desktop-markdown-extensions.spec.ts:717:5 › preview proxy navigation ends after external-focus (false)
+[16/34] [desktop-msedge] › tests/e2e/desktop-markdown-extensions.spec.ts:717:5 › preview proxy navigation ends after replacement (false)
+[17/34] [desktop-msedge] › tests/e2e/desktop-markdown-extensions.spec.ts:717:5 › preview proxy navigation ends after arrow (true)
+[18/34] [desktop-msedge] › tests/e2e/desktop-markdown-extensions.spec.ts:717:5 › preview proxy navigation ends after text (true)
+[19/34] [desktop-msedge] › tests/e2e/desktop-markdown-extensions.spec.ts:717:5 › preview proxy navigation ends after pointer (true)
+[20/34] [desktop-msedge] › tests/e2e/desktop-markdown-extensions.spec.ts:717:5 › preview proxy navigation ends after external-focus (true)
+[21/34] [desktop-msedge] › tests/e2e/desktop-markdown-extensions.spec.ts:717:5 › preview proxy navigation ends after replacement (true)
+[22/34] [desktop-msedge] › tests/e2e/desktop-markdown-extensions.spec.ts:752:5 › timed-out preparation preserves the uncached near-end reading position (false, auto)
+[23/34] [desktop-msedge] › tests/e2e/desktop-markdown-extensions.spec.ts:752:5 › timed-out preparation preserves the uncached near-end reading position (true, auto)
+[24/34] [desktop-msedge] › tests/e2e/desktop-markdown-extensions.spec.ts:752:5 › timed-out preparation preserves the uncached near-end reading position (false, none)
+[25/34] [desktop-msedge] › tests/e2e/desktop-markdown-extensions.spec.ts:752:5 › timed-out preparation preserves the uncached near-end reading position (true, none)
+[26/34] [desktop-msedge] › tests/e2e/desktop-markdown-extensions.spec.ts:940:3 › uncached source replacement retains the visible reading anchor (auto)
+[27/34] [desktop-msedge] › tests/e2e/desktop-markdown-extensions.spec.ts:940:3 › uncached source replacement retains the visible reading anchor (none)
+[28/34] [desktop-msedge] › tests/e2e/desktop-markdown-extensions.spec.ts:1095:3 › reference pointer activation survives ordinary-provider replacement between down and up
+[29/34] [desktop-msedge] › tests/e2e/desktop-markdown-extensions.spec.ts:1095:3 › reference pointer activation survives windowed-provider replacement between down and up
+[30/34] [desktop-msedge] › tests/e2e/desktop-markdown-extensions.spec.ts:1095:3 › reference pointer activation survives windowed-source replacement between down and up
+[31/34] [desktop-msedge] › tests/e2e/desktop-markdown-extensions.spec.ts:1095:3 › reference pointer activation survives windowed-outside replacement between down and up
+[32/34] [desktop-msedge] › tests/e2e/desktop-markdown-extensions.spec.ts:1318:3 › superseded source navigation cannot silently resolve without selecting its target
+[33/34] [desktop-msedge] › tests/e2e/desktop-markdown-extensions.spec.ts:1318:3 › superseded live navigation cannot silently resolve without selecting its target
+[34/34] [desktop-msedge] › tests/e2e/desktop-markdown-extensions.spec.ts:1417:1 › official Mermaid DOM host is explicitly unavailable in the browser and keeps source
+  2 failed
+    [desktop-msedge] › tests/e2e/desktop-markdown-extensions.spec.ts:45:1 › real math and footnotes plus controlled image Worker preserve source/history 
+    [desktop-msedge] › tests/e2e/desktop-markdown-extensions.spec.ts:173:1 › search keeps the selected marker visible while asynchronous block previews settle 
+  32 passed (5.1m)

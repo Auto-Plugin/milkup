@@ -1,0 +1,45 @@
+
+ RUN  v3.2.6 /workspace/milkup
+
+ ❯ apps/desktop/src/desktop-plugin-manager-catalog.test.ts (14 tests | 2 failed) 82ms
+   ✓ P6 authoritative catalog transactions > stages without running or replacing old active approval; exact review is required 12ms
+   ✓ P6 authoritative catalog transactions > tears old epoch down before trial, commits before publish, and recovers old version with new epoch on failure 17ms
+   ✓ P6 authoritative catalog transactions > cannot grant candidate capabilities via pending approval or side effects during activate 3ms
+   ✓ P6 authoritative catalog transactions > serializes queued approval and remove; tombstone keeps data/settings and never revives from mirror 2ms
+   ✓ P6 authoritative catalog transactions > recovers a committed generation when contribution publication fails 5ms
+   ✓ P6 candidate failure injection > denies a swallowed initialization write and restores unchanged data 5ms
+   ✓ P6 candidate failure injection > recovers old active after native commit rejects without publishing the candidate 3ms
+   ✓ P6 candidate failure injection > caps hanging candidate activation and attempts new-epoch recovery 7ms
+   ✓ P6 candidate failure injection > does not trust a poisoned mirror and quarantines an interrupted startup instead of retrying forever 2ms
+   ✓ P6 retirement and public diagnostic boundaries > retains a rejected isolation owner and retries before any new activation 4ms
+   ✓ P6 retirement and public diagnostic boundaries > keeps callback errors diagnostic when the trusted owner confirms termination 3ms
+   ✓ P6 retirement and public diagnostic boundaries > never exposes native or activation paths through the public management adapter 3ms
+   × P6 sealed generations > permits package reads, refuses package writes/deletes, and gives data a distinct writable scope 2ms
+     → Plugin permissions are not allowed: file:read, file:write, file:delete
+   × P6 sealed generations > disables a newly committed first installation if publication fails with no previous generation 13ms
+     → expected [ 'prepare:1', 'approve', …(3) ] to include 'markFailed'
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  apps/desktop/src/desktop-plugin-manager-catalog.test.ts > P6 sealed generations > permits package reads, refuses package writes/deletes, and gives data a distinct writable scope
+Unknown Error: Plugin permissions are not allowed: file:read, file:write, file:delete
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯
+
+ FAIL  apps/desktop/src/desktop-plugin-manager-catalog.test.ts > P6 sealed generations > disables a newly committed first installation if publication fails with no previous generation
+AssertionError: expected [ 'prepare:1', 'approve', …(3) ] to include 'markFailed'
+ ❯ apps/desktop/src/desktop-plugin-manager-catalog.test.ts:164:128
+    162|   const s=setup();await s.manager.ready;await s.install();await s.appr…
+    163|   await expect(s.manager.enable('test.lifecycle')).rejects.toThrow('pu…
+    164|   expect(s.catalog.snapshot.entries[0]).toMatchObject({enabled:false,s…
+       |                                                                                                                                ^
+    165|  })
+    166| })
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/2]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  2 failed | 12 passed (14)
+   Start at  08:55:36
+   Duration  1.69s (transform 860ms, setup 0ms, collect 1.10s, tests 82ms, environment 0ms, prepare 117ms)
+

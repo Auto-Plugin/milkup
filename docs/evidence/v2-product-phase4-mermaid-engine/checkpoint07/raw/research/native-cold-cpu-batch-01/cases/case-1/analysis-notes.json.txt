@@ -1,0 +1,237 @@
+{
+  "at": "2026-10-16T17:48:00.718453+00:00",
+  "observerFailure": "guardian-bind-not-unique-or-missing",
+  "notProductColdFailure": true,
+  "uiColdGate": "PASS",
+  "candidateRowsCaptured": false,
+  "bindingRootCause": "Unknown. No candidate argv, parent or environment rejection details were retained at bind time. Current final zombie parent1 does not reconstruct former parent. Native spawn source and sampler matcher appear consistent but do not prove actual identity at binding.",
+  "actualRecordedIdentity": {
+    "app": {
+      "pid": 361362,
+      "birth": 6033111,
+      "parent": 361288,
+      "group": 361270,
+      "state": "R",
+      "userTicks": 87,
+      "systemTicks": 93,
+      "name": "milkup-desktop",
+      "argv": [
+        "/workspace/milkup-mermaid-engine-evidence/research/native-dom-stage-candidate-01/install/usr/bin/milkup-desktop",
+        "/workspace/milkup-mermaid-engine-evidence/research/native-cold-cpu-batch-01/cases/case-1/run/ordinary.md"
+      ]
+    },
+    "dispatch": {
+      "instanceId": "a31acce2e04e4d47f721dc1aabe1765455d1c3a1e23bd0bc",
+      "monotonicNs": 60336518115827,
+      "phase": "dispatch",
+      "pid": 361362,
+      "requestId": "render_1"
+    },
+    "pidNamespaceFromStdout": "pid:[4026532200]",
+    "guardian": null
+  },
+  "cpuCoverage": {
+    "retainedSampleCount": 0,
+    "sampleBytes": 0,
+    "firstSampleNs": null,
+    "lastSampleNs": null,
+    "observedLiveCpuTicks": [],
+    "cgroupRequested": true,
+    "cgroupCounters": null,
+    "inference": "No DOM CPU, shared cgroup contention or throttling conclusion is possible."
+  },
+  "observerOwnMeasuredCpuSeconds": {
+    "user": 0.026076000000000002,
+    "system": 0.008154
+  },
+  "nativeRequests": [
+    {
+      "instanceId": "a31acce2e04e4d47f721dc1aabe1765455d1c3a1e23bd0bc",
+      "requestId": "render_1",
+      "source": [
+        {
+          "file": "ordinary.md",
+          "fullDocumentSha256": "a7267df165778c560a8fba59bfbff7065ae63365741e3eb87078783bc865fd4b",
+          "from": 108,
+          "to": 342,
+          "sourceBytes": 234,
+          "sourceSha256": "e51cb79094f8db3d5a6afd84b1b3a9dab0a1a8da503e5d39a1e7733985c0244b",
+          "source": "```mermaid\nblock\ncolumns 1\n  db((\"DB\"))\n  blockArrowId6<[\"&nbsp;&nbsp;&nbsp;\"]>(down)\n  block:ID\n    A\n    B[\"A wide one in the middle\"]\n    C\n  end\n  space\n  D\n  ID --> D\n  C --> D\n  style B fill:#969,stroke:#333,stroke-width:4px\n```",
+          "sampleId": "block-000-first-official-example",
+          "family": "block"
+        }
+      ],
+      "meta": {
+        "detailType": "request",
+        "from": 108,
+        "source_bytes": 234,
+        "source_sha256": "e51cb79094f8db3d5a6afd84b1b3a9dab0a1a8da503e5d39a1e7733985c0244b",
+        "theme": "light",
+        "to": 342,
+        "width": 1100
+      },
+      "settledOk": true,
+      "dispatchToSettledMs": 316.751842,
+      "cancelObserved": true,
+      "complete": true
+    },
+    {
+      "instanceId": "a31acce2e04e4d47f721dc1aabe1765455d1c3a1e23bd0bc",
+      "requestId": "render_2",
+      "source": [
+        {
+          "file": "ordinary.md",
+          "fullDocumentSha256": "a7267df165778c560a8fba59bfbff7065ae63365741e3eb87078783bc865fd4b",
+          "from": 108,
+          "to": 342,
+          "sourceBytes": 234,
+          "sourceSha256": "e51cb79094f8db3d5a6afd84b1b3a9dab0a1a8da503e5d39a1e7733985c0244b",
+          "source": "```mermaid\nblock\ncolumns 1\n  db((\"DB\"))\n  blockArrowId6<[\"&nbsp;&nbsp;&nbsp;\"]>(down)\n  block:ID\n    A\n    B[\"A wide one in the middle\"]\n    C\n  end\n  space\n  D\n  ID --> D\n  C --> D\n  style B fill:#969,stroke:#333,stroke-width:4px\n```",
+          "sampleId": "block-000-first-official-example",
+          "family": "block"
+        }
+      ],
+      "meta": {
+        "detailType": "request",
+        "from": 108,
+        "source_bytes": 234,
+        "source_sha256": "e51cb79094f8db3d5a6afd84b1b3a9dab0a1a8da503e5d39a1e7733985c0244b",
+        "theme": "light",
+        "to": 342,
+        "width": 1100
+      },
+      "settledOk": true,
+      "dispatchToSettledMs": 147.072074,
+      "cancelObserved": false,
+      "complete": true
+    },
+    {
+      "instanceId": "a31acce2e04e4d47f721dc1aabe1765455d1c3a1e23bd0bc",
+      "requestId": "render_3",
+      "source": [
+        {
+          "file": "ordinary.md",
+          "fullDocumentSha256": "a7267df165778c560a8fba59bfbff7065ae63365741e3eb87078783bc865fd4b",
+          "from": 440,
+          "to": 969,
+          "sourceBytes": 529,
+          "sourceSha256": "ef80eda5ae0f45a95b22a734fbd6c8d4ef9e4187e6209d4c925164b547767c14",
+          "source": "```mermaid\n---\ntitle: Animal example\n---\nclassDiagram\n    note \"From Duck till Zebra\"\n    Animal <|-- Duck\n    note for Duck \"can fly<br>can swim<br>can dive<br>can help in debugging\"\n    Animal <|-- Fish\n    Animal <|-- Zebra\n    Animal : +int age\n    Animal : +String gender\n    Animal: +isMammal()\n    Animal: +mate()\n    class Duck{\n        +String beakColor\n        +swim()\n        +quack()\n    }\n    class Fish{\n        -int sizeInFeet\n        -canEat()\n    }\n    class Zebra{\n        +bool is_wild\n        +run()\n    }\n```",
+          "sampleId": "classDiagram-000-first-official-example",
+          "family": "classDiagram"
+        }
+      ],
+      "meta": {
+        "detailType": "request",
+        "from": 440,
+        "source_bytes": 529,
+        "source_sha256": "ef80eda5ae0f45a95b22a734fbd6c8d4ef9e4187e6209d4c925164b547767c14",
+        "theme": "light",
+        "to": 969,
+        "width": 1100
+      },
+      "settledOk": true,
+      "dispatchToSettledMs": 630.801596,
+      "cancelObserved": false,
+      "complete": true
+    },
+    {
+      "instanceId": "a31acce2e04e4d47f721dc1aabe1765455d1c3a1e23bd0bc",
+      "requestId": "render_4",
+      "source": [
+        {
+          "file": "ordinary.md",
+          "fullDocumentSha256": "a7267df165778c560a8fba59bfbff7065ae63365741e3eb87078783bc865fd4b",
+          "from": 108,
+          "to": 342,
+          "sourceBytes": 234,
+          "sourceSha256": "e51cb79094f8db3d5a6afd84b1b3a9dab0a1a8da503e5d39a1e7733985c0244b",
+          "source": "```mermaid\nblock\ncolumns 1\n  db((\"DB\"))\n  blockArrowId6<[\"&nbsp;&nbsp;&nbsp;\"]>(down)\n  block:ID\n    A\n    B[\"A wide one in the middle\"]\n    C\n  end\n  space\n  D\n  ID --> D\n  C --> D\n  style B fill:#969,stroke:#333,stroke-width:4px\n```",
+          "sampleId": "block-000-first-official-example",
+          "family": "block"
+        }
+      ],
+      "meta": {
+        "detailType": "request",
+        "from": 108,
+        "source_bytes": 234,
+        "source_sha256": "e51cb79094f8db3d5a6afd84b1b3a9dab0a1a8da503e5d39a1e7733985c0244b",
+        "theme": "light",
+        "to": 342,
+        "width": 1100
+      },
+      "settledOk": true,
+      "dispatchToSettledMs": 217.880929,
+      "cancelObserved": false,
+      "complete": true
+    },
+    {
+      "instanceId": "a31acce2e04e4d47f721dc1aabe1765455d1c3a1e23bd0bc",
+      "requestId": "render_5",
+      "source": [
+        {
+          "file": "ordinary.md",
+          "fullDocumentSha256": "a7267df165778c560a8fba59bfbff7065ae63365741e3eb87078783bc865fd4b",
+          "from": 440,
+          "to": 969,
+          "sourceBytes": 529,
+          "sourceSha256": "ef80eda5ae0f45a95b22a734fbd6c8d4ef9e4187e6209d4c925164b547767c14",
+          "source": "```mermaid\n---\ntitle: Animal example\n---\nclassDiagram\n    note \"From Duck till Zebra\"\n    Animal <|-- Duck\n    note for Duck \"can fly<br>can swim<br>can dive<br>can help in debugging\"\n    Animal <|-- Fish\n    Animal <|-- Zebra\n    Animal : +int age\n    Animal : +String gender\n    Animal: +isMammal()\n    Animal: +mate()\n    class Duck{\n        +String beakColor\n        +swim()\n        +quack()\n    }\n    class Fish{\n        -int sizeInFeet\n        -canEat()\n    }\n    class Zebra{\n        +bool is_wild\n        +run()\n    }\n```",
+          "sampleId": "classDiagram-000-first-official-example",
+          "family": "classDiagram"
+        }
+      ],
+      "meta": {
+        "detailType": "request",
+        "from": 440,
+        "source_bytes": 529,
+        "source_sha256": "ef80eda5ae0f45a95b22a734fbd6c8d4ef9e4187e6209d4c925164b547767c14",
+        "theme": "light",
+        "to": 969,
+        "width": 1100
+      },
+      "settledOk": true,
+      "dispatchToSettledMs": 394.786826,
+      "cancelObserved": false,
+      "complete": true
+    },
+    {
+      "instanceId": "a31acce2e04e4d47f721dc1aabe1765455d1c3a1e23bd0bc",
+      "requestId": "render_6",
+      "source": [
+        {
+          "file": "ordinary.md",
+          "fullDocumentSha256": "a7267df165778c560a8fba59bfbff7065ae63365741e3eb87078783bc865fd4b",
+          "from": 1087,
+          "to": 1257,
+          "sourceBytes": 170,
+          "sourceSha256": "895354fc25512f2596fb5d5c02cf508321018f50ba41bf88c1d06876d2b24a61",
+          "source": "```mermaid\n---\ntitle: Order example\n---\nerDiagram\n    CUSTOMER ||--o{ ORDER : places\n    ORDER ||--|{ LINE-ITEM : contains\n    CUSTOMER }|..|{ DELIVERY-ADDRESS : uses\n```",
+          "sampleId": "entityRelationshipDiagram-000-first-official-example",
+          "family": "entityRelationshipDiagram"
+        }
+      ],
+      "meta": {
+        "detailType": "request",
+        "from": 1087,
+        "source_bytes": 170,
+        "source_sha256": "895354fc25512f2596fb5d5c02cf508321018f50ba41bf88c1d06876d2b24a61",
+        "theme": "light",
+        "to": 1257,
+        "width": 1100
+      },
+      "settledOk": null,
+      "dispatchToSettledMs": null,
+      "cancelObserved": false,
+      "complete": false
+    }
+  ],
+  "timingLimits": [
+    "Native phase deltas are monotonic wall time, not CPU.",
+    "Post-write logging can overlap receiver timing; signed negative differences are preserved without interpreting them as negative transport latency.",
+    "render_6 ER was dispatched before normal App close and lacks settlement in retained trace; not classified as a deadline.",
+    "No selection metadata was captured in native request-meta; UI selection cannot be retroactively assigned per request."
+  ],
+  "noRetries": true,
+  "remainingCases": "Not started; case2/case3 runtime/profile/output paths remain absent."
+}

@@ -1,0 +1,15 @@
+#!/usr/bin/env bash
+# Prepared only. Requires separate ROOT build GO; never invoked by preparation.
+set -euo pipefail
+source /workspace/.cloud/milkup-v2/env.sh
+unset CARGO_TARGET_X86_64_UNKNOWN_LINUX_GNU_RUNNER
+export CARGO_BUILD_JOBS=1
+root=/workspace/milkup-mermaid-engine-evidence/research/journey-relative-font-native-01
+cd "$root"
+python3 "$root/verify-inputs.py"
+[[ ! -e "$root/bin/paint" ]]
+export CARGO_TARGET_DIR=/workspace/milkup-mermaid-engine-evidence/research/svg-converter-prototype/native-runner/target
+cc -shared -fPIC -O2 "$root/extensions/paired_resource_guard.c" -o "$root/extensions/libpaired_resource_guard.so" $(pkg-config --cflags --libs webkit2gtk-web-extension-4.1)
+cargo build --offline --locked --manifest-path "$root/paint-helper/Cargo.toml" --message-format=json-render-diagnostics > "$root/build-logs/paint.jsonl" 2> "$root/build-logs/paint.stderr"
+python3 "$root/freeze-build.py"
+python3 "$root/verify-inputs.py"

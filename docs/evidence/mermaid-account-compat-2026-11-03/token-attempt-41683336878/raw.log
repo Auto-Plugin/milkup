@@ -1,0 +1,1255 @@
+﻿2026-11-03T17:20:51.5660957Z Current runner version: '2.338.2'
+2026-11-03T17:20:51.5698949Z ##[group]Runner Image Provisioner
+2026-11-03T17:20:51.5700353Z Hosted Compute Agent
+2026-11-03T17:20:51.5701183Z Version: 20261021.618
+2026-11-03T17:20:51.5702052Z Commit: 21505ad2541d5be6135ed84fc33697146cf75b8e
+2026-11-03T17:20:51.5703604Z Build Date: 2026-10-21T00:45:21Z
+2026-11-03T17:20:51.5704554Z Worker ID: {f05215a7-499f-4ede-bba2-255acd6b85b2}
+2026-11-03T17:20:51.5705495Z Region: centralus
+2026-11-03T17:20:51.5706332Z Cloud: Azure
+2026-11-03T17:20:51.5707035Z ##[endgroup]
+2026-11-03T17:20:51.5709476Z ##[group]Operating System
+2026-11-03T17:20:51.5710420Z Microsoft Windows Server 2025
+2026-11-03T17:20:51.5711269Z 10.0.26100
+2026-11-03T17:20:51.5711984Z Datacenter
+2026-11-03T17:20:51.5712666Z ##[endgroup]
+2026-11-03T17:20:51.5713352Z ##[group]Runner Image
+2026-11-03T17:20:51.5714148Z Image: windows-2025-vs2026
+2026-11-03T17:20:51.5714961Z Version: 20261030.294.1
+2026-11-03T17:20:51.5717107Z Included Software: https://github.com/actions/runner-images/blob/win25-vs2026/20261030.294/images/windows/Windows2025-VS2026-Readme.md
+2026-11-03T17:20:51.5719578Z Image Release: https://github.com/actions/runner-images/releases/tag/win25-vs2026%2F20261030.294
+2026-11-03T17:20:51.5720961Z ##[endgroup]
+2026-11-03T17:20:51.5722451Z ##[group]GITHUB_TOKEN Permissions
+2026-11-03T17:20:51.5725462Z Contents: read
+2026-11-03T17:20:51.5726262Z Metadata: read
+2026-11-03T17:20:51.5727054Z ##[endgroup]
+2026-11-03T17:20:51.5729758Z Secret source: Actions
+2026-11-03T17:20:51.5731055Z Cache mode: write
+2026-11-03T17:20:51.5732026Z Prepare workflow directory
+2026-11-03T17:20:51.6453251Z Prepare all required actions
+2026-11-03T17:20:51.6504728Z Getting action download info
+2026-11-03T17:20:51.8939207Z Download action repository 'actions/checkout@11d5960a326750d5838078e36cf38b85af677262' (SHA:11d5960a326750d5838078e36cf38b85af677262)
+2026-11-03T17:20:52.0036002Z Download action repository 'actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020' (SHA:49933ea5288caeca8642d1e84afbd3f7d6820020)
+2026-11-03T17:20:52.1491105Z Download action repository 'actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02' (SHA:ea165f8d65b6e75b540449e92b4886f43607fa02)
+2026-11-03T17:20:52.4419289Z Complete job name: observe
+2026-11-03T17:20:52.6101462Z ##[group]Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+2026-11-03T17:20:52.6103039Z with:
+2026-11-03T17:20:52.6103527Z   ref: 0783bd63aa92bef8908df8dd0ea3aa157b82ff2b
+2026-11-03T17:20:52.6104153Z   fetch-depth: 0
+2026-11-03T17:20:52.6104629Z   persist-credentials: false
+2026-11-03T17:20:52.6105256Z   repository: Auto-Plugin/milkup
+2026-11-03T17:20:52.6109774Z   token: ***
+2026-11-03T17:20:52.6110239Z   ssh-strict: true
+2026-11-03T17:20:52.6110711Z   ssh-user: git
+2026-11-03T17:20:52.6111145Z   clean: true
+2026-11-03T17:20:52.6111580Z   sparse-checkout-cone-mode: true
+2026-11-03T17:20:52.6112577Z   fetch-tags: false
+2026-11-03T17:20:52.6113035Z   show-progress: true
+2026-11-03T17:20:52.6113521Z   lfs: false
+2026-11-03T17:20:52.6113923Z   submodules: false
+2026-11-03T17:20:52.6114352Z   set-safe-directory: true
+2026-11-03T17:20:52.6114906Z   allow-unsafe-pr-checkout: false
+2026-11-03T17:20:52.6115809Z env:
+2026-11-03T17:20:52.6116326Z   CARGO_BUILD_JOBS: 2
+2026-11-03T17:20:52.6116777Z   CARGO_INCREMENTAL: 0
+2026-11-03T17:20:52.6117229Z   CARGO_PROFILE_DEV_DEBUG: 0
+2026-11-03T17:20:52.6117992Z   CARGO_PROFILE_TEST_DEBUG: 0
+2026-11-03T17:20:52.6118621Z   CARGO_TERM_COLOR: never
+2026-11-03T17:20:52.6119162Z   GIT_CONFIG_COUNT: 1
+2026-11-03T17:20:52.6119622Z   GIT_CONFIG_KEY_0: core.longpaths
+2026-11-03T17:20:52.6120137Z   GIT_CONFIG_VALUE_0: true
+2026-11-03T17:20:52.6120607Z ##[endgroup]
+2026-11-03T17:20:52.7717937Z Syncing repository: Auto-Plugin/milkup
+2026-11-03T17:20:52.7719693Z ##[group]Getting Git version info
+2026-11-03T17:20:52.7720306Z Working directory is 'D:\a\milkup\milkup'
+2026-11-03T17:20:52.8470807Z [command]"C:\Program Files\Git\bin\git.exe" version
+2026-11-03T17:20:53.2143943Z git version 2.56.0.windows.4
+2026-11-03T17:20:53.2209880Z ##[endgroup]
+2026-11-03T17:20:53.2230149Z Temporarily overriding HOME='D:\a\_temp\a0268a68-ce68-41c9-abb9-e91cea483208' before making global git config changes
+2026-11-03T17:20:53.2234130Z Adding repository directory to the temporary git global config as a safe directory
+2026-11-03T17:20:53.2240989Z [command]"C:\Program Files\Git\bin\git.exe" config --global --add safe.directory D:\a\milkup\milkup
+2026-11-03T17:20:53.2863802Z Deleting the contents of 'D:\a\milkup\milkup'
+2026-11-03T17:20:53.2870506Z ##[group]Initializing the repository
+2026-11-03T17:20:53.2879607Z [command]"C:\Program Files\Git\bin\git.exe" init D:\a\milkup\milkup
+2026-11-03T17:20:53.3796141Z Initialized empty Git repository in D:/a/milkup/milkup/.git/
+2026-11-03T17:20:53.3853771Z [command]"C:\Program Files\Git\bin\git.exe" remote add origin https://github.com/Auto-Plugin/milkup
+2026-11-03T17:20:53.4508408Z ##[endgroup]
+2026-11-03T17:20:53.4510457Z ##[group]Disabling automatic garbage collection
+2026-11-03T17:20:53.4517304Z [command]"C:\Program Files\Git\bin\git.exe" config --local gc.auto 0
+2026-11-03T17:20:53.4913592Z ##[endgroup]
+2026-11-03T17:20:53.4915584Z ##[group]Setting up auth
+2026-11-03T17:20:53.4924954Z [command]"C:\Program Files\Git\bin\git.exe" config --local --name-only --get-regexp core\.sshCommand
+2026-11-03T17:20:53.5338521Z [command]"C:\Program Files\Git\bin\git.exe" submodule foreach --recursive "sh -c \"git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :\""
+2026-11-03T17:20:55.0744579Z [command]"C:\Program Files\Git\bin\git.exe" config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-11-03T17:20:55.1149244Z [command]"C:\Program Files\Git\bin\git.exe" submodule foreach --recursive "sh -c \"git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :\""
+2026-11-03T17:20:55.6909015Z [command]"C:\Program Files\Git\bin\git.exe" config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-11-03T17:20:55.7307043Z [command]"C:\Program Files\Git\bin\git.exe" submodule foreach --recursive "git config --local --show-origin --name-only --get-regexp remote.origin.url"
+2026-11-03T17:20:56.3113082Z [command]"C:\Program Files\Git\bin\git.exe" config --local http.https://github.com/.extraheader "AUTHORIZATION: basic ***"
+2026-11-03T17:20:56.3532664Z ##[endgroup]
+2026-11-03T17:20:56.3533633Z ##[group]Fetching the repository
+2026-11-03T17:20:56.3547378Z [command]"C:\Program Files\Git\bin\git.exe" -c protocol.version=2 fetch --prune --no-recurse-submodules origin +refs/heads/*:refs/remotes/origin/* +refs/tags/*:refs/tags/*
+2026-11-03T17:30:41.3679543Z From https://github.com/Auto-Plugin/milkup
+2026-11-03T17:30:41.3681446Z  * [new branch]        charles-lee/refactor  -> origin/charles-lee/refactor
+2026-11-03T17:30:41.3682532Z  * [new branch]        dot/mermaid-rebuild-20261103 -> origin/dot/mermaid-rebuild-20261103
+2026-11-03T17:30:41.3683787Z  * [new branch]        dot/milkup-v2-beta3-feedback -> origin/dot/milkup-v2-beta3-feedback
+2026-11-03T17:30:41.3685366Z  * [new branch]        dot/milkup-v2-beta4-feedback -> origin/dot/milkup-v2-beta4-feedback
+2026-11-03T17:30:41.3686558Z  * [new branch]        dot/milkup-v2-beta5-feedback -> origin/dot/milkup-v2-beta5-feedback
+2026-11-03T17:30:41.3687596Z  * [new branch]        dot/milkup-v2-beta6-context -> origin/dot/milkup-v2-beta6-context
+2026-11-03T17:30:41.3689035Z  * [new branch]        dot/milkup-v2-beta6-ui-candidate -> origin/dot/milkup-v2-beta6-ui-candidate
+2026-11-03T17:30:41.3690114Z  * [new branch]        dot/milkup-v2-beta7-appearance-menu -> origin/dot/milkup-v2-beta7-appearance-menu
+2026-11-03T17:30:41.3691296Z  * [new branch]        dot/milkup-v2-debug-handoff-probe -> origin/dot/milkup-v2-debug-handoff-probe
+2026-11-03T17:30:41.3692362Z  * [new branch]        dot/milkup-v2-mermaid-prototype -> origin/dot/milkup-v2-mermaid-prototype
+2026-11-03T17:30:41.3694579Z  * [new branch]        dot/milkup-v2-p5-webkit-checkpoint -> origin/dot/milkup-v2-p5-webkit-checkpoint
+2026-11-03T17:30:41.3695734Z  * [new branch]        dot/milkup-v2-p7-fold-tail -> origin/dot/milkup-v2-p7-fold-tail
+2026-11-03T17:30:41.3696848Z  * [new branch]        dot/milkup-v2-p7-input-search-checkpoint -> origin/dot/milkup-v2-p7-input-search-checkpoint
+2026-11-03T17:30:41.3697939Z  * [new branch]        dot/milkup-v2-p7-tail-attribution -> origin/dot/milkup-v2-p7-tail-attribution
+2026-11-03T17:30:41.3698881Z  * [new branch]        dot/milkup-v2-plugin-system -> origin/dot/milkup-v2-plugin-system
+2026-11-03T17:30:41.3699913Z  * [new branch]        dot/milkup-v2-product-completion-phase1 -> origin/dot/milkup-v2-product-completion-phase1
+2026-11-03T17:30:41.3701143Z  * [new branch]        dot/milkup-v2-product-phase2-workspace -> origin/dot/milkup-v2-product-phase2-workspace
+2026-11-03T17:30:41.3701898Z  * [new branch]        dot/milkup-v2-product-phase3-preferences -> origin/dot/milkup-v2-product-phase3-preferences
+2026-11-03T17:30:41.3702791Z  * [new branch]        dot/milkup-v2-product-phase4-editing-resources -> origin/dot/milkup-v2-product-phase4-editing-resources
+2026-11-03T17:30:41.3703670Z  * [new branch]        dot/milkup-v2-product-phase4-markdown-extensions -> origin/dot/milkup-v2-product-phase4-markdown-extensions
+2026-11-03T17:30:41.3704507Z  * [new branch]        dot/milkup-v2-product-phase4-mermaid-engine -> origin/dot/milkup-v2-product-phase4-mermaid-engine
+2026-11-03T17:30:41.3705786Z  * [new branch]        dot/milkup-v2-product-phase5-export-print -> origin/dot/milkup-v2-product-phase5-export-print
+2026-11-03T17:30:41.3706602Z  * [new branch]        dot/milkup-v2-product-phase6-plugin-lifecycle -> origin/dot/milkup-v2-product-phase6-plugin-lifecycle
+2026-11-03T17:30:41.3707478Z  * [new branch]        dot/milkup-v2-product-phase7-quality -> origin/dot/milkup-v2-product-phase7-quality
+2026-11-03T17:30:41.3708262Z  * [new branch]        dot/milkup-v2-product-phase8-readiness -> origin/dot/milkup-v2-product-phase8-readiness
+2026-11-03T17:30:41.3708887Z  * [new branch]        dot/milkup-v2-quality -> origin/dot/milkup-v2-quality
+2026-11-03T17:30:41.3710067Z  * [new branch]        dot/milkup-v2-release-readiness-summary -> origin/dot/milkup-v2-release-readiness-summary
+2026-11-03T17:30:41.3710818Z  * [new branch]        dot/milkup-v2-search-attribution -> origin/dot/milkup-v2-search-attribution
+2026-11-03T17:30:41.3711814Z  * [new branch]        dot/milkup-v2-update-checkpoint -> origin/dot/milkup-v2-update-checkpoint
+2026-11-03T17:30:41.3712493Z  * [new branch]        dot/milkup-v2-update-health-contract -> origin/dot/milkup-v2-update-health-contract
+2026-11-03T17:30:41.3713248Z  * [new branch]        dot/milkup-v2-update-trust-recovery -> origin/dot/milkup-v2-update-trust-recovery
+2026-11-03T17:30:41.3713929Z  * [new branch]        dot/milkup-v2-update-version-gates -> origin/dot/milkup-v2-update-version-gates
+2026-11-03T17:30:41.3714602Z  * [new branch]        dot/milkup-v2-visual-fixes -> origin/dot/milkup-v2-visual-fixes
+2026-11-03T17:30:41.3715221Z  * [new branch]        dot/milkup-v2-windows-backends -> origin/dot/milkup-v2-windows-backends
+2026-11-03T17:30:41.3715837Z  * [new branch]        dot/milkup-v2-windows-delivery -> origin/dot/milkup-v2-windows-delivery
+2026-11-03T17:30:41.3716498Z  * [new branch]        dot/milkup-v2-windows-manual-candidate -> origin/dot/milkup-v2-windows-manual-candidate
+2026-11-03T17:30:41.3717530Z  * [new branch]        feat-ai               -> origin/feat-ai
+2026-11-03T17:30:41.3718138Z  * [new branch]        feat-ir               -> origin/feat-ir
+2026-11-03T17:30:41.3718762Z  * [new branch]        feat-mi               -> origin/feat-mi
+2026-11-03T17:30:41.3719205Z  * [new branch]        feat-milkupcore       -> origin/feat-milkupcore
+2026-11-03T17:30:41.3719635Z  * [new branch]        feat-vs               -> origin/feat-vs
+2026-11-03T17:30:41.3720243Z  * [new branch]        feat-vs-v2            -> origin/feat-vs-v2
+2026-11-03T17:30:41.3720671Z  * [new branch]        main                  -> origin/main
+2026-11-03T17:30:41.3721262Z  * [new branch]        oco                   -> origin/oco
+2026-11-03T17:30:41.3721754Z  * [new branch]        rookie-orange-patch-1 -> origin/rookie-orange-patch-1
+2026-11-03T17:30:41.3722207Z  * [new branch]        v2                    -> origin/v2
+2026-11-03T17:30:41.3722628Z  * [new tag]           Beta-v0.0.1           -> Beta-v0.0.1
+2026-11-03T17:30:41.3723019Z  * [new tag]           Beta-v0.0.2           -> Beta-v0.0.2
+2026-11-03T17:30:41.3723405Z  * [new tag]           Beta-v0.0.3           -> Beta-v0.0.3
+2026-11-03T17:30:41.3723793Z  * [new tag]           Beta-v0.0.4           -> Beta-v0.0.4
+2026-11-03T17:30:41.3724152Z  * [new tag]           Beta-v0.0.5           -> Beta-v0.0.5
+2026-11-03T17:30:41.3724594Z  * [new tag]           Beta-v0.0.6           -> Beta-v0.0.6
+2026-11-03T17:30:41.3724979Z  * [new tag]           Beta-v0.1.0           -> Beta-v0.1.0
+2026-11-03T17:30:41.3725986Z  * [new tag]           Beta-v0.1.1           -> Beta-v0.1.1
+2026-11-03T17:30:41.3726370Z  * [new tag]           Beta-v0.2.0           -> Beta-v0.2.0
+2026-11-03T17:30:41.3726751Z  * [new tag]           Beta-v0.2.1           -> Beta-v0.2.1
+2026-11-03T17:30:41.3727334Z  * [new tag]           Beta-v0.2.2           -> Beta-v0.2.2
+2026-11-03T17:30:41.3727767Z  * [new tag]           Beta-v0.3.0           -> Beta-v0.3.0
+2026-11-03T17:30:41.3728251Z  * [new tag]           Beta-v0.4.0           -> Beta-v0.4.0
+2026-11-03T17:30:41.3728878Z  * [new tag]           Beta-v0.4.1           -> Beta-v0.4.1
+2026-11-03T17:30:41.3729252Z  * [new tag]           Beta-v0.4.10          -> Beta-v0.4.10
+2026-11-03T17:30:41.3729680Z  * [new tag]           Beta-v0.4.11          -> Beta-v0.4.11
+2026-11-03T17:30:41.3730068Z  * [new tag]           Beta-v0.4.12          -> Beta-v0.4.12
+2026-11-03T17:30:41.3730886Z  * [new tag]           Beta-v0.4.2           -> Beta-v0.4.2
+2026-11-03T17:30:41.3731299Z  * [new tag]           Beta-v0.4.3           -> Beta-v0.4.3
+2026-11-03T17:30:41.3731680Z  * [new tag]           Beta-v0.4.4           -> Beta-v0.4.4
+2026-11-03T17:30:41.3732289Z  * [new tag]           Beta-v0.4.5           -> Beta-v0.4.5
+2026-11-03T17:30:41.3732675Z  * [new tag]           Beta-v0.4.6           -> Beta-v0.4.6
+2026-11-03T17:30:41.3733042Z  * [new tag]           Beta-v0.4.7           -> Beta-v0.4.7
+2026-11-03T17:30:41.3733440Z  * [new tag]           Beta-v0.4.8           -> Beta-v0.4.8
+2026-11-03T17:30:41.3733819Z  * [new tag]           Beta-v0.4.9           -> Beta-v0.4.9
+2026-11-03T17:30:41.3734218Z  * [new tag]           v1.0.0                -> v1.0.0
+2026-11-03T17:30:41.3734598Z  * [new tag]           v1.0.1                -> v1.0.1
+2026-11-03T17:30:41.3734958Z  * [new tag]           v1.0.10               -> v1.0.10
+2026-11-03T17:30:41.3735841Z  * [new tag]           v1.0.11               -> v1.0.11
+2026-11-03T17:30:41.3736279Z  * [new tag]           v1.0.12               -> v1.0.12
+2026-11-03T17:30:41.3736655Z  * [new tag]           v1.0.13               -> v1.0.13
+2026-11-03T17:30:41.3737025Z  * [new tag]           v1.0.14               -> v1.0.14
+2026-11-03T17:30:41.3737372Z  * [new tag]           v1.0.15               -> v1.0.15
+2026-11-03T17:30:41.3737751Z  * [new tag]           v1.0.16               -> v1.0.16
+2026-11-03T17:30:41.3738117Z  * [new tag]           v1.0.17               -> v1.0.17
+2026-11-03T17:30:41.3738471Z  * [new tag]           v1.0.18               -> v1.0.18
+2026-11-03T17:30:41.3738901Z  * [new tag]           v1.0.2                -> v1.0.2
+2026-11-03T17:30:41.3739246Z  * [new tag]           v1.0.3                -> v1.0.3
+2026-11-03T17:30:41.3739626Z  * [new tag]           v1.0.4                -> v1.0.4
+2026-11-03T17:30:41.3739988Z  * [new tag]           v1.0.5                -> v1.0.5
+2026-11-03T17:30:41.3740334Z  * [new tag]           v1.0.6                -> v1.0.6
+2026-11-03T17:30:41.3740908Z  * [new tag]           v1.0.7                -> v1.0.7
+2026-11-03T17:30:41.3741283Z  * [new tag]           v1.0.8                -> v1.0.8
+2026-11-03T17:30:41.3741673Z  * [new tag]           v1.0.9                -> v1.0.9
+2026-11-03T17:30:41.3750117Z [command]"C:\Program Files\Git\bin\git.exe" rev-parse --verify --quiet 0783bd63aa92bef8908df8dd0ea3aa157b82ff2b^{object}
+2026-11-03T17:30:41.4253255Z 0783bd63aa92bef8908df8dd0ea3aa157b82ff2b
+2026-11-03T17:30:41.4299495Z ##[endgroup]
+2026-11-03T17:30:41.4300300Z ##[group]Determining the checkout info
+2026-11-03T17:30:41.4300942Z ##[endgroup]
+2026-11-03T17:30:41.4310291Z [command]"C:\Program Files\Git\bin\git.exe" sparse-checkout disable
+2026-11-03T17:30:41.4844975Z [command]"C:\Program Files\Git\bin\git.exe" config --local --unset-all extensions.worktreeConfig
+2026-11-03T17:30:41.5250949Z ##[group]Checking out the ref
+2026-11-03T17:30:41.5260531Z [command]"C:\Program Files\Git\bin\git.exe" checkout --progress --force 0783bd63aa92bef8908df8dd0ea3aa157b82ff2b
+2026-11-03T17:30:42.8267068Z Updating files:   8% (2548/30163)
+2026-11-03T17:30:43.0067013Z Updating files:   9% (2715/30163)
+2026-11-03T17:30:43.1325850Z Updating files:  10% (3017/30163)
+2026-11-03T17:30:43.2323837Z Updating files:  11% (3318/30163)
+2026-11-03T17:30:43.3262576Z Updating files:  12% (3620/30163)
+2026-11-03T17:30:43.9441736Z Updating files:  13% (3922/30163)
+2026-11-03T17:30:44.0535251Z Updating files:  13% (4006/30163)
+2026-11-03T17:30:44.1595439Z Updating files:  14% (4223/30163)
+2026-11-03T17:30:44.2593301Z Updating files:  15% (4525/30163)
+2026-11-03T17:30:44.3608640Z Updating files:  16% (4827/30163)
+2026-11-03T17:30:44.4806136Z Updating files:  17% (5128/30163)
+2026-11-03T17:30:44.5696554Z Updating files:  18% (5430/30163)
+2026-11-03T17:30:44.6333823Z Updating files:  19% (5731/30163)
+2026-11-03T17:30:44.6438684Z Updating files:  20% (6033/30163)
+2026-11-03T17:30:44.7014698Z Updating files:  20% (6077/30163)
+2026-11-03T17:30:45.0746340Z Updating files:  21% (6335/30163)
+2026-11-03T17:30:45.1659049Z Updating files:  22% (6636/30163)
+2026-11-03T17:30:45.2563299Z Updating files:  23% (6938/30163)
+2026-11-03T17:30:45.3385912Z Updating files:  24% (7240/30163)
+2026-11-03T17:30:45.4814828Z Updating files:  25% (7541/30163)
+2026-11-03T17:30:45.6057532Z Updating files:  26% (7843/30163)
+2026-11-03T17:30:45.6451970Z Updating files:  27% (8145/30163)
+2026-11-03T17:30:45.6957267Z Updating files:  27% (8284/30163)
+2026-11-03T17:30:45.7855227Z Updating files:  28% (8446/30163)
+2026-11-03T17:30:45.8766148Z Updating files:  29% (8748/30163)
+2026-11-03T17:30:46.0638259Z Updating files:  30% (9049/30163)
+2026-11-03T17:30:46.6226062Z Updating files:  31% (9351/30163)
+2026-11-03T17:30:46.6507149Z Updating files:  32% (9653/30163)
+2026-11-03T17:30:46.7965295Z Updating files:  32% (9699/30163)
+2026-11-03T17:30:46.9869450Z Updating files:  33% (9954/30163)
+2026-11-03T17:30:47.1787355Z Updating files:  34% (10256/30163)
+2026-11-03T17:30:47.4208454Z Updating files:  35% (10558/30163)
+2026-11-03T17:30:47.7118465Z Updating files:  36% (10859/30163)
+2026-11-03T17:30:47.9208713Z Updating files:  36% (11032/30163)
+2026-11-03T17:30:48.1099985Z Updating files:  37% (11161/30163)
+2026-11-03T17:30:48.3518849Z Updating files:  38% (11462/30163)
+2026-11-03T17:30:48.4425341Z Updating files:  39% (11764/30163)
+2026-11-03T17:30:48.5301850Z Updating files:  40% (12066/30163)
+2026-11-03T17:30:48.6285634Z Updating files:  41% (12367/30163)
+2026-11-03T17:30:48.6760450Z Updating files:  42% (12669/30163)
+2026-11-03T17:30:48.7391502Z Updating files:  42% (12772/30163)
+2026-11-03T17:30:48.8192827Z Updating files:  43% (12971/30163)
+2026-11-03T17:30:49.3879355Z Updating files:  44% (13272/30163)
+2026-11-03T17:30:49.4691557Z Updating files:  45% (13574/30163)
+2026-11-03T17:30:49.5790195Z Updating files:  46% (13875/30163)
+2026-11-03T17:30:49.6878171Z Updating files:  47% (14177/30163)
+2026-11-03T17:30:49.6954333Z Updating files:  47% (14451/30163)
+2026-11-03T17:30:49.7710673Z Updating files:  48% (14479/30163)
+2026-11-03T17:30:49.8655097Z Updating files:  49% (14780/30163)
+2026-11-03T17:30:49.9471551Z Updating files:  50% (15082/30163)
+2026-11-03T17:30:50.0464273Z Updating files:  51% (15384/30163)
+2026-11-03T17:30:50.1383722Z Updating files:  52% (15685/30163)
+2026-11-03T17:30:50.2379022Z Updating files:  53% (15987/30163)
+2026-11-03T17:30:50.9219756Z Updating files:  54% (16289/30163)
+2026-11-03T17:30:50.9466318Z Updating files:  54% (16495/30163)
+2026-11-03T17:30:51.0292648Z Updating files:  55% (16590/30163)
+2026-11-03T17:30:51.1341516Z Updating files:  56% (16892/30163)
+2026-11-03T17:30:51.2038001Z Updating files:  57% (17193/30163)
+2026-11-03T17:30:51.3905876Z Updating files:  58% (17495/30163)
+2026-11-03T17:30:51.5989045Z Updating files:  59% (17797/30163)
+2026-11-03T17:30:51.6973112Z Updating files:  60% (18098/30163)
+2026-11-03T17:30:52.1046908Z Updating files:  60% (18328/30163)
+2026-11-03T17:30:52.3418421Z Updating files:  61% (18400/30163)
+2026-11-03T17:30:52.5340228Z Updating files:  62% (18702/30163)
+2026-11-03T17:30:52.6726491Z Updating files:  63% (19003/30163)
+2026-11-03T17:30:52.6974431Z Updating files:  64% (19305/30163)
+2026-11-03T17:30:52.7984093Z Updating files:  64% (19418/30163)
+2026-11-03T17:30:53.0253975Z Updating files:  65% (19606/30163)
+2026-11-03T17:30:53.7006632Z Updating files:  66% (19908/30163)
+2026-11-03T17:30:53.7109642Z Updating files:  67% (20210/30163)
+2026-11-03T17:30:53.9069509Z Updating files:  67% (20232/30163)
+2026-11-03T17:30:54.0126074Z Updating files:  68% (20511/30163)
+2026-11-03T17:30:54.0824711Z Updating files:  69% (20813/30163)
+2026-11-03T17:30:54.1599328Z Updating files:  70% (21115/30163)
+2026-11-03T17:30:54.3231181Z Updating files:  71% (21416/30163)
+2026-11-03T17:30:54.3873748Z Updating files:  72% (21718/30163)
+2026-11-03T17:30:54.5036358Z Updating files:  73% (22019/30163)
+2026-11-03T17:30:54.8189742Z Updating files:  74% (22321/30163)
+2026-11-03T17:30:54.9826763Z Updating files:  74% (22351/30163)
+2026-11-03T17:30:55.1254926Z Updating files:  75% (22623/30163)
+2026-11-03T17:30:55.1981405Z Updating files:  76% (22924/30163)
+2026-11-03T17:30:55.4356693Z Updating files:  77% (23226/30163)
+2026-11-03T17:30:55.5336122Z Updating files:  78% (23528/30163)
+2026-11-03T17:30:55.6437788Z Updating files:  79% (23829/30163)
+2026-11-03T17:30:55.7352082Z Updating files:  80% (24131/30163)
+2026-11-03T17:30:55.7456972Z Updating files:  80% (24374/30163)
+2026-11-03T17:30:55.8337798Z Updating files:  81% (24433/30163)
+2026-11-03T17:30:56.4793792Z Updating files:  82% (24734/30163)
+2026-11-03T17:30:56.5268899Z Updating files:  83% (25036/30163)
+2026-11-03T17:30:56.5764814Z Updating files:  84% (25337/30163)
+2026-11-03T17:30:56.7359743Z Updating files:  85% (25639/30163)
+2026-11-03T17:30:56.7550442Z Updating files:  85% (25920/30163)
+2026-11-03T17:30:56.8974195Z Updating files:  86% (25941/30163)
+2026-11-03T17:30:56.9498304Z Updating files:  87% (26242/30163)
+2026-11-03T17:30:57.0820231Z Updating files:  88% (26544/30163)
+2026-11-03T17:30:57.2655508Z Updating files:  89% (26846/30163)
+2026-11-03T17:30:57.7656304Z Updating files:  90% (27147/30163)
+2026-11-03T17:30:57.8916270Z Updating files:  90% (27271/30163)
+2026-11-03T17:30:57.9846634Z Updating files:  91% (27449/30163)
+2026-11-03T17:30:58.0430484Z Updating files:  92% (27750/30163)
+2026-11-03T17:30:58.1266337Z Updating files:  93% (28052/30163)
+2026-11-03T17:30:58.1876751Z Updating files:  94% (28354/30163)
+2026-11-03T17:30:58.2763406Z Updating files:  95% (28655/30163)
+2026-11-03T17:30:58.4876370Z Updating files:  96% (28957/30163)
+2026-11-03T17:30:58.5560001Z Updating files:  97% (29259/30163)
+2026-11-03T17:30:58.6189283Z Updating files:  98% (29560/30163)
+2026-11-03T17:30:58.8217407Z Updating files:  99% (29862/30163)
+2026-11-03T17:30:59.1026815Z Updating files:  99% (29953/30163)
+2026-11-03T17:30:59.1027398Z Updating files: 100% (30163/30163)
+2026-11-03T17:30:59.1027963Z Updating files: 100% (30163/30163), done.
+2026-11-03T17:30:59.1563481Z Note: switching to '0783bd63aa92bef8908df8dd0ea3aa157b82ff2b'.
+2026-11-03T17:30:59.1563964Z 
+2026-11-03T17:30:59.1564289Z You are in 'detached HEAD' state. You can look around, make experimental
+2026-11-03T17:30:59.1565064Z changes and commit them, and you can discard any commits you make in this
+2026-11-03T17:30:59.1565805Z state without impacting any branches by switching back to a branch.
+2026-11-03T17:30:59.1566183Z 
+2026-11-03T17:30:59.1567039Z If you want to create a new branch to retain commits you create, you may
+2026-11-03T17:30:59.1567511Z do so (now or later) by using -c with the switch command. Example:
+2026-11-03T17:30:59.1567753Z 
+2026-11-03T17:30:59.1567983Z   git switch -c <new-branch-name>
+2026-11-03T17:30:59.1568208Z 
+2026-11-03T17:30:59.1568314Z Or undo this operation with:
+2026-11-03T17:30:59.1568506Z 
+2026-11-03T17:30:59.1568593Z   git switch -
+2026-11-03T17:30:59.1568743Z 
+2026-11-03T17:30:59.1568953Z Turn off this advice by setting config variable advice.detachedHead to false
+2026-11-03T17:30:59.1569297Z 
+2026-11-03T17:30:59.1569648Z HEAD is now at 0783bd63 test(windows): retry bounded token fixture after exact description fix [mermaid-token-probe]
+2026-11-03T17:30:59.2332825Z ##[endgroup]
+2026-11-03T17:30:59.2757343Z [command]"C:\Program Files\Git\bin\git.exe" log -1 --format=%H
+2026-11-03T17:30:59.3121311Z 0783bd63aa92bef8908df8dd0ea3aa157b82ff2b
+2026-11-03T17:30:59.3176247Z ##[group]Removing auth
+2026-11-03T17:30:59.3185965Z [command]"C:\Program Files\Git\bin\git.exe" config --local --name-only --get-regexp core\.sshCommand
+2026-11-03T17:30:59.3592248Z [command]"C:\Program Files\Git\bin\git.exe" submodule foreach --recursive "sh -c \"git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :\""
+2026-11-03T17:30:59.9660822Z [command]"C:\Program Files\Git\bin\git.exe" config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-11-03T17:31:00.0040134Z http.https://github.com/.extraheader
+2026-11-03T17:31:00.0200781Z [command]"C:\Program Files\Git\bin\git.exe" config --local --unset-all http.https://github.com/.extraheader
+2026-11-03T17:31:00.0630459Z [command]"C:\Program Files\Git\bin\git.exe" submodule foreach --recursive "sh -c \"git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :\""
+2026-11-03T17:31:00.6643101Z [command]"C:\Program Files\Git\bin\git.exe" config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-11-03T17:31:00.7047940Z [command]"C:\Program Files\Git\bin\git.exe" submodule foreach --recursive "git config --local --show-origin --name-only --get-regexp remote.origin.url"
+2026-11-03T17:31:01.3044195Z ##[endgroup]
+2026-11-03T17:31:01.3511062Z ##[group]Run actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+2026-11-03T17:31:01.3511618Z with:
+2026-11-03T17:31:01.3511950Z   node-version: 24.19.0
+2026-11-03T17:31:01.3512262Z   always-auth: false
+2026-11-03T17:31:01.3512579Z   check-latest: false
+2026-11-03T17:31:01.3515176Z   token: ***
+2026-11-03T17:31:01.3515475Z env:
+2026-11-03T17:31:01.3515767Z   CARGO_BUILD_JOBS: 2
+2026-11-03T17:31:01.3516068Z   CARGO_INCREMENTAL: 0
+2026-11-03T17:31:01.3516374Z   CARGO_PROFILE_DEV_DEBUG: 0
+2026-11-03T17:31:01.3516711Z   CARGO_PROFILE_TEST_DEBUG: 0
+2026-11-03T17:31:01.3517024Z   CARGO_TERM_COLOR: never
+2026-11-03T17:31:01.3517338Z   GIT_CONFIG_COUNT: 1
+2026-11-03T17:31:01.3517643Z   GIT_CONFIG_KEY_0: core.longpaths
+2026-11-03T17:31:01.3517948Z   GIT_CONFIG_VALUE_0: true
+2026-11-03T17:31:01.3518266Z ##[endgroup]
+2026-11-03T17:31:01.5262897Z Attempting to download 24.19.0...
+2026-11-03T17:31:01.5479138Z (node:8416) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+2026-11-03T17:31:01.5480696Z (Use `node --trace-deprecation ...` to show where the warning was created)
+2026-11-03T17:31:02.4130111Z Acquiring 24.19.0 - x64 from https://github.com/actions/node-versions/releases/download/24.19.0-30872449280/node-24.19.0-win32-x64.7z
+2026-11-03T17:31:02.9523211Z Extracting ...
+2026-11-03T17:31:05.1531957Z Adding to the cache ...
+2026-11-03T17:31:08.0237487Z ##[group]Environment details
+2026-11-03T17:31:09.3786269Z node: v24.19.0
+2026-11-03T17:31:09.3786794Z npm: 11.17.0
+2026-11-03T17:31:09.3787278Z yarn: 1.22.22
+2026-11-03T17:31:09.3788093Z ##[endgroup]
+2026-11-03T17:31:09.4132943Z ##[group]Run $ErrorActionPreference = 'Stop'
+2026-11-03T17:31:09.4133741Z [36;1m$ErrorActionPreference = 'Stop'[0m
+2026-11-03T17:31:09.4134136Z [36;1m$head = @(git rev-parse HEAD)[0m
+2026-11-03T17:31:09.4134757Z [36;1mif ($LASTEXITCODE -ne 0 -or $head.Count -ne 1 -or $head[0].Trim() -cne $env:GITHUB_SHA) { throw 'Wrong probe candidate' }[0m
+2026-11-03T17:31:09.4135502Z [36;1mgit merge-base --is-ancestor 1f64a10fa6c7c86488ccca31fa90be221c86ca38 HEAD[0m
+2026-11-03T17:31:09.4136307Z [36;1mif ($LASTEXITCODE -ne 0) { throw 'Probe is outside the observed failed candidate' }[0m
+2026-11-03T17:31:09.4136953Z [36;1mif (git status --porcelain) { throw 'Dirty probe checkout' }[0m
+2026-11-03T17:31:09.4137551Z [36;1m$evidence = Join-Path $env:RUNNER_TEMP 'mermaid-token-observation'[0m
+2026-11-03T17:31:09.4138176Z [36;1mNew-Item -ItemType Directory -Path $evidence | Out-Null[0m
+2026-11-03T17:31:09.4139155Z [36;1mnode tests/windows/capture-build-source-state.mjs $PWD checkout $env:GITHUB_SHA (Join-Path $evidence 'source-checkout.json')[0m
+2026-11-03T17:31:09.4139970Z [36;1mif ($LASTEXITCODE -ne 0) { throw 'Cannot preserve original source state' }[0m
+2026-11-03T17:31:09.4140694Z [36;1m'CARGO_TARGET_DIR=' + (Join-Path $env:RUNNER_TEMP 'mermaid-token-probe-cargo') >> $env:GITHUB_ENV[0m
+2026-11-03T17:31:09.4492251Z shell: C:\Program Files\PowerShell\7\pwsh.EXE -command ". '{0}'"
+2026-11-03T17:31:09.4492757Z env:
+2026-11-03T17:31:09.4493055Z   CARGO_BUILD_JOBS: 2
+2026-11-03T17:31:09.4493365Z   CARGO_INCREMENTAL: 0
+2026-11-03T17:31:09.4493750Z   CARGO_PROFILE_DEV_DEBUG: 0
+2026-11-03T17:31:09.4494051Z   CARGO_PROFILE_TEST_DEBUG: 0
+2026-11-03T17:31:09.4494387Z   CARGO_TERM_COLOR: never
+2026-11-03T17:31:09.4494679Z   GIT_CONFIG_COUNT: 1
+2026-11-03T17:31:09.4494978Z   GIT_CONFIG_KEY_0: core.longpaths
+2026-11-03T17:31:09.4495301Z   GIT_CONFIG_VALUE_0: true
+2026-11-03T17:31:09.4495585Z ##[endgroup]
+2026-11-03T17:31:11.7091601Z {
+2026-11-03T17:31:11.7092201Z   "phase": "checkout",
+2026-11-03T17:31:11.7092879Z   "candidateSha": "0783bd63aa92bef8908df8dd0ea3aa157b82ff2b",
+2026-11-03T17:31:11.7093745Z   "instrumentationSha": "0783bd63aa92bef8908df8dd0ea3aa157b82ff2b",
+2026-11-03T17:31:11.7094264Z   "readOnly": true,
+2026-11-03T17:31:11.7094634Z   "refreshedIndex": false,
+2026-11-03T17:31:11.7094987Z   "rawStatus": "",
+2026-11-03T17:31:11.7095380Z   "configuration": {
+2026-11-03T17:31:11.7095658Z     "core.autocrlf": {
+2026-11-03T17:31:11.7095966Z       "exitCode": 0,
+2026-11-03T17:31:11.7096349Z       "value": "file:C:/Program Files/Git/etc/gitconfig\ttrue"
+2026-11-03T17:31:11.7096787Z     },
+2026-11-03T17:31:11.7097058Z     "core.eol": {
+2026-11-03T17:31:11.7097317Z       "exitCode": 1,
+2026-11-03T17:31:11.7097618Z       "value": ""
+2026-11-03T17:31:11.7097889Z     },
+2026-11-03T17:31:11.7098206Z     "core.filemode": {
+2026-11-03T17:31:11.7098489Z       "exitCode": 0,
+2026-11-03T17:31:11.7098791Z       "value": "file:.git/config\tfalse"
+2026-11-03T17:31:11.7099146Z     },
+2026-11-03T17:31:11.7099411Z     "core.safecrlf": {
+2026-11-03T17:31:11.7099683Z       "exitCode": 1,
+2026-11-03T17:31:11.7100023Z       "value": ""
+2026-11-03T17:31:11.7100270Z     }
+2026-11-03T17:31:11.7100546Z   },
+2026-11-03T17:31:11.7100804Z   "files": [
+2026-11-03T17:31:11.7101097Z     {
+2026-11-03T17:31:11.7101438Z       "path": "apps/desktop/src-tauri/Cargo.toml",
+2026-11-03T17:31:11.7101837Z       "head": {
+2026-11-03T17:31:11.7102135Z         "bytes": 1476,
+2026-11-03T17:31:11.7102607Z         "sha256": "ebb76a0dd76a88c3edd91c2bd2a5ef372844c6392d33fbdfd2158c17ee0c4f95",
+2026-11-03T17:31:11.7103413Z         "crlf": 0,
+2026-11-03T17:31:11.7103705Z         "bareLf": 46,
+2026-11-03T17:31:11.7104082Z         "bareCr": 0,
+2026-11-03T17:31:11.7104593Z         "lfNormalizedSha256": "ebb76a0dd76a88c3edd91c2bd2a5ef372844c6392d33fbdfd2158c17ee0c4f95"
+2026-11-03T17:31:11.7105106Z       },
+2026-11-03T17:31:11.7105373Z       "index": {
+2026-11-03T17:31:11.7107718Z         "bytes": 1476,
+2026-11-03T17:31:11.7108375Z         "sha256": "ebb76a0dd76a88c3edd91c2bd2a5ef372844c6392d33fbdfd2158c17ee0c4f95",
+2026-11-03T17:31:11.7110041Z         "crlf": 0,
+2026-11-03T17:31:11.7111302Z         "bareLf": 46,
+2026-11-03T17:31:11.7112714Z         "bareCr": 0,
+2026-11-03T17:31:11.7113592Z         "lfNormalizedSha256": "ebb76a0dd76a88c3edd91c2bd2a5ef372844c6392d33fbdfd2158c17ee0c4f95"
+2026-11-03T17:31:11.7114249Z       },
+2026-11-03T17:31:11.7114808Z       "worktree": {
+2026-11-03T17:31:11.7115322Z         "bytes": 1476,
+2026-11-03T17:31:11.7115875Z         "sha256": "ebb76a0dd76a88c3edd91c2bd2a5ef372844c6392d33fbdfd2158c17ee0c4f95",
+2026-11-03T17:31:11.7116432Z         "crlf": 0,
+2026-11-03T17:31:11.7116773Z         "bareLf": 46,
+2026-11-03T17:31:11.7117122Z         "bareCr": 0,
+2026-11-03T17:31:11.7117694Z         "lfNormalizedSha256": "ebb76a0dd76a88c3edd91c2bd2a5ef372844c6392d33fbdfd2158c17ee0c4f95"
+2026-11-03T17:31:11.7118253Z       },
+2026-11-03T17:31:11.7118779Z       "headObjectId": "e60eabb34944a68f824b0db969707a64844b198d",
+2026-11-03T17:31:11.7119427Z       "normalizedWorktreeObjectId": "e60eabb34944a68f824b0db969707a64844b198d",
+2026-11-03T17:31:11.7120126Z       "eol": "i/lf    w/lf    attr/text eol=lf      \tapps/desktop/src-tauri/Cargo.toml",
+2026-11-03T17:31:11.7121055Z       "indexStat": "apps/desktop/src-tauri/Cargo.toml\n  ctime: 1793727041:630478100\n  mtime: 1793727041:630478100\n  dev: 0\tino: 0\n  uid: 0\tgid: 0\n  size: 1476\tflags: 0",
+2026-11-03T17:31:11.7122548Z       "attributes": "apps/desktop/src-tauri/Cargo.toml: text: set\napps/desktop/src-tauri/Cargo.toml: eol: lf\napps/desktop/src-tauri/Cargo.toml: filter: unspecified\napps/desktop/src-tauri/Cargo.toml: ident: unspecified\napps/desktop/src-tauri/Cargo.toml: working-tree-encoding: unspecified"
+2026-11-03T17:31:11.7124925Z     },
+2026-11-03T17:31:11.7125251Z     {
+2026-11-03T17:31:11.7125722Z       "path": "apps/desktop/src-tauri/gen/schemas/desktop-schema.json",
+2026-11-03T17:31:11.7126158Z       "head": {
+2026-11-03T17:31:11.7126436Z         "bytes": 123209,
+2026-11-03T17:31:11.7126981Z         "sha256": "b0db3c2e2fe2f1257a33a04b1cdfbce35ee7cd054220999d2e7a44a56afacb25",
+2026-11-03T17:31:11.7127421Z         "crlf": 0,
+2026-11-03T17:31:11.7127745Z         "bareLf": 2411,
+2026-11-03T17:31:11.7128036Z         "bareCr": 0,
+2026-11-03T17:31:11.7128521Z         "lfNormalizedSha256": "b0db3c2e2fe2f1257a33a04b1cdfbce35ee7cd054220999d2e7a44a56afacb25"
+2026-11-03T17:31:11.7129085Z       },
+2026-11-03T17:31:11.7129307Z       "index": {
+2026-11-03T17:31:11.7130101Z         "bytes": 123209,
+2026-11-03T17:31:11.7130579Z         "sha256": "b0db3c2e2fe2f1257a33a04b1cdfbce35ee7cd054220999d2e7a44a56afacb25",
+2026-11-03T17:31:11.7131027Z         "crlf": 0,
+2026-11-03T17:31:11.7131320Z         "bareLf": 2411,
+2026-11-03T17:31:11.7131633Z         "bareCr": 0,
+2026-11-03T17:31:11.7132135Z         "lfNormalizedSha256": "b0db3c2e2fe2f1257a33a04b1cdfbce35ee7cd054220999d2e7a44a56afacb25"
+2026-11-03T17:31:11.7132614Z       },
+2026-11-03T17:31:11.7132862Z       "worktree": {
+2026-11-03T17:31:11.7133160Z         "bytes": 123209,
+2026-11-03T17:31:11.7133624Z         "sha256": "b0db3c2e2fe2f1257a33a04b1cdfbce35ee7cd054220999d2e7a44a56afacb25",
+2026-11-03T17:31:11.7134091Z         "crlf": 0,
+2026-11-03T17:31:11.7134366Z         "bareLf": 2411,
+2026-11-03T17:31:11.7134894Z         "bareCr": 0,
+2026-11-03T17:31:11.7135681Z         "lfNormalizedSha256": "b0db3c2e2fe2f1257a33a04b1cdfbce35ee7cd054220999d2e7a44a56afacb25"
+2026-11-03T17:31:11.7136457Z       },
+2026-11-03T17:31:11.7137020Z       "headObjectId": "93d835e4e0bdc2b9c2728343d4a68d99d974c343",
+2026-11-03T17:31:11.7138591Z       "normalizedWorktreeObjectId": "93d835e4e0bdc2b9c2728343d4a68d99d974c343",
+2026-11-03T17:31:11.7139248Z       "eol": "i/lf    w/lf    attr/text eol=lf      \tapps/desktop/src-tauri/gen/schemas/desktop-schema.json",
+2026-11-03T17:31:11.7140652Z       "indexStat": "apps/desktop/src-tauri/gen/schemas/desktop-schema.json\n  ctime: 1793727041:632233700\n  mtime: 1793727041:632233700\n  dev: 0\tino: 0\n  uid: 0\tgid: 0\n  size: 123209\tflags: 0",
+2026-11-03T17:31:11.7142632Z       "attributes": "apps/desktop/src-tauri/gen/schemas/desktop-schema.json: text: set\napps/desktop/src-tauri/gen/schemas/desktop-schema.json: eol: lf\napps/desktop/src-tauri/gen/schemas/desktop-schema.json: filter: unspecified\napps/desktop/src-tauri/gen/schemas/desktop-schema.json: ident: unspecified\napps/desktop/src-tauri/gen/schemas/desktop-schema.json: working-tree-encoding: unspecified"
+2026-11-03T17:31:11.7144054Z     },
+2026-11-03T17:31:11.7144325Z     {
+2026-11-03T17:31:11.7144761Z       "path": "apps/desktop/src-tauri/gen/schemas/windows-schema.json",
+2026-11-03T17:31:11.7145175Z       "head": {
+2026-11-03T17:31:11.7145443Z         "bytes": 123209,
+2026-11-03T17:31:11.7145920Z         "sha256": "b0db3c2e2fe2f1257a33a04b1cdfbce35ee7cd054220999d2e7a44a56afacb25",
+2026-11-03T17:31:11.7146387Z         "crlf": 0,
+2026-11-03T17:31:11.7146736Z         "bareLf": 2411,
+2026-11-03T17:31:11.7147042Z         "bareCr": 0,
+2026-11-03T17:31:11.7147527Z         "lfNormalizedSha256": "b0db3c2e2fe2f1257a33a04b1cdfbce35ee7cd054220999d2e7a44a56afacb25"
+2026-11-03T17:31:11.7148109Z       },
+2026-11-03T17:31:11.7148409Z       "index": {
+2026-11-03T17:31:11.7148688Z         "bytes": 123209,
+2026-11-03T17:31:11.7149239Z         "sha256": "b0db3c2e2fe2f1257a33a04b1cdfbce35ee7cd054220999d2e7a44a56afacb25",
+2026-11-03T17:31:11.7149704Z         "crlf": 0,
+2026-11-03T17:31:11.7150040Z         "bareLf": 2411,
+2026-11-03T17:31:11.7150332Z         "bareCr": 0,
+2026-11-03T17:31:11.7150795Z         "lfNormalizedSha256": "b0db3c2e2fe2f1257a33a04b1cdfbce35ee7cd054220999d2e7a44a56afacb25"
+2026-11-03T17:31:11.7151331Z       },
+2026-11-03T17:31:11.7151575Z       "worktree": {
+2026-11-03T17:31:11.7151875Z         "bytes": 123209,
+2026-11-03T17:31:11.7152302Z         "sha256": "b0db3c2e2fe2f1257a33a04b1cdfbce35ee7cd054220999d2e7a44a56afacb25",
+2026-11-03T17:31:11.7152735Z         "crlf": 0,
+2026-11-03T17:31:11.7153065Z         "bareLf": 2411,
+2026-11-03T17:31:11.7153324Z         "bareCr": 0,
+2026-11-03T17:31:11.7153812Z         "lfNormalizedSha256": "b0db3c2e2fe2f1257a33a04b1cdfbce35ee7cd054220999d2e7a44a56afacb25"
+2026-11-03T17:31:11.7154291Z       },
+2026-11-03T17:31:11.7154633Z       "headObjectId": "93d835e4e0bdc2b9c2728343d4a68d99d974c343",
+2026-11-03T17:31:11.7155580Z       "normalizedWorktreeObjectId": "93d835e4e0bdc2b9c2728343d4a68d99d974c343",
+2026-11-03T17:31:11.7156218Z       "eol": "i/lf    w/lf    attr/text eol=lf      \tapps/desktop/src-tauri/gen/schemas/windows-schema.json",
+2026-11-03T17:31:11.7157229Z       "indexStat": "apps/desktop/src-tauri/gen/schemas/windows-schema.json\n  ctime: 1793727041:632233700\n  mtime: 1793727041:632233700\n  dev: 0\tino: 0\n  uid: 0\tgid: 0\n  size: 123209\tflags: 0",
+2026-11-03T17:31:11.7159167Z       "attributes": "apps/desktop/src-tauri/gen/schemas/windows-schema.json: text: set\napps/desktop/src-tauri/gen/schemas/windows-schema.json: eol: lf\napps/desktop/src-tauri/gen/schemas/windows-schema.json: filter: unspecified\napps/desktop/src-tauri/gen/schemas/windows-schema.json: ident: unspecified\napps/desktop/src-tauri/gen/schemas/windows-schema.json: working-tree-encoding: unspecified"
+2026-11-03T17:31:11.7160582Z     }
+2026-11-03T17:31:11.7160857Z   ]
+2026-11-03T17:31:11.7161110Z }
+2026-11-03T17:31:11.7161303Z 
+2026-11-03T17:31:11.8239514Z ##[group]Run $ErrorActionPreference = 'Stop'
+2026-11-03T17:31:11.8240375Z [36;1m$ErrorActionPreference = 'Stop'[0m
+2026-11-03T17:31:11.8241117Z [36;1m./tests/windows/token-probe-wrapper.test.ps1 -OutputPath (Join-Path $env:RUNNER_TEMP 'mermaid-token-observation/wrapper-regressions.json')[0m
+2026-11-03T17:31:11.8309637Z shell: C:\Program Files\PowerShell\7\pwsh.EXE -command ". '{0}'"
+2026-11-03T17:31:11.8310062Z env:
+2026-11-03T17:31:11.8310524Z   CARGO_BUILD_JOBS: 2
+2026-11-03T17:31:11.8310886Z   CARGO_INCREMENTAL: 0
+2026-11-03T17:31:11.8311194Z   CARGO_PROFILE_DEV_DEBUG: 0
+2026-11-03T17:31:11.8311583Z   CARGO_PROFILE_TEST_DEBUG: 0
+2026-11-03T17:31:11.8311896Z   CARGO_TERM_COLOR: never
+2026-11-03T17:31:11.8312196Z   GIT_CONFIG_COUNT: 1
+2026-11-03T17:31:11.8312498Z   GIT_CONFIG_KEY_0: core.longpaths
+2026-11-03T17:31:11.8312809Z   GIT_CONFIG_VALUE_0: true
+2026-11-03T17:31:11.8313189Z   CARGO_TARGET_DIR: D:\a\_temp\mermaid-token-probe-cargo
+2026-11-03T17:31:11.8313696Z ##[endgroup]
+2026-11-03T17:31:17.7171434Z {
+2026-11-03T17:31:17.7172903Z   "remoteTasksTriggered": false,
+2026-11-03T17:31:17.7174091Z   "wrapperSha256": "5512eb2cf918cce54fceac52c08448e2a0ad01a089edad7388fa7a19af8b765d",
+2026-11-03T17:31:17.7175448Z   "nativeTokenProbeExecuted": false,
+2026-11-03T17:31:17.7176370Z   "windowsAccountOperations": false,
+2026-11-03T17:31:17.7177207Z   "helperSha256": "a88c5bdef3b59ad890c7afa58cae326a1cb597069efa70c895a1d9a621efb244",
+2026-11-03T17:31:17.7177957Z   "cases": [
+2026-11-03T17:31:17.7178350Z     {
+2026-11-03T17:31:17.7178773Z       "passed": true,
+2026-11-03T17:31:17.7179574Z       "name": "actual account description fits Windows 48-character limit and retains the full run identity"
+2026-11-03T17:31:17.7180520Z     },
+2026-11-03T17:31:17.7180889Z     {
+2026-11-03T17:31:17.7181279Z       "passed": true,
+2026-11-03T17:31:17.7182058Z       "name": "accept completed observation without asserting identical runtime privilege-use flags"
+2026-11-03T17:31:17.7182837Z     },
+2026-11-03T17:31:17.7183179Z     {
+2026-11-03T17:31:17.7183562Z       "passed": true,
+2026-11-03T17:31:17.7184064Z       "name": "reject missing or false diagnosticOnly"
+2026-11-03T17:31:17.7184736Z     },
+2026-11-03T17:31:17.7185079Z     {
+2026-11-03T17:31:17.7185429Z       "passed": true,
+2026-11-03T17:31:17.7185989Z       "name": "reject missing or false hostPolicyAccepted"
+2026-11-03T17:31:17.7186506Z     },
+2026-11-03T17:31:17.7186901Z     {
+2026-11-03T17:31:17.7187286Z       "passed": true,
+2026-11-03T17:31:17.7187839Z       "name": "reject missing or false creationTimeJobVerified"
+2026-11-03T17:31:17.7188432Z     },
+2026-11-03T17:31:17.7188770Z     {
+2026-11-03T17:31:17.7189140Z       "passed": true,
+2026-11-03T17:31:17.7190382Z       "name": "reject missing or false parentAndSelfIdentityMatch"
+2026-11-03T17:31:17.7190998Z     },
+2026-11-03T17:31:17.7191360Z     {
+2026-11-03T17:31:17.7191702Z       "passed": true,
+2026-11-03T17:31:17.7192303Z       "name": "reject text masquerading as native boolean or numeric fact"
+2026-11-03T17:31:17.7192881Z     },
+2026-11-03T17:31:17.7193263Z     {
+2026-11-03T17:31:17.7193647Z       "passed": true,
+2026-11-03T17:31:17.7194234Z       "name": "reject prohibited activity renderPolicyChanged"
+2026-11-03T17:31:17.7194803Z     },
+2026-11-03T17:31:17.7195238Z     {
+2026-11-03T17:31:17.7195581Z       "passed": true,
+2026-11-03T17:31:17.7196157Z       "name": "reject prohibited activity comStarted"
+2026-11-03T17:31:17.7196674Z     },
+2026-11-03T17:31:17.7197032Z     {
+2026-11-03T17:31:17.7197391Z       "passed": true,
+2026-11-03T17:31:17.7197909Z       "name": "reject prohibited activity webviewStarted"
+2026-11-03T17:31:17.7198546Z     },
+2026-11-03T17:31:17.7198895Z     {
+2026-11-03T17:31:17.7199273Z       "passed": true,
+2026-11-03T17:31:17.7199830Z       "name": "reject prohibited activity javascriptStarted"
+2026-11-03T17:31:17.7200369Z     },
+2026-11-03T17:31:17.7200752Z     {
+2026-11-03T17:31:17.7204074Z       "passed": true,
+2026-11-03T17:31:17.7205071Z       "name": "reject incomplete native cleanup jobCreated"
+2026-11-03T17:31:17.7205698Z     },
+2026-11-03T17:31:17.7206158Z     {
+2026-11-03T17:31:17.7206903Z       "passed": true,
+2026-11-03T17:31:17.7207490Z       "name": "reject incomplete native cleanup jobEmpty"
+2026-11-03T17:31:17.7208183Z     },
+2026-11-03T17:31:17.7208565Z     {
+2026-11-03T17:31:17.7208950Z       "passed": true,
+2026-11-03T17:31:17.7209671Z       "name": "reject incomplete native cleanup profileCreated"
+2026-11-03T17:31:17.7210869Z     },
+2026-11-03T17:31:17.7211290Z     {
+2026-11-03T17:31:17.7211744Z       "passed": true,
+2026-11-03T17:31:17.7212359Z       "name": "reject incomplete native cleanup profileDeleted"
+2026-11-03T17:31:17.7213049Z     },
+2026-11-03T17:31:17.7213497Z     {
+2026-11-03T17:31:17.7213966Z       "passed": true,
+2026-11-03T17:31:17.7214576Z       "name": "reject incomplete native cleanup privateTreeCreated"
+2026-11-03T17:31:17.7215178Z     },
+2026-11-03T17:31:17.7215581Z     {
+2026-11-03T17:31:17.7215996Z       "passed": true,
+2026-11-03T17:31:17.7216556Z       "name": "reject incomplete native cleanup privateTreeRemoved"
+2026-11-03T17:31:17.7217050Z     },
+2026-11-03T17:31:17.7217624Z     {
+2026-11-03T17:31:17.7217947Z       "passed": true,
+2026-11-03T17:31:17.7218620Z       "name": "reject incomplete native cleanup ipcCompleted"
+2026-11-03T17:31:17.7219052Z     },
+2026-11-03T17:31:17.7219343Z     {
+2026-11-03T17:31:17.7219940Z       "passed": true,
+2026-11-03T17:31:17.7220492Z       "name": "reject another actual parent process or an inconsistent child observer PID"
+2026-11-03T17:31:17.7221142Z     },
+2026-11-03T17:31:17.7221417Z     {
+2026-11-03T17:31:17.7221957Z       "passed": true,
+2026-11-03T17:31:17.7222411Z       "name": "reject present or unobserved caller thread tokens"
+2026-11-03T17:31:17.7223180Z     },
+2026-11-03T17:31:17.7223467Z     {
+2026-11-03T17:31:17.7223744Z       "passed": true,
+2026-11-03T17:31:17.7224238Z       "name": "reject cancelled joins, duplicate streams and cleanup errors"
+2026-11-03T17:31:17.7224701Z     },
+2026-11-03T17:31:17.7225042Z     {
+2026-11-03T17:31:17.7225416Z       "passed": true,
+2026-11-03T17:31:17.7226003Z       "name": "read exactly one standalone native JSON marker amid libtest output"
+2026-11-03T17:31:17.7226506Z     },
+2026-11-03T17:31:17.7226778Z     {
+2026-11-03T17:31:17.7227131Z       "passed": true,
+2026-11-03T17:31:17.7227544Z       "name": "read marker after the fixed libtest test-name prefix"
+2026-11-03T17:31:17.7228038Z     },
+2026-11-03T17:31:17.7228324Z     {
+2026-11-03T17:31:17.7228601Z       "passed": true,
+2026-11-03T17:31:17.7229010Z       "name": "reject duplicate markers and another account kind"
+2026-11-03T17:31:17.7229481Z     },
+2026-11-03T17:31:17.7229850Z     {
+2026-11-03T17:31:17.7230592Z       "passed": true,
+2026-11-03T17:31:17.7231249Z       "name": "retain a failed native report without relabeling it observed"
+2026-11-03T17:31:17.7231700Z     },
+2026-11-03T17:31:17.7231988Z     {
+2026-11-03T17:31:17.7232276Z       "passed": true,
+2026-11-03T17:31:17.7232776Z       "name": "reject oversized and invalid UTF8 output before JSON parsing"
+2026-11-03T17:31:17.7233221Z     },
+2026-11-03T17:31:17.7233489Z     {
+2026-11-03T17:31:17.7233762Z       "passed": true,
+2026-11-03T17:31:17.7234247Z       "name": "oversized output preserves other exact approved evidence but remains incomplete"
+2026-11-03T17:31:17.7234788Z     },
+2026-11-03T17:31:17.7235112Z     {
+2026-11-03T17:31:17.7235448Z       "passed": true,
+2026-11-03T17:31:17.7235876Z       "name": "destination collisions never remove an unowned existing file"
+2026-11-03T17:31:17.7236294Z     }
+2026-11-03T17:31:17.7236587Z   ],
+2026-11-03T17:31:17.7236876Z   "status": "passed",
+2026-11-03T17:31:17.7237253Z   "tests": 28
+2026-11-03T17:31:17.7237538Z }
+2026-11-03T17:31:17.8586162Z ##[group]Run $ErrorActionPreference = 'Stop'
+2026-11-03T17:31:17.8586766Z [36;1m$ErrorActionPreference = 'Stop'[0m
+2026-11-03T17:31:17.8587164Z [36;1mrustup toolchain install 1.99.0 --profile minimal[0m
+2026-11-03T17:31:17.8587675Z [36;1mif ($LASTEXITCODE -ne 0) { throw 'Locked Rust setup failed' }[0m
+2026-11-03T17:31:17.8588676Z [36;1m$env:RUSTUP_TOOLCHAIN = '1.99.0'[0m
+2026-11-03T17:31:17.8589219Z [36;1m'RUSTUP_TOOLCHAIN=1.99.0' >> $env:GITHUB_ENV[0m
+2026-11-03T17:31:17.8589963Z [36;1m$records = @(cargo test --locked --manifest-path apps/desktop/src-tauri/mermaid-engine/Cargo.toml --lib --no-run --message-format=json)[0m
+2026-11-03T17:31:17.8590596Z [36;1m$buildExit = $LASTEXITCODE[0m
+2026-11-03T17:31:17.8591118Z [36;1mif ($buildExit -ne 0) { throw 'Private token probe compilation failed' }[0m
+2026-11-03T17:31:17.8591652Z [36;1m$messages = @($records | ForEach-Object { $_ | ConvertFrom-Json })[0m
+2026-11-03T17:31:17.8592652Z [36;1m$executables = @($messages | Where-Object { $_.reason -eq 'compiler-artifact' } | Where-Object { $_.profile.test -eq $true -and $_.target.name -ceq 'milkup_mermaid_engine' -and $_.executable })[0m
+2026-11-03T17:31:17.8593580Z [36;1mif ($executables.Count -ne 1) { throw 'Need exactly one actual private library test executable' }[0m
+2026-11-03T17:31:17.8594204Z [36;1m$binary = Get-Item -LiteralPath $executables[0].executable[0m
+2026-11-03T17:31:17.8594954Z [36;1mif ($binary.Attributes -band [IO.FileAttributes]::ReparsePoint -or $binary.Length -gt 64MB -or $binary.Extension -cne '.exe') { throw 'Invalid probe image' }[0m
+2026-11-03T17:31:17.8595709Z [36;1m$prefix = [IO.Path]::GetFullPath($env:CARGO_TARGET_DIR).TrimEnd('\') + '\'[0m
+2026-11-03T17:31:17.8596653Z [36;1mif (-not $binary.FullName.StartsWith($prefix, [StringComparison]::OrdinalIgnoreCase) -or $binary.FullName.Contains("`n") -or $binary.FullName.Contains("`r")) { throw 'Unexpected probe build output path' }[0m
+2026-11-03T17:31:17.8597641Z [36;1m$hash = (Get-FileHash -LiteralPath $binary.FullName -Algorithm SHA256).Hash.ToLowerInvariant()[0m
+2026-11-03T17:31:17.8598979Z [36;1m[ordered]@{ candidateSha = $env:GITHUB_SHA; executable = $binary.FullName; bytes = $binary.Length; sha256 = $hash; testOnly = $true; desktopBuilt = $false; documentRendering = $false } | ConvertTo-Json | Set-Content (Join-Path $env:RUNNER_TEMP 'mermaid-token-observation/probe-build-record.json') -Encoding utf8[0m
+2026-11-03T17:31:17.8600180Z [36;1m"MILKUP_TOKEN_PROBE_BINARY=$($binary.FullName)" >> $env:GITHUB_ENV[0m
+2026-11-03T17:31:17.8600636Z [36;1m"MILKUP_TOKEN_PROBE_SHA256=$hash" >> $env:GITHUB_ENV[0m
+2026-11-03T17:31:17.8601280Z [36;1mcargo test --locked --manifest-path apps/desktop/src-tauri/mermaid-engine/Cargo.toml --lib -- --test-threads=1[0m
+2026-11-03T17:31:17.8601982Z [36;1mif ($LASTEXITCODE -ne 0) { throw 'Private crate regressions failed' }[0m
+2026-11-03T17:31:17.8669243Z shell: C:\Program Files\PowerShell\7\pwsh.EXE -command ". '{0}'"
+2026-11-03T17:31:17.8669933Z env:
+2026-11-03T17:31:17.8670434Z   CARGO_BUILD_JOBS: 2
+2026-11-03T17:31:17.8670853Z   CARGO_INCREMENTAL: 0
+2026-11-03T17:31:17.8671214Z   CARGO_PROFILE_DEV_DEBUG: 0
+2026-11-03T17:31:17.8671569Z   CARGO_PROFILE_TEST_DEBUG: 0
+2026-11-03T17:31:17.8671902Z   CARGO_TERM_COLOR: never
+2026-11-03T17:31:17.8672264Z   GIT_CONFIG_COUNT: 1
+2026-11-03T17:31:17.8672632Z   GIT_CONFIG_KEY_0: core.longpaths
+2026-11-03T17:31:17.8673007Z   GIT_CONFIG_VALUE_0: true
+2026-11-03T17:31:17.8673454Z   CARGO_TARGET_DIR: D:\a\_temp\mermaid-token-probe-cargo
+2026-11-03T17:31:17.8673905Z ##[endgroup]
+2026-11-03T17:31:19.4007181Z info: syncing channel updates for 1.99.0-x86_64-pc-windows-msvc
+2026-11-03T17:31:20.1650463Z info: latest update on 2026-10-01 for version 1.99.0 (b940084d7 2026-09-28)
+2026-11-03T17:31:20.1774078Z info: downloading 3 components
+2026-11-03T17:31:29.2472770Z 
+2026-11-03T17:31:29.3906818Z   1.99.0-x86_64-pc-windows-msvc installed - rustc 1.99.0 (b940084d7 2026-09-28)
+2026-11-03T17:31:29.3911871Z 
+2026-11-03T17:31:30.4244558Z     Updating crates.io index
+2026-11-03T17:31:30.8436690Z  Downloading crates ...
+2026-11-03T17:31:31.0545908Z   Downloaded bitflags v2.13.2
+2026-11-03T17:31:31.1082760Z   Downloaded windows-numerics v0.2.0
+2026-11-03T17:31:31.1208261Z   Downloaded num-traits v0.2.19
+2026-11-03T17:31:31.1513278Z   Downloaded adler2 v2.0.1
+2026-11-03T17:31:31.1613288Z   Downloaded crypto-common v0.1.7
+2026-11-03T17:31:31.1682728Z   Downloaded block-buffer v0.10.4
+2026-11-03T17:31:31.1756885Z   Downloaded cfg-if v1.0.5
+2026-11-03T17:31:31.1842603Z   Downloaded itoa v1.0.18
+2026-11-03T17:31:31.1934342Z   Downloaded byteorder-lite v0.1.0
+2026-11-03T17:31:31.2002722Z   Downloaded windows-link v0.1.3
+2026-11-03T17:31:31.2065096Z   Downloaded windows-link v0.2.1
+2026-11-03T17:31:31.2137754Z   Downloaded windows-strings v0.4.2
+2026-11-03T17:31:31.2618336Z   Downloaded webview2-com-macros v0.8.1
+2026-11-03T17:31:31.3274371Z   Downloaded windows-implement v0.60.2
+2026-11-03T17:31:31.3357683Z   Downloaded cpufeatures v0.2.17
+2026-11-03T17:31:31.3458774Z   Downloaded version_check v0.9.5
+2026-11-03T17:31:31.3546592Z   Downloaded windows-result v0.3.4
+2026-11-03T17:31:31.3719952Z   Downloaded generic-array v0.14.7
+2026-11-03T17:31:31.3880205Z   Downloaded windows-collections v0.2.0
+2026-11-03T17:31:31.3958691Z   Downloaded windows-threading v0.1.0
+2026-11-03T17:31:31.4034568Z   Downloaded autocfg v1.5.1
+2026-11-03T17:31:31.4156227Z   Downloaded digest v0.10.7
+2026-11-03T17:31:31.4297589Z   Downloaded windows-future v0.2.1
+2026-11-03T17:31:31.4438151Z   Downloaded fdeflate v0.3.7
+2026-11-03T17:31:31.4572088Z   Downloaded quote v1.0.47
+2026-11-03T17:31:31.4769662Z   Downloaded thiserror v2.0.21
+2026-11-03T17:31:31.5352811Z   Downloaded thiserror-impl v2.0.21
+2026-11-03T17:31:31.5457637Z   Downloaded zmij v1.0.23
+2026-11-03T17:31:31.5566039Z   Downloaded webview2-com v0.38.2
+2026-11-03T17:31:31.5659458Z   Downloaded windows-interface v0.59.3
+2026-11-03T17:31:31.5723048Z   Downloaded unicode-ident v1.0.27
+2026-11-03T17:31:31.5920024Z   Downloaded windows-core v0.61.2
+2026-11-03T17:31:31.6147967Z   Downloaded sha2 v0.10.9
+2026-11-03T17:31:31.6363947Z   Downloaded simd-adler32 v0.3.10
+2026-11-03T17:31:31.6519016Z   Downloaded bytemuck v1.25.2
+2026-11-03T17:31:31.6776614Z   Downloaded serde_derive v1.0.229
+2026-11-03T17:31:31.7140921Z   Downloaded base64 v0.22.1
+2026-11-03T17:31:31.7362387Z   Downloaded crc32fast v1.5.4
+2026-11-03T17:31:31.7488688Z   Downloaded miniz_oxide v0.8.9
+2026-11-03T17:31:31.7640597Z   Downloaded proc-macro2 v1.0.107
+2026-11-03T17:31:31.7859126Z   Downloaded serde_core v1.0.229
+2026-11-03T17:31:31.8040236Z   Downloaded miniz_oxide v0.9.1
+2026-11-03T17:31:31.8206447Z   Downloaded flate2 v1.1.10
+2026-11-03T17:31:31.8610892Z   Downloaded serde v1.0.229
+2026-11-03T17:31:31.8841343Z   Downloaded memchr v2.8.3
+2026-11-03T17:31:31.9213677Z   Downloaded png v0.18.1
+2026-11-03T17:31:31.9487388Z   Downloaded typenum v1.20.1
+2026-11-03T17:31:31.9687403Z   Downloaded serde_json v1.0.150
+2026-11-03T17:31:32.0256418Z   Downloaded moxcms v0.8.1
+2026-11-03T17:31:32.0985373Z   Downloaded zlib-rs v0.6.8
+2026-11-03T17:31:32.1351468Z   Downloaded image v0.25.10
+2026-11-03T17:31:32.1914997Z   Downloaded syn v3.0.9
+2026-11-03T17:31:32.2602477Z   Downloaded syn v2.0.119
+2026-11-03T17:31:32.3235026Z   Downloaded pxfm v0.1.30
+2026-11-03T17:31:32.4884035Z   Downloaded windows-sys v0.61.2
+2026-11-03T17:31:34.2356479Z   Downloaded webview2-com-sys v0.38.2
+2026-11-03T17:31:34.3360363Z   Downloaded windows v0.61.3
+2026-11-03T17:31:35.3704000Z    Compiling proc-macro2 v1.0.107
+2026-11-03T17:31:35.3704912Z    Compiling quote v1.0.47
+2026-11-03T17:31:37.6465428Z    Compiling unicode-ident v1.0.27
+2026-11-03T17:31:37.7785127Z    Compiling windows-link v0.1.3
+2026-11-03T17:31:37.8214547Z    Compiling version_check v0.9.5
+2026-11-03T17:31:38.0906230Z    Compiling generic-array v0.14.7
+2026-11-03T17:31:38.5704502Z    Compiling syn v2.0.119
+2026-11-03T17:31:38.6233429Z    Compiling syn v3.0.9
+2026-11-03T17:31:41.0764617Z    Compiling windows-result v0.3.4
+2026-11-03T17:31:41.2680601Z    Compiling windows-strings v0.4.2
+2026-11-03T17:31:41.5359637Z    Compiling typenum v1.20.1
+2026-11-03T17:31:42.2403632Z    Compiling cfg-if v1.0.5
+2026-11-03T17:31:42.3708770Z    Compiling windows-interface v0.59.3
+2026-11-03T17:31:42.8067649Z    Compiling windows-implement v0.60.2
+2026-11-03T17:31:43.0584710Z    Compiling thiserror v2.0.21
+2026-11-03T17:31:43.3296324Z    Compiling simd-adler32 v0.3.10
+2026-11-03T17:31:43.4713848Z    Compiling windows-core v0.61.2
+2026-11-03T17:31:43.6538428Z    Compiling thiserror-impl v2.0.21
+2026-11-03T17:31:43.9031523Z    Compiling adler2 v2.0.1
+2026-11-03T17:31:43.9893029Z    Compiling autocfg v1.5.1
+2026-11-03T17:31:44.3403635Z    Compiling crc32fast v1.5.4
+2026-11-03T17:31:44.5773570Z    Compiling num-traits v0.2.19
+2026-11-03T17:31:44.7455242Z    Compiling crypto-common v0.1.7
+2026-11-03T17:31:44.8353361Z    Compiling block-buffer v0.10.4
+2026-11-03T17:31:44.9246610Z    Compiling windows-threading v0.1.0
+2026-11-03T17:31:44.9387322Z    Compiling serde_core v1.0.229
+2026-11-03T17:31:45.0168315Z    Compiling windows-future v0.2.1
+2026-11-03T17:31:45.2359344Z    Compiling webview2-com-sys v0.38.2
+2026-11-03T17:31:45.3322821Z    Compiling digest v0.10.7
+2026-11-03T17:31:45.5688273Z    Compiling miniz_oxide v0.9.1
+2026-11-03T17:31:45.6927550Z    Compiling windows-numerics v0.2.0
+2026-11-03T17:31:45.8230410Z    Compiling windows-collections v0.2.0
+2026-11-03T17:31:46.0065589Z    Compiling zmij v1.0.23
+2026-11-03T17:31:46.1873080Z    Compiling cpufeatures v0.2.17
+2026-11-03T17:31:46.2347973Z    Compiling sha2 v0.10.9
+2026-11-03T17:31:46.2504065Z    Compiling windows v0.61.3
+2026-11-03T17:31:46.5645062Z    Compiling flate2 v1.1.10
+2026-11-03T17:31:49.5832401Z    Compiling miniz_oxide v0.8.9
+2026-11-03T17:31:50.1843055Z    Compiling fdeflate v0.3.7
+2026-11-03T17:31:50.5774653Z    Compiling serde_json v1.0.150
+2026-11-03T17:31:50.7492028Z    Compiling pxfm v0.1.30
+2026-11-03T17:31:53.7252938Z    Compiling bitflags v2.13.2
+2026-11-03T17:31:53.8904859Z    Compiling serde v1.0.229
+2026-11-03T17:31:54.1619627Z    Compiling png v0.18.1
+2026-11-03T17:31:55.3022588Z    Compiling moxcms v0.8.1
+2026-11-03T17:32:02.1857616Z    Compiling milkup-mermaid-engine v0.1.0 (D:\a\milkup\milkup\apps\desktop\src-tauri\mermaid-engine)
+2026-11-03T17:32:02.6734363Z    Compiling webview2-com-macros v0.8.1
+2026-11-03T17:32:03.1332948Z    Compiling serde_derive v1.0.229
+2026-11-03T17:32:04.1307831Z    Compiling memchr v2.8.3
+2026-11-03T17:32:04.7220173Z    Compiling itoa v1.0.18
+2026-11-03T17:32:04.8667163Z    Compiling bytemuck v1.25.2
+2026-11-03T17:32:05.0890556Z    Compiling byteorder-lite v0.1.0
+2026-11-03T17:32:05.3000544Z    Compiling windows-link v0.2.1
+2026-11-03T17:32:05.3420478Z    Compiling windows-sys v0.61.2
+2026-11-03T17:32:06.5228717Z    Compiling image v0.25.10
+2026-11-03T17:32:08.5998284Z    Compiling webview2-com v0.38.2
+2026-11-03T17:32:10.4900623Z    Compiling base64 v0.22.1
+2026-11-03T17:32:14.4963242Z     Finished `test` profile [unoptimized] target(s) in 44.13s
+2026-11-03T17:32:14.7908491Z     Finished `test` profile [unoptimized] target(s) in 0.09s
+2026-11-03T17:32:14.7962276Z      Running unittests src\lib.rs (D:\a\_temp\mermaid-token-probe-cargo\debug\deps\milkup_mermaid_engine-6145beba5112d051.exe)
+2026-11-03T17:32:14.8104143Z 
+2026-11-03T17:32:14.8105107Z running 46 tests
+2026-11-03T17:32:14.8110815Z test audit::tests::a_disconnected_writer_is_an_explicit_flush_failure ... ok
+2026-11-03T17:32:14.8117098Z test audit::tests::a_dropped_oversized_record_keeps_later_flushes_uncertain ... ok
+2026-11-03T17:32:14.8361146Z test audit::tests::a_timed_out_barrier_can_be_retried_without_destroying_the_worker ... ok
+2026-11-03T17:32:14.8365697Z test audit::tests::barrier_covers_all_prior_lines_and_writer_flush_without_stopping_worker ... ok
+2026-11-03T17:32:14.8372932Z test audit::tests::cancelled_or_expired_render_keeps_png_evidence_without_claiming_publication ... ok
+2026-11-03T17:32:14.8375829Z test audit::tests::cleanup_failure_diagnostics_only_preserve_bounded_closed_kinds ... ok
+2026-11-03T17:32:14.8380513Z test audit::tests::diagnostics_only_copy_closed_ownership_fields_never_source_paths_or_errors ... ok
+2026-11-03T17:32:14.8387030Z test audit::tests::filtered_account_facts_are_closed_and_do_not_claim_pure_standard ... ok
+2026-11-03T17:32:14.8390169Z test audit::tests::ipc_diagnostics_keep_only_seven_typed_fields_and_three_rows ... ok
+2026-11-03T17:32:14.8393483Z test audit::tests::ipc_diagnostics_reject_unknown_streams_coercions_and_out_of_range_error_codes ... ok
+2026-11-03T17:32:15.2403247Z test audit::tests::queue_admission_and_acknowledgement_share_one_deadline ... ok
+2026-11-03T17:32:15.2426246Z test audit::tests::queue_overflow_is_nonblocking_and_stays_uncertain_after_drain ... ok
+2026-11-03T17:32:15.2430249Z test audit::tests::renderer_error_kind_only_accepts_fixed_bootstrap_error_envelope ... ok
+2026-11-03T17:32:15.2439994Z test audit::tests::renderer_status_and_captured_png_size_cannot_be_spoofed_by_other_fields ... ok
+2026-11-03T17:32:15.2443033Z test audit::tests::stderr_failure_only_exposes_closed_kind_boolean_and_nullable_u32 ... ok
+2026-11-03T17:32:15.2446801Z test audit::tests::stdout_failure_never_infers_kind_or_win32_code_from_injected_text ... ok
+2026-11-03T17:32:15.2451650Z test audit::tests::stdout_failure_only_exposes_the_closed_observed_stage_and_stop_sample ... ok
+2026-11-03T17:32:15.2459629Z test audit::tests::write_and_flush_failures_remain_uncertain_after_output_recovers ... ok
+2026-11-03T17:32:15.2477789Z test cleanup::tests::actual_owned_tree_is_absent_after_success ... ok
+2026-11-03T17:32:15.2480920Z test cleanup::tests::cleanup_sid_cannot_name_groups_or_inject_acl_arguments ... ok
+2026-11-03T17:32:15.3508817Z test cleanup::tests::real_windows_file_handle_release_allows_owned_tree_cleanup ... ok
+2026-11-03T17:32:15.3512882Z test cleanup::tests::retry_only_transient_windows_sharing_errors_with_a_bound ... ok
+2026-11-03T17:32:15.3515995Z test engine::startup_phase_tests::startup_metadata_has_only_fixed_phase_and_numeric_fields ... ok
+2026-11-03T17:32:15.3518638Z test launcher::tests::elevated_host_is_rejected_before_native_resources ... ignored, requires explicitly authorized real elevated Windows runner token
+2026-11-03T17:32:15.3520847Z test launcher::token_diagnostic::child_observes_own_token ... ignored, only the owned zero-capability native test child may run this probe
+2026-11-03T17:32:15.3522385Z test launcher::token_diagnostic::object_basic_information_layout_matches_documented_abi ... ok
+2026-11-03T17:32:15.3524101Z test launcher::token_diagnostic::parent_observes_suspended_and_self_tokens ... ignored, requires an explicitly authorized fresh standard or filtered-admin fixture
+2026-11-03T17:32:15.3533758Z test tests::cancel_before_start_and_retired_owner_cannot_publish_or_launch ... ok
+2026-11-03T17:32:15.3886501Z test tests::cancellation_rejects_late_result_and_original_deadline_includes_queue ... ok
+2026-11-03T17:32:15.3897220Z test tests::closed_text_contract_rejects_code_options_and_malformed_input ... ok
+2026-11-03T17:32:15.3904423Z test tests::complete_png_validation_rejects_truncation_trailing_bytes_and_crc ... ok
+2026-11-03T17:32:15.3910500Z test tests::leases_are_owned_and_released_without_cross_scope_or_owner ... ok
+2026-11-03T17:32:15.4139140Z test tests::shutdown_closes_admission_cancels_and_waits_for_owned_backend_cleanup ... ok
+2026-11-03T17:32:15.4145141Z test tests::shutdown_never_accepts_uncertain_cleanup_and_clears_completed_leases ... ok
+2026-11-03T17:32:15.4153489Z test tests::shutdown_retry_does_not_extend_deadline_or_hide_unsettled_work ... ok
+2026-11-03T17:32:15.4244253Z test tests::uncertain_cleanup_prevents_later_jobs_and_budget_counts_old_plus_new ... ok
+2026-11-03T17:32:15.4248068Z test token_diagnostic_format::child_record_requires_single_closed_bounded_marker ... ok
+2026-11-03T17:32:15.4251308Z test token_diagnostic_format::object_query_requires_success_and_exact_documented_length ... ok
+2026-11-03T17:32:15.4254100Z test token_diagnostic_format::privilege_array_uses_actual_bytes_instead_of_rounded_storage ... ok
+2026-11-03T17:32:15.4255855Z test token_diagnostic_format::privilege_names_are_bounded_canonical_identifiers ... ok
+2026-11-03T17:32:15.4259777Z test token_policy::tests::classifies_real_authority_without_relabeling_filtered_as_pure_standard ... ok
+2026-11-03T17:32:15.4263363Z test token_policy::tests::closed_audit_facts_do_not_relabel_or_leak_unknown_fields ... ok
+2026-11-03T17:32:15.4267435Z test token_policy::tests::deny_only_cannot_hide_enabled_default_enabled_or_owner_bits ... ok
+2026-11-03T17:32:15.4273629Z test token_policy::tests::full_no_uac_unknown_uiaccess_privileged_and_cross_session_hosts_are_rejected ... ok
+2026-11-03T17:32:15.4280595Z test token_policy::tests::missing_or_mistyped_token_evidence_never_defaults_to_safe ... ok
+2026-11-03T17:32:15.4286467Z test token_policy::tests::sandbox_requires_low_unprivileged_identity_and_exact_fresh_profile ... ok
+2026-11-03T17:32:15.4287114Z 
+2026-11-03T17:32:15.4287637Z test result: ok. 43 passed; 0 failed; 3 ignored; 0 measured; 0 filtered out; finished in 0.62s
+2026-11-03T17:32:15.4288042Z 
+2026-11-03T17:32:15.4892452Z ##[group]Run $ErrorActionPreference = 'Stop'
+2026-11-03T17:32:15.4893035Z [36;1m$ErrorActionPreference = 'Stop'[0m
+2026-11-03T17:32:15.4893844Z [36;1mnode tests/windows/capture-build-source-state.mjs $PWD pre-probe $env:GITHUB_SHA (Join-Path $env:RUNNER_TEMP 'mermaid-token-observation/source-pre-probe.json')[0m
+2026-11-03T17:32:15.4894743Z [36;1mif ($LASTEXITCODE -ne 0) { throw 'Cannot preserve pre-probe source' }[0m
+2026-11-03T17:32:15.4895240Z [36;1m$dirty = @(git status --porcelain=v1 --untracked-files=all)[0m
+2026-11-03T17:32:15.4895879Z [36;1mif ($LASTEXITCODE -ne 0 -or $dirty.Count) { throw 'Source changed during private probe build' }[0m
+2026-11-03T17:32:15.4896488Z [36;1mgit diff --cached --exit-code[0m
+2026-11-03T17:32:15.4896879Z [36;1mif ($LASTEXITCODE -ne 0) { throw 'Source index changed' }[0m
+2026-11-03T17:32:15.4982421Z shell: C:\Program Files\PowerShell\7\pwsh.EXE -command ". '{0}'"
+2026-11-03T17:32:15.4982951Z env:
+2026-11-03T17:32:15.4983427Z   CARGO_BUILD_JOBS: 2
+2026-11-03T17:32:15.4983813Z   CARGO_INCREMENTAL: 0
+2026-11-03T17:32:15.4984164Z   CARGO_PROFILE_DEV_DEBUG: 0
+2026-11-03T17:32:15.4984541Z   CARGO_PROFILE_TEST_DEBUG: 0
+2026-11-03T17:32:15.4984926Z   CARGO_TERM_COLOR: never
+2026-11-03T17:32:15.4985268Z   GIT_CONFIG_COUNT: 1
+2026-11-03T17:32:15.4986379Z   GIT_CONFIG_KEY_0: core.longpaths
+2026-11-03T17:32:15.4986874Z   GIT_CONFIG_VALUE_0: true
+2026-11-03T17:32:15.4987293Z   CARGO_TARGET_DIR: D:\a\_temp\mermaid-token-probe-cargo
+2026-11-03T17:32:15.4987750Z   RUSTUP_TOOLCHAIN: 1.99.0
+2026-11-03T17:32:15.4988348Z   MILKUP_TOKEN_PROBE_BINARY: D:\a\_temp\mermaid-token-probe-cargo\debug\deps\milkup_mermaid_engine-6145beba5112d051.exe
+2026-11-03T17:32:15.4989134Z   MILKUP_TOKEN_PROBE_SHA256: 83e70e1d0ff00255099687287344adb54ce79f26d7304b42f430497bc4cd30bc
+2026-11-03T17:32:15.4989623Z ##[endgroup]
+2026-11-03T17:32:17.1663349Z {
+2026-11-03T17:32:17.1663988Z   "phase": "pre-probe",
+2026-11-03T17:32:17.1664574Z   "candidateSha": "0783bd63aa92bef8908df8dd0ea3aa157b82ff2b",
+2026-11-03T17:32:17.1665114Z   "instrumentationSha": "0783bd63aa92bef8908df8dd0ea3aa157b82ff2b",
+2026-11-03T17:32:17.1665540Z   "readOnly": true,
+2026-11-03T17:32:17.1665863Z   "refreshedIndex": false,
+2026-11-03T17:32:17.1666179Z   "rawStatus": "",
+2026-11-03T17:32:17.1666520Z   "configuration": {
+2026-11-03T17:32:17.1666810Z     "core.autocrlf": {
+2026-11-03T17:32:17.1667095Z       "exitCode": 0,
+2026-11-03T17:32:17.1667491Z       "value": "file:C:/Program Files/Git/etc/gitconfig\ttrue"
+2026-11-03T17:32:17.1667876Z     },
+2026-11-03T17:32:17.1668196Z     "core.eol": {
+2026-11-03T17:32:17.1668485Z       "exitCode": 1,
+2026-11-03T17:32:17.1668766Z       "value": ""
+2026-11-03T17:32:17.1669047Z     },
+2026-11-03T17:32:17.1669314Z     "core.filemode": {
+2026-11-03T17:32:17.1670071Z       "exitCode": 0,
+2026-11-03T17:32:17.1670443Z       "value": "file:.git/config\tfalse"
+2026-11-03T17:32:17.1670761Z     },
+2026-11-03T17:32:17.1671044Z     "core.safecrlf": {
+2026-11-03T17:32:17.1671333Z       "exitCode": 1,
+2026-11-03T17:32:17.1671607Z       "value": ""
+2026-11-03T17:32:17.1672787Z     }
+2026-11-03T17:32:17.1673086Z   },
+2026-11-03T17:32:17.1673373Z   "files": [
+2026-11-03T17:32:17.1673639Z     {
+2026-11-03T17:32:17.1674033Z       "path": "apps/desktop/src-tauri/Cargo.toml",
+2026-11-03T17:32:17.1674390Z       "head": {
+2026-11-03T17:32:17.1674649Z         "bytes": 1476,
+2026-11-03T17:32:17.1675175Z         "sha256": "ebb76a0dd76a88c3edd91c2bd2a5ef372844c6392d33fbdfd2158c17ee0c4f95",
+2026-11-03T17:32:17.1675633Z         "crlf": 0,
+2026-11-03T17:32:17.1675917Z         "bareLf": 46,
+2026-11-03T17:32:17.1676193Z         "bareCr": 0,
+2026-11-03T17:32:17.1676800Z         "lfNormalizedSha256": "ebb76a0dd76a88c3edd91c2bd2a5ef372844c6392d33fbdfd2158c17ee0c4f95"
+2026-11-03T17:32:17.1677650Z       },
+2026-11-03T17:32:17.1677936Z       "index": {
+2026-11-03T17:32:17.1678229Z         "bytes": 1476,
+2026-11-03T17:32:17.1680270Z         "sha256": "ebb76a0dd76a88c3edd91c2bd2a5ef372844c6392d33fbdfd2158c17ee0c4f95",
+2026-11-03T17:32:17.1680773Z         "crlf": 0,
+2026-11-03T17:32:17.1681088Z         "bareLf": 46,
+2026-11-03T17:32:17.1681418Z         "bareCr": 0,
+2026-11-03T17:32:17.1681897Z         "lfNormalizedSha256": "ebb76a0dd76a88c3edd91c2bd2a5ef372844c6392d33fbdfd2158c17ee0c4f95"
+2026-11-03T17:32:17.1682381Z       },
+2026-11-03T17:32:17.1682626Z       "worktree": {
+2026-11-03T17:32:17.1682922Z         "bytes": 1476,
+2026-11-03T17:32:17.1683400Z         "sha256": "ebb76a0dd76a88c3edd91c2bd2a5ef372844c6392d33fbdfd2158c17ee0c4f95",
+2026-11-03T17:32:17.1683855Z         "crlf": 0,
+2026-11-03T17:32:17.1684136Z         "bareLf": 46,
+2026-11-03T17:32:17.1684400Z         "bareCr": 0,
+2026-11-03T17:32:17.1684904Z         "lfNormalizedSha256": "ebb76a0dd76a88c3edd91c2bd2a5ef372844c6392d33fbdfd2158c17ee0c4f95"
+2026-11-03T17:32:17.1685387Z       },
+2026-11-03T17:32:17.1685799Z       "headObjectId": "e60eabb34944a68f824b0db969707a64844b198d",
+2026-11-03T17:32:17.1686346Z       "normalizedWorktreeObjectId": "e60eabb34944a68f824b0db969707a64844b198d",
+2026-11-03T17:32:17.1686918Z       "eol": "i/lf    w/lf    attr/text eol=lf      \tapps/desktop/src-tauri/Cargo.toml",
+2026-11-03T17:32:17.1688325Z       "indexStat": "apps/desktop/src-tauri/Cargo.toml\n  ctime: 1793727041:630478100\n  mtime: 1793727041:630478100\n  dev: 0\tino: 0\n  uid: 0\tgid: 0\n  size: 1476\tflags: 0",
+2026-11-03T17:32:17.1692159Z       "attributes": "apps/desktop/src-tauri/Cargo.toml: text: set\napps/desktop/src-tauri/Cargo.toml: eol: lf\napps/desktop/src-tauri/Cargo.toml: filter: unspecified\napps/desktop/src-tauri/Cargo.toml: ident: unspecified\napps/desktop/src-tauri/Cargo.toml: working-tree-encoding: unspecified"
+2026-11-03T17:32:17.1693398Z     },
+2026-11-03T17:32:17.1693705Z     {
+2026-11-03T17:32:17.1694106Z       "path": "apps/desktop/src-tauri/gen/schemas/desktop-schema.json",
+2026-11-03T17:32:17.1694607Z       "head": {
+2026-11-03T17:32:17.1694924Z         "bytes": 123209,
+2026-11-03T17:32:17.1695409Z         "sha256": "b0db3c2e2fe2f1257a33a04b1cdfbce35ee7cd054220999d2e7a44a56afacb25",
+2026-11-03T17:32:17.1695886Z         "crlf": 0,
+2026-11-03T17:32:17.1696439Z         "bareLf": 2411,
+2026-11-03T17:32:17.1697036Z         "bareCr": 0,
+2026-11-03T17:32:17.1697530Z         "lfNormalizedSha256": "b0db3c2e2fe2f1257a33a04b1cdfbce35ee7cd054220999d2e7a44a56afacb25"
+2026-11-03T17:32:17.1698020Z       },
+2026-11-03T17:32:17.1698280Z       "index": {
+2026-11-03T17:32:17.1698547Z         "bytes": 123209,
+2026-11-03T17:32:17.1699015Z         "sha256": "b0db3c2e2fe2f1257a33a04b1cdfbce35ee7cd054220999d2e7a44a56afacb25",
+2026-11-03T17:32:17.1699508Z         "crlf": 0,
+2026-11-03T17:32:17.1699791Z         "bareLf": 2411,
+2026-11-03T17:32:17.1700075Z         "bareCr": 0,
+2026-11-03T17:32:17.1700540Z         "lfNormalizedSha256": "b0db3c2e2fe2f1257a33a04b1cdfbce35ee7cd054220999d2e7a44a56afacb25"
+2026-11-03T17:32:17.1701044Z       },
+2026-11-03T17:32:17.1701446Z       "worktree": {
+2026-11-03T17:32:17.1702171Z         "bytes": 123209,
+2026-11-03T17:32:17.1703047Z         "sha256": "b0db3c2e2fe2f1257a33a04b1cdfbce35ee7cd054220999d2e7a44a56afacb25",
+2026-11-03T17:32:17.1704013Z         "crlf": 0,
+2026-11-03T17:32:17.1704336Z         "bareLf": 2411,
+2026-11-03T17:32:17.1704635Z         "bareCr": 0,
+2026-11-03T17:32:17.1705169Z         "lfNormalizedSha256": "b0db3c2e2fe2f1257a33a04b1cdfbce35ee7cd054220999d2e7a44a56afacb25"
+2026-11-03T17:32:17.1705664Z       },
+2026-11-03T17:32:17.1706011Z       "headObjectId": "93d835e4e0bdc2b9c2728343d4a68d99d974c343",
+2026-11-03T17:32:17.1706573Z       "normalizedWorktreeObjectId": "93d835e4e0bdc2b9c2728343d4a68d99d974c343",
+2026-11-03T17:32:17.1707279Z       "eol": "i/lf    w/lf    attr/text eol=lf      \tapps/desktop/src-tauri/gen/schemas/desktop-schema.json",
+2026-11-03T17:32:17.1709018Z       "indexStat": "apps/desktop/src-tauri/gen/schemas/desktop-schema.json\n  ctime: 1793727041:632233700\n  mtime: 1793727041:632233700\n  dev: 0\tino: 0\n  uid: 0\tgid: 0\n  size: 123209\tflags: 0",
+2026-11-03T17:32:17.1710959Z       "attributes": "apps/desktop/src-tauri/gen/schemas/desktop-schema.json: text: set\napps/desktop/src-tauri/gen/schemas/desktop-schema.json: eol: lf\napps/desktop/src-tauri/gen/schemas/desktop-schema.json: filter: unspecified\napps/desktop/src-tauri/gen/schemas/desktop-schema.json: ident: unspecified\napps/desktop/src-tauri/gen/schemas/desktop-schema.json: working-tree-encoding: unspecified"
+2026-11-03T17:32:17.1712386Z     },
+2026-11-03T17:32:17.1712659Z     {
+2026-11-03T17:32:17.1713051Z       "path": "apps/desktop/src-tauri/gen/schemas/windows-schema.json",
+2026-11-03T17:32:17.1713835Z       "head": {
+2026-11-03T17:32:17.1714546Z         "bytes": 123209,
+2026-11-03T17:32:17.1715396Z         "sha256": "b0db3c2e2fe2f1257a33a04b1cdfbce35ee7cd054220999d2e7a44a56afacb25",
+2026-11-03T17:32:17.1716153Z         "crlf": 0,
+2026-11-03T17:32:17.1716568Z         "bareLf": 2411,
+2026-11-03T17:32:17.1717283Z         "bareCr": 0,
+2026-11-03T17:32:17.1718084Z         "lfNormalizedSha256": "b0db3c2e2fe2f1257a33a04b1cdfbce35ee7cd054220999d2e7a44a56afacb25"
+2026-11-03T17:32:17.1718866Z       },
+2026-11-03T17:32:17.1719223Z       "index": {
+2026-11-03T17:32:17.1719612Z         "bytes": 123209,
+2026-11-03T17:32:17.1720304Z         "sha256": "b0db3c2e2fe2f1257a33a04b1cdfbce35ee7cd054220999d2e7a44a56afacb25",
+2026-11-03T17:32:17.1721000Z         "crlf": 0,
+2026-11-03T17:32:17.1721352Z         "bareLf": 2411,
+2026-11-03T17:32:17.1721810Z         "bareCr": 0,
+2026-11-03T17:32:17.1722531Z         "lfNormalizedSha256": "b0db3c2e2fe2f1257a33a04b1cdfbce35ee7cd054220999d2e7a44a56afacb25"
+2026-11-03T17:32:17.1723246Z       },
+2026-11-03T17:32:17.1723599Z       "worktree": {
+2026-11-03T17:32:17.1723974Z         "bytes": 123209,
+2026-11-03T17:32:17.1724696Z         "sha256": "b0db3c2e2fe2f1257a33a04b1cdfbce35ee7cd054220999d2e7a44a56afacb25",
+2026-11-03T17:32:17.1725382Z         "crlf": 0,
+2026-11-03T17:32:17.1725797Z         "bareLf": 2411,
+2026-11-03T17:32:17.1726204Z         "bareCr": 0,
+2026-11-03T17:32:17.1726911Z         "lfNormalizedSha256": "b0db3c2e2fe2f1257a33a04b1cdfbce35ee7cd054220999d2e7a44a56afacb25"
+2026-11-03T17:32:17.1727683Z       },
+2026-11-03T17:32:17.1728247Z       "headObjectId": "93d835e4e0bdc2b9c2728343d4a68d99d974c343",
+2026-11-03T17:32:17.1729064Z       "normalizedWorktreeObjectId": "93d835e4e0bdc2b9c2728343d4a68d99d974c343",
+2026-11-03T17:32:17.1730070Z       "eol": "i/lf    w/lf    attr/text eol=lf      \tapps/desktop/src-tauri/gen/schemas/windows-schema.json",
+2026-11-03T17:32:17.1731607Z       "indexStat": "apps/desktop/src-tauri/gen/schemas/windows-schema.json\n  ctime: 1793727041:632233700\n  mtime: 1793727041:632233700\n  dev: 0\tino: 0\n  uid: 0\tgid: 0\n  size: 123209\tflags: 0",
+2026-11-03T17:32:17.1734884Z       "attributes": "apps/desktop/src-tauri/gen/schemas/windows-schema.json: text: set\napps/desktop/src-tauri/gen/schemas/windows-schema.json: eol: lf\napps/desktop/src-tauri/gen/schemas/windows-schema.json: filter: unspecified\napps/desktop/src-tauri/gen/schemas/windows-schema.json: ident: unspecified\napps/desktop/src-tauri/gen/schemas/windows-schema.json: working-tree-encoding: unspecified"
+2026-11-03T17:32:17.1737714Z     }
+2026-11-03T17:32:17.1738099Z   ]
+2026-11-03T17:32:17.1738499Z }
+2026-11-03T17:32:17.1738670Z 
+2026-11-03T17:32:17.4449811Z ##[group]Run $ErrorActionPreference = 'Stop'
+2026-11-03T17:32:17.4450506Z [36;1m$ErrorActionPreference = 'Stop'[0m
+2026-11-03T17:32:17.4450964Z [36;1m$failures = @()[0m
+2026-11-03T17:32:17.4451377Z [36;1mforeach ($kind in @('pure-standard', 'filtered-admin')) {[0m
+2026-11-03T17:32:17.4451791Z [36;1m  try {[0m
+2026-11-03T17:32:17.4452980Z [36;1m    ./scripts/ci/run-windows-mermaid-token-probe.ps1 -ProbeBinary $env:MILKUP_TOKEN_PROBE_BINARY -ExpectedProbeExeSha256 $env:MILKUP_TOKEN_PROBE_SHA256 -ExpectedCommit $env:GITHUB_SHA -AccountKind $kind -EvidenceDirectory (Join-Path $env:RUNNER_TEMP "mermaid-token-observation/$kind")[0m
+2026-11-03T17:32:17.4454284Z [36;1m  } catch {[0m
+2026-11-03T17:32:17.4454742Z [36;1m    $failures += "$kind : $($_.Exception.Message)"[0m
+2026-11-03T17:32:17.4455353Z [36;1m    Write-Host "::error::$kind token observation incomplete; retain original failure"[0m
+2026-11-03T17:32:17.4455872Z [36;1m  }[0m
+2026-11-03T17:32:17.4456285Z [36;1m}[0m
+2026-11-03T17:32:17.4456626Z [36;1mif ($failures.Count) { throw ($failures -join "`n") }[0m
+2026-11-03T17:32:17.4523588Z shell: C:\Program Files\PowerShell\7\pwsh.EXE -command ". '{0}'"
+2026-11-03T17:32:17.4524042Z env:
+2026-11-03T17:32:17.4524953Z   CARGO_BUILD_JOBS: 2
+2026-11-03T17:32:17.4525305Z   CARGO_INCREMENTAL: 0
+2026-11-03T17:32:17.4525635Z   CARGO_PROFILE_DEV_DEBUG: 0
+2026-11-03T17:32:17.4526496Z   CARGO_PROFILE_TEST_DEBUG: 0
+2026-11-03T17:32:17.4527115Z   CARGO_TERM_COLOR: never
+2026-11-03T17:32:17.4527497Z   GIT_CONFIG_COUNT: 1
+2026-11-03T17:32:17.4527839Z   GIT_CONFIG_KEY_0: core.longpaths
+2026-11-03T17:32:17.4528198Z   GIT_CONFIG_VALUE_0: true
+2026-11-03T17:32:17.4528634Z   CARGO_TARGET_DIR: D:\a\_temp\mermaid-token-probe-cargo
+2026-11-03T17:32:17.4529058Z   RUSTUP_TOOLCHAIN: 1.99.0
+2026-11-03T17:32:17.4529628Z   MILKUP_TOKEN_PROBE_BINARY: D:\a\_temp\mermaid-token-probe-cargo\debug\deps\milkup_mermaid_engine-6145beba5112d051.exe
+2026-11-03T17:32:17.4530364Z   MILKUP_TOKEN_PROBE_SHA256: 83e70e1d0ff00255099687287344adb54ce79f26d7304b42f430497bc4cd30bc
+2026-11-03T17:32:17.4530850Z ##[endgroup]
+2026-11-03T17:32:43.1723579Z MILKUP_WINDOWS_TOKEN_PROBE_AUDIT {"status":"passed","profileDeleted":true,"stageRemoved":true,"accountDeleted":true,"expectedAccountKind":"pure-standard"}
+2026-11-03T17:32:54.7401547Z MILKUP_WINDOWS_TOKEN_PROBE_AUDIT {"status":"passed","profileDeleted":true,"stageRemoved":true,"accountDeleted":true,"expectedAccountKind":"filtered-admin"}
+2026-11-03T17:32:54.8092919Z ##[group]Run $ErrorActionPreference = 'Stop'
+2026-11-03T17:32:54.8093659Z [36;1m$ErrorActionPreference = 'Stop'[0m
+2026-11-03T17:32:54.8094433Z [36;1m$source = Join-Path $env:RUNNER_TEMP 'mermaid-token-observation'[0m
+2026-11-03T17:32:54.8095060Z [36;1mif (-not (Test-Path -LiteralPath $source -PathType Container)) { exit 0 }[0m
+2026-11-03T17:32:54.8095809Z [36;1mnode tests/windows/capture-build-source-state.mjs $PWD final $env:GITHUB_SHA (Join-Path $source 'source-final.json')[0m
+2026-11-03T17:32:54.8096473Z [36;1mif ($LASTEXITCODE -ne 0) { throw 'Cannot preserve final source' }[0m
+2026-11-03T17:32:54.8097056Z [36;1m$destination = Join-Path $env:RUNNER_TEMP 'mermaid-token-observation-retained'[0m
+2026-11-03T17:32:54.8097769Z [36;1mNew-Item -ItemType Directory -Path $destination | Out-Null[0m
+2026-11-03T17:32:54.8098904Z [36;1m# Exact child names are reviewed alongside the fixed wrapper below.[0m
+2026-11-03T17:32:54.8100708Z [36;1m$rootNames = @('source-checkout.json', 'source-pre-probe.json', 'source-final.json', 'probe-build-record.json', 'wrapper-regressions.json')[0m
+2026-11-03T17:32:54.8103102Z [36;1m$childNames = @('windows-mermaid-token-probe-audit.json', 'token-probe-result.json', 'token-probe-stdout.log', 'token-probe-stderr.log', 'token-probe-context.json', 'token-probe-child-result.json', 'token-probe-evidence-files.json')[0m
+2026-11-03T17:32:54.8105685Z [36;1m$allowed = @($rootNames)[0m
+2026-11-03T17:32:54.8106309Z [36;1mforeach ($kind in @('pure-standard', 'filtered-admin')) { foreach ($name in $childNames) { $allowed += "$kind/$name" } }[0m
+2026-11-03T17:32:54.8106894Z [36;1m$retained = @()[0m
+2026-11-03T17:32:54.8107208Z [36;1mforeach ($name in $allowed) {[0m
+2026-11-03T17:32:54.8354450Z [36;1m  $path = Join-Path $source $name[0m
+2026-11-03T17:32:54.8355504Z [36;1m  if (-not (Test-Path -LiteralPath $path -PathType Leaf)) { continue }[0m
+2026-11-03T17:32:54.8356243Z [36;1m  $file = Get-Item -LiteralPath $path[0m
+2026-11-03T17:32:54.8357375Z [36;1m  if ($file.Attributes -band [IO.FileAttributes]::ReparsePoint -or $file.Length -gt 2MB) { throw 'Invalid observation evidence file' }[0m
+2026-11-03T17:32:54.8358437Z [36;1m  $target = Join-Path $destination $name[0m
+2026-11-03T17:32:54.8359229Z [36;1m  New-Item -ItemType Directory -Force -Path (Split-Path -Parent $target) | Out-Null[0m
+2026-11-03T17:32:54.8360167Z [36;1m  Copy-Item -LiteralPath $file.FullName -Destination $target -ErrorAction Stop[0m
+2026-11-03T17:32:54.8361151Z [36;1m  $hash = (Get-FileHash -LiteralPath $target -Algorithm SHA256).Hash.ToLowerInvariant()[0m
+2026-11-03T17:32:54.8362410Z [36;1m  if ($hash -cne (Get-FileHash -LiteralPath $file.FullName -Algorithm SHA256).Hash.ToLowerInvariant()) { throw 'Observation copy changed bytes' }[0m
+2026-11-03T17:32:54.8363669Z [36;1m  $retained += [ordered]@{ name = $name; bytes = $file.Length; sha256 = $hash }[0m
+2026-11-03T17:32:54.8364338Z [36;1m}[0m
+2026-11-03T17:32:54.8365699Z [36;1m[ordered]@{ candidateSha = $env:GITHUB_SHA; files = $retained; scope = 'Fixed trusted token observations only; no document or browser execution' } | ConvertTo-Json -Depth 8 | Set-Content (Join-Path $destination 'manifest.json') -Encoding utf8[0m
+2026-11-03T17:32:54.8367277Z [36;1m"directory=$destination" >> $env:GITHUB_OUTPUT[0m
+2026-11-03T17:32:54.8367901Z [36;1m'ready=true' >> $env:GITHUB_OUTPUT[0m
+2026-11-03T17:32:54.8468596Z shell: C:\Program Files\PowerShell\7\pwsh.EXE -command ". '{0}'"
+2026-11-03T17:32:54.8468958Z env:
+2026-11-03T17:32:54.8469190Z   CARGO_BUILD_JOBS: 2
+2026-11-03T17:32:54.8469425Z   CARGO_INCREMENTAL: 0
+2026-11-03T17:32:54.8469686Z   CARGO_PROFILE_DEV_DEBUG: 0
+2026-11-03T17:32:54.8469926Z   CARGO_PROFILE_TEST_DEBUG: 0
+2026-11-03T17:32:54.8470190Z   CARGO_TERM_COLOR: never
+2026-11-03T17:32:54.8470411Z   GIT_CONFIG_COUNT: 1
+2026-11-03T17:32:54.8470655Z   GIT_CONFIG_KEY_0: core.longpaths
+2026-11-03T17:32:54.8470920Z   GIT_CONFIG_VALUE_0: true
+2026-11-03T17:32:54.8474236Z   CARGO_TARGET_DIR: D:\a\_temp\mermaid-token-probe-cargo
+2026-11-03T17:32:54.8474663Z   RUSTUP_TOOLCHAIN: 1.99.0
+2026-11-03T17:32:54.8475152Z   MILKUP_TOKEN_PROBE_BINARY: D:\a\_temp\mermaid-token-probe-cargo\debug\deps\milkup_mermaid_engine-6145beba5112d051.exe
+2026-11-03T17:32:54.8475783Z   MILKUP_TOKEN_PROBE_SHA256: 83e70e1d0ff00255099687287344adb54ce79f26d7304b42f430497bc4cd30bc
+2026-11-03T17:32:54.8476173Z ##[endgroup]
+2026-11-03T17:32:56.7696995Z {
+2026-11-03T17:32:56.7697476Z   "phase": "final",
+2026-11-03T17:32:56.7698022Z   "candidateSha": "0783bd63aa92bef8908df8dd0ea3aa157b82ff2b",
+2026-11-03T17:32:56.7698682Z   "instrumentationSha": "0783bd63aa92bef8908df8dd0ea3aa157b82ff2b",
+2026-11-03T17:32:56.7699403Z   "readOnly": true,
+2026-11-03T17:32:56.7699746Z   "refreshedIndex": false,
+2026-11-03T17:32:56.7700174Z   "rawStatus": "",
+2026-11-03T17:32:56.7700439Z   "configuration": {
+2026-11-03T17:32:56.7700713Z     "core.autocrlf": {
+2026-11-03T17:32:56.7700991Z       "exitCode": 0,
+2026-11-03T17:32:56.7701450Z       "value": "file:C:/Program Files/Git/etc/gitconfig\ttrue"
+2026-11-03T17:32:56.7701859Z     },
+2026-11-03T17:32:56.7702086Z     "core.eol": {
+2026-11-03T17:32:56.7702330Z       "exitCode": 1,
+2026-11-03T17:32:56.7702612Z       "value": ""
+2026-11-03T17:32:56.7702908Z     },
+2026-11-03T17:32:56.7703433Z     "core.filemode": {
+2026-11-03T17:32:56.7703667Z       "exitCode": 0,
+2026-11-03T17:32:56.7703928Z       "value": "file:.git/config\tfalse"
+2026-11-03T17:32:56.7704198Z     },
+2026-11-03T17:32:56.7704399Z     "core.safecrlf": {
+2026-11-03T17:32:56.7704633Z       "exitCode": 1,
+2026-11-03T17:32:56.7704860Z       "value": ""
+2026-11-03T17:32:56.7705099Z     }
+2026-11-03T17:32:56.7705295Z   },
+2026-11-03T17:32:56.7705484Z   "files": [
+2026-11-03T17:32:56.7705643Z     {
+2026-11-03T17:32:56.7705856Z       "path": "apps/desktop/src-tauri/Cargo.toml",
+2026-11-03T17:32:56.7706131Z       "head": {
+2026-11-03T17:32:56.7706353Z         "bytes": 1476,
+2026-11-03T17:32:56.7706715Z         "sha256": "ebb76a0dd76a88c3edd91c2bd2a5ef372844c6392d33fbdfd2158c17ee0c4f95",
+2026-11-03T17:32:56.7707104Z         "crlf": 0,
+2026-11-03T17:32:56.7707324Z         "bareLf": 46,
+2026-11-03T17:32:56.7707551Z         "bareCr": 0,
+2026-11-03T17:32:56.7707974Z         "lfNormalizedSha256": "ebb76a0dd76a88c3edd91c2bd2a5ef372844c6392d33fbdfd2158c17ee0c4f95"
+2026-11-03T17:32:56.7708430Z       },
+2026-11-03T17:32:56.7708627Z       "index": {
+2026-11-03T17:32:56.7708822Z         "bytes": 1476,
+2026-11-03T17:32:56.7709151Z         "sha256": "ebb76a0dd76a88c3edd91c2bd2a5ef372844c6392d33fbdfd2158c17ee0c4f95",
+2026-11-03T17:32:56.7709518Z         "crlf": 0,
+2026-11-03T17:32:56.7709679Z         "bareLf": 46,
+2026-11-03T17:32:56.7709855Z         "bareCr": 0,
+2026-11-03T17:32:56.7710220Z         "lfNormalizedSha256": "ebb76a0dd76a88c3edd91c2bd2a5ef372844c6392d33fbdfd2158c17ee0c4f95"
+2026-11-03T17:32:56.7710594Z       },
+2026-11-03T17:32:56.7710740Z       "worktree": {
+2026-11-03T17:32:56.7710949Z         "bytes": 1476,
+2026-11-03T17:32:56.7711274Z         "sha256": "ebb76a0dd76a88c3edd91c2bd2a5ef372844c6392d33fbdfd2158c17ee0c4f95",
+2026-11-03T17:32:56.7711603Z         "crlf": 0,
+2026-11-03T17:32:56.7711781Z         "bareLf": 46,
+2026-11-03T17:32:56.7712014Z         "bareCr": 0,
+2026-11-03T17:32:56.7712472Z         "lfNormalizedSha256": "ebb76a0dd76a88c3edd91c2bd2a5ef372844c6392d33fbdfd2158c17ee0c4f95"
+2026-11-03T17:32:56.7712909Z       },
+2026-11-03T17:32:56.7713240Z       "headObjectId": "e60eabb34944a68f824b0db969707a64844b198d",
+2026-11-03T17:32:56.7713685Z       "normalizedWorktreeObjectId": "e60eabb34944a68f824b0db969707a64844b198d",
+2026-11-03T17:32:56.7714178Z       "eol": "i/lf    w/lf    attr/text eol=lf      \tapps/desktop/src-tauri/Cargo.toml",
+2026-11-03T17:32:56.7714922Z       "indexStat": "apps/desktop/src-tauri/Cargo.toml\n  ctime: 1793727041:630478100\n  mtime: 1793727041:630478100\n  dev: 0\tino: 0\n  uid: 0\tgid: 0\n  size: 1476\tflags: 0",
+2026-11-03T17:32:56.7717191Z       "attributes": "apps/desktop/src-tauri/Cargo.toml: text: set\napps/desktop/src-tauri/Cargo.toml: eol: lf\napps/desktop/src-tauri/Cargo.toml: filter: unspecified\napps/desktop/src-tauri/Cargo.toml: ident: unspecified\napps/desktop/src-tauri/Cargo.toml: working-tree-encoding: unspecified"
+2026-11-03T17:32:56.7718159Z     },
+2026-11-03T17:32:56.7718326Z     {
+2026-11-03T17:32:56.7718605Z       "path": "apps/desktop/src-tauri/gen/schemas/desktop-schema.json",
+2026-11-03T17:32:56.7718953Z       "head": {
+2026-11-03T17:32:56.7719573Z         "bytes": 123209,
+2026-11-03T17:32:56.7720090Z         "sha256": "b0db3c2e2fe2f1257a33a04b1cdfbce35ee7cd054220999d2e7a44a56afacb25",
+2026-11-03T17:32:56.7720553Z         "crlf": 0,
+2026-11-03T17:32:56.7720779Z         "bareLf": 2411,
+2026-11-03T17:32:56.7720956Z         "bareCr": 0,
+2026-11-03T17:32:56.7721843Z         "lfNormalizedSha256": "b0db3c2e2fe2f1257a33a04b1cdfbce35ee7cd054220999d2e7a44a56afacb25"
+2026-11-03T17:32:56.7723856Z       },
+2026-11-03T17:32:56.7724490Z       "index": {
+2026-11-03T17:32:56.7724798Z         "bytes": 123209,
+2026-11-03T17:32:56.7725204Z         "sha256": "b0db3c2e2fe2f1257a33a04b1cdfbce35ee7cd054220999d2e7a44a56afacb25",
+2026-11-03T17:32:56.7725584Z         "crlf": 0,
+2026-11-03T17:32:56.7725840Z         "bareLf": 2411,
+2026-11-03T17:32:56.7726393Z         "bareCr": 0,
+2026-11-03T17:32:56.7726833Z         "lfNormalizedSha256": "b0db3c2e2fe2f1257a33a04b1cdfbce35ee7cd054220999d2e7a44a56afacb25"
+2026-11-03T17:32:56.7727229Z       },
+2026-11-03T17:32:56.7727390Z       "worktree": {
+2026-11-03T17:32:56.7727592Z         "bytes": 123209,
+2026-11-03T17:32:56.7727952Z         "sha256": "b0db3c2e2fe2f1257a33a04b1cdfbce35ee7cd054220999d2e7a44a56afacb25",
+2026-11-03T17:32:56.7728303Z         "crlf": 0,
+2026-11-03T17:32:56.7728580Z         "bareLf": 2411,
+2026-11-03T17:32:56.7728822Z         "bareCr": 0,
+2026-11-03T17:32:56.7729223Z         "lfNormalizedSha256": "b0db3c2e2fe2f1257a33a04b1cdfbce35ee7cd054220999d2e7a44a56afacb25"
+2026-11-03T17:32:56.7729672Z       },
+2026-11-03T17:32:56.7729961Z       "headObjectId": "93d835e4e0bdc2b9c2728343d4a68d99d974c343",
+2026-11-03T17:32:56.7730454Z       "normalizedWorktreeObjectId": "93d835e4e0bdc2b9c2728343d4a68d99d974c343",
+2026-11-03T17:32:56.7731073Z       "eol": "i/lf    w/lf    attr/text eol=lf      \tapps/desktop/src-tauri/gen/schemas/desktop-schema.json",
+2026-11-03T17:32:56.7731988Z       "indexStat": "apps/desktop/src-tauri/gen/schemas/desktop-schema.json\n  ctime: 1793727041:632233700\n  mtime: 1793727041:632233700\n  dev: 0\tino: 0\n  uid: 0\tgid: 0\n  size: 123209\tflags: 0",
+2026-11-03T17:32:56.7734106Z       "attributes": "apps/desktop/src-tauri/gen/schemas/desktop-schema.json: text: set\napps/desktop/src-tauri/gen/schemas/desktop-schema.json: eol: lf\napps/desktop/src-tauri/gen/schemas/desktop-schema.json: filter: unspecified\napps/desktop/src-tauri/gen/schemas/desktop-schema.json: ident: unspecified\napps/desktop/src-tauri/gen/schemas/desktop-schema.json: working-tree-encoding: unspecified"
+2026-11-03T17:32:56.7736678Z     },
+2026-11-03T17:32:56.7736840Z     {
+2026-11-03T17:32:56.7737119Z       "path": "apps/desktop/src-tauri/gen/schemas/windows-schema.json",
+2026-11-03T17:32:56.7737426Z       "head": {
+2026-11-03T17:32:56.7737615Z         "bytes": 123209,
+2026-11-03T17:32:56.7737968Z         "sha256": "b0db3c2e2fe2f1257a33a04b1cdfbce35ee7cd054220999d2e7a44a56afacb25",
+2026-11-03T17:32:56.7738312Z         "crlf": 0,
+2026-11-03T17:32:56.7738476Z         "bareLf": 2411,
+2026-11-03T17:32:56.7738669Z         "bareCr": 0,
+2026-11-03T17:32:56.7739035Z         "lfNormalizedSha256": "b0db3c2e2fe2f1257a33a04b1cdfbce35ee7cd054220999d2e7a44a56afacb25"
+2026-11-03T17:32:56.7739449Z       },
+2026-11-03T17:32:56.7739603Z       "index": {
+2026-11-03T17:32:56.7739784Z         "bytes": 123209,
+2026-11-03T17:32:56.7740117Z         "sha256": "b0db3c2e2fe2f1257a33a04b1cdfbce35ee7cd054220999d2e7a44a56afacb25",
+2026-11-03T17:32:56.7741613Z         "crlf": 0,
+2026-11-03T17:32:56.7742046Z         "bareLf": 2411,
+2026-11-03T17:32:56.7742251Z         "bareCr": 0,
+2026-11-03T17:32:56.7742828Z         "lfNormalizedSha256": "b0db3c2e2fe2f1257a33a04b1cdfbce35ee7cd054220999d2e7a44a56afacb25"
+2026-11-03T17:32:56.7743230Z       },
+2026-11-03T17:32:56.7743391Z       "worktree": {
+2026-11-03T17:32:56.7743584Z         "bytes": 123209,
+2026-11-03T17:32:56.7743924Z         "sha256": "b0db3c2e2fe2f1257a33a04b1cdfbce35ee7cd054220999d2e7a44a56afacb25",
+2026-11-03T17:32:56.7744273Z         "crlf": 0,
+2026-11-03T17:32:56.7744460Z         "bareLf": 2411,
+2026-11-03T17:32:56.7744694Z         "bareCr": 0,
+2026-11-03T17:32:56.7745076Z         "lfNormalizedSha256": "b0db3c2e2fe2f1257a33a04b1cdfbce35ee7cd054220999d2e7a44a56afacb25"
+2026-11-03T17:32:56.7745453Z       },
+2026-11-03T17:32:56.7745709Z       "headObjectId": "93d835e4e0bdc2b9c2728343d4a68d99d974c343",
+2026-11-03T17:32:56.7746143Z       "normalizedWorktreeObjectId": "93d835e4e0bdc2b9c2728343d4a68d99d974c343",
+2026-11-03T17:32:56.7746685Z       "eol": "i/lf    w/lf    attr/text eol=lf      \tapps/desktop/src-tauri/gen/schemas/windows-schema.json",
+2026-11-03T17:32:56.7747914Z       "indexStat": "apps/desktop/src-tauri/gen/schemas/windows-schema.json\n  ctime: 1793727041:632233700\n  mtime: 1793727041:632233700\n  dev: 0\tino: 0\n  uid: 0\tgid: 0\n  size: 123209\tflags: 0",
+2026-11-03T17:32:56.7750220Z       "attributes": "apps/desktop/src-tauri/gen/schemas/windows-schema.json: text: set\napps/desktop/src-tauri/gen/schemas/windows-schema.json: eol: lf\napps/desktop/src-tauri/gen/schemas/windows-schema.json: filter: unspecified\napps/desktop/src-tauri/gen/schemas/windows-schema.json: ident: unspecified\napps/desktop/src-tauri/gen/schemas/windows-schema.json: working-tree-encoding: unspecified"
+2026-11-03T17:32:56.7751529Z     }
+2026-11-03T17:32:56.7751737Z   ]
+2026-11-03T17:32:56.7751907Z }
+2026-11-03T17:32:56.7752028Z 
+2026-11-03T17:32:56.9891794Z ##[group]Run actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+2026-11-03T17:32:56.9892220Z with:
+2026-11-03T17:32:56.9892521Z   name: mermaid-token-observation-41683336878-1
+2026-11-03T17:32:56.9892927Z   path: D:\a\_temp\mermaid-token-observation-retained/
+2026-11-03T17:32:56.9893271Z   retention-days: 7
+2026-11-03T17:32:56.9893499Z   compression-level: 6
+2026-11-03T17:32:56.9893723Z   if-no-files-found: error
+2026-11-03T17:32:56.9893958Z   include-hidden-files: false
+2026-11-03T17:32:56.9894185Z   overwrite: false
+2026-11-03T17:32:56.9894347Z env:
+2026-11-03T17:32:56.9894516Z   CARGO_BUILD_JOBS: 2
+2026-11-03T17:32:56.9894715Z   CARGO_INCREMENTAL: 0
+2026-11-03T17:32:56.9894954Z   CARGO_PROFILE_DEV_DEBUG: 0
+2026-11-03T17:32:56.9895173Z   CARGO_PROFILE_TEST_DEBUG: 0
+2026-11-03T17:32:56.9895397Z   CARGO_TERM_COLOR: never
+2026-11-03T17:32:56.9895581Z   GIT_CONFIG_COUNT: 1
+2026-11-03T17:32:56.9895762Z   GIT_CONFIG_KEY_0: core.longpaths
+2026-11-03T17:32:56.9896071Z   GIT_CONFIG_VALUE_0: true
+2026-11-03T17:32:56.9896320Z   CARGO_TARGET_DIR: D:\a\_temp\mermaid-token-probe-cargo
+2026-11-03T17:32:56.9896586Z   RUSTUP_TOOLCHAIN: 1.99.0
+2026-11-03T17:32:56.9897006Z   MILKUP_TOKEN_PROBE_BINARY: D:\a\_temp\mermaid-token-probe-cargo\debug\deps\milkup_mermaid_engine-6145beba5112d051.exe
+2026-11-03T17:32:56.9898139Z   MILKUP_TOKEN_PROBE_SHA256: 83e70e1d0ff00255099687287344adb54ce79f26d7304b42f430497bc4cd30bc
+2026-11-03T17:32:56.9898707Z ##[endgroup]
+2026-11-03T17:32:57.2004063Z (node:6872) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+2026-11-03T17:32:57.2005727Z (Use `node --trace-deprecation ...` to show where the warning was created)
+2026-11-03T17:32:57.2142917Z With the provided path, there will be 20 files uploaded
+2026-11-03T17:32:57.2149529Z Artifact name is valid!
+2026-11-03T17:32:57.2151680Z Root directory input is valid!
+2026-11-03T17:32:57.5177308Z Beginning upload of artifact content to blob storage
+2026-11-03T17:32:57.5780159Z (node:6872) [DEP0169] DeprecationWarning: `url.parse()` behavior is not standardized and prone to errors that have security implications. Use the WHATWG URL API instead. CVEs are not issued for `url.parse()` vulnerabilities.
+2026-11-03T17:32:57.7578749Z Uploaded bytes 25239
+2026-11-03T17:32:57.8002023Z Finished uploading artifact content to blob storage!
+2026-11-03T17:32:57.8003954Z SHA256 digest of uploaded artifact zip is 35c81f01539b1a6cc86f24a6f8c0d1f52716c494a2d0aefe6ca91e9516b619dd
+2026-11-03T17:32:57.8005489Z Finalizing artifact upload
+2026-11-03T17:32:58.2641481Z Artifact mermaid-token-observation-41683336878-1.zip successfully finalized. Artifact ID 13254618161
+2026-11-03T17:32:58.2643036Z Artifact mermaid-token-observation-41683336878-1 has been successfully uploaded! Final size is 25239 bytes. Artifact ID is 13254618161
+2026-11-03T17:32:58.2652509Z Artifact download URL: https://github.com/Auto-Plugin/milkup/actions/runs/41683336878/artifacts/13254618161
+2026-11-03T17:32:58.3042283Z Post job cleanup.
+2026-11-03T17:32:58.4596203Z (node:7264) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+2026-11-03T17:32:58.4596920Z (Use `node --trace-deprecation ...` to show where the warning was created)
+2026-11-03T17:32:58.4939976Z Post job cleanup.
+2026-11-03T17:32:58.6775568Z [command]"C:\Program Files\Git\bin\git.exe" version
+2026-11-03T17:32:58.7186214Z git version 2.56.0.windows.4
+2026-11-03T17:32:58.7266719Z Temporarily overriding HOME='D:\a\_temp\a5cb1585-81e6-4393-8899-9baac6635e02' before making global git config changes
+2026-11-03T17:32:58.7267842Z Adding repository directory to the temporary git global config as a safe directory
+2026-11-03T17:32:58.7278817Z [command]"C:\Program Files\Git\bin\git.exe" config --global --add safe.directory D:\a\milkup\milkup
+2026-11-03T17:32:58.7707957Z [command]"C:\Program Files\Git\bin\git.exe" config --local --name-only --get-regexp core\.sshCommand
+2026-11-03T17:32:58.8137975Z [command]"C:\Program Files\Git\bin\git.exe" submodule foreach --recursive "sh -c \"git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :\""
+2026-11-03T17:32:59.3924873Z [command]"C:\Program Files\Git\bin\git.exe" config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-11-03T17:32:59.4338144Z [command]"C:\Program Files\Git\bin\git.exe" submodule foreach --recursive "sh -c \"git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :\""
+2026-11-03T17:33:00.0495608Z [command]"C:\Program Files\Git\bin\git.exe" config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-11-03T17:33:00.0891778Z [command]"C:\Program Files\Git\bin\git.exe" submodule foreach --recursive "git config --local --show-origin --name-only --get-regexp remote.origin.url"
+2026-11-03T17:33:00.6828718Z Cleaning up orphan processes
+2026-11-03T17:33:00.7210716Z Terminate orphan process: pid (8204) (vctip)
+2026-11-03T17:33:00.7461864Z ##[warning]Node.js 20 is deprecated. The following actions target Node.js 20 but are being forced to run on Node.js 24: actions/checkout@11d5960a326750d5838078e36cf38b85af677262, actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020, actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/

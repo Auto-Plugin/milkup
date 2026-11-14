@@ -1,0 +1,19 @@
+{
+  "status": "runner-routing-fixed",
+  "before": "Vitest counted bootstrap.node tests as0 and overall exit0 despite4crosses; also present in gates01 log.",
+  "isolatedReproduction": "Node without --experimental-vm-modules exits1 /4fail(vm.SyntheticModule unavailable); with required flag exits0 /4pass.",
+  "change": "Exclude only exact node:test file from Vitest and chain its required Node runner with && in desktop package script; no product runtime change.",
+  "formalOutcome": "475Vitest+4Node pass in package test command, no crosses or zero-test bootstrap entry.",
+  "changedFiles": [
+    {
+      "path": "apps/desktop/package.json",
+      "bytes": 965,
+      "sha256": "ab818b6941a27d5c11a279f0e79dd76cee34e2e66819445d03be930b4cbd424a"
+    },
+    {
+      "path": "apps/desktop/src-tauri/src/plugin_dom_bootstrap.test.mjs",
+      "bytes": 5550,
+      "sha256": "40f0561c2a6cf78e500d43c912196435b20a2ea181121b4f46175fe3ce572249"
+    }
+  ]
+}

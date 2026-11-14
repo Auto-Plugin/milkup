@@ -1,0 +1,111 @@
+{
+  "status": "GREEN_FIRST_PASS",
+  "nativeFixture": {
+    "passed": 1,
+    "failed": 0,
+    "actualSampleOwnedCalls": 0,
+    "observedRoles": [
+      {
+        "role": "other-owned",
+        "pid": 61,
+        "birth": 6545625
+      },
+      {
+        "role": "guardian",
+        "pid": 6,
+        "birth": 6545592
+      },
+      {
+        "role": "helper",
+        "pid": 11,
+        "birth": 6545602
+      },
+      {
+        "role": "other-owned",
+        "pid": 14,
+        "birth": 6545611
+      },
+      {
+        "role": "other-owned",
+        "pid": 58,
+        "birth": 6545624
+      },
+      {
+        "role": "webkit-web",
+        "pid": 65,
+        "birth": 6545626
+      },
+      {
+        "role": "other-owned",
+        "pid": 56,
+        "birth": 6545623
+      },
+      {
+        "role": "other-owned",
+        "pid": 57,
+        "birth": 6545623
+      },
+      {
+        "role": "other-owned",
+        "pid": 63,
+        "birth": 6545625
+      }
+    ],
+    "timingsFromLoopDispatch": [
+      {
+        "phase": "dispatch",
+        "pid": 4,
+        "elapsedFromLoopDispatchNs": 0
+      },
+      {
+        "phase": "deadline-observed",
+        "pid": 4,
+        "elapsedFromLoopDispatchNs": 2000110707
+      },
+      {
+        "phase": "kill-start",
+        "pid": 6,
+        "elapsedFromLoopDispatchNs": 2000441497
+      },
+      {
+        "phase": "cleanup-complete",
+        "pid": 6,
+        "elapsedFromLoopDispatchNs": 2019471281
+      },
+      {
+        "phase": "cleanup-confirmed",
+        "pid": 4,
+        "elapsedFromLoopDispatchNs": 2030838600
+      },
+      {
+        "phase": "control-emitted",
+        "pid": 4,
+        "elapsedFromLoopDispatchNs": 2030859368
+      },
+      {
+        "phase": "cleanup-confirmed",
+        "pid": 4,
+        "elapsedFromLoopDispatchNs": 2031082922
+      },
+      {
+        "phase": "cleanup-confirmed",
+        "pid": 4,
+        "elapsedFromLoopDispatchNs": 2031178747
+      }
+    ]
+  },
+  "safetyTests": {
+    "passed": 14,
+    "failed": 0,
+    "ignored": 2,
+    "filter": "plugin_dom::",
+    "ignoredReasons": [
+      "private guardian subprocess worker launched by parent test",
+      "real WebKit test already separately executed"
+    ]
+  },
+  "sourceFilesChecked": 50,
+  "sourceDifferences": [],
+  "cleanup": "9 independently observed exact PID/birth identities absent; actual direct helper and owned WebKit roles validated before loop; guardian cleanup-complete then App cleanup-confirmed; Instance.stop succeeds before final counter assertion. Both namespace commands exit0 after assertions.",
+  "qualification": "Tests verify mechanism and safety, not UI performance or a new production release. No claim that removing this worker explains all historical deadline failures."
+}

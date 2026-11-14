@@ -1,0 +1,57 @@
+import { test } from '/workspace/milkup/node_modules/@playwright/test/index.mjs'
+import { readFile, writeFile } from 'node:fs/promises'
+const output='/workspace/milkup-mermaid-engine-evidence/research/production-ui-window/view/25-native03-diagnostic'
+test('observe actual ordinary source and three captured ASTs with current service',async({page})=>{
+ const text=await readFile(output+'/inputs/native/ordinary.md','utf8')
+ const base='/workspace/milkup-mermaid-engine-evidence/research/svg-converter-prototype/native-runner/runs/'
+ const images=await Promise.all(['00/scan_000','01/scan_002','02/scan_004'].map(async p=>JSON.parse(await readFile(base+'product-converter-fourth-'+p+'-result.json','utf8')).image))
+ await page.setViewportSize({width:1100,height:760})
+ await page.goto('http://127.0.0.1:1420/')
+ await page.locator('.milkup-input-proxy').waitFor()
+ const result=await page.evaluate(async({text,images})=>{
+  const {EditorView}=await import('/@fs/workspace/milkup/packages/view-dom/src/index.ts')
+  const {EditorState,MemoryTextDocument,MemoryDocumentSource,Selection}=await import('/@fs/workspace/milkup/packages/core/src/index.ts')
+  const {createDesktopDocumentPresentationService}=await import('/@fs/workspace/milkup/apps/desktop/src/document-presentation-service.ts')
+  const parent=document.createElement('main');Object.assign(parent.style,{position:'fixed',inset:'37px 0 30px',background:'white',zIndex:'10000'});document.body.append(parent)
+  const doc=new MemoryTextDocument(text),source=new MemoryDocumentSource({documentId:'native03-probe',version:0,document:doc})
+  const events:unknown[]=[], ids=new WeakMap<Node,number>();let next=1,dropped=0,cost=0,maxCost=0
+  const start=performance.now(),record=(event:unknown)=>{if(events.length<500)events.push({at:performance.now()-start,event});else dropped++}
+  const id=(node:Node)=>{if(!ids.has(node))ids.set(node,next++);return ids.get(node)}
+  const declaration={id:'actual-ast-probe',pluginId:'test.actual-ast',contexts:['fence'],fenceLanguages:['mermaid']}
+  const service=createDesktopDocumentPresentationService({current:()=>({source,identity:doc}),theme:()=> 'light',renderers:()=>[declaration],render:async(_p,_r,request,{signal})=>{
+   const index=[108,440,1087].indexOf(request.from)
+   record({type:'render',from:request.from,to:request.to,width:request.width,selection:request.selection,index})
+   if(index<0)return{complete:true,fragments:[]}
+   await new Promise(resolve=>setTimeout(resolve,80))
+   if(signal.aborted)throw new Error('Aborted controlled render')
+   return{complete:true,fragments:[{from:request.from,to:request.to,layout:'block',status:'ready',accessibleText:'Captured actual AST',content:images[index]}]}
+  }})
+  const rect=(node:Element)=>{const r=node.getBoundingClientRect();return{top:r.top,bottom:r.bottom,height:r.height}}
+  const imageState=(image:HTMLImageElement)=>({id:id(image),connected:image.isConnected,src:image.getAttribute('src'),complete:image.complete,naturalWidth:image.naturalWidth,...rect(image)})
+  const current=()=>({scrollTop:parent.querySelector('.milkup-editor')?.scrollTop,previews:Array.from(parent.querySelectorAll<HTMLElement>('[data-document-presentation]')).map(p=>({from:p.dataset.presentationFrom,to:p.dataset.presentationTo,...rect(p),images:Array.from(p.querySelectorAll('img')).map(imageState)})),classLines:[24,26,53].map(n=>{const l=parent.querySelector<HTMLElement>(`.milkup-line[data-line="${n}"]`);return l?{line:n,...l.dataset,...rect(l)}:null}),notices:Array.from(parent.querySelectorAll('[data-document-presentation-notice]')).map(n=>n.textContent)})
+  const originalCreate=URL.createObjectURL,originalRevoke=URL.revokeObjectURL,originalDecode=HTMLImageElement.prototype.decode
+  URL.createObjectURL=function(blob){const url=originalCreate.call(URL,blob);record({type:'create',url});return url}
+  URL.revokeObjectURL=function(url){record({type:'revoke',url});return originalRevoke.call(URL,url)}
+  HTMLImageElement.prototype.decode=function(){record({type:'decode-start',image:imageState(this)});const promise=originalDecode.call(this);void promise.then(()=>record({type:'decode-resolved',image:imageState(this)}),error=>record({type:'decode-rejected',error:String(error)}));return promise}
+  const observer=new MutationObserver(()=>{const before=performance.now();record({type:'mutation',...current()});const elapsed=performance.now()-before;cost+=elapsed;maxCost=Math.max(maxCost,elapsed)})
+  observer.observe(parent,{childList:true,subtree:true,attributes:true,attributeFilter:['src']})
+  let requestId=0
+  const view=new EditorView({parent,mode:'live',state:new EditorState({doc,selection:Selection.single(59,106)}),documentPresentation:{provide:async(window,operation)=>{
+   const id=++requestId
+   record({type:'provide',id,from:window.from,to:window.to,fromLine:window.fromLine,toLine:window.toLine,visibleFrom:window.visibleFrom,visibleTo:window.visibleTo,width:window.width,selection:window.selection})
+   const result=await service.provide(window,operation)
+   record({type:'response',id,from:result.request.from,to:result.request.to,complete:result.result.complete,contextKnown:result.request.contextKnown,blocks:result.request.blocks.filter(b=>b.kind==='fence').map(({from,to,complete})=>({from,to,complete})),fragments:result.result.fragments.map(f=>({from:f.from,to:f.to,status:f.status}))})
+   return result
+  }}})
+  Object.assign(view.dom.style,{height:'693px',overflow:'auto'})
+  const samples=[]
+  try{
+   for(let i=0;i<90;i++){
+    if(i===30){view.updateState(new EditorState({doc,selection:Selection.single(384,438)}));view.ensureCursorVisible();record({type:'select-class',...current()})}
+    await new Promise(resolve=>setTimeout(resolve,100));samples.push({at:performance.now()-start,...current()})
+   }
+   return{events,samples,dropped,cost,maxCost,unchanged:view.state.doc.text===text,selection:view.state.selection.main}
+  }finally{observer.disconnect();view.destroy();parent.remove();URL.createObjectURL=originalCreate;URL.revokeObjectURL=originalRevoke;HTMLImageElement.prototype.decode=originalDecode}
+ },{text,images})
+ await writeFile(output+'/service-image-trace.json',JSON.stringify(result,null,2))
+})

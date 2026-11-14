@@ -1,0 +1,51 @@
+
+running 1 test
+test plugin_dom::process::tests::real_webkit_default_module_bbox_resources_and_native_loop_deadline ... dbus-daemon[3]: [session uid=1000 pid=3 pidfd=5] Activating service name='org.a11y.Bus' requested by ':1.1' (uid=1000 pid=12 comm="/probe/bin/milkup-desktop --milkup-internal-dom-he" label="kernel")
+dbus-daemon[3]: [session uid=1000 pid=3 pidfd=5] Successfully activated service 'org.a11y.Bus'
+dbus-daemon[56]: Activating service name='org.a11y.atspi.Registry' requested by ':1.0' (uid=1000 pid=59 comm="/usr/bin/xdg-dbus-proxy --args=22" label="kernel")
+dbus-daemon[56]: Successfully activated service 'org.a11y.atspi.Registry'
+SpiRegistry daemon is running with well-known name - org.a11y.atspi.Registry
+DOM_NATIVE_TIMING {"instanceId":"1ae4e307744f3f2dbea1c33525b7f17a4dba9cfc94d98537","monotonicNs":65260648390066,"phase":"dispatch","pid":4,"requestId":"r1"}
+DOM_NATIVE_PROBE bbox elapsed=25.505424ms event=DomEvent { plugin_id: "test.dom", instance_id: "1ae4e307744f3f2dbea1c33525b7f17a4dba9cfc94d98537", kind: "message", message: Some(Object {"id": String("r1"), "ok": Bool(true), "protocol": String("milkup.plugin.document-render.v1"), "type": String("result"), "value": Object {"height": Number(24), "viewport": Number(1024), "width": Number(150.765625)}}), request_id: None, error: None }
+DOM_NATIVE_TIMING {"instanceId":"1ae4e307744f3f2dbea1c33525b7f17a4dba9cfc94d98537","monotonicNs":65260673960149,"phase":"dispatch","pid":4,"requestId":"r2"}
+DOM_NATIVE_GUARD_DENY
+DOM_NATIVE_PROBE guard elapsed=10.044796ms event=DomEvent { plugin_id: "test.dom", instance_id: "1ae4e307744f3f2dbea1c33525b7f17a4dba9cfc94d98537", kind: "message", message: Some(Object {"id": String("r2"), "ok": Bool(true), "protocol": String("milkup.plugin.document-render.v1"), "type": String("result"), "value": Object {"guard": String("rejected")}}), request_id: None, error: None }
+DOM_NATIVE_TIMING {"instanceId":"1ae4e307744f3f2dbea1c33525b7f17a4dba9cfc94d98537","monotonicNs":65260684110524,"phase":"dispatch","pid":4,"requestId":"r3"}
+DOM_NATIVE_PROBE network elapsed=10.034076ms event=DomEvent { plugin_id: "test.dom", instance_id: "1ae4e307744f3f2dbea1c33525b7f17a4dba9cfc94d98537", kind: "message", message: Some(Object {"id": String("r3"), "ok": Bool(true), "protocol": String("milkup.plugin.document-render.v1"), "type": String("result"), "value": Object {"values": Array [String("denied"), String("denied")]}}), request_id: None, error: None }
+DOM_NATIVE_TIMING {"instanceId":"1ae4e307744f3f2dbea1c33525b7f17a4dba9cfc94d98537","monotonicNs":65260694214280,"phase":"dispatch","pid":4,"requestId":"r4"}
+DOM_NATIVE_PROBE rebind elapsed=10.523973ms event=DomEvent { plugin_id: "test.dom", instance_id: "1ae4e307744f3f2dbea1c33525b7f17a4dba9cfc94d98537", kind: "message", message: Some(Object {"id": String("r4"), "ok": Bool(true), "protocol": String("milkup.plugin.document-render.v1"), "type": String("result"), "value": Object {"rebound": Bool(true)}}), request_id: None, error: None }
+DOM_NATIVE_PROBE observed_role=other-owned pid=58 birth=6525980
+DOM_NATIVE_PROBE observed_role=helper pid=12 birth=6525963
+DOM_NATIVE_PROBE observed_role=other-owned pid=57 birth=6525979
+DOM_NATIVE_PROBE observed_role=other-owned pid=64 birth=6525981
+DOM_NATIVE_PROBE observed_role=guardian pid=6 birth=6525954
+DOM_NATIVE_PROBE observed_role=webkit-web pid=66 birth=6525982
+DOM_NATIVE_PROBE observed_role=other-owned pid=59 birth=6525980
+DOM_NATIVE_PROBE observed_role=other-owned pid=15 birth=6525971
+DOM_NATIVE_PROBE observed_role=other-owned pid=62 birth=6525981
+DOM_NATIVE_PROBE independently_observed=[(58, 6525980), (12, 6525963), (57, 6525979), (64, 6525981), (6, 6525954), (66, 6525982), (59, 6525980), (15, 6525971), (62, 6525981)]
+DOM_NATIVE_TIMING {"instanceId":"1ae4e307744f3f2dbea1c33525b7f17a4dba9cfc94d98537","monotonicNs":65260705261440,"phase":"dispatch","pid":4,"requestId":"r5"}
+DOM_NATIVE_TIMING {"instanceId":"1ae4e307744f3f2dbea1c33525b7f17a4dba9cfc94d98537","monotonicNs":65262705372101,"phase":"deadline-observed","pid":4,"requestId":"r5"}
+DOM_NATIVE_TIMING {"instanceId":"1ae4e307744f3f2dbea1c33525b7f17a4dba9cfc94d98537","monotonicNs":65262708344687,"phase":"kill-start","pid":6,"requestId":null}
+DOM_NATIVE_TIMING {"instanceId":"1ae4e307744f3f2dbea1c33525b7f17a4dba9cfc94d98537","monotonicNs":65262720389789,"phase":"cleanup-complete","pid":6,"requestId":null}
+DOM_NATIVE_TIMING {"instanceId":"1ae4e307744f3f2dbea1c33525b7f17a4dba9cfc94d98537","monotonicNs":65262727067816,"phase":"cleanup-confirmed","pid":4,"requestId":null}
+DOM_NATIVE_PROBE loop elapsed=2.021940154s event=DomEvent { plugin_id: "test.dom", instance_id: "1ae4e307744f3f2dbea1c33525b7f17a4dba9cfc94d98537", kind: "document-render-timeout", message: None, request_id: Some("r5"), error: None }
+DOM_NATIVE_TIMING {"instanceId":"1ae4e307744f3f2dbea1c33525b7f17a4dba9cfc94d98537","monotonicNs":65262727137049,"phase":"control-emitted","pid":4,"requestId":"r5"}
+DOM_NATIVE_PROBE production_parent_sample_owned_calls=125
+DOM_NATIVE_TIMING {"instanceId":"1ae4e307744f3f2dbea1c33525b7f17a4dba9cfc94d98537","monotonicNs":65262727293509,"phase":"cleanup-confirmed","pid":4,"requestId":null}
+
+thread 'plugin_dom::process::tests::real_webkit_default_module_bbox_resources_and_native_loop_deadline' (5) panicked at src/plugin_dom_process.rs:1106:9:
+assertion `left == right` failed: guardian-backed production instances must not scan all processes in a background worker
+  left: 125
+ right: 0
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+DOM_NATIVE_TIMING {"instanceId":"1ae4e307744f3f2dbea1c33525b7f17a4dba9cfc94d98537","monotonicNs":65262727592704,"phase":"cleanup-confirmed","pid":4,"requestId":null}
+FAILED
+
+failures:
+
+failures:
+    plugin_dom::process::tests::real_webkit_default_module_bbox_resources_and_native_loop_deadline
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 142 filtered out; finished in 3.18s
+

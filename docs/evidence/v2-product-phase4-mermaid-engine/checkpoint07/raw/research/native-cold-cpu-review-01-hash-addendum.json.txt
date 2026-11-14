@@ -1,0 +1,20 @@
+{
+  "scope": "Clarification only; original review and preparation manifests unchanged.",
+  "finding": "The hashes cover the identical function body with different terminal-newline boundaries.",
+  "independentReviewExtraction": {
+    "algorithm": "UTF-8 encode text slice from index('async function coldBundledWindow()') inclusive through index('async function setField(', start) exclusive; retain the LF after the closing brace.",
+    "bytes": 1141,
+    "sha256": "7a96068b02467bdb8518a6fb71eef35f8646f2d5d31d37ea7c6f2f565a7bb621"
+  },
+  "transportMatchingBoundary": {
+    "algorithm": "Same slice excluding its one terminal LF; starts at async function and ends inclusively at the final closing brace. Independently reproduced by slice.rstrip() for this exact input.",
+    "bytes": 1140,
+    "sha256": "e361abf9af19a909478e664bef76906400cfe472f0cc1d1eb41844dc1896699f"
+  },
+  "proof": {
+    "exactDifference": "One final byte0x0A only; no function-body difference.",
+    "originalAndDerivedSlicesByteIdentical": true,
+    "transportHashMatchesPreparedManifest": true
+  },
+  "execution": "File reads and SHA computation only; no sampler/UI/test execution."
+}

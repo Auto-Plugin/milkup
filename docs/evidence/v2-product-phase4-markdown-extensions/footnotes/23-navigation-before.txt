@@ -1,0 +1,73 @@
+
+ RUN  v3.2.6 /workspace/milkup/apps/desktop
+
+ ❯ src/document-navigation.test.ts (4 tests | 4 failed) 19ms
+   × bounded document presentation navigation > locates UTF-16 targets without a length property and permits the true document end 6ms
+     → Not implemented
+   × bounded document presentation navigation > never reads an oversized intermediate line without a budget or navigates truncated text 5ms
+     → expected "readLineWindow" to be called with arguments: [ 2, 2, 65536 ]
+
+Number of calls: 0
+
+   × bounded document presentation navigation > rejects stale and aborted results after an awaited native read 4ms
+     → expected [Function] to throw error including 'stale' but got 'Not implemented'
+   × bounded document presentation navigation > rejects invalid ranges before I/O and accepts an empty document cursor 2ms
+     → Not implemented
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 4 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/document-navigation.test.ts > bounded document presentation navigation > locates UTF-16 targets without a length property and permits the true document end
+Error: Not implemented
+ ❯ locateDocumentPresentationTarget src/document-navigation.ts:7:9
+      5|   _operation: { readonly signal: AbortSignal; readonly assertCurrent: …
+      6| ): Promise<{ readonly fromLine: number; readonly toLine: number }> {
+      7|   throw new Error('Not implemented')
+       |         ^
+      8| }
+      9| 
+ ❯ src/document-navigation.test.ts:11:18
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/4]⎯
+
+ FAIL  src/document-navigation.test.ts > bounded document presentation navigation > never reads an oversized intermediate line without a budget or navigates truncated text
+AssertionError: expected "readLineWindow" to be called with arguments: [ 2, 2, 65536 ]
+
+Number of calls: 0
+
+ ❯ src/document-navigation.test.ts:20:18
+     18|     const read = vi.spyOn(source, 'readLineWindow')
+     19|     await expect(locateDocumentPresentationTarget(source, { from: 0 },…
+     20|     expect(read).toHaveBeenCalledWith(2, 2, 65536)
+       |                  ^
+     21|   })
+     22|   it('rejects stale and aborted results after an awaited native read',…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/4]⎯
+
+ FAIL  src/document-navigation.test.ts > bounded document presentation navigation > rejects stale and aborted results after an awaited native read
+AssertionError: expected [Function] to throw error including 'stale' but got 'Not implemented'
+
+Expected: "stale"
+Received: "Not implemented"
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/4]⎯
+
+ FAIL  src/document-navigation.test.ts > bounded document presentation navigation > rejects invalid ranges before I/O and accepts an empty document cursor
+Error: Not implemented
+ ❯ locateDocumentPresentationTarget src/document-navigation.ts:7:9
+      5|   _operation: { readonly signal: AbortSignal; readonly assertCurrent: …
+      6| ): Promise<{ readonly fromLine: number; readonly toLine: number }> {
+      7|   throw new Error('Not implemented')
+       |         ^
+      8| }
+      9| 
+ ❯ src/document-navigation.test.ts:46:18
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/4]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  4 failed (4)
+   Start at  11:54:05
+   Duration  633ms (transform 207ms, setup 0ms, collect 267ms, tests 19ms, environment 0ms, prepare 86ms)
+

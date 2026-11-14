@@ -1,0 +1,104 @@
+import { describe, expect, it, vi } from '/workspace/milkup/node_modules/vitest/dist/index.js'
+import { writeFileSync } from 'node:fs'
+import { createHash } from 'node:crypto'
+import { MemoryDocumentSource, MemoryTextDocument, copyDocumentPresentationRequest, type DocumentPresentationRequest } from '/workspace/milkup/packages/core/src/index.ts'
+import { createDesktopDocumentPresentationService } from '/workspace/milkup/apps/desktop/src/document-presentation-service.ts'
+import { createDocumentRenderRpcClient, createDocumentRenderRpcServer } from '/workspace/milkup/packages/plugin/src/document-render-rpc.ts'
+
+const output = '/workspace/milkup-mermaid-engine-evidence/research/outer-window-exact-render-regression-01'
+function record(name: string, value: unknown) {
+  writeFileSync(`${output}/${name}.json`, JSON.stringify(value, null, 2) + '\n', { flag: 'wx' })
+}
+const sha = (text: string) => createHash('sha256').update(text).digest('hex')
+const declaration = { pluginId: 'test.deterministic', id: 'fence', contexts: ['fence'] as const, fenceLanguages: ['mermaid'] }
+function result(request: DocumentPresentationRequest) {
+  return { complete: true, fragments: request.blocks.map(block => ({ from: block.from, to: block.to, layout: 'block' as const, status: 'ready' as const, content: { type: 'text' as const, text: 'inert deterministic output' }, accessibleText: 'controlled fixture' })) }
+}
+async function setup() {
+  const text = 'prefix one\nprefix two\nprefix three\n```mermaid\nflowchart TD\n A-->B\n```\nsuffix one\nsuffix two\nsuffix three\n'
+  const doc = new MemoryTextDocument(text)
+  const source = new MemoryDocumentSource({ documentId: 'controlled', version: 1, document: doc })
+  const window = async (first: number, last: number) => {
+    const read = await source.readLineWindow(first, last)
+    return { sourceIdentity: doc, sourceVersion: 1, documentVersion: 1, source: read.text, from: read.from, to: read.to, fromLine: first, toLine: last, completeStart: first === 1, completeEnd: last === doc.lineCount, selection: { anchor: 0, head: 0 }, width: 380, visibleFrom: 34, visibleTo: 69 }
+  }
+  return { text, doc, source, window }
+}
+
+describe('outer window exact-input controlled regression', () => {
+  it('characterizes exact duplicate provider calls and RED one-call memo expectation', async () => {
+    const f = await setup()
+    const requests: DocumentPresentationRequest[] = []
+    const service = createDesktopDocumentPresentationService({ current: () => ({ source: f.source, identity: f.doc }), theme: () => 'dark', renderers: () => [declaration], render: async (_p, _r, request) => { requests.push(request); return result(request) } })
+    const a = await f.window(1, 10), b = await f.window(2, 9)
+    const before = f.source.version
+    const ra = await service.provide(a, { signal: new AbortController().signal })
+    const rb = await service.provide(b, { signal: new AbortController().signal })
+    const serialized = requests.map(request => JSON.stringify(request))
+    record('exact-window-calls', { source: f.text, sourceSha256: sha(f.text), windows: [a,b].map(({ sourceIdentity: _, ...rest }) => rest), outerKeys: [a,b].map(w => `${w.sourceVersion}:${w.from}:${w.to}:${w.width}:0:${w.selection.anchor}:${w.selection.head}:${w.documentVersion}`), requests, requestSha256: serialized.map(sha), callCount: requests.length, responses: [ra, rb], versionBefore: before, versionAfter: f.source.version, qualification: 'Real service/context/validators; deterministic inert provider spy, not Mermaid/native/browser. Final one-call assertion is a desired memo property, not current host API contract.' })
+    expect(a.from).not.toBe(b.from)
+    expect(a.to).not.toBe(b.to)
+    expect(ra.result.complete).toBe(true)
+    expect(rb.result.complete).toBe(true)
+    expect(ra.result.fragments).toHaveLength(1)
+    expect(rb.result.fragments).toHaveLength(1)
+    expect(requests).toHaveLength(2)
+    expect(requests[0]).toEqual(requests[1])
+    expect(serialized[0]).toBe(serialized[1])
+    expect(f.source.version).toBe(before)
+    // Deliberate optimization regression: retain the current first RED without changing the host.
+    expect(requests).toHaveLength(1)
+  })
+  it('keeps width, theme and selection in exact input identity', async () => {
+    const f = await setup(); let theme: 'light'|'dark' = 'light'
+    const requests: DocumentPresentationRequest[] = []
+    const service = createDesktopDocumentPresentationService({ current: () => ({ source:f.source,identity:f.doc }), theme:()=>theme, renderers:()=>[declaration], render:async (_p,_r,request)=>{ requests.push(request);return result(request) } })
+    const a = await f.window(1,10)
+    await service.provide(a,{signal:new AbortController().signal})
+    await service.provide({...a,width:381},{signal:new AbortController().signal})
+    theme='dark'
+    await service.provide(a,{signal:new AbortController().signal})
+    await service.provide({...a,selection:{anchor:1,head:1}},{signal:new AbortController().signal})
+    record('input-identity-guards',{requests,requestSha256:requests.map(r=>sha(JSON.stringify(r)))})
+    expect(requests).toHaveLength(4)
+    expect(new Set(requests.map(r=>JSON.stringify(r))).size).toBe(4)
+    expect(requests.map(r=>r.width)).toEqual([380,381,380,380])
+    expect(requests.map(r=>r.theme)).toEqual(['light','light','dark','dark'])
+    expect(requests[3].selection).toEqual({anchor:1,head:1})
+  })
+})
+
+function pair() {
+  const a=new Set<(v:unknown)=>void>(), b=new Set<(v:unknown)=>void>()
+  const messages: unknown[]=[]
+  return { messages, main:{postMessage:(v:unknown)=>{messages.push(v);for(const f of b)f(v)},on:(_:string,f:(v:unknown)=>void)=>{a.add(f)},off:(_:string,f:(v:unknown)=>void)=>{a.delete(f)}},worker:{postMessage:(v:unknown)=>{for(const f of a)f(v)},on:(_:string,f:(v:unknown)=>void)=>{b.add(f)},off:(_:string,f:(v:unknown)=>void)=>{b.delete(f)}} }
+function payload(label:string) {
+  return {pluginId:'test.deterministic',rendererId:'fence',request:copyDocumentPresentationRequest({documentId:label,version:1,source:'hello',from:0,to:5,fromLine:1,toLine:1,completeStart:true,completeEnd:true,contextKnown:true,protectedRanges:[],blocks:[],selection:{anchor:0,head:0},theme:'light',target:'screen',width:380})}
+}
+async function until(condition:()=>boolean) { for(let n=0;n<100;n++){if(condition())return;await Promise.resolve()}throw Error('Controlled microtask gate did not settle') }
+for(const cancelActive of [false,true]) it(cancelActive?'active cancellation preserves queue ownership until settlement':'canceled queued job never executes after previous active settles',async()=>{
+  const endpoints=pair(), calls:string[]=[], resolvers:Array<()=>void>=[]
+  const fn=vi.fn(async (p:ReturnType<typeof payload>)=>{calls.push(p.request.documentId);await new Promise<void>(r=>resolvers.push(r));return {complete:true,fragments:[]}})
+  const server=createDocumentRenderRpcServer(endpoints.worker,{activate:()=>({}),deactivate:()=>{},runCommand:()=>({}),render:()=>null,renderDocument:fn})
+  const timeout=vi.fn(),client=createDocumentRenderRpcClient(endpoints.main,timeout),activeAbort=new AbortController(),queuedAbort=new AbortController()
+  try {
+    const first=client.render(payload('active'),{signal:activeAbort.signal})
+    const firstOutcome=first.then(()=> 'resolved',()=> 'rejected')
+    await until(()=>calls.length===1)
+    const removed=client.render(payload('canceled-queued'),{signal:queuedAbort.signal})
+    const removedOutcome=removed.then(()=> 'resolved',(e:unknown)=>e)
+    const next=client.render(payload('survivor'))
+    queuedAbort.abort()
+    await expect(removedOutcome).resolves.toMatchObject({code:'aborted'})
+    if(cancelActive)activeAbort.abort()
+    expect(calls).toEqual(['active'])
+    resolvers[0]()
+    await until(()=>calls.length===2)
+    expect(calls).toEqual(['active','survivor'])
+    resolvers[1]()
+    await next
+    expect(await firstOutcome).toBe(cancelActive?'rejected':'resolved')
+    expect(timeout).not.toHaveBeenCalled()
+    record(cancelActive?'active-cancel-queue':'queued-cancel',{calls,messages:endpoints.messages,timeoutCalls:timeout.mock.calls.length,qualification:'Real RPC client/server with controlled deferred provider; no process kill/deadline isolation proof.'})
+  } finally {client.dispose();server.dispose()}
+})

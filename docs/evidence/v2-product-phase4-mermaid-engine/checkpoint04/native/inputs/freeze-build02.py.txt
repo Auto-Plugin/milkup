@@ -1,0 +1,23 @@
+import datetime, hashlib, json, pathlib, shutil, subprocess
+repo=pathlib.Path('/workspace/milkup')
+root=pathlib.Path('/workspace/milkup-mermaid-engine-evidence/product-native-02')
+root.mkdir(exist_ok=False)
+paths=['apps/desktop/src-tauri/'+f for f in ['Cargo.toml','Cargo.lock','build.rs','src/lib.rs','src/main.rs','src/plugin_dom.rs','src/plugin_dom_process.rs','src/plugin_dom_helper.rs','src/plugin_dom_guardian.rs','src/plugin_dom_guard.c','src/plugin_dom_bootstrap.js','src/plugin_dom_bootstrap.test.mjs']]
+paths.append('packages/plugin-sdk/src/index.js')
+files=[]
+def digest(p):
+ h=hashlib.sha256()
+ with p.open('rb') as f:
+  for chunk in iter(lambda:f.read(1024*1024),b''):h.update(chunk)
+ return h.hexdigest()
+def copy(src,dest):
+ dest.parent.mkdir(parents=True,exist_ok=True)
+ subprocess.run(['cp','--reflink=auto','--',str(src),str(dest)],check=True)
+ files.append({'origin':str(src),'frozen':str(dest.relative_to(root)),'bytes':dest.stat().st_size,'sha256':digest(dest)})
+for p in paths:copy(repo/p,root/'source'/p)
+for name,origin in [('milkup-desktop','apps/desktop/src-tauri/target/debug/milkup-desktop'),('tests','apps/desktop/src-tauri/target/debug/deps/milkup_desktop_lib-8969ac6bfdf4806e'),('libmilkup_dom_guard.so','apps/desktop/src-tauri/target/debug/build/milkup-desktop-c72ae893c4ab7ce9/out/libmilkup_dom_guard.so')]:copy(repo/origin,root/'bin'/name)
+previous=root.parent/'product-native-01'
+for name in ['run-native.sh','parent-kill.py','parent-kill-run.sh','parent-kill-README.md','parent-kill-preparation.json','freeze-build02.py','rust-unit-direct-02.log','build-02.log']:copy(previous/name,root/'inputs'/name)
+(root/'tracked-native.patch').write_bytes(subprocess.check_output(['git','diff','--binary','--','apps/desktop/src-tauri'],cwd=repo))
+(root/'provenance.json').write_text(json.dumps({'frozenAt':datetime.datetime.now(datetime.timezone.utc).isoformat(),'gitHead':subprocess.check_output(['git','rev-parse','HEAD'],cwd=repo,text=True).strip(),'buildProfile':'debug','buildCommand':'source /workspace/.cloud/milkup-v2/env.sh; unset CARGO_TARGET_X86_64_UNKNOWN_LINUX_GNU_RUNNER; cargo build --offline','cargoWorkingDirectory':'apps/desktop/src-tauri','previousNative01SnapshotMissing':True,'files':files},indent=2)+'\n')
+print(json.dumps({'frozen':str(root),'binarySha256':next(f['sha256'] for f in files if f['frozen']=='bin/milkup-desktop'),'testSha256':next(f['sha256'] for f in files if f['frozen']=='bin/tests')},indent=2))

@@ -1,0 +1,369 @@
+diff --git a/packages/plugin/src/document-render-rpc.ts b/packages/plugin/src/document-render-rpc.ts
+index ce4d53a..f23c995 100644
+--- a/packages/plugin/src/document-render-rpc.ts
++++ b/packages/plugin/src/document-render-rpc.ts
+@@ -1,3 +1,6 @@
++// DIAGNOSTIC-BEGIN
++import { bindRenderTimingRequest, createRenderTimingDiagnostic } from './render-timing-diagnostic'
++// DIAGNOSTIC-END
+ import {
+   copyDocumentPresentationRequest,
+   DocumentPresentationError,
+@@ -196,8 +199,14 @@ export function createDocumentRenderRpcServer(
+ ): { dispose(): void } {
+   let disposed = false
+   const pending = new Map<string, AbortController>()
++  // DIAGNOSTIC-BEGIN
++  const diagnostic = createRenderTimingDiagnostic('child', value => endpoint.postMessage(value))
++  // DIAGNOSTIC-END
+   function send(id: string, ok: boolean, value?: unknown, error?: unknown) {
+     if (disposed) return
++    // DIAGNOSTIC-BEGIN
++    diagnostic.mark('child-result-post-enter', id)
++    // DIAGNOSTIC-END
+     endpoint.postMessage({
+       protocol,
+       type: 'result',
+@@ -205,6 +214,10 @@ export function createDocumentRenderRpcServer(
+       ok,
+       ...(ok ? { value } : { error: failure(error).code }),
+     })
++    // DIAGNOSTIC-BEGIN
++    diagnostic.mark('child-result-post-return', id)
++    diagnostic.flush()
++    // DIAGNOSTIC-END
+   }
+   const remove = listen(endpoint, (message) => {
+     if (
+@@ -220,6 +233,10 @@ export function createDocumentRenderRpcServer(
+       return
+     }
+     if (message.type !== 'render' || pending.has(jobId)) return
++    // DIAGNOSTIC-BEGIN
++    diagnostic.mark('child-receive', jobId)
++    diagnostic.flush()
++    // DIAGNOSTIC-END
+     let request: IsolatedPluginDocumentRenderRequest
+     try {
+       const p = message.payload
+@@ -236,6 +253,9 @@ export function createDocumentRenderRpcServer(
+         rendererId: p.rendererId,
+         request: copyDocumentPresentationRequest(p.request),
+       }
++      // DIAGNOSTIC-BEGIN
++      bindRenderTimingRequest(request, jobId, diagnostic)
++      // DIAGNOSTIC-END
+       if (pending.size) throw new DocumentPresentationError('busy')
+       if (!host.renderDocument) throw new DocumentPresentationError('unavailable')
+     } catch (error) {
+diff --git a/packages/plugin/src/isolation-module-host.ts b/packages/plugin/src/isolation-module-host.ts
+index 22b0527..0140a7b 100644
+--- a/packages/plugin/src/isolation-module-host.ts
++++ b/packages/plugin/src/isolation-module-host.ts
+@@ -1,3 +1,6 @@
++// DIAGNOSTIC-BEGIN
++import { traceRenderTimingRequest } from './render-timing-diagnostic'
++// DIAGNOSTIC-END
+ import {
+   copyDocumentPresentationRequest,
+   copyDocumentPresentationResult,
+@@ -212,6 +215,10 @@ export function createPluginModuleIsolationHost(
+         if (controller.signal.aborted) throw new DocumentPresentationError('aborted')
+       }
+       renderControllers.add(controller)
++      // DIAGNOSTIC-BEGIN
++      let diagnosticProviderEntered = false
++      let diagnosticProviderSettled = false
++      // DIAGNOSTIC-END
+       try {
+         assert()
+         const declaration = manifest.contributes?.documentRenderers?.find(
+@@ -223,12 +230,28 @@ export function createPluginModuleIsolationHost(
+         if (!declaration || !renderer || !manifest.permissions?.includes('document:read'))
+           throw new DocumentPresentationError('unavailable')
+         const request = copyDocumentPresentationRequest(input.request)
++        // DIAGNOSTIC-BEGIN
++        diagnosticProviderEntered = true
++        traceRenderTimingRequest(input, 'provider-enter', true)
++        // DIAGNOSTIC-END
+         const value = await renderer(request, {
+           signal: controller.signal,
+         })
++        // DIAGNOSTIC-BEGIN
++        diagnosticProviderSettled = true
++        traceRenderTimingRequest(input, 'provider-fulfilled')
++        // DIAGNOSTIC-END
+         assert()
++        // DIAGNOSTIC-BEGIN
++        traceRenderTimingRequest(input, 'output-validation-enter')
++        // DIAGNOSTIC-END
+         return copyDocumentPresentationResult(value, request, declaration)
+       } finally {
++        // DIAGNOSTIC-BEGIN
++        if (diagnosticProviderEntered && !diagnosticProviderSettled) {
++          traceRenderTimingRequest(input, 'provider-rejected', true)
++        }
++        // DIAGNOSTIC-END
+         renderControllers.delete(controller)
+         options.signal?.removeEventListener('abort', abort)
+       }
+diff --git a/packages/plugin/src/worker-supervisor.ts b/packages/plugin/src/worker-supervisor.ts
+index 4a96bef..f1bb5d5 100644
+--- a/packages/plugin/src/worker-supervisor.ts
++++ b/packages/plugin/src/worker-supervisor.ts
+@@ -1,3 +1,6 @@
++// DIAGNOSTIC-BEGIN
++import { createRenderTimingDiagnostic, diagnosticResultMatches } from './render-timing-diagnostic'
++// DIAGNOSTIC-END
+ import { DOCUMENT_PRESENTATION_LIMITS } from '@milkup/core'
+ import type { PluginIsolationRpcEndpoint } from './isolation-rpc'
+ import type { PluginWorkerEndpoint } from './isolation-worker'
+@@ -158,6 +161,9 @@ export function initializePluginWorkerSupervisor(
+   scope: PluginIsolationRpcEndpoint,
+   createChild: () => ErrorEndpoint,
+ ): { dispose(): void } {
++  // DIAGNOSTIC-BEGIN
++  const diagnostic = createRenderTimingDiagnostic('supervisor', value => scope.postMessage(value))
++  // DIAGNOSTIC-END
+   let closed = false
+   let active: { id: string; deadline: number; timer: ReturnType<typeof setTimeout> } | undefined
+   let child: ErrorEndpoint | undefined
+@@ -181,10 +187,16 @@ export function initializePluginWorkerSupervisor(
+   }
+   function expire(id: string) {
+     if (closed || active?.id !== id) return
++    // DIAGNOSTIC-BEGIN
++    diagnostic.mark('supervisor-expire', id, active.deadline)
++    // DIAGNOSTIC-END
+     // Stop execution before informing a possibly blocked page. No untrusted
+     // timestamp participates in this decision.
+     teardown()
+     send({ protocol, type: 'control', event: 'timeout', id })
++    // DIAGNOSTIC-BEGIN
++    diagnostic.flush()
++    // DIAGNOSTIC-END
+   }
+   const remove = listen(scope, (value) => {
+     if (!record(value, ['protocol', 'type', 'message']) || value.protocol !== protocol) return
+@@ -204,16 +216,30 @@ export function initializePluginWorkerSupervisor(
+         removeChild = listen(child, (message) => {
+           if (closed) return
+           const job = active
++          // DIAGNOSTIC-BEGIN
++          if (job && diagnosticResultMatches(message, job.id)) {
++            diagnostic.mark('supervisor-result-handler', job.id, job.deadline)
++          }
++          // DIAGNOSTIC-END
+           const response = readDocumentRenderResult(message)
+           if (job && response?.id === job.id) {
+             if (performance.now() >= job.deadline) {
++              // DIAGNOSTIC-BEGIN
++              diagnostic.mark('supervisor-result-late', job.id, job.deadline)
++              // DIAGNOSTIC-END
+               expire(job.id)
+               return
+             }
+             clearTimeout(job.timer)
+             active = undefined
++            // DIAGNOSTIC-BEGIN
++            diagnostic.mark('supervisor-result-accepted', job.id, job.deadline)
++            // DIAGNOSTIC-END
+           }
+           sendChild(message)
++          // DIAGNOSTIC-BEGIN
++          diagnostic.flush()
++          // DIAGNOSTIC-END
+         })
+       }
+       const message = value.message
+@@ -239,9 +265,15 @@ export function initializePluginWorkerSupervisor(
+           deadline: performance.now() + DOCUMENT_PRESENTATION_LIMITS.timeoutMs,
+           timer: setTimeout(() => expire(id), DOCUMENT_PRESENTATION_LIMITS.timeoutMs),
+         }
++        // DIAGNOSTIC-BEGIN
++        diagnostic.mark('supervisor-dispatch', id, active.deadline)
++        // DIAGNOSTIC-END
+       }
+       // Cancellation is forwarded, but never disarms or renews the deadline.
+       child.postMessage(message)
++      // DIAGNOSTIC-BEGIN
++      diagnostic.flush()
++      // DIAGNOSTIC-END
+     } catch {
+       fail()
+     }
+diff --git a/packages/plugin/src/render-timing-diagnostic.ts b/packages/plugin/src/render-timing-diagnostic.ts
+new file mode 100644
+index 0000000..c5de917
+--- /dev/null
++++ b/packages/plugin/src/render-timing-diagnostic.ts
+@@ -0,0 +1,169 @@
++/** DIAGNOSTIC CHECKOUT ONLY. No SDK export and no render authority.
++ * Removing the marked callers plus this file restores the candidate sources.
++ * Debug timestamps never decide completion, cancellation, or timeout.
++ */
++const diagnosticProtocol = 'milkup.diagnostic.render-timing.v1'
++const recordLimit = 1024
++const batchLimit = 16
++const recordByteLimit = 384
++
++type Realm = 'supervisor' | 'child'
++type Stage =
++  | 'supervisor-dispatch'
++  | 'supervisor-result-handler'
++  | 'supervisor-result-late'
++  | 'supervisor-result-accepted'
++  | 'supervisor-expire'
++  | 'child-receive'
++  | 'provider-enter'
++  | 'provider-fulfilled'
++  | 'provider-rejected'
++  | 'output-validation-enter'
++  | 'child-result-post-enter'
++  | 'child-result-post-return'
++
++interface TimingRecord {
++  readonly sequence: number
++  readonly id: string
++  readonly stage: Stage
++  readonly at: number
++  readonly deadline?: number
++}
++
++interface Recorder {
++  mark(stage: Stage, id: string, deadline?: number): void
++  flush(): void
++}
++
++// Module state belongs to one JS realm. WeakMap keys never enter debug frames.
++let realmSequence = 0
++let accepted = 0
++let dropped = 0
++let capReported = false
++const requestIds = new WeakMap<object, { readonly id: string; readonly recorder: Recorder }>()
++const noop: Recorder = Object.freeze({ mark() {}, flush() {} })
++
++function countDrop(): void {
++  dropped = Math.min(Number.MAX_SAFE_INTEGER, dropped + 1)
++}
++
++export function createRenderTimingDiagnostic(
++  realm: Realm,
++  send: (value: unknown) => void,
++): Recorder {
++  try {
++    // This module is also imported by the main RPC client. Its recorder is inert
++    // outside a Worker; it never calls window.postMessage or a global fallback.
++    const workerGlobal = globalThis as unknown as {
++      WorkerGlobalScope?: { prototype?: object }
++    }
++    const workerPrototype = workerGlobal.WorkerGlobalScope?.prototype
++    if (!workerPrototype || !Object.prototype.isPrototypeOf.call(workerPrototype, globalThis))
++      return noop
++    const realmInstance = ++realmSequence
++    const timeOrigin = performance.timeOrigin
++    const now = performance.now.bind(performance)
++    if (!Number.isFinite(timeOrigin)) return noop
++    let disabled = false
++    let sequence = 0
++    let buffer: TimingRecord[] = []
++    const flush = () => {
++      if (disabled) return
++      const capped = accepted >= recordLimit
++      if (!buffer.length && (!capped || capReported)) return
++      const records = buffer
++      buffer = []
++      if (capped) capReported = true
++      try {
++        send({
++          protocol: diagnosticProtocol,
++          type: 'trace',
++          realm,
++          realmInstance,
++          timeOrigin,
++          records,
++          accepted,
++          droppedLowerBound: dropped,
++          capped,
++        })
++      } catch {
++        // No retry, alternate IPC, timer, or error propagation into production.
++        dropped = Math.min(Number.MAX_SAFE_INTEGER, dropped + records.length)
++        disabled = true
++      }
++    }
++    return Object.freeze({
++      mark(stage: Stage, id: string, deadline?: number) {
++        try {
++          if (disabled || accepted >= recordLimit) {
++            countDrop()
++            return
++          }
++          if (!/^[A-Za-z0-9_-]{1,80}$/.test(id)) {
++            countDrop()
++            return
++          }
++          const at = now()
++          if (!Number.isFinite(at) || (deadline !== undefined && !Number.isFinite(deadline))) {
++            countDrop()
++            return
++          }
++          const record: TimingRecord = {
++            sequence: ++sequence,
++            id,
++            stage,
++            at,
++            ...(deadline === undefined ? {} : { deadline }),
++          }
++          // All strings are ASCII enums or validated RPC IDs, so length is bytes.
++          if (JSON.stringify(record).length > recordByteLimit) {
++            countDrop()
++            return
++          }
++          accepted++
++          buffer.push(record)
++          if (buffer.length >= batchLimit) flush()
++        } catch {
++          countDrop()
++        }
++      },
++      flush,
++    })
++  } catch {
++    return noop
++  }
++}
++
++export function bindRenderTimingRequest(request: object, id: string, recorder: Recorder): void {
++  try {
++    requestIds.set(request, { id, recorder })
++  } catch {
++    countDrop()
++  }
++}
++
++export function traceRenderTimingRequest(request: object, stage: Stage, flush = false): void {
++  try {
++    const binding = requestIds.get(request)
++    if (!binding) return
++    binding.recorder.mark(stage, binding.id)
++    if (flush) binding.recorder.flush()
++  } catch {
++    countDrop()
++  }
++}
++
++/** Observation filter only. Never used by the authority or settlement grammar. */
++export function diagnosticResultMatches(value: unknown, id: string): boolean {
++  try {
++    if (!value || typeof value !== 'object' || Array.isArray(value)) return false
++    const message = value as Record<string, unknown>
++    return (
++      message.protocol === 'milkup.plugin.document-render.v1' &&
++      message.type === 'result' &&
++      message.id === id
++    )
++  } catch {
++    return false
++  }
++}

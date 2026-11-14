@@ -1,0 +1,35 @@
+{
+  "candidate": "candidate08",
+  "comparedTo": "candidate07",
+  "changedFiles": [
+    "apps/desktop/src/document-presentation-service.test.ts",
+    "packages/view-dom/src/__tests__/document-presentation-preparation.test.ts",
+    "packages/view-dom/src/document-presentation.ts",
+    "packages/view-dom/src/editor-view.ts",
+    "packages/view-dom/src/source-document-view.ts",
+    "tests/e2e/desktop-markdown-extensions.spec.ts"
+  ],
+  "inheritedChecks": {
+    "rust": {
+      "passed": 126,
+      "ignored": 1,
+      "from": "candidate05",
+      "reason": "All Rust source/config unchanged"
+    },
+    "externalPlugins": {
+      "passed": 327,
+      "reason": "All external plugin sources, resources, SDK and bundled archives unchanged"
+    }
+  },
+  "rerunChecks": [
+    "full-unit",
+    "full-typecheck",
+    "full-build",
+    "full-format",
+    "full-browser",
+    "linux-production",
+    "native-formal"
+  ],
+  "sourceManifest": "candidate08-final-source-manifest.json",
+  "fixtureRevision": "candidate08-fixture-correction.json"
+}

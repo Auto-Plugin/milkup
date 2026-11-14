@@ -1,0 +1,17 @@
+from pathlib import Path
+import datetime,hashlib,json,subprocess,sys
+root=Path('/workspace/milkup');out=Path(__file__).resolve().parent;mode=sys.argv[1];assert mode in ('before','after')
+target=out/('inputs-'+mode+'.json');assert not target.exists()
+def digest(path,label):
+ b=path.read_bytes();return {'path':label,'bytes':len(b),'sha256':hashlib.sha256(b).hexdigest()}
+names=sorted(set(x for x in subprocess.check_output(['git','ls-files','-z','--cached','--others','--exclude-standard'],cwd=root).decode().split('\0') if x and not x.startswith('docs/evidence/') and (root/x).is_file()))
+rows=[digest(root/n,n) for n in names]
+frontends=[]
+for p in [root/'apps/desktop/dist',Path('/workspace/milkup-mermaid-engine-evidence/linux-production-08/frontend')]:
+ assert p.exists()
+ frontends.append({'directory':str(p),'files':[digest(x,str(x.relative_to(p))) for x in sorted(p.rglob('*')) if x.is_file()]})
+value={'atUtc':datetime.datetime.now(datetime.timezone.utc).isoformat(),'head':subprocess.check_output(['git','rev-parse','HEAD'],cwd=root).decode().strip(),'scope':'All tracked/nonignored regular files except immutable docs/evidence raw archive; generated ignored host dist separately. Lint still checks its normal full scope.','files':rows,'frontends':frontends,'gitStatus':subprocess.check_output(['git','status','--short'],cwd=root).decode()}
+if mode=='before':(out/'source-before.diff').write_bytes(subprocess.check_output(['git','diff','HEAD','--'],cwd=root))
+else:
+ before=json.loads((out/'inputs-before.json').read_text());a={r['path']:r for r in before['files']};b={r['path']:r for r in rows};value['changes']=[{'path':n,'before':a.get(n),'after':b.get(n)}for n in sorted(set(a)|set(b))if a.get(n)!=b.get(n)];value['frontendsUnchanged']=frontends==before['frontends']
+target.write_text(json.dumps(value,indent=2)+'\n');print(json.dumps({'mode':mode,'files':len(rows),'output':str(target),'sha256':hashlib.sha256(target.read_bytes()).hexdigest(),'changedFiles':len(value.get('changes',[])),'frontendsUnchanged':value.get('frontendsUnchanged')}))

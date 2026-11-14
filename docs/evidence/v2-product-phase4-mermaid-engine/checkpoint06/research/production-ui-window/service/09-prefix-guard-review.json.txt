@@ -1,0 +1,48 @@
+{
+  "status": "service-protection-regression-passed; source-read-path-reviewed; view-consolidated-and-native-pending",
+  "test": {
+    "name": "uses trusted prefix context when a mid-fence window locally invents opening markers",
+    "log": "08-prefix-guard-tests.log",
+    "passed": 20,
+    "failed": 0,
+    "durationMs": 928,
+    "classification": "Protective regression expected to pass existing trusted context behavior; not a product red/green claim."
+  },
+  "assertions": [
+    "Window begins inside a real outer four-backtick fence, after offset zero.",
+    "Local parser reports a false valid inner diagram fence and misreads the real outer closing marker as an incomplete opening.",
+    "Trusted prefix reader retains the earlier fence as incomplete for this window.",
+    "Pure fence renderer receives exactly one request for the later real complete diagram fence; neither false opening is rendered."
+  ],
+  "readOnlyReview": {
+    "blockingIssueFoundInLatestRead": false,
+    "bounds": "One speculative hint read of at most256 lines/65536 UTF16; no prefix authority or repeated unclosed scan added.",
+    "authorization": "Local parsing only expands readable DOM/request range; desktop trusted prefix context independently authorizes complete fences.",
+    "lifecycle": "Captured source identity/version and presentationReadRevision before base await; late read checked for destruction, live mode, source/version/revision and active presentation. Outer DOM commit also checks mode/revision/edit and request order.",
+    "cache": "Unclosed/error hint caches undefined, not the old base. Each caller keeps its own current base; positive cache must cover its current request. Source/mode/config/destroy clear and increment revision.",
+    "endpoint": "Loaded closing marker-containing line supplies actual DOM endpoint, including legal trailing whitespace and excluding unrelated EOL."
+  },
+  "limits": [
+    "The underlying source read is not actively cancelled; late results are discarded. This is bounded speculative reading, not a new cancellation API.",
+    "No product source changed in this follow-up; only the service protection test was added.",
+    "No native or UI run performed; cold bundled timeout remains independently unresolved."
+  ],
+  "files": [
+    {
+      "path": "/workspace/milkup/apps/desktop/src/document-presentation-service.test.ts",
+      "sha256": "6ab4a3ee37b22daeb70f316269ff0f6cf37fb71c62038a0331bdb7cc302fad01"
+    },
+    {
+      "path": "/workspace/milkup/apps/desktop/src/document-presentation-service.ts",
+      "sha256": "4478b83bc3b64eb6ce0fad94575ec8cf1e5dd8b4f17baf08489b6e1821a98227"
+    },
+    {
+      "path": "/workspace/milkup/packages/view-dom/src/source-document-view.ts",
+      "sha256": "ad1a9a7a746c8eaf641e132ee5a91cb4779c4d860c9f9f445231c8d2b8923206"
+    },
+    {
+      "path": "/workspace/milkup/packages/view-dom/src/document-presentation.ts",
+      "sha256": "ab84b954feac3c2470b5ab77202fc803247bd32c3ad62965b4daba38328a18ca"
+    }
+  ]
+}

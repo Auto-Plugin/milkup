@@ -1,0 +1,102 @@
+// Execute only in the coordinated CPU slot. Stages sources; never builds/launches native UI.
+import assert from 'node:assert/strict'
+import { createHash } from 'node:crypto'
+import { mkdir, readFile, writeFile, cp } from 'node:fs/promises'
+import { createRequire } from 'node:module'
+import path from 'node:path'
+import { pathToFileURL } from 'node:url'
+import { fixtures } from './fixtures.mjs'
+
+const repo = '/workspace/milkup'
+const baseline = '/workspace/milkup-mermaid-engine-evidence/research/svg-converter-prototype/native-runner'
+const frozen = path.join(baseline, 'revision-paired-sankey-integer01')
+const hash = bytes => createHash('sha256').update(bytes).digest('hex')
+const args = process.argv.slice(2)
+const option = name => args.includes(name) ? args[args.indexOf(name) + 1] : undefined
+const destination = option('--output')
+assert(destination && path.isAbsolute(destination) && /^[A-Za-z0-9_/-]+$/.test(destination), 'Fresh absolute --output path required')
+const zoom = Number(option('--zoom') || 1)
+assert([1, 1.25, 1.5, 2].includes(zoom), 'Native zoom must be 1, 1.25, 1.5 or 2')
+let fixture, sample, request, image, acceptedSource
+if (option('--fixture')) {
+  fixture = fixtures.find(row => row.id === option('--fixture'))
+  assert(fixture, 'Unknown manual positive')
+  image = fixture.image
+  sample = { id: fixture.id, source: fixture.id, sourceSha256: hash(fixture.id), manualPositive: true, assertion: fixture.assertion }
+  request = { id: 'fixture_edge_pair', source: fixture.id, profile: 'baseline', theme: 'light' }
+} else {
+  assert(option('--official-case') && option('--accepted-image'), 'Specify --fixture or --official-case plus --accepted-image')
+  const row = JSON.parse(await readFile(option('--official-case')))
+  sample = row.sample
+  request = row.request
+  assert(sample.unmodifiedOfficialBlock === true && hash(sample.source) === sample.sourceSha256)
+  assert(request.source === sample.source && request.profile === 'baseline' && request.theme === 'light')
+  const bytes = await readFile(option('--accepted-image'))
+  const accepted = JSON.parse(bytes)
+  assert(accepted.sampleId === sample.id && accepted.sourceSha256 === sample.sourceSha256)
+  assert(accepted.profile === request.profile && accepted.theme === request.theme)
+  assert(accepted.producer && accepted.engineSha256, 'Explicit accepted AST provenance required')
+  image = accepted.image
+  acceptedSource = { path: path.resolve(option('--accepted-image')), sha256: hash(bytes), producer: accepted.producer, engineSha256: accepted.engineSha256 }
+}
+assert(image?.type === 'svg-image')
+await mkdir(destination)
+await mkdir(path.join(destination, 'extensions'))
+await cp(path.join(frozen, 'paired-helper'), path.join(destination, 'paired-helper'), { recursive: true })
+for (const file of ['index.html', 'mermaid-full-12.2.0.mjs'])
+  await cp(path.join(baseline, 'paired-helper/assets', file), path.join(destination, 'paired-helper/assets', file))
+const require = createRequire(path.join(repo, 'package.json'))
+const { build } = require('esbuild')
+const coreBundle = path.join(destination, 'current-core.mjs')
+await build({ entryPoints: [path.join(repo, 'packages/core/src/document-presentation.ts')], outfile: coreBundle, bundle: true, platform: 'node', format: 'esm', logLevel: 'silent' })
+const core = await import(pathToFileURL(coreBundle).href)
+const validated = core.copyDocumentPresentationNode(image)
+const canonical = core.serializeDocumentPresentationNode(validated)
+assert(canonical.startsWith('<svg') && canonical.includes('<svg', 4), 'Current host serializer must supply exactly its own outer wrapper')
+await writeFile(path.join(destination, 'paired-helper/assets/canonical.svg'), canonical)
+await writeFile(path.join(destination, 'validated-image.json'), JSON.stringify(validated, null, 2) + '\n')
+await writeFile(path.join(destination, 'paired-cases.json'), JSON.stringify([{ sample, request }], null, 2) + '\n')
+const engine = await readFile(path.join(destination, 'paired-helper/assets/mermaid-full-12.2.0.mjs'))
+if (acceptedSource) assert.equal(acceptedSource.engineSha256, hash(engine), 'Original must use the same frozen engine as the accepted AST')
+
+function replaceOnce(text, before, after) {
+  assert(text.includes(before) && text.indexOf(before) === text.lastIndexOf(before), 'Frozen source changed: ' + before.slice(0, 120))
+  return text.replace(before, after)
+}
+let entry = await readFile(path.join(frozen, 'paired-helper/assets/entry.mjs'), 'utf8')
+const start = entry.indexOf('const fixtures=['), end = entry.indexOf('\n\n// External one-case research entry.')
+assert(start >= 0 && end > start)
+entry = entry.slice(0, start) + 'const fixtures=' + JSON.stringify(fixture ? [fixture] : []) + ';' + entry.slice(end)
+entry = replaceOnce(entry, "host.style.width='1000px';", "host.style.width='1000px';host.style.margin='48px';")
+// Pair test deliberately does not invoke an older research converter. The AST
+// is independently checked by CURRENT core before compilation. For an official
+// case its original still comes from the real frozen full Mermaid renderer.
+entry = replaceOnce(entry, "const result=convertSvgElement(host.querySelector('svg'));", 'const result={ok:true,image:' + JSON.stringify(validated) + ',coverage:{declarations:[],attributes:[],rules:[],normalizations:[],errors:[]}};')
+entry = entry.replace("converter:'external-prototype-only'", "converter:'not-run-current-core-validated-fixed-AST'")
+await writeFile(path.join(destination, 'paired-helper/assets/entry.mjs'), entry)
+const mainPath = path.join(destination, 'paired-helper/src/main.rs')
+await writeFile(mainPath, replaceOnce(await readFile(mainPath, 'utf8'), 'native.set_zoom_level(1.0)', `native.set_zoom_level(${zoom === 1 || zoom === 2 ? zoom + '.0' : zoom})`))
+await cp(path.join(frozen, 'extensions/paired_resource_guard.c'), path.join(destination, 'extensions/paired_resource_guard.c'))
+let supervisor = await readFile(path.join(frozen, 'supervise-paired-integer.py'), 'utf8')
+supervisor = replaceOnce(supervisor, "'mermaidTested':True,'converterPrototypeTested':True", `'mermaidTested':${fixture ? 'False' : 'True'},'converterPrototypeTested':False,'productPluginTested':False,'currentCoreValidatedFixedAST':True`)
+await writeFile(path.join(destination, 'supervise-paired-integer.py'), supervisor)
+for (const file of ['run-paired-integer.sh', 'build-paired.sh']) {
+  let script = (await readFile(path.join(frozen, file), 'utf8')).replaceAll(baseline, destination)
+  if (file === 'build-paired.sh') script = script.replace('CARGO_BUILD_JOBS=3', 'CARGO_BUILD_JOBS=1')
+  await writeFile(path.join(destination, file), script)
+}
+const inputs = [
+  ...['document-presentation.ts', 'document-svg-image.ts', 'document-svg-image-codec.ts', 'document-svg-image-geometry.ts'].map(name => path.join(repo, 'packages/core/src', name)),
+  ...['paired-helper/src/main.rs', 'paired-helper/assets/entry.mjs', 'extensions/paired_resource_guard.c', 'run-paired-integer.sh', 'supervise-paired-integer.py'].map(name => path.join(frozen, name)),
+  new URL('./fixtures.mjs', import.meta.url).pathname, new URL(import.meta.url).pathname,
+]
+await writeFile(path.join(destination, 'prepared.json'), JSON.stringify({
+  preparedOnly: true, nativeExecuted: false, currentCoreValidated: true,
+  sample, request, zoom, acceptedSource, engineSha256: hash(engine),
+  canonicalSha256: hash(canonical), coreBundleSha256: hash(await readFile(coreBundle)),
+  inputs: await Promise.all(inputs.map(async file => ({ file, sha256: hash(await readFile(file)) }))),
+  boundary: 'Diagnostic fixed AST paired with independent original; not plugin converter or production UI proof. Native screenshots and cleanup audit still required.',
+  policy: 'Frozen native CSP, URI guard, sandbox and narrow bwrap mounts unchanged; only private source/output root relocated.',
+  commands: [`bash ${destination}/build-paired.sh`, `bash ${destination}/run-paired-integer.sh edge-${sample.id}-z${zoom * 100} 0`],
+}, null, 2) + '\n')
+console.log('STAGED ONLY: ' + destination)

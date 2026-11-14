@@ -1,0 +1,15 @@
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/renderer.test.ts > private exact-request successful-result memo (prepared contract) > accounts for both serialized keys and values in the 2MiB UTF-16 byte cap
+AssertionError: expected "spy" to be called 4 times, but got 5 times
+ ❯ src/renderer.test.ts:451:27
+    449|     for (let version = 0; version < 4; version++) await renderDocument…
+    450|     await renderDocuments({ ...input, version: 3 }, options())
+    451|     expect(mocked.render).toHaveBeenCalledTimes(4)
+       |                           ^
+    452|     await renderDocuments({ ...input, version: 0 }, options())
+    453|     expect(mocked.render).toHaveBeenCalledTimes(5)
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+

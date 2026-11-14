@@ -1,0 +1,117 @@
+[WebServer] (node:54909) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] $ vite --host 127.0.0.1
+[WebServer] (node:54924) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] (node:54948) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] $ vite --host 127.0.0.1
+[WebServer] (node:54967) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 4 tests using 1 worker
+
+(node:55001) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  1 [desktop-msedge] › tests/e2e/desktop-markdown-extensions.spec.ts:647:3 › last preview reference supports native Tab round trip (false) (6.8s)
+(node:55151) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  2 [desktop-msedge] › tests/e2e/desktop-markdown-extensions.spec.ts:667:3 › ordinary proxy focus retains Tab indentation (false) (1.5s)
+  ✘  3 [desktop-msedge] › tests/e2e/desktop-markdown-extensions.spec.ts:647:3 › last preview reference supports native Tab round trip (true) (6.1s)
+(node:55340) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  4 [desktop-msedge] › tests/e2e/desktop-markdown-extensions.spec.ts:667:3 › ordinary proxy focus retains Tab indentation (true) (1.8s)
+
+
+  1) [desktop-msedge] › tests/e2e/desktop-markdown-extensions.spec.ts:647:3 › last preview reference supports native Tab round trip (false) 
+
+    Error: expect(locator).toBeFocused() failed
+
+    Locator: locator('[data-last-reference-probe] .milkup-document-reference')
+    Expected: focused
+    Timeout: 5000ms
+    Error: element(s) not found
+
+    Call log:
+      - Expect "toBeFocused" with timeout 5000ms
+      - waiting for locator('[data-last-reference-probe] .milkup-document-reference')
+
+
+      661 |         contentType: 'application/json',
+      662 |       })
+    > 663 |     await expect(reference).toBeFocused()
+          |                             ^
+      664 |     expect(after).toEqual(before)
+      665 |   })
+      666 |
+        at /workspace/milkup/tests/e2e/desktop-markdown-extensions.spec.ts:663:29
+
+    attachment #2: page-state (text/plain) ─────────────────────────────────────────────────────────
+    - main:
+      - button "菜单"
+      - heading "未命名" [level=1]
+      - paragraph: 未保存
+      - button "最小化"
+      - button "最大化"
+      - button "关闭窗口"
+      - text: 写点什么吧...
+      - textbox
+      - textbox "Markdown 编辑器"
+      - button "侧栏"
+      - button "实时"
+      - text: Markdown 0 字符 已保存
+    - main:
+      - textbox
+      - textbox "Markdown 编辑器"
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/desktop-markdown-extension-39cba-ative-Tab-round-trip-false--desktop-msedge/error-context.md
+
+  2) [desktop-msedge] › tests/e2e/desktop-markdown-extensions.spec.ts:647:3 › last preview reference supports native Tab round trip (true) 
+
+    Error: expect(locator).toBeFocused() failed
+
+    Locator: locator('[data-last-reference-probe] .milkup-document-reference')
+    Expected: focused
+    Timeout: 5000ms
+    Error: element(s) not found
+
+    Call log:
+      - Expect "toBeFocused" with timeout 5000ms
+      - waiting for locator('[data-last-reference-probe] .milkup-document-reference')
+
+
+      661 |         contentType: 'application/json',
+      662 |       })
+    > 663 |     await expect(reference).toBeFocused()
+          |                             ^
+      664 |     expect(after).toEqual(before)
+      665 |   })
+      666 |
+        at /workspace/milkup/tests/e2e/desktop-markdown-extensions.spec.ts:663:29
+
+    attachment #2: page-state (text/plain) ─────────────────────────────────────────────────────────
+    - main:
+      - button "菜单"
+      - heading "未命名" [level=1]
+      - paragraph: 未保存
+      - button "最小化"
+      - button "最大化"
+      - button "关闭窗口"
+      - text: 写点什么吧...
+      - textbox
+      - textbox "Markdown 编辑器"
+      - button "侧栏"
+      - button "实时"
+      - text: Markdown 0 字符 已保存
+    - main:
+      - status: 当前源码范围超出预览预算，保留 Markdown 源码。
+      - textbo...
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/desktop-markdown-extension-b5ddc-native-Tab-round-trip-true--desktop-msedge/error-context.md
+
+  2 failed
+    [desktop-msedge] › tests/e2e/desktop-markdown-extensions.spec.ts:647:3 › last preview reference supports native Tab round trip (false) 
+    [desktop-msedge] › tests/e2e/desktop-markdown-extensions.spec.ts:647:3 › last preview reference supports native Tab round trip (true) 
+  2 passed (25.8s)

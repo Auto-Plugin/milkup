@@ -1,0 +1,23 @@
+import subprocess,sys,json,datetime,time,urllib.request
+from pathlib import Path
+run,case=sys.argv[1:];assert run.startswith('lifecycle-p06-') and case in ['timeout','disable','remove','wm-close','app-sigkill']
+base=Path(__file__).parent
+frozen=json.loads((base/'provenance.json').read_text())
+binary=frozen['binary']['path'];sha=frozen['binary']['sha256']
+inputs=json.loads((base/'lifecycle/control'/(run+'-inputs')/'manifest.json').read_text())
+import hashlib
+for row in inputs['files']:
+ assert hashlib.sha256(Path(row['source']).read_bytes()).hexdigest()==row['sha256'], row['source']
+out=Path('/workspace/milkup-mermaid-engine-evidence/linux-production-06/lifecycle/control');out.mkdir(parents=True,exist_ok=True)
+record=out/(run+'-command.json');log=out/(run+'-harness.log');assert not record.exists() and not log.exists()
+for attempt in range(50):
+ try:
+  with urllib.request.urlopen('http://127.0.0.1:4626/status',timeout=1) as r: assert r.status==200
+  break
+ except Exception:
+  if attempt==49:raise
+  time.sleep(.1)
+command=['bash','-lc','source /workspace/milkup-mermaid-engine-evidence/linux-production-06/run-env.sh "$@"\nexec node tests/native/tauri-dom-plugin-lifecycle.mjs','bash',run,case,binary,sha]
+row={'command':command,'cwd':'/workspace/milkup','startedUtc':datetime.datetime.now(datetime.timezone.utc).isoformat()};record.write_text(json.dumps(row,indent=2)+'\n')
+with log.open('w') as stream:p=subprocess.run(command,cwd=row['cwd'],stdout=stream,stderr=subprocess.STDOUT)
+row.update(exitCode=p.returncode,endedUtc=datetime.datetime.now(datetime.timezone.utc).isoformat());record.write_text(json.dumps(row,indent=2)+'\n');print(json.dumps(row));print(log.read_text()[-10000:]);sys.exit(p.returncode)

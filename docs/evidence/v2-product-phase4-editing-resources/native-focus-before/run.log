@@ -1,0 +1,25 @@
+2026-10-15T10:30:57.450Z NATIVE_STARTUP_WINDOW 4793ms
+PASS verified-existing-external-milkup.formatting
+PASS verified-existing-external-milkup.images
+PASS verified-existing-external-milkup.preferences
+PASS zoom-single-key-focus
+node:internal/modules/run_main:107
+    triggerUncaughtException(
+    ^
+
+AssertionError [ERR_ASSERTION]: Single zoom change retains real keyboard focus
++ actual - expected
+
++ null
+- 'appearance.zoom'
+
+    at file:///workspace/milkup/tests/native/tauri-editing-resources.mjs:1174:12 {
+  generatedMessage: false,
+  code: 'ERR_ASSERTION',
+  actual: null,
+  expected: 'appearance.zoom',
+  operator: 'strictEqual',
+  diff: 'simple'
+}
+
+Node.js v24.19.0

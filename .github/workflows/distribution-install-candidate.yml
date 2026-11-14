@@ -1,0 +1,160 @@
+name: Exact distribution installation smoke (no release)
+on:
+  push:
+    branches: [dot/release-quality-integration-20261112]
+  workflow_dispatch:
+    inputs:
+      build_run:
+        description: Successful distribution-candidate run whose immutable artifacts are tested
+        required: true
+        type: string
+      source_sha:
+        description: Exact source SHA of those installers
+        required: true
+        type: string
+      repair_same_version:
+        description: Exercise missing-executable repair using the same verified Windows installer
+        type: boolean
+        default: false
+      repair_health:
+        description: Exercise real document edits and persistent plugin choice before/after repair
+        type: boolean
+        default: false
+      document_health:
+        description: Real installed A/B identity, current-document HTML/PDF and unsaved close checks
+        type: boolean
+        default: false
+      startup_comparison:
+        description: Same installed bytes with early, late and absent WebDriver attachment (standard repair health only)
+        type: boolean
+        default: false
+      variant:
+        description: Test all variants or only the variant affected by an installation-harness fix
+        type: choice
+        default: all
+        options: [all, windows-standard, windows-offline, linux-deb]
+permissions:
+  contents: read
+  actions: read
+concurrency:
+  group: distribution-install-candidate-${{ github.ref }}-${{ (github.event_name == 'workflow_dispatch' || contains(github.event.head_commit.message, '[install-candidate]')) && 'execute' || github.run_id }}
+  cancel-in-progress: false
+jobs:
+  install:
+    if: >-
+      github.repository == 'Auto-Plugin/milkup' &&
+      (github.event_name == 'workflow_dispatch' ||
+       (github.ref == 'refs/heads/dot/release-quality-integration-20261112' &&
+        github.event.deleted == false && contains(github.event.head_commit.message, '[install-candidate]')))
+    strategy:
+      fail-fast: false
+      max-parallel: 1
+      matrix:
+        include: ${{ fromJSON(inputs.variant == 'windows-standard' && '[{"os":"windows-2025","variant":"windows-standard"}]' || inputs.variant == 'windows-offline' && '[{"os":"windows-2025","variant":"windows-offline"}]' || inputs.variant == 'linux-deb' && '[{"os":"ubuntu-24.04","variant":"linux-deb"}]' || '[{"os":"windows-2025","variant":"windows-standard"},{"os":"windows-2025","variant":"windows-offline"},{"os":"ubuntu-24.04","variant":"linux-deb"}]') }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
+    defaults:
+      run:
+        shell: bash
+    env:
+      GIT_CONFIG_COUNT: '1'
+      GIT_CONFIG_KEY_0: core.longpaths
+      GIT_CONFIG_VALUE_0: 'true'
+      BUILD_RUN: ${{ inputs.build_run }}
+      SOURCE_SHA: ${{ inputs.source_sha }}
+      VARIANT: ${{ matrix.variant }}
+      REPAIR_SAME_VERSION: ${{ inputs.repair_same_version }}
+      REPAIR_HEALTH: ${{ inputs.repair_health }}
+      DOCUMENT_HEALTH: ${{ inputs.document_health }}
+      STARTUP_COMPARISON: ${{ inputs.startup_comparison }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: 24.19.0
+      - name: Select explicit package provenance
+        run: |
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          test -z "$(git status --porcelain)"
+          if [ "$GITHUB_EVENT_NAME" = push ]; then
+            node -e "const fs=require('fs'),p=JSON.parse(fs.readFileSync('release/candidate-install-input.json'));if(!/^[0-9]+$/.test(p.buildRun)||!/^[a-f0-9]{40}$/.test(p.sourceSha))throw Error('Invalid package identity');fs.appendFileSync(process.env.GITHUB_ENV,'BUILD_RUN='+p.buildRun+'\nSOURCE_SHA='+p.sourceSha+'\n')"
+          fi
+          node --test scripts/release/verify-candidate.test.mjs scripts/release/startup-comparison.test.mjs
+      - name: Verify completed build identity and download original package
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          [[ "$BUILD_RUN" =~ ^[0-9]+$ ]]
+          [[ "$SOURCE_SHA" =~ ^[a-f0-9]{40}$ ]]
+          gh api "repos/Auto-Plugin/milkup/actions/runs/$BUILD_RUN" > "$RUNNER_TEMP/build-run.json"
+          node -e "const r=JSON.parse(require('fs').readFileSync(process.argv[1]));if(r.head_sha!==process.env.SOURCE_SHA||r.head_branch!=='dot/release-quality-integration-20261112'||r.status!=='completed'||r.conclusion!=='success'||r.path!=='.github/workflows/distribution-candidate.yml')throw Error('Exact completed build proof required')" "$RUNNER_TEMP/build-run.json"
+          gh run download "$BUILD_RUN" --repo Auto-Plugin/milkup --name "milkup-$VARIANT-$SOURCE_SHA" --dir "$RUNNER_TEMP/candidate-input"
+          node scripts/release/verify-candidate.mjs "$RUNNER_TEMP/candidate-input" "$SOURCE_SHA" "$VARIANT"
+      - name: Reject wrong process instances and incidental native windows
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          ./tests/windows/install-window.test.ps1
+          ./tests/windows/startup-capture.test.ps1
+          Add-Type -Path scripts/release/InstalledDialogInput.cs
+          $shape=[string[]]@('Edit','ComboBox','FloatNotifySink','DirectUIHWND','DUIViewWndClassName')
+          if (![InstalledDialogInput]::MatchesModernFilenameShape($shape,[int[]]@(1001,0,0,0,0))) { throw 'Observed modern filename shape must match' }
+          if ([InstalledDialogInput]::MatchesModernFilenameShape($shape,[int[]]@(41477,0,0,0,0))) { throw 'Address edit cannot match filename' }
+          if ([InstalledDialogInput]::MatchesModernFilenameShape([string[]]@('Edit','ComboBox','Search Box','DirectUIHWND','DUIViewWndClassName'),[int[]]@(1001,0,0,0,0))) { throw 'Search ancestry cannot match filename' }
+          if ([InstalledDialogInput]::MatchesModernFilenameShape([string[]]@('Edit','ComboBox'),[int[]]@(1001,0))) { throw 'Incomplete ancestry cannot match filename' }
+          $self=[Diagnostics.Process]::GetCurrentProcess()
+          try {
+            $cases=@(@{birth=$self.StartTime.ToUniversalTime().Ticks+1;image=$self.MainModule.FileName},@{birth=$self.StartTime.ToUniversalTime().Ticks;image=$self.MainModule.FileName+'.wrong'})
+            foreach($wrong in $cases) {
+              $rejected=$false
+              try {[InstalledDialogInput]::Submit($self.Id,$wrong.birth,$wrong.image,'not-used','') | Out-Null} catch {$rejected=$true}
+              if (!$rejected) {throw 'Native dialog accepted changed process identity'}
+            }
+          } finally {$self.Dispose()}
+          $tokens=$null; $errors=$null
+          foreach ($leaf in @('scripts/release/startup-comparison.ps1','scripts/release/install-candidate.ps1','scripts/release/run-repair-health-standard.ps1')) {
+            $null=[Management.Automation.Language.Parser]::ParseFile((Join-Path $PWD $leaf),[ref]$tokens,[ref]$errors)
+            if ($errors.Count) { throw ($errors | Out-String) }
+          }
+          $null=[Management.Automation.Language.Parser]::ParseFile((Join-Path $PWD 'scripts/release/installed-dialog-input.ps1'),[ref]$tokens,[ref]$errors)
+          if ($errors.Count) { throw ($errors | Out-String) }
+      - name: Windows native install, visible window, normal close and uninstall
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          if ($env:REPAIR_HEALTH -ceq 'true') {
+            if ($env:REPAIR_SAME_VERSION -cne 'true') { throw 'Health requires repair' }
+            ./scripts/release/run-repair-health-standard.ps1 -Directory (Join-Path $env:RUNNER_TEMP 'candidate-input') -SourceSha $env:SOURCE_SHA -Variant $env:VARIANT -EvidenceDirectory (Join-Path $env:RUNNER_TEMP 'candidate-install-evidence') -DocumentHealth:($env:DOCUMENT_HEALTH -ceq 'true') -StartupComparison:($env:STARTUP_COMPARISON -ceq 'true')
+          } else {
+            if ($env:STARTUP_COMPARISON -ceq 'true') { throw 'Startup comparison requires isolated repair health' }
+            if ($env:DOCUMENT_HEALTH -ceq 'true') { throw 'Document health requires isolated repair health' }
+            ./scripts/release/install-candidate.ps1 -Directory (Join-Path $env:RUNNER_TEMP 'candidate-input') -SourceSha $env:SOURCE_SHA -Variant $env:VARIANT -EvidenceDirectory (Join-Path $env:RUNNER_TEMP 'candidate-install-evidence') -RepairSameVersion:($env:REPAIR_SAME_VERSION -ceq 'true')
+          }
+      - name: Linux native package installation and removal
+        if: runner.os == 'Linux'
+        run: bash scripts/release/install-candidate-linux.sh "$RUNNER_TEMP/candidate-input" "$SOURCE_SHA" "$RUNNER_TEMP/candidate-install-evidence"
+      - name: Independently audit installed current-document HTML and PDF content
+        if: always() && runner.os == 'Windows' && inputs.document_health
+        shell: pwsh
+        run: |
+          python -m pip install --disable-pip-version-check --target "$env:RUNNER_TEMP/pdf-audit-deps" pypdf==6.10.0
+          if ($LASTEXITCODE -ne 0) { throw 'PDF verifier dependency unavailable' }
+          $env:PYTHONPATH="$env:RUNNER_TEMP/pdf-audit-deps"
+          python scripts/release/verify-installed-documents.test.py
+          if ($LASTEXITCODE -ne 0) { throw 'Output verifier negative controls failed' }
+          python scripts/release/verify-installed-documents.py (Join-Path $env:RUNNER_TEMP 'candidate-install-evidence')
+          if ($LASTEXITCODE -ne 0) { throw 'Installed current-document content/close audit failed' }
+      - name: Preserve exact input and all original installation results
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: milkup-install-${{ matrix.variant }}-${{ github.run_id }}
+          path: |
+            ${{ runner.temp }}/candidate-install-evidence/
+            ${{ runner.temp }}/build-run.json
+            ${{ runner.temp }}/candidate-input/manifest.json
+          retention-days: 7
+          if-no-files-found: warn

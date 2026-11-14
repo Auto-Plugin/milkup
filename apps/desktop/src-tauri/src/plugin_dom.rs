@@ -1,0 +1,959 @@
+//! Installed, immutable DOM plugin snapshots and exact lease/instance ownership.
+//! This host is generic: it knows neither document syntax nor renderer engines.
+use serde::{Deserialize, Serialize};
+use serde_json::{json, Value};
+use sha2::{Digest, Sha256};
+#[cfg(test)]
+use std::path::Path;
+use std::{
+    collections::HashMap,
+    sync::{Arc, Mutex},
+    time::{Duration, Instant},
+};
+use tauri::{AppHandle, Emitter, Manager};
+
+#[cfg(target_os = "linux")]
+#[path = "plugin_dom_guardian.rs"]
+mod guardian;
+#[cfg(target_os = "linux")]
+#[path = "plugin_dom_helper.rs"]
+mod helper;
+#[cfg(target_os = "linux")]
+#[path = "plugin_dom_process.rs"]
+mod process;
+
+const MAX_MANIFEST: usize = 1024 * 1024;
+const MAX_MODULE: usize = 8 * 1024 * 1024;
+const MAX_LEASES: usize = 16;
+const MAX_SNAPSHOTS: usize = 32 * 1024 * 1024;
+const LEASE_LIFETIME: Duration = Duration::from_secs(60);
+pub(super) const INPUT_WIRE_LIMIT: usize = 1024 * 1024;
+pub(super) const OUTPUT_WIRE_LIMIT: usize = 262144 + 4096;
+pub(super) const RENDER_PROTOCOL: &str = "milkup.plugin.document-render.v1";
+pub(super) const RPC_PROTOCOL: &str = "milkup.plugin.isolation.rpc.v1";
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub(super) struct Snapshot {
+    manifest: Value,
+    module: String,
+    sha256: String,
+}
+impl Snapshot {
+    fn size(&self) -> usize {
+        self.module.len() + self.manifest.to_string().len()
+    }
+}
+struct Lease {
+    plugin_id: String,
+    expires: Instant,
+    bytes: usize,
+    snapshot: Option<Snapshot>,
+    #[cfg(target_os = "linux")]
+    instance: Option<Arc<process::Instance>>,
+}
+#[derive(Default)]
+pub struct DomRegistry(Mutex<HashMap<String, Lease>>);
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Prepared {
+    lease_id: String,
+}
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Started {
+    instance_id: String,
+}
+#[derive(Clone, Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub(super) struct DomEvent {
+    plugin_id: String,
+    instance_id: String,
+    kind: &'static str,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    message: Option<Value>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    request_id: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    error: Option<String>,
+}
+pub(super) type Emit = Arc<dyn Fn(DomEvent) + Send + Sync>;
+
+#[tauri::command]
+pub async fn prepare_plugin_dom_module(
+    app: AppHandle,
+    plugin_id: String,
+    expected_manifest: Value,
+) -> Result<Prepared, String> {
+    supported()?;
+    tauri::async_runtime::spawn_blocking(move || {
+        let root = app
+            .path()
+            .app_data_dir()
+            .map_err(|e| e.to_string())?
+            .join("plugins");
+        validate_profile(&expected_manifest, &plugin_id)?;
+        let module = crate::plugin_catalog::read_dom_module(&root, &plugin_id, &expected_manifest)?;
+        let sha256 = format!("{:x}", Sha256::digest(module.as_bytes()));
+        app.state::<DomRegistry>().prepare_snapshot(
+            &plugin_id,
+            Snapshot {
+                manifest: expected_manifest,
+                module,
+                sha256,
+            },
+        )
+    })
+    .await
+    .map_err(|e| e.to_string())?
+}
+#[tauri::command]
+pub async fn release_plugin_dom_module(
+    app: AppHandle,
+    plugin_id: String,
+    lease_id: String,
+) -> Result<bool, String> {
+    tauri::async_runtime::spawn_blocking(move || {
+        app.state::<DomRegistry>().release(&plugin_id, &lease_id)?;
+        Ok(true)
+    })
+    .await
+    .map_err(|e| e.to_string())?
+}
+#[tauri::command]
+pub async fn start_plugin_dom_process(
+    app: AppHandle,
+    plugin_id: String,
+    lease_id: String,
+) -> Result<Started, String> {
+    supported()?;
+    tauri::async_runtime::spawn_blocking(move || {
+        #[cfg(target_os = "linux")]
+        {
+            let registry = app.state::<DomRegistry>();
+            let mut leases = registry.0.lock().map_err(|e| e.to_string())?;
+            if leases.values().any(|lease| lease.plugin_id == plugin_id && lease.instance.is_some()) {
+                return Err("Previous DOM instance has not confirmed cleanup; release it before starting another".into());
+            }
+            let lease = leases
+                .get_mut(&lease_id)
+                .filter(|l| l.plugin_id == plugin_id)
+                .ok_or("Unknown DOM module lease")?;
+            if lease.expires <= Instant::now() && lease.snapshot.is_some() {
+                return Err("DOM module lease expired".into());
+            }
+            let prepared = lease.snapshot.as_ref().ok_or("DOM module lease already used")?;
+            let root = app.path().app_data_dir().map_err(|e| e.to_string())?.join("plugins");
+            validate_catalog_lease(&root, &plugin_id, &prepared.manifest, &prepared.sha256)?;
+            let snapshot = lease.snapshot.take().ok_or("DOM module lease already used")?;
+            let events = app.clone();
+            // Retain the exact association even if the invoke result is lost.
+            let instance = process::Instance::start(
+                plugin_id,
+                snapshot,
+                Arc::new(move |event| {
+                    let _ = events.emit("milkup-plugin-dom-message", event);
+                }),
+            )?;
+            let instance_id = instance.id.clone();
+            lease.instance = Some(instance);
+            Ok(Started { instance_id })
+        }
+        #[cfg(not(target_os = "linux"))]
+        {
+            let _ = (app, plugin_id, lease_id);
+            Err("DOM backend unavailable".into())
+        }
+    })
+    .await
+    .map_err(|e| e.to_string())?
+}
+#[tauri::command]
+pub async fn send_plugin_dom_message(
+    app: AppHandle,
+    plugin_id: String,
+    instance_id: String,
+    message: Value,
+) -> Result<bool, String> {
+    supported()?;
+    tauri::async_runtime::spawn_blocking(move || {
+        #[cfg(target_os = "linux")]
+        {
+            app.state::<DomRegistry>()
+                .instance(&plugin_id, &instance_id)?
+                .send(message)?;
+            Ok(true)
+        }
+        #[cfg(not(target_os = "linux"))]
+        {
+            let _ = (app, plugin_id, instance_id, message);
+            Err("DOM backend unavailable".into())
+        }
+    })
+    .await
+    .map_err(|e| e.to_string())?
+}
+#[tauri::command]
+pub async fn stop_plugin_dom_process(
+    app: AppHandle,
+    plugin_id: String,
+    instance_id: String,
+) -> Result<bool, String> {
+    tauri::async_runtime::spawn_blocking(move || {
+        #[cfg(target_os = "linux")]
+        {
+            app.state::<DomRegistry>()
+                .stop_instance(&plugin_id, &instance_id)
+        }
+        #[cfg(not(target_os = "linux"))]
+        {
+            let _ = (app, plugin_id, instance_id);
+            Ok(false)
+        }
+    })
+    .await
+    .map_err(|e| e.to_string())?
+}
+#[cfg(target_os = "linux")]
+fn validate_catalog_lease(
+    root: &std::path::Path,
+    plugin_id: &str,
+    manifest: &Value,
+    sha256: &str,
+) -> Result<(), String> {
+    let current = crate::plugin_catalog::read_dom_module(root, plugin_id, manifest)?;
+    let actual = format!("{:x}", Sha256::digest(current.as_bytes()));
+    if actual != sha256 {
+        return Err("DOM lease bytes differ from current authorized catalog generation".into());
+    }
+    Ok(())
+}
+fn supported() -> Result<(), String> {
+    if cfg!(target_os = "linux") {
+        Ok(())
+    } else {
+        Err("Independent DOM plugin execution is unavailable on this platform".into())
+    }
+}
+impl DomRegistry {
+    #[cfg(test)]
+    fn prepare(&self, root: &Path, plugin_id: &str, expected: &Value) -> Result<Prepared, String> {
+        validate_profile(expected, plugin_id)?;
+        self.prepare_snapshot(plugin_id, read_snapshot(root, plugin_id, expected)?)
+    }
+    fn prepare_snapshot(&self, plugin_id: &str, snapshot: Snapshot) -> Result<Prepared, String> {
+        let mut leases = self.0.lock().map_err(|e| e.to_string())?;
+        leases.retain(|_, lease| lease.snapshot.is_none() || lease.expires > Instant::now());
+        let used: usize = leases.values().map(|l| l.bytes).sum();
+        if leases.len() >= MAX_LEASES || used + snapshot.size() > MAX_SNAPSHOTS {
+            return Err("DOM module lease budget exceeded; release unused leases".into());
+        }
+        let lease_id = opaque_id()?;
+        leases.insert(
+            lease_id.clone(),
+            Lease {
+                plugin_id: plugin_id.into(),
+                expires: Instant::now() + LEASE_LIFETIME,
+                bytes: snapshot.size(),
+                snapshot: Some(snapshot),
+                #[cfg(target_os = "linux")]
+                instance: None,
+            },
+        );
+        Ok(Prepared { lease_id })
+    }
+    fn release(&self, plugin_id: &str, lease_id: &str) -> Result<(), String> {
+        self.release_with(plugin_id, lease_id, |lease| {
+            #[cfg(target_os = "linux")]
+            if let Some(instance) = &lease.instance {
+                instance.stop()?;
+            }
+            #[cfg(not(target_os = "linux"))]
+            let _ = lease;
+            Ok(())
+        })
+    }
+    // Keep the exact lease/instance association until cleanup has succeeded.
+    // A failed stop must remain retryable and continue blocking a new instance.
+    fn release_with(
+        &self,
+        plugin_id: &str,
+        lease_id: &str,
+        stop: impl FnOnce(&Lease) -> Result<(), String>,
+    ) -> Result<(), String> {
+        let mut leases = self.0.lock().map_err(|e| e.to_string())?;
+        if let Some(lease) = leases.get(lease_id).filter(|l| l.plugin_id == plugin_id) {
+            stop(lease)?;
+            leases.remove(lease_id);
+        }
+        Ok(())
+    }
+    #[cfg(target_os = "linux")]
+    fn stop_instance(&self, plugin_id: &str, instance_id: &str) -> Result<bool, String> {
+        let mut leases = self.0.lock().map_err(|e| e.to_string())?;
+        let Some(lease) = leases.values_mut().find(|lease| {
+            lease.plugin_id == plugin_id
+                && lease.instance.as_ref().is_some_and(|i| i.id == instance_id)
+        }) else {
+            return Ok(false);
+        };
+        lease.instance.as_ref().unwrap().stop()?;
+        lease.instance = None;
+        Ok(true)
+    }
+    pub fn stop_plugin(&self, plugin_id: &str) -> Result<(), String> {
+        let ids: Vec<_> = self
+            .0
+            .lock()
+            .map_err(|e| e.to_string())?
+            .iter()
+            .filter(|(_, l)| l.plugin_id == plugin_id)
+            .map(|(id, _)| id.clone())
+            .collect();
+        let mut errors = Vec::new();
+        for id in ids {
+            if let Err(error) = self.release(plugin_id, &id) {
+                errors.push(error);
+            }
+        }
+        if errors.is_empty() {
+            Ok(())
+        } else {
+            Err(errors.join("; "))
+        }
+    }
+    pub fn stop_all(&self) {
+        let ids: Vec<_> = match self.0.lock() {
+            Ok(leases) => leases
+                .iter()
+                .map(|(id, lease)| (lease.plugin_id.clone(), id.clone()))
+                .collect(),
+            Err(error) => {
+                eprintln!("DOM shutdown registry lock failed: {error}");
+                return;
+            }
+        };
+        for (plugin_id, lease_id) in ids {
+            if let Err(error) = self.release(&plugin_id, &lease_id) {
+                eprintln!("DOM shutdown cleanup remains unconfirmed: {error}");
+            }
+        }
+    }
+    #[cfg(target_os = "linux")]
+    fn instance(
+        &self,
+        plugin_id: &str,
+        instance_id: &str,
+    ) -> Result<Arc<process::Instance>, String> {
+        self.0
+            .lock()
+            .map_err(|e| e.to_string())?
+            .values()
+            .filter(|l| l.plugin_id == plugin_id)
+            .filter_map(|l| l.instance.as_ref())
+            .find(|i| i.id == instance_id)
+            .cloned()
+            .ok_or_else(|| "Unknown DOM plugin instance".into())
+    }
+}
+impl Drop for DomRegistry {
+    fn drop(&mut self) {
+        self.stop_all();
+    }
+}
+
+fn valid_plugin_id(id: &str) -> bool {
+    !id.is_empty()
+        && id.len() <= 128
+        && id.split(['.', '-']).all(|p| {
+            p.as_bytes().first().is_some_and(u8::is_ascii_lowercase)
+                && p.bytes()
+                    .all(|b| b.is_ascii_lowercase() || b.is_ascii_digit())
+        })
+}
+fn module_path(main: &str) -> Result<&str, String> {
+    let main = main.strip_prefix("./").unwrap_or(main);
+    if main.is_empty()
+        || main.len() > 1024
+        || main
+            .bytes()
+            .any(|b| b < 32 || b == 127 || b"\\:%?#".contains(&b))
+        || main
+            .split('/')
+            .any(|p| p.is_empty() || p == "." || p == "..")
+    {
+        return Err("DOM main must be a confined relative package path".into());
+    }
+    Ok(main)
+}
+fn validate_profile(value: &Value, plugin_id: &str) -> Result<(), String> {
+    let fail =
+        || "Installed DOM plugin manifest violates the document-renderer-only profile".to_string();
+    let object = value.as_object().ok_or_else(fail)?;
+    if !valid_plugin_id(plugin_id)
+        || value["id"].as_str() != Some(plugin_id)
+        || value["host"].as_str() != Some("dom")
+        || value["permissions"] != json!(["document:read"])
+        || object.contains_key("networkOrigins")
+        || object.contains_key("settings")
+    {
+        return Err(fail());
+    }
+    module_path(value["main"].as_str().ok_or_else(fail)?)?;
+    if !value["name"].as_str().is_some_and(|s| !s.is_empty())
+        || !value["version"]
+            .as_str()
+            .is_some_and(|s| semver::Version::parse(s).is_ok())
+    {
+        return Err(fail());
+    }
+    let contributes = value["contributes"].as_object().ok_or_else(fail)?;
+    if contributes.len() != 1 {
+        return Err(fail());
+    }
+    let declarations = contributes
+        .get("documentRenderers")
+        .and_then(Value::as_array)
+        .ok_or_else(fail)?;
+    if declarations.is_empty() || declarations.len() > 16 {
+        return Err(fail());
+    }
+    let mut ids = std::collections::HashSet::new();
+    for d in declarations {
+        let o = d.as_object().ok_or_else(fail)?;
+        let id = d["id"].as_str().ok_or_else(fail)?;
+        let contexts = d["contexts"].as_array().ok_or_else(fail)?;
+        if !valid_plugin_id(id)
+            || !ids.insert(id)
+            || o.keys()
+                .any(|k| !["id", "contexts", "fenceLanguages"].contains(&k.as_str()))
+            || contexts.is_empty()
+            || contexts.len() > 2
+            || contexts.iter().any(|v| v != "text" && v != "fence")
+            || (contexts.len() == 2 && contexts[0] == contexts[1])
+        {
+            return Err(fail());
+        }
+        if contexts.iter().any(|v| v == "fence") {
+            let langs = d["fenceLanguages"].as_array().ok_or_else(fail)?;
+            if langs.is_empty()
+                || langs.len() > 16
+                || langs.iter().any(|v| {
+                    !v.as_str().is_some_and(|s| {
+                        !s.is_empty()
+                            && s.len() <= 32
+                            && s.as_bytes()[0].is_ascii_alphanumeric()
+                            && s.bytes()
+                                .all(|b| b.is_ascii_alphanumeric() || b"_+-".contains(&b))
+                    })
+                })
+            {
+                return Err(fail());
+            }
+        } else if o.contains_key("fenceLanguages") {
+            return Err(fail());
+        }
+    }
+    Ok(())
+}
+fn approved_identity(value: &Value) -> Value {
+    let mut out = serde_json::Map::new();
+    for key in [
+        "id",
+        "name",
+        "version",
+        "host",
+        "main",
+        "permissions",
+        "contributes",
+        "engines",
+        "resources",
+        "icon",
+        "description",
+    ] {
+        if let Some(v) = value.get(key) {
+            if key == "engines" {
+                let mut engines = serde_json::Map::new();
+                for name in ["milkup", "pluginSdk"] {
+                    if let Some(version) = v.get(name) {
+                        engines.insert(name.into(), version.clone());
+                    }
+                }
+                out.insert(key.into(), Value::Object(engines));
+            } else {
+                out.insert(key.into(), v.clone());
+            }
+        }
+    }
+    Value::Object(out)
+}
+#[cfg(test)]
+fn read_snapshot(root: &Path, plugin_id: &str, expected: &Value) -> Result<Snapshot, String> {
+    #[cfg(target_os = "linux")]
+    {
+        let package = open_confined_directory(&root.join(plugin_id).join("package"))
+            .map_err(|e| format!("DOM plugins require an installed package: {e}"))?;
+        let manifest_bytes = read_confined(&package, "plugin.json", MAX_MANIFEST)?;
+        let manifest: Value = serde_json::from_str(
+            std::str::from_utf8(&manifest_bytes).map_err(|_| "DOM manifest is not UTF-8")?,
+        )
+        .map_err(|e| e.to_string())?;
+        validate_profile(&manifest, plugin_id)?;
+        if approved_identity(&manifest) != approved_identity(expected) {
+            return Err("Installed DOM manifest differs from the approved manifest".into());
+        }
+        let main = module_path(manifest["main"].as_str().ok_or("Missing DOM module")?)?;
+        let module = String::from_utf8(read_confined(&package, main, MAX_MODULE)?)
+            .map_err(|_| "DOM module is not UTF-8")?;
+        let sha256 = format!("{:x}", Sha256::digest(module.as_bytes()));
+        Ok(Snapshot {
+            manifest,
+            module,
+            sha256,
+        })
+    }
+    #[cfg(not(target_os = "linux"))]
+    {
+        let _ = (root, plugin_id, expected);
+        Err("DOM backend unavailable".into())
+    }
+}
+#[cfg(all(test, target_os = "linux"))]
+fn open_confined_directory(path: &Path) -> Result<std::fs::File, String> {
+    use std::os::fd::{AsRawFd, FromRawFd};
+    use std::path::Component;
+    if !path.is_absolute() {
+        return Err("Installed plugin root must be absolute".into());
+    }
+    let mut directory = std::fs::File::open("/").map_err(|e| e.to_string())?;
+    for component in path.components() {
+        match component {
+            Component::RootDir => continue,
+            Component::Normal(name) => {
+                use std::os::unix::ffi::OsStrExt;
+                let name = std::ffi::CString::new(name.as_bytes()).map_err(|e| e.to_string())?;
+                let fd = unsafe {
+                    libc::openat(
+                        directory.as_raw_fd(),
+                        name.as_ptr(),
+                        libc::O_RDONLY | libc::O_DIRECTORY | libc::O_NOFOLLOW | libc::O_CLOEXEC,
+                    )
+                };
+                if fd < 0 {
+                    return Err(std::io::Error::last_os_error().to_string());
+                }
+                directory = unsafe { std::fs::File::from_raw_fd(fd) };
+            }
+            _ => return Err("Noncanonical installed package directory".into()),
+        }
+    }
+    Ok(directory)
+}
+#[cfg(all(test, target_os = "linux"))]
+fn read_confined(root: &std::fs::File, relative: &str, limit: usize) -> Result<Vec<u8>, String> {
+    use std::io::Read;
+    use std::os::fd::{AsRawFd, FromRawFd};
+    let parts: Vec<_> = module_path(relative)?.split('/').collect();
+    let mut parent = root.try_clone().map_err(|e| e.to_string())?;
+    for (index, part) in parts.iter().enumerate() {
+        let last = index == parts.len() - 1;
+        let name = std::ffi::CString::new(*part).map_err(|e| e.to_string())?;
+        // O_NONBLOCK prevents a malicious FIFO/device from blocking before fstat.
+        let flags = libc::O_RDONLY
+            | libc::O_NOFOLLOW
+            | libc::O_CLOEXEC
+            | libc::O_NONBLOCK
+            | if last { 0 } else { libc::O_DIRECTORY };
+        let fd = unsafe { libc::openat(parent.as_raw_fd(), name.as_ptr(), flags) };
+        if fd < 0 {
+            return Err(std::io::Error::last_os_error().to_string());
+        }
+        parent = unsafe { std::fs::File::from_raw_fd(fd) };
+    }
+    let metadata = parent.metadata().map_err(|e| e.to_string())?;
+    if !metadata.is_file() || metadata.len() > limit as u64 {
+        return Err("DOM resource must be a bounded regular file".into());
+    }
+    let mut bytes = Vec::new();
+    parent
+        .take((limit + 1) as u64)
+        .read_to_end(&mut bytes)
+        .map_err(|e| e.to_string())?;
+    if bytes.len() > limit {
+        return Err("DOM resource exceeds its byte budget".into());
+    }
+    Ok(bytes)
+}
+fn opaque_id() -> Result<String, String> {
+    #[cfg(target_os = "linux")]
+    {
+        use std::io::Read;
+        let mut bytes = [0u8; 24];
+        std::fs::File::open("/dev/urandom")
+            .and_then(|mut f| f.read_exact(&mut bytes))
+            .map_err(|e| e.to_string())?;
+        Ok(bytes.iter().map(|b| format!("{b:02x}")).collect())
+    }
+    #[cfg(not(target_os = "linux"))]
+    {
+        Err("DOM backend unavailable".into())
+    }
+}
+#[cfg(target_os = "linux")]
+fn native_diagnostics_enabled() -> bool {
+    std::env::var_os("MILKUP_DOM_DIAGNOSTICS").as_deref() == Some(std::ffi::OsStr::new("1"))
+}
+#[cfg(target_os = "linux")]
+fn native_trace(phase: &str, instance_id: Option<&str>, request_id: Option<&str>) {
+    native_trace_fields(phase, instance_id, request_id, None);
+}
+#[cfg(target_os = "linux")]
+fn render_trace_fields(message: &Value) -> Value {
+    let request = &message["payload"]["request"];
+    json!({
+        "target": request["target"].as_str().filter(|s| matches!(*s, "screen" | "export")),
+        "version": request["version"].as_u64(),
+        "from": request["from"].as_u64(),
+        "to": request["to"].as_u64(),
+    })
+}
+#[cfg(target_os = "linux")]
+fn native_trace_fields(
+    phase: &str,
+    instance_id: Option<&str>,
+    request_id: Option<&str>,
+    fields: Option<Value>,
+) {
+    if !native_diagnostics_enabled() {
+        return;
+    }
+    let mut now = libc::timespec {
+        tv_sec: 0,
+        tv_nsec: 0,
+    };
+    if unsafe { libc::clock_gettime(libc::CLOCK_MONOTONIC, &mut now) } != 0 {
+        return;
+    }
+    let inherited = std::env::var("MILKUP_INTERNAL_DOM_INSTANCE_ID").ok();
+    // Diagnostics must never make watchdog/cleanup depend on a blocking stderr.
+    static TRACE: std::sync::OnceLock<std::sync::mpsc::SyncSender<String>> =
+        std::sync::OnceLock::new();
+    let sender = TRACE.get_or_init(|| {
+        let (tx, rx) = std::sync::mpsc::sync_channel::<String>(64);
+        let _ = std::thread::Builder::new()
+            .name("milkup-dom-diagnostics".into())
+            .spawn(move || {
+                for line in rx {
+                    eprintln!("{line}");
+                }
+            });
+        tx
+    });
+    let mut record = json!({"phase":phase,"instanceId":instance_id.or(inherited.as_deref()),"requestId":request_id,"pid":std::process::id(),"monotonicNs":(now.tv_sec as u64)*1_000_000_000+now.tv_nsec as u64});
+    if let Some(fields) = fields {
+        record["request"] = fields;
+    }
+    let _ = sender.try_send(format!("DOM_NATIVE_TIMING {record}"));
+}
+
+pub fn run_helper_if_requested() -> bool {
+    if std::env::args_os().nth(1).as_deref()
+        != Some(std::ffi::OsStr::new("--milkup-internal-dom-helper"))
+    {
+        return false;
+    }
+    #[cfg(target_os = "linux")]
+    {
+        guardian::run();
+    }
+    #[cfg(not(target_os = "linux"))]
+    {
+        eprintln!("DOM plugin host unavailable on this platform");
+    }
+    true
+}
+#[cfg(target_os = "linux")]
+pub(crate) fn supervise_native_output(renderer: fn()) -> Result<(), String> {
+    guardian::supervise(renderer)
+}
+
+#[cfg(all(test, target_os = "linux"))]
+mod tests {
+    use super::*;
+    use std::fs;
+    #[test]
+    fn render_diagnostics_include_only_fixed_non_content_fields_without_mutating_input() {
+        let input = json!({"payload":{"request":{"target":"export", "version":7,
+            "from":2,"to":90,"source":"private text","documentId":"private identity",
+            "selection":{"anchor":4,"head":8}}}});
+        let original = input.clone();
+        assert_eq!(
+            render_trace_fields(&input),
+            json!({"target":"export","version":7,"from":2,"to":90})
+        );
+        assert_eq!(input, original);
+        assert_eq!(
+            render_trace_fields(&json!({"payload":{"request":{
+                "target":"private arbitrary text","version":"private","from":{},"to":-1
+            }}})),
+            json!({"target":null,"version":null,"from":null,"to":null})
+        );
+    }
+    fn manifest() -> Value {
+        json!({"id":"test.dom", "name":"DOM fixture", "version":"1.0.0", "host":"dom", "main":"./dist/main.js", "permissions":["document:read"], "contributes":{"documentRenderers":[{"id":"test.renderer", "contexts":["fence"], "fenceLanguages":["test"]}]}})
+    }
+    struct Fixture(std::path::PathBuf);
+    impl Fixture {
+        fn new() -> Self {
+            let root =
+                std::env::temp_dir().join(format!("milkup-dom-test-{}", opaque_id().unwrap()));
+            fs::create_dir_all(root.join("test.dom/package/dist")).unwrap();
+            fs::write(
+                root.join("test.dom/package/plugin.json"),
+                manifest().to_string(),
+            )
+            .unwrap();
+            fs::write(
+                root.join("test.dom/package/dist/main.js"),
+                "export const documentRenderers = {};",
+            )
+            .unwrap();
+            Self(root)
+        }
+    }
+    impl Drop for Fixture {
+        fn drop(&mut self) {
+            let _ = fs::remove_dir_all(&self.0);
+        }
+    }
+    #[test]
+    fn snapshot_is_installed_bound_utf8_and_immutable() {
+        let fixture = Fixture::new();
+        let snapshot = read_snapshot(&fixture.0, "test.dom", &manifest()).unwrap();
+        fs::write(
+            fixture.0.join("test.dom/package/dist/main.js"),
+            "changed after preparation",
+        )
+        .unwrap();
+        assert_eq!(snapshot.module, "export const documentRenderers = {};");
+        assert_eq!(
+            snapshot.sha256,
+            format!("{:x}", Sha256::digest(snapshot.module.as_bytes()))
+        );
+        assert!(read_snapshot(&fixture.0, "not.installed", &manifest())
+            .unwrap_err()
+            .contains("installed package"));
+        fs::write(fixture.0.join("test.dom/package/dist/main.js"), [255u8]).unwrap();
+        assert!(read_snapshot(&fixture.0, "test.dom", &manifest())
+            .unwrap_err()
+            .contains("UTF-8"));
+    }
+    #[test]
+    fn profile_and_approved_identity_reject_drift_and_extra_capabilities() {
+        let fixture = Fixture::new();
+        for (field, value) in [
+            ("id", json!("other.id")),
+            ("host", json!("worker")),
+            ("permissions", json!(["document:read", "network:access"])),
+            ("main", json!("https://example.test/module.js")),
+            ("networkOrigins", json!([])),
+            ("settings", json!({})),
+        ] {
+            let mut modified = manifest();
+            modified[field] = value;
+            assert!(validate_profile(&modified, "test.dom").is_err(), "{field}");
+        }
+        let mut modified = manifest();
+        modified["contributes"]["commands"] = json!([]);
+        assert!(validate_profile(&modified, "test.dom").is_err());
+        let mut modified = manifest();
+        modified["version"] = json!("1.1.0");
+        assert!(read_snapshot(&fixture.0, "test.dom", &modified)
+            .unwrap_err()
+            .contains("approved"));
+        // TS retains these optional fields verbatim and strips unknown metadata.
+        let mut raw = manifest();
+        raw["author"] = json!({"name":"package metadata"});
+        raw["engines"] = json!({"milkup":"^2.0.0"});
+        fs::write(
+            fixture.0.join("test.dom/package/plugin.json"),
+            raw.to_string(),
+        )
+        .unwrap();
+        let mut approved = manifest();
+        approved["engines"] = raw["engines"].clone();
+        assert!(read_snapshot(&fixture.0, "test.dom", &approved).is_ok());
+    }
+    #[test]
+    fn confined_reader_rejects_symlinks_fifo_and_oversize() {
+        use std::os::unix::fs::symlink;
+        let fixture = Fixture::new();
+        let module = fixture.0.join("test.dom/package/dist/main.js");
+        fs::remove_file(&module).unwrap();
+        symlink("/etc/passwd", &module).unwrap();
+        assert!(read_snapshot(&fixture.0, "test.dom", &manifest()).is_err());
+        fs::remove_file(&module).unwrap();
+        let cpath = std::ffi::CString::new(module.to_str().unwrap()).unwrap();
+        assert_eq!(unsafe { libc::mkfifo(cpath.as_ptr(), 0o600) }, 0);
+        let before = Instant::now();
+        assert!(read_snapshot(&fixture.0, "test.dom", &manifest()).is_err());
+        assert!(before.elapsed() < Duration::from_secs(1));
+        fs::remove_file(&module).unwrap();
+        let file = fs::File::create(&module).unwrap();
+        file.set_len((MAX_MODULE + 1) as u64).unwrap();
+        assert!(read_snapshot(&fixture.0, "test.dom", &manifest()).is_err());
+        fs::remove_dir_all(fixture.0.join("test.dom/package/dist")).unwrap();
+        symlink("/tmp", fixture.0.join("test.dom/package/dist")).unwrap();
+        assert!(read_snapshot(&fixture.0, "test.dom", &manifest()).is_err());
+    }
+    #[test]
+    fn lease_release_is_exact_and_expiry_is_bounded() {
+        let fixture = Fixture::new();
+        let registry = DomRegistry::default();
+        let old = registry
+            .prepare(&fixture.0, "test.dom", &manifest())
+            .unwrap()
+            .lease_id;
+        let new = registry
+            .prepare(&fixture.0, "test.dom", &manifest())
+            .unwrap()
+            .lease_id;
+        registry.release("other.plugin", &old).unwrap();
+        assert!(registry.0.lock().unwrap().contains_key(&old));
+        registry.release("test.dom", &old).unwrap();
+        registry.release("test.dom", &old).unwrap();
+        assert!(registry.0.lock().unwrap().contains_key(&new));
+        registry.0.lock().unwrap().get_mut(&new).unwrap().expires = Instant::now();
+        let current = registry
+            .prepare(&fixture.0, "test.dom", &manifest())
+            .unwrap()
+            .lease_id;
+        assert!(!registry.0.lock().unwrap().contains_key(&new));
+        for _ in 1..MAX_LEASES {
+            registry
+                .prepare(&fixture.0, "test.dom", &manifest())
+                .unwrap();
+        }
+        assert!(registry
+            .prepare(&fixture.0, "test.dom", &manifest())
+            .is_err());
+        registry.release("test.dom", &current).unwrap();
+        assert!(registry
+            .prepare(&fixture.0, "test.dom", &manifest())
+            .is_ok());
+    }
+    #[test]
+    fn traversal_and_url_module_paths_are_never_accepted() {
+        for path in [
+            "",
+            "../main.js",
+            "/main.js",
+            "a/../main.js",
+            "a//main.js",
+            "a\\main.js",
+            "a%2fmain.js",
+            "main.js?x",
+            "file:main.js",
+            "main.js#x",
+        ] {
+            assert!(module_path(path).is_err(), "{path}");
+        }
+        assert_eq!(module_path("./dist/入口.js").unwrap(), "dist/入口.js");
+    }
+    #[test]
+    fn consumed_leases_still_count_toward_snapshot_memory_budget() {
+        let fixture = Fixture::new();
+        let registry = DomRegistry::default();
+        let id = registry
+            .prepare(&fixture.0, "test.dom", &manifest())
+            .unwrap()
+            .lease_id;
+        {
+            let mut leases = registry.0.lock().unwrap();
+            let lease = leases.get_mut(&id).unwrap();
+            lease.snapshot = None;
+            lease.bytes = MAX_SNAPSHOTS;
+        }
+        assert!(registry
+            .prepare(&fixture.0, "test.dom", &manifest())
+            .is_err());
+        registry.release("test.dom", &id).unwrap();
+        assert!(registry
+            .prepare(&fixture.0, "test.dom", &manifest())
+            .is_ok());
+    }
+    #[test]
+    fn failed_release_retains_exact_lease_until_retry_confirms_cleanup() {
+        let fixture = Fixture::new();
+        let registry = DomRegistry::default();
+        let prepared = registry
+            .prepare(&fixture.0, "test.dom", &manifest())
+            .unwrap();
+        assert!(registry
+            .release_with("test.dom", &prepared.lease_id, |_| Err(
+                "cleanup unconfirmed".into()
+            ))
+            .is_err());
+        assert!(registry.0.lock().unwrap().contains_key(&prepared.lease_id));
+        // A foreign plugin cannot consume the retained ownership.
+        registry
+            .release_with("other.plugin", &prepared.lease_id, |_| {
+                panic!("foreign stop")
+            })
+            .unwrap();
+        assert!(registry.0.lock().unwrap().contains_key(&prepared.lease_id));
+        registry
+            .release_with("test.dom", &prepared.lease_id, |_| Ok(()))
+            .unwrap();
+        assert!(!registry.0.lock().unwrap().contains_key(&prepared.lease_id));
+    }
+    #[test]
+    fn catalog_lease_recheck_rejects_revoked_and_same_manifest_replaced_bytes() {
+        let fixture = Fixture::new();
+        let m = manifest();
+        let prepare = |body: &str, revision: Option<u64>| {
+            crate::plugin_catalog::prepare(&fixture.0,json!({"format":"milkup-plugin","version":1,"manifest":m,"files":[{"path":"dist/main.js","encoding":"utf8","content":body}]}),"test:dom".into(),revision).unwrap()
+        };
+        let action = |kind: &str| {
+            let state = crate::plugin_catalog::read(&fixture.0).unwrap();
+            let e = &state["entries"][0];
+            let p = &e["pending"];
+            let a = match kind {
+                "revokeApproval" => json!({"type":kind}),
+                "commit" => {
+                    json!({"type":kind,"transactionId":p["transactionId"],"fingerprint":p["generation"]["capabilityFingerprint"],"enabled":true})
+                }
+                _ => {
+                    json!({"type":kind,"transactionId":p["transactionId"],"fingerprint":p["generation"]["capabilityFingerprint"]})
+                }
+            };
+            crate::plugin_catalog::transition(
+                &fixture.0,
+                "test.dom",
+                e["revision"].as_u64().unwrap(),
+                a,
+            )
+            .unwrap()
+        };
+        let first = "export const documentRenderers = {};";
+        prepare(first, None);
+        action("approve");
+        action("beginTrial");
+        let old_hash = format!("{:x}", Sha256::digest(first.as_bytes()));
+        validate_catalog_lease(&fixture.0, "test.dom", &m, &old_hash).unwrap();
+        action("commit");
+        action("revokeApproval");
+        assert!(validate_catalog_lease(&fixture.0, "test.dom", &m, &old_hash).is_err());
+        let state = crate::plugin_catalog::read(&fixture.0).unwrap();
+        prepare(
+            "export const documentRenderers = { changed: true };",
+            state["entries"][0]["revision"].as_u64(),
+        );
+        action("approve");
+        action("beginTrial");
+        assert!(
+            validate_catalog_lease(&fixture.0, "test.dom", &m, &old_hash)
+                .unwrap_err()
+                .contains("bytes differ")
+        );
+    }
+}

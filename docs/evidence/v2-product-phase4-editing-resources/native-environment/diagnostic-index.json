@@ -1,0 +1,65 @@
+{
+  "scope": "Linux local native acceptance only. No Windows run, package upload, release or sandbox weakening.",
+  "candidate02": "47695136eeb999cd2aa713f95ee1179953ea3d8dfecbc60a8d65bf64f7d488f5",
+  "candidate03": "5edf39f4fdb139e93950c42ffc4f0b2ee2c46e59ff63a1789d2ebcaff0f0f18c",
+  "successfulSegments": [
+    {
+      "source": "run-final02",
+      "candidate": 2,
+      "scope": "24 formatting/table edit, isolated undo/redo and full-byte CRLF/Unicode cases; normal PNG picker and trusted native clipboard image import/reopen. Later GTK Save As failed; whole run is not green."
+    },
+    {
+      "source": "run-final03",
+      "candidate": 2,
+      "scope": "Untitled picker first Save As, resource-aware Save As/reopen, and untitled clipboard first Save As passed. Later clipboard migration chooser timed out."
+    },
+    {
+      "source": "run-tail02",
+      "candidate": 2,
+      "scope": "Clipboard resource migration/reopen and actual owned SIGKILL recovery-copy preview passed with complete Markdown/PNG byte comparisons and original preservation."
+    },
+    {
+      "source": "run-cancel02",
+      "candidate": 2,
+      "scope": "True GTK first-save cancellation left unnamed document/version/text/dirty state unchanged and created no Markdown/managed assets; fresh PNG grant retry, exact bytes and isolated undo/redo passed."
+    },
+    {
+      "source": "run-matrix08",
+      "candidate": 3,
+      "scope": "Single Home crosses native 760-CSS-pixel breakpoint without losing SELECT focus; all 64 ordinary/windowed × source/live × light/dark × 100/125/150/200 × wide/narrow panel-focus cases pass. Not 64 complete editing-operation suites."
+    }
+  ],
+  "preservedFailures": [
+    {
+      "sources": ["run-matrix02", "run-matrix04"],
+      "finding": "GTK fatally aborted loading Adwaita image-missing.svg. The following xdotool BadWindow was a consequence. Standalone SVG probes passed inside/outside proot; explicit private loader cache did not eliminate recurrence. No permanent missing-loader or exclusive root-cause claim."
+    },
+    {
+      "sources": ["run-tail01"],
+      "finding": "Real GTK Open dialog remained visible with requested path; timeout preserved. Harness adds bounded retries only for the observed real Open dialog and known folder-error acknowledgement; no IPC injection."
+    },
+    {
+      "sources": ["run-matrix03"],
+      "finding": "Fixed 300ms modal-focus geometry assertion failed before raw screenshot capture. Independent case and exact transition later passed; final bounded stable-sample logs show asynchronous reveal settling, including initial clipped samples. No speculative fractional-rounding product patch."
+    },
+    {
+      "sources": ["run-matrix07", "run-zoom-focus02"],
+      "finding": "Single native Home from zoom1.5/innerWidth733 to zoom1/1100 reproducibly moved SELECT focus to TEXTAREA. Main responsive sidebar handler was fixed; candidate03 identical native operation preserves SELECT throughout. Before/after records are separately retained."
+    },
+    {
+      "sources": ["run-cancel01"],
+      "finding": "Unicode fixture input via WebKitDriver key actions produced duplicated emoji before cancellation began. Cause was not independently isolated to product versus transport. Rerun establishes exact Unicode baseline using a real GTK text clipboard paste; it does not rewrite application state."
+    }
+  ],
+  "environmentChanges": {
+    "privatePixbufCache": "Existing host modules only; no libraries installed; explicit GDK_PIXBUF_MODULE_FILE/MODULEDIR on dedicated processes. Cache alone did not prevent GTK recurrence.",
+    "prootCompatibility": "PROOT_NO_SECCOMP=1 on dedicated test processes from cancel01/matrix06 onward disables proot syscall acceleration. Actual proot binary documents this variable. WebKit sandbox was not disabled.",
+    "profile": "matrix05 onward reuse the externally installed matrix03 profile, verifying archive sourcePath and active UI. These runs are not fresh-installation evidence."
+  },
+  "limits": [
+    "Native raster fixture is PNG; JPEG/WebP decoding/security are unit-covered, not claimed as native picker coverage.",
+    "Image import works in source/live; image previews are live-mode only.",
+    "Evidence combines explicitly identified segments and candidates; no claim that an initial end-to-end process completed all stages.",
+    "Final focus geometry uses a bounded two-second settling gate and two identical samples with full horizontal/vertical four-CSS-pixel margin; observed settling samples are not a performance benchmark."
+  ]
+}

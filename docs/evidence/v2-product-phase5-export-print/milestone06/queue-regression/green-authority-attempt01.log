@@ -1,0 +1,64 @@
+
+ RUN  v3.2.6 /workspace/milkup/apps/desktop
+
+ ❯ src/output-presentations-queue.test.ts (7 tests | 1 failed) 51ms
+   ✓ output preparation through the real isolated renderer queue > allows 1500ms screen ownership then 1500ms export execution without spending the execution deadline in queue 21ms
+   ✓ output preparation through the real isolated renderer queue > keeps the owner 2s execution stop and revocation and ignores late results 9ms
+   ✓ output preparation through the real isolated renderer queue > cancels queued export without dispatching it or cancelling the screen owner 2ms
+   ✓ output preparation through the real isolated renderer queue > discards a cancelled active result and waits for its owner settlement before advancing the queue 3ms
+   ✓ output preparation through the real isolated renderer queue > accepts a trusted in-time owner result delivered after 2s but before the preparation deadline 2ms
+   ✓ output preparation through the real isolated renderer queue > rejects a late old-version capture after an edit while allowing the queued new-version capture 3ms
+   × output preparation through the real isolated renderer queue > removes expired queued export before the delayed editor result can dispatch it 9ms
+     → expected false to be true // Object.is equality
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/output-presentations-queue.test.ts > output preparation through the real isolated renderer queue > removes expired queued export before the delayed editor result can dispatch it
+AssertionError: expected false to be true // Object.is equality
+
+- Expected
++ Received
+
+- true
++ false
+
+ ❯ src/output-presentations-queue.test.ts:415:92
+    413|       await vi.advanceTimersByTimeAsync(1)
+    414|       const captured = await output
+    415|       expect(captured.warnings.some((warning) => warning.code === 'pre…
+       |                                                                                            ^
+    416|         true,
+    417|       )
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+⎯⎯⎯⎯⎯⎯ Unhandled Errors ⎯⎯⎯⎯⎯⎯
+
+Vitest caught 1 unhandled error during the test run.
+This might cause false positive tests. Resolve unhandled errors to make sure your tests are not affected.
+
+⎯⎯⎯⎯ Unhandled Rejection ⎯⎯⎯⎯⎯
+DocumentPresentationError: Document presentation: revoked
+ ❯ Object.dispose ../../packages/plugin/src/document-render-rpc.ts:139:22
+    137|         endpoint.postMessage({ protocol, type: 'cancel', id: active.id…
+    138|       } catch {}
+    139|       reject(active, new DocumentPresentationError('revoked'))
+       |                      ^
+    140|       active = undefined
+    141|     }
+ ❯ Object.dispose src/output-presentations-queue.test.ts:201:14
+ ❯ src/output-presentations-queue.test.ts:431:13
+ ❯ ../../node_modules/.pnpm/@vitest+runner@3.2.6/node_modules/@vitest/runner/dist/chunk-hooks.js:752:20
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯
+Serialized Error: { code: 'revoked' }
+This error originated in "src/output-presentations-queue.test.ts" test file. It doesn't mean the error was thrown inside the file itself, but while it was running.
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 6 passed (7)
+     Errors  1 error
+   Start at  06:38:09
+   Duration  1.35s (transform 706ms, setup 0ms, collect 933ms, tests 51ms, environment 0ms, prepare 71ms)
+

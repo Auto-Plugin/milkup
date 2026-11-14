@@ -1,0 +1,68 @@
+{
+  "status": "focused-red-green-complete",
+  "changes": [
+    "Map marker reference and content through the same viewBox matrix in core.",
+    "Resolve reference percentages in viewBox dimensions and em in marker font.",
+    "Marker style inherits from root/defs context, not referencing shape; markerUnits still resolves against the shape stroke.",
+    "Private paint bounds already mapped references correctly; added regressions and fixed marker style inheritance."
+  ],
+  "evidence": {
+    "core-before": {
+      "exit": 1,
+      "failed": 5,
+      "passed": 1
+    },
+    "plugin-before": {
+      "exit": 1,
+      "failed": 2,
+      "passed": 23
+    },
+    "core-after": {
+      "exit": 0,
+      "passed": 14
+    },
+    "plugin-after": {
+      "exit": 0,
+      "passed": 25
+    },
+    "plugin-types-before": {
+      "exit": 2,
+      "errors": 1,
+      "reason": "Installed development SDK tarball predates required rasterBounds; converter returned new field."
+    },
+    "plugin-public-sdk-types-after": {
+      "exit": 0,
+      "note": "External tsconfig paths maps only @milkup/plugin-sdk to current public index.d.ts; original strict options retained, no dependency or lock mutation."
+    }
+  },
+  "scope": {
+    "budgetsChanged": false,
+    "symbolUseChanged": false,
+    "nativePixelRetest": false,
+    "wholePluginTestsRun": false,
+    "wholeProductAcceptance": false
+  },
+  "cpuHandOff": "view_fixes for marker DAG red/green plus core SVG regression/typecheck",
+  "files": [
+    {
+      "path": "packages/core/src/document-svg-image-geometry.ts",
+      "bytes": 28967,
+      "sha256": "edab339b5a994faa92416a7e048f47504a60f29380083f759b4569bddcab380f"
+    },
+    {
+      "path": "packages/core/src/__tests__/document-svg-image-marker-reference.test.ts",
+      "bytes": 3795,
+      "sha256": "a647e0e4b9dfa8fa7f3cfd3d94de4c5b6371e3ee56097450729799870a23c624"
+    },
+    {
+      "path": "plugins/diagrams/src/paint-envelope.ts",
+      "bytes": 25588,
+      "sha256": "541ac7c29e9485cf1f814ef4c5ffe63cbfb55dba2a4b3890fc8b05664950ec82"
+    },
+    {
+      "path": "plugins/diagrams/src/paint-envelope.test.ts",
+      "bytes": 13756,
+      "sha256": "549affa33a8245529970f2978d012e8540d0b66d3544273768ed3c27d01c633d"
+    }
+  ]
+}

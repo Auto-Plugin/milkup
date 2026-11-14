@@ -1,0 +1,279 @@
+
+ RUN  v3.2.6 /tmp/milkup-windows-manual-candidate/packages/view-dom
+
+ ❯ src/__tests__/beta5-incremental-source-mapping.test.ts (12 tests | 12 failed) 950ms
+   × ordinary incremental live source mappings > replace preserves reused code/inline ranges and history with "\n" 117ms
+     → expected [ 73, 87 ] to deeply equal [ 59, 73 ]
+   × ordinary incremental live source mappings > insert preserves reused code/inline ranges and history with "\n" 26ms
+     → expected [ 73, 87 ] to deeply equal [ 84, 98 ]
+   × ordinary incremental live source mappings > delete preserves reused code/inline ranges and history with "\n" 30ms
+     → expected [ 73, 87 ] to deeply equal [ 38, 52 ]
+   × ordinary incremental live source mappings > replace preserves reused code/inline ranges and history with "\r\n" 32ms
+     → expected [ 77, 91 ] to deeply equal [ 63, 77 ]
+   × ordinary incremental live source mappings > insert preserves reused code/inline ranges and history with "\r\n" 44ms
+     → expected [ 77, 91 ] to deeply equal [ 88, 102 ]
+   × ordinary incremental live source mappings > delete preserves reused code/inline ranges and history with "\r\n" 22ms
+     → expected [ 77, 91 ] to deeply equal [ 42, 56 ]
+   × windowed incremental live source mappings > replace preserves reused code/inline ranges and history with "\n" 224ms
+     → expected 91 to be 77 // Object.is equality
+   × windowed incremental live source mappings > insert preserves reused code/inline ranges and history with "\n" 65ms
+     → expected 91 to be 102 // Object.is equality
+   × windowed incremental live source mappings > delete preserves reused code/inline ranges and history with "\n" 74ms
+     → expected '' to be '​' // Object.is equality
+   × windowed incremental live source mappings > replace preserves reused code/inline ranges and history with "\r\n" 107ms
+     → expected 96 to be 82 // Object.is equality
+   × windowed incremental live source mappings > insert preserves reused code/inline ranges and history with "\r\n" 107ms
+     → expected 96 to be 107 // Object.is equality
+   × windowed incremental live source mappings > delete preserves reused code/inline ranges and history with "\r\n" 58ms
+     → expected '' to be '​' // Object.is equality
+
+⎯⎯⎯⎯⎯⎯ Failed Tests 12 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/__tests__/beta5-incremental-source-mapping.test.ts > ordinary incremental live source mappings > replace preserves reused code/inline ranges and history with "\n"
+AssertionError: expected [ 73, 87 ] to deeply equal [ 59, 73 ]
+
+- Expected
++ Received
+
+  [
+-   59,
+    73,
++   87,
+  ]
+
+ ❯ assertSourceRanges src/__tests__/beta5-incremental-source-mapping.test.ts:119:64
+    117|   for (const row of rows(view)) {
+    118|     const line = expected[Number(row.dataset.line) - 1]!
+    119|     expect([Number(row.dataset.from), Number(row.dataset.to)]).toEqual…
+       |                                                                ^
+    120|     for (const span of row.querySelectorAll<HTMLElement>('[data-from][…
+    121|       const source = text.slice(Number(span.dataset.from), Number(span…
+ ❯ src/__tests__/beta5-incremental-source-mapping.test.ts:157:11
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/12]⎯
+
+ FAIL  src/__tests__/beta5-incremental-source-mapping.test.ts > ordinary incremental live source mappings > insert preserves reused code/inline ranges and history with "\n"
+AssertionError: expected [ 73, 87 ] to deeply equal [ 84, 98 ]
+
+- Expected
++ Received
+
+  [
+-   84,
+-   98,
++   73,
++   87,
+  ]
+
+ ❯ assertSourceRanges src/__tests__/beta5-incremental-source-mapping.test.ts:119:64
+    117|   for (const row of rows(view)) {
+    118|     const line = expected[Number(row.dataset.line) - 1]!
+    119|     expect([Number(row.dataset.from), Number(row.dataset.to)]).toEqual…
+       |                                                                ^
+    120|     for (const span of row.querySelectorAll<HTMLElement>('[data-from][…
+    121|       const source = text.slice(Number(span.dataset.from), Number(span…
+ ❯ src/__tests__/beta5-incremental-source-mapping.test.ts:157:11
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/12]⎯
+
+ FAIL  src/__tests__/beta5-incremental-source-mapping.test.ts > ordinary incremental live source mappings > delete preserves reused code/inline ranges and history with "\n"
+AssertionError: expected [ 73, 87 ] to deeply equal [ 38, 52 ]
+
+- Expected
++ Received
+
+  [
+-   38,
+-   52,
++   73,
++   87,
+  ]
+
+ ❯ assertSourceRanges src/__tests__/beta5-incremental-source-mapping.test.ts:119:64
+    117|   for (const row of rows(view)) {
+    118|     const line = expected[Number(row.dataset.line) - 1]!
+    119|     expect([Number(row.dataset.from), Number(row.dataset.to)]).toEqual…
+       |                                                                ^
+    120|     for (const span of row.querySelectorAll<HTMLElement>('[data-from][…
+    121|       const source = text.slice(Number(span.dataset.from), Number(span…
+ ❯ src/__tests__/beta5-incremental-source-mapping.test.ts:157:11
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/12]⎯
+
+ FAIL  src/__tests__/beta5-incremental-source-mapping.test.ts > ordinary incremental live source mappings > replace preserves reused code/inline ranges and history with "\r\n"
+AssertionError: expected [ 77, 91 ] to deeply equal [ 63, 77 ]
+
+- Expected
++ Received
+
+  [
+-   63,
+    77,
++   91,
+  ]
+
+ ❯ assertSourceRanges src/__tests__/beta5-incremental-source-mapping.test.ts:119:64
+    117|   for (const row of rows(view)) {
+    118|     const line = expected[Number(row.dataset.line) - 1]!
+    119|     expect([Number(row.dataset.from), Number(row.dataset.to)]).toEqual…
+       |                                                                ^
+    120|     for (const span of row.querySelectorAll<HTMLElement>('[data-from][…
+    121|       const source = text.slice(Number(span.dataset.from), Number(span…
+ ❯ src/__tests__/beta5-incremental-source-mapping.test.ts:157:11
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/12]⎯
+
+ FAIL  src/__tests__/beta5-incremental-source-mapping.test.ts > ordinary incremental live source mappings > insert preserves reused code/inline ranges and history with "\r\n"
+AssertionError: expected [ 77, 91 ] to deeply equal [ 88, 102 ]
+
+- Expected
++ Received
+
+  [
+-   88,
+-   102,
++   77,
++   91,
+  ]
+
+ ❯ assertSourceRanges src/__tests__/beta5-incremental-source-mapping.test.ts:119:64
+    117|   for (const row of rows(view)) {
+    118|     const line = expected[Number(row.dataset.line) - 1]!
+    119|     expect([Number(row.dataset.from), Number(row.dataset.to)]).toEqual…
+       |                                                                ^
+    120|     for (const span of row.querySelectorAll<HTMLElement>('[data-from][…
+    121|       const source = text.slice(Number(span.dataset.from), Number(span…
+ ❯ src/__tests__/beta5-incremental-source-mapping.test.ts:157:11
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/12]⎯
+
+ FAIL  src/__tests__/beta5-incremental-source-mapping.test.ts > ordinary incremental live source mappings > delete preserves reused code/inline ranges and history with "\r\n"
+AssertionError: expected [ 77, 91 ] to deeply equal [ 42, 56 ]
+
+- Expected
++ Received
+
+  [
+-   42,
+-   56,
++   77,
++   91,
+  ]
+
+ ❯ assertSourceRanges src/__tests__/beta5-incremental-source-mapping.test.ts:119:64
+    117|   for (const row of rows(view)) {
+    118|     const line = expected[Number(row.dataset.line) - 1]!
+    119|     expect([Number(row.dataset.from), Number(row.dataset.to)]).toEqual…
+       |                                                                ^
+    120|     for (const span of row.querySelectorAll<HTMLElement>('[data-from][…
+    121|       const source = text.slice(Number(span.dataset.from), Number(span…
+ ❯ src/__tests__/beta5-incremental-source-mapping.test.ts:157:11
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/12]⎯
+
+ FAIL  src/__tests__/beta5-incremental-source-mapping.test.ts > windowed incremental live source mappings > replace preserves reused code/inline ranges and history with "\n"
+AssertionError: expected 91 to be 77 // Object.is equality
+
+- Expected
++ Received
+
+- 77
++ 91
+
+ ❯ assertCodeRanges src/__tests__/beta5-incremental-source-mapping.test.ts:133:55
+    131|     for (const row of rows(view).slice(first! - 1, last)) {
+    132|       expect(Number(row.dataset.presentationBlockFrom)).toBe(expected[…
+    133|       expect(Number(row.dataset.presentationBlockTo)).toBe(expected[la…
+       |                                                       ^
+    134|     }
+    135|   }
+ ❯ src/__tests__/beta5-incremental-source-mapping.test.ts:158:11
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[7/12]⎯
+
+ FAIL  src/__tests__/beta5-incremental-source-mapping.test.ts > windowed incremental live source mappings > insert preserves reused code/inline ranges and history with "\n"
+AssertionError: expected 91 to be 102 // Object.is equality
+
+- Expected
++ Received
+
+- 102
++ 91
+
+ ❯ assertCodeRanges src/__tests__/beta5-incremental-source-mapping.test.ts:133:55
+    131|     for (const row of rows(view).slice(first! - 1, last)) {
+    132|       expect(Number(row.dataset.presentationBlockFrom)).toBe(expected[…
+    133|       expect(Number(row.dataset.presentationBlockTo)).toBe(expected[la…
+       |                                                       ^
+    134|     }
+    135|   }
+ ❯ src/__tests__/beta5-incremental-source-mapping.test.ts:158:11
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[8/12]⎯
+
+ FAIL  src/__tests__/beta5-incremental-source-mapping.test.ts > windowed incremental live source mappings > delete preserves reused code/inline ranges and history with "\n"
+ FAIL  src/__tests__/beta5-incremental-source-mapping.test.ts > windowed incremental live source mappings > delete preserves reused code/inline ranges and history with "\r\n"
+AssertionError: expected '' to be '​' // Object.is equality
+
+- Expected
++ Received
+
+- ​
+
+ ❯ assertSourceRanges src/__tests__/beta5-incremental-source-mapping.test.ts:122:32
+    120|     for (const span of row.querySelectorAll<HTMLElement>('[data-from][…
+    121|       const source = text.slice(Number(span.dataset.from), Number(span…
+    122|       expect(span.textContent).toBe(source || '\u200b')
+       |                                ^
+    123|     }
+    124|   }
+ ❯ src/__tests__/beta5-incremental-source-mapping.test.ts:157:11
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[9/12]⎯
+
+ FAIL  src/__tests__/beta5-incremental-source-mapping.test.ts > windowed incremental live source mappings > replace preserves reused code/inline ranges and history with "\r\n"
+AssertionError: expected 96 to be 82 // Object.is equality
+
+- Expected
++ Received
+
+- 82
++ 96
+
+ ❯ assertCodeRanges src/__tests__/beta5-incremental-source-mapping.test.ts:133:55
+    131|     for (const row of rows(view).slice(first! - 1, last)) {
+    132|       expect(Number(row.dataset.presentationBlockFrom)).toBe(expected[…
+    133|       expect(Number(row.dataset.presentationBlockTo)).toBe(expected[la…
+       |                                                       ^
+    134|     }
+    135|   }
+ ❯ src/__tests__/beta5-incremental-source-mapping.test.ts:158:11
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[10/12]⎯
+
+ FAIL  src/__tests__/beta5-incremental-source-mapping.test.ts > windowed incremental live source mappings > insert preserves reused code/inline ranges and history with "\r\n"
+AssertionError: expected 96 to be 107 // Object.is equality
+
+- Expected
++ Received
+
+- 107
++ 96
+
+ ❯ assertCodeRanges src/__tests__/beta5-incremental-source-mapping.test.ts:133:55
+    131|     for (const row of rows(view).slice(first! - 1, last)) {
+    132|       expect(Number(row.dataset.presentationBlockFrom)).toBe(expected[…
+    133|       expect(Number(row.dataset.presentationBlockTo)).toBe(expected[la…
+       |                                                       ^
+    134|     }
+    135|   }
+ ❯ src/__tests__/beta5-incremental-source-mapping.test.ts:158:11
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[11/12]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  12 failed (12)
+   Start at  09:36:59
+   Duration  2.69s (transform 688ms, setup 0ms, collect 905ms, tests 950ms, environment 589ms, prepare 79ms)
+

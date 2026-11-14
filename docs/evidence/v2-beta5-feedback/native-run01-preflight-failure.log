@@ -1,0 +1,16 @@
+2026-10-22T08:51:17.269Z NATIVE_STARTUP_WINDOW 2004ms
+node:internal/modules/run_main:107
+    triggerUncaughtException(
+    ^
+
+Error: EACCES: permission denied, open '/proc/188567/environ'
+    at async open (node:internal/fs/promises:697:25)
+    at async readFile (node:internal/fs/promises:1348:14)
+    at async file:///tmp/milkup-windows-manual-candidate/tests/native/tauri-beta5-lifecycle.mjs:404:24 {
+  errno: -13,
+  code: 'EACCES',
+  syscall: 'open',
+  path: '/proc/188567/environ'
+}
+
+Node.js v24.19.0

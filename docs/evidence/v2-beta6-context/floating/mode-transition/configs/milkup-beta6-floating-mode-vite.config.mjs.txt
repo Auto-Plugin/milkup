@@ -1,0 +1,19 @@
+import { readFileSync } from 'node:fs'
+
+const workspaceRoot = '/tmp/milkup-windows-manual-candidate'
+const version = (name) => JSON.parse(readFileSync(`${workspaceRoot}/${name}/package.json`, 'utf8')).version
+
+export default {
+  root: `${workspaceRoot}/apps/desktop`,
+  cacheDir: '/tmp/milkup-beta6-floating-mode-vite-cache',
+  clearScreen: false,
+  define: {
+    __MILKUP_VERSION__: JSON.stringify(version('.')),
+    __MILKUP_PLUGIN_SDK_VERSION__: JSON.stringify(version('packages/plugin-sdk')),
+  },
+  resolve: {
+    alias: Object.fromEntries(['assets', 'core', 'input', 'markdown', 'plugin', 'tauri-bridge', 'view-dom'].map((name) => [`@milkup/${name}`, `${workspaceRoot}/packages/${name}/src/index.ts`])),
+  },
+  server: { host: '127.0.0.1', port: 1441, strictPort: true, fs: { allow: [workspaceRoot] } },
+  worker: { format: 'es' },
+}

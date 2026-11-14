@@ -1,0 +1,22 @@
+PASS native OS clipboard has HTML table, Unicode Markdown and a rich editable paste
+PASS source copy stays plain, live cut carries HTML and undo restores disk bytes
+PASS real cell click, Tab/Shift+Tab, Enter, replacement and undo
+PASS cell line break, literal pipe, multiline native paste and history
+FAIL diagnostics {
+  keys: null,
+  cursor: '47',
+  active: '<textarea class="milkup-input-proxy" aria-hidden="true" autocomplete="off" spellcheck="false" tabindex="0" style="left: 63px; top: 91px; height: 16px;"></textarea>',
+  text: '| Name | Value || --- | --- || A | 1 ||  new|  || B | 2 |'
+}
+file:///workspace/milkup/tests/native/tauri-table-editing.mjs:45
+  throw Error(`Timeout: ${label}`)
+        ^
+
+Error: Timeout: saved exact document
+    at until (file:///workspace/milkup/tests/native/tauri-table-editing.mjs:45:9)
+    at async saved (file:///workspace/milkup/tests/native/tauri-table-editing.mjs:225:3)
+    at async file:///workspace/milkup/tests/native/tauri-table-editing.mjs:334:23
+    at async check (file:///workspace/milkup/tests/native/tauri-table-editing.mjs:156:5)
+    at async file:///workspace/milkup/tests/native/tauri-table-editing.mjs:326:3
+
+Node.js v24.19.0

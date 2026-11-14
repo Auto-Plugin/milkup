@@ -1,0 +1,78 @@
+$ playwright test --workers=2 --grep phase9
+[WebServer] (node:63359) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] $ vite --host 127.0.0.1
+[WebServer] (node:63372) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] (node:63397) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] $ vite --host 127.0.0.1
+[WebServer] (node:63412) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 2 tests using 1 worker
+
+(node:63437) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  1 [desktop-msedge] › tests/e2e/desktop-shell.spec.ts:1118:1 › phase9 search updates queries and keeps keyboard navigation in the search box (8.4s)
+(node:63579) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  2 [desktop-msedge] › tests/e2e/desktop-shell.spec.ts:1137:1 › phase9 outline updates renamed headings and highlights the current section (7.7s)
+
+
+  1) [desktop-msedge] › tests/e2e/desktop-shell.spec.ts:1118:1 › phase9 search updates queries and keeps keyboard navigation in the search box
+
+    Error: expect(locator).toBeFocused() failed
+
+    Locator:  getByRole('searchbox', { name: '搜索', exact: true })
+    Expected: focused
+    Received: inactive
+    Timeout:  5000ms
+
+    Call log:
+      - Expect "toBeFocused" with timeout 5000ms
+      - waiting for getByRole('searchbox', { name: '搜索', exact: true })
+        13 × locator resolved to <input type="search" aria-label="搜索" placeholder="搜索文档" data-search-input=""/>
+           - unexpected value "inactive"
+
+
+      1125 |   await search.press('Enter')
+      1126 |   await expect(page.locator('[data-search-result-count]')).toHaveText('1/2')
+    > 1127 |   await expect(search).toBeFocused()
+           |                        ^
+      1128 |   await search.press('Enter')
+      1129 |   await expect(page.locator('[data-search-result-count]')).toHaveText('2/2')
+      1130 |   await search.press('Shift+Enter')
+        at /workspace/milkup/tests/e2e/desktop-shell.spec.ts:1127:24
+
+    Error Context: test-results/desktop-shell-phase9-searc-79f6a-avigation-in-the-search-box-desktop-msedge/error-context.md
+
+  2) [desktop-msedge] › tests/e2e/desktop-shell.spec.ts:1137:1 › phase9 outline updates renamed headings and highlights the current section
+
+    Error: expect(locator).toBeVisible() failed
+
+    Locator: locator('[data-plugin-ui="milkup.outline:outline-panel"]').getByRole('button', { name: 'First', exact: true })
+    Expected: visible
+    Timeout: 5000ms
+    Error: element(s) not found
+
+    Call log:
+      - Expect "toBeVisible" with timeout 5000ms
+      - waiting for locator('[data-plugin-ui="milkup.outline:outline-panel"]').getByRole('button', { name: 'First', exact: true })
+
+
+      1141 |   await page.getByRole('button', { name: '侧栏', exact: true }).click()
+      1142 |   const outline = page.locator('[data-plugin-ui="milkup.outline:outline-panel"]')
+    > 1143 |   await expect(outline.getByRole('button', { name: 'First', exact: true })).toBeVisible()
+           |                                                                             ^
+      1144 |   await outline.getByRole('button', { name: 'First', exact: true }).click()
+      1145 |   await page.keyboard.press('End')
+      1146 |   await page.keyboard.insertText(' renamed')
+        at /workspace/milkup/tests/e2e/desktop-shell.spec.ts:1143:77
+
+    Error Context: test-results/desktop-shell-phase9-outli-fdd12-hlights-the-current-section-desktop-msedge/error-context.md
+
+  2 failed
+    [desktop-msedge] › tests/e2e/desktop-shell.spec.ts:1118:1 › phase9 search updates queries and keeps keyboard navigation in the search box
+    [desktop-msedge] › tests/e2e/desktop-shell.spec.ts:1137:1 › phase9 outline updates renamed headings and highlights the current section
+[ELIFECYCLE] Command failed with exit code 1.

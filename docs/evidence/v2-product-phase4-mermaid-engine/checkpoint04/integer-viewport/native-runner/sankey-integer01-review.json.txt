@@ -1,0 +1,85 @@
+{
+  "status": "single-sankey-native-pixel-and-layout-match",
+  "scope": {
+    "viewport": [
+      1100,
+      800
+    ],
+    "zoom": 1,
+    "theme": "light",
+    "sample": "sankey-000-first-official-example"
+  },
+  "actualViewed": [
+    {
+      "path": "/workspace/milkup-mermaid-engine-evidence/research/svg-converter-prototype/native-runner/runs/converter-paired-sankey-integer01/original-inline.png",
+      "sha256": "e3022f41436ee18c61a935c3d0c592c9f70dc75de348ee0842ef881f765f5b31"
+    },
+    {
+      "path": "/workspace/milkup-mermaid-engine-evidence/research/svg-converter-prototype/native-runner/runs/converter-paired-sankey-integer01/controlled-original.png",
+      "sha256": "5e72febea206d1f62552f2356060ce44fc58ae60afe931eb57ff947837a8b40a"
+    },
+    {
+      "path": "/workspace/milkup-mermaid-engine-evidence/research/svg-converter-prototype/native-runner/runs/converter-paired-sankey-integer01/canonical-inline.png",
+      "sha256": "5e72febea206d1f62552f2356060ce44fc58ae60afe931eb57ff947837a8b40a"
+    },
+    {
+      "path": "/workspace/milkup-mermaid-engine-evidence/research/svg-converter-prototype/native-runner/runs/converter-paired-sankey-integer01/canonical-img.png",
+      "sha256": "5e72febea206d1f62552f2356060ce44fc58ae60afe931eb57ff947837a8b40a"
+    }
+  ],
+  "observation": "Actually viewed all four PNGs. Original graph bars, colored flows, line boundaries, labels and overlapping source text are retained. Controlled-original, wrapped canonical inline and wrapped canonical image PNGs are byte-identical, including visible blue footer. Untouched original differs only by the deliberately added footer; graph region has zero changed pixels.",
+  "dimensions": {
+    "originalLayout": [
+      600,
+      406.90625
+    ],
+    "imageCssAndNatural": [
+      600,
+      407
+    ],
+    "slotOverflow": "visible",
+    "footerTop": 422.90625,
+    "ceilRemainder": 0.09375
+  },
+  "geometry": {
+    "sampleCount": 72,
+    "totalGeometryNodes": 164,
+    "sampleFieldEquality": {
+      "ctm": true,
+      "screenCTM": true,
+      "rect": true,
+      "overflow": true
+    },
+    "maxSampleBBoxCoordinateDifference": 4.76837158203125e-07,
+    "precisionNote": "Some source height attributes and getBBox last digits differ after existing canonical numeric serialization; sample CTMs, screen CTMs, rendered rects and overflow are identical. Original and canonical inner whole bbox and viewport rect also match. Raw per-node differences retained in comparison JSON."
+  },
+  "budgets": {
+    "conversionSeconds": 0.4789564189995872,
+    "serializedFrameBytes": 259169,
+    "nativeLimitSeconds": 2,
+    "maxFrameBytes": 262144,
+    "separateObservationSeconds": 2
+  },
+  "cleanup": [
+    {
+      "kind": "cleanup",
+      "mono": 36358.782408127,
+      "wall": 1792148746.3433673,
+      "reaped": [
+        {
+          "pid": 230701,
+          "status": 9
+        }
+      ],
+      "remainingGroupMembers": []
+    }
+  ],
+  "comparison": "/workspace/milkup-mermaid-engine-evidence/research/svg-converter-prototype/native-runner/sankey-integer01-comparison.json",
+  "limits": [
+    "Only this official Sankey sample at light zoom1 and the stated native window has this pixel result.",
+    "No broad zoom/dpr/PAR/nonzero-viewBox/filter/shadow/negative-extent claim.",
+    "The opaque white screenshot proves no new visible remainder here; it is not a general alpha-channel transparency proof.",
+    "Production serializer and mount need independent wrapper node/byte/work accounting plus lifecycle/layout/clip tests; no product changes in this experiment."
+  ],
+  "cpuUiReleased": true
+}

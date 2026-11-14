@@ -1,0 +1,88 @@
+{
+  "recordedAt": "2026-10-16T12:56:27.020099+00:00",
+  "status": "static-preparation-only",
+  "execution": {
+    "nativeStarted": false,
+    "preflightExecuted": false,
+    "shellWrappersExecuted": false
+  },
+  "archive": {
+    "path": "/workspace/milkup-mermaid-engine-evidence/research/generic-build-gate-preparation/final-build01/standalone/plugin/dist/milkup.diagrams-1.1.0.milkup-plugin",
+    "sha256": "27db9bdefb9b241b03da2f3536f7e50d334117f928f963cfe290543f650b6239",
+    "bytes": 5726804,
+    "manifest": {
+      "id": "milkup.diagrams",
+      "name": "Milkup Diagrams",
+      "version": "1.1.0",
+      "description": "使用完整官方 Mermaid 引擎离线呈现图表；无法安全呈现的内容保留完整源码。",
+      "host": "dom",
+      "main": "./dist/plugin.js",
+      "engines": {
+        "milkup": "^2.0.0-0",
+        "pluginSdk": ">=0.3.4 <0.4.0"
+      },
+      "permissions": [
+        "document:read"
+      ],
+      "contributes": {
+        "documentRenderers": [
+          {
+            "id": "diagrams.mermaid",
+            "contexts": [
+              "fence"
+            ],
+            "fenceLanguages": [
+              "mermaid"
+            ]
+          }
+        ]
+      },
+      "resources": [
+        "THIRD-PARTY-NOTICES.txt",
+        "dependency-provenance.json"
+      ]
+    },
+    "proof": "/workspace/milkup-mermaid-engine-evidence/research/generic-build-gate-preparation/final-build01/summary.json"
+  },
+  "binary": {
+    "status": "pending final deb build and lifecycle handoff",
+    "expectedManifestPath": "/workspace/milkup-mermaid-engine-evidence/linux-production-01/provenance.json"
+  },
+  "sources": [
+    {
+      "path": "/workspace/milkup-mermaid-engine-evidence/research/product-ui-preparation/official-cases.json",
+      "sha256": "8bc8c7ca0dc9f6062b3757e91c8b76d56c2f9c3b76cf468ac1bf43223868bec0"
+    },
+    {
+      "path": "/workspace/milkup-mermaid-engine-evidence/research/product-ui-preparation/catalog-reconciliation-converter04.json",
+      "sha256": "16f38eb40b8686dd54650d0ff27420014742d64c9d97330c0f592d7b59e08d9f"
+    },
+    {
+      "path": "/workspace/milkup-mermaid-engine-evidence/research/product-ui-preparation/driver.sh",
+      "sha256": "4d8832fff12f3f8520739aea418e8dadfbbfbbadc5cd34304af575b5d5a967fc"
+    },
+    {
+      "path": "/workspace/milkup-mermaid-engine-evidence/research/product-ui-preparation/run-env.sh",
+      "sha256": "ea8f6c35a93f757864cc4b14467477b1ec3f76dc100f705d4cf59e1182d12044"
+    },
+    {
+      "path": "/workspace/milkup-mermaid-engine-evidence/research/product-ui-preparation/RUN.md",
+      "sha256": "7a9a6ef0f9f6c431bab40fb4d0bbb2176dc96917f74a73e9e43209894d0819bc"
+    },
+    {
+      "path": "/workspace/milkup/tests/native/tauri-mermaid-ui.mjs",
+      "sha256": "e5beb8d87508a6994c8abdfcf40f5333e5a1abf36e75f06fe07512def919425f"
+    }
+  ],
+  "driverContract": {
+    "copiedFrom": "/workspace/milkup-mermaid-engine-evidence/editor-lifecycle-preparation-02/driver.sh",
+    "namespace": "same narrow WebKit helper library mapping; absolute workspace paths unchanged",
+    "display": ":126",
+    "ports": [
+      4626,
+      4627
+    ],
+    "requires": "exclusive root GO after lifecycle teardown; fresh profile/run; exact frozen binary/archive hashes"
+  },
+  "nextGate": "Wait for root full repository checks, frozen deb and actual native lifecycle completion. No production UI claim yet."
+}

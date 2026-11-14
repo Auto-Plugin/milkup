@@ -1,0 +1,59 @@
+# Minimal cold-render stage timing — static proposal only
+
+No product edits, instrumentation, build, tests or runtime were performed for this plan. The repository product remains unchanged. This is a possible next diagnostic only if the current native identity/CPU work leaves a concrete timing gap; it is not a request to repeat the full UI matrix.
+
+Production08's timed-out render_3 has no captured input. Diagnostic04's six complete accepted render messages identify its own render_3 as class, but its cold gate passed. Neither request names nor ordinal equality authorize backfilling production08. Native request IDs are instance-local.
+
+## What is already known, and what is absent
+
+Current `plugin_dom.rs:540–566` logs phase, instanceId, requestId, emitting PID and CLOCK_MONOTONIC nanoseconds. `plugin_dom_process.rs:204–234` serializes/validates the input then establishes authoritative dispatch and the 2-second active deadline. `receive` at 310–377 parses/checks result size and validates the matching response before settlement. There is no retained successful-settlement or renderer-internal timestamp in the production trace. The completed diagnostic04 driver log has six dispatch records and kill-start; accepted-wire capture identifies requests but does not add their result completion times.
+
+Historical stage-candidate-01 already has a useful *implementation reference*, not observations from production08 or diagnostic04: input-write completion, helper-frame-dequeued, evaluate submission/callback, result drain/write, receive, and settled phases. Its callback-entry timestamp is distinct from subsequent diagnostic parsing. If needed, adapt only these bounded boundary marks into a separately frozen current candidate. Do not reuse the old executable, parent sampling behavior, or old observations.
+
+## Exact execution chain and useful boundaries
+
+| Location | Proposed small interval | Meaning and limit |
+| --- | --- | --- |
+| Native launch/init; helper load/guard-ready/`__milkupDomInit` | launch→activation accepted; init-evaluate submit→callback | The native 10-second preparation budget includes process/guard setup, page load, module import and activation. Callback is not module-import completion. |
+| Bootstrap lines 62–85; plugin.ts lines 4–8; renderer.ts lines 11–13 | module import promise start/end; activate enter/end; fonts-ready enter/end | `activate` waits for installed fonts. Module import starts before an activation message can be assigned, so record instance/init generation, not a fabricated render ID. No diagram parsing or preload is added here. |
+| Bootstrap lines 130–141 | renderer invocation enter/resolve/reject | Whole plugin work for this exact accepted wire request; includes waits and all blocks, not CPU time. |
+| renderer.ts lines 116–161 | per-block `mermaid.initialize` enter/end; `mermaid.render` call/resolve/reject | Initialize is synchronous and occurs per eligible block inside the original render deadline. It is separate from activation/import. Preserve configuration bytes and call order. |
+| renderer.ts lines 165–168 | returned SVG insertion/query start/end; converter enter/end/throw | Inserting `rendered.svg` performs parsing; `convertSvgElement` reads real styles/geometry, constructs/validates the closed typed image and computes its own byte budget. It is not only a string transformation. |
+| renderer.ts lines 193–204 | result-budget stringify/UTF8 enter/end | Existing full-result budget serialization is repeated after each block. Do not add an extra serialization to measure it. |
+| bootstrap lines 141–148 and 22–31 | renderer return→typed stringify/UTF8 end→parse end→envelope stringify/UTF8/output-ready | Current bootstrap serializes typed result, enforces 256KiB, parses the copy, then stringifies/budgets the envelope in push. Keep these distinct from Mermaid's SVG serialization and converter's own budget work. |
+| helper.rs lines 256–333; process.rs send/receive | pipe-write-complete, helper dequeue, evaluate submit/callback-entry, output-drained/write-complete, owner read/receive/settled | Native monotonic boundaries account for scheduling, IPC, helper's existing 5ms polling, pipe and host validation. Evaluate callback for the dispatch script can return before the async renderer finishes because dispatch is deliberately voided. |
+
+`convertSvgElement` at svg-converter.ts:179–205 walks attached elements and reads computed styles; geometry includes getBBox around line 860, paint envelope around 1527 and JSON/UTF8 budget at 1529. The converter interval therefore contains layout work and its internal serialization. Do not add its inclusive duration to separately timed suboperations twice.
+
+Local Mermaid 12.2.0 is installed as one independently bundled entry (build-support.mjs compileEntry; no runtime imports in the approved output). In the installed `dist/mermaid.core.mjs`:
+
+- `render2` at 1652–1672 enters a serial execution queue before mermaidAPI.render. The external `await mermaid.render` interval includes queue wait.
+- `renderDiagram` at 1289–1411 covers config preprocessing, Diagram.fromText, drawing, SVG extraction, cleanup and strict DOMPurify sanitization.
+- Diagram.fromText at 918–954 may await the diagram loader, initializes its DB, and awaits parsing. A bundled lazy loader can still execute deferred initialization without network access.
+- The distributed profiler branches are literally `if (false)` / false ternaries around parse/draw/serialize. They are not active timing evidence and cannot be enabled by interpreting existing results.
+- Class-v2's actual renderer awaits shared layout at its draw tail. That alone does not identify a slow layout, timer policy or scheduling cause. The first proposal treats Mermaid.render as one opaque measured interval; no dependency patch, eager loading, profiler enablement or expanded family scan is justified yet.
+
+## Minimal design if additional timing is approved
+
+Use two layers, implementing only the layer required by the unresolved evidence.
+
+1. **Generic native/bootstrap boundaries first.** Reuse the current accepted-wire correlation and add only existing-boundary numeric timestamps. In a separate diagnostic-only bootstrap, keep a bounded closure-local stage list. Read it with the existing private token during existing helper evaluate/drain opportunities; keep the original plugin result envelope and native owner result pipe grammar unchanged. A diagnostic return wrapper is unwrapped inside the diagnostic helper only, with its original result string forwarded unchanged. No extra high-frequency poll, user-script message handler, token exposure, debugger RPC or page capability is needed. Original guard/CSP/network settings remain unchanged. This layer distinguishes broad plugin execution from bootstrap serialization and native transport, but cannot divide plugin execution further.
+
+2. **Only if plugin execution dominates: mark the four existing renderer spans.** Build a separately frozen research plugin source with numeric marks immediately around initialize, the awaited render, SVG insertion/conversion, and the existing result-budget expression. Use a diagnostic-only internal stage sink installed by the bootstrap; it accepts a closed enum plus bounded block index and timing, and has no document/file/network/UI capabilities. It is not exported in SDK, manifest, typed result or production code. The sink itself timestamps at entry using an early captured performance.now and binds the current bootstrap invocation; the plugin never supplies a PID, native instance identity, wire request ID or dispatch time. No dependency code change is required. This candidate's archive differs from the official archive and must be labeled accordingly; it cannot count as official-package acceptance.
+
+The second layer is optional, not hidden in the first. It is not possible to split an unchanged opaque plugin's initialize/render/converter internals solely from host transport times.
+
+## Correlation, bounds, trust, and stalled JavaScript
+
+- Native owner assigns instance/request identity from the accepted input and existing deadline state. Match diagnostic data only to that exact pair and frozen full-wire hash. Bootstrap captures its dispatch invocation in a closure. Block indices/ranges are checked against that captured request for offline attribution; late/out-of-invocation marks are rejected or labeled incomplete. Activation/import marks remain in activation/init scope.
+- Plugin/JS marks remain **untrusted diagnostic wall-time observations**, even when the candidate source is audited. They never authorize settlement, extend a deadline, establish a process identity, or replace the owner clock. Kernel-qualified WebProcess PID/birth/pidfd comes exclusively from native identity work. Do not accept JS `processId` or `timeOrigin` as such proof.
+- Use performance.now differences only within the same JS context. Record the native submission/callback/drain brackets separately. Do not subtract a JS timestamp directly from CLOCK_MONOTONIC nanoseconds or imply exact cross-process clock alignment. CPU deltas are a separate signal; render awaits and elapsed intervals include scheduling and other waits.
+- Suggested diagnostic cap: first eight accepted render invocations, at most 64 numeric events per invocation, 512 events/64KiB total, plus bounded activation marks. No source/SVG/AST copy in stage records; use already captured wire data. If a multi-block request exhausts the cap, continue original rendering and mark diagnostic truncation rather than expanding the budget or suppressing blocks. Native enqueue must be nonblocking with explicit drop/error counters; no watchdog/file I/O waits.
+- **Critical limitation:** marks are buffered until an existing evaluate/drain callback can read them. A synchronous blocked render or serialization step can prevent draining until the native kill. Its last in-memory marks may be lost. Missing end/start records do not prove that stage never ran, and missing records cannot identify which synchronous stage timed out. On an async yield, earlier marks may be drained, but do not promise this. Do not add a new bridge/disabled sandbox merely to make the final mark survive; first use the native CPU/identity observations. Stronger crash-surviving stage capture would need a separate design and review.
+- Record mark/collection/serialization/enqueue costs and incomplete intervals; do not subtract them from native 2s or initialization 10s. Do not move initialization or fonts/preload ahead of its original budget, add dummy renders, alter handDrawnSeed/config, retry failed blocks, change library versions/layout, or broaden examples.
+
+## Bounded next experiment, only if needed
+
+First decide from the pending CPU/self-pidfd evidence whether new timing is necessary. If approved, freeze the minimal native/bootstrap candidate and original package; use one fresh cold-only original UI gate with the already reviewed complete wire capture. If layer two is necessary, freeze its one research archive and explicitly distinguish its altered bytes. Stop on the first gate/tool failure and preserve cleanup/partial records. A passing run measures that run only; it neither diagnoses production08 render_3 nor historical UI10 render2754, and does not require a redundant full matrix replay for timing research.
+
+Before running, finite contract checks should cover caps, unknown/late stage rejection, no mark impersonating native control, unmodified original result forwarding, exceptions/cancellation preservation and measurement cleanup. These are proposed checks, not tests executed in this task.

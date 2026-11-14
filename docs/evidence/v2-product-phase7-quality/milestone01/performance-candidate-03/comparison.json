@@ -1,0 +1,1987 @@
+{
+  "generatedUtc": "2026-10-19T12:24:27.981639+00:00",
+  "artifacts": {
+    "baseline": {
+      "path": "/workspace/milkup-p7-quality-evidence/milestone01/baseline-production/milkup-desktop",
+      "sha256": "f15c476a4f6e7b5f254e325692d57e9bfaa798580441dd3554f6c4fe1e9d802e",
+      "bytes": 23138832
+    },
+    "candidate02": {
+      "path": "/workspace/milkup-p7-quality-evidence/milestone01/candidate-production-02/milkup-desktop",
+      "sha256": "8deacbf470f699ad9b0a6c2c2937adbfc7ef6194c38e8f61e707a70bdfc5f9b2",
+      "bytes": 23138832
+    },
+    "candidate03": {
+      "path": "/workspace/milkup-p7-quality-evidence/milestone01/candidate-production-03/milkup-desktop",
+      "sha256": "341d12999d07ba0b7116d463ebacde4bb52ead97279a33ad588ab599d2ddb7a2",
+      "bytes": 23138832
+    }
+  },
+  "scope": "Candidate03 retests ONLY ordinary Source and ordinary Live. No candidate03 performance claim for memory/native large-file views or outline. Existing candidate02 full six+repeat evidence remains independent.",
+  "measurement": "Trusted XTest keydown to public DOM/cursor plus two rAF callbacks; not physical screen latency. p95 nearest rank only n>=20.",
+  "rows": [
+    {
+      "version": "baseline",
+      "mode": "source",
+      "iteration": "first",
+      "run": "p7-baseline-ordinary-source-01",
+      "metadata": {
+        "bytes": 65555,
+        "sha256": "48fd74467e6c4ed7851f63a16c8d2be89db36f986b656db05ca07368ee3fa0ae",
+        "lines": 1026,
+        "lineBytes": 64,
+        "utf16Length": 65547,
+        "mode": "source",
+        "cycles": 20,
+        "coldDefinition": "first distant target in a fresh process/view; OS page cache not flushed; fixture was just written",
+        "probeVersion": 2,
+        "presentation": "keydown to exact visible cursor/DOM, then two requestAnimationFrame callbacks; no physical display claim"
+      },
+      "groups": {
+        "input": {
+          "domMs": {
+            "n": 20,
+            "minMs": 51.99999999999636,
+            "medianMs": 73.99999999999818,
+            "maxMs": 150.0000000000009,
+            "within100msCount": 19,
+            "within100msRatio": 0.95,
+            "p95Ms": 94
+          },
+          "frameMs": {
+            "n": 20,
+            "minMs": 71.00000000000364,
+            "medianMs": 99.49999999999818,
+            "maxMs": 195.0000000000009,
+            "within100msCount": 11,
+            "within100msRatio": 0.55,
+            "p95Ms": 125
+          },
+          "postDomFrameDelay": {
+            "n": 20,
+            "minMs": 19.000000000007276,
+            "medianMs": 26.0,
+            "maxMs": 45.0,
+            "within100msCount": 20,
+            "within100msRatio": 1.0,
+            "p95Ms": 31
+          }
+        },
+        "delete": {
+          "domMs": {
+            "n": 20,
+            "minMs": 46,
+            "medianMs": 69.5,
+            "maxMs": 148,
+            "within100msCount": 19,
+            "within100msRatio": 0.95,
+            "p95Ms": 94.00000000000364
+          },
+          "frameMs": {
+            "n": 20,
+            "minMs": 69,
+            "medianMs": 97.00000000000182,
+            "maxMs": 185,
+            "within100msCount": 12,
+            "within100msRatio": 0.6,
+            "p95Ms": 130
+          },
+          "postDomFrameDelay": {
+            "n": 20,
+            "minMs": 21.000000000003638,
+            "medianMs": 25.99999999999818,
+            "maxMs": 38,
+            "within100msCount": 20,
+            "within100msRatio": 1.0,
+            "p95Ms": 37
+          }
+        },
+        "jump": {
+          "domMs": {
+            "n": 80,
+            "minMs": 3.999999999996362,
+            "medianMs": 5.0,
+            "maxMs": 8,
+            "within100msCount": 80,
+            "within100msRatio": 1.0,
+            "p95Ms": 6.0000000000009095
+          },
+          "frameMs": {
+            "n": 80,
+            "minMs": 19,
+            "medianMs": 30.5,
+            "maxMs": 50,
+            "within100msCount": 80,
+            "within100msRatio": 1.0,
+            "p95Ms": 42
+          },
+          "postDomFrameDelay": {
+            "n": 80,
+            "minMs": 14.99999999999909,
+            "medianMs": 25.0,
+            "maxMs": 44,
+            "within100msCount": 80,
+            "within100msRatio": 1.0,
+            "p95Ms": 36
+          }
+        },
+        "search": {
+          "domMs": {
+            "n": 1,
+            "minMs": 185,
+            "medianMs": 185,
+            "maxMs": 185,
+            "within100msCount": 0,
+            "within100msRatio": 0.0,
+            "note": "Single observation; not p95"
+          },
+          "frameMs": {
+            "n": 1,
+            "minMs": 233,
+            "medianMs": 233,
+            "maxMs": 233,
+            "within100msCount": 0,
+            "within100msRatio": 0.0,
+            "note": "Single observation; not p95"
+          },
+          "postDomFrameDelay": {
+            "n": 1,
+            "minMs": 48,
+            "medianMs": 48,
+            "maxMs": 48,
+            "within100msCount": 1,
+            "within100msRatio": 1.0,
+            "note": "Single observation; not p95"
+          }
+        },
+        "open-to-ready": {
+          "singleMs": 3351.42417
+        },
+        "save-to-ready": {
+          "singleMs": 205.03010899999936
+        },
+        "jump:first-target": {
+          "frameMs": {
+            "n": 1,
+            "minMs": 44,
+            "medianMs": 44,
+            "maxMs": 44,
+            "within100msCount": 1,
+            "within100msRatio": 1.0,
+            "note": "Single observation; not p95"
+          }
+        },
+        "jump:unchanged-warm": {
+          "frameMs": {
+            "n": 41,
+            "minMs": 19,
+            "medianMs": 29,
+            "maxMs": 49,
+            "within100msCount": 41,
+            "within100msRatio": 1.0,
+            "p95Ms": 42
+          }
+        },
+        "jump:after-edit": {
+          "frameMs": {
+            "n": 38,
+            "minMs": 20,
+            "medianMs": 31.0,
+            "maxMs": 50,
+            "within100msCount": 38,
+            "within100msRatio": 1.0,
+            "p95Ms": 39
+          }
+        }
+      },
+      "recordCount": 143,
+      "complete": true,
+      "violations": [],
+      "exactSavedFile": true,
+      "samplesSha256": "e1e92596f3037c52c4dbc8480d81c73114a17ffc1aaac89d8559e95ec2b45505",
+      "observedSourceDocumentView": false,
+      "maxTimerGapMs": 584,
+      "errors": [],
+      "cspViolations": [],
+      "cpuDelta": {
+        "usage_usec": 61767545,
+        "nr_throttled": 4,
+        "throttled_usec": 56319
+      }
+    },
+    {
+      "version": "baseline",
+      "mode": "source",
+      "iteration": "repeat",
+      "run": "p7-baseline-ordinary-source-repeat-01",
+      "metadata": {
+        "bytes": 65555,
+        "sha256": "48fd74467e6c4ed7851f63a16c8d2be89db36f986b656db05ca07368ee3fa0ae",
+        "lines": 1026,
+        "lineBytes": 64,
+        "utf16Length": 65547,
+        "mode": "source",
+        "cycles": 20,
+        "coldDefinition": "first distant target in a fresh process/view; OS page cache not flushed; fixture was just written",
+        "probeVersion": 2,
+        "presentation": "keydown to exact visible cursor/DOM, then two requestAnimationFrame callbacks; no physical display claim"
+      },
+      "groups": {
+        "input": {
+          "domMs": {
+            "n": 20,
+            "minMs": 53,
+            "medianMs": 74.0,
+            "maxMs": 254,
+            "within100msCount": 18,
+            "within100msRatio": 0.9,
+            "p95Ms": 101
+          },
+          "frameMs": {
+            "n": 20,
+            "minMs": 79,
+            "medianMs": 105.00000000000182,
+            "maxMs": 291.00000000000364,
+            "within100msCount": 8,
+            "within100msRatio": 0.4,
+            "p95Ms": 156
+          },
+          "postDomFrameDelay": {
+            "n": 20,
+            "minMs": 22,
+            "medianMs": 28.49999999999818,
+            "maxMs": 72,
+            "within100msCount": 20,
+            "within100msRatio": 1.0,
+            "p95Ms": 51.00000000000182
+          }
+        },
+        "delete": {
+          "domMs": {
+            "n": 20,
+            "minMs": 47.99999999999636,
+            "medianMs": 69.5,
+            "maxMs": 250,
+            "within100msCount": 18,
+            "within100msRatio": 0.9,
+            "p95Ms": 101.99999999999636
+          },
+          "frameMs": {
+            "n": 20,
+            "minMs": 69.99999999999636,
+            "medianMs": 102.50000000000364,
+            "maxMs": 299.00000000000546,
+            "within100msCount": 9,
+            "within100msRatio": 0.45,
+            "p95Ms": 161
+          },
+          "postDomFrameDelay": {
+            "n": 20,
+            "minMs": 22.0,
+            "medianMs": 28.0,
+            "maxMs": 73,
+            "within100msCount": 20,
+            "within100msRatio": 1.0,
+            "p95Ms": 62
+          }
+        },
+        "jump": {
+          "domMs": {
+            "n": 80,
+            "minMs": 3.999999999998181,
+            "medianMs": 5.0,
+            "maxMs": 18,
+            "within100msCount": 80,
+            "within100msRatio": 1.0,
+            "p95Ms": 9
+          },
+          "frameMs": {
+            "n": 80,
+            "minMs": 17,
+            "medianMs": 31.0,
+            "maxMs": 157,
+            "within100msCount": 79,
+            "within100msRatio": 0.9875,
+            "p95Ms": 47
+          },
+          "postDomFrameDelay": {
+            "n": 80,
+            "minMs": 13,
+            "medianMs": 25.0,
+            "maxMs": 147,
+            "within100msCount": 79,
+            "within100msRatio": 0.9875,
+            "p95Ms": 41.99999999999636
+          }
+        },
+        "search": {
+          "domMs": {
+            "n": 1,
+            "minMs": 185.00000000000728,
+            "medianMs": 185.00000000000728,
+            "maxMs": 185.00000000000728,
+            "within100msCount": 0,
+            "within100msRatio": 0.0,
+            "note": "Single observation; not p95"
+          },
+          "frameMs": {
+            "n": 1,
+            "minMs": 220,
+            "medianMs": 220,
+            "maxMs": 220,
+            "within100msCount": 0,
+            "within100msRatio": 0.0,
+            "note": "Single observation; not p95"
+          },
+          "postDomFrameDelay": {
+            "n": 1,
+            "minMs": 34.999999999992724,
+            "medianMs": 34.999999999992724,
+            "maxMs": 34.999999999992724,
+            "within100msCount": 1,
+            "within100msRatio": 1.0,
+            "note": "Single observation; not p95"
+          }
+        },
+        "open-to-ready": {
+          "singleMs": 2980.8013509999996
+        },
+        "save-to-ready": {
+          "singleMs": 165.5419880000045
+        },
+        "jump:first-target": {
+          "frameMs": {
+            "n": 1,
+            "minMs": 32,
+            "medianMs": 32,
+            "maxMs": 32,
+            "within100msCount": 1,
+            "within100msRatio": 1.0,
+            "note": "Single observation; not p95"
+          }
+        },
+        "jump:unchanged-warm": {
+          "frameMs": {
+            "n": 41,
+            "minMs": 18.99999999999909,
+            "medianMs": 29,
+            "maxMs": 44,
+            "within100msCount": 41,
+            "within100msRatio": 1.0,
+            "p95Ms": 41.99999999999909
+          }
+        },
+        "jump:after-edit": {
+          "frameMs": {
+            "n": 38,
+            "minMs": 17,
+            "medianMs": 32.99999999999727,
+            "maxMs": 157,
+            "within100msCount": 37,
+            "within100msRatio": 0.9736842105263158,
+            "p95Ms": 61
+          }
+        }
+      },
+      "recordCount": 143,
+      "complete": true,
+      "violations": [
+        {
+          "version": 12,
+          "wall": 1792410421049,
+          "twoFrames": 16426.000000000004,
+          "modifiers": {
+            "alt": false,
+            "meta": false,
+            "ctrl": false
+          },
+          "recovery": "pending",
+          "frameMs": 299.00000000000546,
+          "domMs": 250,
+          "started": 16126.999999999998,
+          "renderedLines": 1026,
+          "cursor": 0,
+          "kind": "delete",
+          "trusted": true,
+          "target": "milkup-input-proxy",
+          "dom": 16376.999999999998,
+          "round": 5,
+          "expected": 0,
+          "targetMs": 200,
+          "key": "Backspace",
+          "externalCommandToObservedMs": 358.895031,
+          "overTarget": true
+        },
+        {
+          "version": 25,
+          "wall": 1792410432249,
+          "twoFrames": 27618.000000000004,
+          "modifiers": {
+            "alt": false,
+            "meta": false,
+            "ctrl": false
+          },
+          "recovery": "pending",
+          "frameMs": 291.00000000000364,
+          "domMs": 254,
+          "started": 27327,
+          "renderedLines": 1026,
+          "cursor": 1,
+          "kind": "input",
+          "trusted": true,
+          "target": "milkup-input-proxy",
+          "dom": 27581,
+          "round": 12,
+          "expected": 1,
+          "targetMs": 200,
+          "key": "q",
+          "externalCommandToObservedMs": 374.9418089999999,
+          "overTarget": true
+        }
+      ],
+      "exactSavedFile": true,
+      "samplesSha256": "019368e47d7b2b673960d5663eba00e44339fa3eea8527ef3760f2cc7091f9ef",
+      "observedSourceDocumentView": false,
+      "maxTimerGapMs": 779,
+      "errors": [],
+      "cspViolations": [],
+      "cpuDelta": {
+        "usage_usec": 67311575,
+        "nr_throttled": 0,
+        "throttled_usec": 0
+      }
+    },
+    {
+      "version": "candidate02",
+      "mode": "source",
+      "iteration": "first",
+      "run": "p7-candidate-02-ordinary-source-01",
+      "metadata": {
+        "bytes": 65555,
+        "sha256": "48fd74467e6c4ed7851f63a16c8d2be89db36f986b656db05ca07368ee3fa0ae",
+        "lines": 1026,
+        "lineBytes": 64,
+        "utf16Length": 65547,
+        "mode": "source",
+        "cycles": 20,
+        "coldDefinition": "first distant target in a fresh process/view; OS page cache not flushed; fixture was just written",
+        "probeVersion": 2,
+        "presentation": "keydown to exact visible cursor/DOM, then two requestAnimationFrame callbacks; no physical display claim"
+      },
+      "groups": {
+        "input": {
+          "domMs": {
+            "n": 20,
+            "minMs": 46,
+            "medianMs": 77.5,
+            "maxMs": 303.9999999999982,
+            "within100msCount": 14,
+            "within100msRatio": 0.7,
+            "p95Ms": 302
+          },
+          "frameMs": {
+            "n": 20,
+            "minMs": 80,
+            "medianMs": 120.00000000000182,
+            "maxMs": 372,
+            "within100msCount": 3,
+            "within100msRatio": 0.15,
+            "p95Ms": 357.0000000000073
+          },
+          "postDomFrameDelay": {
+            "n": 20,
+            "minMs": 25,
+            "medianMs": 42.49999999999818,
+            "maxMs": 203,
+            "within100msCount": 19,
+            "within100msRatio": 0.95,
+            "p95Ms": 75
+          }
+        },
+        "delete": {
+          "domMs": {
+            "n": 20,
+            "minMs": 50,
+            "medianMs": 74.0,
+            "maxMs": 170,
+            "within100msCount": 18,
+            "within100msRatio": 0.9,
+            "p95Ms": 155
+          },
+          "frameMs": {
+            "n": 20,
+            "minMs": 76,
+            "medianMs": 114.0,
+            "maxMs": 287,
+            "within100msCount": 5,
+            "within100msRatio": 0.25,
+            "p95Ms": 223
+          },
+          "postDomFrameDelay": {
+            "n": 20,
+            "minMs": 22,
+            "medianMs": 35.5,
+            "maxMs": 117,
+            "within100msCount": 19,
+            "within100msRatio": 0.95,
+            "p95Ms": 71.00000000000728
+          }
+        },
+        "jump": {
+          "domMs": {
+            "n": 80,
+            "minMs": 4,
+            "medianMs": 5.000000000005457,
+            "maxMs": 26,
+            "within100msCount": 80,
+            "within100msRatio": 1.0,
+            "p95Ms": 15
+          },
+          "frameMs": {
+            "n": 80,
+            "minMs": 21,
+            "medianMs": 40.5,
+            "maxMs": 150.00000000000182,
+            "within100msCount": 71,
+            "within100msRatio": 0.8875,
+            "p95Ms": 122.00000000000364
+          },
+          "postDomFrameDelay": {
+            "n": 80,
+            "minMs": 14.99999999999909,
+            "medianMs": 34.5,
+            "maxMs": 143.0,
+            "within100msCount": 73,
+            "within100msRatio": 0.9125,
+            "p95Ms": 108.00000000000364
+          }
+        },
+        "search": {
+          "domMs": {
+            "n": 1,
+            "minMs": 195,
+            "medianMs": 195,
+            "maxMs": 195,
+            "within100msCount": 0,
+            "within100msRatio": 0.0,
+            "note": "Single observation; not p95"
+          },
+          "frameMs": {
+            "n": 1,
+            "minMs": 285.0000000000073,
+            "medianMs": 285.0000000000073,
+            "maxMs": 285.0000000000073,
+            "within100msCount": 0,
+            "within100msRatio": 0.0,
+            "note": "Single observation; not p95"
+          },
+          "postDomFrameDelay": {
+            "n": 1,
+            "minMs": 90.00000000000728,
+            "medianMs": 90.00000000000728,
+            "maxMs": 90.00000000000728,
+            "within100msCount": 1,
+            "within100msRatio": 1.0,
+            "note": "Single observation; not p95"
+          }
+        },
+        "open-to-ready": {
+          "singleMs": 4879.324677
+        },
+        "save-to-ready": {
+          "singleMs": 259.23133000000234
+        },
+        "jump:first-target": {
+          "frameMs": {
+            "n": 1,
+            "minMs": 37,
+            "medianMs": 37,
+            "maxMs": 37,
+            "within100msCount": 1,
+            "within100msRatio": 1.0,
+            "note": "Single observation; not p95"
+          }
+        },
+        "jump:unchanged-warm": {
+          "frameMs": {
+            "n": 41,
+            "minMs": 21,
+            "medianMs": 37.00000000000091,
+            "maxMs": 150.00000000000182,
+            "within100msCount": 37,
+            "within100msRatio": 0.9024390243902439,
+            "p95Ms": 137
+          }
+        },
+        "jump:after-edit": {
+          "frameMs": {
+            "n": 38,
+            "minMs": 22,
+            "medianMs": 49.0,
+            "maxMs": 137,
+            "within100msCount": 33,
+            "within100msRatio": 0.868421052631579,
+            "p95Ms": 122.00000000000364
+          }
+        }
+      },
+      "recordCount": 143,
+      "complete": true,
+      "violations": [
+        {
+          "version": 1,
+          "wall": 1792410075856,
+          "twoFrames": 11447.000000000002,
+          "modifiers": {
+            "alt": false,
+            "meta": false,
+            "ctrl": false
+          },
+          "recovery": "pending",
+          "frameMs": 372,
+          "domMs": 303.9999999999982,
+          "started": 11075.000000000002,
+          "renderedLines": 1026,
+          "cursor": 1,
+          "kind": "input",
+          "trusted": true,
+          "target": "milkup-input-proxy",
+          "dom": 11379,
+          "round": 0,
+          "expected": 1,
+          "targetMs": 200,
+          "key": "q",
+          "externalCommandToObservedMs": 473.81453300000067,
+          "overTarget": true
+        },
+        {
+          "version": 4,
+          "wall": 1792410078385,
+          "twoFrames": 13828,
+          "modifiers": {
+            "alt": false,
+            "meta": false,
+            "ctrl": false
+          },
+          "recovery": "pending",
+          "frameMs": 223,
+          "domMs": 155,
+          "started": 13605,
+          "renderedLines": 1026,
+          "cursor": 0,
+          "kind": "delete",
+          "trusted": true,
+          "target": "milkup-input-proxy",
+          "dom": 13760,
+          "round": 1,
+          "expected": 0,
+          "targetMs": 200,
+          "key": "Backspace",
+          "externalCommandToObservedMs": 269.7316499999997,
+          "overTarget": true
+        },
+        {
+          "version": 9,
+          "wall": 1792410083365,
+          "twoFrames": 18917,
+          "modifiers": {
+            "alt": false,
+            "meta": false,
+            "ctrl": false
+          },
+          "recovery": "pending",
+          "frameMs": 332,
+          "domMs": 129,
+          "started": 18585,
+          "renderedLines": 1026,
+          "cursor": 1,
+          "kind": "input",
+          "trusted": true,
+          "target": "milkup-input-proxy",
+          "dom": 18714,
+          "round": 4,
+          "expected": 1,
+          "targetMs": 200,
+          "key": "q",
+          "externalCommandToObservedMs": 437.0449159999989,
+          "overTarget": true
+        },
+        {
+          "version": 12,
+          "wall": 1792410085719,
+          "twoFrames": 21226,
+          "modifiers": {
+            "alt": false,
+            "meta": false,
+            "ctrl": false
+          },
+          "recovery": "pending",
+          "frameMs": 287,
+          "domMs": 170,
+          "started": 20939,
+          "renderedLines": 1026,
+          "cursor": 0,
+          "kind": "delete",
+          "trusted": true,
+          "target": "milkup-input-proxy",
+          "dom": 21109,
+          "round": 5,
+          "expected": 0,
+          "targetMs": 200,
+          "key": "Backspace",
+          "externalCommandToObservedMs": 357.9579699999995,
+          "overTarget": true
+        },
+        {
+          "version": 25,
+          "wall": 1792410097657,
+          "twoFrames": 33233.00000000001,
+          "modifiers": {
+            "alt": false,
+            "meta": false,
+            "ctrl": false
+          },
+          "recovery": "pending",
+          "frameMs": 357.0000000000073,
+          "domMs": 302,
+          "started": 32876,
+          "renderedLines": 1026,
+          "cursor": 1,
+          "kind": "input",
+          "trusted": true,
+          "target": "milkup-input-proxy",
+          "dom": 33178,
+          "round": 12,
+          "expected": 1,
+          "targetMs": 200,
+          "key": "q",
+          "externalCommandToObservedMs": 487.6801520000008,
+          "overTarget": true
+        },
+        {
+          "version": 39,
+          "wall": 1792410109701,
+          "twoFrames": 45189,
+          "modifiers": {
+            "alt": false,
+            "meta": false,
+            "ctrl": false
+          },
+          "recovery": "pending",
+          "frameMs": 268,
+          "domMs": 234,
+          "started": 44921,
+          "renderedLines": 1026,
+          "cursor": 1,
+          "kind": "input",
+          "trusted": true,
+          "target": "milkup-input-proxy",
+          "dom": 45155,
+          "round": 19,
+          "expected": 1,
+          "targetMs": 200,
+          "key": "q",
+          "externalCommandToObservedMs": 562.7087659999961,
+          "overTarget": true
+        }
+      ],
+      "exactSavedFile": true,
+      "samplesSha256": "b034a983aa32af9d6c36eba1a7cb054f7a5ac2f8e6ef77dc7dcd935b09c1bd5e",
+      "observedSourceDocumentView": false,
+      "maxTimerGapMs": 1189,
+      "errors": [],
+      "cspViolations": [],
+      "cpuDelta": {
+        "usage_usec": 83660901,
+        "nr_throttled": 1,
+        "throttled_usec": 4299
+      }
+    },
+    {
+      "version": "candidate02",
+      "mode": "source",
+      "iteration": "repeat",
+      "run": "p7-candidate-02-ordinary-source-repeat-01",
+      "metadata": {
+        "bytes": 65555,
+        "sha256": "48fd74467e6c4ed7851f63a16c8d2be89db36f986b656db05ca07368ee3fa0ae",
+        "lines": 1026,
+        "lineBytes": 64,
+        "utf16Length": 65547,
+        "mode": "source",
+        "cycles": 20,
+        "coldDefinition": "first distant target in a fresh process/view; OS page cache not flushed; fixture was just written",
+        "probeVersion": 2,
+        "presentation": "keydown to exact visible cursor/DOM, then two requestAnimationFrame callbacks; no physical display claim"
+      },
+      "groups": {
+        "input": {
+          "domMs": {
+            "n": 20,
+            "minMs": 49.00000000000364,
+            "medianMs": 64.5,
+            "maxMs": 102,
+            "within100msCount": 19,
+            "within100msRatio": 0.95,
+            "p95Ms": 87
+          },
+          "frameMs": {
+            "n": 20,
+            "minMs": 79,
+            "medianMs": 96.5,
+            "maxMs": 129,
+            "within100msCount": 10,
+            "within100msRatio": 0.5,
+            "p95Ms": 120
+          },
+          "postDomFrameDelay": {
+            "n": 20,
+            "minMs": 23,
+            "medianMs": 26.99999999999909,
+            "maxMs": 44,
+            "within100msCount": 20,
+            "within100msRatio": 1.0,
+            "p95Ms": 34
+          }
+        },
+        "delete": {
+          "domMs": {
+            "n": 20,
+            "minMs": 48,
+            "medianMs": 64.00000000000182,
+            "maxMs": 87,
+            "within100msCount": 20,
+            "within100msRatio": 1.0,
+            "p95Ms": 81.99999999999636
+          },
+          "frameMs": {
+            "n": 20,
+            "minMs": 76,
+            "medianMs": 92.49999999999818,
+            "maxMs": 111,
+            "within100msCount": 13,
+            "within100msRatio": 0.65,
+            "p95Ms": 109
+          },
+          "postDomFrameDelay": {
+            "n": 20,
+            "minMs": 23,
+            "medianMs": 26.0,
+            "maxMs": 43,
+            "within100msCount": 20,
+            "within100msRatio": 1.0,
+            "p95Ms": 40
+          }
+        },
+        "jump": {
+          "domMs": {
+            "n": 80,
+            "minMs": 3.999999999992724,
+            "medianMs": 5.0,
+            "maxMs": 9,
+            "within100msCount": 80,
+            "within100msRatio": 1.0,
+            "p95Ms": 8
+          },
+          "frameMs": {
+            "n": 80,
+            "minMs": 20,
+            "medianMs": 30.00000000000182,
+            "maxMs": 67,
+            "within100msCount": 80,
+            "within100msRatio": 1.0,
+            "p95Ms": 41
+          },
+          "postDomFrameDelay": {
+            "n": 80,
+            "minMs": 15,
+            "medianMs": 25.0,
+            "maxMs": 62.00000000000364,
+            "within100msCount": 80,
+            "within100msRatio": 1.0,
+            "p95Ms": 35
+          }
+        },
+        "search": {
+          "domMs": {
+            "n": 1,
+            "minMs": 199,
+            "medianMs": 199,
+            "maxMs": 199,
+            "within100msCount": 0,
+            "within100msRatio": 0.0,
+            "note": "Single observation; not p95"
+          },
+          "frameMs": {
+            "n": 1,
+            "minMs": 323,
+            "medianMs": 323,
+            "maxMs": 323,
+            "within100msCount": 0,
+            "within100msRatio": 0.0,
+            "note": "Single observation; not p95"
+          },
+          "postDomFrameDelay": {
+            "n": 1,
+            "minMs": 124,
+            "medianMs": 124,
+            "maxMs": 124,
+            "within100msCount": 0,
+            "within100msRatio": 0.0,
+            "note": "Single observation; not p95"
+          }
+        },
+        "open-to-ready": {
+          "singleMs": 3032.326997
+        },
+        "save-to-ready": {
+          "singleMs": 237.32675700000254
+        },
+        "jump:first-target": {
+          "frameMs": {
+            "n": 1,
+            "minMs": 32,
+            "medianMs": 32,
+            "maxMs": 32,
+            "within100msCount": 1,
+            "within100msRatio": 1.0,
+            "note": "Single observation; not p95"
+          }
+        },
+        "jump:unchanged-warm": {
+          "frameMs": {
+            "n": 41,
+            "minMs": 20,
+            "medianMs": 30,
+            "maxMs": 41,
+            "within100msCount": 41,
+            "within100msRatio": 1.0,
+            "p95Ms": 39
+          }
+        },
+        "jump:after-edit": {
+          "frameMs": {
+            "n": 38,
+            "minMs": 20.00000000000182,
+            "medianMs": 30.500000000003638,
+            "maxMs": 67,
+            "within100msCount": 38,
+            "within100msRatio": 1.0,
+            "p95Ms": 52
+          }
+        }
+      },
+      "recordCount": 143,
+      "complete": true,
+      "violations": [],
+      "exactSavedFile": true,
+      "samplesSha256": "5c2a0637f33353bdd4a47ab36720d32ba5d257d44017bec3fc9f5789487d44f8",
+      "observedSourceDocumentView": false,
+      "maxTimerGapMs": 376,
+      "errors": [],
+      "cspViolations": [],
+      "cpuDelta": {
+        "usage_usec": 62046609,
+        "nr_throttled": 0,
+        "throttled_usec": 0
+      }
+    },
+    {
+      "version": "candidate03",
+      "mode": "source",
+      "iteration": "first",
+      "run": "p7-candidate-03-ordinary-source-01",
+      "metadata": {
+        "bytes": 65555,
+        "sha256": "48fd74467e6c4ed7851f63a16c8d2be89db36f986b656db05ca07368ee3fa0ae",
+        "lines": 1026,
+        "lineBytes": 64,
+        "utf16Length": 65547,
+        "mode": "source",
+        "cycles": 20,
+        "coldDefinition": "first distant target in a fresh process/view; OS page cache not flushed; fixture was just written",
+        "probeVersion": 2,
+        "presentation": "keydown to exact visible cursor/DOM, then two requestAnimationFrame callbacks; no physical display claim"
+      },
+      "groups": {
+        "input": {
+          "domMs": {
+            "n": 20,
+            "minMs": 13,
+            "medianMs": 16.0,
+            "maxMs": 106,
+            "within100msCount": 19,
+            "within100msRatio": 0.95,
+            "p95Ms": 32
+          },
+          "frameMs": {
+            "n": 20,
+            "minMs": 32,
+            "medianMs": 41.99999999999909,
+            "maxMs": 128.99999999999818,
+            "within100msCount": 19,
+            "within100msRatio": 0.95,
+            "p95Ms": 61
+          },
+          "postDomFrameDelay": {
+            "n": 20,
+            "minMs": 18,
+            "medianMs": 23.0,
+            "maxMs": 40,
+            "within100msCount": 20,
+            "within100msRatio": 1.0,
+            "p95Ms": 35
+          }
+        },
+        "delete": {
+          "domMs": {
+            "n": 20,
+            "minMs": 12,
+            "medianMs": 16.5,
+            "maxMs": 30,
+            "within100msCount": 20,
+            "within100msRatio": 1.0,
+            "p95Ms": 30
+          },
+          "frameMs": {
+            "n": 20,
+            "minMs": 32,
+            "medianMs": 38.0,
+            "maxMs": 62,
+            "within100msCount": 20,
+            "within100msRatio": 1.0,
+            "p95Ms": 54
+          },
+          "postDomFrameDelay": {
+            "n": 20,
+            "minMs": 16,
+            "medianMs": 22.0,
+            "maxMs": 32,
+            "within100msCount": 20,
+            "within100msRatio": 1.0,
+            "p95Ms": 31
+          }
+        },
+        "jump": {
+          "domMs": {
+            "n": 80,
+            "minMs": 3.9999999999990905,
+            "medianMs": 5.0,
+            "maxMs": 16,
+            "within100msCount": 80,
+            "within100msRatio": 1.0,
+            "p95Ms": 9
+          },
+          "frameMs": {
+            "n": 80,
+            "minMs": 19,
+            "medianMs": 31.0,
+            "maxMs": 134,
+            "within100msCount": 78,
+            "within100msRatio": 0.975,
+            "p95Ms": 54.000000000007276
+          },
+          "postDomFrameDelay": {
+            "n": 80,
+            "minMs": 14,
+            "medianMs": 25.999999999999545,
+            "maxMs": 120,
+            "within100msCount": 78,
+            "within100msRatio": 0.975,
+            "p95Ms": 49.000000000007276
+          }
+        },
+        "search": {
+          "domMs": {
+            "n": 1,
+            "minMs": 184,
+            "medianMs": 184,
+            "maxMs": 184,
+            "within100msCount": 0,
+            "within100msRatio": 0.0,
+            "note": "Single observation; not p95"
+          },
+          "frameMs": {
+            "n": 1,
+            "minMs": 249.00000000000728,
+            "medianMs": 249.00000000000728,
+            "maxMs": 249.00000000000728,
+            "within100msCount": 0,
+            "within100msRatio": 0.0,
+            "note": "Single observation; not p95"
+          },
+          "postDomFrameDelay": {
+            "n": 1,
+            "minMs": 65.00000000000728,
+            "medianMs": 65.00000000000728,
+            "maxMs": 65.00000000000728,
+            "within100msCount": 1,
+            "within100msRatio": 1.0,
+            "note": "Single observation; not p95"
+          }
+        },
+        "open-to-ready": {
+          "singleMs": 4470.621497
+        },
+        "save-to-ready": {
+          "singleMs": 176.68339600000036
+        },
+        "jump:first-target": {
+          "frameMs": {
+            "n": 1,
+            "minMs": 70,
+            "medianMs": 70,
+            "maxMs": 70,
+            "within100msCount": 1,
+            "within100msRatio": 1.0,
+            "note": "Single observation; not p95"
+          }
+        },
+        "jump:unchanged-warm": {
+          "frameMs": {
+            "n": 41,
+            "minMs": 20,
+            "medianMs": 31,
+            "maxMs": 134,
+            "within100msCount": 39,
+            "within100msRatio": 0.9512195121951219,
+            "p95Ms": 46
+          }
+        },
+        "jump:after-edit": {
+          "frameMs": {
+            "n": 38,
+            "minMs": 19,
+            "medianMs": 31.5,
+            "maxMs": 89,
+            "within100msCount": 38,
+            "within100msRatio": 1.0,
+            "p95Ms": 54.000000000007276
+          }
+        }
+      },
+      "recordCount": 143,
+      "complete": true,
+      "violations": [],
+      "exactSavedFile": true,
+      "samplesSha256": "10317ec14b14b2b36be5793233337ddac76ba3819bd8d42ed93de5e7cb4b7531",
+      "observedSourceDocumentView": false,
+      "maxTimerGapMs": 766,
+      "errors": [],
+      "cspViolations": [],
+      "cpuDelta": {
+        "usage_usec": 64725509,
+        "nr_throttled": 0,
+        "throttled_usec": 0
+      }
+    },
+    {
+      "version": "baseline",
+      "mode": "live",
+      "iteration": "first",
+      "run": "p7-baseline-ordinary-live-01",
+      "metadata": {
+        "bytes": 65555,
+        "sha256": "48fd74467e6c4ed7851f63a16c8d2be89db36f986b656db05ca07368ee3fa0ae",
+        "lines": 1026,
+        "lineBytes": 64,
+        "utf16Length": 65547,
+        "mode": "live",
+        "cycles": 20,
+        "coldDefinition": "first distant target in a fresh process/view; OS page cache not flushed; fixture was just written",
+        "probeVersion": 2,
+        "presentation": "keydown to exact visible cursor/DOM, then two requestAnimationFrame callbacks; no physical display claim"
+      },
+      "groups": {
+        "input": {
+          "domMs": {
+            "n": 20,
+            "minMs": 15,
+            "medianMs": 17.500000000003638,
+            "maxMs": 206,
+            "within100msCount": 19,
+            "within100msRatio": 0.95,
+            "p95Ms": 54.00000000000182
+          },
+          "frameMs": {
+            "n": 20,
+            "minMs": 33,
+            "medianMs": 37.5,
+            "maxMs": 251,
+            "within100msCount": 17,
+            "within100msRatio": 0.85,
+            "p95Ms": 227.99999999999818
+          },
+          "postDomFrameDelay": {
+            "n": 20,
+            "minMs": 17,
+            "medianMs": 20.50000000000182,
+            "maxMs": 173.99999999999636,
+            "within100msCount": 19,
+            "within100msRatio": 0.95,
+            "p95Ms": 76.0
+          }
+        },
+        "delete": {
+          "domMs": {
+            "n": 20,
+            "minMs": 13.999999999996362,
+            "medianMs": 15.999999999998181,
+            "maxMs": 373.99999999999636,
+            "within100msCount": 17,
+            "within100msRatio": 0.85,
+            "p95Ms": 184.00000000000182
+          },
+          "frameMs": {
+            "n": 20,
+            "minMs": 30,
+            "medianMs": 36.0,
+            "maxMs": 568.0000000000018,
+            "within100msCount": 16,
+            "within100msRatio": 0.8,
+            "p95Ms": 458.99999999999636
+          },
+          "postDomFrameDelay": {
+            "n": 20,
+            "minMs": 16,
+            "medianMs": 20.00000000000182,
+            "maxMs": 453.0000000000018,
+            "within100msCount": 18,
+            "within100msRatio": 0.9,
+            "p95Ms": 121
+          }
+        },
+        "jump": {
+          "domMs": {
+            "n": 80,
+            "minMs": 9.999999999999545,
+            "medianMs": 14.0,
+            "maxMs": 590.0000000000018,
+            "within100msCount": 77,
+            "within100msRatio": 0.9625,
+            "p95Ms": 48
+          },
+          "frameMs": {
+            "n": 80,
+            "minMs": 28.999999999992724,
+            "medianMs": 37.00000000000091,
+            "maxMs": 664,
+            "within100msCount": 76,
+            "within100msRatio": 0.95,
+            "p95Ms": 97
+          },
+          "postDomFrameDelay": {
+            "n": 80,
+            "minMs": 16,
+            "medianMs": 24.0,
+            "maxMs": 168,
+            "within100msCount": 79,
+            "within100msRatio": 0.9875,
+            "p95Ms": 55
+          }
+        },
+        "search": {
+          "domMs": {
+            "n": 1,
+            "minMs": 204,
+            "medianMs": 204,
+            "maxMs": 204,
+            "within100msCount": 0,
+            "within100msRatio": 0.0,
+            "note": "Single observation; not p95"
+          },
+          "frameMs": {
+            "n": 1,
+            "minMs": 310,
+            "medianMs": 310,
+            "maxMs": 310,
+            "within100msCount": 0,
+            "within100msRatio": 0.0,
+            "note": "Single observation; not p95"
+          },
+          "postDomFrameDelay": {
+            "n": 1,
+            "minMs": 106,
+            "medianMs": 106,
+            "maxMs": 106,
+            "within100msCount": 0,
+            "within100msRatio": 0.0,
+            "note": "Single observation; not p95"
+          }
+        },
+        "open-to-ready": {
+          "singleMs": 3354.889478
+        },
+        "save-to-ready": {
+          "singleMs": 199.04789299999538
+        },
+        "jump:first-target": {
+          "frameMs": {
+            "n": 1,
+            "minMs": 57.999999999999545,
+            "medianMs": 57.999999999999545,
+            "maxMs": 57.999999999999545,
+            "within100msCount": 1,
+            "within100msRatio": 1.0,
+            "note": "Single observation; not p95"
+          }
+        },
+        "jump:unchanged-warm": {
+          "frameMs": {
+            "n": 41,
+            "minMs": 30,
+            "medianMs": 37,
+            "maxMs": 664,
+            "within100msCount": 40,
+            "within100msRatio": 0.975609756097561,
+            "p95Ms": 68.00000000000182
+          }
+        },
+        "jump:after-edit": {
+          "frameMs": {
+            "n": 38,
+            "minMs": 28.999999999992724,
+            "medianMs": 38.0,
+            "maxMs": 276,
+            "within100msCount": 35,
+            "within100msRatio": 0.9210526315789473,
+            "p95Ms": 212
+          }
+        }
+      },
+      "recordCount": 143,
+      "complete": true,
+      "violations": [
+        {
+          "wall": 1792406261197,
+          "dom": 10200.000000000002,
+          "temperature": "unchanged-warm",
+          "modifiers": {
+            "alt": false,
+            "meta": false,
+            "ctrl": true
+          },
+          "direction": "home",
+          "twoFrames": 10274,
+          "recovery": "idle",
+          "frameMs": 664,
+          "domMs": 590.0000000000018,
+          "started": 9610,
+          "renderedLines": 1026,
+          "kind": "jump",
+          "trusted": true,
+          "target": "milkup-input-proxy",
+          "cursor": 0,
+          "round": 19,
+          "expected": 0,
+          "key": "Home",
+          "targetMs": 200,
+          "version": 0,
+          "externalCommandToObservedMs": 1155.641180999999,
+          "overTarget": true
+        },
+        {
+          "version": 1,
+          "wall": 1792406262918,
+          "twoFrames": 11582,
+          "modifiers": {
+            "alt": false,
+            "meta": false,
+            "ctrl": false
+          },
+          "recovery": "pending",
+          "frameMs": 251,
+          "domMs": 206,
+          "started": 11331,
+          "renderedLines": 1026,
+          "cursor": 1,
+          "kind": "input",
+          "trusted": true,
+          "target": "milkup-input-proxy",
+          "dom": 11537,
+          "round": 0,
+          "expected": 1,
+          "targetMs": 200,
+          "key": "q",
+          "externalCommandToObservedMs": 490.1440079999993,
+          "overTarget": true
+        },
+        {
+          "version": 2,
+          "wall": 1792406263843,
+          "twoFrames": 12825.000000000002,
+          "modifiers": {
+            "alt": false,
+            "meta": false,
+            "ctrl": false
+          },
+          "recovery": "pending",
+          "frameMs": 568.0000000000018,
+          "domMs": 115,
+          "started": 12257,
+          "renderedLines": 1026,
+          "cursor": 0,
+          "kind": "delete",
+          "trusted": true,
+          "target": "milkup-input-proxy",
+          "dom": 12372,
+          "round": 0,
+          "expected": 0,
+          "targetMs": 200,
+          "key": "Backspace",
+          "externalCommandToObservedMs": 1064.5736479999996,
+          "overTarget": true
+        },
+        {
+          "version": 3,
+          "wall": 1792406267453,
+          "twoFrames": 16094.999999999998,
+          "modifiers": {
+            "alt": false,
+            "meta": false,
+            "ctrl": false
+          },
+          "recovery": "pending",
+          "frameMs": 227.99999999999818,
+          "domMs": 54.00000000000182,
+          "started": 15867,
+          "renderedLines": 1026,
+          "cursor": 1,
+          "kind": "input",
+          "trusted": true,
+          "target": "milkup-input-proxy",
+          "dom": 15921.000000000002,
+          "round": 1,
+          "expected": 1,
+          "targetMs": 200,
+          "key": "q",
+          "externalCommandToObservedMs": 309.915524,
+          "overTarget": true
+        },
+        {
+          "version": 4,
+          "wall": 1792406267775,
+          "twoFrames": 16409,
+          "modifiers": {
+            "alt": false,
+            "meta": false,
+            "ctrl": false
+          },
+          "recovery": "pending",
+          "frameMs": 220,
+          "domMs": 184.00000000000182,
+          "started": 16189,
+          "renderedLines": 1026,
+          "cursor": 0,
+          "kind": "delete",
+          "trusted": true,
+          "target": "milkup-input-proxy",
+          "dom": 16373.000000000002,
+          "round": 1,
+          "expected": 0,
+          "targetMs": 200,
+          "key": "Backspace",
+          "externalCommandToObservedMs": 349.7393059999995,
+          "overTarget": true
+        },
+        {
+          "wall": 1792406269531,
+          "dom": 18052,
+          "temperature": "after-edit",
+          "modifiers": {
+            "alt": false,
+            "meta": false,
+            "ctrl": true
+          },
+          "direction": "end",
+          "twoFrames": 18220,
+          "recovery": "ready",
+          "frameMs": 276,
+          "domMs": 108,
+          "started": 17944,
+          "renderedLines": 1026,
+          "kind": "jump",
+          "trusted": true,
+          "target": "milkup-input-proxy",
+          "cursor": 65547,
+          "round": 2,
+          "expected": 65547,
+          "key": "End",
+          "targetMs": 200,
+          "version": 4,
+          "externalCommandToObservedMs": 678.6850279999999,
+          "overTarget": true
+        },
+        {
+          "version": 6,
+          "wall": 1792406270921,
+          "twoFrames": 19549,
+          "modifiers": {
+            "alt": false,
+            "meta": false,
+            "ctrl": false
+          },
+          "recovery": "pending",
+          "frameMs": 214,
+          "domMs": 93,
+          "started": 19335,
+          "renderedLines": 1026,
+          "cursor": 0,
+          "kind": "delete",
+          "trusted": true,
+          "target": "milkup-input-proxy",
+          "dom": 19428,
+          "round": 2,
+          "expected": 0,
+          "targetMs": 200,
+          "key": "Backspace",
+          "externalCommandToObservedMs": 379.7100709999977,
+          "overTarget": true
+        },
+        {
+          "version": 8,
+          "wall": 1792406273426,
+          "twoFrames": 22298,
+          "modifiers": {
+            "alt": false,
+            "meta": false,
+            "ctrl": false
+          },
+          "recovery": "pending",
+          "frameMs": 458.99999999999636,
+          "domMs": 373.99999999999636,
+          "started": 21839.000000000004,
+          "renderedLines": 1026,
+          "cursor": 0,
+          "kind": "delete",
+          "trusted": true,
+          "target": "milkup-input-proxy",
+          "dom": 22213,
+          "round": 3,
+          "expected": 0,
+          "targetMs": 200,
+          "key": "Backspace",
+          "externalCommandToObservedMs": 534.976885,
+          "overTarget": true
+        },
+        {
+          "wall": 1792406275912,
+          "dom": 24483,
+          "temperature": "after-edit",
+          "modifiers": {
+            "alt": false,
+            "meta": false,
+            "ctrl": true
+          },
+          "direction": "home",
+          "twoFrames": 24538,
+          "recovery": "ready",
+          "frameMs": 212,
+          "domMs": 157,
+          "started": 24326,
+          "renderedLines": 1026,
+          "kind": "jump",
+          "trusted": true,
+          "target": "milkup-input-proxy",
+          "cursor": 0,
+          "round": 4,
+          "expected": 0,
+          "key": "Home",
+          "targetMs": 200,
+          "version": 8,
+          "externalCommandToObservedMs": 697.3433210000003,
+          "overTarget": true
+        }
+      ],
+      "exactSavedFile": true,
+      "samplesSha256": "47cfdb49f460cb359f7ba7a7d7943d18014a4b81a59e42b67f2a41004a91857d",
+      "observedSourceDocumentView": false,
+      "maxTimerGapMs": 661.9999999999927,
+      "errors": [],
+      "cspViolations": [],
+      "cpuDelta": {
+        "usage_usec": 97416398,
+        "nr_throttled": 19,
+        "throttled_usec": 1507862
+      }
+    },
+    {
+      "version": "candidate02",
+      "mode": "live",
+      "iteration": "first",
+      "run": "p7-candidate-02-ordinary-live-01",
+      "metadata": {
+        "bytes": 65555,
+        "sha256": "48fd74467e6c4ed7851f63a16c8d2be89db36f986b656db05ca07368ee3fa0ae",
+        "lines": 1026,
+        "lineBytes": 64,
+        "utf16Length": 65547,
+        "mode": "live",
+        "cycles": 20,
+        "coldDefinition": "first distant target in a fresh process/view; OS page cache not flushed; fixture was just written",
+        "probeVersion": 2,
+        "presentation": "keydown to exact visible cursor/DOM, then two requestAnimationFrame callbacks; no physical display claim"
+      },
+      "groups": {
+        "input": {
+          "domMs": {
+            "n": 20,
+            "minMs": 13,
+            "medianMs": 17.49999999999818,
+            "maxMs": 74,
+            "within100msCount": 20,
+            "within100msRatio": 1.0,
+            "p95Ms": 58
+          },
+          "frameMs": {
+            "n": 20,
+            "minMs": 31.00000000000182,
+            "medianMs": 37.99999999999818,
+            "maxMs": 144.99999999999272,
+            "within100msCount": 19,
+            "within100msRatio": 0.95,
+            "p95Ms": 96
+          },
+          "postDomFrameDelay": {
+            "n": 20,
+            "minMs": 18,
+            "medianMs": 19.99999999999818,
+            "maxMs": 91.0,
+            "within100msCount": 20,
+            "within100msRatio": 1.0,
+            "p95Ms": 26
+          }
+        },
+        "delete": {
+          "domMs": {
+            "n": 20,
+            "minMs": 13,
+            "medianMs": 16.0,
+            "maxMs": 60,
+            "within100msCount": 20,
+            "within100msRatio": 1.0,
+            "p95Ms": 48
+          },
+          "frameMs": {
+            "n": 20,
+            "minMs": 31,
+            "medianMs": 36.0,
+            "maxMs": 113,
+            "within100msCount": 19,
+            "within100msRatio": 0.95,
+            "p95Ms": 100
+          },
+          "postDomFrameDelay": {
+            "n": 20,
+            "minMs": 16,
+            "medianMs": 19.99999999999818,
+            "maxMs": 65,
+            "within100msCount": 20,
+            "within100msRatio": 1.0,
+            "p95Ms": 40
+          }
+        },
+        "jump": {
+          "domMs": {
+            "n": 80,
+            "minMs": 11,
+            "medianMs": 14.0,
+            "maxMs": 43,
+            "within100msCount": 80,
+            "within100msRatio": 1.0,
+            "p95Ms": 18
+          },
+          "frameMs": {
+            "n": 80,
+            "minMs": 30,
+            "medianMs": 38.0,
+            "maxMs": 95,
+            "within100msCount": 80,
+            "within100msRatio": 1.0,
+            "p95Ms": 51
+          },
+          "postDomFrameDelay": {
+            "n": 80,
+            "minMs": 17.99999999999909,
+            "medianMs": 24.0,
+            "maxMs": 52,
+            "within100msCount": 80,
+            "within100msRatio": 1.0,
+            "p95Ms": 36
+          }
+        },
+        "search": {
+          "domMs": {
+            "n": 1,
+            "minMs": 239.99999999999272,
+            "medianMs": 239.99999999999272,
+            "maxMs": 239.99999999999272,
+            "within100msCount": 0,
+            "within100msRatio": 0.0,
+            "note": "Single observation; not p95"
+          },
+          "frameMs": {
+            "n": 1,
+            "minMs": 454.9999999999927,
+            "medianMs": 454.9999999999927,
+            "maxMs": 454.9999999999927,
+            "within100msCount": 0,
+            "within100msRatio": 0.0,
+            "note": "Single observation; not p95"
+          },
+          "postDomFrameDelay": {
+            "n": 1,
+            "minMs": 215.0,
+            "medianMs": 215.0,
+            "maxMs": 215.0,
+            "within100msCount": 0,
+            "within100msRatio": 0.0,
+            "note": "Single observation; not p95"
+          }
+        },
+        "open-to-ready": {
+          "singleMs": 3505.069935
+        },
+        "save-to-ready": {
+          "singleMs": 312.46745799999917
+        },
+        "jump:first-target": {
+          "frameMs": {
+            "n": 1,
+            "minMs": 39,
+            "medianMs": 39,
+            "maxMs": 39,
+            "within100msCount": 1,
+            "within100msRatio": 1.0,
+            "note": "Single observation; not p95"
+          }
+        },
+        "jump:unchanged-warm": {
+          "frameMs": {
+            "n": 41,
+            "minMs": 30,
+            "medianMs": 37,
+            "maxMs": 51,
+            "within100msCount": 41,
+            "within100msRatio": 1.0,
+            "p95Ms": 42.99999999999909
+          }
+        },
+        "jump:after-edit": {
+          "frameMs": {
+            "n": 38,
+            "minMs": 32,
+            "medianMs": 40.00000000000182,
+            "maxMs": 95,
+            "within100msCount": 38,
+            "within100msRatio": 1.0,
+            "p95Ms": 71
+          }
+        }
+      },
+      "recordCount": 143,
+      "complete": true,
+      "violations": [],
+      "exactSavedFile": true,
+      "samplesSha256": "8f53896b49588453a1add8eca07ccd487a277679a34f01923a5be4c73e57361a",
+      "observedSourceDocumentView": false,
+      "maxTimerGapMs": 899,
+      "errors": [],
+      "cspViolations": [],
+      "cpuDelta": {
+        "usage_usec": 67960280,
+        "nr_throttled": 3,
+        "throttled_usec": 98548
+      }
+    },
+    {
+      "version": "candidate03",
+      "mode": "live",
+      "iteration": "first",
+      "run": "p7-candidate-03-ordinary-live-01",
+      "metadata": {
+        "bytes": 65555,
+        "sha256": "48fd74467e6c4ed7851f63a16c8d2be89db36f986b656db05ca07368ee3fa0ae",
+        "lines": 1026,
+        "lineBytes": 64,
+        "utf16Length": 65547,
+        "mode": "live",
+        "cycles": 20,
+        "coldDefinition": "first distant target in a fresh process/view; OS page cache not flushed; fixture was just written",
+        "probeVersion": 2,
+        "presentation": "keydown to exact visible cursor/DOM, then two requestAnimationFrame callbacks; no physical display claim"
+      },
+      "groups": {
+        "input": {
+          "domMs": {
+            "n": 20,
+            "minMs": 12.999999999992724,
+            "medianMs": 15.5,
+            "maxMs": 61,
+            "within100msCount": 20,
+            "within100msRatio": 1.0,
+            "p95Ms": 28
+          },
+          "frameMs": {
+            "n": 20,
+            "minMs": 32,
+            "medianMs": 37.00000000000182,
+            "maxMs": 82.99999999999818,
+            "within100msCount": 20,
+            "within100msRatio": 1.0,
+            "p95Ms": 48
+          },
+          "postDomFrameDelay": {
+            "n": 20,
+            "minMs": 17,
+            "medianMs": 20.0,
+            "maxMs": 32,
+            "within100msCount": 20,
+            "within100msRatio": 1.0,
+            "p95Ms": 29
+          }
+        },
+        "delete": {
+          "domMs": {
+            "n": 20,
+            "minMs": 12,
+            "medianMs": 14.999999999998181,
+            "maxMs": 20,
+            "within100msCount": 20,
+            "within100msRatio": 1.0,
+            "p95Ms": 20
+          },
+          "frameMs": {
+            "n": 20,
+            "minMs": 30,
+            "medianMs": 34.5,
+            "maxMs": 44,
+            "within100msCount": 20,
+            "within100msRatio": 1.0,
+            "p95Ms": 42.00000000000364
+          },
+          "postDomFrameDelay": {
+            "n": 20,
+            "minMs": 17.000000000003638,
+            "medianMs": 19.0,
+            "maxMs": 27,
+            "within100msCount": 20,
+            "within100msRatio": 1.0,
+            "p95Ms": 24
+          }
+        },
+        "jump": {
+          "domMs": {
+            "n": 80,
+            "minMs": 10,
+            "medianMs": 13.0,
+            "maxMs": 44,
+            "within100msCount": 80,
+            "within100msRatio": 1.0,
+            "p95Ms": 21
+          },
+          "frameMs": {
+            "n": 80,
+            "minMs": 29,
+            "medianMs": 37.0,
+            "maxMs": 84,
+            "within100msCount": 80,
+            "within100msRatio": 1.0,
+            "p95Ms": 51
+          },
+          "postDomFrameDelay": {
+            "n": 80,
+            "minMs": 16,
+            "medianMs": 23.49999999999818,
+            "maxMs": 54,
+            "within100msCount": 80,
+            "within100msRatio": 1.0,
+            "p95Ms": 32.00000000000091
+          }
+        },
+        "search": {
+          "domMs": {
+            "n": 1,
+            "minMs": 190,
+            "medianMs": 190,
+            "maxMs": 190,
+            "within100msCount": 0,
+            "within100msRatio": 0.0,
+            "note": "Single observation; not p95"
+          },
+          "frameMs": {
+            "n": 1,
+            "minMs": 324,
+            "medianMs": 324,
+            "maxMs": 324,
+            "within100msCount": 0,
+            "within100msRatio": 0.0,
+            "note": "Single observation; not p95"
+          },
+          "postDomFrameDelay": {
+            "n": 1,
+            "minMs": 134,
+            "medianMs": 134,
+            "maxMs": 134,
+            "within100msCount": 0,
+            "within100msRatio": 0.0,
+            "note": "Single observation; not p95"
+          }
+        },
+        "open-to-ready": {
+          "singleMs": 3254.3231379999997
+        },
+        "save-to-ready": {
+          "singleMs": 176.96148800000083
+        },
+        "jump:first-target": {
+          "frameMs": {
+            "n": 1,
+            "minMs": 39,
+            "medianMs": 39,
+            "maxMs": 39,
+            "within100msCount": 1,
+            "within100msRatio": 1.0,
+            "note": "Single observation; not p95"
+          }
+        },
+        "jump:unchanged-warm": {
+          "frameMs": {
+            "n": 41,
+            "minMs": 29,
+            "medianMs": 36.00000000000091,
+            "maxMs": 71,
+            "within100msCount": 41,
+            "within100msRatio": 1.0,
+            "p95Ms": 50
+          }
+        },
+        "jump:after-edit": {
+          "frameMs": {
+            "n": 38,
+            "minMs": 31,
+            "medianMs": 38.0,
+            "maxMs": 84,
+            "within100msCount": 38,
+            "within100msRatio": 1.0,
+            "p95Ms": 53
+          }
+        }
+      },
+      "recordCount": 143,
+      "complete": true,
+      "violations": [],
+      "exactSavedFile": true,
+      "samplesSha256": "af1e534bf77c0823eb2b4f85264dc2437e5c228cd0069523299b7c24f35e6c2d",
+      "observedSourceDocumentView": false,
+      "maxTimerGapMs": 375,
+      "errors": [],
+      "cspViolations": [],
+      "cpuDelta": {
+        "usage_usec": 63518242,
+        "nr_throttled": 3,
+        "throttled_usec": 10602
+      }
+    }
+  ]
+}

@@ -1,0 +1,66 @@
+"""Read-only environment inspection plus evidence-only manifests. Never builds or launches.
+Run --skeletons before source candidate freeze; --build-inputs FINAL_MANIFEST after;
+--runtime-inputs only after successful build and restoration. GO remains false.
+"""
+import hashlib,json,subprocess,sys
+from pathlib import Path
+BASE=Path(__file__).resolve().parent;REPO=Path('/workspace/milkup')
+PROD=Path('/workspace/milkup-mermaid-engine-evidence/linux-production-08')
+REQUEST=BASE.parent/'cold-start-request-review-01';CPU=BASE.parent/'cold-start-cpu-review-01/candidate'
+RUN='mermaid-ui-cold-diag-01'
+def sha(p):return hashlib.sha256(Path(p).read_bytes()).hexdigest()
+def row(p,role):return {'path':str(p),'bytes':Path(p).stat().st_size,'sha256':sha(p),'role':role}
+def dump(p,x):p.write_text(json.dumps(x,indent=2)+'\n')
+def dedup(rows):return list({r['path']:r for r in rows}.values())
+mode=sys.argv[1];assert mode in ['--skeletons','--build-inputs','--runtime-inputs']
+for name in (['root-runtime-go.json'] if mode=='--runtime-inputs' else ['root-build-go.json','root-runtime-go.json']):
+ if (BASE/name).exists():assert json.loads((BASE/name).read_text())['authorized'] is False, 'Do not mutate an authorized manifest'
+head=subprocess.check_output(['git','rev-parse','HEAD'],cwd=REPO,text=True).strip()
+prov=json.loads((PROD/'provenance.json').read_text())
+assert sha(CPU/'cpu_sampler.py')=='0cda77ffde4da2286b160dbab2b1fb785a2be698471fc4dce637ba0d27103b4e'
+files=[row(BASE/name,'build/runtime preparation script') for name in ['build-diagnostic.py','prepare-inputs.py','preflight.py','RUN.sh','run-env.sh','driver.sh','launch-driver-reaping.py','stop-driver.py','run-harness.py','verify-runtime-go.py']]
+files += [row(PROD/name,'production08 frozen provenance') for name in ['provenance.json','source-before.json']]
+files += [row(Path(prov[key]['path']),'production08 '+key) for key in ['binary','archive']]
+files += [row(REQUEST/name,'native recorder pure Rust test evidence') for name in ['logic-tests-first/execution.json','logic-tests-first/first.log','logic-tests/Cargo.toml','logic-tests/Cargo.lock','logic-tests/lib.rs']]
+files += [row(CPU/name,'CPU static candidate and synthetic validation') for name in ['cpu_sampler.py','prepared-manifest.json','CONTRACT.txt','synthetic-tests.log','test_cpu_sampler.py','analyze.py']]
+files += [row(Path(p),'cloud native environment dependency') for p in ['/workspace/.cloud/milkup-v2/env.sh','/workspace/milkup-markdown-extensions-phase4-evidence/native/environment/loaders-sysroot.cache','/workspace/.cargo/bin/tauri-driver','/workspace/.cloud/milkup-v2/sysroot/usr/bin/WebKitWebDriver','/workspace/.cloud/milkup-v2/sysroot/usr/bin/xdg-dbus-proxy']]
+overlays=[]
+for name in ['plugin_dom.rs','plugin_dom_process.rs','plugin_dom_request_diagnostic.rs']:
+ rel='apps/desktop/src-tauri/src/'+name;target=REPO/rel;candidate=REQUEST/'candidate'/rel
+ overlays.append({'repositoryPath':rel,'candidatePath':str(candidate),'candidateSha256':sha(candidate),'originalSha256':sha(target) if target.exists() else None})
+ files.append(row(candidate,'native diagnostic overlay candidate'))
+files += [row(p,'cold harness and helpers') for p in sorted((BASE/'helpers').glob('*')) if p.is_file()]
+files += [row(BASE/'native/cold-prefix.mjs','cold-only diagnostic harness'),row(BASE/'cold-prefix-byte-proof.json','static byte proof'),row(BASE.parent/'product-ui-preparation/official-cases.json','original fixture catalog')]
+files += [row(REPO/'release/bundled-plugins.json','cold bundled manifest catalog')]
+for item in json.loads((REPO/'release/bundled-plugins.json').read_text()):files.append(row(REPO/item['directory']/'plugin.json','original cold bundled manifest'))
+for item in prov['frontend']:
+ p=REPO/'apps/desktop/dist'/Path(item['path']).relative_to(PROD/'frontend');assert sha(p)==item['sha256'];files.append(row(p,'same production08 frontend'))
+source_manifest=None
+if mode=='--build-inputs':
+ source_manifest=Path(sys.argv[2]).resolve();files.append(row(source_manifest,'native diagnostic final freeze manifest'))
+elif (BASE/'build-inputs.json').exists():source_manifest=json.loads((BASE/'build-inputs.json').read_text()).get('nativeCandidateFinalManifest');source_manifest=Path(source_manifest) if source_manifest else None
+if source_manifest:
+ final=json.loads(source_manifest.read_text())
+ for frozen in final['files']:
+  assert sha(frozen['path'])==frozen['sha256'], frozen['path']
+  if frozen['baseline']:assert sha(frozen['baseline'])==frozen['baselineSha256']
+ files.append(row(Path(final['diff']['path']),'exact frozen native diagnostic source diff'))
+ files.append(row(source_manifest,'native diagnostic final freeze manifest'))
+files=dedup(files)
+if mode in ['--skeletons','--build-inputs']:
+ build={'status':'PREPARED_BUILD_INPUTS','head':head,'classification':'DIAGNOSTIC_ONLY_NOT_PRODUCTION_ACCEPTANCE','nativeCandidateFinalManifest':str(source_manifest) if source_manifest else None,'pending':[] if source_manifest else ['native capture final test/freeze manifest'],'overlays':overlays,'files':files}
+ dump(BASE/'build-inputs.json',build)
+ dump(BASE/'root-build-go.json',{'authorized':False,'buildInputsSha256':sha(BASE/'build-inputs.json'),'exclusiveRepositoryAndCargoTarget':False,'rootReviewRequired':'Set authorized and exclusiveRepositoryAndCargoTarget true only after final source freeze review, source delta review and exclusive build GO.'})
+binary={'path':str(BASE/'build-attempt-01/diagnostic-only-milkup-desktop'),'sha256':None}
+runtime_pending=['single root-authorized diagnostic build, binary/hash and restoration evidence','final runtime preflight and separate root runtime GO']
+if mode=='--runtime-inputs':
+ result=json.loads((BASE/'build-attempt-01/build-result.json').read_text());assert result['exitCode']==0 and 'error' not in result
+ assert result['productionBinaryUnchanged'] is True and len(result['restoredSources'])==3
+ binary=result['binary'];assert sha(binary['path'])==binary['sha256'];files += [row(Path(binary['path']),'diagnostic binary'),row(BASE/'build-attempt-01/build-result.json','successful diagnostic build and restoration'),row(BASE/'build-inputs.json','frozen build inputs')]
+ (BASE/'reviewed-binary.env').write_text('BINARY='+binary['path']+'\nBINARY_SHA='+binary['sha256']+'\n');files.append(row(BASE/'reviewed-binary.env','exact diagnostic binary environment'))
+ runtime_pending=['final runtime preflight and separate root runtime GO']
+stat=Path('/proc/288383/stat').read_text().rsplit(')',1)[1].split();argv=Path('/proc/288383/cmdline').read_bytes().decode().strip('\0').split('\0');assert argv==['Xvfb',':126','-screen','0','1600x1100x24','-nolisten','tcp']
+runtime={'status':'PREPARED_RUNTIME_INPUTS','run':RUN,'head':head,'classification':'DIAGNOSTIC_PREFIX_ONLY_NOT_PRODUCTION_ACCEPTANCE','binary':binary,'sampler':row(CPU/'cpu_sampler.py','external cold CPU sampler'),'nativeCandidateFinalManifest':str(source_manifest) if source_manifest else None,'pending':runtime_pending,'dedicatedDisplay':{'pid':288383,'birth':stat[19],'argv':argv,'bootId':Path('/proc/sys/kernel/random/boot_id').read_text().strip()},'files':dedup(files)}
+dump(BASE/'runtime-inputs.json',runtime)
+dump(BASE/'root-runtime-go.json',{'authorized':False,'runtimeInputsSha256':sha(BASE/'runtime-inputs.json'),'rootReviewRequired':'Set authorized true only after diagnostic build final review, exact display/fresh paths/free ports preflight and separate runtime GO.'})
+print(json.dumps({'mode':mode,'buildInputsSha256':sha(BASE/'build-inputs.json'),'runtimeInputsSha256':sha(BASE/'runtime-inputs.json'),'overlays':overlays,'pending':runtime_pending},indent=2))

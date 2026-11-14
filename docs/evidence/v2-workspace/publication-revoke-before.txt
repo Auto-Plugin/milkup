@@ -1,0 +1,149 @@
+
+ RUN  v3.2.6 /workspace/milkup/packages/plugin
+
+ ❯ src/workspace-broker.test.ts (34 tests | 4 failed | 30 skipped) 52ms
+   × workspace scope broker > rejects list results when disposal runs between the adapter result and publication 41ms
+     → expected PluginWorkspaceError: Workspace operation… { code: '…' } to match object { code: 'revoked' }
+(1 matching property omitted from actual)
+   × workspace scope broker > rejects resolve results when disposal runs between the adapter result and publication 4ms
+     → promise resolved "{ id: 'file-1', …(3) }" instead of rejecting
+   × workspace scope broker > rejects refresh results when disposal runs between the adapter result and publication 2ms
+     → promise resolved "{ id: 'replacement-root', …(2) }" instead of rejecting
+   × workspace scope broker > rejects open results when disposal runs between the adapter result and publication 3ms
+     → promise resolved "{ status: 'opened' }" instead of rejecting
+   ↓ workspace scope broker > requires declared permission, issued roots and one-use gesture before side effects
+   ↓ workspace scope broker > rejects unsafe relative path "/etc/passwd" before adapter access
+   ↓ workspace scope broker > rejects unsafe relative path "../note.md" before adapter access
+   ↓ workspace scope broker > rejects unsafe relative path "a/../b" before adapter access
+   ↓ workspace scope broker > rejects unsafe relative path "./a" before adapter access
+   ↓ workspace scope broker > rejects unsafe relative path "a//b" before adapter access
+   ↓ workspace scope broker > rejects unsafe relative path "C:/a" before adapter access
+   ↓ workspace scope broker > rejects unsafe relative path "//server/a" before adapter access
+   ↓ workspace scope broker > rejects unsafe relative path "a\\b" before adapter access
+   ↓ workspace scope broker > rejects unsafe relative path "file:///a" before adapter access
+   ↓ workspace scope broker > rejects unsafe relative path "a\u0000b" before adapter access
+   ↓ workspace scope broker > rejects unsafe relative path "a\nb" before adapter access
+   ↓ workspace scope broker > rejects unsafe relative path "a./b" before adapter access
+   ↓ workspace scope broker > rejects unsafe relative path "a /b" before adapter access
+   ↓ workspace scope broker > rejects unsafe relative path "a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/b" before adapter access
+   ↓ workspace scope broker > keeps encoded-looking filenames literal and resolves only in an issued root
+   ↓ workspace scope broker > binds cursors to the directory, rejects reuse and invalidates previous enumeration replies
+   ↓ workspace scope broker > rejects unbounded page limit 0
+   ↓ workspace scope broker > rejects unbounded page limit -1
+   ↓ workspace scope broker > rejects unbounded page limit 201
+   ↓ workspace scope broker > rejects unbounded page limit 1.5
+   ↓ workspace scope broker > rejects unbounded page limit Infinity
+   ↓ workspace scope broker > refresh replaces the grant and invalidates files and cursors; release does not open documents
+   ↓ workspace scope broker > releases old native grants on nine consecutive root replacements
+   ↓ workspace scope broker > cancelled chooser retains existing root; aborted late chooser is cleaned and never published
+   ↓ workspace scope broker > aborts protected open and seals a revoked broker even if permission later returns
+   ↓ workspace scope broker > retains safe adapter error codes while removing OS messages and paths
+   ↓ workspace scope broker > activation surface has no chooser/open and command closure cannot substitute gesture input
+   ↓ workspace scope broker > does not mark synthetic events or expose proofs on context
+   ↓ workspace scope broker > runtime exposes capability only with permission and rejects retained activation methods after disable
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 4 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/workspace-broker.test.ts > workspace scope broker > rejects list results when disposal runs between the adapter result and publication
+AssertionError: expected PluginWorkspaceError: Workspace operation… { code: '…' } to match object { code: 'revoked' }
+(1 matching property omitted from actual)
+
+- Expected
++ Received
+
+- {
+-   "code": "revoked",
++ PluginWorkspaceError {
++   "code": "invalidated",
+  }
+
+ ❯ src/workspace-broker.test.ts:80:7
+     78|               ? broker.refreshRoot(selected.id)
+     79|               : broker.requestOpen(file.id, { gesture: 'open' })
+     80|       await expect(result).rejects.toMatchObject({ code: 'revoked' })
+       |       ^
+     81|     },
+     82|   )
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/4]⎯
+
+ FAIL  src/workspace-broker.test.ts > workspace scope broker > rejects resolve results when disposal runs between the adapter result and publication
+AssertionError: promise resolved "{ id: 'file-1', …(3) }" instead of rejecting
+
+- Expected
++ Received
+
+- Error {
+-   "message": "rejected promise",
++ {
++   "id": "file-1",
++   "kind": "file",
++   "name": "readme.md",
++   "relativePath": "readme.md",
+  }
+
+ ❯ src/workspace-broker.test.ts:80:26
+     78|               ? broker.refreshRoot(selected.id)
+     79|               : broker.requestOpen(file.id, { gesture: 'open' })
+     80|       await expect(result).rejects.toMatchObject({ code: 'revoked' })
+       |                          ^
+     81|     },
+     82|   )
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/4]⎯
+
+ FAIL  src/workspace-broker.test.ts > workspace scope broker > rejects refresh results when disposal runs between the adapter result and publication
+AssertionError: promise resolved "{ id: 'replacement-root', …(2) }" instead of rejecting
+
+- Expected
++ Received
+
+- Error {
+-   "message": "rejected promise",
++ {
++   "id": "replacement-root",
++   "key": "stable-root",
++   "label": "Notes",
+  }
+
+ ❯ src/workspace-broker.test.ts:80:26
+     78|               ? broker.refreshRoot(selected.id)
+     79|               : broker.requestOpen(file.id, { gesture: 'open' })
+     80|       await expect(result).rejects.toMatchObject({ code: 'revoked' })
+       |                          ^
+     81|     },
+     82|   )
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/4]⎯
+
+ FAIL  src/workspace-broker.test.ts > workspace scope broker > rejects open results when disposal runs between the adapter result and publication
+AssertionError: promise resolved "{ status: 'opened' }" instead of rejecting
+
+- Expected
++ Received
+
+- Error {
+-   "message": "rejected promise",
++ {
++   "status": "opened",
+  }
+
+ ❯ src/workspace-broker.test.ts:80:26
+     78|               ? broker.refreshRoot(selected.id)
+     79|               : broker.requestOpen(file.id, { gesture: 'open' })
+     80|       await expect(result).rejects.toMatchObject({ code: 'revoked' })
+       |                          ^
+     81|     },
+     82|   )
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/4]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  4 failed | 30 skipped (34)
+   Start at  05:08:35
+   Duration  1.57s (transform 789ms, setup 0ms, collect 897ms, tests 52ms, environment 0ms, prepare 151ms)
+
+undefined
+/workspace/milkup/packages/plugin:
+[ERR_PNPM_RECURSIVE_EXEC_FIRST_FAIL] Command failed with exit code 1: vitest run src/workspace-broker.test.ts -t 'between the adapter result'

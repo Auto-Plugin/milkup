@@ -1,0 +1,62 @@
+function terminalSnapshot() {
+  "use strict";
+  const observation = window.__milkupTransportDiagnostic?.state;
+  if (!observation?.done || !observation.restored)
+    throw new Error("Observer must restore before terminal DOM snapshot");
+  const content = document.querySelector(".milkup-editor-content");
+  const editor = document.querySelector(".milkup-editor");
+  const rect = (element) => element?.getBoundingClientRect().toJSON();
+  const remainingBytes = Math.max(0, 2097152 - observation.serializedBytes);
+  const rows = [];
+  const children = content?.children || [];
+  let inspected = 0;
+  let rowBytes = 0;
+  let budgetTruncated = false;
+  for (let index = 0; index < children.length && inspected < 256; index++) {
+    const line = children[index];
+    inspected++;
+    if (!line.classList.contains("milkup-line")) continue;
+    const ownerId = line.dataset.presentationOwner;
+    const owner = /^\d+$/.test(ownerId || "")
+      ? content.querySelector('.milkup-line[data-line="' + ownerId + '"]')
+      : undefined;
+    const row = {
+      from: line.dataset.from,
+      to: line.dataset.to,
+      line: line.dataset.line,
+      blockFrom: line.dataset.presentationBlockFrom,
+      blockTo: line.dataset.presentationBlockTo,
+      presentationOwner: ownerId,
+      rect: rect(line),
+      ownerRect: rect(owner),
+      display: line.style.display,
+    };
+    const bytes = new TextEncoder().encode(JSON.stringify(row)).byteLength;
+    if (rowBytes + bytes > remainingBytes) {
+      budgetTruncated = true;
+      break;
+    }
+    rows.push(row);
+    rowBytes += bytes;
+  }
+  return {
+    at: performance.now(),
+    source: "one terminal DOM observation, not private provider window capture",
+    editor: rect(editor),
+    content: {
+      rect: rect(content),
+      clientWidth: content?.clientWidth,
+      clientHeight: content?.clientHeight,
+      scrollTop: content?.scrollTop,
+      scrollLeft: content?.scrollLeft,
+    },
+    inspected,
+    totalChildren: children.length,
+    maxInspected: 256,
+    rowBytes,
+    remainingWireBytes: remainingBytes,
+    rowLimitTruncated: children.length > inspected,
+    budgetTruncated,
+    rows,
+  };
+}

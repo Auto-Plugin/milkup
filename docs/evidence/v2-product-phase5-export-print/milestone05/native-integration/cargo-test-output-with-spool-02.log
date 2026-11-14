@@ -1,0 +1,35 @@
+   Compiling milkup-desktop v2.0.0-beta.1 (/workspace/milkup/apps/desktop/src-tauri)
+warning: unused import: `std::sync::Arc`
+    --> src/piece_tree.rs:1029:9
+     |
+1029 |     use std::sync::Arc;
+     |         ^^^^^^^^^^^^^^
+     |
+     = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: `milkup-desktop` (lib test) generated 1 warning (run `cargo fix --lib -p milkup-desktop --tests` to apply 1 suggestion)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 6.78s
+     Running unittests src/lib.rs (apps/desktop/src-tauri/target/debug/deps/milkup_desktop_lib-8969ac6bfdf4806e)
+
+running 18 tests
+test output::chromium::tests::html_budget_is_rejected_before_browser_or_filesystem_work ... ok
+test output::chromium::tests::output_options_determine_paper_dimensions ... ok
+test output::chromium::tests::pdf_completion_requires_a_terminal_marker_across_stream_boundaries ... ok
+test output::chromium::tests::protocol_frames_reject_malformed_and_unterminated_oversized_messages ... ok
+test output::chromium::tests::stream_chunks_enforce_encoded_and_decoded_bounds ... ok
+test output::linux::tests::native_output_helper ... ignored, private helper launched by the real native output test
+test output::linux::tests::real_chromium_pdf_output ... ignored, requires the sandbox-enabled system Chromium runtime
+test output::linux::tests::real_gtk_source_fd_submission_preserves_pdf_bytes ... ignored, requires a native display and the local GTK FileBackend; sends no external print job
+test output::tests::cancelled_expired_readonly_and_consumed_leases_do_not_publish ... ok
+test output::tests::excessive_existing_output_is_rejected_before_writing ... ok
+test output::tests::explicit_submission_error_is_not_reclassified_as_cancelled ... ok
+test output::tests::output_preserves_source_and_rejects_path_hardlink_and_symlink_aliases ... ok
+test output::tests::output_protects_other_open_documents_and_captured_source_identity ... ok
+test output::tests::output_rechecks_existing_absent_and_replaced_directory_destinations ... ok
+test output::tests::physical_submission_is_single_use_and_late_abort_preserves_outcome ... ok
+test output::tests::print_submission_and_abort_have_one_winner ... ok
+test output::tests::replaced_source_and_target_fifos_cannot_block_output_authorization ... ok
+test output::tests::successful_atomic_overwrite_preserves_mode_and_abort_keeps_published_output ... ok
+
+test result: ok. 15 passed; 0 failed; 3 ignored; 0 measured; 143 filtered out; finished in 0.07s
+

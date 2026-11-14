@@ -1,0 +1,26 @@
+
+ RUN  v3.2.6 /workspace/milkup/packages/plugin
+
+
+⎯⎯⎯⎯⎯⎯ Failed Suites 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/management-broker.test.ts [ src/management-broker.test.ts ]
+Error: Cannot find module './management-broker' imported from '/workspace/milkup/packages/plugin/src/management-broker.test.ts'
+ ❯ src/management-broker.test.ts:2:1
+      1| import { expect, it, vi } from 'vitest'
+      2| import { createPluginManagementBroker, createPluginManagementHostCapab…
+       | ^
+      3| import { copyPluginManagementSnapshot } from './management-schema'
+      4| 
+
+Caused by: Error: Failed to load url ./management-broker (resolved id: ./management-broker) in /workspace/milkup/packages/plugin/src/management-broker.test.ts. Does the file exist?
+ ❯ loadAndTransform ../../node_modules/.pnpm/vite@7.3.6_@types+node@24.13.2/node_modules/vite/dist/node/chunks/config.js:22739:33
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  no tests
+   Start at  08:28:39
+   Duration  292ms (transform 50ms, setup 0ms, collect 0ms, tests 0ms, environment 0ms, prepare 83ms)
+

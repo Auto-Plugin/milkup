@@ -1,0 +1,42 @@
+✔ gate off returns byte-identical original activation and render envelopes (8.114536ms)
+✖ enabled private drain forwards exact output bytes and stages never enter envelope (3.242888ms)
+✔ wrong token neither dispatches nor drains private stage/output (2.982781ms)
+✖ renderer rejection remains original error envelope (2.446268ms)
+✔ oversize typed result keeps original invalid-output enforcement (5.494965ms)
+✔ cancellation remains original aborted result without reclassifying stage as settlement (1.425854ms)
+✔ request cap does not affect rendering or mislabel excess renders as init (2.741511ms)
+✔ clock failures are diagnostic drops, not product exceptions (1.805783ms)
+✔ captured Map methods survive later plugin prototype changes (1.827095ms)
+✖ pending invocation can expose start but absence of completion is not fabricated (1.605729ms)
+✔ unknown protocol and old cancel neither create a request nor disturb next result (1.593161ms)
+ℹ tests 11
+ℹ suites 0
+ℹ pass 8
+ℹ fail 3
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 137.143848
+
+✖ failing tests:
+
+test at tests/bootstrap.test.mjs:89:1
+✖ enabled private drain forwards exact output bytes and stages never enter envelope (3.242888ms)
+  TypeError: x.stages.some is not a function
+      at TestContext.<anonymous> (file:///workspace/milkup-mermaid-engine-evidence/research/native-cold-stage-candidate-01/tests/bootstrap.test.mjs:96:19)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7)
+
+test at tests/bootstrap.test.mjs:112:1
+✖ renderer rejection remains original error envelope (2.446268ms)
+  TypeError: x.stages.some is not a function
+      at TestContext.<anonymous> (file:///workspace/milkup-mermaid-engine-evidence/research/native-cold-stage-candidate-01/tests/bootstrap.test.mjs:120:19)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7)
+
+test at tests/bootstrap.test.mjs:171:1
+✖ pending invocation can expose start but absence of completion is not fabricated (1.605729ms)
+  TypeError: x.stages.some is not a function
+      at TestContext.<anonymous> (file:///workspace/milkup-mermaid-engine-evidence/research/native-cold-stage-candidate-01/tests/bootstrap.test.mjs:183:19)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7)

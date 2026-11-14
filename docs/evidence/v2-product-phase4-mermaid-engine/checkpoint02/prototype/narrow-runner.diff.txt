@@ -1,0 +1,68 @@
+--- /workspace/milkup-mermaid-engine-evidence/prototype/run-mechanism.sh	2026-10-16 09:37:04.843172837 +0000
++++ /workspace/milkup-mermaid-engine-evidence/prototype/run-mechanism-narrow.sh	2026-10-16 09:43:23.353878827 +0000
+@@ -1,14 +1,54 @@
+ #!/usr/bin/env bash
++# PREPARED ONLY. Separate execution approval required; never invokes the old runner.
+ set -euo pipefail
+ root=/workspace/milkup-mermaid-engine-evidence/prototype
+-run=${1:?fresh run name required}
+-source /workspace/.cloud/milkup-v2/env.sh
+-unset PROOT_NO_SECCOMP TAURI_CONFIG
+-export DISPLAY=:118
+-export XDG_CONFIG_HOME="$root/profiles/$run/config"
+-export XDG_DATA_HOME="$root/profiles/$run/data"
+-export XDG_CACHE_HOME="$root/profiles/$run/cache"
+-export GDK_PIXBUF_MODULE_FILE=/workspace/milkup-markdown-extensions-phase4-evidence/native/environment/loaders-sysroot.cache
+-export MILKUP_PROBE_EXTENSIONS="$root/extensions"
+-mkdir -p "$XDG_CONFIG_HOME" "$XDG_DATA_HOME" "$XDG_CACHE_HOME"
+-python3 "$root/supervise.py" --output "$root/runs/$run" -- bwrap --unshare-user --ro-bind / / --bind /workspace /workspace --bind /tmp /tmp --dev-bind /dev /dev --proc /proc --overlay-src /usr/lib/x86_64-linux-gnu --tmp-overlay /usr/lib/x86_64-linux-gnu --ro-bind /workspace/.cloud/milkup-v2/sysroot/usr/lib/x86_64-linux-gnu/webkit2gtk-4.1 /usr/lib/x86_64-linux-gnu/webkit2gtk-4.1 --remount-ro /usr/lib/x86_64-linux-gnu -- dbus-run-session -- "$root/target/debug/milkup-dom-render-probe"
++runtime=/workspace/.cloud/milkup-v2/sysroot
++run=${1:?fresh diagnostic name required}
++[[ "$run" =~ ^[a-zA-Z0-9_-]{1,64}$ ]] || { printf 'Invalid run name\n' >&2; exit 2; }
++profile="$root/narrow-profiles/$run"
++output="$root/narrow-runs/$run"
++[[ ! -e "$profile" && ! -e "$output" ]] || { printf 'Fresh paths required\n' >&2; exit 2; }
++[[ -S /tmp/.X11-unix/X118 ]] || { printf 'Dedicated X118 socket missing\n' >&2; exit 2; }
++mkdir -p "$profile"/{home,config,data,cache}
++uid=$(id -u)
++# The supervisor remains OUTSIDE the child namespaces, owning the host PIDs,
++# monotonic watchdog, process-group signals and subreaper waitpid audit.
++exec /usr/bin/python3 "$root/supervise.py" --output "$output" -- \
++  /usr/bin/bwrap \
++  --die-with-parent --unshare-user --unshare-pid --unshare-ipc --unshare-uts --unshare-net \
++  --clearenv \
++  --ro-bind /usr /usr \
++  --symlink usr/bin /bin --symlink usr/lib /lib --symlink usr/lib64 /lib64 \
++  --ro-bind "$runtime/usr/lib/x86_64-linux-gnu" /runtime/lib \
++  --ro-bind "$runtime/usr/share/glib-2.0/schemas" /runtime/schemas \
++  --overlay-src /usr/lib/x86_64-linux-gnu --tmp-overlay /usr/lib/x86_64-linux-gnu \
++  --ro-bind "$runtime/usr/lib/x86_64-linux-gnu/webkit2gtk-4.1" /usr/lib/x86_64-linux-gnu/webkit2gtk-4.1 \
++  --remount-ro /usr/lib/x86_64-linux-gnu \
++  --ro-bind /etc/fonts /etc/fonts \
++  --ro-bind "$root/narrow-config/passwd" /etc/passwd \
++  --ro-bind "$root/narrow-config/group" /etc/group \
++  --ro-bind "$root/narrow-config/hostname" /etc/hostname \
++  --ro-bind "$root/narrow-config/hosts" /etc/hosts \
++  --ro-bind "$root/narrow-config/nsswitch.conf" /etc/nsswitch.conf \
++  --ro-bind "$root/narrow-config/machine-id" /etc/machine-id \
++  --ro-bind "$root/narrow-config/loaders.cache" /probe/loaders.cache \
++  --ro-bind "$root/target/debug/milkup-dom-render-probe" /probe/bin/helper \
++  --ro-bind "$root/extensions/libresource_guard.so" /probe/extensions/libresource_guard.so \
++  --bind "$profile" /profile \
++  --tmpfs /tmp --dir /tmp/.X11-unix --ro-bind /tmp/.X11-unix/X118 /tmp/.X11-unix/X118 \
++  --tmpfs /run --perms 0700 --dir "/run/user/$uid" \
++  --dev /dev --proc /proc \
++  --setenv PATH /usr/bin:/bin \
++  --setenv HOME /profile/home \
++  --setenv XDG_CONFIG_HOME /profile/config --setenv XDG_DATA_HOME /profile/data \
++  --setenv XDG_CACHE_HOME /profile/cache --setenv XDG_RUNTIME_DIR "/run/user/$uid" \
++  --setenv LD_LIBRARY_PATH /runtime/lib \
++  --setenv WEBKIT_INJECTED_BUNDLE_PATH /runtime/lib/webkit2gtk-4.1/injected-bundle \
++  --setenv GSETTINGS_SCHEMA_DIR /runtime/schemas \
++  --setenv GDK_PIXBUF_MODULE_FILE /probe/loaders.cache \
++  --setenv MILKUP_PROBE_EXTENSIONS /probe/extensions \
++  --setenv DISPLAY :118 --setenv GDK_BACKEND x11 --setenv LIBGL_ALWAYS_SOFTWARE 1 \
++  --setenv LANG C.UTF-8 --setenv LC_ALL C.UTF-8 --setenv TZ UTC \
++  --setenv NO_AT_BRIDGE 1 \
++  --remount-ro / --chdir /profile -- \
++  /usr/bin/dbus-run-session -- /probe/bin/helper

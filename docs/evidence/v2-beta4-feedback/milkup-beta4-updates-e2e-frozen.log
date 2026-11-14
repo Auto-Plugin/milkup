@@ -1,0 +1,146 @@
+
+Running 38 tests using 1 worker
+
+(node:137817) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓   1 tests/e2e/desktop-preferences.spec.ts:44:1 › permissions, generic menu entry, controlled invalid drafts, preview cancellation and default reset (26.8s)
+  ✓   2 tests/e2e/desktop-preferences.spec.ts:83:1 › failed persistent writes retain the draft and allow cancel or retry without a false saved status (14.8s)
+  ✘   3 tests/e2e/desktop-preferences.spec.ts:120:1 › closing preview then disabling, enabling and uninstalling preserves committed preferences only (31.8s)
+(node:141806) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓   4 tests/e2e/desktop-preferences.spec.ts:159:5 › ordinary source preview and commit preserve Unicode CRLF bytes, selection and document history (12.2s)
+  ✓   5 tests/e2e/desktop-preferences.spec.ts:159:5 › ordinary live preview and commit preserve Unicode CRLF bytes, selection and document history (8.3s)
+  ✓   6 tests/e2e/desktop-preferences.spec.ts:159:5 › windowed source preview and commit preserve Unicode CRLF bytes, selection and document history (14.2s)
+  ✓   7 tests/e2e/desktop-preferences.spec.ts:159:5 › windowed live preview and commit preserve Unicode CRLF bytes, selection and document history (14.1s)
+  ✓   8 tests/e2e/desktop-preferences.spec.ts:248:1 › base host remains editable and saves with persistent storage access denied (7.6s)
+  ✓   9 tests/e2e/desktop-preferences.spec.ts:298:3 › ordinary live centered body focuses and selects from both editor gutters (7.6s)
+  ✓  10 tests/e2e/desktop-preferences.spec.ts:298:3 › windowed live centered body focuses and selects from both editor gutters (6.6s)
+  ✓  11 tests/e2e/desktop-preferences.spec.ts:363:1 › responsive breakpoint preserves preferences select and input focus without editing the document (5.4s)
+  ✓  12 tests/e2e/desktop-preferences.spec.ts:431:1 › responsive breakpoint moves focus only when sidebar controls or the editor become unavailable (3.8s)
+  ✓  13 tests/e2e/desktop-shortcuts.spec.ts:89:1 › standalone shortcuts plugin exposes actual commands, draft cancellation, reserved keys and conflicts (10.7s)
+  ✓  14 tests/e2e/desktop-shortcuts.spec.ts:112:1 › saved binding survives restart, restores defaults, and search field keeps local editing plus global save (11.3s)
+  ✓  15 tests/e2e/desktop-shortcuts.spec.ts:145:1 › persistence failure keeps old shortcut, shows bounded error and retains draft (2.8s)
+  ✓  16 tests/e2e/desktop-shortcuts.spec.ts:162:3 › disabled and removed shortcuts plugin leaves source edit/history/save usable (7.2s)
+  ✓  17 tests/e2e/desktop-shortcuts.spec.ts:162:3 › disabled and removed shortcuts plugin leaves live edit/history/save usable (6.7s)
+  ✓  18 tests/e2e/desktop-shortcuts.spec.ts:185:1 › shadowed plugin defaults retain their context after user rebinding and restart (12.8s)
+  ✘  19 tests/e2e/desktop-updates.spec.ts:88:1 › About owns updates and checks once at startup without plugin enablement (12.6s)
+(node:145731) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  20 tests/e2e/desktop-updates.spec.ts:108:1 › offline retry never claims current or displays an update badge (6.6s)
+  ✓  21 tests/e2e/desktop-updates.spec.ts:122:1 › a known update sets the About badge and a failed replacement check clears it (6.3s)
+  ✓  22 tests/e2e/desktop-updates.spec.ts:145:1 › an enabled legacy Updates record stays preserved but never loads or contributes UI (6.3s)
+  ✓  23 tests/e2e/desktop-updates.spec.ts:207:1 › About shows plain notes and unknown progress; cancellation and retry use guarded release IDs (7.1s)
+  ✓  24 tests/e2e/desktop-updates.spec.ts:223:1 › signature failure cannot install and built-in retry succeeds (9.5s)
+  ✓  25 tests/e2e/desktop-updates.spec.ts:240:1 › even a clean document requires trusted host confirmation; cancel keeps editor and no install (9.0s)
+  ✓  26 tests/e2e/desktop-updates.spec.ts:259:3 › built-in updates leave source editing/history and save functional (5.8s)
+  ✓  27 tests/e2e/desktop-updates.spec.ts:259:3 › built-in updates leave live editing/history and save functional (6.2s)
+  ✓  28 tests/e2e/desktop-updates.spec.ts:276:5 › About updates light 1100 has keyboard-accessible controls (11.3s)
+  ✓  29 tests/e2e/desktop-updates.spec.ts:276:5 › About updates light 760 has keyboard-accessible controls (7.1s)
+  ✓  30 tests/e2e/desktop-updates.spec.ts:276:5 › About updates dark 1100 has keyboard-accessible controls (10.0s)
+  ✓  31 tests/e2e/desktop-updates.spec.ts:276:5 › About updates dark 760 has keyboard-accessible controls (6.8s)
+  ✓  32 tests/e2e/desktop-updates.spec.ts:296:3 › windowed source built-in install guard saves complete Unicode data before installer failure (7.0s)
+  ✓  33 tests/e2e/desktop-updates.spec.ts:296:3 › windowed live built-in install guard saves complete Unicode data before installer failure (8.3s)
+  ✓  34 tests/e2e/desktop-updates.spec.ts:406:1 › save failure prevents application installation and preserves editable draft (6.1s)
+  ✓  35 tests/e2e/desktop-updates.spec.ts:437:1 › background download completion does not steal document focus (5.3s)
+  ✓  36 tests/e2e/desktop-workspace.spec.ts:173:1 › trusted workspace commands cross the actual Worker and retain asynchronous capabilities; recent paths persist (7.1s)
+  ✓  37 tests/e2e/desktop-workspace.spec.ts:226:1 › scripted workspace actions receive no authority and dirty cancellation preserves the document (6.6s)
+  ✓  38 tests/e2e/desktop-workspace.spec.ts:256:1 › hiding the embedding sidebar cancels pending workspace authority and discards late chooser output (8.2s)
+
+
+  1) tests/e2e/desktop-preferences.spec.ts:120:1 › closing preview then disabling, enabling and uninstalling preserves committed preferences only 
+
+    Test timeout of 30000ms exceeded.
+
+    Error: locator.isVisible: Test timeout of 30000ms exceeded.
+    Call log:
+        - checking visibility of locator('[data-app-menu]')
+
+
+      12 |   view(page).getByRole('button', { name: label, exact: true })
+      13 | async function menu(page: Page) {
+    > 14 |   if (!(await page.locator('[data-app-menu]').isVisible()))
+         |                                               ^
+      15 |     await page.getByRole('button', { name: '菜单', exact: true }).click()
+      16 | }
+      17 | async function open(page: Page) {
+        at menu (/tmp/milkup-windows-manual-candidate/tests/e2e/desktop-preferences.spec.ts:14:47)
+        at /tmp/milkup-windows-manual-candidate/tests/e2e/desktop-preferences.spec.ts:153:9
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ../milkup-beta4-updates-browser-frozen/desktop-preferences-closin-026e9--committed-preferences-only/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ../milkup-beta4-updates-browser-frozen/desktop-preferences-closin-026e9--committed-preferences-only/error-context.md
+
+  2) tests/e2e/desktop-updates.spec.ts:88:1 › About owns updates and checks once at startup without plugin enablement 
+
+    Error: expect(locator).toContainText(expected) failed
+
+    Locator: locator('[data-menu-panel="about"]')
+    Timeout: 5000ms
+    - Expected substring  -  1
+    + Received string     + 18
+
+    - 2.0.0-beta.4
+    +
+    +             关于
+    +             
+    +               
+    +                 软件名
+    +                 milkup
+    +               
+    +               
+    +                 当前版本
+    +                 2.0.0-beta.3检查更新
+    +               
+    +               
+    +                 版权信息
+    +                 Copyright (c) 2026 milkup. All rights reserved.
+    +               
+    +             
+    +             此版本尚未配置在线更新渠道。当前版本 2.0.0-beta.3 · beta
+    +           
+
+    Call log:
+      - Expect "toContainText" with timeout 5000ms
+      - waiting for locator('[data-menu-panel="about"]')
+        14 × locator resolved to <section data-menu-panel="about" class="app-menu-section">…</section>
+           - unexpected value "
+                关于
+                
+                  
+                    软件名
+                    milkup
+                  
+                  
+                    当前版本
+                    2.0.0-beta.3检查更新
+                  
+                  
+                    版权信息
+                    Copyright (c) 2026 milkup. All rights reserved.
+                  
+                
+                此版本尚未配置在线更新渠道。当前版本 2.0.0-beta.3 · beta
+              "
+
+
+      91 |   await fixture(page, 'unconfigured')
+      92 |   await open(page)
+    > 93 |   await expect(panel(page)).toContainText(appVersion)
+         |                             ^
+      94 |   await expect(panel(page)).toContainText('尚未配置')
+      95 |   await expect(panel(page).getByRole('button', { name: '检查更新', exact: true })).toBeEnabled()
+      96 |   expect(await checkCount(page)).toBe(1)
+        at /tmp/milkup-windows-manual-candidate/tests/e2e/desktop-updates.spec.ts:93:29
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ../milkup-beta4-updates-browser-frozen/desktop-updates-About-owns-57ca5-p-without-plugin-enablement/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ../milkup-beta4-updates-browser-frozen/desktop-updates-About-owns-57ca5-p-without-plugin-enablement/error-context.md
+
+  2 failed
+    tests/e2e/desktop-preferences.spec.ts:120:1 › closing preview then disabling, enabling and uninstalling preserves committed preferences only 
+    tests/e2e/desktop-updates.spec.ts:88:1 › About owns updates and checks once at startup without plugin enablement 
+  36 passed (6.2m)

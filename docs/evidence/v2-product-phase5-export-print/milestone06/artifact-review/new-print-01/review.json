@@ -1,0 +1,254 @@
+{
+  "scope": "Single actual saved page only, independent Poppler raster; no native UI, no physical print, no reliability/fixed-timeout claim.",
+  "pdf": "/workspace/milkup-export-print-evidence/milestone01/native-ui/runs/p5-m06-new-print-01/printed.pdf",
+  "pdfSHA256": "a63678f036e660e9bcd415a259270d2d6868f09493bdb70d389a0b963c61ba4b",
+  "pdfBytes": 614133,
+  "sourceSHA256": "8b4f460fb664ce9b2ef92314dd284404eb4bdfeb28578a34d6dfa08a608454a7",
+  "page": 2,
+  "rasterSize": [
+    884,
+    1250
+  ],
+  "rasterSHA256": "2ba0f1e6f5e16d29c9f4697018cbb19a824f81b91882411b64a8e6269b6f7ee7",
+  "rasterRGB_SHA256": "855958e365e9b0ca76f99c618c193188345246a064a262a4af3673086f72083b",
+  "comparisons": [
+    {
+      "reference": "pdf05",
+      "path": "/workspace/milkup-export-print-evidence/milestone05/print04-review/exported/page-2.png",
+      "referencePNG_SHA256": "2ba0f1e6f5e16d29c9f4697018cbb19a824f81b91882411b64a8e6269b6f7ee7",
+      "sameSize": true,
+      "pixelsExactlyEqual": true,
+      "differenceBounds": null
+    },
+    {
+      "reference": "old-print01",
+      "path": "/workspace/milkup-export-print-evidence/milestone06/content/old-print-01/page-2.png",
+      "referencePNG_SHA256": "2ba0f1e6f5e16d29c9f4697018cbb19a824f81b91882411b64a8e6269b6f7ee7",
+      "sameSize": true,
+      "pixelsExactlyEqual": true,
+      "differenceBounds": null
+    }
+  ],
+  "rawSourceFallbackGrammarDetected": false,
+  "copySearchPageExact": {
+    "中文输入": false,
+    "冻结内容": false,
+    "打印": false
+  },
+  "visualReview": {
+    "status": "PASS_VISIBLE_INSPECTED_PAGE_ONLY",
+    "inspectedPage": 2,
+    "diagram": "Three complete rectangular nodes and two arrows visibly connect 中文输入 → 冻结内容 → HTML / PDF / 打印. No fenced source fallback is visible.",
+    "math": "Inline superscript and display summation/fraction visibly rendered.",
+    "footnotes": "Heading, reference, body and return-link text readable on the same page.",
+    "clippingOrOverlapObserved": false,
+    "comparison": "All RGB pixels equal PDF05 and old-print01 page2.",
+    "qualification": "Actual independent diagrams1.1.2 output is visible in this run; this does not establish a timeout fix, first-render coldness or repeat reliability."
+  },
+  "remaining": [
+    "Other pages unreviewed by this single-page script.",
+    "PDF codepoint mapping and long-block heading pagination remain open.",
+    "A visible diagram on this run is not proof of timeout remediation or deterministic repeatability."
+  ],
+  "provenance.json": {
+    "preparedOnly": false,
+    "stage": "print-file",
+    "testOptions": {
+      "layout": false,
+      "paperLayout": false,
+      "diagnostic": false,
+      "gutterDiagnostic": false,
+      "diagnosticCandidate": null
+    },
+    "sourcePath": "/workspace/milkup-export-print-evidence/milestone01/native-ui/runs/p5-m06-new-print-01/source.md",
+    "sourceSha256": "8b4f460fb664ce9b2ef92314dd284404eb4bdfeb28578a34d6dfa08a608454a7",
+    "sourceBytes": 11971,
+    "sourceUtf16": 5588,
+    "sourceLines": 262,
+    "archive": "/workspace/milkup-export-print-evidence/milestone01/plugin/action-id-fix-external/dist/milkup.export-print-1.0.0.milkup-plugin",
+    "archiveSha256": "08cd8532ecd209f4794f88de1880e06c16c586ae2997e326450687e1be2181b9",
+    "manifest": {
+      "id": "milkup.export-print",
+      "name": "导出与打印",
+      "version": "1.0.0",
+      "description": "将整篇文档或所选内容导出为 HTML、PDF，或打印；可选择图片、纸张和方向，并保留开始时的内容版本。",
+      "host": "worker",
+      "main": "./dist/plugin.js",
+      "engines": {
+        "milkup": "^2.0.0-0",
+        "pluginSdk": "^0.3.5"
+      },
+      "permissions": [
+        "document:read",
+        "document:output"
+      ],
+      "icon": "assets/export-print.png",
+      "resources": [
+        "assets/export-print.png"
+      ],
+      "contributes": {
+        "commands": [
+          {
+            "id": "exportPrint.start",
+            "title": "导出或打印文档",
+            "action": "exportPrint.start"
+          },
+          {
+            "id": "exportPrint.retry",
+            "title": "重新导出或打印",
+            "action": "exportPrint.retry"
+          },
+          {
+            "id": "exportPrint.cancel",
+            "title": "取消输出",
+            "action": "exportPrint.cancel"
+          },
+          {
+            "id": "exportPrint.change",
+            "title": "修改输出选项",
+            "action": "exportPrint.change",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "field": {
+                  "type": "string"
+                },
+                "value": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "field",
+                "value"
+              ]
+            }
+          }
+        ],
+        "ui": [
+          {
+            "id": "export-print-panel",
+            "slot": "sidebar-panel",
+            "title": "导出与打印",
+            "scope": "app",
+            "viewportUpdates": false
+          }
+        ]
+      }
+    },
+    "rendererMode": "independent 1.1.2",
+    "richRenderers": {
+      "diagramArchive": "/workspace/milkup-export-print-evidence/milestone06/diagrams-candidate/artifacts/milkup.diagrams-1.1.2.milkup-plugin",
+      "diagramSha256": "2e54b8326935b28b6b727315ccef163fd288e1374514f1783e0722d539abdd78",
+      "required": [
+        "milkup.math",
+        "milkup.footnotes",
+        "milkup.diagrams"
+      ]
+    },
+    "cases": [
+      "html offline with images",
+      "html omitted images",
+      "actual A4 and Letter PDF",
+      "native print-to-file PDF",
+      "chooser and print cancellation",
+      "source overwrite refusal",
+      "existing output overwrite refusal/confirmation",
+      "selection and captured version",
+      "disabled plugin edit/undo/save",
+      "large file"
+    ],
+    "limitations": [
+      "Snapshots of GTK dialogs do not prove PDF output quality.",
+      "Selection stage attempts genuine foreground edits while the independent chooser is open; its recorded result determines native race coverage.",
+      "Formula/Mermaid rendering and pagination need inspection of actual output, not marker presence."
+    ],
+    "binary": "/workspace/milkup-export-print-evidence/milestone06/production-trace/milkup-desktop",
+    "binarySha256": "f03894c9efdc7b96729fe1e4e5dd34123bd79bf55ba4068644a41134cf4af4e1",
+    "display": ":126",
+    "driver": "http://127.0.0.1:4636",
+    "profile": "/workspace/milkup-export-print-evidence/milestone01/native-ui/profiles/p5-m06-new-print-01",
+    "sourceHead": "53f043e86bf162a18db67acef941811a867d1d20"
+  },
+  "completion.json": {
+    "stage": "print-file",
+    "diagnosticOnly": false,
+    "paperLayoutOnly": false,
+    "passed": true,
+    "checked": [
+      "rich-renderers-approved-enabled",
+      "installed-unapproved",
+      "approved-enabled-sidebar",
+      "fixture-opened",
+      "printed.pdf"
+    ],
+    "visualReview": "pending",
+    "layoutStatus": "not-run",
+    "scope": "UI interactions and file structure; visual review and PDF text extraction are independent statuses",
+    "sourceSha256": "8b4f460fb664ce9b2ef92314dd284404eb4bdfeb28578a34d6dfa08a608454a7"
+  },
+  "lastResult": {
+    "name": "printed.pdf",
+    "at": "2026-10-19T06:22:24.245Z",
+    "sourceSha256": "8b4f460fb664ce9b2ef92314dd284404eb4bdfeb28578a34d6dfa08a608454a7",
+    "sourceBytes": 11971,
+    "sourceUtf16": 5588,
+    "sourceLines": 262,
+    "document": {
+      "message": "字面匹配 · 忽略大小写 · 忽略查询首尾空白",
+      "query": "",
+      "mode": "live",
+      "count": "0/0",
+      "searching": false,
+      "selection": [],
+      "path": "/workspace/milkup-export-print-evidence/milestone01/native-ui/runs/p5-m06-new-print-01/source.md",
+      "saving": false,
+      "notice": "",
+      "dirty": false,
+      "cursor": 0,
+      "url": "tauri://localhost",
+      "replaceDisabled": true,
+      "savedVersion": 0,
+      "replacing": false,
+      "loading": "ready",
+      "version": 0
+    },
+    "registry": [
+      {
+        "sourcePath": "bundled:milkup.footnotes-1.0.0.milkup-plugin",
+        "enabled": true,
+        "id": "milkup.footnotes",
+        "state": "enabled",
+        "version": "1.0.0"
+      },
+      {
+        "sourcePath": "bundled:milkup.math-1.0.0.milkup-plugin",
+        "enabled": true,
+        "id": "milkup.math",
+        "state": "enabled",
+        "version": "1.0.0"
+      },
+      {
+        "sourcePath": "/workspace/milkup-export-print-evidence/milestone06/diagrams-candidate/artifacts/milkup.diagrams-1.1.2.milkup-plugin",
+        "enabled": true,
+        "id": "milkup.diagrams",
+        "state": "enabled",
+        "version": "1.1.2"
+      },
+      {
+        "sourcePath": "/workspace/milkup-export-print-evidence/milestone01/plugin/action-id-fix-external/dist/milkup.export-print-1.0.0.milkup-plugin",
+        "enabled": true,
+        "id": "milkup.export-print",
+        "state": "enabled",
+        "version": "1.0.0"
+      }
+    ],
+    "panel": "导出与打印导出与打印输出格式HTML 网页PDF 文档打印内容范围整篇文档所选内容选择“所选内容”时，请先在编辑器中选中文字。图片包含图片不包含图片包含图片便于离线阅读；无法使用的资源会在下方提示。纸张大小A4Letter页面方向纵向横向source · 版本 0 · 262 行输出使用开始时的内容；之后的编辑不会加入本次输出。Rich content is rendered in bounded Markdown windows; extensions spanning windows retain their original source.图片未获授权、缺失或无法离线内嵌；保留占位与原始地址。已提交打印。请在打印队列中查看进度。打印取消",
+    "file": "/workspace/milkup-export-print-evidence/milestone01/native-ui/runs/p5-m06-new-print-01/printed.pdf",
+    "sha256": "a63678f036e660e9bcd415a259270d2d6868f09493bdb70d389a0b963c61ba4b",
+    "bytes": 614133,
+    "pages": 7,
+    "visualReview": "pending actual first/last page and document review"
+  },
+  "classification": "REJECTED_CANDIDATE_EXPERIMENT_NOT_PRODUCT_FIX",
+  "decisionOverlay": "See ../candidate-decision.json: diagrams1.1.2 was not adopted; product retains1.1.1 and subsequent queue-budget-fix acceptance is separate."
+}

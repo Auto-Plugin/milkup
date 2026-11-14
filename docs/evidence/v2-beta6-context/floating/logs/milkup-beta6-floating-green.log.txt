@@ -1,0 +1,83 @@
+[WebServer] (node:237037) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 34 tests using 1 worker
+
+(node:237126) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓   1 tests/e2e/desktop-floating-toolbar.spec.ts:137:9 › floating toolbar ordinary 1100x760 light 100% (3.5s)
+  ✓   2 tests/e2e/desktop-floating-toolbar.spec.ts:137:9 › floating toolbar ordinary 1100x760 light 125% (4.1s)
+  ✓   3 tests/e2e/desktop-floating-toolbar.spec.ts:137:9 › floating toolbar ordinary 1100x760 light 150% (4.9s)
+  ✓   4 tests/e2e/desktop-floating-toolbar.spec.ts:137:9 › floating toolbar ordinary 1100x760 light 200% (3.8s)
+  ✓   5 tests/e2e/desktop-floating-toolbar.spec.ts:137:9 › floating toolbar ordinary 1100x760 dark 100% (5.0s)
+  ✓   6 tests/e2e/desktop-floating-toolbar.spec.ts:137:9 › floating toolbar ordinary 1100x760 dark 125% (3.5s)
+  ✓   7 tests/e2e/desktop-floating-toolbar.spec.ts:137:9 › floating toolbar ordinary 1100x760 dark 150% (5.2s)
+  ✓   8 tests/e2e/desktop-floating-toolbar.spec.ts:137:9 › floating toolbar ordinary 1100x760 dark 200% (5.2s)
+  ✓   9 tests/e2e/desktop-floating-toolbar.spec.ts:137:9 › floating toolbar ordinary 760x520 light 100% (7.2s)
+  ✓  10 tests/e2e/desktop-floating-toolbar.spec.ts:137:9 › floating toolbar ordinary 760x520 light 125% (12.0s)
+  ✓  11 tests/e2e/desktop-floating-toolbar.spec.ts:137:9 › floating toolbar ordinary 760x520 light 150% (8.5s)
+  ✓  12 tests/e2e/desktop-floating-toolbar.spec.ts:137:9 › floating toolbar ordinary 760x520 light 200% (7.1s)
+  ✘  13 tests/e2e/desktop-floating-toolbar.spec.ts:137:9 › floating toolbar ordinary 760x520 dark 100% (8.5s)
+(node:238887) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  14 tests/e2e/desktop-floating-toolbar.spec.ts:137:9 › floating toolbar ordinary 760x520 dark 125% (6.4s)
+  ✓  15 tests/e2e/desktop-floating-toolbar.spec.ts:137:9 › floating toolbar ordinary 760x520 dark 150% (4.8s)
+  ✓  16 tests/e2e/desktop-floating-toolbar.spec.ts:137:9 › floating toolbar ordinary 760x520 dark 200% (4.7s)
+  ✓  17 tests/e2e/desktop-floating-toolbar.spec.ts:137:9 › floating toolbar windowed 1100x760 light 100% (3.0s)
+  ✓  18 tests/e2e/desktop-floating-toolbar.spec.ts:137:9 › floating toolbar windowed 1100x760 light 125% (3.5s)
+  ✓  19 tests/e2e/desktop-floating-toolbar.spec.ts:137:9 › floating toolbar windowed 1100x760 light 150% (6.5s)
+  ✓  20 tests/e2e/desktop-floating-toolbar.spec.ts:137:9 › floating toolbar windowed 1100x760 light 200% (7.6s)
+  ✓  21 tests/e2e/desktop-floating-toolbar.spec.ts:137:9 › floating toolbar windowed 1100x760 dark 100% (10.5s)
+  ✓  22 tests/e2e/desktop-floating-toolbar.spec.ts:137:9 › floating toolbar windowed 1100x760 dark 125% (6.9s)
+  ✓  23 tests/e2e/desktop-floating-toolbar.spec.ts:137:9 › floating toolbar windowed 1100x760 dark 150% (5.3s)
+  ✓  24 tests/e2e/desktop-floating-toolbar.spec.ts:137:9 › floating toolbar windowed 1100x760 dark 200% (3.2s)
+  ✓  25 tests/e2e/desktop-floating-toolbar.spec.ts:137:9 › floating toolbar windowed 760x520 light 100% (4.6s)
+  ✓  26 tests/e2e/desktop-floating-toolbar.spec.ts:137:9 › floating toolbar windowed 760x520 light 125% (5.7s)
+  ✓  27 tests/e2e/desktop-floating-toolbar.spec.ts:137:9 › floating toolbar windowed 760x520 light 150% (5.1s)
+  ✓  28 tests/e2e/desktop-floating-toolbar.spec.ts:137:9 › floating toolbar windowed 760x520 light 200% (3.6s)
+  ✓  29 tests/e2e/desktop-floating-toolbar.spec.ts:137:9 › floating toolbar windowed 760x520 dark 100% (4.2s)
+  ✓  30 tests/e2e/desktop-floating-toolbar.spec.ts:137:9 › floating toolbar windowed 760x520 dark 125% (4.0s)
+  ✓  31 tests/e2e/desktop-floating-toolbar.spec.ts:137:9 › floating toolbar windowed 760x520 dark 150% (4.7s)
+  ✓  32 tests/e2e/desktop-floating-toolbar.spec.ts:137:9 › floating toolbar windowed 760x520 dark 200% (3.7s)
+  ✓  33 tests/e2e/desktop-floating-toolbar.spec.ts:237:3 › floating toolbar ordinary commands retain editing and clear on disable/document switch (8.3s)
+  ✓  34 tests/e2e/desktop-floating-toolbar.spec.ts:237:3 › floating toolbar windowed commands retain editing and clear on disable/document switch (9.1s)
+
+
+  1) tests/e2e/desktop-floating-toolbar.spec.ts:137:9 › floating toolbar ordinary 760x520 dark 100% 
+
+    TypeError: Cannot read properties of null (reading 'x')
+
+      214 |             const buttonBounds = await button.boundingBox()
+      215 |             const slotBounds = await toolbar(page).boundingBox()
+    > 216 |             expect(buttonBounds!.x).toBeGreaterThanOrEqual(slotBounds!.x + 2)
+          |                                                                        ^
+      217 |             expect(buttonBounds!.x + buttonBounds!.width).toBeLessThanOrEqual(
+      218 |               slotBounds!.x + slotBounds!.width - 2,
+      219 |             )
+        at /tmp/milkup-windows-manual-candidate/tests/e2e/desktop-floating-toolbar.spec.ts:216:72
+
+    attachment #4: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ../milkup-beta6-floating-green/desktop-floating-toolbar-f-3cd74--ordinary-760x520-dark-100-/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #5: floating-toolbar-state (text/plain) ─────────────────────────────────────────────
+    - main:
+      - button "菜单"
+      - heading "未命名" [level=1]
+      - paragraph: 未保存
+      - button "最小化"
+      - button "最大化"
+      - button "关闭窗口"
+      - text: 写点什么吧...
+      - textbox
+      - textbox "Markdown 编辑器"
+      - button "侧栏"
+      - button "实时"
+      - text: 0 字符 已保存
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ../milkup-beta6-floating-green/desktop-floating-toolbar-f-3cd74--ordinary-760x520-dark-100-/error-context.md
+
+  1 failed
+    tests/e2e/desktop-floating-toolbar.spec.ts:137:9 › floating toolbar ordinary 760x520 dark 100% ─
+  33 passed (3.3m)

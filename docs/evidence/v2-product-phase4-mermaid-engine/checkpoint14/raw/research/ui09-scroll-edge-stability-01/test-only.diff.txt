@@ -1,0 +1,87 @@
+--- before-tauri-mermaid-ui.mjs
++++ after-tauri-mermaid-ui.mjs
+@@ -226,6 +226,44 @@
+     stage + ': same range remains fully decoded',
+   )
+ }
++function assertCapturedScrollEdge(dom, expected, stage) {
++  assert(expected.after, stage + ': reached corner snapshot exists')
++  assert.equal(expected.after.from, expected.from, stage + ': expected range start')
++  assert.equal(expected.after.to, expected.to, stage + ': expected range end')
++  assertCapturedPreview(dom, expected.after, stage)
++  const actual = dom.previews.find((item) => item.from === expected.from && item.to === expected.to)
++  assert(
++    actual.images.length > 0 && actual.images.every((item) => item.width > 0 && item.height > 0),
++    stage + ': mounted image dimensions remain positive',
++  )
++  assert(['bottom-right', 'top-left'].includes(expected.corner), stage + ': known corner')
++  for (const [axis, extent, client] of [
++    ['left', 'scrollWidth', 'clientWidth'],
++    ['top', 'scrollHeight', 'clientHeight'],
++  ]) {
++    for (const snapshot of [expected.after, actual]) {
++      assert(
++        [snapshot[axis], snapshot[extent], snapshot[client]].every(Number.isFinite) &&
++          snapshot[client] > 0 &&
++          snapshot[extent] > 0,
++        stage + ': finite positive scroll geometry ' + axis,
++      )
++    }
++    const previousMax = Math.max(0, expected.after[extent] - expected.after[client])
++    const currentMax = Math.max(0, actual[extent] - actual[client])
++    assert(
++      previousMax <= 1 || currentMax > 1,
++      stage + ': previously overflowing axis remains scrollable ' + axis,
++    )
++    const corner = expected.corner === 'bottom-right' ? currentMax : 0
++    const clamped = Math.min(currentMax, Math.max(0, expected.after[axis]))
++    assert(
++      Math.abs(actual[axis] - corner) <= 1,
++      stage + ': remains at ' + expected.corner + ' ' + axis,
++    )
++    assert(Math.abs(actual[axis] - clamped) <= 1, stage + ': preserves reached offset ' + axis)
++  }
++}
+ function noticeIsVisible(notice, dom) {
+   const rect = notice.rect
+   return (
+@@ -251,6 +289,7 @@
+ async function preserveAssertion(kind, dom, expected, stage, document = null) {
+   try {
+     if (kind === 'preview') assertCapturedPreview(dom, expected, stage)
++    else if (kind === 'scroll-edge') assertCapturedScrollEdge(dom, expected, stage)
+     else assertCapturedNotice(dom, expected, stage)
+   } catch (error) {
+     const file =
+@@ -301,6 +340,8 @@
+   const dom = await observe()
+   if (extra.preview)
+     await preserveAssertion('preview', dom, extra.preview, 'after screenshot', document)
++  if (extra.scrollEdge)
++    await preserveAssertion('scroll-edge', dom, extra.scrollEdge, 'after screenshot', document)
+   if (extra.fallbackNotice) {
+     assert.equal(document.path, activeFile)
+     await preserveAssertion('notice', dom, extra.fallbackNotice, 'after screenshot', document)
+@@ -334,6 +375,8 @@
+   await app.delay(250)
+   if (extra.preview)
+     await preserveAssertion('preview', await observe(), extra.preview, 'before screenshot')
++  if (extra.scrollEdge)
++    await preserveAssertion('scroll-edge', await observe(), extra.scrollEdge, 'before screenshot')
+   if (extra.fallbackNotice)
+     await preserveAssertion('notice', await observe(), extra.fallbackNotice, 'before screenshot')
+   await app.shot(name + '-webview')
+@@ -1042,10 +1085,12 @@
+         'Wheel reaches diagram ' + axis + ' ' + corner,
+       )
+     }
++    const after = await read()
+     await shot(`edges-${key}-${sample.id}-${corner}`, {
+       sample: sample.id,
+       before,
+-      after: await read(),
++      after,
++      scrollEdge: { from: before.from, to: before.to, corner, after },
+     })
+   }
+ }

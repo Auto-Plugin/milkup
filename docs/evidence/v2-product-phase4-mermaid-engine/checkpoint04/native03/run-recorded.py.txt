@@ -1,0 +1,12 @@
+import datetime,json,pathlib,subprocess,sys,time
+prefix=pathlib.Path(sys.argv[1]);command=sys.argv[2:]
+record={'command':command,'started':datetime.datetime.now(datetime.timezone.utc).isoformat(),'startMonotonic':time.monotonic()}
+prefix.with_suffix('.command.json').write_text(json.dumps(record,indent=2)+'\n')
+with prefix.with_suffix('.log').open('wb') as log:
+ p=subprocess.Popen(command,stdout=subprocess.PIPE,stderr=subprocess.STDOUT)
+ for line in iter(p.stdout.readline,b''):
+  log.write(line);log.flush();sys.stdout.buffer.write(line);sys.stdout.buffer.flush()
+ code=p.wait()
+record.update({'ended':datetime.datetime.now(datetime.timezone.utc).isoformat(),'endMonotonic':time.monotonic(),'exitCode':code})
+prefix.with_suffix('.command.json').write_text(json.dumps(record,indent=2)+'\n')
+sys.exit(code)

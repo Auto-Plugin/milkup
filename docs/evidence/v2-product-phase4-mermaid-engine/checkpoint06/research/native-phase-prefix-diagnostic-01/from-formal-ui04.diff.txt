@@ -1,0 +1,118 @@
+--- formal-ui04-2b0ec01d.mjs
++++ native-stage-prefix-diagnostic01.mjs
+@@ -1,15 +1,19 @@
+-// Prepared production UI harness. Run only against an explicitly frozen candidate.
+-// Reuses P4 GTK/XTest startup and controls; page execution observes public DOM or
+-// focuses public controls. No editor/plugin internals, raw SVG or IPC are injected.
++// Diagnostic-only native-stage prefix derived from frozen UI04 harness.
++// Uses the separately frozen diagnostic binary; not a production acceptance run.
++// No JS wire observer or IPC hooks. Original public-input/DOM assertions retained.
+ import assert from 'node:assert/strict'
+ import { execFileSync } from 'node:child_process'
+ import { createHash } from 'node:crypto'
+ import { mkdir, readFile, writeFile, realpath } from 'node:fs/promises'
+ import path from 'node:path'
+-import { startProduction } from '../helpers/native-production.mjs'
+-import { ownedApplication } from '../helpers/native-owned-process.mjs'
+-import { ownNativeClipboard } from '../helpers/native-clipboard.mjs'
+-import { action, nativeFixture, x } from '../helpers/native-updates-fixture.mjs'
++import { startProduction } from '/workspace/milkup/tests/helpers/native-production.mjs'
++import { ownedApplication } from '/workspace/milkup/tests/helpers/native-owned-process.mjs'
++import { ownNativeClipboard } from '/workspace/milkup/tests/helpers/native-clipboard.mjs'
++import {
++  action,
++  nativeFixture,
++  x,
++} from '/workspace/milkup/tests/helpers/native-updates-fixture.mjs'
+ 
+ const sha256 = (bytes) => createHash('sha256').update(bytes).digest('hex')
+ const output = path.resolve(process.env.MILKUP_NATIVE_EVIDENCE_DIR || '')
+@@ -106,6 +110,11 @@
+           })
+ const plan = {
+   preparedOnly: process.argv.includes('--preflight'),
++  diagnosticOnly: true,
++  executionPrefix:
++    'Cold bundled, independent installation, four isolated fallbacks and notices, ordinary block/class/ER/flow; stop before other cases or matrix.',
++  listedMatrixIsNotExecuted: true,
++  observer: 'Native stage traces only; no JS wire observer.',
+   archive: { path: archivePath, sha256: sha256(archiveBytes), manifest: archive.manifest },
+   catalog: { path: catalogPath, sha256: sha256(catalogBytes) },
+   samples,
+@@ -178,7 +187,7 @@
+             'native-owned-process.mjs',
+             'native-updates-fixture.mjs',
+             'native-clipboard.mjs',
+-          ].map((name) => new URL('../helpers/' + name, import.meta.url).href),
++          ].map((name) => new URL('file:///workspace/milkup/tests/helpers/' + name).href),
+         ].map(async (url) => ({
+           path: new URL(url).pathname,
+           sha256: sha256(await readFile(new URL(url))),
+@@ -813,53 +822,24 @@
+   await coldBundledWindow()
+   await install()
+   for (const sample of isolatedFallbacks) await isolatedFallback(sample)
+-  for (const name of ['ordinary', 'windowed']) {
+-    await openDocument(name)
+-    await appearance('light', 1)
+-    for (const sample of samples) {
+-      await seek(sample, 'live')
+-      await shot(`coverage-${name}-${sample.id}`, {
+-        sample: sample.id,
+-        ...(await assertSample(sample, 'live')),
+-      })
+-    }
+-    await sourceSelection(
+-      name,
+-      matrixSamples.find((sample) => sample.expected === 'ready'),
+-    )
+-    for (const mode of ['source', 'live']) await history(name, mode)
+-  }
+-  for (const combination of matrix) {
+-    const { view, mode, theme, zoom, narrow, key } = combination
+-    await openDocument(view)
+-    x('windowsize', nativeWindow, narrow ? '760' : '1100', narrow ? '520' : '760')
+-    await appearance(theme, zoom)
+-    const before = await app.probe()
+-    for (const sample of matrixSamples) {
+-      await seek(sample, mode)
+-      await shot(`matrix-${key}-${sample.id}`, {
+-        combination,
+-        sample: sample.id,
+-        ...(await assertSample(sample, mode)),
+-      })
+-      if (mode === 'live' && zoom === 2 && narrow && sample.expected === 'ready')
+-        await scrollEdges(sample, key)
+-    }
+-    assert.equal((await app.probe()).version, before.version)
+-    assert.deepEqual(await readFile(activeFile), Buffer.from(contents.get(view)))
+-    assert.deepEqual((await observe()).diagnostics.errors, [])
+-    await record('matrix-complete-' + key, {
+-      combination,
+-      exactFileSha256: sha256(await readFile(activeFile)),
++  const name = 'ordinary'
++  await openDocument(name)
++  await appearance('light', 1)
++  for (const sample of samples.slice(0, 4)) {
++    await seek(sample, 'live')
++    await shot(`coverage-${name}-${sample.id}`, {
++      sample: sample.id,
++      ...(await assertSample(sample, 'live')),
+     })
+   }
+   assert.equal(sha256(await readFile(binary)), process.env.MILKUP_MERMAID_BINARY_SHA256)
+   assert.equal(sha256(await readFile(archivePath)), process.env.MILKUP_MERMAID_ARCHIVE_SHA256)
+-  await record('PASS', {
+-    combinations: matrix.length,
+-    samplesPerCombination: matrixSamples.length,
+-    pixelReview: 'required-separately',
+-    nativeIsolation: 'not-established-by-this-harness',
++  await record('DIAGNOSTIC-NATIVE-PREFIX-COMPLETE', {
++    diagnosticOnly: true,
++    acceptance: false,
++    stoppedAfter: 'ordinary flowchart-000-first-official-example',
++    completeAcceptanceMatrix: false,
++    observer: 'Native stage traces only; no JS wire observer.',
+   })
+ } catch (error) {
+   await writeFile(

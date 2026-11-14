@@ -1,0 +1,23 @@
+# Supplemental read-only preflight and offline summary
+
+This supplement does not change any of the original16 frozen harness inputs, the ABBA gate, or the helper. The new test executable SHA is pending the authorized native no-run build. No runtime or preflight was executed while preparing this supplement.
+
+After build, replace `ACTUAL_TEST_SHA` only with the measured frozen test executable identity, then run the read-only check (it writes only its new report):
+
+```
+/usr/bin/python3 /workspace/milkup-mermaid-engine-evidence/research/mermaid-eager-load-candidate-01/harness/runtime-preflight.py --tests-sha ACTUAL_TEST_SHA --output /workspace/milkup-mermaid-engine-evidence/research/mermaid-eager-load-candidate-01/harness/runtime-preflight.json
+```
+
+The check verifies the original16 inputs and original preparation hash, fixed02b15 helper, fixtures/index, observer, this supplemental manifest, new test binary, old51 source files, new51 source files, original8-cell summary, exact Xvfb PID/birth/argv and local socket, vacant driver ports, four fresh profiles/short runtime paths, and absence of forbidden inherited runner/preload/sandbox settings. A preflight success is not runtime authorization.
+
+Only after Root separately grants runtime GO, the single existing `run-abba.sh` receives six arguments: fixed helper path+SHA, new native/bin/native-tests+actualSHA, and frozen observer path+SHA, with `MILKUP_EAGER_RUNTIME_APPROVED=1`. It executes four fresh ABBA cells in sequence. No WebDriver/app profile cloning or CPU sampling. No new scheduler, IPC, rendering warmup, or native budget modification.
+
+After the runner has ended and owned cleanup is recorded, aggregate with a fresh output path:
+
+```
+/usr/bin/python3 /workspace/milkup-mermaid-engine-evidence/research/mermaid-eager-load-candidate-01/harness/aggregate-results.py --preflight /workspace/milkup-mermaid-engine-evidence/research/mermaid-eager-load-candidate-01/harness/runtime-preflight.json --output /workspace/milkup-mermaid-engine-evidence/research/mermaid-eager-load-candidate-01/harness/runtime-summary.json
+```
+
+The summary rehashes every preflight input/source, preserves full native phases, launch preparation time, exact request/event artifact identities, each real outcome and any censored render_2, X11 observations, and final recorded PID/birth state. A missing cell is explicitly `not-started`; missing outcome/events are never invented. Raw artifacts remain unchanged. A same-birth zombie is present and cannot pass the post-run cleanup check. Proc exit races are recorded as absent at that read; permission or parse failures are unknown, not success. Artifact hashes exclude profile/cache files with an explicit count.
+
+The separate current-core validator is executed only after the batch, as separately authorized. For an early setup failure, do not invoke the full comparison tool requiring four outcomes; only validate available real results and retain the not-started list. This supplemental summary may reference already-created validation files but does not create or substitute them. Use a new summary filename if additional post-run validation is performed later; no overwrite.

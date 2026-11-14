@@ -1,0 +1,29 @@
+20:   })
+21: 
+22:   const callbacks = new Map()
+23: 
+24:   function registerCallback(callback, once) {
+25:     const identifier = uid()
+26:     callbacks.set(identifier, (data) => {
+27:       if (once) {
+28:         unregisterCallback(identifier)
+29:       }
+30:       return callback && callback(data)
+31:     })
+32:     return identifier
+33:   }
+34: 
+35:   function unregisterCallback(id) {
+36:     callbacks.delete(id)
+37:   }
+38: 
+39:   function runCallback(id, data) {
+40:     const callback = callbacks.get(id)
+41:     if (callback) {
+42:       callback(data)
+43:     } else {
+44:       console.warn(
+45:         `[TAURI] Couldn't find callback id ${id}. This might happen when the app is reloaded while Rust is running an asynchronous operation.`
+46:       )
+47:     }
+48:   }

@@ -1,0 +1,13 @@
+# Integer raster viewport diagnostic (not executed)
+
+Keep the original canonical SVG as an unchanged inner SVG. Add an outer 600×407 SVG with a matching viewBox and preserveAspectRatio=none. The image CSS size is 600×407, so this case has no fractional image scaling. A separate non-clipping layout slot retains the original 600×406.90625 footprint. Both candidates begin at the original top-left. The extra 0.09375 CSS pixel is only the ceil-derived raster envelope; its transparency and the original inner clipping must be measured, not assumed.
+
+The runner must remember original dimensions before replacing the DOM. It must not derive the slot dimensions from the new outer SVG. For canonical-inline, place the outer SVG in that same exact-sized slot with block display; for the image, use the same slot and a block image. No scroll, zoom, source, graph coordinate, font, color, or timing-budget change is permitted.
+
+Inspect original and inner SVG viewport, CTM, screen CTM, getBBox and effective overflow. Record a bounded deterministic sample of rect/path/text nodes by type and document-order index, including their CTMs and boxes; check counts too. Compare the three screenshots globally, by fixed spatial grid, and within the original content extent plus ceil-derived remainder. Preserve all original PNGs and the previous fractional candidates.
+
+Pixel differences alone are not an automatic rejection or acceptance rule. Report maximum and mean channel difference, changed-pixel counts and locations; identify actual displacement or missing paint where observable, and only label residual differences as rasterization/antialiasing when geometry and pixel evidence support that distinction.
+
+No runner/build/UI has been executed for this candidate. Runtime collection code and independent host budget accounting remain pending.
+
+Keep an untouched-original screenshot before the controlled layout. For each of controlled-original, canonical-inline and canonical-image, use the same exact-size non-clipping slot followed by a visible footer. Record and compare footer top/rect to detect fractional-height reflow. Validate that the controlled-original diagram pixels and geometry match the untouched original before interpreting candidate differences. Preserve original inner overflow and clipping; do not add a crop to hide shadows or other previously visible content.

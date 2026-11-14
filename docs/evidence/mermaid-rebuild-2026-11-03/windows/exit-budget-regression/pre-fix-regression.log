@@ -1,0 +1,29 @@
+✖ timely owned exit stays timely when a closing query completes after the deadline (3.985161ms)
+ℹ tests 1
+ℹ suites 0
+ℹ pass 0
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 106.727375
+
+✖ failing tests:
+
+test at tests/windows/mermaid-product-e2e.test.mjs:675:1
+✖ timely owned exit stays timely when a closing query completes after the deadline (3.985161ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  
+  false !== true
+  
+      at TestContext.<anonymous> (file:///tmp/milkup-exit-budget-488r9rmf/regression-before-fix/tests/windows/mermaid-product-e2e.test.mjs:695:10)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: false,
+    expected: true,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+

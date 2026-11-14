@@ -1,0 +1,18 @@
+--- reviewed-diagnostic01/RUN.sh
++++ production08-prepared/RUN.sh
+@@ -1,11 +1,11 @@
+ #!/usr/bin/env bash
+ set -euo pipefail
+ ROOT=/workspace/milkup-mermaid-engine-evidence/research/native-ui10-deadline-diagnostic-01
+-BINARY=/workspace/milkup-mermaid-engine-evidence/linux-production-07/install/usr/bin/milkup-desktop
+-BINARY_SHA=df7b509fefa335df89b004a9992d16cb3a712f062281f418518d3e59d96e5d72
+-ARCHIVE=/workspace/milkup-mermaid-engine-evidence/linux-production-07/artifacts/milkup.diagrams-1.1.0.milkup-plugin
++BINARY=/workspace/milkup-mermaid-engine-evidence/linux-production-08/install/usr/bin/milkup-desktop
++BINARY_SHA=cd0f892d274bb363ee663e8b36aead93cbee31a4464bdef26ac849f5018cb304
++ARCHIVE=/workspace/milkup-mermaid-engine-evidence/linux-production-08/artifacts/milkup.diagrams-1.1.0.milkup-plugin
+ ARCHIVE_SHA=9889f1796f9080ff230a1c51147522e83e065bc191a258035208f69403a327df
+-RUN=mermaid-ui-deadline-diagnostic-01
++RUN=mermaid-ui-production08-observed-01
+ case "${1:-}" in
+   driver) exec bash "$ROOT/driver.sh" "$RUN" "$BINARY" "$BINARY_SHA" "$ARCHIVE" "$ARCHIVE_SHA" ;;
+   harness)

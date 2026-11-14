@@ -1,0 +1,83 @@
+{
+  "status": "PASS",
+  "kind": "source-derived reference models only",
+  "engineCompiled": false,
+  "engineExecuted": false,
+  "cases": [
+    {
+      "name": "rtl-offset-pairs-after-final-reverse",
+      "passed": true,
+      "old": [
+        [
+          "glyph-C",
+          0
+        ],
+        [
+          "glyph-B",
+          1
+        ],
+        [
+          "glyph-A",
+          2
+        ]
+      ],
+      "proposed": [
+        [
+          "glyph-C",
+          2
+        ],
+        [
+          "glyph-B",
+          1
+        ],
+        [
+          "glyph-A",
+          0
+        ]
+      ]
+    },
+    {
+      "name": "ltr-offset-pairs-unchanged",
+      "passed": true
+    },
+    {
+      "name": "surrogate-boundary-and-utf8-map",
+      "passed": true,
+      "mapping": {
+        "0": 0,
+        "1": 1,
+        "3": 5,
+        "4": 8,
+        "5": 11
+      }
+    },
+    {
+      "name": "fallback-tail-must-not-swallow-other-font-text",
+      "passed": true,
+      "wrongExtraction": "ABB",
+      "correct": "AB"
+    },
+    {
+      "name": "fallback-source-slices-fix-simple-disjoint-example",
+      "passed": true
+    },
+    {
+      "name": "nonadjacent-repeat-needs-semantic-grouping",
+      "passed": true,
+      "wrongExtraction": "aba",
+      "correct": "ab"
+    },
+    {
+      "name": "nonmonotonic-distinct-range-behavior",
+      "passed": true
+    },
+    {
+      "name": "adjacent-many-glyphs-one-cluster",
+      "passed": true
+    },
+    {
+      "name": "partial-ligature-is-not-one-code-unit-per-glyph",
+      "passed": true
+    }
+  ]
+}

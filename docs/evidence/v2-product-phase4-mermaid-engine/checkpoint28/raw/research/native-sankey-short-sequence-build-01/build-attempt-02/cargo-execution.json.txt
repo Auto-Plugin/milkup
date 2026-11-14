@@ -1,0 +1,28 @@
+{
+  "command": [
+    "bash",
+    "-lc",
+    "source /workspace/.cloud/milkup-v2/env.sh\nunset CARGO_TARGET_X86_64_UNKNOWN_LINUX_GNU_RUNNER PROOT_NO_SECCOMP\nexec \"$@\"",
+    "build-native",
+    "python3",
+    "/workspace/milkup-mermaid-engine-evidence/research/native-sankey-short-sequence-build-01/cargo-with-research-config.py",
+    "/workspace/milkup-mermaid-engine-evidence/research/native-sankey-short-sequence-build-01/build-attempt-01/research-dist",
+    "/workspace/milkup-mermaid-engine-evidence/research/native-sankey-short-sequence-build-01/build-attempt-02/effective-tauri-config.json",
+    "cargo",
+    "build",
+    "--manifest-path",
+    "apps/desktop/src-tauri/Cargo.toml",
+    "--release",
+    "--locked",
+    "--offline",
+    "--features",
+    "tauri/custom-protocol",
+    "--bin",
+    "milkup-desktop",
+    "--message-format=json-render-diagnostics"
+  ],
+  "cwd": "/workspace/milkup",
+  "startedUtc": "2026-10-17T06:19:05.872009+00:00",
+  "exitCode": 0,
+  "finishedUtc": "2026-10-17T06:20:07.503975+00:00"
+}

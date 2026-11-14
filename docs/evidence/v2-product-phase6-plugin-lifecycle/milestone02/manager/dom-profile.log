@@ -1,0 +1,51 @@
+
+ RUN  v3.2.6 /workspace/milkup
+
+ ❯ apps/desktop/src/desktop-plugin-manager-catalog.test.ts (18 tests | 1 failed) 77ms
+   ✓ P6 authoritative catalog transactions > stages without running or replacing old active approval; exact review is required 14ms
+   ✓ P6 authoritative catalog transactions > tears old epoch down before trial, commits before publish, and recovers old version with new epoch on failure 6ms
+   ✓ P6 authoritative catalog transactions > cannot grant candidate capabilities via pending approval or side effects during activate 1ms
+   ✓ P6 authoritative catalog transactions > serializes queued approval and remove; tombstone keeps data/settings and never revives from mirror 1ms
+   ✓ P6 authoritative catalog transactions > recovers a committed generation when contribution publication fails 4ms
+   ✓ P6 candidate failure injection > denies a swallowed initialization write and restores unchanged data 7ms
+   ✓ P6 candidate failure injection > recovers old active after native commit rejects without publishing the candidate 2ms
+   ✓ P6 candidate failure injection > caps hanging candidate activation and attempts new-epoch recovery 6ms
+   ✓ P6 candidate failure injection > does not trust a poisoned mirror and quarantines an interrupted startup instead of retrying forever 2ms
+   ✓ P6 retirement and public diagnostic boundaries > retains a rejected isolation owner and retries before any new activation 3ms
+   ✓ P6 retirement and public diagnostic boundaries > keeps callback errors diagnostic when the trusted owner confirms termination 2ms
+   ✓ P6 retirement and public diagnostic boundaries > never exposes native or activation paths through the public management adapter 1ms
+   ✓ P6 sealed generations > permits package reads, refuses package writes/deletes, and gives data a distinct writable scope 2ms
+   ✓ P6 sealed generations > disables a newly committed first installation if publication fails with no previous generation 1ms
+   ✓ P6 compatibility at execution boundary > quarantines incompatible native active intent after a host/SDK change without loading code 4ms
+   ✓ P6 compatibility at execution boundary > does not run an incompatible native pending candidate or retire the old active instance 2ms
+   ✓ P6 compatibility at execution boundary > blocks candidate data writes before publication even when approval includes file write 2ms
+   × P6 native read-only renderer profile > permits only the sealed read-only DOM renderer and awaits its retirement before replacement 13ms
+     → Invalid plugin manifest:
+- $.contributes.documentRenderers[0]: Invalid bounded document renderer declaration
+- $.contributes.documentRenderers: DOM plugins require at least one document renderer
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  apps/desktop/src/desktop-plugin-manager-catalog.test.ts > P6 native read-only renderer profile > permits only the sealed read-only DOM renderer and awaits its retirement before replacement
+Error: Invalid plugin manifest:
+- $.contributes.documentRenderers[0]: Invalid bounded document renderer declaration
+- $.contributes.documentRenderers: DOM plugins require at least one document renderer
+ ❯ parsePluginManifest packages/plugin/src/manifest.ts:163:11
+    161| 
+    162|   if (!result.ok || !result.manifest) {
+    163|     throw new Error(
+       |           ^
+    164|       `Invalid plugin manifest:\n${result.errors
+    165|         .map((error) => `- ${error.path}: ${error.message}`)
+ ❯ PluginRuntime.loadPlugin packages/plugin/src/runtime.ts:329:22
+ ❯ DesktopPluginManager.enablePluginInstance apps/desktop/src/desktop-plugin-manager.ts:830:20
+ ❯ DesktopPluginManager.trialCandidate apps/desktop/src/desktop-plugin-manager.ts:564:7
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 17 passed (18)
+   Start at  08:58:42
+   Duration  1.58s (transform 756ms, setup 0ms, collect 1.05s, tests 77ms, environment 0ms, prepare 83ms)
+

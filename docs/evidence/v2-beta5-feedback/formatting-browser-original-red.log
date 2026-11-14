@@ -1,0 +1,74 @@
+
+Running 1 test using 1 worker
+
+(node:184099) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  1 tests/e2e/desktop-formatting.spec.ts:28:1 › formatting Worker preserves Unicode selection and supports toolbar toggle, undo and save (9.0s)
+
+
+  1) tests/e2e/desktop-formatting.spec.ts:28:1 › formatting Worker preserves Unicode selection and supports toolbar toggle, undo and save 
+
+    Error: expect(locator).toBeVisible() failed
+
+    Locator: locator('[data-plugin-slot="document-toolbar"]').getByRole('button', { name: '格式', exact: true })
+    Expected: visible
+    Timeout: 5000ms
+    Error: element(s) not found
+
+    Call log:
+      - Expect "toBeVisible" with timeout 5000ms
+      - waiting for locator('[data-plugin-slot="document-toolbar"]').getByRole('button', { name: '格式', exact: true })
+
+
+       at ../helpers/formatting-plugin.ts:94
+
+      92 |         .locator('[data-plugin-slot="document-toolbar"]')
+      93 |         .getByRole('button', { name: '格式', exact: true }),
+    > 94 |     ).toBeVisible()
+         |       ^
+      95 |     phase('toolbar-visible')
+      96 |   } catch (error) {
+      97 |     phase('fixture-failed')
+        at formattingFixture (/tmp/milkup-windows-manual-candidate/tests/helpers/formatting-plugin.ts:94:7)
+        at /tmp/milkup-windows-manual-candidate/tests/e2e/desktop-formatting.spec.ts:31:3
+
+    attachment #2: formatting-fixture-body (text/plain) ────────────────────────────────────────────
+    - main:
+      - button "菜单"
+      - heading "未命名" [level=1]
+      - paragraph: 未保存
+      - button "最小化"
+      - button "最大化"
+      - button "关闭窗口"
+      - text: 写点什么吧...
+      - textbox
+      - textbox "Markdown 编辑器"
+      - button "侧栏"
+      - button "实时"
+      - text: Markdown 0 字符 已保存
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #3: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ../milkup-beta5-formatting-original-red/desktop-formatting-formatt-484ef-oolbar-toggle-undo-and-save/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #4: page-state (text/plain) ─────────────────────────────────────────────────────────
+    - main:
+      - button "菜单"
+      - heading "未命名" [level=1]
+      - paragraph: 未保存
+      - button "最小化"
+      - button "最大化"
+      - button "关闭窗口"
+      - text: 写点什么吧...
+      - textbox
+      - textbox "Markdown 编辑器"
+      - button "侧栏"
+      - button "实时"
+      - text: Markdown 0 字符 已保存
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ../milkup-beta5-formatting-original-red/desktop-formatting-formatt-484ef-oolbar-toggle-undo-and-save/error-context.md
+
+  1 failed
+    tests/e2e/desktop-formatting.spec.ts:28:1 › formatting Worker preserves Unicode selection and supports toolbar toggle, undo and save 

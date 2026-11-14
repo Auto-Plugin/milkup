@@ -1,0 +1,131 @@
+--- /workspace/milkup-mermaid-engine-evidence/research/native-cold-start-diagnostic-04/RUN.sh
++++ /workspace/milkup-mermaid-engine-evidence/research/native-cold-start-diagnostic-05/RUN.sh
+@@ -1,13 +1,15 @@
+ #!/usr/bin/env bash
+ set -euo pipefail
+-ROOT=/workspace/milkup-mermaid-engine-evidence/research/native-cold-start-diagnostic-04
+-RUN=mermaid-ui-cold-diag-04
++ROOT=/workspace/milkup-mermaid-engine-evidence/research/native-cold-start-diagnostic-05
++RUN=mermaid-ui-cold-diag-05
+ # Generated only after successful root-authorized diagnostic build and final review.
+ # Contains exactly BINARY and BINARY_SHA; no production binary is accepted here.
+-source "/workspace/milkup-mermaid-engine-evidence/research/native-cold-start-diagnostic-02/reviewed-binary.env"
+-[[ "$BINARY" == "/workspace/milkup-mermaid-engine-evidence/research/native-cold-start-diagnostic-02/diagnostic-binary/milkup-desktop" ]]
++source "/workspace/milkup-mermaid-engine-evidence/research/native-cold-start-diagnostic-05/reviewed-binary.env"
++[[ "$BINARY" == "/workspace/milkup-mermaid-engine-evidence/research/native-webprocess-pidfd-candidate-01/build-attempt-01/diagnostic-binary/milkup-desktop" ]]
+ ARCHIVE=/workspace/milkup-mermaid-engine-evidence/linux-production-08/artifacts/milkup.diagrams-1.1.0.milkup-plugin
+ ARCHIVE_SHA=9889f1796f9080ff230a1c51147522e83e065bc191a258035208f69403a327df
++export MILKUP_WEBPROCESS_PIDFD_DIAGNOSTICS=1
++export MILKUP_WEBPROCESS_PIDFD_OUTPUT_DIR="$ROOT/runtime/$RUN/native-pidfd"
+ export MILKUP_COLD_REQUEST_DIAGNOSTICS=1
+ export MILKUP_COLD_REQUEST_OUTPUT_DIR="$ROOT/runtime/$RUN/native-capture"
+ python3 "$ROOT/verify-runtime-go.py"
+--- /workspace/milkup-mermaid-engine-evidence/research/native-cold-start-diagnostic-04/run-env.sh
++++ /workspace/milkup-mermaid-engine-evidence/research/native-cold-start-diagnostic-05/run-env.sh
+@@ -25,12 +25,12 @@
+ export DISPLAY=:126
+ export GDK_PIXBUF_MODULE_FILE=/workspace/milkup-markdown-extensions-phase4-evidence/native/environment/loaders-sysroot.cache
+ export GDK_PIXBUF_MODULEDIR=/workspace/.cloud/milkup-v2/sysroot/usr/lib/x86_64-linux-gnu/gdk-pixbuf-2.0/2.10.0/loaders
+-export MILKUP_NATIVE_PROFILE_ROOT=/workspace/milkup-mermaid-engine-evidence/research/native-cold-start-diagnostic-04/runtime/$MILKUP_NATIVE_RUN/profile
++export MILKUP_NATIVE_PROFILE_ROOT=/workspace/milkup-mermaid-engine-evidence/research/native-cold-start-diagnostic-05/runtime/$MILKUP_NATIVE_RUN/profile
+ export XDG_CONFIG_HOME=$MILKUP_NATIVE_PROFILE_ROOT/config
+ export XDG_CACHE_HOME=$MILKUP_NATIVE_PROFILE_ROOT/cache
+ export XDG_DATA_HOME=$MILKUP_NATIVE_PROFILE_ROOT/data
+-export MILKUP_NATIVE_EVIDENCE_DIR=/workspace/milkup-mermaid-engine-evidence/research/native-cold-start-diagnostic-04/runtime/$MILKUP_NATIVE_RUN/evidence
+-export MILKUP_NATIVE_APP_LOG=/workspace/milkup-mermaid-engine-evidence/research/native-cold-start-diagnostic-04/runtime/$MILKUP_NATIVE_RUN/driver.log
++export MILKUP_NATIVE_EVIDENCE_DIR=/workspace/milkup-mermaid-engine-evidence/research/native-cold-start-diagnostic-05/runtime/$MILKUP_NATIVE_RUN/evidence
++export MILKUP_NATIVE_APP_LOG=/workspace/milkup-mermaid-engine-evidence/research/native-cold-start-diagnostic-05/runtime/$MILKUP_NATIVE_RUN/driver.log
+ export TAURI_DRIVER_URL=http://127.0.0.1:4626
+ export MILKUP_NATIVE_EXCLUSIVE_DISPLAY=1
+ export MILKUP_DOM_DIAGNOSTICS=1
+--- /workspace/milkup-mermaid-engine-evidence/research/native-cold-start-diagnostic-04/driver.sh
++++ /workspace/milkup-mermaid-engine-evidence/research/native-cold-start-diagnostic-05/driver.sh
+@@ -1,9 +1,11 @@
+ #!/usr/bin/env bash
+ set -euo pipefail
+-source /workspace/milkup-mermaid-engine-evidence/research/native-cold-start-diagnostic-04/run-env.sh "$@"
++source /workspace/milkup-mermaid-engine-evidence/research/native-cold-start-diagnostic-05/run-env.sh "$@"
+ # A fresh profile, log and evidence directory are mandatory for each attempt.
+ [[ ! -e "$XDG_RUNTIME_DIR" && ! -e "$MILKUP_NATIVE_PROFILE_ROOT" && ! -e "$MILKUP_NATIVE_APP_LOG" && ! -e "$MILKUP_NATIVE_EVIDENCE_DIR" ]]
+ mkdir -p "$XDG_CONFIG_HOME" "$XDG_CACHE_HOME" "$XDG_DATA_HOME" "$(dirname "$MILKUP_NATIVE_APP_LOG")" "$(dirname "$MILKUP_NATIVE_EVIDENCE_DIR")"
+ mkdir -m 0700 "$XDG_RUNTIME_DIR"
++[[ ! -e "$MILKUP_WEBPROCESS_PIDFD_OUTPUT_DIR" ]]
++mkdir -m 0700 "$MILKUP_WEBPROCESS_PIDFD_OUTPUT_DIR"
+ # The harness itself exclusively creates its case evidence directory.
+ exec bwrap --unshare-user --ro-bind / / --bind /workspace /workspace --bind /tmp /tmp --dev-bind /dev /dev --proc /proc --overlay-src /usr/bin --tmp-overlay /usr/bin --ro-bind /workspace/.cloud/milkup-v2/sysroot/usr/bin/xdg-dbus-proxy /usr/bin/xdg-dbus-proxy --remount-ro /usr/bin --overlay-src /usr/lib/x86_64-linux-gnu --tmp-overlay /usr/lib/x86_64-linux-gnu --ro-bind /workspace/.cloud/milkup-v2/sysroot/usr/lib/x86_64-linux-gnu/webkit2gtk-4.1 /usr/lib/x86_64-linux-gnu/webkit2gtk-4.1 --remount-ro /usr/lib/x86_64-linux-gnu -- dbus-run-session -- /workspace/.cargo/bin/tauri-driver --port 4626 --native-port 4627 --native-driver /workspace/.cloud/milkup-v2/sysroot/usr/bin/WebKitWebDriver > "$MILKUP_NATIVE_APP_LOG" 2>&1
+--- /workspace/milkup-mermaid-engine-evidence/research/native-cold-start-diagnostic-04/launch-driver-reaping.py
++++ /workspace/milkup-mermaid-engine-evidence/research/native-cold-start-diagnostic-05/launch-driver-reaping.py
+@@ -2,7 +2,7 @@
+ import ctypes, datetime, json, os, subprocess, sys, time
+ from pathlib import Path
+ assert sys.argv[1:]==[]
+-run='mermaid-ui-cold-diag-04'
++run='mermaid-ui-cold-diag-05'
+ base=Path(__file__).parent
+ subprocess.run([sys.executable,str(base/'verify-runtime-go.py')],check=True)
+ libc=ctypes.CDLL(None,use_errno=True)
+--- /workspace/milkup-mermaid-engine-evidence/research/native-cold-start-diagnostic-04/stop-driver.py
++++ /workspace/milkup-mermaid-engine-evidence/research/native-cold-start-diagnostic-05/stop-driver.py
+@@ -4,8 +4,8 @@
+ import datetime,json,os,signal,sys,time,urllib.request
+ from pathlib import Path
+ assert sys.argv[1:]==[]
+-base=Path(__file__).resolve().parent;control=base/'runtime/mermaid-ui-cold-diag-04/control'
+-row=json.loads((control/'mermaid-ui-cold-diag-04-driver-owner.json').read_text())
++base=Path(__file__).resolve().parent;control=base/'runtime/mermaid-ui-cold-diag-05/control'
++row=json.loads((control/'mermaid-ui-cold-diag-05-driver-owner.json').read_text())
+ assert row['bootId']==Path('/proc/sys/kernel/random/boot_id').read_text().strip()
+ out=control/'driver-stop.json';assert not out.exists()
+ def utc():return datetime.datetime.now(datetime.timezone.utc).isoformat()
+--- /workspace/milkup-mermaid-engine-evidence/research/native-cold-start-diagnostic-04/run-harness.py
++++ /workspace/milkup-mermaid-engine-evidence/research/native-cold-start-diagnostic-05/run-harness.py
+@@ -1,9 +1,9 @@
+ """Prepared runtime entry. Does not launch driver; launch-driver-reaping.py is separate.
+ Root must verify exact dedicated display and free ports before launching driver.
+ """
+-import datetime,json,os,selectors,signal,subprocess,sys,time
++import datetime,json,os,selectors,signal,stat,subprocess,sys,time
+ from pathlib import Path
+-base=Path(__file__).resolve().parent;run='mermaid-ui-cold-diag-04';out=base/'runtime'/run
++base=Path(__file__).resolve().parent;run='mermaid-ui-cold-diag-05';out=base/'runtime'/run
+ subprocess.run([sys.executable,str(base/'verify-runtime-go.py')],check=True)
+ owner=json.loads((out/'control'/f'{run}-driver-owner.json').read_text())
+ assert owner['bootId']==Path('/proc/sys/kernel/random/boot_id').read_text().strip()
+@@ -15,10 +15,12 @@
+ # No caller-supplied shell commands; values are read as data from reviewed manifest.
+ inputs=json.loads((base/'runtime-inputs.json').read_text())
+ binary=inputs['binary'];sampler=inputs['sampler']
+-assert binary['path']=='/workspace/milkup-mermaid-engine-evidence/research/native-cold-start-diagnostic-02/diagnostic-binary/milkup-desktop'
++assert binary['path']=='/workspace/milkup-mermaid-engine-evidence/research/native-webprocess-pidfd-candidate-01/build-attempt-01/diagnostic-binary/milkup-desktop'
++driver_log=out/'driver.log'; log_meta=driver_log.lstat()
++assert stat.S_ISREG(log_meta.st_mode) and log_meta.st_uid==os.geteuid(), 'Owned regular driver log required; no FIFO/symlink stderr sink'
+ control=out/'control'; record=control/'harness-execution.json';assert not record.exists()
+-command=[sys.executable,sampler['path'],'--output',str(out/'cpu-observer'),'--app-log',str(out/'driver.log'),'--binary',binary['path'],'--binary-sha256',binary['sha256'],'--identity-log',str(out/'native-capture/events.jsonl')]
+-state={'startedUtc':datetime.datetime.now(datetime.timezone.utc).isoformat(),'classification':'DIAGNOSTIC_PREFIX_ONLY_NOT_PRODUCTION_ACCEPTANCE','samplerCommand':command}
++command=[sys.executable,sampler['path'],'--output',str(out/'cpu-observer'),'--app-log',str(out/'driver.log'),'--binary',binary['path'],'--binary-sha256',binary['sha256'],'--identity-log',str(out/'native-capture/events.jsonl'),'--native-pidfd-dir',str(out/'native-pidfd'),'--native-extension-sha256',inputs['extension']['sha256']]
++state={'startedUtc':datetime.datetime.now(datetime.timezone.utc).isoformat(),'classification':'DIAGNOSTIC_PREFIX_ONLY_NOT_PRODUCTION_ACCEPTANCE','samplerCommand':command,'driverLogPreflight':{'path':str(driver_log),'device':log_meta.st_dev,'inode':log_meta.st_ino,'mode':oct(log_meta.st_mode),'uid':log_meta.st_uid,'qualification':'ordinary file may still block; not a nonblocking guarantee'}}
+ cpu=None;harness=None
+ with (control/'cpu-stderr.log').open('x') as stderr,(control/'cpu-stdout.log').open('x') as stdout,(control/'harness.log').open('x') as hlog:
+  try:
+--- /workspace/milkup-mermaid-engine-evidence/research/native-cold-start-diagnostic-04/verify-runtime-go.py
++++ /workspace/milkup-mermaid-engine-evidence/research/native-cold-start-diagnostic-05/verify-runtime-go.py
+@@ -4,7 +4,7 @@
+ def sha(p):return hashlib.sha256(Path(p).read_bytes()).hexdigest()
+ m=base/'runtime-inputs.json';go=json.loads((base/'root-runtime-go.json').read_text())
+ assert go['authorized'] is True and go['runtimeInputsSha256']==sha(m)
+-inputs=json.loads(m.read_text());assert inputs['run']=='mermaid-ui-cold-diag-04'
++inputs=json.loads(m.read_text());assert inputs['run']=='mermaid-ui-cold-diag-05'
+ assert inputs['binary']['sha256'] and inputs['nativeCandidateFinalManifest'], 'Final diagnostic binary and native candidate freeze required'
+ assert inputs['classification']=='DIAGNOSTIC_PREFIX_ONLY_NOT_PRODUCTION_ACCEPTANCE'
+ for row in inputs['files']:assert sha(row['path'])==row['sha256'],row['path']
+--- /workspace/milkup-mermaid-engine-evidence/research/native-cold-start-diagnostic-04/preflight.py
++++ /workspace/milkup-mermaid-engine-evidence/research/native-cold-start-diagnostic-05/preflight.py
+@@ -1,7 +1,7 @@
+ """Static/read-only exact environment preflight. Does not launch or signal anything."""
+ import hashlib,json,shutil,subprocess,sys
+ from pathlib import Path
+-BASE=Path(__file__).resolve().parent;REPO=Path('/workspace/milkup');RUN='mermaid-ui-cold-diag-04'
++BASE=Path(__file__).resolve().parent;REPO=Path('/workspace/milkup');RUN='mermaid-ui-cold-diag-05'
+ mode=sys.argv[1] if len(sys.argv)>1 else '--runtime';assert mode in ['--build','--runtime']
+ def sha(p):return hashlib.sha256(Path(p).read_bytes()).hexdigest()
+ inputs=json.loads((BASE/('build-inputs.json' if mode=='--build' else 'runtime-inputs.json')).read_text())

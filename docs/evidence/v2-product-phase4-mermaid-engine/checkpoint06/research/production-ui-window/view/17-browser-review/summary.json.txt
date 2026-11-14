@@ -1,0 +1,83 @@
+{
+  "at": "2026-10-16T14:32:44.520034+00:00",
+  "status": "Test-fixture migration executed; two actual browser failures remain, no product changes or relaxed assertions. CPU/UI released.",
+  "before": {
+    "directory": "13-browser-before",
+    "passed": 22,
+    "failed": 11,
+    "total": 33,
+    "cause": "All eleven original shared-helper consumers failed because registry was null. An independent exact helper-construction probe proved localStorage quota rejection.",
+    "snapshots": "Original spec/helper/config captured by runner before execution."
+  },
+  "quota": {
+    "file": "14-quota-proof.json",
+    "registryUtf16": 23322473,
+    "actualError": "QuotaExceededError",
+    "control": "small storage control succeeded, registry remained null",
+    "limit": "Independent same construction on isolated origin, not an observation of original init-script exception."
+  },
+  "after": {
+    "directory": "16-browser-after",
+    "passed": 32,
+    "failed": 2,
+    "total": 34,
+    "nativeUnavailable": "Passed explicit visible native-runtime error, no placeholder module request, no preview, unchanged literal source. No official engine loaded.",
+    "failures": [
+      {
+        "test": "real math and footnotes plus controlled image Worker preserve source/history",
+        "observed": "The joint complete/naturalWidth/blob boolean was false. Actual individual fields and connectivity were not recorded, so the exact failing component is unknown. Failure PNG later visibly contains blue canonical image/text.",
+        "next": "Capture same-task current image fields, node identity/connectivity, mutation/create/revoke/decode timeline; do not merely replace assertion with polling."
+      },
+      {
+        "test": "search keeps the selected marker visible while asynchronous block previews settle",
+        "observed": "Three images were found; initial marker observations passed. Real Playwright click on mroot repeatedly met detached/unstable elements until the unchanged 60000ms test deadline.",
+        "next": "Observe provider window range/visible range/complete plus decoded image ownership to determine geometry/request feedback."
+      }
+    ]
+  },
+  "staticMechanism": {
+    "confirmedCode": [
+      "document-presentation.ts cache key includes visibleFrom/visibleTo even when complete=true.",
+      "Each accepted new response is assigned to cache and painted. paint disposes image owners whose response object differs.",
+      "New image owners stage decode; fragments remain source until decoded, changing line geometry."
+    ],
+    "hypothesis": "Image-induced priority or base-window change may repeatedly request new equivalent images and restore source during each new decode. Not yet a traced causal reproduction.",
+    "candidateOptions": [
+      "Avoid priority-only re-provide for a complete same-base-window response, retaining all other guards. Partial results still respond to priority changes.",
+      "After independent new-response validation, transfer already-decoded owners only for exactly equivalent fragment/range/image content under unchanged identity/version/config/generation/selection; otherwise revoke normally."
+    ]
+  },
+  "nextDiagnostic": "Static/public-view controlled scenario only until CPU/UI GO. No product code changed.",
+  "sources": [
+    {
+      "path": "tests/helpers/markdown-extension-plugins.ts",
+      "sha256": "7784646965d4899e4b99110317e7e15b0b9c4a71bee6e5723722a5f2c08e8e6a",
+      "bytes": 3999
+    },
+    {
+      "path": "tests/e2e/desktop-markdown-extensions.spec.ts",
+      "sha256": "1c8399dec8d0a6e4f76b081211ffc36de0441e5bdc40373f4d0921348fcf5fc7",
+      "bytes": 55607
+    },
+    {
+      "path": "tests/fixtures/document-presentation-image/plugin.ts",
+      "sha256": "2c4494b00ecc4fa5cc326edf74997995f6a23bdc66f0e3dd804d885022a0f902",
+      "bytes": 2219
+    },
+    {
+      "path": "tests/fixtures/document-presentation-image/plugin.json",
+      "sha256": "b856d8561f15d131e90a9b026c3b9d85342aa55dc11ff2040ea4a2e68b1cd754",
+      "bytes": 483
+    },
+    {
+      "path": "tests/fixtures/document-presentation-image/native-only-placeholder.js",
+      "sha256": "d55b61bae9888f6649b623483200f941abc9aaf850abe3a058bd4c1388107a56",
+      "bytes": 150
+    }
+  ],
+  "cleanup": {
+    "before": "State Recv-Q Send-Q Local Address:Port Peer Address:PortProcess\n",
+    "after": "State Recv-Q Send-Q Local Address:Port Peer Address:PortProcess\n",
+    "browser": "Playwright process exited and managed servers reclaimed; isolated quota browser closed in finally. No broad process kills."
+  }
+}

@@ -1,0 +1,177 @@
+{
+  "baseHead": "b4266d6ac6052883f94c06dab9082e492aef4ca3",
+  "nativePassedAcrossRuns": 32,
+  "suites": [
+    {
+      "suite": "navigation",
+      "passed": 6,
+      "source": "native-confirmed/results.json",
+      "scenarios": [
+        {
+          "name": "native find keyboard loop, literal queries, focus and disk edit at selected hit",
+          "result": "PASS"
+        },
+        {
+          "name": "native Unicode replacement, case switch, all deletion and isolated undo on real disk",
+          "result": "PASS"
+        },
+        {
+          "name": "native edit refresh preserves insertion point and document switch discards old results",
+          "result": "PASS"
+        },
+        {
+          "name": "native outline hierarchy, heading rename, keyboard activation and document switch",
+          "result": "PASS"
+        },
+        {
+          "name": "native narrow window search layout and repeated source/live inline-code styles",
+          "result": "PASS"
+        },
+        {
+          "name": "native windowed search selects exact Unicode offsets and outline moves the editing cursor",
+          "result": "PASS"
+        }
+      ]
+    },
+    {
+      "suite": "safety-main",
+      "passed": 11,
+      "source": "native-final-quality/results.json",
+      "scenarios": [
+        {
+          "name": "new: cancel, focus, discard",
+          "result": "PASS"
+        },
+        {
+          "name": "new: save then transition with disk bytes",
+          "result": "PASS"
+        },
+        {
+          "name": "open: cancel, focus, discard",
+          "result": "PASS"
+        },
+        {
+          "name": "open: save then transition with disk bytes",
+          "result": "PASS"
+        },
+        {
+          "name": "close: cancel, focus, discard",
+          "result": "PASS"
+        },
+        {
+          "name": "close: save then transition with disk bytes",
+          "result": "PASS"
+        },
+        {
+          "name": "real missing-directory save failure retains draft and supports retry",
+          "result": "PASS"
+        },
+        {
+          "name": "native save catches external write before watcher and saves rescue copy",
+          "result": "PASS"
+        },
+        {
+          "name": "real readonly failure preserves bytes and recovers after permissions restored",
+          "result": "PASS"
+        },
+        {
+          "name": "native large file disk save, conflict guard and active buffer lifecycle",
+          "result": "PASS"
+        },
+        {
+          "name": "native window close event: cancel and save",
+          "result": "PASS"
+        }
+      ]
+    },
+    {
+      "suite": "safety-discard",
+      "passed": 1,
+      "source": "native-quality-discard/results.json",
+      "scenarios": [
+        {
+          "name": "native window close event: discard",
+          "result": "PASS"
+        }
+      ]
+    },
+    {
+      "suite": "unicode",
+      "passed": 6,
+      "source": "native-fresh-unicode/results.json",
+      "scenarios": [
+        {
+          "name": "source: whole grapheme movement, deletion, immediate undo and redo",
+          "result": "PASS"
+        },
+        {
+          "name": "source: distant viewport and return preserve cursor",
+          "result": "PASS"
+        },
+        {
+          "name": "source: CRLF cross-line selection, delete, undo and disk save",
+          "result": "PASS"
+        },
+        {
+          "name": "live: whole grapheme movement, deletion, immediate undo and redo",
+          "result": "PASS"
+        },
+        {
+          "name": "live: distant viewport and return preserve cursor",
+          "result": "PASS"
+        },
+        {
+          "name": "live: CRLF cross-line selection, delete, undo and disk save",
+          "result": "PASS"
+        }
+      ]
+    },
+    {
+      "suite": "blocks",
+      "passed": 8,
+      "source": "native-fresh-blocks/results.json",
+      "scenarios": [
+        {
+          "name": "source: list nesting, empty exit, history and mode-switch caret",
+          "result": "PASS"
+        },
+        {
+          "name": "source: multiline selection indent/outdent preserves source and undo",
+          "result": "PASS"
+        },
+        {
+          "name": "source: code literal lists, indentation, blank lines, fence exit and history",
+          "result": "PASS"
+        },
+        {
+          "name": "live: list nesting, empty exit, history and mode-switch caret",
+          "result": "PASS"
+        },
+        {
+          "name": "live: multiline selection indent/outdent preserves source and undo",
+          "result": "PASS"
+        },
+        {
+          "name": "live: code literal lists, indentation, blank lines, fence exit and history",
+          "result": "PASS"
+        },
+        {
+          "name": "issue 255: native bracket caret remains after 2.5 seconds",
+          "result": "PASS"
+        },
+        {
+          "name": "issue 255: image followed by a single-space heading",
+          "result": "PASS"
+        }
+      ]
+    }
+  ],
+  "blocked": {
+    "suite": "tables",
+    "expectedScenarios": 7,
+    "executed": 0,
+    "reason": "POST /session 20 second timeout, reproduced with isolated fresh driver; root cause undetermined"
+  },
+  "systemIme": "not tested",
+  "filePicker": "existing test path seam; real Rust disk I/O"
+}

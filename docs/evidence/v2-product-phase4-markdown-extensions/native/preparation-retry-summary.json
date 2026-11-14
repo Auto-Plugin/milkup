@@ -1,0 +1,37 @@
+{
+  "scope": "Settled host preparation timeout continuation; no plugin SDK/core/Worker watchdog changes",
+  "before": {
+    "log": "preparation-retry-before.log",
+    "failed": 2,
+    "passed": 3,
+    "finding": "Stable viewport never scheduled another attempt after the timed-out provider settled."
+  },
+  "sourceGuards": {
+    "log": "preparation-source-before.log",
+    "passed": 9,
+    "newCases": 3,
+    "findings": [
+      "completed 128-line prefix checkpoints survive cancellation",
+      "late aborted native page cannot publish a checkpoint",
+      "source version change discards prior checkpoints"
+    ]
+  },
+  "after": {
+    "log": "preparation-retry-after-final.log",
+    "passed": 67,
+    "preparationTests": 16,
+    "existingPresentationTests": 51,
+    "types": "preparation-retry-types.log",
+    "typesPassed": true
+  },
+  "limits": {
+    "hostAttemptMs": 10000,
+    "rendererExecutionMs": 2000,
+    "backoffMs": 1000,
+    "retryTimersAtOnce": 1,
+    "totalAttempts": "not capped at one; bounded cadence only for current stable active window"
+  },
+  "lifecycle": "Retry begins only after provide actually settles; same-window external scheduling cannot overlap a timed-out pending read. Replacement source/version/config/epoch/selection/window/width/mode and destruction retire old retry; delayed old settlement cannot revive it. Normal rejection and successful unknown-context result do not schedule retries.",
+  "nativeConclusion": "Controlled regression establishes the retry gap, not retrospective proof of candidate07 formal-run cause. New production native verification remains necessary.",
+  "status": "implementation frozen; handed to view owner for 21 browser cases; no commit by subagent"
+}

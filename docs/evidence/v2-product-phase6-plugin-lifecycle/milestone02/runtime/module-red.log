@@ -1,0 +1,44 @@
+
+ RUN  v3.2.6 /workspace/milkup
+
+ ❯ packages/plugin/src/isolation-module-host.test.ts (7 tests | 1 failed) 33ms
+   ✓ PluginModuleIsolationHost > executes a plugin module behind the RPC boundary using the plugin SDK 8ms
+   ✓ PluginModuleIsolationHost > runs activation-returned commands and renderer handlers in the isolated module host 3ms
+   ✓ PluginModuleIsolationHost > exposes only explicitly allowed host capabilities inside the isolated realm 1ms
+   ✓ PluginModuleIsolationHost > routes isolated file capabilities through the filesystem broker 2ms
+   ✓ PluginModuleIsolationHost > routes isolated network capabilities through the network broker only when exposed 2ms
+   ✓ PluginModuleIsolationHost > rejects plugin id mismatches before executing module code 2ms
+   × disposes a late isolated activation instead of restoring a revoked instance 13ms
+     → promise resolved "{ commands: [], renderers: [] }" instead of rejecting
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  packages/plugin/src/isolation-module-host.test.ts > disposes a late isolated activation instead of restoring a revoked instance
+AssertionError: promise resolved "{ commands: [], renderers: [] }" instead of rejecting
+
+- Expected
++ Received
+
+- Error {
+-   "message": "rejected promise",
++ {
++   "commands": [],
++   "renderers": [],
+  }
+
+ ❯ packages/plugin/src/isolation-module-host.test.ts:473:24
+    471|   await host.deactivate({ pluginId: manifest.id })
+    472|   finish({ dispose })
+    473|   await expect(starting).rejects.toThrow('revoked')
+       |                        ^
+    474|   expect(dispose).toHaveBeenCalledOnce()
+    475| })
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 6 passed (7)
+   Start at  08:34:58
+   Duration  1.05s (transform 443ms, setup 0ms, collect 563ms, tests 33ms, environment 0ms, prepare 89ms)
+

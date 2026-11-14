@@ -1,0 +1,41 @@
+{
+  "timeUtc": "2026-10-19T10:05:27.213615+00:00",
+  "baseline": "4e0d305bab563e3fc58aa97bb18115b6bf8f69d6",
+  "branch": "dot/milkup-v2-product-phase6-plugin-lifecycle",
+  "repository": {
+    "name": "Auto-Plugin/milkup",
+    "visibility": "public",
+    "verifiedBy": "gh api repos/Auto-Plugin/milkup"
+  },
+  "local": {
+    "host": "x86_64-unknown-linux-gnu",
+    "rust": "1.99.0",
+    "targets": [
+      "x86_64-unknown-linux-gnu",
+      "x86_64-pc-windows-msvc"
+    ],
+    "missing": [
+      "Windows OS",
+      "MSVC linker",
+      "Windows SDK import libraries",
+      "PowerShell",
+      "Wine",
+      "MinGW/clang cross linker"
+    ],
+    "addition": "Rust MSVC standard library only; no WebView2 or installer runtime"
+  },
+  "ci": {
+    "existing": "Standard windows-2025 delivery jobs exist with historical success; unsuitable as-is because packaging/upload flow",
+    "selfHostedList": "HTTP403 Resource not accessible by integration; no credential changes requested",
+    "planned": "Branch and marker gated standard windows-2025 cargo-only workflow, public repository guard, contents:read, no artifact/cache/publish/installers",
+    "executed": false
+  },
+  "sources": [
+    "https://learn.microsoft.com/en-us/windows/win32/api/winternl/nf-winternl-ntcreatefile",
+    "https://learn.microsoft.com/en-us/windows/win32/api/ntdef/ns-ntdef-_object_attributes",
+    "https://learn.microsoft.com/en-us/windows/win32/api/winbase/ns-winbase-file_rename_info",
+    "https://learn.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-flushfilebuffers",
+    "https://learn.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-lockfileex",
+    "https://docs.github.com/en/billing/concepts/product-billing/github-actions"
+  ]
+}

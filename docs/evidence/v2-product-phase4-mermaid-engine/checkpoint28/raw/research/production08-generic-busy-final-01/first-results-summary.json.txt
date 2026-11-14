@@ -1,0 +1,119 @@
+{
+  "classification": "STOPPED_AT_FIRST_GENERIC_BUSY_FAILURE",
+  "cases": [
+    {
+      "case": "timeout",
+      "run": "lifecycle-p08-candidate-timeout-01",
+      "actualExitCode": 0,
+      "verdict": {
+        "name": "verdict",
+        "wall": 1792219558584,
+        "monotonicMs": 17464.05974,
+        "monotonicNs": 107171023659430,
+        "status": "passed",
+        "scope": "One full-editor generic DOM lifecycle case; official renderer acceptance separate"
+      },
+      "command": {
+        "command": [
+          "bash",
+          "-lc",
+          "source /workspace/milkup-mermaid-engine-evidence/research/production08-generic-busy-final-01/run-env.sh \"$@\"\nexec node tests/native/tauri-dom-plugin-lifecycle.mjs",
+          "bash",
+          "lifecycle-p08-candidate-timeout-01",
+          "timeout",
+          "/workspace/milkup-mermaid-engine-evidence/linux-production-08/install/usr/bin/milkup-desktop",
+          "cd0f892d274bb363ee663e8b36aead93cbee31a4464bdef26ac849f5018cb304"
+        ],
+        "cwd": "/workspace/milkup",
+        "startedUtc": "2026-10-17T06:45:41.081978+00:00",
+        "exitCode": 0,
+        "endedUtc": "2026-10-17T06:45:58.709314+00:00"
+      },
+      "exactKnownCount": 20,
+      "allKnownGone": true,
+      "portsFree": true,
+      "xvfbPreserved": true,
+      "reaps": 10
+    },
+    {
+      "case": "disable",
+      "run": "lifecycle-p08-candidate-disable-01",
+      "actualExitCode": 0,
+      "verdict": {
+        "name": "verdict",
+        "wall": 1792219639288,
+        "monotonicMs": 15496.800863,
+        "monotonicNs": 107251727262483,
+        "status": "passed",
+        "scope": "One full-editor generic DOM lifecycle case; official renderer acceptance separate"
+      },
+      "command": {
+        "command": [
+          "bash",
+          "-lc",
+          "source /workspace/milkup-mermaid-engine-evidence/research/production08-generic-busy-final-01/run-env.sh \"$@\"\nexec node tests/native/tauri-dom-plugin-lifecycle.mjs",
+          "bash",
+          "lifecycle-p08-candidate-disable-01",
+          "disable",
+          "/workspace/milkup-mermaid-engine-evidence/linux-production-08/install/usr/bin/milkup-desktop",
+          "cd0f892d274bb363ee663e8b36aead93cbee31a4464bdef26ac849f5018cb304"
+        ],
+        "cwd": "/workspace/milkup",
+        "startedUtc": "2026-10-17T06:47:03.753472+00:00",
+        "exitCode": 0,
+        "endedUtc": "2026-10-17T06:47:19.456777+00:00"
+      },
+      "exactKnownCount": 21,
+      "allKnownGone": true,
+      "portsFree": true,
+      "xvfbPreserved": true,
+      "reaps": 11
+    },
+    {
+      "case": "remove",
+      "run": "lifecycle-p08-candidate-remove-01",
+      "actualExitCode": 1,
+      "verdict": {
+        "name": "verdict",
+        "wall": 1792219693290,
+        "monotonicMs": 15186.413327,
+        "monotonicNs": 107305729446122,
+        "status": "failed",
+        "error": "AssertionError [ERR_ASSERTION]: Actual fixture guardian ECHILD diagnostic",
+        "stack": "AssertionError [ERR_ASSERTION]: Actual fixture guardian ECHILD diagnostic\n    at file:///workspace/milkup/tests/native/tauri-dom-plugin-lifecycle.mjs:767:10"
+      },
+      "command": {
+        "command": [
+          "bash",
+          "-lc",
+          "source /workspace/milkup-mermaid-engine-evidence/research/production08-generic-busy-final-01/run-env.sh \"$@\"\nexec node tests/native/tauri-dom-plugin-lifecycle.mjs",
+          "bash",
+          "lifecycle-p08-candidate-remove-01",
+          "remove",
+          "/workspace/milkup-mermaid-engine-evidence/linux-production-08/install/usr/bin/milkup-desktop",
+          "cd0f892d274bb363ee663e8b36aead93cbee31a4464bdef26ac849f5018cb304"
+        ],
+        "cwd": "/workspace/milkup",
+        "startedUtc": "2026-10-17T06:47:58.060287+00:00",
+        "exitCode": 1,
+        "endedUtc": "2026-10-17T06:48:13.707724+00:00"
+      },
+      "exactKnownCount": 21,
+      "allKnownGone": true,
+      "portsFree": true,
+      "xvfbPreserved": true,
+      "reaps": 11
+    },
+    {
+      "case": "wm-close",
+      "run": "lifecycle-p08-candidate-wm-close-01",
+      "status": "NOT_RUN_STOPPED_AFTER_REMOVE_FIRST_FAILURE"
+    },
+    {
+      "case": "app-sigkill",
+      "run": "lifecycle-p08-candidate-app-sigkill-01",
+      "status": "NOT_RUN_STOPPED_AFTER_REMOVE_FIRST_FAILURE"
+    }
+  ],
+  "qualification": "Two passed, third failed, remaining two not executed; no five-case PASS claim. Generic fixture, not Mermaid-specific."
+}

@@ -1,0 +1,72 @@
+$ vitest run -- src/__tests__/store-search.test.ts
+
+ RUN  v3.2.6 /workspace/milkup/packages/core
+
+ ✓ src/__tests__/large-edit-session.test.ts (7 tests) 48ms
+ ✓ src/__tests__/action-registry.test.ts (8 tests) 52ms
+ ❯ src/__tests__/store-search.test.ts (8 tests | 1 failed) 75ms
+   ✓ searchDocumentStore > finds string matches with global UTF-16 offsets across line windows 11ms
+   ✓ searchDocumentStore > supports case-sensitive string search 2ms
+   ✓ searchDocumentStore > supports RegExp search without requiring callers to pass a global regex 1ms
+   ✓ searchDocumentStore > keeps scanning after maxResults while retaining a bounded result list 2ms
+   ✓ searchDocumentStore > streams matches and a final completion event from line windows 1ms
+   ✓ searchDocumentStore > honors abort signals before reading the next search window 5ms
+   ✓ searchDocumentStore > rejects empty and invalid search inputs 2ms
+   × keeps literal match offsets on the original UTF-16 source after expanding case folds 45ms
+     → expected [ …(2) ] to deeply equal [ …(2) ]
+ ✓ src/__tests__/memory-text-document.test.ts (14 tests) 26ms
+ ✓ src/__tests__/editor-history.test.ts (12 tests) 22ms
+ ✓ src/__tests__/document-store.test.ts (9 tests) 43ms
+ ✓ src/__tests__/editor-document-source.test.ts (2 tests) 15ms
+ ✓ src/__tests__/large-file-policy.test.ts (5 tests) 19ms
+ ✓ src/__tests__/large-document.test.ts (4 tests) 3646ms
+   ✓ large document contracts > reads windows from a 10 MiB synthetic Markdown document  555ms
+   ✓ large document contracts > flushes a large edited document snapshot  701ms
+   ✓ large document contracts > searches a virtual 100 MiB synthetic Markdown document through line windows  2092ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/__tests__/store-search.test.ts > keeps literal match offsets on the original UTF-16 source after expanding case folds
+AssertionError: expected [ …(2) ] to deeply equal [ …(2) ]
+
+- Expected
++ Received
+
+  [
+    {
+-     "from": 2,
+-     "text": "foo",
+-     "to": 5,
++     "from": 3,
++     "text": "oo ",
++     "to": 6,
+    },
+    {
+-     "from": 9,
+-     "text": "FOO",
+-     "to": 12,
++     "from": 10,
++     "text": "OO",
++     "to": 13,
+    },
+  ]
+
+ ❯ src/__tests__/store-search.test.ts:195:68
+    193|   const store = new MemoryDocumentStore({ documentId: 'unicode', text:…
+    194|   const result = await searchDocumentStore(store, { query: 'foo' })
+    195|   expect(result.matches.map(({from,to,text}) => ({from,to,text}))).toE…
+       |                                                                    ^
+    196|     { from: 2, to: 5, text: 'foo' }, { from: 9, to: 12, text: 'FOO' },
+    197|   ])
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed | 8 passed (9)
+      Tests  1 failed | 68 passed (69)
+   Start at  11:07:12
+   Duration  5.21s (transform 961ms, setup 0ms, collect 2.82s, tests 3.95s, environment 5ms, prepare 2.19s)
+
+/workspace/milkup/packages/core:
+[ERR_PNPM_RECURSIVE_RUN_FIRST_FAIL] @milkup/core@0.0.0 test: `vitest run -- src/__tests__/store-search.test.ts`
+Exit status 1

@@ -1,0 +1,159 @@
+{
+  "atUtc": "2026-10-16T14:23:11.316209+00:00",
+  "operation": "read-only provenance review; no cargo/test/native execution",
+  "sourceComparisonToNative03": [
+    {
+      "path": "apps/desktop/src-tauri/Cargo.lock",
+      "frozenSha256": "676c460ef819a337df06ed2eab3b5bc4021fd306c18823657c1569c070370d57",
+      "currentSha256": "676c460ef819a337df06ed2eab3b5bc4021fd306c18823657c1569c070370d57",
+      "equal": true
+    },
+    {
+      "path": "apps/desktop/src-tauri/Cargo.toml",
+      "frozenSha256": "e7fedb7f14b2664c6e4eac9aac1eada1f2cbd1f7f69f10c2076796b9b411b948",
+      "currentSha256": "e7fedb7f14b2664c6e4eac9aac1eada1f2cbd1f7f69f10c2076796b9b411b948",
+      "equal": true
+    },
+    {
+      "path": "apps/desktop/src-tauri/build.rs",
+      "frozenSha256": "a4a9e886acf389ff992e6030407c1575a6c29113274811a86e3bc87a9b35ec8b",
+      "currentSha256": "a4a9e886acf389ff992e6030407c1575a6c29113274811a86e3bc87a9b35ec8b",
+      "equal": true
+    },
+    {
+      "path": "apps/desktop/src-tauri/src/lib.rs",
+      "frozenSha256": "d892103948623f56c9b21e2a784c3da73ac4d5fcaceb0755fa9e415054b3011f",
+      "currentSha256": "d892103948623f56c9b21e2a784c3da73ac4d5fcaceb0755fa9e415054b3011f",
+      "equal": true
+    },
+    {
+      "path": "apps/desktop/src-tauri/src/main.rs",
+      "frozenSha256": "69ec1f2a7a07ec2f0a3a18b1faaf953575babeae251d817a96b7ea69e2a57505",
+      "currentSha256": "69ec1f2a7a07ec2f0a3a18b1faaf953575babeae251d817a96b7ea69e2a57505",
+      "equal": true
+    },
+    {
+      "path": "apps/desktop/src-tauri/src/plugin_dom.rs",
+      "frozenSha256": "195cfffdd1a69456b66ea2f860a3b195b9e5bc94152e93aa31a46c022eca097a",
+      "currentSha256": "195cfffdd1a69456b66ea2f860a3b195b9e5bc94152e93aa31a46c022eca097a",
+      "equal": true
+    },
+    {
+      "path": "apps/desktop/src-tauri/src/plugin_dom_bootstrap.js",
+      "frozenSha256": "9442fd1802dd24a358cbbe8636de34851eb5d198b5c97f3a95c13aa5daf6a8b4",
+      "currentSha256": "9442fd1802dd24a358cbbe8636de34851eb5d198b5c97f3a95c13aa5daf6a8b4",
+      "equal": true
+    },
+    {
+      "path": "apps/desktop/src-tauri/src/plugin_dom_bootstrap.test.mjs",
+      "frozenSha256": "86f1c8f21a026a00af4adfbd66932a34f33599118f9fb7c5aec9970e08b68c91",
+      "currentSha256": "40f0561c2a6cf78e500d43c912196435b20a2ea181121b4f46175fe3ce572249",
+      "equal": false
+    },
+    {
+      "path": "apps/desktop/src-tauri/src/plugin_dom_guard.c",
+      "frozenSha256": "554ddb6cb84df5b20fb6e32355c19b1f48b9b9ce87a0bc02baf914fec92b063a",
+      "currentSha256": "554ddb6cb84df5b20fb6e32355c19b1f48b9b9ce87a0bc02baf914fec92b063a",
+      "equal": true
+    },
+    {
+      "path": "apps/desktop/src-tauri/src/plugin_dom_guardian.rs",
+      "frozenSha256": "44fd4cfd661817cddd2cf0b9bdb5090ddeea1f18de91dfb46cb8ac94d2211054",
+      "currentSha256": "44fd4cfd661817cddd2cf0b9bdb5090ddeea1f18de91dfb46cb8ac94d2211054",
+      "equal": true
+    },
+    {
+      "path": "apps/desktop/src-tauri/src/plugin_dom_helper.rs",
+      "frozenSha256": "336d6b34b3872bf23d359d50a7712de6c7127fc76ba6cc05ff1c885acb76d57c",
+      "currentSha256": "336d6b34b3872bf23d359d50a7712de6c7127fc76ba6cc05ff1c885acb76d57c",
+      "equal": true
+    },
+    {
+      "path": "apps/desktop/src-tauri/src/plugin_dom_process.rs",
+      "frozenSha256": "f5e413dac08345f96069b9a75120687243d87031c91861beb87a856011cd99d8",
+      "currentSha256": "f5e413dac08345f96069b9a75120687243d87031c91861beb87a856011cd99d8",
+      "equal": true
+    },
+    {
+      "path": "packages/plugin-sdk/src/index.js",
+      "frozenSha256": "08c69a21ee6cf0de394bef80f52d01a906ceeb9ba09ab09cf46c01f4b3a0d7cb",
+      "currentSha256": "08c69a21ee6cf0de394bef80f52d01a906ceeb9ba09ab09cf46c01f4b3a0d7cb",
+      "equal": true
+    }
+  ],
+  "changes": [
+    {
+      "path": "apps/desktop/src-tauri/src/plugin_dom_bootstrap.test.mjs",
+      "diff": "--- native03\n+++ current\n@@ -1,4 +1,5 @@\n-// Run: node --experimental-vm-modules --test src/plugin_dom_bootstrap.test.mjs\n+// From apps/desktop: node --experimental-vm-modules --test src-tauri/src/plugin_dom_bootstrap.test.mjs\n+// Also required by the desktop package test script; Vitest must not collect node:test.\n // Protocol/closure regression only. Real WebKit layout and confinement are separate gates.\n import { readFile } from 'node:fs/promises'\n import vm from 'node:vm'\n"
+    }
+  ],
+  "coverage": {
+    "rustPluginDomUnit": {
+      "log": "/workspace/milkup-mermaid-engine-evidence/product-native-02/inputs/rust-unit-direct-02.log",
+      "passed": 14,
+      "failed": 0,
+      "ignored": 2,
+      "filtered": 127,
+      "note": "Two ignored entries are private subprocess fixture (called by ownership unit) and real WebKit case (separately executed). This historical direct Cargo test run has raw output but no separate complete argv/time execution record; do not claim reconstructed flags as exact."
+    },
+    "testBinaryBuild": {
+      "command": [
+        "cargo",
+        "test",
+        "--offline",
+        "--lib",
+        "plugin_dom",
+        "--no-run"
+      ],
+      "started": "2026-10-16T11:02:59.197071+00:00",
+      "startMonotonic": 36191.636126267,
+      "ended": "2026-10-16T11:03:04.308869+00:00",
+      "endMonotonic": 36196.748034728,
+      "exitCode": 0
+    },
+    "rustFormat": {
+      "command": [
+        "rustfmt",
+        "--edition",
+        "2021",
+        "--config",
+        "skip_children=true",
+        "--check",
+        "build.rs",
+        "src/lib.rs",
+        "src/main.rs",
+        "src/plugin_dom.rs",
+        "src/plugin_dom_process.rs",
+        "src/plugin_dom_helper.rs",
+        "src/plugin_dom_guardian.rs"
+      ],
+      "started": "2026-10-16T11:02:32.102527+00:00",
+      "startMonotonic": 36164.541580973,
+      "ended": "2026-10-16T11:02:32.219419+00:00",
+      "endMonotonic": 36164.65848656,
+      "exitCode": 0
+    },
+    "realWebkitIgnoredTest": {
+      "commandRecord": "/workspace/milkup-mermaid-engine-evidence/product-native-03/native-03.command.json",
+      "runner": "/workspace/milkup-mermaid-engine-evidence/product-native-03/run-native.sh",
+      "result": "first run exit0; actual sandbox-enabled default module, bbox, exact URI guard, global alias protection and native loop timeout"
+    },
+    "latestReleaseCompilation": {
+      "command": [
+        "bash",
+        "-lc",
+        "source /workspace/.cloud/milkup-v2/env.sh\nunset CARGO_TARGET_X86_64_UNKNOWN_LINUX_GNU_RUNNER PROOT_NO_SECCOMP\nbash scripts/cloud/pnpm.sh --filter @milkup/desktop tauri build --bundles deb"
+      ],
+      "cwd": "/workspace/milkup",
+      "startedUtc": "2026-10-16T14:13:55.397202+00:00",
+      "endedUtc": "2026-10-16T14:15:18.358140+00:00",
+      "exitCode": 0
+    },
+    "currentNodeBootstrapFormalRunner": "/workspace/milkup-mermaid-engine-evidence/repository-runner-fix01/desktop-formal-runner.log",
+    "fullRustLibrarySuite": "No completed full-suite result in this task evidence; plugin_dom filtered suite is not whole Rust library suite",
+    "clippy": "Not run in this task evidence",
+    "standaloneCargoCheck": "No separate current cargo check claim; successful full production release compile checks compiled Linux Rust code",
+    "platforms": "Linux actual compilation/execution only; no Windows/macOS cross-build claim"
+  },
+  "conclusion": "No compiled native source change after matching native03 coverage. The sole current native-tree change is Node test Run comment, covered by root current formal Node4. Product02 frontend changed and all five production editor lifecycle cases were rerun."
+}

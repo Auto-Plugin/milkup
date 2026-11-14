@@ -1,0 +1,20 @@
+--- v1
++++ v2
+@@ -527,7 +527,8 @@
+ const content = document.querySelector('.milkup-editor-content');
+ if (!editor || !content) throw new Error('Positioning: mounted editor required');
+ const root = editor.getBoundingClientRect(), owners = new Map(), measured = new Map();
+-const viewport = {top:Math.max(0,root.top),bottom:Math.min(innerHeight,root.bottom),left:Math.max(0,root.left),right:Math.min(innerWidth,root.right)};
++const clientLeft=root.left+editor.clientLeft, clientTop=root.top+editor.clientTop;
++const viewport = {top:Math.max(0,clientTop),bottom:Math.min(innerHeight,clientTop+editor.clientHeight),left:Math.max(0,clientLeft),right:Math.min(innerWidth,clientLeft+editor.clientWidth)};
+ const intersects = r => r.height>0 && r.width>0 && r.bottom>viewport.top && r.top<viewport.bottom && r.right>viewport.left && r.left<viewport.right;
+ const lines = [...content.querySelectorAll('.milkup-line')];
+ const effective = line => {
+@@ -573,6 +574,7 @@
+       const position = await readPosition()
+       observations.push({ elapsedMs: Date.now() - started, ticks, reversals, ...position })
+       assert(position.target, 'Positioning: exact target fence required')
++      assert(Date.now() - started < 10_000, 'Positioning: ten-second bound reached')
+       if (position.target.visible && position.preceding.length === 0) {
+         completed = true
+         break

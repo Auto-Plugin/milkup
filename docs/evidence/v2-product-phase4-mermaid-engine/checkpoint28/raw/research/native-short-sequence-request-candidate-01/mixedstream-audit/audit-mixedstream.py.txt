@@ -1,0 +1,235 @@
+"""Read frozen mixed native/frontend evidence once; never runs a product or old auditor."""
+import argparse
+from collections import Counter, defaultdict
+from decimal import Decimal
+import hashlib
+import json
+import math
+from pathlib import Path
+import sys
+
+TERMINALS = {'render-settled', 'render-deadline', 'render-failed', 'render-stop'}
+NATIVE_KINDS = TERMINALS | {'guardian-spawn', 'render-accepted', 'render-cancel', 'owner-pipe-complete', 'owner-frame-read'}
+FRONT_PHASES = {'queued', 'dispatch', 'post-failed', 'remote-settled', 'trusted-timeout', 'dispose', 'cancel-active', 'cancel-queued'}
+LOSS = ['queueFull', 'disconnected', 'oversize', 'capped', 'ioErrors', 'incompleteTiming']
+SHA = lambda b: hashlib.sha256(b).hexdigest()
+
+
+def semantic(value):
+    """Typed JSON value tree: key order irrelevant; booleans distinct from numbers."""
+    if value is None: return ['null']
+    if isinstance(value, bool): return ['bool', value]
+    if isinstance(value, (int, float)):
+        if isinstance(value, float) and not math.isfinite(value): raise ValueError('nonfinite JSON number')
+        return ['number', '0' if value == 0 else format(Decimal(str(value)).normalize(), 'f')]
+    if isinstance(value, str): return ['string', value]
+    if isinstance(value, list): return ['array', [semantic(x) for x in value]]
+    if isinstance(value, dict): return ['object', [[k, semantic(value[k])] for k in sorted(value)]]
+    raise ValueError('not JSON')
+
+
+def fingerprint(value):
+    return SHA(json.dumps(semantic(value), ensure_ascii=True, separators=(',', ':')).encode())
+
+
+def native_key(row):
+    return (row.get('ownerPid'), row.get('ownerBirth'), row.get('instanceId'), row.get('requestId'))
+
+
+def readable(payload):
+    request = payload.get('request', {})
+    source = request.get('source', '')
+    units = source.encode('utf-16-le')
+    origin = request.get('from', 0)
+    blocks = []
+    for block in request.get('blocks', []):
+        parts = []
+        for r in block.get('contentRanges', []):
+            start, end = r['from']-origin, r['to']-origin
+            if not 0 <= start <= end <= len(units)//2: raise ValueError('content range outside actual request source')
+            parts.append(units[start*2:end*2].decode('utf-16-le'))
+        text = '\n'.join(parts)
+        lines = text.strip().splitlines()
+        if lines and lines[0].strip() == '---':
+            ending = next((i for i in range(1, len(lines)) if lines[i].strip() == '---'), None)
+            lines = lines[ending+1:] if ending is not None else []
+        observed = next((x.strip() for x in lines if x.strip() and not x.strip().startswith('%%')), '')
+        blocks.append({'kind': block.get('kind'), 'info': block.get('info'), 'complete': block.get('complete'),
+                       'from': block.get('from'), 'to': block.get('to'), 'contentSha256': SHA(text.encode()),
+                       'firstContentLineAfterFrontmatter': observed[:200]})
+    return {'pluginId': payload.get('pluginId'), 'rendererId': payload.get('rendererId'),
+            'documentId': request.get('documentId'), 'version': request.get('version'),
+            'from': origin, 'to': request.get('to'), 'fromLine': request.get('fromLine'), 'toLine': request.get('toLine'),
+            'sourceUtf16': len(units)//2, 'sourceSha256': SHA(source.encode()),
+            'theme': request.get('theme'), 'width': request.get('width'), 'target': request.get('target'),
+            'selection': request.get('selection'), 'blocks': blocks,
+            'classificationScope': 'Literal source/block metadata only; not proof of which internal block/phase ran'}
+
+
+def analyze(rows, complete, status, front_export, driver_text):
+    issues = []
+    def check(condition, message):
+        if not condition: issues.append(message)
+    check(complete is not None, 'missing native complete.json')
+    check(status is not None, 'missing native status.json')
+    final = complete or status or {}
+    check(final.get('final') is True and final.get('diagnosticClosed') is True, 'native observer not final/closed')
+    for k in LOSS + ['inFlight']: check(final.get(k) == 0, 'native incomplete counter '+k+'='+str(final.get(k)))
+    check(final.get('ownerBirth') is not None, 'native missing owner birth')
+    check(final.get('written') == final.get('enqueued') == final.get('attempted') == len(rows), 'native event accounting not complete')
+    check(final.get('limits') == {'queue':8,'events':256,'wireBytes':1048576,'totalWireBytes':16777216}, 'native limits differ from frozen contract')
+    if complete and status:
+        for k in ['ownerPid','ownerBirth','written','enqueued','attempted']+LOSS:
+            check(complete.get(k) == status.get(k), 'status/complete mismatch '+k)
+    sequences = [r.get('sequence') for r in rows]
+    check(len(set(sequences)) == len(rows) and set(sequences) == set(range(1, len(rows)+1)), 'native duplicate/missing sequence; row order itself need not be sequential')
+    accepted = {}; events = defaultdict(list); guardians = {}; payloads = {}
+    for row in rows:
+        key = native_key(row); kind = row.get('kind')
+        check(kind in NATIVE_KINDS, 'unknown native kind '+str(kind))
+        check(key[:2] == (final.get('ownerPid'), final.get('ownerBirth')), 'native row owner differs from sink')
+        check(isinstance(key[2],str) and bool(key[2]), 'native missing instance')
+        check((row.get('captureBeforeNs') or 0) > 0 and (row.get('captureAfterNs') or 0) >= (row.get('captureBeforeNs') or 0), 'native incomplete capture timing '+str(key))
+        if kind == 'guardian-spawn': guardians[key[2]] = (row.get('guardianPid'),row.get('guardianBirth'))
+        elif kind == 'render-accepted':
+            check(key not in accepted, 'duplicate accepted key '+str(key))
+            wire = row['wire'].encode('utf-8'); value = json.loads(wire)
+            check(len(wire) == row.get('wireBytes') and SHA(wire) == row.get('wireSha256'), 'wire bytes/hash mismatch '+str(key))
+            check(value.get('protocol') == 'milkup.plugin.document-render.v1' and value.get('type') == 'render' and value.get('id') == key[3], 'wire envelope/key mismatch '+str(key))
+            check(value.get('payload',{}).get('pluginId') == row.get('pluginId'), 'wire plugin mismatch '+str(key))
+            check(row.get('schema') == 'milkup.cold-accepted-wire.v1', 'accepted schema mismatch')
+            accepted[key] = row; payloads[key] = value['payload']
+        else:
+            check(row.get('schema') == 'milkup.cold-request-lifecycle.v1', 'lifecycle schema mismatch')
+            if key[3] is not None: events[key].append(row)
+        if kind != 'guardian-spawn': check(row.get('eventMonotonicNs',0)>0, 'native event observation clock missing '+str(key))
+    check(sum(r['wireBytes'] for r in accepted.values()) == final.get('reservedWireBytes'), 'reserved wire bytes mismatch')
+    for key,row in accepted.items():
+        check(guardians.get(key[2]) == (row.get('guardianPid'),row.get('guardianBirth')), 'accepted guardian identity missing/mismatch '+str(key))
+    for key,ev in events.items():
+        if key not in accepted and not all(x['kind']=='render-cancel' and x.get('eventOk') is False for x in ev):
+            issues.append('lifecycle has no captured accepted key '+str(key))
+    frontend = (front_export or {}).get('frontend') or {}; sink = frontend.get('sink') or {}
+    check((front_export or {}).get('complete') is True, 'frontend export incomplete')
+    for k in ['dropped','errors']: check(sink.get(k)==0, 'frontend incomplete counter '+k+'='+str(sink.get(k)))
+    fevents=sink.get('events') or []
+    check(len(fevents)<=1024 and sink.get('bytes',16777217)<=16777216, 'frontend cap exceeded')
+    jobs={}; phasecounts=Counter(); client_instances={}
+    for i,row in enumerate(fevents):
+        phase=row.get('phase'); phasecounts[phase]+=1
+        check(phase in FRONT_PHASES, 'unknown frontend phase '+str(phase))
+        check(isinstance(row.get('frontendMs'),(int,float)) and row.get('captureEndMs',-1)>=row.get('frontendMs',0), 'frontend capture timing invalid')
+        client=row.get('client'); key=(client,row.get('requestId'))
+        if client in client_instances: check(client_instances[client]==row.get('nativeInstanceId'), 'frontend client changed native instance')
+        client_instances[client]=row.get('nativeInstanceId')
+        if phase=='queued':
+            check(key not in jobs, 'duplicate frontend queued key '+str(key))
+            value=json.loads(row['requestJson'])
+            check(value.get('pluginId')==row.get('pluginId') and value.get('rendererId')==row.get('rendererId'), 'frontend queued metadata mismatch')
+            jobs[key]={'queued':row,'payload':value,'events':[],'closed':False,'closure':None,'dispatch':None}
+        if key in jobs:
+            job=jobs[key];job['events'].append(row)
+            if phase=='dispatch':
+                check(job['dispatch'] is None, 'duplicate frontend dispatch '+str(key));job['dispatch']=row
+            if phase in {'post-failed','remote-settled','trusted-timeout','cancel-queued'}:
+                if phase=='cancel-queued': check(job['dispatch'] is None, 'cancel-queued after dispatch '+str(key))
+                job['closed']=True;job['closure']=phase
+        elif row.get('requestId') is not None: issues.append('frontend phase without queued job '+str(key))
+        if phase=='dispose':
+            # The actual frozen dispose function revokes every queued job of this client.
+            for key2,job in jobs.items():
+                if key2[0]==client and not job['closed']:
+                    job['closed']=True;job['closure']='client-dispose';job['disposeRow']=i
+    front_open=[list(k) for k,j in jobs.items() if not j['closed']]
+    check(not front_open, 'frontend jobs remain open')
+    matches=defaultdict(list); job_reports=[]
+    for fkey,job in jobs.items():
+        q=job['queued']; candidates=[]
+        if q.get('nativeInstanceId') is not None:
+            candidates=[k for k,r in accepted.items() if k[2]==q['nativeInstanceId'] and k[3]==q['requestId'] and r['pluginId']==q['pluginId'] and semantic(payloads[k])==semantic(job['payload'])]
+            if job['dispatch'] and job['closure']!='post-failed': check(len(candidates)==1, 'dispatched frontend native job lacks unique full-value wire match '+str(fkey))
+            if not job['dispatch']: check(not candidates, 'queued-only job unexpectedly native accepted '+str(fkey))
+        for k in candidates: matches[k].append(fkey)
+        dispatch=job['dispatch']
+        job_reports.append({'client':fkey[0],'requestId':fkey[1],'nativeInstanceId':q.get('nativeInstanceId'),'pluginId':q['pluginId'],
+                            'nativeKeys':[list(x) for x in candidates], 'phases':[x['phase'] for x in job['events']], 'closure':job['closure'],
+                            'queuedCancelledWithoutNativeAcceptance':job['closure']=='cancel-queued' and not candidates,
+                            'frontendQueueWaitMs':dispatch['frontendMs']-q['frontendMs'] if dispatch else None,
+                            'payloadValueFingerprint':fingerprint(job['payload'])})
+    request_reports=[]; unclosed=[]; repeated=defaultdict(list)
+    for key,row in accepted.items():
+        check(len(matches[key])==1, 'native accepted lacks unique frontend full-value match '+str(key))
+        ev=events[key];terms=[x for x in ev if x['kind'] in TERMINALS]
+        if len(terms)!=1: issues.append('accepted requires exactly one strict terminal '+str(key));unclosed.append(list(key))
+        for x in ev:
+            check(x.get('pluginId')==row.get('pluginId') and (x.get('guardianPid'),x.get('guardianBirth'))==(row.get('guardianPid'),row.get('guardianBirth')), 'lifecycle identity mismatch '+str(key))
+        t=terms[0] if len(terms)==1 else None;at=row['eventMonotonicNs']
+        pipes=[x for x in ev if x['kind']=='owner-pipe-complete' and x.get('eventReason')=='render']
+        frames=[x for x in ev if x['kind']=='owner-frame-read']
+        check(len(pipes)==1, 'accepted lacks exactly one original render pipe observation '+str(key))
+        if t and t['kind']=='render-settled':
+            check(isinstance(t.get('eventOk'),bool), 'strict settlement missing boolean ok '+str(key))
+            check(bool(frames), 'strict settlement lacks parsed frame observation '+str(key))
+            if len(matches[key])==1:
+                remote=[x for x in jobs[matches[key][0]]['events'] if x['phase']=='remote-settled']
+                check(len(remote)==1 and remote[0].get('detail')==str(t.get('eventOk')).lower(), 'frontend remote settlement differs from strict native settlement '+str(key))
+        pipe=pipes[0] if len(pipes)==1 else None;frame=frames[0] if len(frames)==1 else None
+        if t: check(t['eventMonotonicNs']>=at, 'terminal observation precedes native acceptance '+str(key))
+        fp=fingerprint(payloads[key]);repeated[fp].append(list(key))
+        request_reports.append({'nativeKey':list(key),'frontendKeys':[list(x) for x in matches[key]],'payloadValueFingerprint':fp,
+            'wireBytes':row['wireBytes'],'wireSha256':row['wireSha256'],'input':readable(payloads[key]),
+            'terminal':{'kind':t['kind'],'eventOk':t.get('eventOk'),'eventMonotonicNs':t['eventMonotonicNs']} if t else None,
+            'cancels':[{'matchedActive':x.get('eventOk'),'at':x['eventMonotonicNs']} for x in ev if x['kind']=='render-cancel'],
+            'pipeCount':len(pipes),'frameCount':len(frames),'acceptedToPipeMs':(pipe['eventMonotonicNs']-at)/1e6 if pipe else None,
+            'acceptedToFrameMs':(frame['eventMonotonicNs']-at)/1e6 if frame else None,
+            'acceptedToTerminalMs':(t['eventMonotonicNs']-at)/1e6 if t else None,
+            'frameToStrictSettleMs':(t['eventMonotonicNs']-frame['eventMonotonicNs'])/1e6 if t and t['kind']=='render-settled' and frame else None,
+            'frameMinusPipeMsSigned':(frame['eventMonotonicNs']-pipe['eventMonotonicNs'])/1e6 if frame and pipe else None})
+    native_traces=[]
+    for line in driver_text.splitlines():
+        if line.startswith('DOM_NATIVE_TIMING '): native_traces.append(json.loads(line[len('DOM_NATIVE_TIMING '):]))
+    dispatches=[x for x in native_traces if x['phase']=='dispatch']
+    observed_dispatch=Counter((x['pid'],x['instanceId'],x['requestId']) for x in dispatches)
+    accepted_dispatch=Counter((k[0],k[2],k[3]) for k in accepted)
+    check(observed_dispatch==accepted_dispatch, 'all frozen driver dispatch keys differ from captured accepted set')
+    actual_deadlines=[x for x in native_traces if x['phase']=='deadline-observed']
+    check(Counter((x['pid'],x['instanceId'],x['requestId']) for x in actual_deadlines)==Counter((native_key(r)[0],native_key(r)[2],native_key(r)[3]) for r in rows if r['kind']=='render-deadline'), 'native trace deadline/lifecycle mismatch')
+    return {'classification':'AUDIT_COMPLETE' if not issues else 'AUDIT_INCOMPLETE_OR_MISMATCH','issues':issues,
+            'nativeStatus':final,'frontendCounters':{k:sink.get(k) for k in ['clients','bytes','dropped','errors']},
+            'frontendCaptureMeasuredMs':{'total':sum(x['captureEndMs']-x['frontendMs'] for x in fevents),'max':max([x['captureEndMs']-x['frontendMs'] for x in fevents] or [0]),'scope':'Recorded trace interval only; no subtraction from native time or claim of complete instrumentation overhead'},
+            'nativePhaseCounts':dict(Counter(x['kind'] for x in rows)),'frontendPhaseCounts':dict(phasecounts),
+            'acceptedCount':len(accepted),'nativeUnclosedOrAmbiguous':unclosed,'frontendOpen':front_open,
+            'nativeRequests':request_reports,'frontendJobs':job_reports,
+            'identicalCompletePayloadGroups':[{'fingerprint':k,'count':len(v),'keys':v} for k,v in repeated.items()],
+            'actualDeadlineCount':len(actual_deadlines),'nativeFailCount':sum(r['kind']=='render-failed' for r in rows),
+            'qualifications':['Audit completeness is not UI PASS or proof of a historical fix.','Native event times are App-local; frontend queue times stay frontend-local.','Signed frame-minus-pipe can be negative because emitting threads race; pipe publication is not a mandatory before-frame boundary.','Missing/ambiguous frame or pipe yields null spans, not inferred endpoints.','No CPU, helper internal phase or historical failure payload attribution.']}
+
+
+def main():
+    p=argparse.ArgumentParser();p.add_argument('--manifest',type=Path,required=True);p.add_argument('--manifest-sha256',required=True);p.add_argument('--run',type=Path,required=True);p.add_argument('--report',type=Path,required=True)
+    a=p.parse_args();run=a.run.resolve();report=a.report.resolve()
+    if report.exists() or report.is_relative_to(run): raise ValueError('new external report required')
+    mb=a.manifest.read_bytes()
+    if SHA(mb)!=a.manifest_sha256: raise ValueError('manifest SHA mismatch')
+    manifest=json.loads(mb)
+    if Path(manifest['run']).resolve()!=run: raise ValueError('manifest run mismatch')
+    index={str(Path(x['path']).resolve()):x for x in manifest['files']}
+    if len(index)!=len(manifest['files']): raise ValueError('duplicate manifest path')
+    def raw(path):
+        value=path.read_bytes();item=index[str(path.resolve())]
+        if len(value)!=item['bytes'] or SHA(value)!=item['sha256']: raise ValueError('frozen input mismatch '+str(path))
+        return value
+    for name in index: raw(Path(name))
+    def obj(path,optional=False):
+        if optional and str(path.resolve()) not in index: return None
+        return json.loads(raw(path))
+    native=run/'native-capture';evidence=run/'evidence'
+    result=analyze([json.loads(x) for x in raw(native/'events.jsonl').splitlines()],obj(native/'complete.json',True),obj(native/'status.json',True),obj(evidence/'frontend-queue-trace.json',True),raw(run/'driver.log').decode())
+    result['manifestSha256']=SHA(mb);result['frozenFilesChecked']=len(index)
+    result['productRecordsTail']=[r.get('name') for r in obj(evidence/'results.json')[-4:]]
+    with report.open('x') as f: json.dump(result,f,ensure_ascii=False,indent=2);f.write('\n')
+    print(json.dumps({k:result[k] for k in ['classification','issues','acceptedCount','actualDeadlineCount','nativeFailCount','nativeUnclosedOrAmbiguous','frontendOpen']},indent=2))
+    return 0 if not result['issues'] else 1
+
+
+if __name__=='__main__': sys.exit(main())

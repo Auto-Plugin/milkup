@@ -1,0 +1,6 @@
+apps/desktop/src/desktop-editing-capabilities.test.ts(131,7): error TS2322: Type '(_m: PluginManifest, _s: string, cap: DesktopPluginModuleCapabilities | undefined) => Promise<{ module: { runtimeHost: "isolated"; commands: { ...; }; activate: () => {}; }; dispose: () => number; }>' is not assignable to type 'DesktopPluginModuleLoader'.
+  Type 'Promise<{ module: { runtimeHost: "isolated"; commands: { 'image.paste': () => void; }; activate: () => {}; }; dispose: () => number; }>' is not assignable to type 'Promise<DesktopLoadedPluginModule>'.
+    Type '{ module: { runtimeHost: "isolated"; commands: { 'image.paste': () => void; }; activate: () => {}; }; dispose: () => number; }' is not assignable to type 'DesktopLoadedPluginModule'.
+      The types returned by 'dispose()' are incompatible between these types.
+        Type 'number' is not assignable to type 'void | Promise<void>'.
+apps/desktop/src/plugin-dom.ts(145,15): error TS2454: Variable 'stopping' is used before being assigned.

@@ -1,0 +1,70 @@
+{
+  "classification": "READ_ONLY_TEST_DESIGN_REVIEW_NOT_EXECUTED",
+  "decision": "Support projection invariant with separate EditorView and SourceDocumentView normalizations, atomic public DOM sampling and strict fixture-derived metadata validation. Do not describe it as continuous full logical selection proof.",
+  "inputs": [
+    {
+      "path": "/workspace/milkup/packages/view-dom/src/editor-view.ts",
+      "bytes": 105889,
+      "sha256": "4084272d196b6f9f70cf85a3c355e9b1a9773deea06e53e1705572b59208367e"
+    },
+    {
+      "path": "/workspace/milkup/packages/view-dom/src/source-document-view.ts",
+      "bytes": 143278,
+      "sha256": "ad1a9a7a746c8eaf641e132ee5a91cb4779c4d860c9f9f445231c8d2b8923206"
+    },
+    {
+      "path": "/workspace/milkup/packages/view-dom/src/document-presentation.ts",
+      "bytes": 72119,
+      "sha256": "07cbcfb4d576ff148585a397195edb691ab8780fe539c2fad52e246b081462b7"
+    },
+    {
+      "path": "/workspace/milkup/tests/helpers/native-production.mjs",
+      "bytes": 7417,
+      "sha256": "293a00db10632383346fa739d8717ddf2d42928e0f2e3f9672043d0dd9452eb0"
+    },
+    {
+      "path": "/workspace/milkup/tests/native/tauri-mermaid-ui.mjs",
+      "bytes": 46352,
+      "sha256": "6838a02977eba34a8716043bd7f409be18c19ee9b64bb2a7eceaeae12c92047f"
+    },
+    {
+      "path": "/workspace/milkup-mermaid-engine-evidence/research/native-ui08-selection-diagnostic-01/summary.json",
+      "bytes": 10368,
+      "sha256": "1eeeec93780d63c3877c6d8d0c3a496fc99456ab683d81bb1853215ab7fbe086"
+    }
+  ],
+  "criticalCorrection": {
+    "ordinaryEditorView": "renderSelectionOverlay (3480-3506) emits whole range from/to; alignSelectionOverlayToDOM (804-850) duplicates this whole range per measured rect and does not add data-line. Fallback may carry fromLine/toLine, measured rectangles do not. Deduplicate exact (from,to), require the complete unique marker range; do not require data-line or clip ordinary selection range per mounted row. Cursor remains whole logical head in renderCursorOverlay even if line geometry is unavailable.",
+    "windowedSourceView": "renderSelection (2980-3051) intersects logical range with every mounted .milkup-line and emits data-from/to/line per intersecting row, duplicated per physical rect. Deduplicate exact (from,to,line); compare to fixture marker intersections with all mounted source rows, not only visible rows. Applies to both source and live modes.",
+    "notByModeAlone": "Branch by actual view class .milkup-source-document-view, not mode source/live or data-virtualized alone. EditorView can itself use a virtual viewport in source mode (762-801) but its overlay still has whole-range semantics."
+  },
+  "atomicSnapshot": [
+    "Use one synchronous WebDriver execute/read-only JS call per boundary. Capture the active editor identity, mode/class, path/loading/version/savedVersion/dirty, content fromLine/toLine, connected source row metadata, selection-layer overlays and cursor-layer metadata in that same callback, without await or separate probes.",
+    "Scope rows to the current editor content and overlays/cursors to its own layers; never use document-global arrays that could include detached/replaced editors. Preserve raw arrays alongside normalized sets.",
+    "Parse each required dataset string strictly: missing/null/empty/noninteger are errors, not Number(null)=0 or null converted from NaN. Validate row number/from/to against exact immutable fixture UTF16 line offsets. Require row order/unique row number and valid bounds. Keep hidden/collapsed/overscan rows: renderSelection iterates mounted rows regardless of visibility.",
+    "Build expected source-range intersection from the independently known unique marker range and validated row metadata; do not infer expected from actual overlays, search count alone, or the current DOM text.",
+    "For windowed source, expected empty is permitted only if no mounted row has positive intersection with marker. Any stale nonempty actual overlay then fails. If any marker intersection is mounted, missing/mismatched overlay fails. Deduplicate physical-rect repeats only; retain all unexpected ranges as failures.",
+    "When a mounted source row contains marker head (inclusive source code bounds), require a cursor with exact marker end. If no row contains it, require no windowed cursor instead of treating missing as0. Ordinary view should retain its cursor at marker end regardless of visible geometry.",
+    "Ensure initial seek readiness in one snapshot includes the full expected marker text/row metadata, exact overlay range and cursor head. This verifies the intended starting selection before the wheel-only phase; do not redefine selection by re-searching after positioning.",
+    "Compare source version, saved version if relevant, dirty and entire file bytes before/after as separate immutable-data assertions. Coordinate values are UTF16; byte comparison remains original encoding/line endings.",
+    "If screenshots are taken later, bracket them with new atomic snapshots and label their state separately; a previous mounted snapshot does not establish the screenshot still includes the marker. A final snapshot with a different valid mounted range is assessed against its own expected projection."
+  ],
+  "staleDOMReview": {
+    "synchronousCode": "Source renderVisibleWindow sets renderedSourceWindow, replaces content, updates content metadata, renders search/selection/cursor without an await in that application block (895-941). Ordinary render/selection overlay alignment also runs synchronously (584-630). A synchronous external DOM read does not interleave halfway through one JS block.",
+    "remainingRisk": "Asynchronous jobs can replace the whole window between separate WebDriver calls or between snapshot and screenshot. The RAF resize deferral means geometry may lag a frame; projection metadata, mounted line validation and cursor checks remain independent of exact pixel rectangles. A stale overlay attached to a new window is a genuine snapshot inconsistency: do not poll away assertion failures merely to obtain a green sample.",
+    "boundedObservation": "No added MutationObserver or periodic full-tree scan is needed. One before/after snapshot and existing readiness deadline suffice; include sequence timestamps and content range so later state changes are explicit.",
+    "sourceIdentityLimit": "Public path/version/mode/layer connectivity constrain identity but do not expose the private source object. No private object or test API should be read."
+  },
+  "knownMarkerBoundary": {
+    "plainSingleLineOnly": "The UI catalog marker is a plain single line outside the controlled fence. Require this and uniqueness in the fixture. No general claim for multi-range selection, selected newline gaps, rendered Markdown aliases, table cells, or arbitrary collapsed blocks.",
+    "range": "Expected unique marker source range, not the fence range. For UI08 sequence:8103..8160, line398.",
+    "direction": "from/to equality proves the range, not anchor/head direction. Exact cursor=head8160 when observable adds the forward-direction observation."
+  },
+  "nativeEvidenceBoundary": {
+    "existingDiagnostic": "Both fresh-sentinel native Ctrl+C readbacks matched the exact57-character unique marker. After unmount overlay/cursor became empty, after reverse-wheel remount readback matched again. Final snapshot later unmounted again and failed the old final complete-projection assertion. This supports the projection distinction but preserves that diagnostic first failure.",
+    "notProved": "No continuous private logical selection invariant while unmounted; no inference that arbitrary empty overlays always mean healthy selection. New test states a public projection contract plus unchanged data, not a weaker renamed logical-state guarantee.",
+    "clipboardNotRequiredPerWheel": "Keep the independent native clipboard proof separately rather than adding repeated Ctrl+C to every formal sample. Copy is a real user interaction and is unavailable when the selected range is unloaded."
+  },
+  "changesSuggested": "Only the native test observation/assertion adapter if root approves. No view/product/API/plugin change; no budget increase; no additional re-navigation or forced marker mounting after wheel.",
+  "execution": "Only source and already-completed evidence read. No test/browser/native/build run and no product/test source modification."
+}

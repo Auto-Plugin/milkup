@@ -1,0 +1,116 @@
+[WebServer] (node:231369) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 2 tests using 1 worker
+
+(node:231408) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] 1:17:33 AM [vite] (client) Pre-transform error: Failed to load url /src/editor-context-menu.ts (resolved id: /tmp/milkup-windows-manual-candidate/apps/desktop/src/editor-context-menu.ts) in /tmp/milkup-windows-manual-candidate/apps/desktop/src/main.ts. Does the file exist?
+  ✘  1 tests/e2e/desktop-floating-toolbar.spec.ts:137:9 › floating toolbar ordinary 1100x760 light 100% (4.6s)
+(node:231584) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  2 tests/e2e/desktop-floating-toolbar.spec.ts:137:9 › floating toolbar windowed 760x520 dark 200% (11.9s)
+
+
+  1) tests/e2e/desktop-floating-toolbar.spec.ts:137:9 › floating toolbar ordinary 1100x760 light 100% 
+
+    Error: expect(received).toEqual(expected) // deep equality
+
+    - Expected  - 2
+    + Received  + 2
+
+      Object {
+    -   "bottom": 37,
+    -   "height": 37,
+    +   "bottom": 80,
+    +   "height": 80,
+        "left": 0,
+        "right": 1100,
+        "top": 0,
+        "width": 1100,
+      }
+
+      87 |   after: Awaited<ReturnType<typeof geometry>>,
+      88 | ) {
+    > 89 |   expect(after.titlebar).toEqual(before.titlebar)
+         |                          ^
+      90 |   expect(after.editor).toEqual(before.editor)
+      91 |   expect(after.host).toEqual(before.host)
+      92 | }
+        at expectSameLayout (/tmp/milkup-windows-manual-candidate/tests/e2e/desktop-floating-toolbar.spec.ts:89:26)
+        at /tmp/milkup-windows-manual-candidate/tests/e2e/desktop-floating-toolbar.spec.ts:156:11
+
+    attachment #3: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ../milkup-beta6-floating-baseline-red-final/desktop-floating-toolbar-f-dc6d0-rdinary-1100x760-light-100-/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #4: floating-toolbar-state (text/plain) ─────────────────────────────────────────────
+    - main:
+      - button "菜单"
+      - heading "sample" [level=1]
+      - paragraph: D:/notes
+      - button "格式"
+      - button "粗体"
+      - button "斜体"
+      - button "下方加行"
+      - button "删除行"
+      - button "右侧加列"
+      - button "删除列" [disabled]
+      - button "退出表格"
+      - button "最小化"
+      - button "最大化"
+      - button "关闭窗口"
+      - textbox
+      - textbo...
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ../milkup-beta6-floating-baseline-red-final/desktop-floating-toolbar-f-dc6d0-rdinary-1100x760-light-100-/error-context.md
+
+  2) tests/e2e/desktop-floating-toolbar.spec.ts:137:9 › floating toolbar windowed 760x520 dark 200% 
+
+    Error: expect(locator).toBeEnabled() failed
+
+    Locator: locator('[data-plugin-slot="document-toolbar"]').getByRole('button', { name: '下方加行', exact: true })
+    Expected: enabled
+    Timeout: 5000ms
+    Error: element(s) not found
+
+    Call log:
+      - Expect "toBeEnabled" with timeout 5000ms
+      - waiting for locator('[data-plugin-slot="document-toolbar"]').getByRole('button', { name: '下方加行', exact: true })
+
+
+      50 |   await page.keyboard.press('ArrowRight')
+      51 |   await page.keyboard.press('ArrowRight')
+    > 52 |   await expect(toolbar(page).getByRole('button', { name: '下方加行', exact: true })).toBeEnabled()
+         |                                                                                  ^
+      53 |   await expect(toolbar(page)).toBeVisible()
+      54 | }
+      55 |
+        at enterTable (/tmp/milkup-windows-manual-candidate/tests/e2e/desktop-floating-toolbar.spec.ts:52:82)
+        at /tmp/milkup-windows-manual-candidate/tests/e2e/desktop-floating-toolbar.spec.ts:146:11
+
+    attachment #2: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ../milkup-beta6-floating-baseline-red-final/desktop-floating-toolbar-f-a9d29--windowed-760x520-dark-200-/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #3: floating-toolbar-state (text/plain) ─────────────────────────────────────────────
+    - main:
+      - button "菜单"
+      - heading "sample" [level=1]
+      - paragraph: D:/notes
+      - button "最小化"
+      - button "最大化"
+      - button "关闭窗口"
+      - textbox
+      - textbox "Markdown 编辑器"
+      - button "侧栏"
+      - button "源码"
+      - text: 2544133 字符 已保存
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ../milkup-beta6-floating-baseline-red-final/desktop-floating-toolbar-f-a9d29--windowed-760x520-dark-200-/error-context.md
+
+  2 failed
+    tests/e2e/desktop-floating-toolbar.spec.ts:137:9 › floating toolbar ordinary 1100x760 light 100% 
+    tests/e2e/desktop-floating-toolbar.spec.ts:137:9 › floating toolbar windowed 760x520 dark 200% ─

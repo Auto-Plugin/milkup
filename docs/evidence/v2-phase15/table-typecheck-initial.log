@@ -1,0 +1,8 @@
+$ tsc -p tsconfig.json --noEmit
+src/source-document-view.ts(798,25): error TS2375: Type '{ children: SyntaxNode[] | undefined; type: SyntaxNodeType | string; from: number; to: number; status: SyntaxStatus; markerRanges?: readonly SourceRange[]; contentRanges?: readonly SourceRange[]; data?: Readonly<Record<string, unknown>>; }' is not assignable to type 'SyntaxNode' with 'exactOptionalPropertyTypes: true'. Consider adding 'undefined' to the types of the target's properties.
+  Types of property 'children' are incompatible.
+    Type 'SyntaxNode[] | undefined' is not assignable to type 'readonly SyntaxNode[]'.
+      Type 'undefined' is not assignable to type 'readonly SyntaxNode[]'.
+/workspace/milkup/packages/view-dom:
+[ERR_PNPM_RECURSIVE_RUN_FIRST_FAIL] @milkup/view-dom@0.0.0 typecheck: `tsc -p tsconfig.json --noEmit`
+Exit status 2

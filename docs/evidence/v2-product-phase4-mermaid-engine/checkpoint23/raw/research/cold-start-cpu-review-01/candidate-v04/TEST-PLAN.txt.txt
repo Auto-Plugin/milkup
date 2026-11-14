@@ -1,0 +1,11 @@
+PREPARED ONLY — do not execute until root explicitly authorizes.
+
+Proposed one pure synthetic invocation, cwd candidate-v04:
+PYTHONDONTWRITEBYTECODE=1 python3 -m unittest -v test_cpu_sampler.py
+Capture complete command, cwd, exact input hashes, stdout/stderr and actual unittest exit separately. No native/browser/fork/process/cgroup reads: FakeFiles/Clock and temporary JSONL only. Real AST source reads are read-only. Do not combine with runtime.
+
+Carry forward 21 cases: authoritative App/guardian identity, permission-only optional environment gap, mismatch/schema/rebind rejection, exact children scope, time/task/sample budgets, leader schedstat, missing data, arbitrary request IDs, payload-line framing, whole intervals and no global scans/signals.
+
+13 new prepared cases: pidfd success alongside children ENOENT and persisted argv; unrelated vanished FD preserves other target; noPid vs exited -1; repeated fdinfo change rejection; PPID mismatch; target birth reuse; owner birth reuse; NSpid recorded not translated; enumeration/read caps preserve verified target; total-round read limit including repeated read; shared wall budget not reset after children; later slow FD retains completed proof; malformed duplicate/Pid/NSpid fields.
+
+Static review must additionally check: 64-identity/ring/event/record bounds, source has exactly two os.scandir calls both exact-owner paths, no process creation/signals/global scan, code exit2 includes discovery incompleteness. These tests do not prove actual namespace capability, native overhead, renderer completeness or deadline cause. Root may request targeted fixture changes before authorizing this one invocation.

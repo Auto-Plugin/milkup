@@ -1,0 +1,7 @@
+PASS source: rapid input/save/input preserves later dirty content
+PASS source: immediate undo after save is applied
+Traceback (most recent call last):
+  File "/workspace/milkup/tests/native/x11-save-history.py", line 111, in <module>
+    assert not s['dirty'] and s['selection']['head'] == position + 5, s
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: {'at': 2779, 'wall': 1791903833548, 'path': '/tmp/milkup-v2-phase12/x11-small-final/document.md', 'dirty': False, 'version': 46, 'savedVersion': 46, 'saving': False, 'loading': 'ready', 'mode': 'source', 'selection': {'anchor': 54, 'head': 54}, 'pending': 0, 'editable': True, 'cursor': '54', 'lines': ['中文😀 firstaaaaaaaaaaaaaaaaaaaabbbbbbbbbbbbbbbbbbbb', 'qrs', 'body xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx'], 'renderedLines': 5, 'fromLine': None, 'notice': '已保存', 'focused': 'milkup-input-proxy'}

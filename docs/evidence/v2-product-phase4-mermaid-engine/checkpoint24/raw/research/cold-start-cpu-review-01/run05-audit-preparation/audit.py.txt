@@ -1,0 +1,131 @@
+#!/usr/bin/env python3
+"""Offline bytes-only audit. Requires explicit completed-run authorization token.
+Does not import sampler modules, touch live proc, spawn processes or send signals.
+"""
+import argparse
+import hashlib
+import json
+from pathlib import Path
+
+BINARY_SHA='b8c68aaf2d24a59f9e4cc60f1b03799b45aaecffe3379c2830866b7ac4f0e2c4'
+EXTENSION_SHA='0355b69f0f15e4d0efa5f5ab137d45b8342233f32b16c0240521a45695a6f8f3'
+
+def sha(raw):return hashlib.sha256(raw).hexdigest()
+def load(path):return json.loads(path.read_text())
+def lines(path):return [json.loads(x) for x in path.read_text().splitlines() if x.strip()]
+def pidfd(raw):
+    fields={}
+    for line in raw.splitlines():
+        if ':' not in line:continue
+        k,v=line.split(':',1)
+        if k in ('Pid','NSpid'):
+            if k in fields:raise ValueError('duplicate fdinfo identity field')
+            fields[k]=v.strip()
+    return dict(pid=int(fields['Pid']),nspid=list(map(int,fields['NSpid'].split())) if 'NSpid' in fields else None)
+
+def main():
+    parser=argparse.ArgumentParser()
+    parser.add_argument('--completed-root-go',required=True,choices=['ROOT_AUTHORIZED_FROZEN_RUN05_REVIEW'])
+    for name in ['manifest','manifest-sha256','run','native-dir','binary','extension','output']:
+        parser.add_argument('--'+name,required=True)
+    args=parser.parse_args();out=Path(args.output);out.mkdir(exist_ok=False,parents=True)
+    def save(name,value):(out/name).write_text(json.dumps(value,indent=2)+'\n')
+    manifest=Path(args.manifest);raw=manifest.read_bytes()
+    if sha(raw)!=args.manifest_sha256:raise ValueError('frozen manifest SHA mismatch')
+    m=json.loads(raw);checks=[]
+    for entry in m['files']:
+        p=Path(entry['path']);b=p.read_bytes();checks.append(dict(path=str(p),bytes=len(b),sizeMatch=len(b)==entry['bytes'],hashMatch=sha(b)==entry['sha256']))
+    valid=all(x['sizeMatch'] and x['hashMatch'] for x in checks)
+    save('manifest-verification.json',dict(manifestSha256=sha(raw),fileCount=len(checks),totalBytes=sum(x['bytes'] for x in checks),allMatch=valid,files=checks))
+    if not valid:raise ValueError('frozen inputs changed; interpretation stopped')
+    binary=Path(args.binary).read_bytes();extension=Path(args.extension).read_bytes();offset=binary.find(extension)
+    save('binary-extension-proof.json',dict(binarySha256=sha(binary),extensionSha256=sha(extension),binaryBytes=len(binary),extensionBytes=len(extension),expectedBinaryMatch=sha(binary)==BINARY_SHA and len(binary)==21962312,expectedExtensionMatch=sha(extension)==EXTENSION_SHA and len(extension)==16824,firstOffset=offset,uniqueWholeExtension=offset==1500320 and binary.find(extension,offset+1)==-1,scope='Saved artifact embedding only, not runtime load tracing'))
+    run=Path(args.run);s=load(run/'cpu-observer/summary.json');rows=lines(run/'cpu-observer/samples.ndjson');known={(x['pid'],x['birth']):x for x in s['knownIdentities']};hz=s['clockTicksPerSecond'];issues=[]
+    def check(label,value,**details):
+        if not value:issues.append(dict(check=label,**details))
+    native=s.get('nativeWebProcess',{});sources=native.get('sources',{});source_audits=[]
+    for kind,source in sources.items():
+        helper=source['record']['helper'];path=Path(args.native_dir)/'slot'/f'helper-{helper["pid"]}-{helper["birth"]}-{kind}.json'
+        try:
+            raw=path.read_bytes();record=json.loads(raw)
+            ok=sha(raw)==source['sha256'] and record==source['record'] and len(raw)<=8192
+            check('native-raw-record-vs-snapshot',ok,kind=kind)
+            check('native-record-envelope',record.get('schema')=='milkup.webprocess-self-pidfd.v1' and record.get('kind')==kind and record.get('final') is True,kind=kind)
+            for label in ('helper','guardian'):
+                ident=record[label];origin=known.get((ident['pid'],ident['birth']))
+                check('native-record-known-identity',origin is not None and ident['parent']==origin['parent'] and record['instanceId']==origin['instanceId'],kind=kind,identity=label)
+            if kind=='armed':check('native-armed-extension-and-token',record.get('extensionSha256')==EXTENSION_SHA and record.get('tokenPrepared') is True and record.get('status')=='receiver-prepared')
+            elif record.get('status')=='held':check('native-held-shape',record.get('tokenMatched') is True and type(record.get('receivedFdCount')) is int and record['receivedFdCount']==1 and all(type(record.get(k)) is int and record[k]==0 for k in ['nativeStage','nativeErrno','nativeGErrorDomain','nativeGErrorCode']))
+            source_audits.append(dict(kind=kind,path=str(path),sha256=sha(raw),bytes=len(raw),matchesSnapshot=ok,record=record,observerReadStartNs=source['readStartNs'],observerReadEndNs=source['readEndNs']))
+        except (OSError,ValueError,KeyError) as exc:
+            issues.append(dict(check='native-source-file-readable-and-valid',kind=kind,error=type(exc).__name__,detail=str(exc)))
+    # Also inspect both fixed final paths even if observer stopped before caching one.
+    # This distinguishes a late native publication from a file never present at freeze.
+    raw_native_files=[]
+    helper_key=native.get('helperIdentity')
+    if helper_key:
+        for kind in ('armed','result'):
+            path=Path(args.native_dir)/'slot'/f'helper-{helper_key[0]}-{helper_key[1]}-{kind}.json'
+            try:
+                raw=path.read_bytes()
+                if len(raw)>8192:raise ValueError('frozen native record exceeds byte cap')
+                raw_native_files.append(dict(kind=kind,path=str(path),status='present-at-freeze',sha256=sha(raw),record=json.loads(raw),cachedByObserver=kind in sources))
+            except (OSError,ValueError) as exc:
+                raw_native_files.append(dict(kind=kind,path=str(path),status='unavailable-or-invalid',error=type(exc).__name__,detail=str(exc)))
+    proofs=[]
+    for key,origin in known.items():
+        if 'nativePidfdProof' in origin:proofs.append((origin,origin['nativePidfdProof'],'adopted'))
+    unbound=native.get('unboundArgvProof')
+    if unbound:proofs.append((unbound['row'],unbound['proof'],'unbound-argv'))
+    proof_audits=[]
+    for origin,p,scope in proofs:
+        key=(origin['pid'],origin['birth']);before=p['chainBefore'];after=p['chainAfter'];a=[x['identity'] for x in before];b=[x['identity'] for x in after]
+        fields=pidfd(p['fdinfoBefore']);helper=p['helperBefore']['identity'];guardian=p['guardianBefore']['identity']
+        check('native-repeat-raw-target',p['fdinfoBefore']==p['fdinfoAfter'] and fields==p['pidFields'] and fields['pid']==key[0] and fields['pid']>0,pid=key[0])
+        check('native-chain-shape',2<=len(a)<=8 and len(a)==len(b) and len({x['pid'] for x in a})==len(a) and (a[0]['pid'],a[0]['birth'])==key and (a[-1]['pid'],a[-1]['birth'])==(helper['pid'],helper['birth']),pid=key[0])
+        for left,right in zip(a,b):check('native-double-node',all(left[k]==right[k] for k in ['pid','birth','parent']) and left['state'] not in ['Z','X','x'] and right['state'] not in ['Z','X','x'],pid=left['pid'])
+        for child,parent in zip(a,a[1:]):check('native-parent-edge',child['parent']==parent['pid'] and parent['birth']<=child['birth'],pid=child['pid'])
+        for label in ('helper','guardian'):
+            x=p[label+'Before']['identity'];y=p[label+'After']['identity']
+            check('native-owner-double-node',all(x[k]==y[k] for k in ['pid','birth','parent']) and x['state'] not in ['Z','X','x'] and y['state'] not in ['Z','X','x'],owner=label)
+        check('native-helper-guardian-edge',helper['parent']==guardian['pid'] and (helper['pid'],helper['birth']) in known and (guardian['pid'],guardian['birth']) in known,pid=key[0])
+        av=p['bindingArgvEvidence'];argv=bytes.fromhex(av['rawHex']).rstrip(b'\0').decode().split('\0')
+        check('native-argv-raw',argv==av['parsed'] and len(bytes.fromhex(av['rawHex']))<=4096,pid=key[0])
+        check('native-argv-before-phase-b',max(x['readEndNs'] for x in before)<=av['readStartNs']<=av['readEndNs']<=min(x['readStartNs'] for x in after),pid=key[0])
+        check('native-before-after-read-order',all(x['readEndNs']<=y['readStartNs'] for x,y in zip(before,before[1:])) and all(x['readEndNs']<=y['readStartNs'] for x,y in zip(list(reversed(after)),list(reversed(after))[1:])) and max(x['readEndNs'] for x in after)<=p['secondReadStartNs']<=p['secondReadEndNs']<=p['helperAfter']['readStartNs']<=p['helperAfter']['readEndNs']<=p['guardianAfter']['readStartNs'],pid=key[0])
+        check('native-source-digests',p['nativeSourceDigests']=={k:v['sha256'] for k,v in sources.items()},pid=key[0])
+        proof_audits.append(dict(pid=key[0],birth=key[1],scope=scope,originalRole=origin.get('role'),bindingArgv=argv,argvCorroboratesWebProcess=bool(argv) and Path(argv[0]).name=='WebKitWebProcess',helper=helper,guardian=guardian,pidfd=fields,chainBefore=before,chainAfter=after,fd=p['fd']))
+    save('native-proof-audit.json',dict(issues=issues,sources=source_audits,rawFixedNativeFilesAtFreeze=raw_native_files,proofs=proof_audits,nativeQuality=native,qualification='Snapshot consistency only; no atomic ancestry/ABA/time-namespace/full-tree claim; a missing native proof remains unmeasured'))
+    processes=[]
+    for key,origin in known.items():
+        samples=[x for row in rows for x in row['members'] if (x['pid'],x['birth'])==key];good=[x for x in samples if x['status']=='sample'];intervals=[]
+        for a,b in zip(samples,samples[1:]):
+            if a['status']!='sample' or b['status']!='sample':continue
+            delta=b['userTicks']+b['systemTicks']-a['userTicks']-a['systemTicks'];sched={k:b['leaderSchedstat'][k]-v for k,v in a['leaderSchedstat'].items()} if a.get('leaderSchedstat') and b.get('leaderSchedstat') else None
+            check('CPU-monotonic-bracket',delta>=0 and a['readEndNs']<=b['readStartNs'],pid=key[0])
+            if sched:check('leader-schedstat-monotonic',all(v>=0 for v in sched.values()),pid=key[0])
+            intervals.append(dict(firstReadStartNs=a['readStartNs'],lastReadEndNs=b['readEndNs'],cpuTicks=delta,cpuSeconds=delta/hz,leaderSchedstatDelta=sched))
+        processes.append(dict(pid=key[0],birth=key[1],role=origin['role'],argv=origin.get('argvEvidence'),firstSeenNs=origin['firstSeenNs'],firstSampleNs=origin.get('firstSampleNs'),birthTickQuantizationNs=1e9/hz,firstSeenMinusBirthTickNs=origin['firstSeenNs']-key[1]*1e9/hz,validSamples=len(good),firstCounter=None if not good else good[0],lastCounter=None if not good else good[-1],cpuSeconds=sum(x['cpuSeconds'] for x in intervals) if intervals else None,intervals=intervals))
+    save('full-observed-intervals.json',dict(scope='Exact PID adjacent whole sample intervals; never retroactive or assumed request windows',processes=processes))
+    driver=[json.loads(x[18:]) for x in (run/'driver.log').read_text().splitlines() if x.startswith('DOM_NATIVE_TIMING ')];capture=lines(run/'native-capture/events.jsonl');complete=load(run/'native-capture/complete.json');status=load(run/'native-capture/status.json')
+    check('capture-closed-counters',status==complete and complete.get('final') is True and complete.get('diagnosticClosed') is True and complete.get('attempted')==complete.get('enqueued')==complete.get('written')==len(capture) and all(complete.get(k)==0 for k in ['queueFull','disconnected','oversize','capped','ioErrors','incompleteTiming','inFlight']))
+    wires=[]
+    for e in capture:
+        if e['kind']!='render-accepted':continue
+        wire=e['wire'].encode();request=json.loads(e['wire']);ok=len(wire)==e['wireBytes'] and sha(wire)==e['wireSha256'] and request.get('id')==e['requestId'];check('wire-integrity',ok,request=e['requestId']);wires.append(dict(requestId=e['requestId'],instanceId=e['instanceId'],bytes=len(wire),sha256=sha(wire),matches=ok))
+    requests=[]
+    for end in driver:
+        if end.get('phase')!='deadline-observed' or end.get('pid')!=s['app']['pid']:continue
+        matches=[e for e in driver if e.get('phase')=='dispatch' and all(e.get(k)==end.get(k) for k in ['pid','instanceId','requestId']) and e['monotonicNs']<=end['monotonicNs']]
+        request=dict(deadline=end,dispatchMatches=len(matches),processes=[]);requests.append(request)
+        if len(matches)!=1:continue
+        start=matches[0]['monotonicNs'];request['dispatch']=matches[0]
+        for process in processes:
+            ints=[x for x in process['intervals'] if start<=x['firstReadStartNs']<=x['lastReadEndNs']<=end['monotonicNs']]
+            request['processes'].append(dict(pid=process['pid'],birth=process['birth'],wholeIntervals=ints,cpuSeconds=sum(x['cpuSeconds'] for x in ints) if ints else None))
+    for r in s.get('discoveryRounds',[]):
+        check('round-caps',r['fdinfoReadAttempts']<=128 and r['taskEntries']<=128 and all(x['attempts']<=32 for x in r.get('ownerFdinfoReadAttempts',[])) and r.get('nativeTargetAttempts',0)<=1 and r.get('nativeRecordReads',0)<=2 and r.get('nativeChainNodes',0)<=16 and r.get('nativeChainStatReads',0)<=32 and r.get('nativeTotalStatReads',0)<=40,roundStart=r['startedNs'])
+    save('timeline-quality.json',dict(issues=issues,driverNativeEvents=driver,cpuNativeEvents=s['nativeEvents'],captureEventsWithoutWire=[{k:v for k,v in e.items() if k!='wire'} for e in capture],captureFinal=complete,wires=wires,deadlineRequests=requests,lastSampleEndNs=max((x['readEndNs'] for row in rows for x in row['members'] if x['status']=='sample'),default=None),observerStartedNs=s['startedMonoNs'],observerFinishedNs=s['finishedMonoNs'],overhead=s['overhead'],sampleQuality={k:s[k] for k in ['sampleCount','sampleIncomplete','evictedRows','skippedSlots','maxLateNs']},discoveryRounds=s.get('discoveryRounds'),discoveryOverBudget=[r for r in s.get('discoveryRounds',[]) if r['durationNs']>s['limits']['discoveryWallBudgetNs']]))
+    save('raw-status-summary.json',dict(runSummary=load(run/'run-summary.json'),observerStop=s['stopReason'],observerFailure=s['failure'],descendantCoverage=s['descendantCoverage'],nativeStatus=native.get('status'),issues=issues,scope='Only frozen artifacts read; no live proc, native launch, sampler import, tests or signals'))
+
+if __name__=='__main__':main()

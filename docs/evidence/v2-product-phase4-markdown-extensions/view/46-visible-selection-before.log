@@ -1,0 +1,70 @@
+
+ RUN  v3.2.6 /workspace/milkup/packages/view-dom
+
+ ❯ src/__tests__/document-presentation.test.ts (34 tests | 1 failed) 1360ms
+   ✓ refreshes selection-dependent third-party output without repaint loops (false) 137ms
+   ✓ cancels the old selection job and discards its late output (false) 37ms
+   ✓ uses real MathML, retains mapped source and reveals on selection (false) 26ms
+   ✓ keeps source literal and disable restores source without a transaction (false) 29ms
+   ✓ excludes preview text from mapped offsets, coalesces and invalidates (false) 50ms
+   ✓ mounts a multiline block once and restores every original line (false) 39ms
+   ✓ renders the native CRLF matrix range without consuming its line ending (false) 38ms
+   ✓ uses accessible references without editing or swallowing keyboard activation (false) 14ms
+   ✓ preserves an ordinary task control alongside inline presentation (false) 17ms
+   ✓ rejects protected and malformed output while preserving editable source (false) 16ms
+   ✓ bounds requests before invoking a provider on a huge line (false) 18ms
+   ✓ discards old-document results while a fresh document remains editable (false) 22ms
+   ✓ discards an asynchronous result after disable (false) 15ms
+   ✓ refreshes selection-dependent third-party output without repaint loops (true) 106ms
+   ✓ cancels the old selection job and discards its late output (true) 64ms
+   ✓ uses real MathML, retains mapped source and reveals on selection (true) 33ms
+   ✓ keeps source literal and disable restores source without a transaction (true) 35ms
+   ✓ excludes preview text from mapped offsets, coalesces and invalidates (true) 36ms
+   ✓ mounts a multiline block once and restores every original line (true) 37ms
+   ✓ renders the native CRLF matrix range without consuming its line ending (true) 98ms
+   ✓ uses accessible references without editing or swallowing keyboard activation (true) 119ms
+   ✓ preserves an ordinary task control alongside inline presentation (true) 34ms
+   ✓ rejects protected and malformed output while preserving editable source (true) 28ms
+   ✓ bounds requests before invoking a provider on a huge line (true) 18ms
+   ✓ discards old-document results while a fresh document remains editable (true) 42ms
+   ✓ discards an asynchronous result after disable (true) 18ms
+   ✓ constructs inert SVG and maps only validated MathML attribute names 11ms
+   ✓ checks the host navigation lease after asynchronous viewport loading 8ms
+   ✓ checks the host navigation assertion before changing selection 8ms
+   ✓ measures collapsed block continuation lines as zero and restores their heights 79ms
+   ✓ allows bounded host snapshot preparation beyond the renderer worker deadline 33ms
+   ✓ cancels a slow host preparation without waiting for its deadline 14ms
+   ✓ rejects a completed job if selection changed before the next synchronization 25ms
+   × keeps a visible selected source line anchored when an earlier preview grows 53ms
+     → expected 221 to be 42 // Object.is equality
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/__tests__/document-presentation.test.ts > keeps a visible selected source line anchored when an earlier preview grows
+AssertionError: expected 221 to be 42 // Object.is equality
+
+- Expected
++ Received
+
+- 42
++ 221
+
+ ❯ src/__tests__/document-presentation.test.ts:709:51
+    707|     await settle()
+    708|     expect(content.querySelector('math')).not.toBeNull()
+    709|     expect(lines[2]!.getBoundingClientRect().top).toBe(42)
+       |                                                   ^
+    710|     expect(root.scrollTop).toBe(179)
+    711|   } finally {manager.destroy()}
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 33 passed (34)
+   Start at  12:30:47
+   Duration  5.12s (transform 1.12s, setup 0ms, collect 1.50s, tests 1.36s, environment 1.23s, prepare 221ms)
+
+undefined
+/workspace/milkup/packages/view-dom:
+[ERR_PNPM_RECURSIVE_EXEC_FIRST_FAIL] Command failed with exit code 1: vitest run src/__tests__/document-presentation.test.ts '--maxWorkers=2'

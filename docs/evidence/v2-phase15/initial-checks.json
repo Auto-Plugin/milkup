@@ -1,0 +1,110 @@
+[
+  {
+    "command": "pnpm --filter @milkup/desktop tauri build --no-bundle",
+    "log": "production-build-initial.log",
+    "exitCode": 0
+  },
+  {
+    "command": "node tests/native/tauri-production-search.mjs",
+    "case": "production-smoke",
+    "exitCode": 1,
+    "reason": "Harness path selector absent in shipped DOM; app had opened the document."
+  },
+  {
+    "command": "node tests/native/tauri-production-search.mjs",
+    "case": "production-startup-diagnostic",
+    "exitCode": 1,
+    "reason": "Captured ready production page to diagnose path selector."
+  },
+  {
+    "command": "node tests/native/tauri-production-search.mjs",
+    "case": "production-worker-first",
+    "exitCode": 1,
+    "reason": "Harness compared URL.origin null for custom scheme against location.origin; protocol and host comparison is required."
+  },
+  {
+    "command": "node tests/native/tauri-production-search.mjs",
+    "case": "production-worker-verified",
+    "exitCode": 1,
+    "reason": "Fixture i has four matches, including tailneedle, not three; actual Worker returned four."
+  },
+  {
+    "command": "node tests/native/tauri-production-search.mjs",
+    "case": "production-unicode",
+    "exitCode": 1,
+    "reason": "Programmatic focus moved before queued XTest text arrived; disk hash caught single-letter replacement."
+  },
+  {
+    "command": "node tests/native/tauri-production-search.mjs",
+    "case": "production-unicode-barrier",
+    "exitCode": 0,
+    "passed": 8
+  },
+  {
+    "command": "MILKUP_PRODUCTION_CASE=large node tests/native/tauri-production-search.mjs",
+    "case": "production-100mib",
+    "exitCode": 0,
+    "passed": 10
+  },
+  {
+    "command": "pnpm --filter @milkup/view-dom typecheck",
+    "log": "table-typecheck-initial.log",
+    "exitCode": 2
+  },
+  {
+    "command": "pnpm --filter @milkup/view-dom exec vitest run src/__tests__/windowed-table.test.ts src/__tests__/table-keyboard.test.ts",
+    "log": "table-tests-initial.log",
+    "exitCode": 1,
+    "reason": "Test counted escaped pipe as column delimiter; replaced with CST column assertion."
+  },
+  {
+    "command": "pnpm --filter @milkup/view-dom test",
+    "log": "view-tests-first.log",
+    "exitCode": 1,
+    "reason": "Measured-height integration initially moved compressed-scroll first line from one to two; corrected ceiling calculation."
+  },
+  {
+    "command": "pnpm --filter @milkup/view-dom test",
+    "log": "view-tests-second.log",
+    "exitCode": 0,
+    "passed": 322
+  },
+  { "command": "pnpm typecheck", "log": "typecheck-first.log", "exitCode": 2 },
+  {
+    "command": "node tests/native/tauri-production-tables.mjs",
+    "case": "production-tables-first",
+    "exitCode": 1,
+    "reason": "Product optimistic cell textContent flattened existing br nodes."
+  },
+  {
+    "command": "node tests/native/tauri-production-tables.mjs",
+    "case": "production-tables-break-fixed",
+    "exitCode": 1,
+    "reason": "Background table context flush split typing undo; br geometry was corrected."
+  },
+  {
+    "command": "node tests/native/tauri-production-tables.mjs",
+    "case": "production-tables-batching",
+    "exitCode": 0,
+    "passed": 4
+  },
+  {
+    "command": "pnpm -r --workspace-concurrency=1 test",
+    "log": "js-full-first.log",
+    "exitCode": 1,
+    "reason": "Unbudgeted bridge calls acquired an extra undefined argument; preserved the existing three-argument contract."
+  },
+  {
+    "command": "cargo test --manifest-path apps/desktop/src-tauri/Cargo.toml --lib",
+    "log": "rust-first.log",
+    "exitCode": 101,
+    "reason": "New test unwrap_err required Debug on success payload; use err().unwrap() for the error assertion."
+  },
+  {
+    "command": "cargo test --manifest-path apps/desktop/src-tauri/Cargo.toml --lib",
+    "log": "rust-second.log",
+    "exitCode": 0,
+    "passed": 58,
+    "ignored": 1
+  }
+]

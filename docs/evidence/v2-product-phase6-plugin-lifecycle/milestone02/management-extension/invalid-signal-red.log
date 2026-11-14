@@ -1,0 +1,41 @@
+
+ RUN  v3.2.6 /workspace/milkup
+
+ ❯ packages/plugin/src/management-broker.test.ts (5 tests | 1 failed) 19ms
+   ✓ provides a bounded read-only catalog and no mutation capability 4ms
+   ✓ navigation requires caller-bound trusted gesture and cannot smuggle an action or path 3ms
+   ✓ revokes all subsequent calls when the plugin is disposed 1ms
+   ✓ rejects duplicate catalog IDs, unknown data and oversized responses 1ms
+   × rejects invalid navigation cancellation options before consuming the gesture 9ms
+     → promise resolved "{ status: 'opened' }" instead of rejecting
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  packages/plugin/src/management-broker.test.ts > rejects invalid navigation cancellation options before consuming the gesture
+AssertionError: promise resolved "{ status: 'opened' }" instead of rejecting
+
+- Expected
++ Received
+
+- Error {
+-   "message": "rejected promise",
++ {
++   "status": "opened",
+  }
+
+ ❯ packages/plugin/src/management-broker.test.ts:68:88
+     66|   const { broker, adapter, consumeGesture } = setup()
+     67|   for (const signal of [false, null, {}, 'signal'])
+     68|     await expect(broker.requestHostView(input, { gesture: 'trusted', s…
+       |                                                                                        ^
+     69|   expect(consumeGesture).not.toHaveBeenCalled()
+     70|   expect(adapter.requestHostView).not.toHaveBeenCalled()
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 4 passed (5)
+   Start at  08:45:04
+   Duration  689ms (transform 101ms, setup 0ms, collect 121ms, tests 19ms, environment 1ms, prepare 121ms)
+

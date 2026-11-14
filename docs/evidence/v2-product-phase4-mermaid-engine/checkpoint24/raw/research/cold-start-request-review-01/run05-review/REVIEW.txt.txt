@@ -1,0 +1,46 @@
+05 independent accepted-wire / native-record / closure review
+DIAGNOSTIC_PREFIX_STOP_COLD_GATE_PASS_NATIVE_WEBPROCESS_BOUND_CPU_COVERAGE_INCOMPLETE
+
+Scope and integrity
+Frozen run05 manifest SHA256170bcabfc28c2dc536a050964da1006cd890c03fccdc4aa4a7e95288db4cd101. All204 files /17,483,313 bytes were read in full and rehashed with zero mismatches. freeze-check.json records every path/length/hash. This includes144 profile files /9,122,363 bytes, not merely profile metadata. profile-source-check.json lists complete installed plugin source/manifest artifacts; diagrams dist/plugin.js is5,313,950 bytes SHA256edc3f541a2a0d0d5a8cda9d00fcf7599b7fa823de2c7e88cd76866b723a81762. Hashing the complete file does not imply semantic review of all minified code or cache databases. Transient runtime sockets/directories are references, not a complete filesystem snapshot.
+No frozen file/product/source was modified; reviewer performed only offline audit, arithmetic and file hashing. No product/native/browser probe or retry occurred.
+
+First strict audit unchanged
+Original auditor SHA256b6cd88e6a7990a06212879a294ab874d7d49499f6a1efce1bdb9d5932c53b2f9 ran once with full frozen driver.log, ordinary.md and plan: actualexit0, ok=true, errors[]. Full command/stdout/stderr/exit preserved. No reduced request scope, replacement first result or qualified retry was needed.
+App PID/birth474164/9322577; guardian474291/9322889; instance3e36b7c65c2c37c17f6e61ec99b120fdb99a041040d03009.
+Seven captureevents =1guardian +6render accepted; exact instance/request key set equals all six native driver dispatches render_1..render_6. Each full serialized message matches strict UTF8 bytes/SHA256, message.id/pluginId/instance guardian binding and all16 request fields. Plugin milkup.diagrams, renderer diagrams.mermaid. No deadline-observed trace exists. Neither missing deadline nor dispatch equality proves per-request successful settlement or no native_trace loss.
+
+Actual request source
+Frozen ordinary.md SHA256a7267df165778c560a8fba59bfbff7065ae63365741e3eb87078783bc865fd4b.
+Absolute half-open UTF16 intervals:
+render_1/2/4: block fence[108,342), body[119,339), lines5-20;950wirebytes each.
+render_3/5: classDiagram fence[440,969), body[451,966), lines26-53;1256wirebytes each.
+render_6: ER fence[1087,1257), body[1098,1254), lines59-67;882wirebytes.
+All source/block/content/protected ranges exactly rebuild from fixture bytes, including the Chinese/accent/emoji prefix. UTF16 offsets108/440/1087 correspond to Unicode scalar105/437/1084 and UTF8 byte121/453/1100. Full reconstructed source and wire hashes are in utf16-proof.json; no lossy snippet is substituted.
+All six are version0/selection0,0/width1100/light/screen/contextKnown=true/completeStart=false/completeEnd=false and one complete Mermaid fence. These inputs do not identify an internal block running at any unobserved timeout or which individual request produced a displayed image. Do not backfill production08 unknown render_3 or run03 missing render_6 from this new instance.
+
+Capture completion and tail
+status equals complete; SHA256a39a30e9a3e89cae15cbfa5d10f21059bb391626bab8633c9a473acca5a5a8ad.
+final=true/diagnosticClosed=true, attempted=enqueued=written=7, inFlight0; queueFull/disconnected/oversize/capped/ioErrors/incompleteTiming all0. Wire bytes sum6244 equals reservedWireBytes. capture-finalization.json records final observed within its1000ms diagnostic bound.
+Last render_6 dispatch93233628396053ns, capture end93233628436428ns; final checkpoint93234334673267ns; guardian kill-start93234394775937ns. Last dispatch precedes final706.277214ms; last capture precedes final706.236839ms; kill-start follows final60.102670ms. All driver dispatch keys have captured input; no later dispatch is present in this frozen log.
+finish.request is only "cold-prefix-final\n", without monotonic creation or actual closed.store time. Final acknowledges closure then drain, not the closure instant or every request through application exit. Requests after the recorder closes are intentionally outside counters. This is complete relative to observed frozen driver keys, not proven full-lifecycle/native-trace coverage. kill-start is a cleanup event, not a render result or request end.
+
+Wire recorder cost
+captureTotalNs73287 (0.073287ms), max17806 (0.017806ms). Recorded7 before/after spans sum72726ns;561ns difference is later counter accounting. Render spans5303..13593ns; guardian span17673ns. Dispatch-to-capture-start0.031280..0.092303ms. These are elapsed brackets, not CPU or rendering durations.
+Writer own thread CPU22,517,400ns over5.433058195s guardian-to-final interval. It belongs to App CPU and excludes final status/complete serialization. No zero-impact claim; do not add nested elapsed measurements or confuse writer/helper/WebProcess CPU.
+
+Native self-pidfd publications and lineage
+Armed712B SHA2567b15da622782dc6876ffeefe5cfc2b62d87840556fd9132f22b597af7f01640d; result1097B SHA25678e62d4e273a5867ed657a0285cbc8219880a10af3537ca96c68193bae9b11b0. Both complete file objects and digests equal observer.nativeWebProcess.sources entries; cached metadata records uid1000/mode0600, common root/slot identities. Native schema milkup.webprocess-self-pidfd.v1, exact instance and guardian match accepted-wire identity. Helper474296/birth9322901/parent474291. Armed means receiver preparation, not proof of delivery; held result supplies that additional event.
+Result tokenMatched=true, receivedFdCount1, nativeStage/errno/GErrorDomain/GErrorCode all0, heldFd22, pageId8. Receiver kernel fdinfo is fully preserved: Pid474342, NSpid474342 2, ino479120. This is native source evidence; NSpid2 is not an outer sampling PID. The external observer uses exact-helper FD22 kernel metadata and its independent PPID chain. CPU reviewer separately audited that chain; this report does not replace the complete CPU/ancestry audit.
+Embedded extension SHA2560355b69f0f15e4d0efa5f5ab137d45b8342233f32b16c0240521a45695a6f8f3 matches armed, sampler argument and referenced compiled artifact. Independent read of the additional frozen build artifact confirms16,824-byte SO occurs in diagnostic binary SHA256b8c68aaf2d24a59f9e4cc60f1b03799b45aaecffe3379c2830866b7ac4f0e2c4. These build files are additional referenced evidence, not miscounted among204 runtime manifest members.
+Frozen native source retains one new CLOEXEC duplicate until helper process exit and exposes no close/reuse API. Result proves held acceptance, not exact release time. Cleanup evidence lists this helper and WebProcess absent afterward, and records guardian kill-start; it does not timestamp FD closure. We do not query current live processes or enlarge cleanup authority.
+
+Native timing limitations
+Same-process recorded spans only: helper prepareStart→captureEnd265622ns; C self-pidfd preparation13681ns; helper receiveStart→captureEnd87897ns, including fdinfo-read41438ns. Armed captureEnd precedes extension hash and serialization/publication. Result captureEnd precedes serialization/write/link/unlink and callback return. C callbackEnd precedes message construction/send. No publication-end, callback-return or FD-release timestamp is recorded; these spans are NOT total native instrumentation overhead.
+Observer later read final files successfully, establishing publication occurred by those reads, not its precise completion instant or IO duration. External recordIoNs1,541,261ns is the observer's accumulated reading time, not native publication cost. Filesystem operations and the one gated setup stderr failure path may block even when the destination is regular; the driver preflight explicitly retains that caveat.
+The two outer-tool time/time_for_children links returned ENOENT. They do not prove WebProcess time-namespace equivalence. Numerically ordered callback/receive timestamps are insufficient proof of a shared cross-process clock: do not report callback→receive difference as established transport latency. Local spans above stay within the respective emitting process.
+
+Outcomes and limits
+Original cold-before-render and cold-window assertions passed; Nodeharness0. Cold result block-000[108,342) has complete663x281 image, inlineSvg0, live document/no notice or diagnostics. Independent pixel review belongs to root. Prefix stopped intentionally; fullUI/fallback/independent-install/history/matrix were not executed.
+CPU exit2, wrapper1 from unchanged samplerExitCode==0 assertion, independently of coldPASS. Raw CPU summary has22samples,44children gaps,10pidfd gaps/10incomplete rounds, fullRendererTreeCoverage=false; native limited-bound is not fulltree coverage. External observer ownCPU84.999888ms, afterReady65.782989ms; discovery max13.732632ms exceeds the cooperative5ms budget as measured, not a hard-bound claim. Do not sum CPU gaps into zero or manufacture request intervals from UI readiness/nextdispatch/kill-start: six dispatches have no observed deadline endpoint.
+The useful result is six fully verified accepted inputs plus one successful native held-descriptor publication in this gated research run, with separate externally bound WebProcess evidence. It does not establish all-environment capability, complete request/CPU lifetime, cause of old deadline, production/fullUI/P4 acceptance, or closure of production08. All prior failed results remain unchanged.

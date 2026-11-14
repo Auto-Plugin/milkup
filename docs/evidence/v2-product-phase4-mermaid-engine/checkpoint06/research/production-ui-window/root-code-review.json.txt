@@ -1,0 +1,34 @@
+{
+  "reviewer": "root",
+  "reviewedAt": "2026-10-16T14:10:12.590840+00:00",
+  "files": [
+    {
+      "path": "apps/desktop/src/document-presentation-service.ts",
+      "sha256": "4478b83bc3b64eb6ce0fad94575ec8cf1e5dd8b4f17baf08489b6e1821a98227"
+    },
+    {
+      "path": "packages/view-dom/src/document-presentation.ts",
+      "sha256": "ab84b954feac3c2470b5ab77202fc803247bd32c3ad62965b4daba38328a18ca"
+    },
+    {
+      "path": "packages/view-dom/src/editor-view.ts",
+      "sha256": "4084272d196b6f9f70cf85a3c355e9b1a9773deea06e53e1705572b59208367e"
+    },
+    {
+      "path": "packages/view-dom/src/source-document-view.ts",
+      "sha256": "ad1a9a7a746c8eaf641e132ee5a91cb4779c4d860c9f9f445231c8d2b8923206"
+    }
+  ],
+  "findings": [
+    "Root independently read final service dispatch/admission and view/source diffs. Pure fence slicing preserves absolute ranges and trusted context; conflicting providers are checked before shared admission.",
+    "Visible range is separate from editing selection and included in refresh identity. Complete loaded fence metadata is a window hint, not renderer authorization.",
+    "Root and independent reviewer both identified old-base/new-source cache poisoning in the draft. Final code captures source/version before initial parse and checks read revision before reuse; negative entries use no old base.",
+    "Source prefetch remains bounded and mounts only needed closed range. Late source/mode/config/destroy results fail CAS.",
+    "Preparation deadline is checked before and after host validation; reference-pointer holding after provider settlement remains outside preparation.",
+    "First native UI failure, cold bundled timeout and original snapshot gaps remain evidence; these code/unit checks are not a production UI pass."
+  ],
+  "remaining": [
+    "New production deb freeze, five lifecycle cases and actual editor matrix required.",
+    "A time-limited partial is not automatically continued under the same viewport key. Text/mixed providers retain original whole-window path."
+  ]
+}

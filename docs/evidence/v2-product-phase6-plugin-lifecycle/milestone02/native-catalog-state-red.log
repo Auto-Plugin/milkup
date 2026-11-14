@@ -1,0 +1,30 @@
+   Compiling milkup-desktop v2.0.0-beta.1 (/workspace/milkup/apps/desktop/src-tauri)
+warning: unused import: `std::sync::Arc`
+    --> src/piece_tree.rs:1029:9
+     |
+1029 |     use std::sync::Arc;
+     |         ^^^^^^^^^^^^^^
+     |
+     = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: `milkup-desktop` (lib test) generated 1 warning (run `cargo fix --lib -p milkup-desktop --tests` to apply 1 suggestion)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 7.51s
+     Running unittests src/lib.rs (apps/desktop/src-tauri/target/debug/deps/milkup_desktop_lib-8969ac6bfdf4806e)
+
+running 1 test
+test plugin_catalog::tests::rejects_checksummed_inconsistent_authority_states ... FAILED
+
+failures:
+
+---- plugin_catalog::tests::rejects_checksummed_inconsistent_authority_states stdout ----
+
+thread 'plugin_catalog::tests::rejects_checksummed_inconsistent_authority_states' (181780) panicked at src/plugin_catalog.rs:2289:13:
+valid checksum must not authorize enabled without approval
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    plugin_catalog::tests::rejects_checksummed_inconsistent_authority_states
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 172 filtered out; finished in 0.06s
+

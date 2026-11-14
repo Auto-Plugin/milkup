@@ -1,0 +1,122 @@
+
+ RUN  v3.2.6 /workspace/milkup/apps/desktop
+
+ ❯ src/output-presentations-readiness.test.ts (7 tests | 5 failed) 42ms
+   × explicit per-document preparation readiness > waits for the first stable-version result and does not retain a temporary warning 21ms
+     → expected true to be false // Object.is equality
+   ✓ explicit per-document preparation readiness > does not retry permanent incomplete output from existing plugins 2ms
+   × explicit per-document preparation readiness > bounds pending retries by the original absolute preparation deadline 2ms
+     → expected 1 to be greater than 1
+   × explicit per-document preparation readiness > cancels preparation between attempts without dispatching another request 7ms
+     → expected undefined to match object { code: 'aborted' }
+   × explicit per-document preparation readiness > rejects a changed capture before another pending attempt 3ms
+     → expected undefined to deeply equal Error: capture changed
+   ✓ explicit per-document preparation readiness > does not dispatch again after the provider is disabled while preparing 1ms
+   × explicit per-document preparation readiness > retries only the pending provider, retaining other completed providers 4ms
+     → expected [ { …(2) } ] to deeply equal []
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 5 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/output-presentations-readiness.test.ts > explicit per-document preparation readiness > waits for the first stable-version result and does not retain a temporary warning
+AssertionError: expected true to be false // Object.is equality
+
+- Expected
++ Received
+
+- false
++ true
+
+ ❯ src/output-presentations-readiness.test.ts:25:21
+     23|     const output = collectOutputPresentations(options).then((value) =>…
+     24|     await vi.advanceTimersByTimeAsync(0)
+     25|     expect(settled).toBe(false)
+       |                     ^
+     26|     await vi.advanceTimersByTimeAsync(250)
+     27|     const result = await output
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/5]⎯
+
+ FAIL  src/output-presentations-readiness.test.ts > explicit per-document preparation readiness > bounds pending retries by the original absolute preparation deadline
+AssertionError: expected 1 to be greater than 1
+ ❯ src/output-presentations-readiness.test.ts:45:38
+     43|     await vi.advanceTimersByTimeAsync(10_001)
+     44|     const result = await output
+     45|     expect(render.mock.calls.length).toBeGreaterThan(1)
+       |                                      ^
+     46|     expect(render.mock.calls.length).toBeLessThanOrEqual(40)
+     47|     expect(result.warnings.some((w) => w.code === 'presentation-timeou…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/5]⎯
+
+ FAIL  src/output-presentations-readiness.test.ts > explicit per-document preparation readiness > cancels preparation between attempts without dispatching another request
+AssertionError: expected undefined to match object { code: 'aborted' }
+
+- Expected: 
+{
+  "code": "aborted",
+}
+
++ Received: 
+undefined
+
+ ❯ src/output-presentations-readiness.test.ts:57:27
+     55|     await vi.advanceTimersByTimeAsync(0)
+     56|     abort.abort()
+     57|     expect(await outcome).toMatchObject({ code: 'aborted' })
+       |                           ^
+     58|     await vi.advanceTimersByTimeAsync(300)
+     59|     expect(render).toHaveBeenCalledTimes(1)
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/5]⎯
+
+ FAIL  src/output-presentations-readiness.test.ts > explicit per-document preparation readiness > rejects a changed capture before another pending attempt
+AssertionError: expected undefined to deeply equal Error: capture changed
+
+- Expected: 
+Error {
+  "message": "capture changed",
+}
+
++ Received: 
+undefined
+
+ ❯ src/output-presentations-readiness.test.ts:71:27
+     69|     current = false
+     70|     await vi.advanceTimersByTimeAsync(250)
+     71|     expect(await outcome).toEqual(Error('capture changed'))
+       |                           ^
+     72|     expect(render).toHaveBeenCalledTimes(1)
+     73|   })
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/5]⎯
+
+ FAIL  src/output-presentations-readiness.test.ts > explicit per-document preparation readiness > retries only the pending provider, retaining other completed providers
+AssertionError: expected [ { …(2) } ] to deeply equal []
+
+- Expected
++ Received
+
+- []
++ [
++   {
++     "code": "presentation-incomplete",
++     "message": "Some rich content could not be rendered completely; original Markdown is retained where needed.",
++   },
++ ]
+
+ ❯ src/output-presentations-readiness.test.ts:101:37
+     99|     })
+    100|     await vi.advanceTimersByTimeAsync(500)
+    101|     expect((await output).warnings).toEqual([])
+       |                                     ^
+    102|     expect(counts.get(renderer.pluginId)).toBe(3)
+    103|     expect(counts.get('independent.complete')).toBe(1)
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/5]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  5 failed | 2 passed (7)
+   Start at  07:18:42
+   Duration  790ms (transform 327ms, setup 0ms, collect 432ms, tests 42ms, environment 0ms, prepare 74ms)
+

@@ -1,0 +1,74 @@
+
+ RUN  v3.2.6 /workspace/milkup/packages/view-dom
+
+ ❯ src/__tests__/document-presentation.test.ts (38 tests | 1 failed) 1279ms
+   ✓ anchors an asynchronously growing preview above the visible selection (false) 183ms
+   ✓ refreshes selection-dependent third-party output without repaint loops (false) 125ms
+   ✓ cancels the old selection job and discards its late output (false) 40ms
+   ✓ uses real MathML, retains mapped source and reveals on selection (false) 34ms
+   ✓ keeps source literal and disable restores source without a transaction (false) 48ms
+   ✓ excludes preview text from mapped offsets, coalesces and invalidates (false) 64ms
+   ✓ mounts a multiline block once and restores every original line (false) 74ms
+   ✓ renders the native CRLF matrix range without consuming its line ending (false) 58ms
+   ✓ uses accessible references without editing or swallowing keyboard activation (false) 15ms
+   ✓ preserves an ordinary task control alongside inline presentation (false) 14ms
+   ✓ rejects protected and malformed output while preserving editable source (false) 19ms
+   ✓ bounds requests before invoking a provider on a huge line (false) 14ms
+   ✓ discards old-document results while a fresh document remains editable (false) 22ms
+   ✓ discards an asynchronous result after disable (false) 15ms
+   ✓ anchors an asynchronously growing preview above the visible selection (true) 32ms
+   ✓ refreshes selection-dependent third-party output without repaint loops (true) 66ms
+   ✓ cancels the old selection job and discards its late output (true) 34ms
+   ✓ uses real MathML, retains mapped source and reveals on selection (true) 18ms
+   ✓ keeps source literal and disable restores source without a transaction (true) 21ms
+   ✓ excludes preview text from mapped offsets, coalesces and invalidates (true) 22ms
+   ✓ mounts a multiline block once and restores every original line (true) 24ms
+   ✓ renders the native CRLF matrix range without consuming its line ending (true) 44ms
+   ✓ uses accessible references without editing or swallowing keyboard activation (true) 14ms
+   ✓ preserves an ordinary task control alongside inline presentation (true) 33ms
+   ✓ rejects protected and malformed output while preserving editable source (true) 40ms
+   ✓ bounds requests before invoking a provider on a huge line (true) 18ms
+   ✓ discards old-document results while a fresh document remains editable (true) 35ms
+   ✓ discards an asynchronous result after disable (true) 19ms
+   ✓ constructs inert SVG and maps only validated MathML attribute names 5ms
+   ✓ checks the host navigation lease after asynchronous viewport loading 10ms
+   ✓ checks the host navigation assertion before changing selection 5ms
+   ✓ measures collapsed block continuation lines as zero and restores their heights 36ms
+   ✓ allows bounded host snapshot preparation beyond the renderer worker deadline 14ms
+   ✓ cancels a slow host preparation without waiting for its deadline 9ms
+   ✓ rejects a completed job if selection changed before the next synchronization 12ms
+   × preserves the correct viewport anchor during preview growth (visible) 25ms
+     → expected -137 to be 42 // Object.is equality
+   ✓ preserves the correct viewport anchor during preview growth (scrolled-away) 7ms
+   ✓ preserves the correct viewport anchor during preview growth (source) 7ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/__tests__/document-presentation.test.ts > preserves the correct viewport anchor during preview growth (visible)
+AssertionError: expected -137 to be 42 // Object.is equality
+
+- Expected
++ Received
+
+- 42
++ -137
+
+ ❯ src/__tests__/document-presentation.test.ts:816:51
+    814|       expect(root.scrollTop).toBe(scenario === 'visible' ? 179 : 0)
+    815|     manager.setConfig(undefined)
+    816|     expect(lines[2]!.getBoundingClientRect().top).toBe(scenario === 's…
+       |                                                   ^
+    817|     expect(root.scrollTop).toBe(0)
+    818|     } finally {
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 37 passed (38)
+   Start at  13:10:41
+   Duration  3.33s (transform 795ms, setup 0ms, collect 980ms, tests 1.28s, environment 727ms, prepare 98ms)
+
+undefined
+/workspace/milkup/packages/view-dom:
+[ERR_PNPM_RECURSIVE_EXEC_FIRST_FAIL] Command failed with exit code 1: vitest run src/__tests__/document-presentation.test.ts '--maxWorkers=2'

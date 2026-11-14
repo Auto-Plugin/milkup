@@ -1,0 +1,29 @@
+    async prepareModule(manifest, manifestPath, main, generation) {
+      if (manifest.host === 'dom') {
+        if (!generation) throw new Error('DOM module requires a native catalog generation')
+        // Native validates the renderer-only profile and snapshots the exact
+        // authorized generation; no host capabilities are sent to this helper.
+        return prepareDesktopPluginDomModule(manifest, isTauriRuntime())
+      }
+      if (manifest.host && manifest.host !== 'worker')
+        throw new Error('Restricted catalog activation currently supports Worker bundles only')
+      let source: string
+      if (isTauriRuntime()) {
+        if (!generation) throw new Error('Plugin module requires a native catalog generation')
+        const { invoke } = await import('@tauri-apps/api/core')
+        source = await invoke<string>('plugin_catalog_read_worker_module', {
+          pluginId: manifest.id,
+          generation: generation.generationId,
+        })
+      } else {
+        if (/^(?:[a-z][a-z0-9+.-]*:|[\\/])/i.test(main))
+          throw new Error('Plugin Worker entry must belong to its sealed package')
+        const manifestValue = JSON.parse(await this.readManifestText(manifestPath)) as unknown
+        source = isPluginPackageArchive(manifestValue)
+          ? readPluginPackageTextFile(parsePluginPackageArchive(manifestValue), main)
+          : await this.readManifestText(resolvePluginEntryPath(manifestPath, main))
+      }
+      validateClosedWorkerBundle(source)
+      const specifier = URL.createObjectURL(new Blob([source], { type: 'text/javascript' }))
+      return { specifier, dispose: () => URL.revokeObjectURL(specifier) }
+    },

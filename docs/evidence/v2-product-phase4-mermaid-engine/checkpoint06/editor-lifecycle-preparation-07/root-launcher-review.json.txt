@@ -1,0 +1,7 @@
+{
+  "at": "2026-10-16T13:36:08.051751+00:00",
+  "path": "/workspace/milkup-mermaid-engine-evidence/editor-lifecycle-preparation-07/launch-driver-reaping.py",
+  "sha256": "d974f3b914e8d731fb7aa31b2cd10aeb060057feb12e9eb82c509d5a56634aba",
+  "review": "Root read the complete launcher. It sets PR_SET_CHILD_SUBREAPER, launches the exact authorized driver, uses waitid(WNOWAIT) to capture adopted zombie identity, then waitpid to reap natural exit. There is no signal send, private-directory deletion, or namespace teardown in this launcher. It stays alive while its driver remains active. This supplies normal init reaping duties only and does not replace product descendant cleanup.",
+  "scope": "Static review, actual App SIGKILL result remains a separate native run."
+}

@@ -1,0 +1,26 @@
+# Production06 completed results
+
+Real Linux deb build and five first-attempt generic DOM lifecycle cases passed. This does not establish the separate official Mermaid UI matrix.
+
+Build: 2026-10-16T20:32:25.963104+00:00 to 2026-10-16T20:33:44.378376+00:00, exit 0. HEAD fba47d028f336ceab837be6bc4117bd17663550c. All 2912 captured files match after build and lifecycle runs.
+
+| Case | Harness seconds | Input DOM / two RAF ms |
+|---|---:|---|
+| timeout | 17.995494 | 7 / 29 |
+| disable | 16.571578 | 6.000000000001819 / 18 |
+| remove | 16.812856 | 9.000000000001819 / 29 |
+| wm-close | 25.157995 | not sampled |
+| app-sigkill | 20.391514 | not sampled |
+
+Actual extracted binary SHA256: `35bf62fbad2dbe1acbd3485f77ccd554ab1ed6a2a842e47ed60bd7d735fb7819` (21872632 bytes).
+Deb SHA256: `f0f246f8cf3741b2074f76b819e76610e36d6d01e56931b5a17586120796ea9c`.
+
+Target and extracted executable differ only in the unique three-byte UNK→DEB bundle marker; ELF build ID matches. Full native guard bytes are embedded; guard, official archive and SDK hashes match the preceding release inputs. The non-test Rust release build emitted no warnings; Vite retained its chunk-size warning.
+
+All 45 DOM process identities, five exact drivers and five wait-only ancestors are absent at final audit; ports 4626/4627 are free. Each driver was intentionally stopped by exact verified process group after its case passed. The ancestor tool exit 241 corresponds to recorded child exit -15 from that teardown, not a lifecycle failure. Ancestor PID is recorded by the launcher, without an independently retained prior birth; its absence is verified.
+
+Actual source capture delta from production05 is document-presentation.ts and the formal native UI harness. A supplemental committed delta separately records e2e and .prettierignore changes outside the unchanged capture roots. No cache was removed. No Windows build, upload or release occurred.
+
+Visual inspection: timeout 02-timeout-failed-card.png shows the generic DOM fixture failed with the native execution-deadline message and manual-enable action. Other case assertions derive from their unchanged harness and raw evidence.
+
+One ad hoc offline metadata inspection attempted to slice the knownPidBirth object as an array and raised KeyError; it was corrected to read the existing object. No runtime, case assertion, evidence or timing was changed by this inspection.

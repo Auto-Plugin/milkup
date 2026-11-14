@@ -1,0 +1,336 @@
+{
+  "driver": "normal CLI + XTest; read-only observer",
+  "fixtureBytes": 1100058,
+  "results": [
+    {
+      "name": "source: rapid input/save/input preserves later dirty content",
+      "result": "PASS",
+      "state": {
+        "at": 2343,
+        "wall": 1791904135956,
+        "path": "/tmp/milkup-v2-phase12/x11-native-final/document.md",
+        "backend": "native",
+        "dirty": true,
+        "version": 3,
+        "savedVersion": 2,
+        "saving": false,
+        "loading": "ready",
+        "mode": "source",
+        "selection": {
+          "anchor": 50,
+          "head": 50
+        },
+        "pending": 0,
+        "editable": true,
+        "cursor": "50",
+        "lines": [
+          "中文😀 firstaaaaaaaaaaaaaaaaaaaabbbbbbbbbbbbbbbbbbbb",
+          "body xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+          "body xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+        ],
+        "renderedLines": 58,
+        "fromLine": "1",
+        "scrollTop": 0,
+        "notice": "已应用大文件可见范围编辑；版本 3。",
+        "focused": "milkup-input-proxy"
+      }
+    },
+    {
+      "name": "source: immediate undo after save is applied",
+      "result": "PASS",
+      "state": {
+        "at": 2916,
+        "wall": 1791904136529,
+        "path": "/tmp/milkup-v2-phase12/x11-native-final/document.md",
+        "backend": "native",
+        "dirty": true,
+        "version": 5,
+        "savedVersion": 4,
+        "saving": false,
+        "loading": "ready",
+        "mode": "source",
+        "selection": {
+          "anchor": 50,
+          "head": 50
+        },
+        "pending": 0,
+        "editable": true,
+        "cursor": "50",
+        "lines": [
+          "中文😀 firstaaaaaaaaaaaaaaaaaaaabbbbbbbbbbbbbbbbbbbb",
+          "body xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+          "body xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+        ],
+        "renderedLines": 82,
+        "fromLine": "1",
+        "scrollTop": 24,
+        "notice": "已撤销大文件编辑。",
+        "focused": "milkup-input-proxy"
+      }
+    },
+    {
+      "name": "source: redo, continued input, save are ordered",
+      "result": "PASS",
+      "state": {
+        "at": 3358,
+        "wall": 1791904136971,
+        "path": "/tmp/milkup-v2-phase12/x11-native-final/document.md",
+        "backend": "native",
+        "dirty": false,
+        "version": 7,
+        "savedVersion": 7,
+        "saving": false,
+        "loading": "ready",
+        "mode": "source",
+        "selection": {
+          "anchor": 55,
+          "head": 55
+        },
+        "pending": 0,
+        "editable": true,
+        "cursor": "55",
+        "lines": [
+          "中文😀 firstaaaaaaaaaaaaaaaaaaaabbbbbbbbbbbbbbbbbbbb",
+          "qrs",
+          "body xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+        ],
+        "renderedLines": 82,
+        "fromLine": "1",
+        "scrollTop": 45,
+        "notice": "已保存",
+        "focused": "milkup-input-proxy"
+      }
+    },
+    {
+      "name": "source: directional selection, undo/redo and replacement persist",
+      "result": "PASS",
+      "state": {
+        "at": 5023,
+        "wall": 1791904138635,
+        "path": "/tmp/milkup-v2-phase12/x11-native-final/document.md",
+        "backend": "native",
+        "dirty": false,
+        "version": 12,
+        "savedVersion": 12,
+        "saving": false,
+        "loading": "ready",
+        "mode": "source",
+        "selection": {
+          "anchor": 53,
+          "head": 53
+        },
+        "pending": 0,
+        "editable": true,
+        "cursor": "53",
+        "lines": [
+          "中文😀 firstaaaaaaaaaaaaaaaaaaaabbbbbbbbbbbbbbbbbbbb",
+          "y",
+          "body xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+        ],
+        "renderedLines": 82,
+        "fromLine": "1",
+        "scrollTop": 45,
+        "notice": "已保存",
+        "focused": "milkup-input-proxy"
+      }
+    },
+    {
+      "name": "source: normal CLI reopen matches bytes and UTF-16 end caret",
+      "result": "PASS",
+      "state": {
+        "at": 1385,
+        "wall": 1791904140971,
+        "path": "/tmp/milkup-v2-phase12/x11-native-final/document.md",
+        "backend": "native",
+        "dirty": false,
+        "version": 0,
+        "savedVersion": 0,
+        "saving": false,
+        "loading": "ready",
+        "mode": "live",
+        "selection": {
+          "anchor": 50,
+          "head": 50
+        },
+        "pending": 0,
+        "editable": true,
+        "cursor": "50",
+        "lines": [
+          "中文😀 firstaaaaaaaaaaaaaaaaaaaabbbbbbbbbbbbbbbbbbbb",
+          "y",
+          "body xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+        ],
+        "renderedLines": 58,
+        "fromLine": "1",
+        "scrollTop": 0,
+        "notice": "大文件模式暂不支持全选；请在可见窗口内选择和编辑。",
+        "focused": "milkup-input-proxy"
+      }
+    },
+    {
+      "name": "live: rapid input/save/input preserves later dirty content",
+      "result": "PASS",
+      "state": {
+        "at": 2457,
+        "wall": 1791904142043,
+        "path": "/tmp/milkup-v2-phase12/x11-native-final/document.md",
+        "backend": "native",
+        "dirty": true,
+        "version": 3,
+        "savedVersion": 2,
+        "saving": false,
+        "loading": "ready",
+        "mode": "live",
+        "selection": {
+          "anchor": 90,
+          "head": 90
+        },
+        "pending": 0,
+        "editable": true,
+        "cursor": "90",
+        "lines": [
+          "中文😀 firstaaaaaaaaaaaaaaaaaaaabbbbbbbbbbbbbbbbbbbbaaaaaaaaaaaaaaaaaaaabbbbbbbbbbbbbbbbbbbb",
+          "y",
+          "body xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+        ],
+        "renderedLines": 58,
+        "fromLine": "1",
+        "scrollTop": 0,
+        "notice": "已应用大文件可见范围编辑；版本 3。",
+        "focused": "milkup-input-proxy"
+      }
+    },
+    {
+      "name": "live: immediate undo after save is applied",
+      "result": "PASS",
+      "state": {
+        "at": 3117,
+        "wall": 1791904142703,
+        "path": "/tmp/milkup-v2-phase12/x11-native-final/document.md",
+        "backend": "native",
+        "dirty": true,
+        "version": 5,
+        "savedVersion": 4,
+        "saving": false,
+        "loading": "ready",
+        "mode": "live",
+        "selection": {
+          "anchor": 90,
+          "head": 90
+        },
+        "pending": 0,
+        "editable": true,
+        "cursor": "90",
+        "lines": [
+          "中文😀 firstaaaaaaaaaaaaaaaaaaaabbbbbbbbbbbbbbbbbbbbaaaaaaaaaaaaaaaaaaaabbbbbbbbbbbbbbbbbbbb",
+          "y",
+          "body xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+        ],
+        "renderedLines": 82,
+        "fromLine": "1",
+        "scrollTop": 24,
+        "notice": "已撤销大文件编辑。",
+        "focused": "milkup-input-proxy"
+      }
+    },
+    {
+      "name": "live: redo, continued input, save are ordered",
+      "result": "PASS",
+      "state": {
+        "at": 3589,
+        "wall": 1791904143175,
+        "path": "/tmp/milkup-v2-phase12/x11-native-final/document.md",
+        "backend": "native",
+        "dirty": false,
+        "version": 7,
+        "savedVersion": 7,
+        "saving": false,
+        "loading": "ready",
+        "mode": "live",
+        "selection": {
+          "anchor": 95,
+          "head": 95
+        },
+        "pending": 0,
+        "editable": true,
+        "cursor": "95",
+        "lines": [
+          "中文😀 firstaaaaaaaaaaaaaaaaaaaabbbbbbbbbbbbbbbbbbbbaaaaaaaaaaaaaaaaaaaabbbbbbbbbbbbbbbbbbbb",
+          "qrs",
+          "y"
+        ],
+        "renderedLines": 82,
+        "fromLine": "1",
+        "scrollTop": 45,
+        "notice": "已保存",
+        "focused": "milkup-input-proxy"
+      }
+    },
+    {
+      "name": "live: directional selection, undo/redo and replacement persist",
+      "result": "PASS",
+      "state": {
+        "at": 5390,
+        "wall": 1791904144976,
+        "path": "/tmp/milkup-v2-phase12/x11-native-final/document.md",
+        "backend": "native",
+        "dirty": false,
+        "version": 12,
+        "savedVersion": 12,
+        "saving": false,
+        "loading": "ready",
+        "mode": "live",
+        "selection": {
+          "anchor": 93,
+          "head": 93
+        },
+        "pending": 0,
+        "editable": true,
+        "cursor": "93",
+        "lines": [
+          "中文😀 firstaaaaaaaaaaaaaaaaaaaabbbbbbbbbbbbbbbbbbbbaaaaaaaaaaaaaaaaaaaabbbbbbbbbbbbbbbbbbbb",
+          "y",
+          "y"
+        ],
+        "renderedLines": 82,
+        "fromLine": "1",
+        "scrollTop": 45,
+        "notice": "已保存",
+        "focused": "milkup-input-proxy"
+      }
+    },
+    {
+      "name": "live: normal CLI reopen matches bytes and UTF-16 end caret",
+      "result": "PASS",
+      "state": {
+        "at": 1540,
+        "wall": 1791904147633,
+        "path": "/tmp/milkup-v2-phase12/x11-native-final/document.md",
+        "backend": "native",
+        "dirty": false,
+        "version": 0,
+        "savedVersion": 0,
+        "saving": false,
+        "loading": "ready",
+        "mode": "live",
+        "selection": {
+          "anchor": 90,
+          "head": 90
+        },
+        "pending": 0,
+        "editable": true,
+        "cursor": "90",
+        "lines": [
+          "中文😀 firstaaaaaaaaaaaaaaaaaaaabbbbbbbbbbbbbbbbbbbbaaaaaaaaaaaaaaaaaaaabbbbbbbbbbbbbbbbbbbb",
+          "y",
+          "y"
+        ],
+        "renderedLines": 58,
+        "fromLine": "1",
+        "scrollTop": 0,
+        "notice": "大文件模式暂不支持全选；请在可见窗口内选择和编辑。",
+        "focused": "milkup-input-proxy"
+      }
+    }
+  ]
+}

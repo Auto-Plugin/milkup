@@ -1,0 +1,85 @@
+Research candidate handoff, 2026-10-17
+
+This candidate is prepared in this directory only. No repository source was edited,
+no Rust build or logic test was run by this agent, and no browser/native run occurred.
+The parent subsequently advanced the repository documentation-only checkpoint; the
+product source baselines in candidate-manifest.json remain the audited originals.
+
+Three overlay files and exact unified diff: candidate-manifest.json / candidate.patch.
+All original lines in both modified files remain in their original relative order.
+The native_trace implementation and process receive/watch/finish/cleanup remainder
+are byte-identical. INIT_DEADLINE=10s and RENDER_DEADLINE=2s and their original
+assignments are unchanged. rustfmt --check succeeded for all three files.
+
+Enable only in the research binary:
+  MILKUP_COLD_REQUEST_DIAGNOSTICS=1
+  MILKUP_COLD_REQUEST_OUTPUT_DIR=<a fresh path which does not exist; parent exists>
+Initialization occurs in App Instance::launch after its original start=Instant::now(),
+so initialization remains inside the original 10s budget. It creates a background
+writer and reads only /proc/self/stat once to bind the App birth. No guardian-side
+thread, process scan, changed resource guard, or changed cleanup mechanism exists.
+
+The accepted-render branch adds only a boolean inside the existing control lock.
+After unlock, while the original 2s deadline is active, the recorder makes a bounded
+copy of already-serialized bytes and calls try_send. It does not hash, serialize,
+write disk, wait for observer readiness, or acquire a new lock on this path. There
+are bounded allocations and atomic/clock operations; this is not zero overhead.
+The accepted-wire record timestamp is after control unlock. Match its exact
+instanceId/requestId to the original DOM_NATIVE_TIMING dispatch timestamp to form
+the authoritative window; do not use the later capture timestamp as deadline start.
+
+Output protocol (one App writer):
+  events.jsonl: schema milkup.cold-accepted-wire.v1; kinds guardian-spawn and
+    render-accepted; ownerPid/ownerBirth, guardianPid/guardianBirth, pluginId,
+    instanceId, requestId, monotonicNs/captureBeforeNs/captureAfterCloneNs/
+    captureAfterNs, sequence. render-accepted additionally carries exact UTF-8
+    wire as a JSON string, original wireBytes and SHA-256. Parse wire to recover
+    the entire original message; do not confuse this with the Tauri outer envelope.
+  status.json: atomic rename snapshots, including all admission/drop/write counts.
+  finish.request: external harness writes this marker only to close diagnostics.
+  complete.json: background writer's final drain acknowledgment, final=true.
+
+The harness must finalize while App is alive and before app.close/session cleanup,
+using its agreed bounded wait. Parse complete.json; existence alone is insufficient
+because the writer may still be writing it. No complete.json, null ownerBirth,
+unmatched native request key, or any drops/errors makes the diagnostic incomplete.
+Required accounting: attempted=enqueued+queueFull+disconnected+oversize+capped;
+written=enqueued; inFlight=0; all drop/error/incompleteTiming counters zero.
+Only pre-cutoff requests are covered; future product requests remain unaffected
+and are not observed after finish.request. Missing native trace records still
+retain the pre-existing trace-loss limitation; this recorder does not fix trace.
+
+Hard bounds: 8 queued records, 1MiB per accepted wire, 256 attempts eligible for
+capture, 16MiB cumulative reserved wire. Queue-full attempts conservatively consume
+their reserved byte allowance. JSON escaping can expand output bytes beyond input
+bytes; the 16MiB limit is explicitly a logical wire cap, not on-disk file size.
+There can also be one record being serialized in the writer. No cap increases
+product input limits. Error/status checkpoints are written at most each event or
+100ms idle iteration, which adds App CPU/I/O. writerThreadCpuNs measures background
+thread CPU through the last checkpoint, excluding final status/complete encoding;
+it is part of App own CPU and must not be counted again as renderer CPU.
+
+Pure recorder test entry (prepared, not executed by this agent):
+  logic-tests/Cargo.toml
+This isolated crate references only the new recorder module and serde_json/sha2/libc;
+it has no Tauri/GTK dependency and starts no native application. Seven tests cover
+queue-full/oversize accounting, Unicode exact bytes/hash/identity, event+byte caps,
+disabled-no-directory, close/drain/final cutoff, exclusive-existing-directory, and
+writer I/O failure without false completion. Root controls compilation/execution,
+given the limited disk and required static review before build.
+
+The proposed CPU sampler integration belongs to the separately delegated cold_cpu
+work. This candidate provides App/guardian identities but does not claim that the
+guardian PID is a WebKit renderer. Existing production08 evidence is unchanged;
+this candidate cannot recover the already-lost render_3 payload from that run.
+
+V02 handoff addendum
+Root reported the first isolated recorder test run passed all7 tests in5.28s.
+This agent did not execute those tests or rerun them. Root then identified an
+existing cfg(test) Instance literal needing the new optional field. Exactly one
+line diagnostic: None was added to that fixture; no production code changed.
+Use candidate-manifest-v02.json and candidate-v02.patch for current candidate.
+V01 candidate-manifest.json and candidate.patch are retained unchanged, with all
+three prior source snapshots under revision01/. The recorder module (including
+its7 tests) is byte-identical between v01 and v02. The modified process file
+passes rustfmt --check; production receive/watch/finish/cleanup remain identical.

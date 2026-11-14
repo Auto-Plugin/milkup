@@ -1,0 +1,63 @@
+{
+  "arm": "B",
+  "cell": "02-B",
+  "classification": "synthetic complete request metadata with exact historical class source/range/width/theme; diagnostic only",
+  "container": "hidden",
+  "fixture": {
+    "manifest": "class-manifest.json",
+    "manifestSha256": "4a11fad5e492a0c21cb4aba0313a992a4cd5fa5a620f8b5741fcba2ee4ddc6b5",
+    "module": "B-module.js",
+    "moduleSha256": "ee1b1af3206d2826c9b37b17b2b197f8c6415ad9805a9dfaaab9c35de844743a",
+    "pluginId": "milkup.diagrams",
+    "rendererId": "diagrams.mermaid",
+    "request": "class-request.json",
+    "requestSha256": "cf167bd903cd88ef57fb8aafd626d7381dedcc7f146d50fc4c15ac489ab96404",
+    "sourceBytes": 529,
+    "sourceSha256": "ef80eda5ae0f45a95b22a734fbd6c8d4ef9e4187e6209d4c925164b547767c14"
+  },
+  "payloadJsonSha256": "6eaa89483b6c924f25741998072a81fb6c89a1c1ef04dd8d139bde1b12ef3967",
+  "request": {
+    "id": "render_1",
+    "payload": {
+      "pluginId": "milkup.diagrams",
+      "rendererId": "diagrams.mermaid",
+      "request": {
+        "blocks": [
+          {
+            "complete": true,
+            "contentRanges": [
+              {
+                "from": 451,
+                "to": 966
+              }
+            ],
+            "from": 440,
+            "info": "mermaid",
+            "kind": "fence",
+            "to": 969
+          }
+        ],
+        "completeEnd": true,
+        "completeStart": true,
+        "contextKnown": true,
+        "documentId": "diagnostic-mechanism-fixture",
+        "from": 440,
+        "fromLine": 26,
+        "protectedRanges": [],
+        "selection": {
+          "anchor": 0,
+          "head": 0
+        },
+        "source": "```mermaid\n---\ntitle: Animal example\n---\nclassDiagram\n    note \"From Duck till Zebra\"\n    Animal <|-- Duck\n    note for Duck \"can fly<br>can swim<br>can dive<br>can help in debugging\"\n    Animal <|-- Fish\n    Animal <|-- Zebra\n    Animal : +int age\n    Animal : +String gender\n    Animal: +isMammal()\n    Animal: +mate()\n    class Duck{\n        +String beakColor\n        +swim()\n        +quack()\n    }\n    class Fish{\n        -int sizeInFeet\n        -canEat()\n    }\n    class Zebra{\n        +bool is_wild\n        +run()\n    }\n```",
+        "target": "screen",
+        "theme": "light",
+        "to": 969,
+        "toLine": 53,
+        "version": 0,
+        "width": 1100
+      }
+    },
+    "protocol": "milkup.plugin.document-render.v1",
+    "type": "render"
+  }
+}

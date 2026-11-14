@@ -1,0 +1,340 @@
+[WebServer] (node:152251) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] $ vite --host 127.0.0.1
+[WebServer] (node:152264) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] (node:152288) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] $ vite --host 127.0.0.1
+[WebServer] (node:152304) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 12 tests using 1 worker
+
+(node:152341) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘   1 [desktop-msedge] › tests/e2e/desktop-preferences.spec.ts:37:1 › permissions, generic menu entry, controlled invalid drafts, preview cancellation and default reset (6.8s)
+(node:152577) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘   2 [desktop-msedge] › tests/e2e/desktop-preferences.spec.ts:80:1 › failed persistent writes retain the draft and allow cancel or retry without a false saved status (5.8s)
+(node:152750) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘   3 [desktop-msedge] › tests/e2e/desktop-preferences.spec.ts:117:1 › closing preview then disabling, enabling and uninstalling preserves committed preferences only (6.5s)
+(node:152927) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘   4 [desktop-msedge] › tests/e2e/desktop-preferences.spec.ts:162:5 › ordinary source preview and commit preserve Unicode CRLF bytes, selection and document history (6.9s)
+(node:153082) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘   5 [desktop-msedge] › tests/e2e/desktop-preferences.spec.ts:162:5 › ordinary live preview and commit preserve Unicode CRLF bytes, selection and document history (6.4s)
+(node:153562) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘   6 [desktop-msedge] › tests/e2e/desktop-preferences.spec.ts:162:5 › windowed source preview and commit preserve Unicode CRLF bytes, selection and document history (6.4s)
+(node:153982) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘   7 [desktop-msedge] › tests/e2e/desktop-preferences.spec.ts:162:5 › windowed live preview and commit preserve Unicode CRLF bytes, selection and document history (7.5s)
+(node:154189) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘   8 [desktop-msedge] › tests/e2e/desktop-shortcuts.spec.ts:79:1 › standalone shortcuts plugin exposes actual commands, draft cancellation, reserved keys and conflicts (6.7s)
+(node:154387) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘   9 [desktop-msedge] › tests/e2e/desktop-shortcuts.spec.ts:101:1 › saved binding survives restart, restores defaults, and search field keeps local editing plus global save (7.7s)
+(node:154552) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  10 [desktop-msedge] › tests/e2e/desktop-shortcuts.spec.ts:134:1 › persistence failure keeps old shortcut, shows bounded error and retains draft (9.1s)
+(node:154911) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  11 [desktop-msedge] › tests/e2e/desktop-shortcuts.spec.ts:151:3 › disabled and removed shortcuts plugin leaves source edit/history/save usable (3.0s)
+  ✓  12 [desktop-msedge] › tests/e2e/desktop-shortcuts.spec.ts:151:3 › disabled and removed shortcuts plugin leaves live edit/history/save usable (3.7s)
+
+
+  1) [desktop-msedge] › tests/e2e/desktop-preferences.spec.ts:37:1 › permissions, generic menu entry, controlled invalid drafts, preview cancellation and default reset
+
+    Error: expect(locator).toHaveAttribute(expected) failed
+
+    Locator:  locator('#app')
+    Expected: "ready"
+    Received: "idle"
+    Timeout:  5000ms
+
+    Call log:
+      - Expect "toHaveAttribute" with timeout 5000ms
+      - waiting for locator('#app')
+        14 × locator resolved to <div id="app" data-loading="idle" data-saving="false" data-readonly="false" data-platform="windows" data-appearance-zoom="1" data-custom-chrome="true" data-empty-document="true" data-sidebar-collapsed="true">…</div>
+           - unexpected value "idle"
+
+
+      24 |   await page.emulateMedia({ colorScheme: 'light' })
+      25 |   await page.goto('/')
+    > 26 |   await expect(page.locator('#app')).toHaveAttribute('data-loading', 'ready')
+         |                                      ^
+      27 | }
+      28 | const fontSize = (page: Page) =>
+      29 |   page.locator('.milkup-editor').evaluate((e) => getComputedStyle(e).fontSize)
+        at setup (/workspace/milkup/tests/e2e/desktop-preferences.spec.ts:26:38)
+        at /workspace/milkup/tests/e2e/desktop-preferences.spec.ts:40:3
+
+    Error Context: test-results/desktop-preferences-permis-c8d92-cellation-and-default-reset-desktop-msedge/error-context.md
+
+  2) [desktop-msedge] › tests/e2e/desktop-preferences.spec.ts:80:1 › failed persistent writes retain the draft and allow cancel or retry without a false saved status
+
+    Error: expect(locator).toHaveAttribute(expected) failed
+
+    Locator:  locator('#app')
+    Expected: "ready"
+    Received: "idle"
+    Timeout:  5000ms
+
+    Call log:
+      - Expect "toHaveAttribute" with timeout 5000ms
+      - waiting for locator('#app')
+        14 × locator resolved to <div id="app" data-loading="idle" data-saving="false" data-readonly="false" data-platform="windows" data-appearance-zoom="1" data-custom-chrome="true" data-empty-document="true" data-sidebar-collapsed="true">…</div>
+           - unexpected value "idle"
+
+
+      24 |   await page.emulateMedia({ colorScheme: 'light' })
+      25 |   await page.goto('/')
+    > 26 |   await expect(page.locator('#app')).toHaveAttribute('data-loading', 'ready')
+         |                                      ^
+      27 | }
+      28 | const fontSize = (page: Page) =>
+      29 |   page.locator('.milkup-editor').evaluate((e) => getComputedStyle(e).fontSize)
+        at setup (/workspace/milkup/tests/e2e/desktop-preferences.spec.ts:26:38)
+        at /workspace/milkup/tests/e2e/desktop-preferences.spec.ts:95:3
+
+    Error Context: test-results/desktop-preferences-failed-b16eb-ithout-a-false-saved-status-desktop-msedge/error-context.md
+
+  3) [desktop-msedge] › tests/e2e/desktop-preferences.spec.ts:117:1 › closing preview then disabling, enabling and uninstalling preserves committed preferences only
+
+    Error: expect(locator).toHaveAttribute(expected) failed
+
+    Locator:  locator('#app')
+    Expected: "ready"
+    Received: "idle"
+    Timeout:  5000ms
+
+    Call log:
+      - Expect "toHaveAttribute" with timeout 5000ms
+      - waiting for locator('#app')
+        13 × locator resolved to <div id="app" data-loading="idle" data-saving="false" data-readonly="false" data-platform="windows" data-appearance-zoom="1" data-custom-chrome="true" data-empty-document="true" data-sidebar-collapsed="true">…</div>
+           - unexpected value "idle"
+
+
+      24 |   await page.emulateMedia({ colorScheme: 'light' })
+      25 |   await page.goto('/')
+    > 26 |   await expect(page.locator('#app')).toHaveAttribute('data-loading', 'ready')
+         |                                      ^
+      27 | }
+      28 | const fontSize = (page: Page) =>
+      29 |   page.locator('.milkup-editor').evaluate((e) => getComputedStyle(e).fontSize)
+        at setup (/workspace/milkup/tests/e2e/desktop-preferences.spec.ts:26:38)
+        at /workspace/milkup/tests/e2e/desktop-preferences.spec.ts:120:3
+
+    Error Context: test-results/desktop-preferences-closin-026e9--committed-preferences-only-desktop-msedge/error-context.md
+
+  4) [desktop-msedge] › tests/e2e/desktop-preferences.spec.ts:162:5 › ordinary source preview and commit preserve Unicode CRLF bytes, selection and document history
+
+    Error: expect(locator).toHaveAttribute(expected) failed
+
+    Locator:  locator('#app')
+    Expected: "ready"
+    Received: "idle"
+    Timeout:  5000ms
+
+    Call log:
+      - Expect "toHaveAttribute" with timeout 5000ms
+      - waiting for locator('#app')
+        14 × locator resolved to <div id="app" data-loading="idle" data-saving="false" data-readonly="false" data-platform="windows" data-appearance-zoom="1" data-custom-chrome="true" data-empty-document="true" data-sidebar-collapsed="true">…</div>
+           - unexpected value "idle"
+
+
+      24 |   await page.emulateMedia({ colorScheme: 'light' })
+      25 |   await page.goto('/')
+    > 26 |   await expect(page.locator('#app')).toHaveAttribute('data-loading', 'ready')
+         |                                      ^
+      27 | }
+      28 | const fontSize = (page: Page) =>
+      29 |   page.locator('.milkup-editor').evaluate((e) => getComputedStyle(e).fontSize)
+        at setup (/workspace/milkup/tests/e2e/desktop-preferences.spec.ts:26:38)
+        at /workspace/milkup/tests/e2e/desktop-preferences.spec.ts:186:7
+
+    Error Context: test-results/desktop-preferences-ordina-6d955-ection-and-document-history-desktop-msedge/error-context.md
+
+  5) [desktop-msedge] › tests/e2e/desktop-preferences.spec.ts:162:5 › ordinary live preview and commit preserve Unicode CRLF bytes, selection and document history
+
+    Error: expect(locator).toHaveAttribute(expected) failed
+
+    Locator:  locator('#app')
+    Expected: "ready"
+    Received: "idle"
+    Timeout:  5000ms
+
+    Call log:
+      - Expect "toHaveAttribute" with timeout 5000ms
+      - waiting for locator('#app')
+        13 × locator resolved to <div id="app" data-loading="idle" data-saving="false" data-readonly="false" data-platform="windows" data-appearance-zoom="1" data-custom-chrome="true" data-empty-document="true" data-sidebar-collapsed="true">…</div>
+           - unexpected value "idle"
+
+
+      24 |   await page.emulateMedia({ colorScheme: 'light' })
+      25 |   await page.goto('/')
+    > 26 |   await expect(page.locator('#app')).toHaveAttribute('data-loading', 'ready')
+         |                                      ^
+      27 | }
+      28 | const fontSize = (page: Page) =>
+      29 |   page.locator('.milkup-editor').evaluate((e) => getComputedStyle(e).fontSize)
+        at setup (/workspace/milkup/tests/e2e/desktop-preferences.spec.ts:26:38)
+        at /workspace/milkup/tests/e2e/desktop-preferences.spec.ts:186:7
+
+    Error Context: test-results/desktop-preferences-ordina-5c545-ection-and-document-history-desktop-msedge/error-context.md
+
+  6) [desktop-msedge] › tests/e2e/desktop-preferences.spec.ts:162:5 › windowed source preview and commit preserve Unicode CRLF bytes, selection and document history
+
+    Error: expect(locator).toHaveAttribute(expected) failed
+
+    Locator:  locator('#app')
+    Expected: "ready"
+    Received: "idle"
+    Timeout:  5000ms
+
+    Call log:
+      - Expect "toHaveAttribute" with timeout 5000ms
+      - waiting for locator('#app')
+        13 × locator resolved to <div id="app" data-loading="idle" data-saving="false" data-readonly="false" data-platform="windows" data-appearance-zoom="1" data-custom-chrome="true" data-empty-document="true" data-sidebar-collapsed="true">…</div>
+           - unexpected value "idle"
+
+
+      24 |   await page.emulateMedia({ colorScheme: 'light' })
+      25 |   await page.goto('/')
+    > 26 |   await expect(page.locator('#app')).toHaveAttribute('data-loading', 'ready')
+         |                                      ^
+      27 | }
+      28 | const fontSize = (page: Page) =>
+      29 |   page.locator('.milkup-editor').evaluate((e) => getComputedStyle(e).fontSize)
+        at setup (/workspace/milkup/tests/e2e/desktop-preferences.spec.ts:26:38)
+        at /workspace/milkup/tests/e2e/desktop-preferences.spec.ts:186:7
+
+    Error Context: test-results/desktop-preferences-window-1098c-ection-and-document-history-desktop-msedge/error-context.md
+
+  7) [desktop-msedge] › tests/e2e/desktop-preferences.spec.ts:162:5 › windowed live preview and commit preserve Unicode CRLF bytes, selection and document history
+
+    Error: expect(locator).toHaveAttribute(expected) failed
+
+    Locator:  locator('#app')
+    Expected: "ready"
+    Received: "idle"
+    Timeout:  5000ms
+
+    Call log:
+      - Expect "toHaveAttribute" with timeout 5000ms
+      - waiting for locator('#app')
+        13 × locator resolved to <div id="app" data-loading="idle" data-saving="false" data-readonly="false" data-platform="windows" data-appearance-zoom="1" data-custom-chrome="true" data-empty-document="true" data-sidebar-collapsed="true">…</div>
+           - unexpected value "idle"
+
+
+      24 |   await page.emulateMedia({ colorScheme: 'light' })
+      25 |   await page.goto('/')
+    > 26 |   await expect(page.locator('#app')).toHaveAttribute('data-loading', 'ready')
+         |                                      ^
+      27 | }
+      28 | const fontSize = (page: Page) =>
+      29 |   page.locator('.milkup-editor').evaluate((e) => getComputedStyle(e).fontSize)
+        at setup (/workspace/milkup/tests/e2e/desktop-preferences.spec.ts:26:38)
+        at /workspace/milkup/tests/e2e/desktop-preferences.spec.ts:186:7
+
+    Error Context: test-results/desktop-preferences-window-a46d9-ection-and-document-history-desktop-msedge/error-context.md
+
+  8) [desktop-msedge] › tests/e2e/desktop-shortcuts.spec.ts:79:1 › standalone shortcuts plugin exposes actual commands, draft cancellation, reserved keys and conflicts
+
+    Error: expect(locator).toContainText(expected) failed
+
+    Locator: getByRole('dialog', { name: '快捷键', exact: true }).getByRole('alert')
+    Expected substring: "占用"
+    Received string:    "快捷键列表已改变，请重新加载后再保存。"
+    Timeout: 5000ms
+
+    Call log:
+      - Expect "toContainText" with timeout 5000ms
+      - waiting for getByRole('dialog', { name: '快捷键', exact: true }).getByRole('alert')
+        13 × locator resolved to <span role="alert">快捷键列表已改变，请重新加载后再保存。</span>
+           - unexpected value "快捷键列表已改变，请重新加载后再保存。"
+
+
+      92 |   await edit(page, 'Mod+O')
+      93 |   await modal(page).getByRole('button', { name: '保存快捷键', exact: true }).click()
+    > 94 |   await expect(modal(page).getByRole('alert')).toContainText('占用')
+         |                                                ^
+      95 |   await expect(modal(page).getByLabel(/\(file.save\)/)).toHaveValue('Mod+O')
+      96 |   await edit(page, 'F6')
+      97 |   await modal(page).getByRole('button', { name: '保存快捷键', exact: true }).click()
+        at /workspace/milkup/tests/e2e/desktop-shortcuts.spec.ts:94:48
+
+    Error Context: test-results/desktop-shortcuts-standalo-bbeff-reserved-keys-and-conflicts-desktop-msedge/error-context.md
+
+  9) [desktop-msedge] › tests/e2e/desktop-shortcuts.spec.ts:101:1 › saved binding survives restart, restores defaults, and search field keeps local editing plus global save
+
+    Error: expect(locator).toContainText(expected) failed
+
+    Locator: getByRole('dialog', { name: '快捷键', exact: true })
+    Expected substring: "快捷键已保存。"
+    Received string:    "×Mod 在 Windows/Linux 为 Ctrl，在 macOS 为 ⌘。每个快捷键是一组按键；多个候选快捷键用空格分隔，留空取消绑定。输入框保留原生文本编辑、输入法与剪贴板；F6、Tab、Escape 等固定导航键不能重绑定。快捷键列表已改变，请重新加载后再保存。放大界面 (appearance.zoomIn)：当前不可用缩小界面 (appearance.zoomOut)：当前不可用界面缩放恢复100% (appearance.zoomReset)：当前不可用Redo (core.redo)默认：Mod+Y / Mod+Shift+ZUndo (core.undo)默认：Mod+ZCut Selection (document.cutSelection)默认：未绑定Select All (document.selectAll)默认：Mod+AClose Document (file.close)默认：Mod+WNew Document (file.new)默认：Mod+NOpen File (file.open)默认：Mod+OReload External Changes (file.reloadExternal)默认：Mod+RReveal in Folder (file.revealInFolder)默认：未绑定Save File (file.save)默认：Mod+SSave File As (file.saveAs)默认：Mod+Shift+SApprove Plugin Capabilities (plugin.approve)：需提供参数，不能直接绑定 · 需要参数：pluginIdDisable Plugin (plugin.disable)：需提供参数，不能直接绑定 · 需要参数：pluginIdEnable Plugin (plugin.enable)：需提供参数，不能直接绑定 · 需要参数：pluginIdExport Plugin Package (plugin.export)：需提供参数，不能直接绑定 · 需要参数：pluginIdInstall Local Plugin (plugin.installLocal)默认：未绑定Reload Plugin (plugin.reload)：需提供参数，不能直接绑定 · 需要参数：pluginIdRemove Plugin (plugin.remove)：需提供参数，不能直接绑定 · 需要参数：pluginIdRevoke Plugin Capabilities (plugin.revokeApproval)：需提供参数，不能直接绑定 · 需要参数：pluginId查找 (search.find)默认：Mod+F下一个匹配 (search.next)默认：F3上一个匹配 (search.previous)默认：Shift+F3替换 (search.replace)默认：Mod+H实时模式 (view.live)默认：Mod+2Set View Mode (view.setMode)：需提供参数，不能直接绑定 · 需要参数：mode源码模式 (view.source)默认：Mod+1切换编辑模式 (view.toggle)默认：Mod+/保存快捷键取消修改恢复默认快捷键重新加载快捷键上下文固定快捷键F6 / Shift+F6 · 切换操作区域：在编辑器、表格操作、状态栏和菜单之间循环。Tab / Shift+Tab · 焦点、缩进或表格移动：界面中移动焦点；正文中缩进或反缩进；表格内切换单元格。Escape · 关闭或退出：关闭菜单、搜索、窄窗侧栏和确认框；编辑器表格内退出表格。Mod+C / Mod+X / Mod+V · 复制、剪切、粘贴：使用系统剪贴板；原生输入框内保留系统文本行为。Mod+A / Mod+Z / Mod+Y / Mod+Shift+Z · 输入框全选与历史：搜索及插件输入框内由原生控件处理，不执行文档命令。搜索框仍支持文件、视图和查找等全局命令。方向键 / Shift+方向键 · 移动光标与选择：文本编辑器中移动光标或扩展选区；按钮与选择框保持原生行为。Home / End / Mod+Home / Mod+End · 行或文档边界：移动到行首、行尾、文档首尾；配合 Shift 扩展选区。PageUp / PageDown · 源码翻页：源码视图按可视页移动，Shift 扩展选区。Enter / Shift+Enter · 换行与表格：正文换行、列表延续；表格中向下移动，Shift+Enter 插入单元格换行。搜索框 Enter/Shift+Enter 查找下一项/上一项。Backspace / Delete · 删除：按字符边界删除；表格保护结构分隔符。Space / Enter · 激活控件：按钮、任务复选框等遵循控件原生键盘行为。IME / Alt / AltGraph · 输入法与系统组合键：组合输入期间及 Alt/AltGraph 组合不触发可配置应用快捷键。"
+    Timeout: 5000ms
+
+    Call log:
+      - Expect "toContainText" with timeout 5000ms
+      - waiting for getByRole('dialog', { name: '快捷键', exact: true })
+        - locator resolved to <section tabindex="-1" role="dialog" aria-label="快捷键" aria-modal="true" data-ui-state="ready" class="plugin-ui plugin-ui-modal" data-plugin-ui="milkup.shortcuts:shortcuts-modal">…</section>
+        - unexpected value "×Mod 在 Windows/Linux 为 Ctrl，在 macOS 为 ⌘。每个快捷键是一组按键；多个候选快捷键用空格分隔，留空取消绑定。输入框保留原生文本编辑、输入法与剪贴板；F6、Tab、Escape 等固定导航键不能重绑定。放大界面 (appearance.zoomIn)：当前不可用缩小界面 (appearance.zoomOut)：当前不可用界面缩放恢复100% (appearance.zoomReset)：当前不可用Redo (core.redo)默认：Mod+Y / Mod+Shift+ZUndo (core.undo)默认：Mod+ZCut Selection (document.cutSelection)默认：未绑定Select All (document.selectAll)默认：Mod+AClose Document (file.close)默认：Mod+WNew Document (file.new)默认：Mod+NOpen File (file.open)默认：Mod+OReload External Changes (file.reloadExternal)默认：Mod+RReveal in Folder (file.revealInFolder)默认：未绑定Save File (file.save)默认：Mod+SSave File As (file.saveAs)默认：Mod+Shift+SApprove Plugin Capabilities (plugin.approve)：需提供参数，不能直接绑定 · 需要参数：pluginIdDisable Plugin (plugin.disable)：需提供参数，不能直接绑定 · 需要参数：pluginIdEnable Plugin (plugin.enable)：需提供参数，不能直接绑定 · 需要参数：pluginIdExport Plugin Package (plugin.export)：需提供参数，不能直接绑定 · 需要参数：pluginIdInstall Local Plugin (plugin.installLocal)默认：未绑定Reload Plugin (plugin.reload)：需提供参数，不能直接绑定 · 需要参数：pluginIdRemove Plugin (plugin.remove)：需提供参数，不能直接绑定 · 需要参数：pluginIdRevoke Plugin Capabilities (plugin.revokeApproval)：需提供参数，不能直接绑定 · 需要参数：pluginId查找 (search.find)默认：Mod+F下一个匹配 (search.next)默认：F3上一个匹配 (search.previous)默认：Shift+F3替换 (search.replace)默认：Mod+H实时模式 (view.live)默认：Mod+2Set View Mode (view.setMode)：需提供参数，不能直接绑定 · 需要参数：mode源码模式 (view.source)默认：Mod+1切换编辑模式 (view.toggle)默认：Mod+/保存快捷键取消修改恢复默认快捷键重新加载快捷键上下文固定快捷键F6 / Shift+F6 · 切换操作区域：在编辑器、表格操作、状态栏和菜单之间循环。Tab / Shift+Tab · 焦点、缩进或表格移动：界面中移动焦点；正文中缩进或反缩进；表格内切换单元格。Escape · 关闭或退出：关闭菜单、搜索、窄窗侧栏和确认框；编辑器表格内退出表格。Mod+C / Mod+X / Mod+V · 复制、剪切、粘贴：使用系统剪贴板；原生输入框内保留系统文本行为。Mod+A / Mod+Z / Mod+Y / Mod+Shift+Z · 输入框全选与历史：搜索及插件输入框内由原生控件处理，不执行文档命令。搜索框仍支持文件、视图和查找等全局命令。方向键 / Shift+方向键 · 移动光标与选择：文本编辑器中移动光标或扩展选区；按钮与选择框保持原生行为。Home / End / Mod+Home / Mod+End · 行或文档边界：移动到行首、行尾、文档首尾；配合 Shift 扩展选区。PageUp / PageDown · 源码翻页：源码视图按可视页移动，Shift 扩展选区。Enter / Shift+Enter · 换行与表格：正文换行、列表延续；表格中向下移动，Shift+Enter 插入单元格换行。搜索框 Enter/Shift+Enter 查找下一项/上一项。Backspace / Delete · 删除：按字符边界删除；表格保护结构分隔符。Space / Enter · 激活控件：按钮、任务复选框等遵循控件原生键盘行为。IME / Alt / AltGraph · 输入法与系统组合键：组合输入期间及 Alt/AltGraph 组合不触发可配置应用快捷键。"
+        13 × locator resolved to <section tabindex="-1" role="dialog" aria-label="快捷键" aria-modal="true" data-ui-state="ready" class="plugin-ui plugin-ui-modal" data-plugin-ui="milkup.shortcuts:shortcuts-modal">…</section>
+           - unexpected value "×Mod 在 Windows/Linux 为 Ctrl，在 macOS 为 ⌘。每个快捷键是一组按键；多个候选快捷键用空格分隔，留空取消绑定。输入框保留原生文本编辑、输入法与剪贴板；F6、Tab、Escape 等固定导航键不能重绑定。快捷键列表已改变，请重新加载后再保存。放大界面 (appearance.zoomIn)：当前不可用缩小界面 (appearance.zoomOut)：当前不可用界面缩放恢复100% (appearance.zoomReset)：当前不可用Redo (core.redo)默认：Mod+Y / Mod+Shift+ZUndo (core.undo)默认：Mod+ZCut Selection (document.cutSelection)默认：未绑定Select All (document.selectAll)默认：Mod+AClose Document (file.close)默认：Mod+WNew Document (file.new)默认：Mod+NOpen File (file.open)默认：Mod+OReload External Changes (file.reloadExternal)默认：Mod+RReveal in Folder (file.revealInFolder)默认：未绑定Save File (file.save)默认：Mod+SSave File As (file.saveAs)默认：Mod+Shift+SApprove Plugin Capabilities (plugin.approve)：需提供参数，不能直接绑定 · 需要参数：pluginIdDisable Plugin (plugin.disable)：需提供参数，不能直接绑定 · 需要参数：pluginIdEnable Plugin (plugin.enable)：需提供参数，不能直接绑定 · 需要参数：pluginIdExport Plugin Package (plugin.export)：需提供参数，不能直接绑定 · 需要参数：pluginIdInstall Local Plugin (plugin.installLocal)默认：未绑定Reload Plugin (plugin.reload)：需提供参数，不能直接绑定 · 需要参数：pluginIdRemove Plugin (plugin.remove)：需提供参数，不能直接绑定 · 需要参数：pluginIdRevoke Plugin Capabilities (plugin.revokeApproval)：需提供参数，不能直接绑定 · 需要参数：pluginId查找 (search.find)默认：Mod+F下一个匹配 (search.next)默认：F3上一个匹配 (search.previous)默认：Shift+F3替换 (search.replace)默认：Mod+H实时模式 (view.live)默认：Mod+2Set View Mode (view.setMode)：需提供参数，不能直接绑定 · 需要参数：mode源码模式 (view.source)默认：Mod+1切换编辑模式 (view.toggle)默认：Mod+/保存快捷键取消修改恢复默认快捷键重新加载快捷键上下文固定快捷键F6 / Shift+F6 · 切换操作区域：在编辑器、表格操作、状态栏和菜单之间循环。Tab / Shift+Tab · 焦点、缩进或表格移动：界面中移动焦点；正文中缩进或反缩进；表格内切换单元格。Escape · 关闭或退出：关闭菜单、搜索、窄窗侧栏和确认框；编辑器表格内退出表格。Mod+C / Mod+X / Mod+V · 复制、剪切、粘贴：使用系统剪贴板；原生输入框内保留系统文本行为。Mod+A / Mod+Z / Mod+Y / Mod+Shift+Z · 输入框全选与历史：搜索及插件输入框内由原生控件处理，不执行文档命令。搜索框仍支持文件、视图和查找等全局命令。方向键 / Shift+方向键 · 移动光标与选择：文本编辑器中移动光标或扩展选区；按钮与选择框保持原生行为。Home / End / Mod+Home / Mod+End · 行或文档边界：移动到行首、行尾、文档首尾；配合 Shift 扩展选区。PageUp / PageDown · 源码翻页：源码视图按可视页移动，Shift 扩展选区。Enter / Shift+Enter · 换行与表格：正文换行、列表延续；表格中向下移动，Shift+Enter 插入单元格换行。搜索框 Enter/Shift+Enter 查找下一项/上一项。Backspace / Delete · 删除：按字符边界删除；表格保护结构分隔符。Space / Enter · 激活控件：按钮、任务复选框等遵循控件原生键盘行为。IME / Alt / AltGraph · 输入法与系统组合键：组合输入期间及 Alt/AltGraph 组合不触发可配置应用快捷键。"
+
+
+      106 |   await edit(page, 'Mod+K')
+      107 |   await modal(page).getByRole('button', { name: '保存快捷键', exact: true }).click()
+    > 108 |   await expect(modal(page)).toContainText('快捷键已保存。')
+          |                             ^
+      109 |   await page.reload()
+      110 |   await open(page, false)
+      111 |   await expect(modal(page).getByLabel(/\(file.save\)/)).toHaveValue('Mod+K')
+        at /workspace/milkup/tests/e2e/desktop-shortcuts.spec.ts:108:29
+
+    Error Context: test-results/desktop-shortcuts-saved-bi-acea4-al-editing-plus-global-save-desktop-msedge/error-context.md
+
+  10) [desktop-msedge] › tests/e2e/desktop-shortcuts.spec.ts:134:1 › persistence failure keeps old shortcut, shows bounded error and retains draft
+
+    Error: expect(locator).toContainText(expected) failed
+
+    Locator: getByRole('dialog', { name: '快捷键', exact: true }).getByRole('alert')
+    Expected substring: "未能保存"
+    Received string:    "快捷键列表已改变，请重新加载后再保存。"
+    Timeout: 5000ms
+
+    Call log:
+      - Expect "toContainText" with timeout 5000ms
+      - waiting for getByRole('dialog', { name: '快捷键', exact: true }).getByRole('alert')
+        13 × locator resolved to <span role="alert">快捷键列表已改变，请重新加载后再保存。</span>
+           - unexpected value "快捷键列表已改变，请重新加载后再保存。"
+
+
+      139 |   await edit(page, 'Mod+K')
+      140 |   await modal(page).getByRole('button', { name: '保存快捷键', exact: true }).click()
+    > 141 |   await expect(modal(page).getByRole('alert')).toContainText('未能保存')
+          |                                                ^
+      142 |   await expect(modal(page)).not.toContainText('/private')
+      143 |   await expect(modal(page).getByLabel(/\(file.save\)/)).toHaveValue('Mod+K')
+      144 |   await close(page)
+        at /workspace/milkup/tests/e2e/desktop-shortcuts.spec.ts:141:48
+
+    Error Context: test-results/desktop-shortcuts-persiste-be60c-ded-error-and-retains-draft-desktop-msedge/error-context.md
+
+  10 failed
+    [desktop-msedge] › tests/e2e/desktop-preferences.spec.ts:37:1 › permissions, generic menu entry, controlled invalid drafts, preview cancellation and default reset
+    [desktop-msedge] › tests/e2e/desktop-preferences.spec.ts:80:1 › failed persistent writes retain the draft and allow cancel or retry without a false saved status
+    [desktop-msedge] › tests/e2e/desktop-preferences.spec.ts:117:1 › closing preview then disabling, enabling and uninstalling preserves committed preferences only
+    [desktop-msedge] › tests/e2e/desktop-preferences.spec.ts:162:5 › ordinary source preview and commit preserve Unicode CRLF bytes, selection and document history
+    [desktop-msedge] › tests/e2e/desktop-preferences.spec.ts:162:5 › ordinary live preview and commit preserve Unicode CRLF bytes, selection and document history
+    [desktop-msedge] › tests/e2e/desktop-preferences.spec.ts:162:5 › windowed source preview and commit preserve Unicode CRLF bytes, selection and document history
+    [desktop-msedge] › tests/e2e/desktop-preferences.spec.ts:162:5 › windowed live preview and commit preserve Unicode CRLF bytes, selection and document history
+    [desktop-msedge] › tests/e2e/desktop-shortcuts.spec.ts:79:1 › standalone shortcuts plugin exposes actual commands, draft cancellation, reserved keys and conflicts
+    [desktop-msedge] › tests/e2e/desktop-shortcuts.spec.ts:101:1 › saved binding survives restart, restores defaults, and search field keeps local editing plus global save
+    [desktop-msedge] › tests/e2e/desktop-shortcuts.spec.ts:134:1 › persistence failure keeps old shortcut, shows bounded error and retains draft
+  2 passed (1.6m)

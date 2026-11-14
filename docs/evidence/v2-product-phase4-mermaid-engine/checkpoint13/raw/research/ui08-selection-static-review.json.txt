@@ -1,0 +1,113 @@
+{
+  "author": "release_sdk",
+  "scope": "Independent read-only code/evidence review. No product or harness modification; no runtime, tests, build or new observer.",
+  "sourceIdentities": [
+    {
+      "path": "tests/helpers/native-production.mjs",
+      "sha256": "293a00db10632383346fa739d8717ddf2d42928e0f2e3f9672043d0dd9452eb0"
+    },
+    {
+      "path": "tests/native/tauri-mermaid-ui.mjs",
+      "sha256": "d93de072c9618cab38136f96c1acde9707b8f8a303341548df613c0d16e3a7a2"
+    },
+    {
+      "path": "packages/view-dom/src/source-document-view.ts",
+      "sha256": "ad1a9a7a746c8eaf641e132ee5a91cb4779c4d860c9f9f445231c8d2b8923206"
+    },
+    {
+      "path": "apps/desktop/src/main.ts",
+      "sha256": "826a7a485a0d1117d1f08a625ac4f17672f31b86a404cce6bc57f890d81ed571"
+    }
+  ],
+  "evidence": {
+    "positioningSha256": "6cd94d060467d15fed60500bc9d077dbc21feb6d3a8d7094042cf4724a1f5ebc",
+    "resultsSha256": "168423665b36c57fc3c2bba3612c91ddc7168f8e7a425c26e1d6321593e71d69",
+    "failurePositioning": {
+      "sample": "sequenceDiagram-000-first-official-example",
+      "from": 8162,
+      "to": 8293,
+      "mode": "live",
+      "path": "/workspace/milkup-mermaid-engine-evidence/product-ui-runs/runs/mermaid-ui-08/windowed.md",
+      "elapsedMs": 744,
+      "ticks": 2,
+      "reversals": 1,
+      "completed": true,
+      "completionReason": "first-visible-eligible-fence",
+      "before": {
+        "version": 0,
+        "selection": [],
+        "dirty": false
+      },
+      "after": {
+        "version": 0,
+        "selection": [
+          {
+            "from": 8103,
+            "to": 8160,
+            "line": 398
+          }
+        ],
+        "dirty": false
+      },
+      "fileUnchanged": true
+    },
+    "failureDiagnostics": {
+      "errors": [],
+      "cspViolations": []
+    },
+    "failureCursorProjection": 8160
+  },
+  "findings": [
+    {
+      "file": "tests/helpers/native-production.mjs",
+      "line": 77,
+      "finding": "probe.selection enumerates .milkup-selection DOM elements; it is not a logical Selection getter. probe.cursor likewise reads mounted .milkup-cursor."
+    },
+    {
+      "file": "packages/view-dom/src/source-document-view.ts",
+      "line": 2981,
+      "finding": "renderSelection deletes the old overlay, then projects getSelectedRange onto mounted .milkup-line source intersections. An off-window selection yields no elements; wrapped text can yield duplicate range entries with different rectIndex. Empty or changed overlay arrays do not alone prove logical selection changes."
+    },
+    {
+      "file": "packages/view-dom/src/source-document-view.ts",
+      "line": 2974,
+      "finding": "Logical currentSelection comes from selectionAnchor/cursorPosition independently of mounted line DOM. Public selection getter returns this model at line712."
+    },
+    {
+      "file": "apps/desktop/src/main.ts",
+      "line": 4124,
+      "finding": "Search results/navigation status is rendered before awaiting jumpToSearchMatch. The harness waits query/count/not-searching, which need not imply awaited revealSelection completion."
+    },
+    {
+      "file": "packages/view-dom/src/source-document-view.ts",
+      "line": 717,
+      "finding": "revealSelection awaits scrollToLine before updating anchor/head, then may await live syntax rendering before painting selection/cursor. Escape/search focus plus the status gate is insufficient as proof that the selection projection is ready."
+    },
+    {
+      "file": "packages/view-dom/src/source-document-view.ts",
+      "line": 339,
+      "finding": "Native Copy uses readRenderedSelectionText, which requires the full selected range to lie in renderedSourceWindow. Clipboard checks must remount the selection through scrolling before copying; off-window copy silence is not proof of an empty logical selection."
+    }
+  ],
+  "conclusion": "UI08 shows a mounted projection change [] to [8103,8160] during 744ms/2 wheel ticks, with version0, dirtyfalse, identical saved bytes and no diagnostics errors. It does not establish whether logical selection changed during positioning. Both delayed navigation paint and virtualization are source-supported explanations; existing records do not distinguish them.",
+  "minimalHarnessProposal": {
+    "readiness": "After Escape/focus and before positioning, compute the unique marker range from the exact fixture source. Require its complete mounted selection projection (normalize duplicate wrapped rect ranges) and cursor projection at marker end. This proves this known navigation has reached its visible target rather than waiting for arbitrary overlay stability.",
+    "conservation": "Retain the original before/after selection comparison and all existing version/dirty/full-file assertions. Label the comparison mounted selection projection, not logical selection. If subsequent legitimate wheel movement unmounts it, preserve that first failure and reassess instead of treating any empty array as success.",
+    "limits": "This readiness improvement alone does not make projection equality a general virtualization-independent invariant."
+  },
+  "independentNativePublicUiRegression": {
+    "steps": [
+      "Search a unique known marker and establish completed navigation using its expected projection/end cursor.",
+      "Set a fresh unpredictable clipboard sentinel, focus the input proxy, issue real native Ctrl+C and require clipboard content to become the exact unique marker. This also prevents stale clipboard content from satisfying the check.",
+      "Use only real native wheel movement to unmount the selected marker; record absence of mounted marker/overlay as evidence of virtualization, without claiming that logical selection is empty.",
+      "Wheel back until the original selected source range is fully mounted. Do not search again, click a source position, use cursor-navigation keys, or otherwise reset the selection.",
+      "Set a different sentinel and issue real Ctrl+C again. Require the same exact unique marker plus unchanged version/dirty/saved bytes. Preserve all failures and bounded scrolling limits."
+    ],
+    "meaning": "Tests selected-text behavior across genuine unmount/remount without reconstructing the selection. Unique marker content identifies the range in this fixture.",
+    "limitations": [
+      "Copy does not prove anchor/head direction.",
+      "Native clipboard access/sentinel setup must be explicit in the harness and cannot be replaced by a synthetic copy event or reading stale data.",
+      "For exact directional model selection independently of mounting, a separate approved public-SDK read-only editing.capture fixture can expose anchor/head through its declared UI; do not use private main variables or mutate production APIs."
+    ]
+  }
+}

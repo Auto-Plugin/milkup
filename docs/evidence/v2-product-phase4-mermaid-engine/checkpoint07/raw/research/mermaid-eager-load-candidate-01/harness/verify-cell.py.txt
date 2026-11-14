@@ -1,0 +1,96 @@
+#!/usr/bin/env python3
+"""Offline retained-trace gate. No processes, windows, IPC, or CPU sampling."""
+import hashlib
+import json
+import sys
+from pathlib import Path
+
+cell_dir, cell = Path(sys.argv[1]), sys.argv[2]
+result = cell_dir / 'result'
+load = lambda name: json.loads((result / name).read_text())
+outcome, identity, inputs = load('outcome.json'), load('instance.json'), load('input.json')
+assert cell in ['01-A', '02-B', '03-B', '04-A']
+assert outcome['cell'] == cell and outcome['arm'] == cell[-1]
+assert outcome['container'] == 'hidden'
+assert outcome['ownedCleanupConfirmed'] is True
+assert outcome['normalVisibleWindowAbsentAtSnapshots'] is True
+rows = []
+for line in (cell_dir / 'native-test.log').read_text().splitlines():
+    if line.startswith('DOM_NATIVE_TIMING '):
+        row = json.loads(line[18:])
+        if row.get('instanceId') == identity['instanceId']:
+            rows.append(row)
+
+def phase(name, request=None, required=False):
+    found = [r for r in rows if r['phase'] == name and (request is None or r.get('requestId') == request)]
+    if required:
+        assert len(found) == 1, f'Missing/duplicate {name}/{request}; diagnostic incomplete'
+    return found
+
+initial = phase('helper-initial-visibility', required=True)[0]
+assert initial['details']['container'] == 'hidden'
+assert isinstance(initial['details']['document_hidden'], bool)
+assert initial['details']['visibility_state'] in ['hidden', 'visible']
+assert phase('cleanup-confirmed'), 'Missing exact-instance cleanup confirmation'
+assert len(outcome['requests']) == 2
+preparation = load('preparation-timing.json')
+assert preparation['beforeLaunchMonotonicNs'] <= preparation['afterLaunchMonotonicNs'] <= preparation['beforeActivationSendMonotonicNs'] <= preparation['activationReceivedMonotonicNs']
+assert preparation['launchToActivationMs'] >= 0
+requests = []
+previous_deadline = False
+for ordinal, entry in enumerate(outcome['requests'], 1):
+    rid = f'render_{ordinal}'
+    assert entry['requestId'] == rid
+    status = entry['status']
+    if status == 'not-executed-censored':
+        assert ordinal == 2 and previous_deadline
+        assert not (result / 'request-2.json').exists() and not (result / 'event-2.json').exists()
+        assert not [r for r in rows if r.get('requestId') == rid]
+        requests.append(entry)
+        continue
+    assert not previous_deadline
+    assert status in ['result', 'native-render-deadline']
+    request, event = load(f'request-{ordinal}.json'), load(f'event-{ordinal}.json')
+    assert request['id'] == rid and request['payload'] == inputs['request']['payload']
+    assert event['pluginId'] == 'milkup.diagrams' and event['instanceId'] == identity['instanceId']
+    dispatch = phase('dispatch', rid, True)[0]
+    metadata = phase('request-meta', rid, True)[0]['details']
+    assert (metadata['from'], metadata['to'], metadata['width'], metadata['theme']) == (440, 969, 1100, 'light')
+    assert metadata['source_bytes'] == 529
+    assert metadata['source_sha256'] == 'ef80eda5ae0f45a95b22a734fbd6c8d4ef9e4187e6209d4c925164b547767c14'
+    if status == 'native-render-deadline':
+        assert event['kind'] == 'document-render-timeout' and event['requestId'] == rid
+        end = phase('deadline-observed', rid, True)[0]
+        control = phase('control-emitted', rid, True)[0]
+        assert any(end['monotonicNs'] <= r['monotonicNs'] <= control['monotonicNs'] for r in phase('kill-start')), 'Native deadline requires same-instance kill phase before control'
+        assert any(end['monotonicNs'] <= r['monotonicNs'] <= control['monotonicNs'] for r in phase('cleanup-confirmed')), 'Owned cleanup must precede timeout control'
+        assert end['monotonicNs'] <= control['monotonicNs']
+        assert entry['elapsedMs'] >= 2000
+        previous_deadline = True
+    else:
+        assert event['kind'] == 'message'
+        assert event['message']['id'] == rid and event['message']['ok'] is True
+        end = phase('result-settled', rid, True)[0]
+        assert end['details']['ok'] is True
+        for name in ['pipe-write-complete', 'helper-frame-dequeued', 'helper-evaluate-submitted',
+                     'helper-evaluate-callback', 'helper-result-drained', 'helper-result-write-complete',
+                     'receive-entry', 'matching-result-received', 'helper-frame-visibility']:
+            phase(name, rid, True)
+        assert not phase('deadline-observed', rid)
+    assert end['monotonicNs'] >= dispatch['monotonicNs']
+    retained = [r for r in rows if r.get('requestId') == rid]
+    requests.append({**entry, 'nativeDispatchToEndMs': (end['monotonicNs']-dispatch['monotonicNs'])/1e6,
+                     'nativeEndPhase': end['phase'], 'retainedPhases': retained,
+                     'eventFileSha256': hashlib.sha256((result / f'event-{ordinal}.json').read_bytes()).hexdigest()})
+with (cell_dir / 'offline-verdict.json').open('x') as output:
+    json.dump({'cell': cell, 'classification': 'DIAGNOSTIC_REAL_INSTANCE_NOT_EDITOR_ACCEPTANCE',
+               'instanceId': identity['instanceId'], 'preparation': preparation,
+               'initialVisibility': initial, 'requests': requests, 'ownedCleanupConfirmed': True,
+               'traceCountForInstance': len(rows),
+               'limits': ['Retained native traces are best effort; missing required phases stop the batch.',
+                          'All timings are observed wall intervals including instrumentation, not pure CPU.',
+                          'A shares strict initialization changes with B and is not byte-identical production.',
+                          'Second render is a real repeated class result; no hidden prewarm.',
+                          'Current-core aggregate validation/canonical hashes are a separate offline result.',
+                          'Discrete X11 snapshots cannot exclude transient windows between observations.']}, output, indent=2)
+    output.write('\n')

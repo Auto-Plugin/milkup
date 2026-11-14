@@ -1,0 +1,11 @@
+PASS source: rapid input/save/input preserves later dirty content
+Traceback (most recent call last):
+  File "/workspace/milkup/tests/native/x11-save-history.py", line 99, in <module>
+    s = state_is(position, True)
+        ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/milkup/tests/native/x11-save-history.py", line 63, in state_is
+    s = until(lambda s: s['selection'] == selection and s['dirty'] == dirty and not s['saving'] and not s['pending'], 'committed selection and dirty state')
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/milkup/tests/helpers/native_x11.py", line 73, in until
+    raise AssertionError(f'{label}: {last}')
+AssertionError: committed selection and dirty state: {'at': 18083.000000000004, 'wall': 1791903676512, 'path': '/tmp/milkup-v2-phase12/x11-small/document.md', 'dirty': True, 'version': 42, 'savedVersion': 41, 'saving': False, 'loading': 'ready', 'mode': 'source', 'selection': {'anchor': 10, 'head': 10}, 'pending': 0, 'editable': True, 'cursor': '10', 'lines': ['中文😀 first', 'body xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx', 'body xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx'], 'renderedLines': 4, 'fromLine': None, 'notice': '已保存', 'focused': 'milkup-input-proxy'}

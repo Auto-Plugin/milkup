@@ -1,0 +1,325 @@
+function installTransportObserver() {
+  "use strict";
+  const api = window.__TAURI_INTERNALS__;
+  const entries =
+    window.__internal_unstable_listeners_object_id__?.[
+      "milkup-plugin-dom-message"
+    ];
+  const callbacks = api?.callbacks;
+  const descriptor = Object.getOwnPropertyDescriptor(window, "fetch");
+  const describe = (d) =>
+    d && {
+      writable: d.writable,
+      configurable: d.configurable,
+      enumerable: d.enumerable,
+      valueType: typeof d.value,
+    };
+  const coreDescriptors = Object.fromEntries(
+    ["invoke", "runCallback", "ipc", "postMessage"].map((key) => [
+      key,
+      describe(Object.getOwnPropertyDescriptor(api || {}, key)),
+    ]),
+  );
+  if (
+    !descriptor ||
+    typeof descriptor.value !== "function" ||
+    !descriptor.writable ||
+    !(callbacks instanceof Map) ||
+    !entries
+  ) {
+    return {
+      installed: false,
+      reason: "Required existing replaceable fetch/callback entry unavailable",
+      fetch: describe(descriptor),
+      coreDescriptors,
+    };
+  }
+  const handlers = [];
+  const retiredEntries = [];
+  const allEntries = [];
+  const liveIds = new Set();
+  let invalidEntry = false;
+  for (const key of Object.getOwnPropertyNames(entries)) {
+    const entryDescriptor = Object.getOwnPropertyDescriptor(entries, key);
+    const entry = entryDescriptor?.value;
+    const idDescriptor =
+      entry && typeof entry === "object" && !Array.isArray(entry)
+        ? Object.getOwnPropertyDescriptor(entry, "handlerId")
+        : undefined;
+    const id = idDescriptor?.value;
+    const validId = Number.isInteger(id) && id >= 0 && id <= 0xffffffff;
+    const present = validId && callbacks.has(id);
+    const original = present ? callbacks.get(id) : undefined;
+    allEntries.push({
+      key,
+      id: validId ? id : null,
+      validId,
+      callbackPresent: present,
+      callbackType: typeof original,
+      descriptor: describe(entryDescriptor),
+    });
+    if (!validId) {
+      invalidEntry = true;
+      continue;
+    }
+    if (!present) {
+      retiredEntries.push({ key, id });
+      continue;
+    }
+    if (typeof original !== "function" || liveIds.has(id)) {
+      invalidEntry = true;
+      continue;
+    }
+    liveIds.add(id);
+    handlers.push({ id, original });
+  }
+  if (invalidEntry || handlers.length !== 1) {
+    return {
+      installed: false,
+      reason:
+        "Expected exactly one live function callback and valid unique entries; no mutation performed",
+      handlerCount: handlers.length,
+      retiredEntries,
+      allEntries,
+      coreDescriptors,
+    };
+  }
+  const originalFetch = descriptor.value;
+  const started = performance.now(),
+    deadline = started + 10000;
+  const state = {
+    installed: true,
+    started,
+    deadline,
+    done: false,
+    events: [],
+    samples: [],
+    serializedBytes: 0,
+    dropped: 0,
+    observerErrors: [],
+    captureMs: 0,
+    captureMaxMs: 0,
+    outgoingFilterMs: 0,
+    sampleMs: 0,
+    maxEvents: 128,
+    maxBytes: 2097152,
+    coreDescriptors,
+    fetchBefore: describe(descriptor),
+    retiredEntries,
+    allEntries,
+    callbackEntryTypes: handlers.map((x) => ({
+      id: x.id,
+      type: typeof x.original,
+    })),
+    restored: null,
+  };
+  let sampleTimer, stopTimer;
+  const previewIds = new WeakMap();
+  let nextPreviewId = 0;
+  const previewIdentity = (element) => {
+    if (!previewIds.has(element)) previewIds.set(element, ++nextPreviewId);
+    return previewIds.get(element);
+  };
+  function capture(direction, instanceId, message, raw) {
+    if (state.done || performance.now() >= deadline) return;
+    const start = performance.now();
+    let captured;
+    try {
+      if (
+        typeof instanceId !== "string" ||
+        !message ||
+        message.protocol !== "milkup.plugin.document-render.v1" ||
+        !["render", "result", "cancel"].includes(message.type)
+      )
+        return;
+      if (state.events.length >= state.maxEvents) {
+        state.dropped++;
+        return;
+      }
+      const payload = raw || JSON.stringify({ instanceId, message });
+      const bytes = new TextEncoder().encode(payload).byteLength;
+      if (state.serializedBytes + bytes > state.maxBytes) {
+        state.dropped++;
+        return;
+      }
+      captured = {
+        at: start,
+        direction,
+        instanceId,
+        type: message.type,
+        id: message.id,
+        payload,
+      };
+      state.events.push(captured);
+      state.serializedBytes += bytes;
+    } catch (error) {
+      if (state.observerErrors.length < 32)
+        state.observerErrors.push(String(error));
+    } finally {
+      const elapsed = performance.now() - start;
+      if (captured) captured.observationMs = elapsed;
+      state.captureMs += elapsed;
+      state.captureMaxMs = Math.max(state.captureMaxMs, elapsed);
+    }
+  }
+  function wrappedFetch(...args) {
+    const filterStart = performance.now();
+    try {
+      if (
+        !state.done &&
+        performance.now() < deadline &&
+        typeof args[0] === "string" &&
+        args[0] === "ipc://localhost/send_plugin_dom_message" &&
+        typeof args[1]?.body === "string"
+      ) {
+        const payload = JSON.parse(args[1].body);
+        if (payload.pluginId === "milkup.diagrams")
+          capture(
+            "outgoing",
+            payload.instanceId,
+            payload.message,
+            args[1].body,
+          );
+      }
+    } catch (error) {
+      if (state.observerErrors.length < 32)
+        state.observerErrors.push(String(error));
+    } finally {
+      state.outgoingFilterMs += performance.now() - filterStart;
+    }
+    return Reflect.apply(originalFetch, this, args);
+  }
+  function sample() {
+    if (
+      state.done ||
+      performance.now() >= deadline ||
+      state.samples.length >= 101
+    )
+      return;
+    const start = performance.now();
+    try {
+      const rect = (e) => e?.getBoundingClientRect().toJSON();
+      const editor = document.querySelector(".milkup-editor");
+      const content = document.querySelector(".milkup-editor-content");
+      state.samples.push({
+        at: start,
+        editor: rect(editor),
+        content: {
+          rect: rect(content),
+          clientWidth: content?.clientWidth,
+          clientHeight: content?.clientHeight,
+          scrollTop: content?.scrollTop,
+          scrollLeft: content?.scrollLeft,
+        },
+        scrollTop: editor?.scrollTop,
+        scrollLeft: editor?.scrollLeft,
+        mode: editor?.dataset.mode,
+        sourceVersion: document.querySelector('[data-stat="version"]')
+          ?.textContent,
+        previews: [...document.querySelectorAll("[data-document-presentation]")]
+          .filter((e) =>
+            [440].includes(Number(e.dataset.presentationFrom)),
+          )
+          .map((e) => ({
+            nodeId: previewIdentity(e),
+            scrollTop: e.scrollTop,
+            scrollLeft: e.scrollLeft,
+            scrollWidth: e.scrollWidth,
+            scrollHeight: e.scrollHeight,
+            clientWidth: e.clientWidth,
+            clientHeight: e.clientHeight,
+            from: Number(e.dataset.presentationFrom),
+            to: Number(e.dataset.presentationTo),
+            rect: rect(e),
+            images: [...e.querySelectorAll("img")].map((i) => ({
+              url: i.currentSrc,
+              complete: i.complete,
+              width: i.naturalWidth,
+              height: i.naturalHeight,
+              rect: rect(i),
+            })),
+          })),
+        selection: [...document.querySelectorAll(".milkup-selection")].map(
+          (e) => ({ from: Number(e.dataset.from), to: Number(e.dataset.to) }),
+        ),
+        notices: [
+          ...document.querySelectorAll("[data-document-presentation-notice]"),
+        ].map((e) => e.textContent),
+      });
+    } catch (error) {
+      if (state.observerErrors.length < 32)
+        state.observerErrors.push(String(error));
+    } finally {
+      state.sampleMs += performance.now() - start;
+    }
+  }
+  function stop(reason = "timer") {
+    if (state.done) return state.restored;
+    state.done = true;
+    clearInterval(sampleTimer);
+    clearTimeout(stopTimer);
+    const fetchStillOurs = window.fetch === wrappedFetch;
+    if (fetchStillOurs) Object.defineProperty(window, "fetch", descriptor);
+    const restoredCallbacks = handlers.map((entry) => {
+      const stillOurs = callbacks.get(entry.id) === entry.wrapped;
+      if (stillOurs) callbacks.set(entry.id, entry.original);
+      return {
+        id: entry.id,
+        stillOurs,
+        restoredOriginal: callbacks.get(entry.id) === entry.original,
+        removed: !callbacks.has(entry.id),
+      };
+    });
+    const after = Object.getOwnPropertyDescriptor(window, "fetch");
+    state.restored = {
+      reason,
+      at: performance.now(),
+      fetchStillOurs,
+      fetchSameFunction: window.fetch === originalFetch,
+      descriptorEqual:
+        after?.value === descriptor.value &&
+        after?.writable === descriptor.writable &&
+        after?.configurable === descriptor.configurable &&
+        after?.enumerable === descriptor.enumerable,
+      fetchAfter: describe(after),
+      callbacks: restoredCallbacks,
+    };
+    return state.restored;
+  }
+  for (const entry of handlers) {
+    entry.wrapped = function (...args) {
+      try {
+        const event = args[0];
+        if (
+          event?.event === "milkup-plugin-dom-message" &&
+          event.payload?.pluginId === "milkup.diagrams" &&
+          event.payload.kind === "message"
+        )
+          capture("incoming", event.payload.instanceId, event.payload.message);
+      } catch (error) {
+        if (state.observerErrors.length < 32)
+          state.observerErrors.push(String(error));
+      }
+      return Reflect.apply(entry.original, this, args);
+    };
+  }
+  window.fetch = wrappedFetch;
+  for (const entry of handlers) callbacks.set(entry.id, entry.wrapped);
+  Object.defineProperty(window, "__milkupTransportDiagnostic", {
+    value: { state, stop },
+    configurable: true,
+  });
+  sampleTimer = setInterval(sample, 100);
+  stopTimer = setTimeout(() => stop("ten-second-limit"), 10000);
+  sample();
+  return {
+    installed: true,
+    started,
+    deadline,
+    fetchBefore: state.fetchBefore,
+    coreDescriptors,
+    callbackEntryTypes: state.callbackEntryTypes,
+    retiredEntries: state.retiredEntries,
+    allEntries: state.allEntries,
+  };
+}

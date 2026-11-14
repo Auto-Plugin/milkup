@@ -1,0 +1,847 @@
+{
+  "status": "Product/test frozen after focused frontend verification; candidate09 native cause still unproven, next production native verification pending.",
+  "implementation": [
+    "Primary reference pointer gate preserves native down/up/click identity. Document up/cancel, blur/visibility, no-buttons move, editing/keydown, hard invalidation and destroy release it. Secondary/non-primary/modifier down does not interrupt an existing primary gesture.",
+    "A settled provider response clears its preparation timer before waiting; only the current valid job can install after release. Aborting a job removes its waiter. Existing renderer watchdog unchanged.",
+    "Source keeps at most one deferred request (latest id) and one shared completion promise. It drops prepared DOM and re-renders the winning request after release, rechecking identity/version/editRevision/request id.",
+    "Guarded revealSelection rejects missing target window with AbortError; unguarded legacy missing-line return remains compatible."
+  ],
+  "evidence": {
+    "127": "Runner testMatch startup error, NOT red.",
+    "128": "5 independent real browser reds, JSON and PNG preserved.",
+    "130": "Initial focused108 PASS.",
+    "131": "Initial view typecheck PASS.",
+    "132": "5 controlled browser regressions PASS; real native click event delivered exactly once in pointer cases.",
+    "133": "300 focused tests PASS, including22 pointer/coalesce/legacy guards.",
+    "134": "Test fixture type error: two VirtualViewportConfig literals omitted enabled. No product issue; corrected to enabled:true.",
+    "136": "Corrected view typecheck PASS.",
+    "135": "Final33 browser cases PASS (2.3m): old21 + layout6 + pointer4 + superseded navigation2.",
+    "138": "Final22 pointer/coalesce/legacy guards after fixture enabled:true correction; see log."
+  },
+  "limits": [
+    "Controlled races are not claimed as the cause of candidate09 native failure.",
+    "Native far preparation, full visual matrix and candidate after acceptance remain outstanding."
+  ],
+  "after": [
+    {
+      "file": "132-navigation-races-after/desktop-markdown-extension-0e6f6-acement-between-down-and-up-desktop-msedge/gesture.json",
+      "route": "windowed-source",
+      "bounds": {
+        "x": 28.796875,
+        "y": 83.671875,
+        "width": 120.96875,
+        "height": 21
+      },
+      "before": {
+        "calls": 0,
+        "version": 0,
+        "selection": {
+          "anchor": 0,
+          "head": 0,
+          "affinity": 1
+        },
+        "unchanged": true,
+        "active": 1,
+        "button": 2
+      },
+      "after": {
+        "calls": 1,
+        "version": 0,
+        "selection": {
+          "anchor": 0,
+          "head": 0,
+          "affinity": 1
+        },
+        "unchanged": true,
+        "active": 3,
+        "button": 3
+      },
+      "events": [
+        {
+          "type": "pointerdown",
+          "at": 1714.7999999988824,
+          "id": 2,
+          "connected": true,
+          "active": 1,
+          "trusted": true
+        },
+        {
+          "type": "mousedown",
+          "at": 1715,
+          "id": 2,
+          "connected": true,
+          "active": 1,
+          "trusted": true
+        },
+        {
+          "type": "focusin",
+          "at": 1715.8999999985099,
+          "id": 2,
+          "connected": true,
+          "active": 2,
+          "trusted": true
+        },
+        {
+          "type": "pointerup",
+          "at": 1774.2999999988824,
+          "id": 2,
+          "connected": true,
+          "active": 2,
+          "trusted": true
+        },
+        {
+          "type": "mouseup",
+          "at": 1774.3999999985099,
+          "id": 2,
+          "connected": true,
+          "active": 2,
+          "trusted": true
+        },
+        {
+          "type": "click",
+          "at": 1774.3999999985099,
+          "id": 2,
+          "connected": true,
+          "active": 2,
+          "trusted": true
+        },
+        {
+          "type": "focusin",
+          "at": 1783.2999999988824,
+          "id": 3,
+          "connected": true,
+          "active": 3,
+          "trusted": true
+        }
+      ],
+      "originalConnected": false,
+      "unchanged": true
+    },
+    {
+      "file": "132-navigation-races-after/desktop-markdown-extension-55da0-ithout-selecting-its-target-desktop-msedge/superseded-navigation.json",
+      "mode": "live",
+      "before": {
+        "selection": {
+          "anchor": 0,
+          "head": 0,
+          "affinity": 1
+        },
+        "version": 0
+      },
+      "target": 628,
+      "outcome": "rejected",
+      "superseding": {
+        "from": "199",
+        "to": "208"
+      },
+      "after": {
+        "selection": {
+          "anchor": 0,
+          "head": 0,
+          "affinity": 1
+        },
+        "version": 0,
+        "targetPresent": false
+      },
+      "reads": [
+        {
+          "args": [24, 81],
+          "at": 1556.199999999255
+        },
+        {
+          "args": [175, 232],
+          "at": 1566.5
+        }
+      ],
+      "unchanged": true
+    },
+    {
+      "file": "132-navigation-races-after/desktop-markdown-extension-56e5c-ithout-selecting-its-target-desktop-msedge/superseded-navigation.json",
+      "mode": "source",
+      "before": {
+        "selection": {
+          "anchor": 0,
+          "head": 0,
+          "affinity": 1
+        },
+        "version": 0
+      },
+      "target": 628,
+      "outcome": "rejected",
+      "superseding": {
+        "from": "199",
+        "to": "208"
+      },
+      "after": {
+        "selection": {
+          "anchor": 0,
+          "head": 0,
+          "affinity": 1
+        },
+        "version": 0,
+        "targetPresent": false
+      },
+      "reads": [
+        {
+          "args": [48, 57],
+          "at": 1544.800000000745
+        },
+        {
+          "args": [199, 208],
+          "at": 1555.0999999996275
+        }
+      ],
+      "unchanged": true
+    },
+    {
+      "file": "132-navigation-races-after/desktop-markdown-extension-aaff3-acement-between-down-and-up-desktop-msedge/gesture.json",
+      "route": "ordinary-provider",
+      "bounds": {
+        "x": 28.796875,
+        "y": 83.671875,
+        "width": 120.96875,
+        "height": 21
+      },
+      "before": {
+        "calls": 0,
+        "version": 0,
+        "selection": {
+          "anchor": 0,
+          "head": 0,
+          "affinity": 1
+        },
+        "unchanged": true,
+        "active": 1,
+        "button": 2
+      },
+      "after": {
+        "calls": 1,
+        "version": 0,
+        "selection": {
+          "anchor": 0,
+          "head": 0,
+          "affinity": 1
+        },
+        "unchanged": true,
+        "active": 2,
+        "button": 2
+      },
+      "events": [
+        {
+          "type": "pointerdown",
+          "at": 1889.5,
+          "id": 2,
+          "connected": true,
+          "active": 1,
+          "trusted": true
+        },
+        {
+          "type": "mousedown",
+          "at": 1889.699999999255,
+          "id": 2,
+          "connected": true,
+          "active": 1,
+          "trusted": true
+        },
+        {
+          "type": "focusin",
+          "at": 1890.5999999996275,
+          "id": 2,
+          "connected": true,
+          "active": 2,
+          "trusted": true
+        },
+        {
+          "type": "pointerup",
+          "at": 1907.5999999996275,
+          "id": 2,
+          "connected": true,
+          "active": 2,
+          "trusted": true
+        },
+        {
+          "type": "mouseup",
+          "at": 1907.5999999996275,
+          "id": 2,
+          "connected": true,
+          "active": 2,
+          "trusted": true
+        },
+        {
+          "type": "click",
+          "at": 1907.699999999255,
+          "id": 2,
+          "connected": true,
+          "active": 2,
+          "trusted": true
+        }
+      ],
+      "originalConnected": true,
+      "unchanged": true
+    },
+    {
+      "file": "132-navigation-races-after/desktop-markdown-extension-c4c1d-acement-between-down-and-up-desktop-msedge/gesture.json",
+      "route": "windowed-provider",
+      "bounds": {
+        "x": 28.796875,
+        "y": 83.671875,
+        "width": 120.96875,
+        "height": 21
+      },
+      "before": {
+        "calls": 0,
+        "version": 0,
+        "selection": {
+          "anchor": 0,
+          "head": 0,
+          "affinity": 1
+        },
+        "unchanged": true,
+        "active": 1,
+        "button": 2
+      },
+      "after": {
+        "calls": 1,
+        "version": 0,
+        "selection": {
+          "anchor": 0,
+          "head": 0,
+          "affinity": 1
+        },
+        "unchanged": true,
+        "active": 2,
+        "button": 2
+      },
+      "events": [
+        {
+          "type": "pointerdown",
+          "at": 1756.699999999255,
+          "id": 2,
+          "connected": true,
+          "active": 1,
+          "trusted": true
+        },
+        {
+          "type": "mousedown",
+          "at": 1756.7999999988824,
+          "id": 2,
+          "connected": true,
+          "active": 1,
+          "trusted": true
+        },
+        {
+          "type": "focusin",
+          "at": 1757.8999999985099,
+          "id": 2,
+          "connected": true,
+          "active": 2,
+          "trusted": true
+        },
+        {
+          "type": "pointerup",
+          "at": 1772.5999999996275,
+          "id": 2,
+          "connected": true,
+          "active": 2,
+          "trusted": true
+        },
+        {
+          "type": "mouseup",
+          "at": 1772.699999999255,
+          "id": 2,
+          "connected": true,
+          "active": 2,
+          "trusted": true
+        },
+        {
+          "type": "click",
+          "at": 1772.699999999255,
+          "id": 2,
+          "connected": true,
+          "active": 2,
+          "trusted": true
+        }
+      ],
+      "originalConnected": true,
+      "unchanged": true
+    }
+  ],
+  "finalAfter": [
+    {
+      "file": "135-presentation-browser-final/desktop-markdown-extension-0e6f6-acement-between-down-and-up-desktop-msedge/gesture.json",
+      "route": "windowed-source",
+      "bounds": {
+        "x": 28.796875,
+        "y": 83.671875,
+        "width": 120.96875,
+        "height": 21
+      },
+      "before": {
+        "calls": 0,
+        "completed": 0,
+        "version": 0,
+        "selection": {
+          "anchor": 0,
+          "head": 0,
+          "affinity": 1
+        },
+        "unchanged": true,
+        "active": 1,
+        "button": 2
+      },
+      "after": {
+        "calls": 1,
+        "completed": 1,
+        "version": 0,
+        "selection": {
+          "anchor": 16,
+          "head": 22,
+          "affinity": 1
+        },
+        "unchanged": true,
+        "active": 5,
+        "button": 6
+      },
+      "events": [
+        {
+          "type": "pointerdown",
+          "at": 1852.2000000011176,
+          "id": 2,
+          "connected": true,
+          "active": 1,
+          "trusted": true
+        },
+        {
+          "type": "mousedown",
+          "at": 1852.5,
+          "id": 2,
+          "connected": true,
+          "active": 1,
+          "trusted": true
+        },
+        {
+          "type": "focusin",
+          "at": 1853.4000000003725,
+          "id": 2,
+          "connected": true,
+          "active": 2,
+          "trusted": true
+        },
+        {
+          "type": "pointerup",
+          "at": 1911,
+          "id": 2,
+          "connected": true,
+          "active": 2,
+          "trusted": true
+        },
+        {
+          "type": "mouseup",
+          "at": 1911.1000000014901,
+          "id": 2,
+          "connected": true,
+          "active": 2,
+          "trusted": true
+        },
+        {
+          "type": "click",
+          "at": 1911.2000000011176,
+          "id": 2,
+          "connected": true,
+          "active": 2,
+          "trusted": true
+        },
+        {
+          "type": "focusin",
+          "at": 1933.9000000003725,
+          "id": 3,
+          "connected": true,
+          "active": 3,
+          "trusted": true
+        },
+        {
+          "type": "focusin",
+          "at": 1941.2000000011176,
+          "id": 4,
+          "connected": true,
+          "active": 4,
+          "trusted": true
+        }
+      ],
+      "originalConnected": false,
+      "unchanged": true
+    },
+    {
+      "file": "135-presentation-browser-final/desktop-markdown-extension-a9372-acement-between-down-and-up-desktop-msedge/gesture.json",
+      "route": "windowed-outside",
+      "bounds": {
+        "x": 28.796875,
+        "y": 83.671875,
+        "width": 120.96875,
+        "height": 21
+      },
+      "before": {
+        "calls": 0,
+        "completed": 0,
+        "version": 0,
+        "selection": {
+          "anchor": 0,
+          "head": 0,
+          "affinity": 1
+        },
+        "unchanged": true,
+        "active": 1,
+        "button": 2
+      },
+      "after": {
+        "calls": 0,
+        "completed": 0,
+        "version": 0,
+        "selection": {
+          "anchor": 0,
+          "head": 0,
+          "affinity": 1
+        },
+        "unchanged": true,
+        "active": 2,
+        "button": 2
+      },
+      "events": [
+        {
+          "type": "pointerdown",
+          "at": 1722.699999999255,
+          "id": 2,
+          "connected": true,
+          "active": 1,
+          "trusted": true
+        },
+        {
+          "type": "mousedown",
+          "at": 1722.9000000003725,
+          "id": 2,
+          "connected": true,
+          "active": 1,
+          "trusted": true
+        },
+        {
+          "type": "focusin",
+          "at": 1723.9000000003725,
+          "id": 2,
+          "connected": true,
+          "active": 2,
+          "trusted": true
+        },
+        {
+          "type": "pointerup",
+          "at": 1740.7999999988824,
+          "id": 3,
+          "connected": true,
+          "active": 2,
+          "trusted": true
+        },
+        {
+          "type": "mouseup",
+          "at": 1740.9000000003725,
+          "id": 3,
+          "connected": true,
+          "active": 2,
+          "trusted": true
+        },
+        {
+          "type": "click",
+          "at": 1740.9000000003725,
+          "id": 3,
+          "connected": true,
+          "active": 2,
+          "trusted": true
+        }
+      ],
+      "originalConnected": true,
+      "unchanged": true
+    },
+    {
+      "file": "135-presentation-browser-final/desktop-markdown-extension-aaff3-acement-between-down-and-up-desktop-msedge/gesture.json",
+      "route": "ordinary-provider",
+      "bounds": {
+        "x": 28.796875,
+        "y": 83.671875,
+        "width": 120.96875,
+        "height": 21
+      },
+      "before": {
+        "calls": 0,
+        "completed": 0,
+        "version": 0,
+        "selection": {
+          "anchor": 0,
+          "head": 0,
+          "affinity": 1
+        },
+        "unchanged": true,
+        "active": 1,
+        "button": 2
+      },
+      "after": {
+        "calls": 1,
+        "completed": 1,
+        "version": 0,
+        "selection": {
+          "anchor": 0,
+          "head": 0,
+          "affinity": 1
+        },
+        "unchanged": true,
+        "active": 3,
+        "button": 3
+      },
+      "events": [
+        {
+          "type": "pointerdown",
+          "at": 1822.0999999996275,
+          "id": 2,
+          "connected": true,
+          "active": 1,
+          "trusted": true
+        },
+        {
+          "type": "mousedown",
+          "at": 1822.199999999255,
+          "id": 2,
+          "connected": true,
+          "active": 1,
+          "trusted": true
+        },
+        {
+          "type": "focusin",
+          "at": 1823.0999999996275,
+          "id": 2,
+          "connected": true,
+          "active": 2,
+          "trusted": true
+        },
+        {
+          "type": "pointerup",
+          "at": 1831.5,
+          "id": 2,
+          "connected": true,
+          "active": 2,
+          "trusted": true
+        },
+        {
+          "type": "mouseup",
+          "at": 1831.5,
+          "id": 2,
+          "connected": true,
+          "active": 2,
+          "trusted": true
+        },
+        {
+          "type": "click",
+          "at": 1831.5999999996275,
+          "id": 2,
+          "connected": true,
+          "active": 2,
+          "trusted": true
+        },
+        {
+          "type": "focusin",
+          "at": 1838.9000000003725,
+          "id": 3,
+          "connected": true,
+          "active": 3,
+          "trusted": true
+        }
+      ],
+      "originalConnected": false,
+      "unchanged": true
+    },
+    {
+      "file": "135-presentation-browser-final/desktop-markdown-extension-c4c1d-acement-between-down-and-up-desktop-msedge/gesture.json",
+      "route": "windowed-provider",
+      "bounds": {
+        "x": 28.796875,
+        "y": 83.671875,
+        "width": 120.96875,
+        "height": 21
+      },
+      "before": {
+        "calls": 0,
+        "completed": 0,
+        "version": 0,
+        "selection": {
+          "anchor": 0,
+          "head": 0,
+          "affinity": 1
+        },
+        "unchanged": true,
+        "active": 1,
+        "button": 2
+      },
+      "after": {
+        "calls": 1,
+        "completed": 1,
+        "version": 0,
+        "selection": {
+          "anchor": 16,
+          "head": 22,
+          "affinity": 1
+        },
+        "unchanged": true,
+        "active": 6,
+        "button": 7
+      },
+      "events": [
+        {
+          "type": "pointerdown",
+          "at": 1770.9000000003725,
+          "id": 2,
+          "connected": true,
+          "active": 1,
+          "trusted": true
+        },
+        {
+          "type": "mousedown",
+          "at": 1771.199999999255,
+          "id": 2,
+          "connected": true,
+          "active": 1,
+          "trusted": true
+        },
+        {
+          "type": "focusin",
+          "at": 1772.0999999996275,
+          "id": 2,
+          "connected": true,
+          "active": 2,
+          "trusted": true
+        },
+        {
+          "type": "pointerup",
+          "at": 1779.5999999996275,
+          "id": 2,
+          "connected": true,
+          "active": 2,
+          "trusted": true
+        },
+        {
+          "type": "mouseup",
+          "at": 1779.699999999255,
+          "id": 2,
+          "connected": true,
+          "active": 2,
+          "trusted": true
+        },
+        {
+          "type": "click",
+          "at": 1779.699999999255,
+          "id": 2,
+          "connected": true,
+          "active": 2,
+          "trusted": true
+        },
+        {
+          "type": "focusin",
+          "at": 1789.2999999988824,
+          "id": 3,
+          "connected": true,
+          "active": 3,
+          "trusted": true
+        },
+        {
+          "type": "focusin",
+          "at": 1793.7999999988824,
+          "id": 4,
+          "connected": true,
+          "active": 4,
+          "trusted": true
+        },
+        {
+          "type": "focusin",
+          "at": 1796.9000000003725,
+          "id": 5,
+          "connected": true,
+          "active": 5,
+          "trusted": true
+        }
+      ],
+      "originalConnected": false,
+      "unchanged": true
+    },
+    {
+      "file": "135-presentation-browser-final/desktop-markdown-extension-55da0-ithout-selecting-its-target-desktop-msedge/superseded-navigation.json",
+      "mode": "live",
+      "before": {
+        "selection": {
+          "anchor": 0,
+          "head": 0,
+          "affinity": 1
+        },
+        "version": 0
+      },
+      "target": 628,
+      "outcome": "rejected",
+      "superseding": {
+        "from": "199",
+        "to": "208"
+      },
+      "after": {
+        "selection": {
+          "anchor": 0,
+          "head": 0,
+          "affinity": 1
+        },
+        "version": 0,
+        "targetPresent": false
+      },
+      "reads": [
+        {
+          "args": [24, 81],
+          "at": 1558.5
+        },
+        {
+          "args": [175, 232],
+          "at": 1568.9000000003725
+        }
+      ],
+      "unchanged": true
+    },
+    {
+      "file": "135-presentation-browser-final/desktop-markdown-extension-56e5c-ithout-selecting-its-target-desktop-msedge/superseded-navigation.json",
+      "mode": "source",
+      "before": {
+        "selection": {
+          "anchor": 0,
+          "head": 0,
+          "affinity": 1
+        },
+        "version": 0
+      },
+      "target": 628,
+      "outcome": "rejected",
+      "superseding": {
+        "from": "199",
+        "to": "208"
+      },
+      "after": {
+        "selection": {
+          "anchor": 0,
+          "head": 0,
+          "affinity": 1
+        },
+        "version": 0,
+        "targetPresent": false
+      },
+      "reads": [
+        {
+          "args": [48, 57],
+          "at": 1595.7999999988824
+        },
+        {
+          "args": [199, 208],
+          "at": 1606.0999999996275
+        }
+      ],
+      "unchanged": true
+    }
+  ]
+}

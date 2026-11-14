@@ -1,0 +1,80 @@
+
+ RUN  v3.2.6 /workspace/milkup/packages/markdown
+
+ ❯ src/__tests__/table-boundaries.test.ts (4 tests | 4 failed) 42ms
+   × header-only table includes its delimiter in the table range 25ms
+     → expected 10 to be 23 // Object.is equality
+   × pipe after an even number of backslashes still divides cells 8ms
+     → expected [ { type: 'tableCell', …(4) } ] to have a length of 2 but got 1
+   × only safe attribute-free br tags become inline line breaks 3ms
+     → expected [] to have a length of 2 but got +0
+   × does not recognize mismatched table header and delimiter widths 2ms
+     → expected true to be false // Object.is equality
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 4 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/__tests__/table-boundaries.test.ts > header-only table includes its delimiter in the table range
+AssertionError: expected 10 to be 23 // Object.is equality
+
+- Expected
++ Received
+
+- 23
++ 10
+
+ ❯ src/__tests__/table-boundaries.test.ts:3:165
+
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/4]⎯
+
+ FAIL  src/__tests__/table-boundaries.test.ts > pipe after an even number of backslashes still divides cells
+AssertionError: expected [ { type: 'tableCell', …(4) } ] to have a length of 2 but got 1
+
+- Expected
++ Received
+
+- 2
++ 1
+
+ ❯ src/__tests__/table-boundaries.test.ts:4:199
+
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/4]⎯
+
+ FAIL  src/__tests__/table-boundaries.test.ts > only safe attribute-free br tags become inline line breaks
+AssertionError: expected [] to have a length of 2 but got +0
+
+- Expected
++ Received
+
+- 2
++ 0
+
+ ❯ src/__tests__/table-boundaries.test.ts:5:139
+
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/4]⎯
+
+ FAIL  src/__tests__/table-boundaries.test.ts > does not recognize mismatched table header and delimiter widths
+AssertionError: expected true to be false // Object.is equality
+
+- Expected
++ Received
+
+- false
++ true
+
+ ❯ src/__tests__/table-boundaries.test.ts:6:172
+
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/4]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  4 failed (4)
+   Start at  10:25:21
+   Duration  1.31s (transform 353ms, setup 0ms, collect 424ms, tests 42ms, environment 0ms, prepare 281ms)
+
+undefined
+/workspace/milkup/packages/markdown:
+[ERR_PNPM_RECURSIVE_EXEC_FIRST_FAIL] Command failed with exit code 1: vitest run src/__tests__/table-boundaries.test.ts '--maxWorkers=1'

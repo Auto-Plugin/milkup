@@ -1,0 +1,36 @@
+#!/usr/bin/env bash
+# Never run before the separately scheduled native build GO.
+set -euo pipefail
+source /workspace/.cloud/milkup-v2/env.sh
+unset CARGO_TARGET_X86_64_UNKNOWN_LINUX_GNU_RUNNER
+export CARGO_BUILD_JOBS=1
+root=/workspace/milkup-mermaid-engine-evidence/research/journey-current-native-paired-01
+cd "$root"
+phase=${1:?capture or paint}
+[[ "$phase" == capture || "$phase" == paint ]]
+python3 "$root/verify-inputs.py"
+[[ ! -e "$root/bin/$phase" ]]
+mkdir -p "$root/bin" "$root/build-logs"
+# Only this historical target is mutable rebuildable cache; no old sources or binaries are touched.
+export CARGO_TARGET_DIR=/workspace/milkup-mermaid-engine-evidence/research/svg-converter-prototype/native-runner/target
+if [[ "$phase" == capture ]]; then
+  node "$root/build-assets.mjs"
+  cc -shared -fPIC -O2 "$root/extensions/paired_resource_guard.c" -o "$root/extensions/libpaired_resource_guard.so" $(pkg-config --cflags --libs webkit2gtk-web-extension-4.1)
+else
+  [[ -f "$root/paint-evidence.json" ]]
+fi
+cargo build --offline --locked --manifest-path "$root/$phase-helper/Cargo.toml" --message-format=json-render-diagnostics > "$root/build-logs/$phase.jsonl" 2> "$root/build-logs/$phase.stderr"
+python3 - "$root" "$phase" <<'PY'
+from pathlib import Path
+import sys,json,hashlib,shutil,subprocess
+r=Path(sys.argv[1]);phase=sys.argv[2]
+rows=[json.loads(s) for s in (r/'build-logs'/f'{phase}.jsonl').read_text().splitlines() if s.startswith('{')]
+outputs=[Path(v['executable']) for v in rows if v.get('reason')=='compiler-artifact' and v.get('executable') and v['target']['name']=='milkup-mermaid-snapshot-probe']
+assert len(outputs)==1,outputs
+out=r/'bin'/phase;shutil.copyfile(outputs[0],out);out.chmod(0o755)
+metadata=[]
+for p in [out,r/'extensions/libpaired_resource_guard.so',r/f'{phase}-helper/assets/entry.mjs',r/f'{phase}-helper/assets/canonical.svg']:
+ b=p.read_bytes();metadata.append({'path':str(p),'bytes':len(b),'sha256':hashlib.sha256(b).hexdigest()})
+(r/'build-logs'/f'{phase}-artifacts.json').write_text(json.dumps({'compilerArtifact':str(outputs[0]),'files':metadata,'buildId':subprocess.check_output(['readelf','-n',str(out)],text=True)},indent=2)+'\n')
+PY
+python3 "$root/verify-inputs.py"

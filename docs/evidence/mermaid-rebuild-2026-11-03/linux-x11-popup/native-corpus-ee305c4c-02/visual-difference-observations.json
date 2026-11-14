@@ -1,0 +1,25 @@
+{
+  "kind": "read-only-human-visible-difference-observations",
+  "scope": "Only the two unequal PNG pairs were inspected visually; this is not a full corpus visual acceptance.",
+  "fullCorpusVisualPassClaimed": false,
+  "sameBuildSourceClaimed": false,
+  "observations": [
+    {
+      "fixture": "06-gitGraph",
+      "historicalPng": "/workspace/mermaid-rebuild-evidence/native-corpus-688fc89a/06-gitGraph.png",
+      "newPng": "/workspace/mermaid-rebuild-evidence/linux-x11-popup/native-corpus-ee305c4c-02/corpus/png/06-gitGraph.png",
+      "observation": "The two generated commit identifier labels differ. The displayed branch names and graph geometry appear unchanged.",
+      "fixtureEvidence": "The fixture contains two plain commit statements with no explicit commit identifiers.",
+      "cause": "Not established by this run."
+    },
+    {
+      "fixture": "14-classDiagram",
+      "historicalPng": "/workspace/mermaid-rebuild-evidence/native-corpus-688fc89a/14-classDiagram.png",
+      "newPng": "/workspace/mermaid-rebuild-evidence/linux-x11-popup/native-corpus-ee305c4c-02/corpus/png/14-classDiagram.png",
+      "observation": "The historical PNG visibly contains the +save() method row; the new PNG leaves that row blank while preserving the box, separator, Note heading and +String title attribute.",
+      "fixtureEvidence": "Both runs have identical fixture source bytes, and the source includes +save().",
+      "cause": "Not established by this run.",
+      "requiresFollowUp": true
+    }
+  ]
+}

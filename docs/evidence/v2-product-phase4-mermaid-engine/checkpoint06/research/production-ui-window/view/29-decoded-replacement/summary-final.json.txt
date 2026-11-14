@@ -1,0 +1,126 @@
+{
+  "status": "focused implementation verified; packaged native validation still pending",
+  "scope": "Generic whole-fragment image replacement continuity with original shared budgets, deadlines, invalidation and reference navigation; no plugin identity special case.",
+  "nativeEvidence": {
+    "path": "research/native-ui03-transport-diagnostic-02",
+    "observations": "41 immutable wire events, 598173 captured bytes, zero dropped events and observer errors; 67 DOM samples in a bounded 10-second diagnostic.",
+    "cause": "Five later class requests were byte-identical, but six class results differed by 160 numeric path-command leaves each relative to the first. Class repeatedly disappeared while independently validated replacement images decoded; block output and its displayed URL remained stable.",
+    "limits": "Captured requests are service per-fence requests, not direct observation of the final whole-window aggregate. Diagnostic clone and overhead are not native acceptance."
+  },
+  "implementation": [
+    "Keep at most one old fully decoded semantic fragment and one pending replacement per range. Independently validate every new response, then replace the entire fragment only when all replacement images decode.",
+    "Revalidate the combined retained old layer against original aggregate limits before adding a candidate; independently validated generations cannot accumulate unbounded retained cost.",
+    "Retained layer has a fixed 10-second deadline that subsequent responses cannot renew. Omission, errors, hard-context changes, source-mode, selection reveal and disposal remove stale presentation.",
+    "Successful decode repaint respects an existing reference-pointer lease via a coalesced continuation that schedules only the current cache. Error/deadline withdrawal is not postponed.",
+    "Scroll capture identifies the fragment actually still mounted, even after new decode finishes; different replacement semantics do not inherit old inner scroll offsets."
+  ],
+  "trueRedEvidence": [
+    {
+      "log": "before.log",
+      "result": "2 failed: changed valid image response temporarily removed the prior whole fragment"
+    },
+    {
+      "log": "old-layer-budget-before.log",
+      "result": "1 failed: retained old candidates from different validated generations exceeded one aggregate layer"
+    },
+    {
+      "log": "pointer-before.log",
+      "result": "2 failed: successful replacement decode detached a pressed reference before activation",
+      "input": "public-view jsdom synthetic pointer events and button.click; not native XTest or actual browser mouse"
+    },
+    {
+      "log": "scroll-before.log",
+      "result": "2 failed: new semantics inherited old [37,19] inner scroll instead of resetting to [0,0]"
+    }
+  ],
+  "diagnosticMistakesPreserved": [
+    "setup-wrong-cwd.log: fixture setup path error / no matching selected tests; not product red.",
+    "after-initial.log: unit command used root configuration without jsdom; not product red.",
+    "after-expanded-guards.log: ordinary identity guard did not request a public rerender; corrected fixture with refreshDocumentPresentation.",
+    "types.log: obsolete test conditional caused TS2367; corrected test-only typing.",
+    "Initial two-case red has its original log and baseline snapshot; no exact full test-file snapshot was captured then. Later expanded test source is not mislabelled as that historical snapshot."
+  ],
+  "verification": {
+    "finalFocused": {
+      "log": "focused-scroll-final.log",
+      "exit": 0,
+      "files": 5,
+      "passed": 199,
+      "managerSha256": "8dc1f4a2571539cdb32b85bb7f8cecee6c32cf2aa2f1f757b580d1087301d8e3"
+    },
+    "completeBrowser": {
+      "directory": "33-browser-pointer-final",
+      "exit": 0,
+      "passed": 34,
+      "duration": "4.6m",
+      "managerSha256": "8a432ce365e4748bb41697f4928882c21baa7b53ada5f7f5ae311c0e819aad3b",
+      "scope": "Complete file after pointer fix, before last single-helper scroll correction."
+    },
+    "finalTargetedBrowser": {
+      "directory": "34-browser-scroll-final",
+      "exit": 0,
+      "passed": 2,
+      "duration": "22.2s",
+      "grep": "background preview refresh preserves layout",
+      "managerSha256": "8dc1f4a2571539cdb32b85bb7f8cecee6c32cf2aa2f1f757b580d1087301d8e3"
+    },
+    "varyingActualAstProbe": {
+      "directory": "32-native03-varying-ast-final",
+      "passed": 1,
+      "duration": "29.3s",
+      "samples": 90,
+      "sampleSpanMs": 13448.4,
+      "providerCalls": 5,
+      "responses": 4,
+      "renderCalls": 11,
+      "classVariants": 4,
+      "postSelectionReadySamples": 59,
+      "distinctClassUrlsInReadyInterval": 2,
+      "createdDecodedRevoked": 6,
+      "dropped": 0,
+      "sourceUnchanged": true,
+      "limits": "Controlled Chromium ordinary view + real host service and captured varying native ASTs; before pointer-only and final scroll corrections. Not native engine acceptance. Last revokes occurred after sampling during final destroy."
+    },
+    "strictTypes": {
+      "log": "types-scroll-final.log",
+      "exit": 0
+    },
+    "format": {
+      "log": "format-scroll-final.log",
+      "result": "all three owned files unchanged"
+    },
+    "diffCheck": "passed",
+    "cleanup": "All owned commands completed. Ports 1420 and 5174 had no listeners at CPU handoff."
+  },
+  "visualReviewReferences": [
+    "../31-browser-decoded-replacement/root-visual-review.json",
+    "../33-browser-pointer-final/root-visual-review.json",
+    "root-final-static-review.json",
+    "root-final-scroll-review.json",
+    "final-pointer-review.json",
+    "final-scroll-review.json"
+  ],
+  "remainingGate": "Parent full gates05 and production04 native lifecycle plus official Mermaid UI verification. Browser fixtures test controlled SVG images and real math/footnotes, not official native Mermaid rendering.",
+  "finalSource": {
+    "phase": "final freeze after pointer and scroll semantic guards",
+    "recordedAt": "2026-10-16T16:17:39.698153+00:00",
+    "files": [
+      {
+        "path": "packages/view-dom/src/document-presentation.ts",
+        "sha256": "8dc1f4a2571539cdb32b85bb7f8cecee6c32cf2aa2f1f757b580d1087301d8e3",
+        "snapshot": "29-decoded-replacement/source-final/packages/view-dom/src/document-presentation.ts"
+      },
+      {
+        "path": "packages/view-dom/src/document-svg-image.ts",
+        "sha256": "8054d6ebf248394879ce51b01f33d40ca37a5a8417d7cb51ffdde275aae78a9c",
+        "snapshot": "29-decoded-replacement/source-final/packages/view-dom/src/document-svg-image.ts"
+      },
+      {
+        "path": "packages/view-dom/src/__tests__/document-svg-image.test.ts",
+        "sha256": "e40768ec8072679c511beca663ee07014acab382a7b2c2cd767084187a40af74",
+        "snapshot": "29-decoded-replacement/source-final/packages/view-dom/src/__tests__/document-svg-image.test.ts"
+      }
+    ],
+    "previousFreezePreserved": "source-manifest.json (8a432ce manager)"
+  }
+}

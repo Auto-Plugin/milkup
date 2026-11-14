@@ -1,0 +1,21 @@
+{
+  "run": "mermaid-ui-production08-targeted-01",
+  "driverCall": {
+    "cmd": "python3 /workspace/milkup-mermaid-engine-evidence/research/production08-targeted-sankey-native-01/tool-launch.py driver",
+    "workdir": "/workspace/milkup",
+    "sandbox_permissions": "require_escalated"
+  },
+  "harnessCall": {
+    "cmd": "python3 /workspace/milkup-mermaid-engine-evidence/research/production08-targeted-sankey-native-01/tool-launch.py harness",
+    "workdir": "/workspace/milkup",
+    "sandbox_permissions": "require_escalated"
+  },
+  "stopDriverCall": {
+    "cmd": "python3 /workspace/milkup-mermaid-engine-evidence/research/production08-targeted-sankey-native-01/stop-driver.py",
+    "workdir": "/workspace/milkup",
+    "sandbox_permissions": "require_escalated"
+  },
+  "scope": "One targeted production08 UI run: 32 live combinations, two Sankey matrix cases, 16 contrast shots and 16 Sankey corner shots. Same frozen binary/archive; no observer/build/retry. Original history/selection/cold/install assertions and deadlines retained.",
+  "selfContext": "Actual launcher records self user/pid/mnt/time/time_for_children/uid_map/gid_map before same PID exec; actual permission mode comes from tool call. Missing/error retained.",
+  "outcomes": "Node success requires final PASS and 32 targeted matrix-complete records. First failure stops. Independent pixel review required. No claim of new full64 coverage or attribution of historical timeouts."
+}

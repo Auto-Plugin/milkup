@@ -1,0 +1,1501 @@
+{
+  "scope": "experiment",
+  "kind": "unicode",
+  "pdf": "/workspace/milkup-export-print-evidence/milestone05/native-unicode/baseline-fixture/unicode-baseline.pdf",
+  "pdfSHA256": "2d686346c026040723c63434483b66f20074ef691554f9d3da42d71868a8ab81",
+  "fixtureManifest": "/workspace/milkup/tests/fixtures/p5-output/acceptance/unicode-expectations.json",
+  "sourceChecks": [
+    {
+      "path": "/workspace/milkup/tests/fixtures/p5-output/acceptance/unicode-fidelity.md",
+      "sha256": "8efe32b5d3c12890f8ffa21f41de6836c4027e645ec0b52557204facb40dfe74",
+      "expectedSHA256": "8efe32b5d3c12890f8ffa21f41de6836c4027e645ec0b52557204facb40dfe74",
+      "matches": true
+    }
+  ],
+  "popplerVersion": "pdftotext version 25.03.0",
+  "limitations": [
+    "Scope is a caller-supplied label, not proof of GUI/native provenance; retain run, binary, source and input hashes separately.",
+    "Text extraction does not establish glyph appearance, no clipping or page geometry; inspect actual page pixels separately."
+  ],
+  "mupdfVersion": "1.26.6",
+  "actualTextPolicy": "No NFC/NFKC, bidi reordering, joiner removal, glyph-alias substitution, or whitespace rewriting is applied to Unicode comparisons.",
+  "cases": [
+    {
+      "id": "ALIAS_TEXT",
+      "scope": "original-loss-and-expanded-unicode",
+      "expected": "文一人口",
+      "expectedCodepoints": [
+        "U+6587",
+        "U+4E00",
+        "U+4EBA",
+        "U+53E3"
+      ],
+      "readers": {
+        "popplerRaw": {
+          "extractedRegion": "⽂⼀⼈⼝",
+          "extractedCodepoints": [
+            "U+2F42",
+            "U+2F00",
+            "U+2F08",
+            "U+2F1D"
+          ],
+          "exactPhrase": false,
+          "units": [
+            {
+              "expected": "文一人口",
+              "codepoints": [
+                "U+6587",
+                "U+4E00",
+                "U+4EBA",
+                "U+53E3"
+              ],
+              "expectedCount": 1,
+              "actualCount": 0,
+              "exact": false
+            }
+          ]
+        },
+        "popplerLayout": {
+          "extractedRegion": "⽂⼀⼈⼝",
+          "extractedCodepoints": [
+            "U+2F42",
+            "U+2F00",
+            "U+2F08",
+            "U+2F1D"
+          ],
+          "exactPhrase": false,
+          "units": [
+            {
+              "expected": "文一人口",
+              "codepoints": [
+                "U+6587",
+                "U+4E00",
+                "U+4EBA",
+                "U+53E3"
+              ],
+              "expectedCount": 1,
+              "actualCount": 0,
+              "exact": false
+            }
+          ]
+        },
+        "mupdf": {
+          "extractedRegion": "⽂⼀⼈⼝",
+          "extractedCodepoints": [
+            "U+2F42",
+            "U+2F00",
+            "U+2F08",
+            "U+2F1D"
+          ],
+          "exactPhrase": false,
+          "units": [
+            {
+              "expected": "文一人口",
+              "codepoints": [
+                "U+6587",
+                "U+4E00",
+                "U+4EBA",
+                "U+53E3"
+              ],
+              "expectedCount": 1,
+              "actualCount": 0,
+              "exact": false
+            }
+          ]
+        }
+      },
+      "passed": false
+    },
+    {
+      "id": "ALIAS_RADICAL",
+      "scope": "original-loss-and-expanded-unicode",
+      "expected": "⽂⼀⼈⼝",
+      "expectedCodepoints": [
+        "U+2F42",
+        "U+2F00",
+        "U+2F08",
+        "U+2F1D"
+      ],
+      "readers": {
+        "popplerRaw": {
+          "extractedRegion": "⽂⼀⼈⼝",
+          "extractedCodepoints": [
+            "U+2F42",
+            "U+2F00",
+            "U+2F08",
+            "U+2F1D"
+          ],
+          "exactPhrase": true,
+          "units": [
+            {
+              "expected": "⽂⼀⼈⼝",
+              "codepoints": [
+                "U+2F42",
+                "U+2F00",
+                "U+2F08",
+                "U+2F1D"
+              ],
+              "expectedCount": 1,
+              "actualCount": 1,
+              "exact": true
+            }
+          ]
+        },
+        "popplerLayout": {
+          "extractedRegion": "⽂⼀⼈⼝",
+          "extractedCodepoints": [
+            "U+2F42",
+            "U+2F00",
+            "U+2F08",
+            "U+2F1D"
+          ],
+          "exactPhrase": true,
+          "units": [
+            {
+              "expected": "⽂⼀⼈⼝",
+              "codepoints": [
+                "U+2F42",
+                "U+2F00",
+                "U+2F08",
+                "U+2F1D"
+              ],
+              "expectedCount": 1,
+              "actualCount": 1,
+              "exact": true
+            }
+          ]
+        },
+        "mupdf": {
+          "extractedRegion": "⽂⼀⼈⼝",
+          "extractedCodepoints": [
+            "U+2F42",
+            "U+2F00",
+            "U+2F08",
+            "U+2F1D"
+          ],
+          "exactPhrase": true,
+          "units": [
+            {
+              "expected": "⽂⼀⼈⼝",
+              "codepoints": [
+                "U+2F42",
+                "U+2F00",
+                "U+2F08",
+                "U+2F1D"
+              ],
+              "expectedCount": 1,
+              "actualCount": 1,
+              "exact": true
+            }
+          ]
+        }
+      },
+      "passed": true
+    },
+    {
+      "id": "QUOTES",
+      "scope": "original-loss-and-expanded-unicode",
+      "expected": "const message = '中文代码';",
+      "expectedCodepoints": [
+        "U+0063",
+        "U+006F",
+        "U+006E",
+        "U+0073",
+        "U+0074",
+        "U+0020",
+        "U+006D",
+        "U+0065",
+        "U+0073",
+        "U+0073",
+        "U+0061",
+        "U+0067",
+        "U+0065",
+        "U+0020",
+        "U+003D",
+        "U+0020",
+        "U+0027",
+        "U+4E2D",
+        "U+6587",
+        "U+4EE3",
+        "U+7801",
+        "U+0027",
+        "U+003B"
+      ],
+      "readers": {
+        "popplerRaw": {
+          "extractedRegion": "const message = '中⽂代码';",
+          "extractedCodepoints": [
+            "U+0063",
+            "U+006F",
+            "U+006E",
+            "U+0073",
+            "U+0074",
+            "U+0020",
+            "U+006D",
+            "U+0065",
+            "U+0073",
+            "U+0073",
+            "U+0061",
+            "U+0067",
+            "U+0065",
+            "U+0020",
+            "U+003D",
+            "U+0020",
+            "U+0027",
+            "U+4E2D",
+            "U+2F42",
+            "U+4EE3",
+            "U+7801",
+            "U+0027",
+            "U+003B"
+          ],
+          "exactPhrase": false,
+          "units": [
+            {
+              "expected": "const",
+              "codepoints": [
+                "U+0063",
+                "U+006F",
+                "U+006E",
+                "U+0073",
+                "U+0074"
+              ],
+              "expectedCount": 1,
+              "actualCount": 1,
+              "exact": true
+            },
+            {
+              "expected": "message",
+              "codepoints": [
+                "U+006D",
+                "U+0065",
+                "U+0073",
+                "U+0073",
+                "U+0061",
+                "U+0067",
+                "U+0065"
+              ],
+              "expectedCount": 1,
+              "actualCount": 1,
+              "exact": true
+            },
+            {
+              "expected": "=",
+              "codepoints": [
+                "U+003D"
+              ],
+              "expectedCount": 1,
+              "actualCount": 1,
+              "exact": true
+            },
+            {
+              "expected": "'",
+              "codepoints": [
+                "U+0027"
+              ],
+              "expectedCount": 2,
+              "actualCount": 2,
+              "exact": true
+            },
+            {
+              "expected": "中文代码",
+              "codepoints": [
+                "U+4E2D",
+                "U+6587",
+                "U+4EE3",
+                "U+7801"
+              ],
+              "expectedCount": 1,
+              "actualCount": 0,
+              "exact": false
+            },
+            {
+              "expected": ";",
+              "codepoints": [
+                "U+003B"
+              ],
+              "expectedCount": 1,
+              "actualCount": 1,
+              "exact": true
+            }
+          ]
+        },
+        "popplerLayout": {
+          "extractedRegion": "const message = '中⽂代码';",
+          "extractedCodepoints": [
+            "U+0063",
+            "U+006F",
+            "U+006E",
+            "U+0073",
+            "U+0074",
+            "U+0020",
+            "U+006D",
+            "U+0065",
+            "U+0073",
+            "U+0073",
+            "U+0061",
+            "U+0067",
+            "U+0065",
+            "U+0020",
+            "U+003D",
+            "U+0020",
+            "U+0027",
+            "U+4E2D",
+            "U+2F42",
+            "U+4EE3",
+            "U+7801",
+            "U+0027",
+            "U+003B"
+          ],
+          "exactPhrase": false,
+          "units": [
+            {
+              "expected": "const",
+              "codepoints": [
+                "U+0063",
+                "U+006F",
+                "U+006E",
+                "U+0073",
+                "U+0074"
+              ],
+              "expectedCount": 1,
+              "actualCount": 1,
+              "exact": true
+            },
+            {
+              "expected": "message",
+              "codepoints": [
+                "U+006D",
+                "U+0065",
+                "U+0073",
+                "U+0073",
+                "U+0061",
+                "U+0067",
+                "U+0065"
+              ],
+              "expectedCount": 1,
+              "actualCount": 1,
+              "exact": true
+            },
+            {
+              "expected": "=",
+              "codepoints": [
+                "U+003D"
+              ],
+              "expectedCount": 1,
+              "actualCount": 1,
+              "exact": true
+            },
+            {
+              "expected": "'",
+              "codepoints": [
+                "U+0027"
+              ],
+              "expectedCount": 2,
+              "actualCount": 2,
+              "exact": true
+            },
+            {
+              "expected": "中文代码",
+              "codepoints": [
+                "U+4E2D",
+                "U+6587",
+                "U+4EE3",
+                "U+7801"
+              ],
+              "expectedCount": 1,
+              "actualCount": 0,
+              "exact": false
+            },
+            {
+              "expected": ";",
+              "codepoints": [
+                "U+003B"
+              ],
+              "expectedCount": 1,
+              "actualCount": 1,
+              "exact": true
+            }
+          ]
+        },
+        "mupdf": {
+          "extractedRegion": "const message = '中⽂代码';",
+          "extractedCodepoints": [
+            "U+0063",
+            "U+006F",
+            "U+006E",
+            "U+0073",
+            "U+0074",
+            "U+0020",
+            "U+006D",
+            "U+0065",
+            "U+0073",
+            "U+0073",
+            "U+0061",
+            "U+0067",
+            "U+0065",
+            "U+0020",
+            "U+003D",
+            "U+0020",
+            "U+0027",
+            "U+4E2D",
+            "U+2F42",
+            "U+4EE3",
+            "U+7801",
+            "U+0027",
+            "U+003B"
+          ],
+          "exactPhrase": false,
+          "units": [
+            {
+              "expected": "const",
+              "codepoints": [
+                "U+0063",
+                "U+006F",
+                "U+006E",
+                "U+0073",
+                "U+0074"
+              ],
+              "expectedCount": 1,
+              "actualCount": 1,
+              "exact": true
+            },
+            {
+              "expected": "message",
+              "codepoints": [
+                "U+006D",
+                "U+0065",
+                "U+0073",
+                "U+0073",
+                "U+0061",
+                "U+0067",
+                "U+0065"
+              ],
+              "expectedCount": 1,
+              "actualCount": 1,
+              "exact": true
+            },
+            {
+              "expected": "=",
+              "codepoints": [
+                "U+003D"
+              ],
+              "expectedCount": 1,
+              "actualCount": 1,
+              "exact": true
+            },
+            {
+              "expected": "'",
+              "codepoints": [
+                "U+0027"
+              ],
+              "expectedCount": 2,
+              "actualCount": 2,
+              "exact": true
+            },
+            {
+              "expected": "中文代码",
+              "codepoints": [
+                "U+4E2D",
+                "U+6587",
+                "U+4EE3",
+                "U+7801"
+              ],
+              "expectedCount": 1,
+              "actualCount": 0,
+              "exact": false
+            },
+            {
+              "expected": ";",
+              "codepoints": [
+                "U+003B"
+              ],
+              "expectedCount": 1,
+              "actualCount": 1,
+              "exact": true
+            }
+          ]
+        }
+      },
+      "passed": false
+    },
+    {
+      "id": "COMBINING",
+      "scope": "original-loss-and-expanded-unicode",
+      "expected": "é é Å Å",
+      "expectedCodepoints": [
+        "U+00E9",
+        "U+0020",
+        "U+0065",
+        "U+0301",
+        "U+0020",
+        "U+00C5",
+        "U+0020",
+        "U+0041",
+        "U+030A"
+      ],
+      "readers": {
+        "popplerRaw": {
+          "extractedRegion": "é é Å Å",
+          "extractedCodepoints": [
+            "U+00E9",
+            "U+0020",
+            "U+00E9",
+            "U+0020",
+            "U+00C5",
+            "U+0020",
+            "U+00C5"
+          ],
+          "exactPhrase": false,
+          "units": [
+            {
+              "expected": "é",
+              "codepoints": [
+                "U+00E9"
+              ],
+              "expectedCount": 1,
+              "actualCount": 2,
+              "exact": false
+            },
+            {
+              "expected": "é",
+              "codepoints": [
+                "U+0065",
+                "U+0301"
+              ],
+              "expectedCount": 1,
+              "actualCount": 0,
+              "exact": false
+            },
+            {
+              "expected": "Å",
+              "codepoints": [
+                "U+00C5"
+              ],
+              "expectedCount": 1,
+              "actualCount": 2,
+              "exact": false
+            },
+            {
+              "expected": "Å",
+              "codepoints": [
+                "U+0041",
+                "U+030A"
+              ],
+              "expectedCount": 1,
+              "actualCount": 0,
+              "exact": false
+            }
+          ]
+        },
+        "popplerLayout": {
+          "extractedRegion": "é é Å Å",
+          "extractedCodepoints": [
+            "U+00E9",
+            "U+0020",
+            "U+00E9",
+            "U+0020",
+            "U+00C5",
+            "U+0020",
+            "U+00C5"
+          ],
+          "exactPhrase": false,
+          "units": [
+            {
+              "expected": "é",
+              "codepoints": [
+                "U+00E9"
+              ],
+              "expectedCount": 1,
+              "actualCount": 2,
+              "exact": false
+            },
+            {
+              "expected": "é",
+              "codepoints": [
+                "U+0065",
+                "U+0301"
+              ],
+              "expectedCount": 1,
+              "actualCount": 0,
+              "exact": false
+            },
+            {
+              "expected": "Å",
+              "codepoints": [
+                "U+00C5"
+              ],
+              "expectedCount": 1,
+              "actualCount": 2,
+              "exact": false
+            },
+            {
+              "expected": "Å",
+              "codepoints": [
+                "U+0041",
+                "U+030A"
+              ],
+              "expectedCount": 1,
+              "actualCount": 0,
+              "exact": false
+            }
+          ]
+        },
+        "mupdf": {
+          "extractedRegion": "é é Å Å",
+          "extractedCodepoints": [
+            "U+00E9",
+            "U+0020",
+            "U+00E9",
+            "U+0020",
+            "U+00C5",
+            "U+0020",
+            "U+00C5"
+          ],
+          "exactPhrase": false,
+          "units": [
+            {
+              "expected": "é",
+              "codepoints": [
+                "U+00E9"
+              ],
+              "expectedCount": 1,
+              "actualCount": 2,
+              "exact": false
+            },
+            {
+              "expected": "é",
+              "codepoints": [
+                "U+0065",
+                "U+0301"
+              ],
+              "expectedCount": 1,
+              "actualCount": 0,
+              "exact": false
+            },
+            {
+              "expected": "Å",
+              "codepoints": [
+                "U+00C5"
+              ],
+              "expectedCount": 1,
+              "actualCount": 2,
+              "exact": false
+            },
+            {
+              "expected": "Å",
+              "codepoints": [
+                "U+0041",
+                "U+030A"
+              ],
+              "expectedCount": 1,
+              "actualCount": 0,
+              "exact": false
+            }
+          ]
+        }
+      },
+      "passed": false
+    },
+    {
+      "id": "LIGATURE",
+      "scope": "original-loss-and-expanded-unicode",
+      "expected": "office ffi fi ﬃ ﬁ",
+      "expectedCodepoints": [
+        "U+006F",
+        "U+0066",
+        "U+0066",
+        "U+0069",
+        "U+0063",
+        "U+0065",
+        "U+0020",
+        "U+0066",
+        "U+0066",
+        "U+0069",
+        "U+0020",
+        "U+0066",
+        "U+0069",
+        "U+0020",
+        "U+FB03",
+        "U+0020",
+        "U+FB01"
+      ],
+      "readers": {
+        "popplerRaw": {
+          "extractedRegion": "o ce ﬁ ﬃ ﬁ",
+          "extractedCodepoints": [
+            "U+006F",
+            "U+0020",
+            "U+0063",
+            "U+0065",
+            "U+0020",
+            "U+FB01",
+            "U+0020",
+            "U+FB03",
+            "U+0020",
+            "U+FB01"
+          ],
+          "exactPhrase": false,
+          "units": [
+            {
+              "expected": "office",
+              "codepoints": [
+                "U+006F",
+                "U+0066",
+                "U+0066",
+                "U+0069",
+                "U+0063",
+                "U+0065"
+              ],
+              "expectedCount": 1,
+              "actualCount": 0,
+              "exact": false
+            },
+            {
+              "expected": "ffi",
+              "codepoints": [
+                "U+0066",
+                "U+0066",
+                "U+0069"
+              ],
+              "expectedCount": 2,
+              "actualCount": 0,
+              "exact": false
+            },
+            {
+              "expected": "fi",
+              "codepoints": [
+                "U+0066",
+                "U+0069"
+              ],
+              "expectedCount": 3,
+              "actualCount": 0,
+              "exact": false
+            },
+            {
+              "expected": "ﬃ",
+              "codepoints": [
+                "U+FB03"
+              ],
+              "expectedCount": 1,
+              "actualCount": 1,
+              "exact": true
+            },
+            {
+              "expected": "ﬁ",
+              "codepoints": [
+                "U+FB01"
+              ],
+              "expectedCount": 1,
+              "actualCount": 2,
+              "exact": false
+            }
+          ]
+        },
+        "popplerLayout": {
+          "extractedRegion": "o ce      ﬁﬃﬁ",
+          "extractedCodepoints": [
+            "U+006F",
+            "U+0020",
+            "U+0063",
+            "U+0065",
+            "U+0020",
+            "U+0020",
+            "U+0020",
+            "U+0020",
+            "U+0020",
+            "U+0020",
+            "U+FB01",
+            "U+FB03",
+            "U+FB01"
+          ],
+          "exactPhrase": false,
+          "units": [
+            {
+              "expected": "office",
+              "codepoints": [
+                "U+006F",
+                "U+0066",
+                "U+0066",
+                "U+0069",
+                "U+0063",
+                "U+0065"
+              ],
+              "expectedCount": 1,
+              "actualCount": 0,
+              "exact": false
+            },
+            {
+              "expected": "ffi",
+              "codepoints": [
+                "U+0066",
+                "U+0066",
+                "U+0069"
+              ],
+              "expectedCount": 2,
+              "actualCount": 0,
+              "exact": false
+            },
+            {
+              "expected": "fi",
+              "codepoints": [
+                "U+0066",
+                "U+0069"
+              ],
+              "expectedCount": 3,
+              "actualCount": 0,
+              "exact": false
+            },
+            {
+              "expected": "ﬃ",
+              "codepoints": [
+                "U+FB03"
+              ],
+              "expectedCount": 1,
+              "actualCount": 1,
+              "exact": true
+            },
+            {
+              "expected": "ﬁ",
+              "codepoints": [
+                "U+FB01"
+              ],
+              "expectedCount": 1,
+              "actualCount": 2,
+              "exact": false
+            }
+          ]
+        },
+        "mupdf": {
+          "extractedRegion": "oce  ﬁ ﬃ ﬁ",
+          "extractedCodepoints": [
+            "U+006F",
+            "U+0092",
+            "U+0063",
+            "U+0065",
+            "U+0020",
+            "U+0092",
+            "U+0020",
+            "U+FB01",
+            "U+0020",
+            "U+FB03",
+            "U+0020",
+            "U+FB01"
+          ],
+          "exactPhrase": false,
+          "units": [
+            {
+              "expected": "office",
+              "codepoints": [
+                "U+006F",
+                "U+0066",
+                "U+0066",
+                "U+0069",
+                "U+0063",
+                "U+0065"
+              ],
+              "expectedCount": 1,
+              "actualCount": 0,
+              "exact": false
+            },
+            {
+              "expected": "ffi",
+              "codepoints": [
+                "U+0066",
+                "U+0066",
+                "U+0069"
+              ],
+              "expectedCount": 2,
+              "actualCount": 0,
+              "exact": false
+            },
+            {
+              "expected": "fi",
+              "codepoints": [
+                "U+0066",
+                "U+0069"
+              ],
+              "expectedCount": 3,
+              "actualCount": 0,
+              "exact": false
+            },
+            {
+              "expected": "ﬃ",
+              "codepoints": [
+                "U+FB03"
+              ],
+              "expectedCount": 1,
+              "actualCount": 1,
+              "exact": true
+            },
+            {
+              "expected": "ﬁ",
+              "codepoints": [
+                "U+FB01"
+              ],
+              "expectedCount": 1,
+              "actualCount": 2,
+              "exact": false
+            }
+          ]
+        }
+      },
+      "passed": false
+    },
+    {
+      "id": "EMOJI",
+      "scope": "original-loss-and-expanded-unicode",
+      "expected": "😀 👩🏽‍💻 ❤️",
+      "expectedCodepoints": [
+        "U+1F600",
+        "U+0020",
+        "U+1F469",
+        "U+1F3FD",
+        "U+200D",
+        "U+1F4BB",
+        "U+0020",
+        "U+2764",
+        "U+FE0F"
+      ],
+      "readers": {
+        "popplerRaw": {
+          "extractedRegion": "😀 ❤",
+          "extractedCodepoints": [
+            "U+1F600",
+            "U+0020",
+            "U+2764"
+          ],
+          "exactPhrase": false,
+          "units": [
+            {
+              "expected": "😀",
+              "codepoints": [
+                "U+1F600"
+              ],
+              "expectedCount": 1,
+              "actualCount": 1,
+              "exact": true
+            },
+            {
+              "expected": "👩🏽‍💻",
+              "codepoints": [
+                "U+1F469",
+                "U+1F3FD",
+                "U+200D",
+                "U+1F4BB"
+              ],
+              "expectedCount": 1,
+              "actualCount": 0,
+              "exact": false
+            },
+            {
+              "expected": "❤️",
+              "codepoints": [
+                "U+2764",
+                "U+FE0F"
+              ],
+              "expectedCount": 1,
+              "actualCount": 0,
+              "exact": false
+            }
+          ]
+        },
+        "popplerLayout": {
+          "extractedRegion": "😀 ❤",
+          "extractedCodepoints": [
+            "U+1F600",
+            "U+0020",
+            "U+2764"
+          ],
+          "exactPhrase": false,
+          "units": [
+            {
+              "expected": "😀",
+              "codepoints": [
+                "U+1F600"
+              ],
+              "expectedCount": 1,
+              "actualCount": 1,
+              "exact": true
+            },
+            {
+              "expected": "👩🏽‍💻",
+              "codepoints": [
+                "U+1F469",
+                "U+1F3FD",
+                "U+200D",
+                "U+1F4BB"
+              ],
+              "expectedCount": 1,
+              "actualCount": 0,
+              "exact": false
+            },
+            {
+              "expected": "❤️",
+              "codepoints": [
+                "U+2764",
+                "U+FE0F"
+              ],
+              "expectedCount": 1,
+              "actualCount": 0,
+              "exact": false
+            }
+          ]
+        },
+        "mupdf": {
+          "extractedRegion": "😀 + ❤",
+          "extractedCodepoints": [
+            "U+1F600",
+            "U+0020",
+            "U+002B",
+            "U+0020",
+            "U+2764"
+          ],
+          "exactPhrase": false,
+          "units": [
+            {
+              "expected": "😀",
+              "codepoints": [
+                "U+1F600"
+              ],
+              "expectedCount": 1,
+              "actualCount": 1,
+              "exact": true
+            },
+            {
+              "expected": "👩🏽‍💻",
+              "codepoints": [
+                "U+1F469",
+                "U+1F3FD",
+                "U+200D",
+                "U+1F4BB"
+              ],
+              "expectedCount": 1,
+              "actualCount": 0,
+              "exact": false
+            },
+            {
+              "expected": "❤️",
+              "codepoints": [
+                "U+2764",
+                "U+FE0F"
+              ],
+              "expectedCount": 1,
+              "actualCount": 0,
+              "exact": false
+            }
+          ]
+        }
+      },
+      "passed": false
+    },
+    {
+      "id": "ARABIC",
+      "scope": "expanded-rtl",
+      "expected": "العربية لا",
+      "expectedCodepoints": [
+        "U+0627",
+        "U+0644",
+        "U+0639",
+        "U+0631",
+        "U+0628",
+        "U+064A",
+        "U+0629",
+        "U+0020",
+        "U+0644",
+        "U+0627"
+      ],
+      "readers": {
+        "popplerRaw": {
+          "extractedRegion": "‫ﻻ‬ ‫اﻟﻌﺮﺑﻴﺔ‬",
+          "extractedCodepoints": [
+            "U+202B",
+            "U+FEFB",
+            "U+202C",
+            "U+0020",
+            "U+202B",
+            "U+0627",
+            "U+FEDF",
+            "U+FECC",
+            "U+FEAE",
+            "U+FE91",
+            "U+FEF4",
+            "U+FE94",
+            "U+202C"
+          ],
+          "exactPhrase": false,
+          "units": [
+            {
+              "expected": "العربية لا",
+              "codepoints": [
+                "U+0627",
+                "U+0644",
+                "U+0639",
+                "U+0631",
+                "U+0628",
+                "U+064A",
+                "U+0629",
+                "U+0020",
+                "U+0644",
+                "U+0627"
+              ],
+              "expectedCount": 1,
+              "actualCount": 0,
+              "exact": false
+            }
+          ]
+        },
+        "popplerLayout": {
+          "extractedRegion": "‫اﻟﻌﺮﺑﻴﺔ ﻻ‬",
+          "extractedCodepoints": [
+            "U+202B",
+            "U+0627",
+            "U+FEDF",
+            "U+FECC",
+            "U+FEAE",
+            "U+FE91",
+            "U+FEF4",
+            "U+FE94",
+            "U+0020",
+            "U+FEFB",
+            "U+202C"
+          ],
+          "exactPhrase": false,
+          "units": [
+            {
+              "expected": "العربية لا",
+              "codepoints": [
+                "U+0627",
+                "U+0644",
+                "U+0639",
+                "U+0631",
+                "U+0628",
+                "U+064A",
+                "U+0629",
+                "U+0020",
+                "U+0644",
+                "U+0627"
+              ],
+              "expectedCount": 1,
+              "actualCount": 0,
+              "exact": false
+            }
+          ]
+        },
+        "mupdf": {
+          "extractedRegion": "ﻻ اﻟﻌﺮﺑﻴﺔ",
+          "extractedCodepoints": [
+            "U+FEFB",
+            "U+0020",
+            "U+0627",
+            "U+FEDF",
+            "U+FECC",
+            "U+FEAE",
+            "U+FE91",
+            "U+FEF4",
+            "U+FE94"
+          ],
+          "exactPhrase": false,
+          "units": [
+            {
+              "expected": "العربية لا",
+              "codepoints": [
+                "U+0627",
+                "U+0644",
+                "U+0639",
+                "U+0631",
+                "U+0628",
+                "U+064A",
+                "U+0629",
+                "U+0020",
+                "U+0644",
+                "U+0627"
+              ],
+              "expectedCount": 1,
+              "actualCount": 0,
+              "exact": false
+            }
+          ]
+        }
+      },
+      "passed": false
+    },
+    {
+      "id": "HEBREW",
+      "scope": "original-loss-and-expanded-unicode",
+      "expected": "שלום",
+      "expectedCodepoints": [
+        "U+05E9",
+        "U+05DC",
+        "U+05D5",
+        "U+05DD"
+      ],
+      "readers": {
+        "popplerRaw": {
+          "extractedRegion": "‫שלום‬",
+          "extractedCodepoints": [
+            "U+202B",
+            "U+05E9",
+            "U+05DC",
+            "U+05D5",
+            "U+05DD",
+            "U+202C"
+          ],
+          "exactPhrase": true,
+          "units": [
+            {
+              "expected": "שלום",
+              "codepoints": [
+                "U+05E9",
+                "U+05DC",
+                "U+05D5",
+                "U+05DD"
+              ],
+              "expectedCount": 1,
+              "actualCount": 1,
+              "exact": true
+            }
+          ]
+        },
+        "popplerLayout": {
+          "extractedRegion": "‫שלום‬",
+          "extractedCodepoints": [
+            "U+202B",
+            "U+05E9",
+            "U+05DC",
+            "U+05D5",
+            "U+05DD",
+            "U+202C"
+          ],
+          "exactPhrase": true,
+          "units": [
+            {
+              "expected": "שלום",
+              "codepoints": [
+                "U+05E9",
+                "U+05DC",
+                "U+05D5",
+                "U+05DD"
+              ],
+              "expectedCount": 1,
+              "actualCount": 1,
+              "exact": true
+            }
+          ]
+        },
+        "mupdf": {
+          "extractedRegion": "שלום",
+          "extractedCodepoints": [
+            "U+05E9",
+            "U+05DC",
+            "U+05D5",
+            "U+05DD"
+          ],
+          "exactPhrase": true,
+          "units": [
+            {
+              "expected": "שלום",
+              "codepoints": [
+                "U+05E9",
+                "U+05DC",
+                "U+05D5",
+                "U+05DD"
+              ],
+              "expectedCount": 1,
+              "actualCount": 1,
+              "exact": true
+            }
+          ]
+        }
+      },
+      "passed": true
+    },
+    {
+      "id": "SVG",
+      "scope": "original-loss-and-expanded-unicode",
+      "expected": "中文输入 冻结内容 打印",
+      "expectedCodepoints": [
+        "U+4E2D",
+        "U+6587",
+        "U+8F93",
+        "U+5165",
+        "U+0020",
+        "U+51BB",
+        "U+7ED3",
+        "U+5185",
+        "U+5BB9",
+        "U+0020",
+        "U+6253",
+        "U+5370"
+      ],
+      "readers": {
+        "popplerRaw": {
+          "extractedRegion": "中⽂输⼊冻结内容打印",
+          "extractedCodepoints": [
+            "U+4E2D",
+            "U+2F42",
+            "U+8F93",
+            "U+2F0A",
+            "U+51BB",
+            "U+7ED3",
+            "U+5185",
+            "U+5BB9",
+            "U+6253",
+            "U+5370"
+          ],
+          "exactPhrase": false,
+          "units": [
+            {
+              "expected": "中文输入",
+              "codepoints": [
+                "U+4E2D",
+                "U+6587",
+                "U+8F93",
+                "U+5165"
+              ],
+              "expectedCount": 1,
+              "actualCount": 0,
+              "exact": false
+            },
+            {
+              "expected": "冻结内容",
+              "codepoints": [
+                "U+51BB",
+                "U+7ED3",
+                "U+5185",
+                "U+5BB9"
+              ],
+              "expectedCount": 1,
+              "actualCount": 1,
+              "exact": true
+            },
+            {
+              "expected": "打印",
+              "codepoints": [
+                "U+6253",
+                "U+5370"
+              ],
+              "expectedCount": 1,
+              "actualCount": 1,
+              "exact": true
+            }
+          ]
+        },
+        "popplerLayout": {
+          "extractedRegion": "中⽂输⼊ 冻结内容 打印",
+          "extractedCodepoints": [
+            "U+4E2D",
+            "U+2F42",
+            "U+8F93",
+            "U+2F0A",
+            "U+0020",
+            "U+51BB",
+            "U+7ED3",
+            "U+5185",
+            "U+5BB9",
+            "U+0020",
+            "U+6253",
+            "U+5370"
+          ],
+          "exactPhrase": false,
+          "units": [
+            {
+              "expected": "中文输入",
+              "codepoints": [
+                "U+4E2D",
+                "U+6587",
+                "U+8F93",
+                "U+5165"
+              ],
+              "expectedCount": 1,
+              "actualCount": 0,
+              "exact": false
+            },
+            {
+              "expected": "冻结内容",
+              "codepoints": [
+                "U+51BB",
+                "U+7ED3",
+                "U+5185",
+                "U+5BB9"
+              ],
+              "expectedCount": 1,
+              "actualCount": 1,
+              "exact": true
+            },
+            {
+              "expected": "打印",
+              "codepoints": [
+                "U+6253",
+                "U+5370"
+              ],
+              "expectedCount": 1,
+              "actualCount": 1,
+              "exact": true
+            }
+          ]
+        },
+        "mupdf": {
+          "extractedRegion": "中⽂输⼊ 冻结内容 打印",
+          "extractedCodepoints": [
+            "U+4E2D",
+            "U+2F42",
+            "U+8F93",
+            "U+2F0A",
+            "U+0020",
+            "U+51BB",
+            "U+7ED3",
+            "U+5185",
+            "U+5BB9",
+            "U+0020",
+            "U+6253",
+            "U+5370"
+          ],
+          "exactPhrase": false,
+          "units": [
+            {
+              "expected": "中文输入",
+              "codepoints": [
+                "U+4E2D",
+                "U+6587",
+                "U+8F93",
+                "U+5165"
+              ],
+              "expectedCount": 1,
+              "actualCount": 0,
+              "exact": false
+            },
+            {
+              "expected": "冻结内容",
+              "codepoints": [
+                "U+51BB",
+                "U+7ED3",
+                "U+5185",
+                "U+5BB9"
+              ],
+              "expectedCount": 1,
+              "actualCount": 1,
+              "exact": true
+            },
+            {
+              "expected": "打印",
+              "codepoints": [
+                "U+6253",
+                "U+5370"
+              ],
+              "expectedCount": 1,
+              "actualCount": 1,
+              "exact": true
+            }
+          ]
+        }
+      },
+      "passed": false
+    }
+  ],
+  "originalLossAndExpandedUnicodePassed": false,
+  "expandedArabicLogicalPassed": false,
+  "arabicVisualAndGlyphOrder": "NOT_VERIFIED: requires separate visual review; extraction order alone cannot establish Arabic visual correctness.",
+  "passed": false,
+  "status": "FAIL"
+}

@@ -1,0 +1,32 @@
+{
+  "rustCompile": [
+    "/workspace/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/bin/rustc",
+    "--edition=2021",
+    "--test",
+    "/workspace/milkup-mermaid-engine-evidence/research/native-cold-stage-candidate-01/tests/rust-contract.rs",
+    "-L",
+    "dependency=/workspace/milkup/apps/desktop/src-tauri/target/release/deps",
+    "--extern",
+    "serde_json=/workspace/milkup/apps/desktop/src-tauri/target/release/deps/libserde_json-7d6c562668bcdff7.rlib",
+    "--extern",
+    "libc=/workspace/milkup/apps/desktop/src-tauri/target/release/deps/liblibc-1319ef591da3408a.rlib",
+    "-C",
+    "opt-level=1",
+    "-C",
+    "debuginfo=0",
+    "-C",
+    "strip=symbols",
+    "-o",
+    "/workspace/milkup-mermaid-engine-evidence/research/native-cold-stage-candidate-01/tests/stage-contract-bin"
+  ],
+  "rustTests": [
+    "/workspace/milkup-mermaid-engine-evidence/research/native-cold-stage-candidate-01/tests/stage-contract-bin",
+    "--test-threads=1"
+  ],
+  "jsTests": [
+    "node",
+    "--test",
+    "/workspace/milkup-mermaid-engine-evidence/research/native-cold-stage-candidate-01/tests/bootstrap.test.mjs"
+  ],
+  "scope": "Pure tests only; no cargo/native build/GTK/browser/app runtime. Estimated test binary below3MiB, target cache not copied or removed."
+}

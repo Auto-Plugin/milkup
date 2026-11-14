@@ -1,0 +1,44 @@
+
+ RUN  v3.2.6 /workspace/milkup
+
+ ✓ packages/plugin/src/registry.test.ts (55 tests) 44ms
+ ✓ apps/desktop/src/desktop-plugin-manager.test.ts (30 tests) 180ms
+ ✓ apps/desktop/src/desktop-plugin-manager-catalog.test.ts (19 tests) 325ms
+ ✓ apps/desktop/src/desktop-output-capabilities.test.ts (4 tests) 38ms
+ ✓ apps/desktop/src/desktop-editing-capabilities.test.ts (2 tests) 26ms
+⎯⎯⎯⎯⎯⎯ Unhandled Errors ⎯⎯⎯⎯⎯⎯
+
+Vitest caught 1 unhandled error during the test run.
+This might cause false positive tests. Resolve unhandled errors to make sure your tests are not affected.
+
+⎯⎯⎯⎯ Unhandled Rejection ⎯⎯⎯⎯⎯
+Error: Plugin activation is not committed: setItem
+ ❯ invoke packages/plugin/src/activation-gate.ts:18:23
+     16|       if (!isActive()) throw revoked()
+     17|       if (!isCommitted() && !readable.includes(key)) {
+     18|         const error = new Error(`Plugin activation is not committed: $…
+       |                       ^
+     19|         onViolation?.(error)
+     20|         throw error
+ ❯ Object.setItem packages/plugin/src/activation-gate.ts:32:39
+ ❯ Object.activate apps/desktop/src/desktop-plugin-manager-catalog.test.ts:365:34
+ ❯ Object.activate apps/desktop/src/desktop-plugin-manager-catalog.test.ts:199:19
+ ❯ PluginRuntime.activatePlugin packages/plugin/src/runtime.ts:416:41
+ ❯ PluginRuntime.preparePlugin packages/plugin/src/runtime.ts:374:17
+ ❯ DesktopPluginManager.enablePluginInstance apps/desktop/src/desktop-plugin-manager.ts:1001:26
+ ❯ processTicksAndRejections node:internal/process/task_queues:104:5
+ ❯ DesktopPluginManager.trialCandidate apps/desktop/src/desktop-plugin-manager.ts:664:7
+
+This error originated in "apps/desktop/src/desktop-plugin-manager-catalog.test.ts" test file. It doesn't mean the error was thrown inside the file itself, but while it was running.
+The latest test that might've caused the error is "caps hanging candidate activation and attempts new-epoch recovery". It might mean one of the following:
+- The error was thrown, while Vitest was running this test.
+- If the error occurred after the test had been completed, this was the last documented test before it was thrown.
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯
+
+
+ Test Files  5 passed (5)
+      Tests  110 passed (110)
+     Errors  1 error
+   Start at  08:59:55
+   Duration  2.49s (transform 1.42s, setup 0ms, collect 4.03s, tests 613ms, environment 2ms, prepare 482ms)
+

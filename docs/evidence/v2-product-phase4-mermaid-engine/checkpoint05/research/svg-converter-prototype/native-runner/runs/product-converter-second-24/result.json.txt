@@ -1,0 +1,1414 @@
+{
+  "diagnosticOnly": true,
+  "mermaidTested": true,
+  "converterPrototypeTested": true,
+  "results": [
+    {
+      "task": "native-resource-guard",
+      "elapsed": 0.012426070003130008,
+      "value": {
+        "status": "blocked"
+      }
+    },
+    {
+      "task": "fixture_product_13",
+      "sampleId": "clip-cycle",
+      "sourceSha256": "86ac1d7b952ebaf7eabb500fe27495520b26d2d4c5eb7a0a0bdb7d6f1929e582",
+      "profile": "baseline",
+      "elapsed": 0.0312562320032157,
+      "serializedBytes": 165,
+      "diagramType": null
+    }
+  ],
+  "events": [
+    {
+      "kind": "spawn",
+      "mono": 39437.031896724,
+      "wall": 1792151824.5928576,
+      "pid": 251348,
+      "birth": "3943703",
+      "command": [
+        "/usr/bin/bwrap",
+        "--die-with-parent",
+        "--unshare-user",
+        "--unshare-pid",
+        "--unshare-ipc",
+        "--unshare-uts",
+        "--unshare-net",
+        "--clearenv",
+        "--ro-bind",
+        "/usr",
+        "/usr",
+        "--overlay-src",
+        "/usr/bin",
+        "--tmp-overlay",
+        "/usr/bin",
+        "--ro-bind",
+        "/workspace/.cloud/milkup-v2/sysroot/usr/bin/xdg-dbus-proxy",
+        "/usr/bin/xdg-dbus-proxy",
+        "--remount-ro",
+        "/usr/bin",
+        "--symlink",
+        "usr/bin",
+        "/bin",
+        "--symlink",
+        "usr/lib",
+        "/lib",
+        "--symlink",
+        "usr/lib64",
+        "/lib64",
+        "--ro-bind",
+        "/workspace/.cloud/milkup-v2/sysroot/usr/lib/x86_64-linux-gnu",
+        "/runtime/lib",
+        "--ro-bind",
+        "/workspace/.cloud/milkup-v2/sysroot/usr/share/glib-2.0/schemas",
+        "/runtime/schemas",
+        "--overlay-src",
+        "/usr/lib/x86_64-linux-gnu",
+        "--tmp-overlay",
+        "/usr/lib/x86_64-linux-gnu",
+        "--ro-bind",
+        "/workspace/.cloud/milkup-v2/sysroot/usr/lib/x86_64-linux-gnu/webkit2gtk-4.1",
+        "/usr/lib/x86_64-linux-gnu/webkit2gtk-4.1",
+        "--remount-ro",
+        "/usr/lib/x86_64-linux-gnu",
+        "--ro-bind",
+        "/etc/fonts",
+        "/etc/fonts",
+        "--ro-bind",
+        "/workspace/milkup-mermaid-engine-evidence/prototype/narrow-config/passwd",
+        "/etc/passwd",
+        "--ro-bind",
+        "/workspace/milkup-mermaid-engine-evidence/prototype/narrow-config/group",
+        "/etc/group",
+        "--ro-bind",
+        "/workspace/milkup-mermaid-engine-evidence/prototype/narrow-config/hostname",
+        "/etc/hostname",
+        "--ro-bind",
+        "/workspace/milkup-mermaid-engine-evidence/prototype/narrow-config/hosts",
+        "/etc/hosts",
+        "--ro-bind",
+        "/workspace/milkup-mermaid-engine-evidence/prototype/narrow-config/nsswitch.conf",
+        "/etc/nsswitch.conf",
+        "--ro-bind",
+        "/workspace/milkup-mermaid-engine-evidence/prototype/narrow-config/machine-id",
+        "/etc/machine-id",
+        "--ro-bind",
+        "/workspace/milkup-mermaid-engine-evidence/prototype/narrow-config/loaders.cache",
+        "/probe/loaders.cache",
+        "--ro-bind",
+        "/workspace/milkup-mermaid-engine-evidence/research/svg-converter-prototype/native-runner/target/debug/milkup-mermaid-render-probe",
+        "/probe/bin/helper",
+        "--ro-bind",
+        "/workspace/milkup-mermaid-engine-evidence/research/svg-converter-prototype/native-runner/extensions/libresource_guard.so",
+        "/probe/extensions/libresource_guard.so",
+        "--bind",
+        "/workspace/milkup-mermaid-engine-evidence/research/svg-converter-prototype/native-runner/profiles/product-converter-second-24",
+        "/profile",
+        "--tmpfs",
+        "/tmp",
+        "--dir",
+        "/tmp/.X11-unix",
+        "--ro-bind",
+        "/tmp/.X11-unix/X118",
+        "/tmp/.X11-unix/X118",
+        "--tmpfs",
+        "/run",
+        "--perms",
+        "0700",
+        "--dir",
+        "/run/user/1000",
+        "--dir",
+        "/sys/block",
+        "--dir",
+        "/sys/bus",
+        "--dir",
+        "/sys/class",
+        "--dir",
+        "/sys/dev",
+        "--dir",
+        "/sys/devices",
+        "--dev",
+        "/dev",
+        "--proc",
+        "/proc",
+        "--setenv",
+        "PATH",
+        "/usr/bin:/bin",
+        "--setenv",
+        "HOME",
+        "/profile/home",
+        "--setenv",
+        "XDG_CONFIG_HOME",
+        "/profile/config",
+        "--setenv",
+        "XDG_DATA_HOME",
+        "/profile/data",
+        "--setenv",
+        "XDG_CACHE_HOME",
+        "/profile/cache",
+        "--setenv",
+        "XDG_RUNTIME_DIR",
+        "/run/user/1000",
+        "--setenv",
+        "LD_LIBRARY_PATH",
+        "/runtime/lib",
+        "--setenv",
+        "WEBKIT_INJECTED_BUNDLE_PATH",
+        "/runtime/lib/webkit2gtk-4.1/injected-bundle",
+        "--setenv",
+        "GSETTINGS_SCHEMA_DIR",
+        "/runtime/schemas",
+        "--setenv",
+        "GDK_PIXBUF_MODULE_FILE",
+        "/probe/loaders.cache",
+        "--setenv",
+        "MILKUP_PROBE_EXTENSIONS",
+        "/probe/extensions",
+        "--setenv",
+        "DISPLAY",
+        ":118",
+        "--setenv",
+        "GDK_BACKEND",
+        "x11",
+        "--setenv",
+        "LIBGL_ALWAYS_SOFTWARE",
+        "1",
+        "--setenv",
+        "LANG",
+        "C.UTF-8",
+        "--setenv",
+        "LC_ALL",
+        "C.UTF-8",
+        "--setenv",
+        "TZ",
+        "UTC",
+        "--setenv",
+        "NO_AT_BRIDGE",
+        "1",
+        "--remount-ro",
+        "/",
+        "--chdir",
+        "/profile",
+        "--",
+        "/usr/bin/dbus-run-session",
+        "--",
+        "/probe/bin/helper"
+      ]
+    },
+    {
+      "kind": "process-sample",
+      "mono": 39437.180583477,
+      "wall": 1792151824.741543,
+      "members": [
+        {
+          "pid": 251348,
+          "state": "S",
+          "ppid": 251345,
+          "pgrp": 251348,
+          "birth": "3943703",
+          "utime": 0,
+          "stime": 0,
+          "name": "bwrap"
+        },
+        {
+          "pid": 251349,
+          "state": "S",
+          "ppid": 251348,
+          "pgrp": 251348,
+          "birth": "3943703",
+          "utime": 0,
+          "stime": 0,
+          "name": "bwrap"
+        },
+        {
+          "pid": 251350,
+          "state": "S",
+          "ppid": 251349,
+          "pgrp": 251348,
+          "birth": "3943703",
+          "utime": 0,
+          "stime": 0,
+          "name": "dbus-run-sessio"
+        },
+        {
+          "pid": 251351,
+          "state": "S",
+          "ppid": 251350,
+          "pgrp": 251348,
+          "birth": "3943703",
+          "utime": 0,
+          "stime": 0,
+          "name": "dbus-daemon"
+        },
+        {
+          "pid": 251352,
+          "state": "R",
+          "ppid": 251350,
+          "pgrp": 251348,
+          "birth": "3943704",
+          "utime": 9,
+          "stime": 3,
+          "name": "helper"
+        }
+      ]
+    },
+    {
+      "kind": "received-frame",
+      "mono": 39437.274635589,
+      "wall": 1792151824.835595,
+      "frame": {
+        "allowedResources": 3,
+        "ephemeral": true,
+        "javascript": true,
+        "javascriptMarkup": true,
+        "sandbox": true,
+        "settings": "file/universal/webrtc/media/webgl/storage/dns/windows/devtools denied",
+        "tauriBridge": false,
+        "type": "native-policy",
+        "wryIpcStub": false
+      }
+    },
+    {
+      "kind": "process-sample",
+      "mono": 39437.429194521,
+      "wall": 1792151824.990155,
+      "members": [
+        {
+          "pid": 251348,
+          "state": "S",
+          "ppid": 251345,
+          "pgrp": 251348,
+          "birth": "3943703",
+          "utime": 0,
+          "stime": 0,
+          "name": "bwrap"
+        },
+        {
+          "pid": 251349,
+          "state": "S",
+          "ppid": 251348,
+          "pgrp": 251348,
+          "birth": "3943703",
+          "utime": 0,
+          "stime": 0,
+          "name": "bwrap"
+        },
+        {
+          "pid": 251350,
+          "state": "S",
+          "ppid": 251349,
+          "pgrp": 251348,
+          "birth": "3943703",
+          "utime": 0,
+          "stime": 0,
+          "name": "dbus-run-sessio"
+        },
+        {
+          "pid": 251351,
+          "state": "S",
+          "ppid": 251350,
+          "pgrp": 251348,
+          "birth": "3943703",
+          "utime": 0,
+          "stime": 0,
+          "name": "dbus-daemon"
+        },
+        {
+          "pid": 251352,
+          "state": "S",
+          "ppid": 251350,
+          "pgrp": 251348,
+          "birth": "3943704",
+          "utime": 31,
+          "stime": 7,
+          "name": "helper"
+        },
+        {
+          "pid": 251361,
+          "state": "S",
+          "ppid": 251352,
+          "pgrp": 251348,
+          "birth": "3943718",
+          "utime": 5,
+          "stime": 4,
+          "name": "WebKitNetworkPr"
+        },
+        {
+          "pid": 251388,
+          "state": "S",
+          "ppid": 251349,
+          "pgrp": 251348,
+          "birth": "3943727",
+          "utime": 0,
+          "stime": 0,
+          "name": "at-spi-bus-laun"
+        },
+        {
+          "pid": 251398,
+          "state": "S",
+          "ppid": 251388,
+          "pgrp": 251348,
+          "birth": "3943728",
+          "utime": 0,
+          "stime": 0,
+          "name": "dbus-daemon"
+        },
+        {
+          "pid": 251399,
+          "state": "S",
+          "ppid": 251352,
+          "pgrp": 251348,
+          "birth": "3943729",
+          "utime": 0,
+          "stime": 0,
+          "name": "bwrap"
+        },
+        {
+          "pid": 251400,
+          "state": "S",
+          "ppid": 251399,
+          "pgrp": 251348,
+          "birth": "3943729",
+          "utime": 0,
+          "stime": 0,
+          "name": "bwrap"
+        },
+        {
+          "pid": 251401,
+          "state": "S",
+          "ppid": 251400,
+          "pgrp": 251348,
+          "birth": "3943730",
+          "utime": 0,
+          "stime": 0,
+          "name": "xdg-dbus-proxy"
+        },
+        {
+          "pid": 251404,
+          "state": "S",
+          "ppid": 251352,
+          "pgrp": 251348,
+          "birth": "3943730",
+          "utime": 0,
+          "stime": 0,
+          "name": "bwrap"
+        },
+        {
+          "pid": 251407,
+          "state": "S",
+          "ppid": 251404,
+          "pgrp": 251348,
+          "birth": "3943730",
+          "utime": 0,
+          "stime": 1,
+          "name": "bwrap"
+        },
+        {
+          "pid": 251409,
+          "state": "S",
+          "ppid": 251407,
+          "pgrp": 251348,
+          "birth": "3943731",
+          "utime": 4,
+          "stime": 3,
+          "name": "WebKitWebProces"
+        }
+      ]
+    },
+    {
+      "kind": "process-sample",
+      "mono": 39437.589444353,
+      "wall": 1792151825.1504042,
+      "members": [
+        {
+          "pid": 251348,
+          "state": "S",
+          "ppid": 251345,
+          "pgrp": 251348,
+          "birth": "3943703",
+          "utime": 0,
+          "stime": 0,
+          "name": "bwrap"
+        },
+        {
+          "pid": 251349,
+          "state": "S",
+          "ppid": 251348,
+          "pgrp": 251348,
+          "birth": "3943703",
+          "utime": 0,
+          "stime": 0,
+          "name": "bwrap"
+        },
+        {
+          "pid": 251350,
+          "state": "S",
+          "ppid": 251349,
+          "pgrp": 251348,
+          "birth": "3943703",
+          "utime": 0,
+          "stime": 0,
+          "name": "dbus-run-sessio"
+        },
+        {
+          "pid": 251351,
+          "state": "S",
+          "ppid": 251350,
+          "pgrp": 251348,
+          "birth": "3943703",
+          "utime": 0,
+          "stime": 0,
+          "name": "dbus-daemon"
+        },
+        {
+          "pid": 251352,
+          "state": "S",
+          "ppid": 251350,
+          "pgrp": 251348,
+          "birth": "3943704",
+          "utime": 46,
+          "stime": 8,
+          "name": "helper"
+        },
+        {
+          "pid": 251361,
+          "state": "S",
+          "ppid": 251352,
+          "pgrp": 251348,
+          "birth": "3943718",
+          "utime": 5,
+          "stime": 4,
+          "name": "WebKitNetworkPr"
+        },
+        {
+          "pid": 251388,
+          "state": "S",
+          "ppid": 251349,
+          "pgrp": 251348,
+          "birth": "3943727",
+          "utime": 0,
+          "stime": 0,
+          "name": "at-spi-bus-laun"
+        },
+        {
+          "pid": 251398,
+          "state": "S",
+          "ppid": 251388,
+          "pgrp": 251348,
+          "birth": "3943728",
+          "utime": 0,
+          "stime": 0,
+          "name": "dbus-daemon"
+        },
+        {
+          "pid": 251399,
+          "state": "S",
+          "ppid": 251352,
+          "pgrp": 251348,
+          "birth": "3943729",
+          "utime": 0,
+          "stime": 0,
+          "name": "bwrap"
+        },
+        {
+          "pid": 251400,
+          "state": "S",
+          "ppid": 251399,
+          "pgrp": 251348,
+          "birth": "3943729",
+          "utime": 0,
+          "stime": 0,
+          "name": "bwrap"
+        },
+        {
+          "pid": 251401,
+          "state": "S",
+          "ppid": 251400,
+          "pgrp": 251348,
+          "birth": "3943730",
+          "utime": 0,
+          "stime": 0,
+          "name": "xdg-dbus-proxy"
+        },
+        {
+          "pid": 251404,
+          "state": "S",
+          "ppid": 251352,
+          "pgrp": 251348,
+          "birth": "3943730",
+          "utime": 0,
+          "stime": 0,
+          "name": "bwrap"
+        },
+        {
+          "pid": 251407,
+          "state": "S",
+          "ppid": 251404,
+          "pgrp": 251348,
+          "birth": "3943730",
+          "utime": 0,
+          "stime": 1,
+          "name": "bwrap"
+        },
+        {
+          "pid": 251409,
+          "state": "S",
+          "ppid": 251407,
+          "pgrp": 251348,
+          "birth": "3943731",
+          "utime": 4,
+          "stime": 3,
+          "name": "WebKitWebProces"
+        }
+      ]
+    },
+    {
+      "kind": "process-sample",
+      "mono": 39437.737823897,
+      "wall": 1792151825.298784,
+      "members": [
+        {
+          "pid": 251348,
+          "state": "S",
+          "ppid": 251345,
+          "pgrp": 251348,
+          "birth": "3943703",
+          "utime": 0,
+          "stime": 0,
+          "name": "bwrap"
+        },
+        {
+          "pid": 251349,
+          "state": "S",
+          "ppid": 251348,
+          "pgrp": 251348,
+          "birth": "3943703",
+          "utime": 0,
+          "stime": 0,
+          "name": "bwrap"
+        },
+        {
+          "pid": 251350,
+          "state": "S",
+          "ppid": 251349,
+          "pgrp": 251348,
+          "birth": "3943703",
+          "utime": 0,
+          "stime": 0,
+          "name": "dbus-run-sessio"
+        },
+        {
+          "pid": 251351,
+          "state": "S",
+          "ppid": 251350,
+          "pgrp": 251348,
+          "birth": "3943703",
+          "utime": 0,
+          "stime": 0,
+          "name": "dbus-daemon"
+        },
+        {
+          "pid": 251352,
+          "state": "S",
+          "ppid": 251350,
+          "pgrp": 251348,
+          "birth": "3943704",
+          "utime": 54,
+          "stime": 10,
+          "name": "helper"
+        },
+        {
+          "pid": 251361,
+          "state": "S",
+          "ppid": 251352,
+          "pgrp": 251348,
+          "birth": "3943718",
+          "utime": 5,
+          "stime": 4,
+          "name": "WebKitNetworkPr"
+        },
+        {
+          "pid": 251388,
+          "state": "S",
+          "ppid": 251349,
+          "pgrp": 251348,
+          "birth": "3943727",
+          "utime": 0,
+          "stime": 0,
+          "name": "at-spi-bus-laun"
+        },
+        {
+          "pid": 251398,
+          "state": "S",
+          "ppid": 251388,
+          "pgrp": 251348,
+          "birth": "3943728",
+          "utime": 0,
+          "stime": 0,
+          "name": "dbus-daemon"
+        },
+        {
+          "pid": 251399,
+          "state": "S",
+          "ppid": 251352,
+          "pgrp": 251348,
+          "birth": "3943729",
+          "utime": 0,
+          "stime": 0,
+          "name": "bwrap"
+        },
+        {
+          "pid": 251400,
+          "state": "S",
+          "ppid": 251399,
+          "pgrp": 251348,
+          "birth": "3943729",
+          "utime": 0,
+          "stime": 0,
+          "name": "bwrap"
+        },
+        {
+          "pid": 251401,
+          "state": "S",
+          "ppid": 251400,
+          "pgrp": 251348,
+          "birth": "3943730",
+          "utime": 0,
+          "stime": 0,
+          "name": "xdg-dbus-proxy"
+        },
+        {
+          "pid": 251404,
+          "state": "S",
+          "ppid": 251352,
+          "pgrp": 251348,
+          "birth": "3943730",
+          "utime": 0,
+          "stime": 0,
+          "name": "bwrap"
+        },
+        {
+          "pid": 251407,
+          "state": "S",
+          "ppid": 251404,
+          "pgrp": 251348,
+          "birth": "3943730",
+          "utime": 0,
+          "stime": 1,
+          "name": "bwrap"
+        },
+        {
+          "pid": 251409,
+          "state": "R",
+          "ppid": 251407,
+          "pgrp": 251348,
+          "birth": "3943731",
+          "utime": 7,
+          "stime": 5,
+          "name": "WebKitWebProces"
+        }
+      ]
+    },
+    {
+      "kind": "process-sample",
+      "mono": 39437.918685055,
+      "wall": 1792151825.4796448,
+      "members": [
+        {
+          "pid": 251348,
+          "state": "S",
+          "ppid": 251345,
+          "pgrp": 251348,
+          "birth": "3943703",
+          "utime": 0,
+          "stime": 0,
+          "name": "bwrap"
+        },
+        {
+          "pid": 251349,
+          "state": "S",
+          "ppid": 251348,
+          "pgrp": 251348,
+          "birth": "3943703",
+          "utime": 0,
+          "stime": 0,
+          "name": "bwrap"
+        },
+        {
+          "pid": 251350,
+          "state": "S",
+          "ppid": 251349,
+          "pgrp": 251348,
+          "birth": "3943703",
+          "utime": 0,
+          "stime": 0,
+          "name": "dbus-run-sessio"
+        },
+        {
+          "pid": 251351,
+          "state": "S",
+          "ppid": 251350,
+          "pgrp": 251348,
+          "birth": "3943703",
+          "utime": 0,
+          "stime": 0,
+          "name": "dbus-daemon"
+        },
+        {
+          "pid": 251352,
+          "state": "S",
+          "ppid": 251350,
+          "pgrp": 251348,
+          "birth": "3943704",
+          "utime": 56,
+          "stime": 14,
+          "name": "helper"
+        },
+        {
+          "pid": 251361,
+          "state": "S",
+          "ppid": 251352,
+          "pgrp": 251348,
+          "birth": "3943718",
+          "utime": 5,
+          "stime": 4,
+          "name": "WebKitNetworkPr"
+        },
+        {
+          "pid": 251388,
+          "state": "S",
+          "ppid": 251349,
+          "pgrp": 251348,
+          "birth": "3943727",
+          "utime": 0,
+          "stime": 0,
+          "name": "at-spi-bus-laun"
+        },
+        {
+          "pid": 251398,
+          "state": "S",
+          "ppid": 251388,
+          "pgrp": 251348,
+          "birth": "3943728",
+          "utime": 0,
+          "stime": 0,
+          "name": "dbus-daemon"
+        },
+        {
+          "pid": 251399,
+          "state": "S",
+          "ppid": 251352,
+          "pgrp": 251348,
+          "birth": "3943729",
+          "utime": 0,
+          "stime": 0,
+          "name": "bwrap"
+        },
+        {
+          "pid": 251400,
+          "state": "S",
+          "ppid": 251399,
+          "pgrp": 251348,
+          "birth": "3943729",
+          "utime": 0,
+          "stime": 0,
+          "name": "bwrap"
+        },
+        {
+          "pid": 251401,
+          "state": "S",
+          "ppid": 251400,
+          "pgrp": 251348,
+          "birth": "3943730",
+          "utime": 0,
+          "stime": 0,
+          "name": "xdg-dbus-proxy"
+        },
+        {
+          "pid": 251404,
+          "state": "S",
+          "ppid": 251352,
+          "pgrp": 251348,
+          "birth": "3943730",
+          "utime": 0,
+          "stime": 0,
+          "name": "bwrap"
+        },
+        {
+          "pid": 251407,
+          "state": "S",
+          "ppid": 251404,
+          "pgrp": 251348,
+          "birth": "3943730",
+          "utime": 0,
+          "stime": 1,
+          "name": "bwrap"
+        },
+        {
+          "pid": 251409,
+          "state": "R",
+          "ppid": 251407,
+          "pgrp": 251348,
+          "birth": "3943731",
+          "utime": 21,
+          "stime": 12,
+          "name": "WebKitWebProces"
+        },
+        {
+          "pid": 251437,
+          "state": "S",
+          "ppid": 251349,
+          "pgrp": 251348,
+          "birth": "3943780",
+          "utime": 0,
+          "stime": 0,
+          "name": "at-spi2-registr"
+        }
+      ]
+    },
+    {
+      "kind": "received-frame",
+      "mono": 39437.918770465,
+      "wall": 1792151825.479729,
+      "frame": {
+        "type": "ready",
+        "value": {
+          "bootstrapMissing": true
+        }
+      }
+    },
+    {
+      "kind": "process-sample",
+      "mono": 39438.106896707,
+      "wall": 1792151825.667857,
+      "members": [
+        {
+          "pid": 251348,
+          "state": "S",
+          "ppid": 251345,
+          "pgrp": 251348,
+          "birth": "3943703",
+          "utime": 0,
+          "stime": 0,
+          "name": "bwrap"
+        },
+        {
+          "pid": 251349,
+          "state": "S",
+          "ppid": 251348,
+          "pgrp": 251348,
+          "birth": "3943703",
+          "utime": 0,
+          "stime": 0,
+          "name": "bwrap"
+        },
+        {
+          "pid": 251350,
+          "state": "S",
+          "ppid": 251349,
+          "pgrp": 251348,
+          "birth": "3943703",
+          "utime": 0,
+          "stime": 0,
+          "name": "dbus-run-sessio"
+        },
+        {
+          "pid": 251351,
+          "state": "S",
+          "ppid": 251350,
+          "pgrp": 251348,
+          "birth": "3943703",
+          "utime": 0,
+          "stime": 0,
+          "name": "dbus-daemon"
+        },
+        {
+          "pid": 251352,
+          "state": "S",
+          "ppid": 251350,
+          "pgrp": 251348,
+          "birth": "3943704",
+          "utime": 56,
+          "stime": 14,
+          "name": "helper"
+        },
+        {
+          "pid": 251361,
+          "state": "S",
+          "ppid": 251352,
+          "pgrp": 251348,
+          "birth": "3943718",
+          "utime": 5,
+          "stime": 4,
+          "name": "WebKitNetworkPr"
+        },
+        {
+          "pid": 251388,
+          "state": "S",
+          "ppid": 251349,
+          "pgrp": 251348,
+          "birth": "3943727",
+          "utime": 0,
+          "stime": 0,
+          "name": "at-spi-bus-laun"
+        },
+        {
+          "pid": 251398,
+          "state": "S",
+          "ppid": 251388,
+          "pgrp": 251348,
+          "birth": "3943728",
+          "utime": 0,
+          "stime": 0,
+          "name": "dbus-daemon"
+        },
+        {
+          "pid": 251399,
+          "state": "S",
+          "ppid": 251352,
+          "pgrp": 251348,
+          "birth": "3943729",
+          "utime": 0,
+          "stime": 0,
+          "name": "bwrap"
+        },
+        {
+          "pid": 251400,
+          "state": "S",
+          "ppid": 251399,
+          "pgrp": 251348,
+          "birth": "3943729",
+          "utime": 0,
+          "stime": 0,
+          "name": "bwrap"
+        },
+        {
+          "pid": 251401,
+          "state": "S",
+          "ppid": 251400,
+          "pgrp": 251348,
+          "birth": "3943730",
+          "utime": 0,
+          "stime": 0,
+          "name": "xdg-dbus-proxy"
+        },
+        {
+          "pid": 251404,
+          "state": "S",
+          "ppid": 251352,
+          "pgrp": 251348,
+          "birth": "3943730",
+          "utime": 0,
+          "stime": 0,
+          "name": "bwrap"
+        },
+        {
+          "pid": 251407,
+          "state": "S",
+          "ppid": 251404,
+          "pgrp": 251348,
+          "birth": "3943730",
+          "utime": 0,
+          "stime": 1,
+          "name": "bwrap"
+        },
+        {
+          "pid": 251409,
+          "state": "R",
+          "ppid": 251407,
+          "pgrp": 251348,
+          "birth": "3943731",
+          "utime": 40,
+          "stime": 12,
+          "name": "WebKitWebProces"
+        },
+        {
+          "pid": 251437,
+          "state": "S",
+          "ppid": 251349,
+          "pgrp": 251348,
+          "birth": "3943780",
+          "utime": 0,
+          "stime": 0,
+          "name": "at-spi2-registr"
+        }
+      ]
+    },
+    {
+      "kind": "received-frame",
+      "mono": 39438.107022989,
+      "wall": 1792151825.6679816,
+      "frame": {
+        "type": "ready",
+        "value": {
+          "bootstrapMissing": true
+        }
+      }
+    },
+    {
+      "kind": "received-frame",
+      "mono": 39438.145644254,
+      "wall": 1792151825.7066035,
+      "frame": {
+        "type": "ready",
+        "value": {
+          "bootstrapMissing": true,
+          "fontPending": true
+        }
+      }
+    },
+    {
+      "kind": "received-frame",
+      "mono": 39438.166642391,
+      "wall": 1792151825.7276018,
+      "frame": {
+        "type": "ready",
+        "value": {
+          "hasTauri": false,
+          "ready": true
+        }
+      }
+    },
+    {
+      "kind": "received-frame",
+      "mono": 39438.168091981,
+      "wall": 1792151825.729051,
+      "frame": {
+        "type": "result",
+        "value": {
+          "status": "pending"
+        }
+      }
+    },
+    {
+      "kind": "received-frame",
+      "mono": 39438.178863749,
+      "wall": 1792151825.7398226,
+      "frame": {
+        "type": "result",
+        "value": {
+          "status": "blocked"
+        }
+      }
+    },
+    {
+      "kind": "native-send",
+      "mono": 39438.226693777,
+      "wall": 1792151825.7876532,
+      "task": "fixture_product_13",
+      "armedMono": 39438.226688471,
+      "deadlineMono": 39440.226688471,
+      "members": [
+        {
+          "pid": 251348,
+          "state": "S",
+          "ppid": 251345,
+          "pgrp": 251348,
+          "birth": "3943703",
+          "utime": 0,
+          "stime": 0,
+          "name": "bwrap"
+        },
+        {
+          "pid": 251349,
+          "state": "S",
+          "ppid": 251348,
+          "pgrp": 251348,
+          "birth": "3943703",
+          "utime": 0,
+          "stime": 0,
+          "name": "bwrap"
+        },
+        {
+          "pid": 251350,
+          "state": "S",
+          "ppid": 251349,
+          "pgrp": 251348,
+          "birth": "3943703",
+          "utime": 0,
+          "stime": 0,
+          "name": "dbus-run-sessio"
+        },
+        {
+          "pid": 251351,
+          "state": "S",
+          "ppid": 251350,
+          "pgrp": 251348,
+          "birth": "3943703",
+          "utime": 0,
+          "stime": 0,
+          "name": "dbus-daemon"
+        },
+        {
+          "pid": 251352,
+          "state": "S",
+          "ppid": 251350,
+          "pgrp": 251348,
+          "birth": "3943704",
+          "utime": 56,
+          "stime": 14,
+          "name": "helper"
+        },
+        {
+          "pid": 251361,
+          "state": "S",
+          "ppid": 251352,
+          "pgrp": 251348,
+          "birth": "3943718",
+          "utime": 5,
+          "stime": 4,
+          "name": "WebKitNetworkPr"
+        },
+        {
+          "pid": 251388,
+          "state": "S",
+          "ppid": 251349,
+          "pgrp": 251348,
+          "birth": "3943727",
+          "utime": 0,
+          "stime": 0,
+          "name": "at-spi-bus-laun"
+        },
+        {
+          "pid": 251398,
+          "state": "S",
+          "ppid": 251388,
+          "pgrp": 251348,
+          "birth": "3943728",
+          "utime": 0,
+          "stime": 0,
+          "name": "dbus-daemon"
+        },
+        {
+          "pid": 251399,
+          "state": "S",
+          "ppid": 251352,
+          "pgrp": 251348,
+          "birth": "3943729",
+          "utime": 0,
+          "stime": 0,
+          "name": "bwrap"
+        },
+        {
+          "pid": 251400,
+          "state": "S",
+          "ppid": 251399,
+          "pgrp": 251348,
+          "birth": "3943729",
+          "utime": 0,
+          "stime": 0,
+          "name": "bwrap"
+        },
+        {
+          "pid": 251401,
+          "state": "S",
+          "ppid": 251400,
+          "pgrp": 251348,
+          "birth": "3943730",
+          "utime": 0,
+          "stime": 0,
+          "name": "xdg-dbus-proxy"
+        },
+        {
+          "pid": 251404,
+          "state": "S",
+          "ppid": 251352,
+          "pgrp": 251348,
+          "birth": "3943730",
+          "utime": 0,
+          "stime": 0,
+          "name": "bwrap"
+        },
+        {
+          "pid": 251407,
+          "state": "S",
+          "ppid": 251404,
+          "pgrp": 251348,
+          "birth": "3943730",
+          "utime": 0,
+          "stime": 1,
+          "name": "bwrap"
+        },
+        {
+          "pid": 251409,
+          "state": "S",
+          "ppid": 251407,
+          "pgrp": 251348,
+          "birth": "3943731",
+          "utime": 45,
+          "stime": 14,
+          "name": "WebKitWebProces"
+        },
+        {
+          "pid": 251437,
+          "state": "S",
+          "ppid": 251349,
+          "pgrp": 251348,
+          "birth": "3943780",
+          "utime": 0,
+          "stime": 0,
+          "name": "at-spi2-registr"
+        }
+      ]
+    },
+    {
+      "kind": "received-frame",
+      "mono": 39438.251342019,
+      "wall": 1792151825.8123012,
+      "frame": {
+        "type": "result",
+        "value": {
+          "status": "pending",
+          "taskId": "conversion_1"
+        }
+      }
+    },
+    {
+      "kind": "received-frame",
+      "mono": 39438.257690736,
+      "wall": 1792151825.8186495,
+      "frame": {
+        "type": "result",
+        "value": {
+          "result": {
+            "elapsedMs": 22,
+            "error": {
+              "code": "invalid-output",
+              "path": "",
+              "reason": "reference cycle"
+            },
+            "id": "fixture_product_13",
+            "ok": false,
+            "over256KiB": false,
+            "serializedBytes": 165
+          },
+          "status": "complete",
+          "taskId": "conversion_1"
+        }
+      }
+    },
+    {
+      "kind": "terminate-group",
+      "mono": 39438.258225959,
+      "wall": 1792151825.8191845,
+      "reason": "completed-research-cleanup",
+      "pgid": 251348,
+      "members": [
+        {
+          "pid": 251348,
+          "birth": "3943703"
+        },
+        {
+          "pid": 251349,
+          "birth": "3943703"
+        },
+        {
+          "pid": 251350,
+          "birth": "3943703"
+        },
+        {
+          "pid": 251351,
+          "birth": "3943703"
+        },
+        {
+          "pid": 251352,
+          "birth": "3943704"
+        },
+        {
+          "pid": 251398,
+          "birth": "3943728"
+        },
+        {
+          "pid": 251399,
+          "birth": "3943729"
+        },
+        {
+          "pid": 251400,
+          "birth": "3943729"
+        },
+        {
+          "pid": 251401,
+          "birth": "3943730"
+        },
+        {
+          "pid": 251404,
+          "birth": "3943730"
+        },
+        {
+          "pid": 251407,
+          "birth": "3943730"
+        },
+        {
+          "pid": 251409,
+          "birth": "3943731"
+        },
+        {
+          "pid": 251361,
+          "birth": "3943718"
+        },
+        {
+          "pid": 251388,
+          "birth": "3943727"
+        },
+        {
+          "pid": 251437,
+          "birth": "3943780"
+        }
+      ]
+    },
+    {
+      "kind": "signal-start",
+      "mono": 39438.258227802,
+      "wall": 1792151825.8191862,
+      "pgid": 251348
+    },
+    {
+      "kind": "signal-return",
+      "mono": 39438.258888137,
+      "wall": 1792151825.8198469,
+      "pgid": 251348
+    },
+    {
+      "kind": "escaped-descendants",
+      "mono": 39438.305063084,
+      "wall": 1792151825.866022,
+      "processes": []
+    },
+    {
+      "kind": "cleanup",
+      "mono": 39438.390627529,
+      "wall": 1792151825.951587,
+      "reaped": [
+        {
+          "pid": 251349,
+          "status": 9
+        }
+      ],
+      "remainingGroupMembers": []
+    },
+    {
+      "kind": "completed",
+      "mono": 39438.431832049,
+      "wall": 1792151825.9927914,
+      "results": [
+        {
+          "task": "native-resource-guard",
+          "elapsed": 0.012426070003130008,
+          "value": {
+            "status": "blocked"
+          }
+        },
+        {
+          "task": "fixture_product_13",
+          "sampleId": "clip-cycle",
+          "sourceSha256": "86ac1d7b952ebaf7eabb500fe27495520b26d2d4c5eb7a0a0bdb7d6f1929e582",
+          "profile": "baseline",
+          "elapsed": 0.0312562320032157,
+          "serializedBytes": 165,
+          "diagramType": null
+        }
+      ]
+    }
+  ]
+}

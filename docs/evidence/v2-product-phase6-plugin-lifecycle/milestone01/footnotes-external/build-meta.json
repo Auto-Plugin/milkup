@@ -1,0 +1,84 @@
+{
+  "inputs": {
+    "node_modules/.pnpm/@milkup+plugin-sdk@file+..+..+workspace+milkup-plugin-lifecycle-evidence+milestone01+sd_3f4117e08c6f745f6f5dee1c5c053f87/node_modules/@milkup/plugin-sdk/src/index.js": {
+      "bytes": 3553,
+      "imports": [],
+      "format": "esm"
+    },
+    "src/indexer.ts": {
+      "bytes": 7222,
+      "imports": [],
+      "format": "esm"
+    },
+    "src/presentation.ts": {
+      "bytes": 3995,
+      "imports": [
+        {
+          "path": "src/indexer.ts",
+          "kind": "import-statement",
+          "original": "./indexer"
+        }
+      ],
+      "format": "esm"
+    },
+    "src/controller.ts": {
+      "bytes": 4929,
+      "imports": [
+        {
+          "path": "src/indexer.ts",
+          "kind": "import-statement",
+          "original": "./indexer"
+        },
+        {
+          "path": "src/presentation.ts",
+          "kind": "import-statement",
+          "original": "./presentation"
+        }
+      ],
+      "format": "esm"
+    },
+    "src/plugin.ts": {
+      "bytes": 574,
+      "imports": [
+        {
+          "path": "node_modules/.pnpm/@milkup+plugin-sdk@file+..+..+workspace+milkup-plugin-lifecycle-evidence+milestone01+sd_3f4117e08c6f745f6f5dee1c5c053f87/node_modules/@milkup/plugin-sdk/src/index.js",
+          "kind": "import-statement",
+          "original": "@milkup/plugin-sdk"
+        },
+        {
+          "path": "src/controller.ts",
+          "kind": "import-statement",
+          "original": "./controller"
+        }
+      ],
+      "format": "esm"
+    }
+  },
+  "outputs": {
+    "dist/plugin.js": {
+      "imports": [],
+      "exports": [
+        "default"
+      ],
+      "entryPoint": "src/plugin.ts",
+      "inputs": {
+        "node_modules/.pnpm/@milkup+plugin-sdk@file+..+..+workspace+milkup-plugin-lifecycle-evidence+milestone01+sd_3f4117e08c6f745f6f5dee1c5c053f87/node_modules/@milkup/plugin-sdk/src/index.js": {
+          "bytesInOutput": 51
+        },
+        "src/indexer.ts": {
+          "bytesInOutput": 6219
+        },
+        "src/presentation.ts": {
+          "bytesInOutput": 3765
+        },
+        "src/controller.ts": {
+          "bytesInOutput": 3940
+        },
+        "src/plugin.ts": {
+          "bytesInOutput": 477
+        }
+      },
+      "bytes": 14763
+    }
+  }
+}

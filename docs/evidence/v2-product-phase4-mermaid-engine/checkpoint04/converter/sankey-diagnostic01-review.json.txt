@@ -1,0 +1,66 @@
+{
+  "status": "actual-native-pixels-reviewed-image-difference-unresolved",
+  "scope": {
+    "theme": "light",
+    "zoom": 1,
+    "viewport": [
+      1100,
+      800
+    ],
+    "sample": "sankey-000-first-official-example"
+  },
+  "actualViewed": [
+    {
+      "path": "/workspace/milkup-mermaid-engine-evidence/research/svg-converter-prototype/native-runner/runs/converter-paired-sankey-diagnostic01/original-inline.png",
+      "sha256": "e3022f41436ee18c61a935c3d0c592c9f70dc75de348ee0842ef881f765f5b31"
+    },
+    {
+      "path": "/workspace/milkup-mermaid-engine-evidence/research/svg-converter-prototype/native-runner/runs/converter-paired-sankey-diagnostic01/canonical-inline.png",
+      "sha256": "e3022f41436ee18c61a935c3d0c592c9f70dc75de348ee0842ef881f765f5b31"
+    },
+    {
+      "path": "/workspace/milkup-mermaid-engine-evidence/research/svg-converter-prototype/native-runner/runs/converter-paired-sankey-diagnostic01/canonical-img.png",
+      "sha256": "56c68d1922d74b520da9330aae052ae82324d4c751366a67db158c5ee4e41286"
+    }
+  ],
+  "observation": "Original and canonical inline images visibly match, including overlapping source labels. The image version has narrower/shifted bars and small path-boundary differences. Inline PNGs are byte-identical; image differs at 59691 pixels. No general diagram or pixel acceptance claim.",
+  "interpretation": "This sample isolates the difference to the inline-to-image boundary. Exact CSS size is 600 by 406.90625 in all three; img naturalHeight is 406. Fractional image viewport quantization is a hypothesis, not proven sole cause.",
+  "comparison": "/workspace/milkup-mermaid-engine-evidence/research/svg-converter-prototype/native-runner/sankey-diagnostic01-comparison.json",
+  "cleanup": [
+    {
+      "kind": "cleanup",
+      "mono": 35659.654484975,
+      "wall": 1792148047.2154453,
+      "reaped": [
+        {
+          "pid": 227380,
+          "status": 9
+        }
+      ],
+      "remainingGroupMembers": []
+    }
+  ],
+  "execution": {
+    "result": "/workspace/milkup-mermaid-engine-evidence/research/svg-converter-prototype/native-runner/runs/converter-paired-sankey-diagnostic01/result.json",
+    "sha256": "e1f0b25bb90d5b999dcbf302ff747da28dd8f28f531a272863c974b5bc1a859b",
+    "conversionResults": [
+      {
+        "task": "native-resource-guard",
+        "elapsed": 0.011891917994944379,
+        "value": {
+          "status": "blocked"
+        }
+      },
+      {
+        "task": "scan_036",
+        "sampleId": "sankey-000-first-official-example",
+        "sourceSha256": "c6739c6a83029fbe481d653c74d1e302c8226bc89edcbebec88062125baa78d3",
+        "profile": "baseline",
+        "elapsed": 0.5400244909978937,
+        "serializedBytes": 259185,
+        "diagramType": "sankey"
+      }
+    ]
+  },
+  "preparationStatusClarification": "paired-*-provenance.json retain original preparation status; execution is evidenced by separately retained run result.json and PNGs. Original records not rewritten."
+}

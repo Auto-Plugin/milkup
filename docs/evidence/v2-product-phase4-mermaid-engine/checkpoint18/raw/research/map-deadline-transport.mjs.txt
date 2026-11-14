@@ -1,0 +1,112 @@
+// Offline only. Run against a frozen diagnostic export, never against the live page.
+import assert from 'node:assert/strict'
+import { readFile, writeFile } from 'node:fs/promises'
+import { createHash } from 'node:crypto'
+
+const [ringPath, catalogPath, outputPath] = process.argv.slice(2)
+assert(ringPath && catalogPath && outputPath, 'Require ring, catalog and new output paths')
+const hash = (value) => createHash('sha256').update(value).digest('hex')
+const ringBytes = await readFile(ringPath)
+const catalogBytes = await readFile(catalogPath)
+const ring = JSON.parse(ringBytes)
+const catalog = JSON.parse(catalogBytes)
+assert(ring.done && ring.frozen, 'Require a completed, frozen export')
+assert(ringBytes.length <= 2097152)
+assert(Array.isArray(catalog))
+for (const sample of catalog) assert.equal(hash(sample.source), sample.sourceSha256)
+const rows = [...ring.history, ...(ring.active ? [ring.active] : [])]
+assert(rows.length <= 64)
+const records = rows.map((row) => {
+  const outer = row.payload
+  const message = outer.message
+  const payload = message.payload
+  const request = payload.request
+  assert.equal(outer.pluginId, row.pluginId)
+  assert.equal(outer.instanceId, row.instanceId)
+  assert.equal(message.id, row.requestId)
+  assert.equal(message.type, 'render')
+  assert.equal(message.protocol, 'milkup.plugin.document-render.v1')
+  assert.equal(payload.pluginId, row.pluginId)
+  assert.equal(request.to - request.from, request.source.length, 'UTF-16 source span')
+  const blocks = request.blocks.map((block) => ({
+    kind: block.kind,
+    info: block.info,
+    complete: block.complete,
+    from: block.from,
+    to: block.to,
+    bodies: block.contentRanges.map((range) => {
+      assert(range.from >= request.from && range.to <= request.to && range.from <= range.to)
+      // Native/core offsets are UTF-16 code units. JS slice preserves that convention.
+      const source = request.source.slice(range.from - request.from, range.to - request.from)
+      return {
+        ...range,
+        source,
+        utf16Units: source.length,
+        utf8Bytes: Buffer.byteLength(source),
+        sha256: hash(source),
+        catalogMatches: catalog.flatMap((sample) => {
+          const fixtureBody = sample.source + (sample.source.endsWith('\n') ? '' : '\n')
+          if (source === fixtureBody) return [{ id: sample.id, relation: 'exact-fixture-body' }]
+          if (source === sample.source) return [{ id: sample.id, relation: 'exact-catalog-source' }]
+          return []
+        }),
+      }
+    }),
+  }))
+  return {
+    key: row.key,
+    pluginId: row.pluginId,
+    instanceId: row.instanceId,
+    requestId: row.requestId,
+    rendererId: payload.rendererId,
+    pinnedAtExport: row === ring.active,
+    observedAt: row.observedAt,
+    cancelObservedAt: row.cancelObservedAt ?? null,
+    result: row.result ?? null,
+    transportRoundTripMs: row.result ? row.result.observedAt - row.observedAt : null,
+    requestJsonSha256: hash(JSON.stringify(request)),
+    sourceSha256: hash(request.source),
+    sourceUtf16Units: request.source.length,
+    sourceUtf8Bytes: Buffer.byteLength(request.source),
+    width: request.width,
+    theme: request.theme,
+    target: request.target,
+    contextKnown: request.contextKnown,
+    from: request.from,
+    to: request.to,
+    blocks,
+  }
+})
+const fault = ring.firstFault
+const exactFaultInput = fault?.kind === 'document-render-timeout'
+  ? records.find((row) => row.pluginId === 'milkup.diagrams' && row.instanceId === fault.instanceId && row.requestId === fault.requestId)
+  : null
+const report = {
+  status: 'OFFLINE_FROZEN_TRANSPORT_MAPPING',
+  inputs: { ringPath, ringSha256: hash(ringBytes), catalogPath, catalogSha256: hash(catalogBytes) },
+  observer: {
+    reason: ring.reason,
+    incomplete: ring.incomplete,
+    firstFault: fault,
+    observedRenders: ring.observedRenders,
+    matchedResults: ring.matchedResults,
+    cancels: ring.cancels,
+    evicted: ring.evicted,
+    dropped: ring.dropped,
+    captureCalls: ring.captureCalls,
+    captureMs: ring.captureMs,
+    captureMaxMs: ring.captureMaxMs,
+    restored: ring.restored,
+  },
+  exactTimeoutInputKey: exactFaultInput?.key ?? null,
+  records,
+  limits: [
+    'Complete parsed request values, not original raw IPC byte representation.',
+    'Catalog matches identify captured fence bodies only; they do not prove renderer execution stages.',
+    'Transport round trip includes IPC and frontend notification; it is not native render duration or CPU.',
+    'Native trace joins and CPU/cgroup analysis require separate exact-identity evidence.',
+    'No captured future request recovers the unknown historical UI10 render_2754 payload.',
+  ],
+}
+await writeFile(outputPath, JSON.stringify(report, null, 2) + '\n', { flag: 'wx' })
+console.log(JSON.stringify({ outputPath, records: records.length, exactTimeoutInputKey: report.exactTimeoutInputKey }))

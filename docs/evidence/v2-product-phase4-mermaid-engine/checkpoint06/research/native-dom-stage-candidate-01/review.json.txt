@@ -1,0 +1,29 @@
+{
+  "kind": "independent-read-only-diagnostic-patch-review",
+  "patchSha256": "6a0f3be676f1c139bccf9dabab8275252c4e63ccb78d6a713a5c9b7765872fc6",
+  "patchBytes": 14520,
+  "scope": "Three Rust files in an independent diagnostic source copy. No product edits or test/build/UI execution by reviewer.",
+  "status": "functional-and-safety-order-preserved; callback-entry-measurement-correction-required-before-stage-interpretation",
+  "checks": [
+    "receive-entry is emitted after the original stdout JSON parse and before payload-size work/control lock. It remains available for a late result rejected before the ordinary matching branch; it is not settlement authority.",
+    "helper-result-drained extracts metadata from the actual output string, not the triggering input or idle poll ID.",
+    "DiagnosticMessage protocol/kind use fixed whitelists; id is nonempty ASCII alphanumeric/underscore/hyphen and at most80 bytes. Request from/to are optionalu64, width optional finitef64, theme fixed light/dark/unknown, source hash is hexSHA256. No arbitrary width/theme JSON is copied.",
+    "Request hashing occurs after arming the original active deadline and releasing control. Existing validation, active state changes, wake/pipe write sequence, early and final deadline checks remain unchanged.",
+    "Result settlement trace is only enabled after the original final deadline check and active clear, emitted after the lock is released. It cannot retrospectively authorize an earlier arrival.",
+    "The existing64-entry try_send asynchronous writer remains bounded and best-effort. Disabled diagnostics avoid extra JSON parsing and hashing; idle empty polls do not emit logs. Existing metadata checks and a boolean result.is_ok observation remain small nonzero overhead.",
+    "Matching-result diagnostic formatting remains under the existing control lock, before the final deadline check. This is bounded diagnostic overhead and can affect timing; no measured duration should be treated as an uninstrumented result."
+  ],
+  "finding": {
+    "phase": "helper-evaluate-callback",
+    "problem": "In reviewed revision the event clock is sampled after to_json and serde parsing, not callback entry as the plan states.",
+    "requestedCorrection": "Only for a real diagnostic input frame, capture callback_entry_monotonic_ns after the original busy.set(false) and before conversion. Keep the event timestamp as post-conversion observation and the original functional order unchanged; do not sample/log empty polls.",
+    "dequeueQualification": "helper-frame-dequeued is logged after diagnostic metadata parsing; label that attribution accurately rather than claiming the raw channel-pop instant.",
+    "ownerStatus": "dom_native and root acknowledged a revision02; this review does not pre-approve its unseen bytes."
+  },
+  "limits": [
+    "No compilation or runtime result is asserted.",
+    "A missing best-effort trace is unknown, not proof that a stage was never reached.",
+    "Cross-process phase order uses capturedCLOCK_MONOTONIC and PID/request identities, never stderr line order.",
+    "Diagnostic parsing, hashing and logging allocation consume the unchanged deadline and are not subtracted."
+  ]
+}

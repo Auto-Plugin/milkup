@@ -1,0 +1,21 @@
+import { describe, expect, it } from 'vitest'
+import { documentSvgMarkerInstances } from '/workspace/milkup/packages/core/src/document-svg-image-geometry'
+import type { DocumentSvgPathCommand } from '/workspace/milkup/packages/core/src/document-svg-image'
+
+// Concrete topology expectations from SVG 2 Painting 13.7.2 and Paths 9.5.3;
+// these count rendered marker positions, not a mirror of the traversal formula.
+const cases: readonly { name: string; commands: readonly DocumentSvgPathCommand[]; expected: readonly [number, number, number] }[] = [
+  { name: 'empty data', commands: [], expected: [0, 0, 0] },
+  { name: 'one vertex', commands: [['M', 0, 0]], expected: [1, 0, 1] },
+  { name: 'consecutive movetos', commands: [['M', 0, 0], ['M', 1, 0], ['M', 2, 0]], expected: [1, 1, 1] },
+  { name: 'intermediate subpath endpoints', commands: [['M', 0, 0], ['L', 1, 0], ['M', 2, 0], ['L', 3, 0]], expected: [1, 2, 1] },
+  { name: 'closed endpoints remain distinct vertices', commands: [['M', 0, 0], ['L', 1, 0], ['Z'], ['M', 2, 0], ['L', 3, 0], ['Z']], expected: [1, 4, 1] },
+  { name: 'implicit subpath after close', commands: [['M', 0, 0], ['L', 1, 0], ['Z'], ['L', 2, 0]], expected: [1, 3, 1] },
+  { name: 'zero length segments', commands: [['M', 0, 0], ['L', 0, 0], ['L', 0, 0]], expected: [1, 1, 1] },
+]
+describe('SVG 2 marker topology', () => {
+  it.each(cases)('$name', ({ commands, expected }) => {
+    const counts = documentSvgMarkerInstances({ kind: 'path', commands })
+    expect([counts.markerStart, counts.markerMid, counts.markerEnd]).toEqual(expected)
+  })
+})

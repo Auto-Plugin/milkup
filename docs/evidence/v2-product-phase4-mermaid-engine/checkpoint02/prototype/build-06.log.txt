@@ -1,0 +1,31 @@
+   Compiling milkup-dom-render-probe v0.0.0 (/workspace/milkup-mermaid-engine-evidence/prototype/dom-helper)
+error[E0308]: mismatched types
+   --> src/main.rs:40:29
+    |
+ 40 |   response.set_http_headers(&headers);request.finish_with_response(&response);
+    |            ---------------- ^^^^^^^^ expected `MessageHeaders`, found `&MessageHeaders`
+    |            |
+    |            arguments to this method are incorrect
+    |
+note: method defined here
+   --> /workspace/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/webkit2gtk-2.0.2/src/auto/uri_scheme_response.rs:113:6
+    |
+113 |   fn set_http_headers(&self, headers: soup::MessageHeaders) {
+    |      ^^^^^^^^^^^^^^^^
+help: consider removing the borrow
+    |
+ 40 -   response.set_http_headers(&headers);request.finish_with_response(&response);
+ 40 +   response.set_http_headers(headers);request.finish_with_response(&response);
+    |
+
+warning: use of deprecated method `webkit2gtk::NavigationPolicyDecisionExt::request`: Since 2.6
+  --> src/main.rs:55:95
+   |
+55 |     let allowed=decision.downcast_ref::<webkit2gtk::NavigationPolicyDecision>().and_then(|d|d.request()).and_then(|r|r.uri()).map(|u...
+   |                                                                                               ^^^^^^^
+   |
+   = note: `#[warn(deprecated)]` on by default
+
+For more information about this error, try `rustc --explain E0308`.
+warning: `milkup-dom-render-probe` (bin "milkup-dom-render-probe") generated 1 warning
+error: could not compile `milkup-dom-render-probe` (bin "milkup-dom-render-probe") due to 1 previous error; 1 warning emitted

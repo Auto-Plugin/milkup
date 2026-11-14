@@ -1,0 +1,123 @@
+
+ RUN  v3.2.6 /workspace/milkup
+
+ ❯ packages/core/src/__tests__/document-svg-image-raster.test.ts (7 tests | 6 failed) 27ms
+   × explicit SVG raster region > rejects the old implicit viewport rather than silently clipping visible ink 16ms
+     → expected [Function] to throw an error
+   × explicit SVG raster region > preserves negative fractional origins in the host outer viewport 2ms
+     → Document presentation: invalid-output
+   × explicit SVG raster region > keeps the precise root footprint while allowing right and bottom visible ink 1ms
+     → Document presentation: invalid-output
+   × explicit SVG raster region > retains intentional inner clipping rather than making the root overflow visible 1ms
+     → Document presentation: invalid-output
+   × explicit SVG raster region > requires the region to contain every edge of the original root viewport 2ms
+     → expected [Function] to not throw an error but 'DocumentPresentationError: Document p…' was thrown
+   ✓ explicit SVG raster region > rejects invalid or excessively large integer raster surfaces 1ms
+   × explicit SVG raster region > charges expanded output pixels across images even when each root viewport is tiny 1ms
+     → expected [Function] to not throw an error but 'DocumentPresentationError: Document p…' was thrown
+
+ Test Files  1 failed (1)
+      Tests  6 failed | 1 passed (7)
+   Start at  11:51:50
+   Duration  650ms (transform 196ms, setup 0ms, collect 214ms, tests 27ms, environment 0ms, prepare 104ms)
+
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 6 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  packages/core/src/__tests__/document-svg-image-raster.test.ts > explicit SVG raster region > rejects the old implicit viewport rather than silently clipping visible ink
+AssertionError: expected [Function] to throw an error
+ ❯ packages/core/src/__tests__/document-svg-image-raster.test.ts:16:57
+     14| describe('explicit SVG raster region', () => {
+     15|   it('rejects the old implicit viewport rather than silently clipping …
+     16|     expect(() => copyDocumentPresentationNode(image())).toThrow()
+       |                                                         ^
+     17|   })
+     18| 
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/6]⎯
+
+ FAIL  packages/core/src/__tests__/document-svg-image-raster.test.ts > explicit SVG raster region > preserves negative fractional origins in the host outer viewport
+DocumentPresentationError: Document presentation: invalid-output
+ ❯ fail packages/core/src/document-presentation.ts:619:11
+    617| ): DocumentPresentationNode {
+    618|   const fail = (): never => {
+    619|     throw new DocumentPresentationError('invalid-output')
+       |           ^
+    620|   }
+    621|   const result = node(value, createDocumentOutputBudget(), 1, fail, re…
+ ❯ node packages/core/src/document-presentation.ts:554:14
+ ❯ copyDocumentPresentationNode packages/core/src/document-presentation.ts:621:18
+ ❯ packages/core/src/__tests__/document-svg-image-raster.test.ts:21:12
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/6]⎯
+
+ FAIL  packages/core/src/__tests__/document-svg-image-raster.test.ts > explicit SVG raster region > keeps the precise root footprint while allowing right and bottom visible ink
+DocumentPresentationError: Document presentation: invalid-output
+ ❯ fail packages/core/src/document-presentation.ts:619:11
+    617| ): DocumentPresentationNode {
+    618|   const fail = (): never => {
+    619|     throw new DocumentPresentationError('invalid-output')
+       |           ^
+    620|   }
+    621|   const result = node(value, createDocumentOutputBudget(), 1, fail, re…
+ ❯ node packages/core/src/document-presentation.ts:554:14
+ ❯ copyDocumentPresentationNode packages/core/src/document-presentation.ts:621:18
+ ❯ serializeDocumentPresentationNode packages/core/src/document-presentation.ts:708:33
+ ❯ packages/core/src/__tests__/document-svg-image-raster.test.ts:29:20
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/6]⎯
+
+ FAIL  packages/core/src/__tests__/document-svg-image-raster.test.ts > explicit SVG raster region > retains intentional inner clipping rather than making the root overflow visible
+DocumentPresentationError: Document presentation: invalid-output
+ ❯ fail packages/core/src/document-presentation.ts:619:11
+    617| ): DocumentPresentationNode {
+    618|   const fail = (): never => {
+    619|     throw new DocumentPresentationError('invalid-output')
+       |           ^
+    620|   }
+    621|   const result = node(value, createDocumentOutputBudget(), 1, fail, re…
+ ❯ node packages/core/src/document-presentation.ts:554:14
+ ❯ copyDocumentPresentationNode packages/core/src/document-presentation.ts:621:18
+ ❯ serializeDocumentPresentationNode packages/core/src/document-presentation.ts:708:33
+ ❯ packages/core/src/__tests__/document-svg-image-raster.test.ts:36:20
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/6]⎯
+
+ FAIL  packages/core/src/__tests__/document-svg-image-raster.test.ts > explicit SVG raster region > requires the region to contain every edge of the original root viewport
+AssertionError: expected [Function] to not throw an error but 'DocumentPresentationError: Document p…' was thrown
+
+- Expected: 
+undefined
+
++ Received: 
+"DocumentPresentationError: Document presentation: invalid-output"
+
+ ❯ packages/core/src/__tests__/document-svg-image-raster.test.ts:41:99
+     39| 
+     40|   it('requires the region to contain every edge of the original root v…
+     41|     expect(() => copyDocumentPresentationNode({ ...image(), rasterBoun…
+       |                                                                                                   ^
+     42|     for (const rasterBounds of [[1, 0, 160, 96], [0, 1, 160, 96], [-1,…
+     43|       expect(() => copyDocumentPresentationNode({ ...image(), rasterBo…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/6]⎯
+
+ FAIL  packages/core/src/__tests__/document-svg-image-raster.test.ts > explicit SVG raster region > charges expanded output pixels across images even when each root viewport is tiny
+AssertionError: expected [Function] to not throw an error but 'DocumentPresentationError: Document p…' was thrown
+
+- Expected: 
+undefined
+
++ Received: 
+"DocumentPresentationError: Document presentation: invalid-output"
+
+ ❯ packages/core/src/__tests__/document-svg-image-raster.test.ts:55:59
+     53|   it('charges expanded output pixels across images even when each root…
+     54|     const large = { ...image(), rasterBounds: [-100, -100, 4096, 4096]…
+     55|     expect(() => copyDocumentPresentationNode(large)).not.toThrow()
+       |                                                           ^
+     56|     expect(() => copyDocumentPresentationNode({ type: 'group', childre…
+     57|   })
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/6]⎯
+

@@ -1,0 +1,79 @@
+{
+  "id": "flowchart-006-subgraph",
+  "family": "flowchart",
+  "control": false,
+  "officialSource": "https://github.com/mermaid-js/mermaid/blob/mermaid%4012.2.0/packages/mermaid/src/docs/syntax/flowchart.md",
+  "officialLine": 115,
+  "inputSha256": "db4aa3083cae19b2161f65a3286ca21bd0af2272991be4d9b363418ce69e51ed",
+  "requestSourceSha256": "ddca914f7abb44392c90b4e87d905d48303a9efe868d0e31496542c6ba01e667",
+  "requestSourceBytes": 333,
+  "requestSourceUtf16": 333,
+  "inputPreservedWithoutRewriting": true,
+  "fenceOnlyAddsMissingTrailingEol": false,
+  "status": "error",
+  "error": "图表含未支持或不完整语法，已保留完整源码。",
+  "contentType": "code",
+  "resultComplete": true,
+  "fragmentCount": 1,
+  "requestUnchanged": true,
+  "fallbackBytesEqual": true,
+  "fallbackSha256": "ddca914f7abb44392c90b4e87d905d48303a9efe868d0e31496542c6ba01e667",
+  "elapsedMs": 0.2905059999999935,
+  "request": {
+    "documentId": "baseline-flowchart-006-subgraph",
+    "version": 0,
+    "source": "```mermaid\nflowchart LR\n  subgraph Client\n    UI[Web app]\n    Cache[(Local cache)]\n  end\n  subgraph Services\n    API[API gateway]\n    Auth[Auth service]\n    Orders[Order service]\n  end\n  subgraph Storage\n    DB[(Orders DB)]\n  end\n  UI --> API\n  UI --> Cache\n  API --> Auth\n  API --> Orders\n  Orders --> DB\n  Auth -. token .-> UI\n```\n",
+    "from": 0,
+    "to": 333,
+    "fromLine": 1,
+    "toLine": 22,
+    "completeStart": true,
+    "completeEnd": true,
+    "contextKnown": true,
+    "protectedRanges": [],
+    "blocks": [
+      {
+        "kind": "fence",
+        "complete": true,
+        "info": "mermaid",
+        "from": 0,
+        "to": 333,
+        "contentRanges": [
+          {
+            "from": 11,
+            "to": 329
+          }
+        ]
+      }
+    ],
+    "selection": {
+      "anchor": 0,
+      "head": 0
+    },
+    "theme": "light",
+    "target": "screen",
+    "width": 800
+  },
+  "result": {
+    "fragments": [
+      {
+        "from": 0,
+        "to": 333,
+        "layout": "block",
+        "content": {
+          "type": "code",
+          "children": [
+            {
+              "type": "text",
+              "text": "```mermaid\nflowchart LR\n  subgraph Client\n    UI[Web app]\n    Cache[(Local cache)]\n  end\n  subgraph Services\n    API[API gateway]\n    Auth[Auth service]\n    Orders[Order service]\n  end\n  subgraph Storage\n    DB[(Orders DB)]\n  end\n  UI --> API\n  UI --> Cache\n  API --> Auth\n  API --> Orders\n  Orders --> DB\n  Auth -. token .-> UI\n```\n"
+            }
+          ]
+        },
+        "accessibleText": "图表含未支持或不完整语法，已保留完整源码。",
+        "status": "error",
+        "message": "图表含未支持或不完整语法，已保留完整源码。"
+      }
+    ],
+    "complete": true
+  }
+}

@@ -1,0 +1,104 @@
+--- revision01/app_cpu_ring.py
++++ revision02/app_cpu_ring.py
+@@ -7,6 +7,7 @@
+ import re
+ from pathlib import Path
+ import select
++import stat as stat_module
+ import sys
+ import time
+ 
+@@ -38,8 +39,11 @@
+         return raw
+ 
+     def log_chunk(self, path, offset, limit):
+-        with open(path, 'rb') as stream:
++        fd = os.open(path, os.O_RDONLY | os.O_NONBLOCK | os.O_CLOEXEC | os.O_NOFOLLOW)
++        with os.fdopen(fd, 'rb') as stream:
+             stat = os.fstat(stream.fileno())
++            if not stat_module.S_ISREG(stat.st_mode):
++                raise ValueError('native-log-not-regular-file')
+             if offset is None:
+                 return b'', stat.st_size, (stat.st_dev, stat.st_ino)
+             stream.seek(offset)
+@@ -171,7 +175,7 @@
+         self.app_terminal = None
+         self.scope = None
+         self.app = Ring(121, TOTAL_BYTES // 2)
+-        self.cg = Ring(61, CG_BYTES)
++        self.cg = Ring(61, CG_BYTES - 1024)
+         self.error_counts = {}
+         self.error_examples = []
+         self.cycles = 0
+@@ -221,15 +225,24 @@
+         actual = normalize_argv(raw.decode('utf-8').split('\0'))
+         if actual != self.identity['argv']:
+             raise ValueError('initial-argv-mismatch')
++        app_membership = None
++        membership_start = self.clock.now()
++        try:
++            app_membership = self.fs.read('/proc/' + str(self.identity['pid']) + '/cgroup', 4096).decode('ascii')
++        except (OSError, ValueError, UnicodeError) as error:
++            self.error('app-cgroup-bind', error)
++        membership_end = self.clock.now()
+         second = self.read_stat()
+         if second['birth'] != first['birth'] or second['state'] in 'ZXx':
+             raise ValueError('identity-changed-during-bind')
+         self.bound = True
++        self.binding = {'firstBirth': first['birth'], 'secondBirth': second['birth'],
++                        'appCgroupReadStartMonoNs': membership_start, 'appCgroupReadEndMonoNs': membership_end}
+         self.scope = {'kind': 'observer-visible-shared-cgroup', 'root': '/sys/fs/cgroup',
+                       'sameAppGroupConfirmed': False, 'rendererAttribution': False}
+         try:
+             own = self.fs.read('/proc/self/cgroup', 4096).decode('ascii')
+-            app = self.fs.read('/proc/' + str(self.identity['pid']) + '/cgroup', 4096).decode('ascii')
++            app = app_membership
+             own_ns = self.fs.link('/proc/self/ns/cgroup')
+             app_ns = self.fs.link('/proc/' + str(self.identity['pid']) + '/ns/cgroup')
+             mount = self.fs.read('/proc/self/mountinfo', 65536).decode('ascii')
+@@ -402,8 +415,9 @@
+         return {'schema': 'milkup.exact-app-cgroup-ring.v1', 'ok': bool(ok),
+                 'finishReason': reason, 'startedMonoNs': self.started, 'finishedMonoNs': now,
+                 'identity': self.identity, 'identityBound': self.bound, 'scope': self.scope,
++                'binding': getattr(self, 'binding', None),
+                 'nativeLog': dict(self.log, pendingBytes=len(self.log_pending)), 'firstDeadline': self.deadline,
+-                'clockTicksPerSecond': self.ticks, 'pageSizeBytes': self.page_size,
++                'clock': 'CLOCK_MONOTONIC via Python time.monotonic_ns', 'clockTicksPerSecond': self.ticks, 'pageSizeBytes': self.page_size,
+                 'app': app, 'cgroup': cg, 'cycles': self.cycles, 'cgroupCycles': self.cg_cycles,
+                 'missedSlots': {'app': self.app_missed_slots, 'cgroup': self.cg_missed_slots},
+                 'errors': self.error_counts, 'errorExamples': self.error_examples,
+@@ -467,7 +481,7 @@
+         sampler.error('sampler', error)
+     result = sampler.finish(reason)
+     raw = encoded(result)
+-    if len(raw) > TOTAL_BYTES:
++    if len(raw) + 1 > TOTAL_BYTES:
+         # Fail closed: preserve explicit tool failure rather than write an
+         # unbounded artifact or silently claim complete evidence.
+         result = {'schema': 'milkup.exact-app-cgroup-ring.v1', 'ok': False,
+--- revision01/test_app_cpu_ring.py
++++ revision02/test_app_cpu_ring.py
+@@ -225,6 +225,23 @@
+         self.bind(); self.fs.log += self.trace(instance='not-instance')
+         self.s.tick(); self.assertIsNone(self.s.deadline)
+         self.assertFalse(self.s.finish('harness-final')['ok'])
++    def test_cgroup_read_is_between_identity_stats(self):
++        self.bind()
++        paths = [p for p, _ in self.fs.reads]
++        stats = [i for i, p in enumerate(paths) if p == '/proc/123/stat']
++        membership = paths.index('/proc/123/cgroup')
++        self.assertLess(stats[0], membership); self.assertLess(membership, stats[1])
++        self.assertEqual(paths.count('/proc/123/cgroup'), 1)
++    def test_unreadable_app_cgroup_partial_with_bound_identity(self):
++        self.fs.data['/proc/123/cgroup'] = PermissionError('not available')
++        self.bind()
++        self.assertTrue(self.s.bound)
++        self.assertFalse(self.s.scope['sameAppGroupConfirmed'])
++        self.assertFalse(self.s.finish('harness-final')['ok'])
++    def test_cgroup_entire_snapshot_budget(self):
++        self.bind()
++        for _ in range(70):self.s.tick(); self.clock.advance(m.CG_PERIOD_NS)
++        self.assertLessEqual(len(m.encoded(self.s.finish('harness-final')['cgroup'])), m.CG_BYTES)
+     def test_no_global_discovery_paths(self):
+         self.bind()
+         for _ in range(3):self.s.tick(); self.clock.advance(m.APP_PERIOD_NS)

@@ -1,0 +1,123 @@
+{
+  "atUtc": "2026-10-16T20:26:51.496437+00:00",
+  "result": "FAIL_FAST_LINT_FORMATTING",
+  "commands": [
+    {
+      "name": "typecheck",
+      "command": [
+        "bash",
+        "scripts/cloud/pnpm.sh",
+        "typecheck"
+      ],
+      "cwd": "/workspace/milkup",
+      "started": "2026-10-16T20:22:34.120530+00:00",
+      "finished": "2026-10-16T20:23:16.704150+00:00",
+      "exitCode": 0,
+      "log": "/workspace/milkup-mermaid-engine-evidence/repository-gates06/typecheck.log",
+      "sha256": "585c82712cc36133c46e57a3c478a73b5a58e7bfa87139ede184517a90f56069"
+    },
+    {
+      "name": "test",
+      "command": [
+        "bash",
+        "scripts/cloud/pnpm.sh",
+        "test"
+      ],
+      "cwd": "/workspace/milkup",
+      "started": "2026-10-16T20:23:16.706594+00:00",
+      "finished": "2026-10-16T20:24:31.011326+00:00",
+      "exitCode": 0,
+      "log": "/workspace/milkup-mermaid-engine-evidence/repository-gates06/test.log",
+      "sha256": "724d5762fb1b9e7e0717842893271e969aeb202346145426f34ed619d736d751"
+    },
+    {
+      "name": "format",
+      "command": [
+        "bash",
+        "scripts/cloud/pnpm.sh",
+        "lint"
+      ],
+      "cwd": "/workspace/milkup",
+      "started": "2026-10-16T20:24:31.011848+00:00",
+      "finished": "2026-10-16T20:26:21.491844+00:00",
+      "exitCode": 1,
+      "log": "/workspace/milkup-mermaid-engine-evidence/repository-gates06/format.log",
+      "sha256": "669692b7dd130194e2d6653e01f70625cdb5dd53d5516cd3a2b10b825ef61c23"
+    }
+  ],
+  "build": "NOT_RUN_AFTER_LINT_FAILURE",
+  "testCounts": {
+    "vitestPackages": [
+      {
+        "package": "packages/assets",
+        "passed": 6
+      },
+      {
+        "package": "packages/input",
+        "passed": 8
+      },
+      {
+        "package": "packages/markdown",
+        "passed": 121
+      },
+      {
+        "package": "packages/core",
+        "passed": 175
+      },
+      {
+        "package": "packages/plugin-sdk",
+        "passed": 6
+      },
+      {
+        "package": "packages/export",
+        "passed": 18
+      },
+      {
+        "package": "packages/mcp",
+        "passed": 11
+      },
+      {
+        "package": "packages/tauri-bridge",
+        "passed": 55
+      },
+      {
+        "package": "packages/view-dom",
+        "passed": 663
+      },
+      {
+        "package": "tests/regressions",
+        "passed": 12
+      },
+      {
+        "package": "packages/plugin",
+        "passed": 480
+      },
+      {
+        "package": "packages/cli",
+        "passed": 21
+      },
+      {
+        "package": "apps/desktop",
+        "passed": 475
+      }
+    ],
+    "vitestPassed": 2051,
+    "nodeBootstrapPassed": 4,
+    "nodeBootstrapFailed": 0,
+    "distinctPassed": 2055
+  },
+  "formatFailures": [
+    "docs/evidence/v2-product-phase4-mermaid-engine/checkpoint07/index.json",
+    "docs/evidence/v2-product-phase4-mermaid-engine/checkpoint08/index.json",
+    "docs/evidence/v2-product-phase4-mermaid-engine/checkpoint09/index.json",
+    "docs/evidence/v2-product-phase4-mermaid-engine/checkpoint10/index.json",
+    "docs/evidence/v2-product-phase4-mermaid-engine/checkpoint11/index.json"
+  ],
+  "sourceComparison": {
+    "beforeCount": 15413,
+    "afterCount": 15413,
+    "headUnchanged": true,
+    "changes": []
+  },
+  "qualification": "No source edits, formatter writes, retries, native or browser tasks by this runner. Typecheck/test passed; lint failed on five evidence index JSON files. Browser35 belongs to separate evidence. Build not executed. CPU runner exited1 and slot released to parent."
+}

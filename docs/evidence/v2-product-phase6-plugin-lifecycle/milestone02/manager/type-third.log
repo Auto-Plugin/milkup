@@ -1,0 +1,7 @@
+apps/desktop/src/desktop-editing-capabilities.test.ts(131,7): error TS2322: Type '(_m: PluginManifest, _s: string, cap: DesktopPluginModuleCapabilities | undefined) => Promise<{ module: { runtimeHost: "isolated"; commands: { ...; }; activate: () => {}; }; dispose: () => number; }>' is not assignable to type 'DesktopPluginModuleLoader'.
+  Type 'Promise<{ module: { runtimeHost: "isolated"; commands: { 'image.paste': () => void; }; activate: () => {}; }; dispose: () => number; }>' is not assignable to type 'Promise<DesktopLoadedPluginModule>'.
+    Type '{ module: { runtimeHost: "isolated"; commands: { 'image.paste': () => void; }; activate: () => {}; }; dispose: () => number; }' is not assignable to type 'DesktopLoadedPluginModule'.
+      The types returned by 'dispose()' are incompatible between these types.
+        Type 'number' is not assignable to type 'void | Promise<void>'.
+packages/plugin/src/registry.ts(205,7): error TS2322: Type 'boolean | undefined' is not assignable to type 'boolean'.
+  Type 'undefined' is not assignable to type 'boolean'.

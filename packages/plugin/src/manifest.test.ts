@@ -1,0 +1,520 @@
+import { describe, expect, it } from 'vitest'
+
+import { parsePluginManifest, validatePluginManifest } from './manifest'
+
+describe('plugin manifest validation', () => {
+  it('accepts a manifest with command, keymap, renderer, and markdown syntax contributions', () => {
+    const result = validatePluginManifest({
+      id: 'milkup.example-tools',
+      name: 'Example Tools',
+      version: '1.2.3',
+      main: './dist/plugin.js',
+      description: 'Example plugin',
+      engines: {
+        milkup: '^0.1.0',
+        pluginSdk: '^0.1.0',
+      },
+      permissions: ['document:read', 'document:write', 'network:access'],
+      networkOrigins: ['https://api.example.test'],
+      contributes: {
+        commands: [
+          {
+            id: 'example.insertTimestamp',
+            title: 'Insert Timestamp',
+            action: 'example.insertTimestamp',
+            category: 'document',
+            permissions: ['document:write'],
+            inputSchema: {
+              type: 'object',
+              properties: {
+                text: {
+                  type: 'string',
+                  required: true,
+                  description: 'Text to insert',
+                },
+              },
+            },
+          },
+        ],
+        keymaps: [
+          {
+            command: 'example.insertTimestamp',
+            key: 'Mod-Alt-T',
+            when: 'editorFocus',
+          },
+        ],
+        renderers: [
+          {
+            id: 'example-callout',
+            nodeType: 'callout',
+            module: './dist/callout-renderer.js',
+          },
+        ],
+        markdownSyntax: [
+          {
+            id: 'example-callout',
+            nodeType: 'callout',
+            pattern: '^:::callout',
+            block: true,
+          },
+        ],
+        ui: [
+          {
+            id: 'example-panel',
+            slot: 'sidebar-panel',
+            title: 'Example',
+            scope: 'document',
+            viewportUpdates: false,
+          },
+        ],
+        importers: [
+          {
+            id: 'chatgpt-export',
+            title: 'ChatGPT Export',
+            extensions: ['json', 'html'],
+            target: 'markdown',
+          },
+        ],
+        documentTypes: [
+          {
+            id: 'conversation',
+            title: 'Conversation',
+            extensions: ['json'],
+            readonly: true,
+          },
+        ],
+      },
+    })
+
+    expect(result.ok).toBe(true)
+    expect(result.errors).toEqual([])
+    expect(result.manifest).toMatchObject({
+      id: 'milkup.example-tools',
+      engines: { milkup: '^0.1.0', pluginSdk: '^0.1.0' },
+      permissions: ['document:read', 'document:write', 'network:access'],
+      networkOrigins: ['https://api.example.test'],
+      contributes: {
+        commands: [
+          {
+            id: 'example.insertTimestamp',
+            inputSchema: {
+              type: 'object',
+              properties: {
+                text: {
+                  type: 'string',
+                  required: true,
+                  description: 'Text to insert',
+                },
+              },
+            },
+          },
+        ],
+        keymaps: [{ command: 'example.insertTimestamp' }],
+        renderers: [{ nodeType: 'callout' }],
+        markdownSyntax: [
+          { id: 'example-callout', nodeType: 'callout', pattern: '^:::callout', block: true },
+        ],
+        ui: [
+          {
+            id: 'example-panel',
+            slot: 'sidebar-panel',
+            title: 'Example',
+            scope: 'document',
+            viewportUpdates: false,
+          },
+        ],
+        importers: [
+          {
+            id: 'chatgpt-export',
+            title: 'ChatGPT Export',
+            extensions: ['json', 'html'],
+            target: 'markdown',
+          },
+        ],
+        documentTypes: [
+          { id: 'conversation', title: 'Conversation', extensions: ['json'], readonly: true },
+        ],
+      },
+    })
+    expect(Object.isFrozen(result.manifest)).toBe(true)
+  })
+
+  it('accepts explicit worker and sidecar host declarations', () => {
+    expect(
+      validatePluginManifest({
+        id: 'worker-tools',
+        name: 'Worker Tools',
+        version: '1.0.0',
+        host: 'worker',
+      }).manifest,
+    ).toMatchObject({
+      id: 'worker-tools',
+      host: 'worker',
+    })
+
+    expect(
+      validatePluginManifest({
+        id: 'sidecar-tools',
+        name: 'Sidecar Tools',
+        version: '1.0.0',
+        host: 'sidecar',
+      }).manifest,
+    ).toMatchObject({
+      id: 'sidecar-tools',
+      host: 'sidecar',
+    })
+  })
+
+  it('reports missing required top-level fields and invalid identifiers', () => {
+    const result = validatePluginManifest({
+      id: 'Bad Plugin',
+      version: 'v1',
+    })
+
+    expect(result.ok).toBe(false)
+    expect(result.errors).toEqual([
+      { path: '$.name', message: 'Expected a non-empty string' },
+      { path: '$.id', message: 'Plugin id must be kebab/dot case' },
+      { path: '$.version', message: 'Version must be semver-like' },
+    ])
+  })
+
+  it('rejects unknown plugin host declarations', () => {
+    const result = validatePluginManifest({
+      id: 'host-tools',
+      name: 'Host Tools',
+      version: '1.0.0',
+      host: 'process',
+    })
+
+    expect(result.ok).toBe(false)
+    expect(result.errors).toContainEqual({
+      path: '$.host',
+      message: 'Unknown plugin host: process',
+    })
+  })
+
+  it('requires network allowlist entries to be exact HTTP(S) origins', () => {
+    const result = validatePluginManifest({
+      id: 'network-tools',
+      name: 'Network Tools',
+      version: '1.0.0',
+      permissions: ['network:access'],
+      networkOrigins: [
+        'https://api.example.test/path',
+        'ftp://api.example.test',
+        'https://api.example.test',
+      ],
+    })
+
+    expect(result.ok).toBe(false)
+    expect(result.errors).toContainEqual({
+      path: '$.networkOrigins[0]',
+      message: 'Network origin must be an exact HTTP(S) origin',
+    })
+    expect(result.errors).toContainEqual({
+      path: '$.networkOrigins[1]',
+      message: 'Network origin must be an exact HTTP(S) origin',
+    })
+    expect(result.errors).not.toContainEqual(
+      expect.objectContaining({ path: '$.networkOrigins[2]' }),
+    )
+  })
+
+  it('rejects unknown permissions and malformed contribution arrays', () => {
+    const result = validatePluginManifest({
+      id: 'example',
+      name: 'Example',
+      version: '1.0.0',
+      permissions: ['document:read', 'shell:exec'],
+      contributes: {
+        commands: [
+          {
+            id: 'not valid',
+            title: 'Bad',
+            action: 'bad',
+          },
+        ],
+        keymaps: 'Mod-X',
+      },
+    })
+
+    expect(result.ok).toBe(false)
+    expect(result.errors).toContainEqual({
+      path: '$.permissions[1]',
+      message: 'Unknown plugin permission: shell:exec',
+    })
+    expect(result.errors).toContainEqual({
+      path: '$.contributes.commands[0].id',
+      message: 'Command id must be an action-style id',
+    })
+    expect(result.errors).toContainEqual({
+      path: '$.contributes.commands[0].action',
+      message: 'Command action must be an action-style id',
+    })
+    expect(result.errors).toContainEqual({
+      path: '$.contributes.keymaps',
+      message: 'Expected an array',
+    })
+  })
+
+  it('requires command permissions to be declared at the manifest level', () => {
+    const result = validatePluginManifest({
+      id: 'network-tools',
+      name: 'Network Tools',
+      version: '1.0.0',
+      permissions: ['document:write'],
+      contributes: {
+        commands: [
+          {
+            id: 'network.fetch',
+            title: 'Fetch',
+            action: 'network.fetch',
+            permissions: ['network:access'],
+          },
+        ],
+      },
+    })
+
+    expect(result.ok).toBe(false)
+    expect(result.errors).toContainEqual({
+      path: '$.contributes.commands[0].permissions[0]',
+      message: 'Command permission must be declared in top-level permissions: network:access',
+    })
+  })
+
+  it('rejects duplicate contribution ids and unknown keymap commands', () => {
+    const result = validatePluginManifest({
+      id: 'duplicate-tools',
+      name: 'Duplicate Tools',
+      version: '1.0.0',
+      contributes: {
+        commands: [
+          {
+            id: 'duplicate.run',
+            title: 'Run A',
+            action: 'duplicate.run',
+          },
+          {
+            id: 'duplicate.run',
+            title: 'Run B',
+            action: 'duplicate.other',
+          },
+          {
+            id: 'duplicate.extra',
+            title: 'Run C',
+            action: 'duplicate.other',
+          },
+        ],
+        keymaps: [
+          {
+            command: 'duplicate.missing',
+            key: 'Mod-Alt-M',
+          },
+        ],
+        renderers: [
+          {
+            id: 'duplicate-renderer',
+            nodeType: 'callout',
+            module: './renderer-a.js',
+          },
+          {
+            id: 'duplicate-renderer',
+            nodeType: 'note',
+            module: './renderer-b.js',
+          },
+        ],
+        markdownSyntax: [
+          {
+            id: 'duplicate-syntax',
+            nodeType: 'callout',
+            pattern: '^:::callout',
+            block: true,
+          },
+          {
+            id: 'duplicate-syntax',
+            nodeType: 'note',
+            pattern: '^:::note',
+            inline: true,
+          },
+        ],
+      },
+    })
+
+    expect(result.ok).toBe(false)
+    expect(result.errors).toContainEqual({
+      path: '$.contributes.commands[1].id',
+      message: 'Duplicate command id: duplicate.run',
+    })
+    expect(result.errors).toContainEqual({
+      path: '$.contributes.commands[2].action',
+      message: 'Duplicate command action: duplicate.other',
+    })
+    expect(result.errors).toContainEqual({
+      path: '$.contributes.keymaps[0].command',
+      message: 'Keymap command must reference a contributed command action: duplicate.missing',
+    })
+    expect(result.errors).toContainEqual({
+      path: '$.contributes.renderers[1].id',
+      message: 'Duplicate renderer id: duplicate-renderer',
+    })
+    expect(result.errors).toContainEqual({
+      path: '$.contributes.markdownSyntax[1].id',
+      message: 'Duplicate markdown syntax id: duplicate-syntax',
+    })
+  })
+
+  it('rejects render handler ids shared by different contribution types', () => {
+    const result = validatePluginManifest({
+      id: 'render-tools',
+      name: 'Render Tools',
+      version: '1.0.0',
+      contributes: {
+        renderers: [{ id: 'shared-view', nodeType: 'callout', module: './shared-renderer.js' }],
+        ui: [{ id: 'shared-view', title: 'Shared', slot: 'sidebar-panel' }],
+        importers: [
+          {
+            id: 'shared-view',
+            title: 'Shared Importer',
+            extensions: ['json'],
+            output: 'markdown',
+            target: 'chat-export',
+          },
+        ],
+      },
+    })
+
+    expect(result.ok).toBe(false)
+    expect(result.errors).toContainEqual({
+      path: '$.contributes.ui[0].id',
+      message: 'Renderable contribution id conflicts with renderers: shared-view',
+    })
+    expect(result.errors).toContainEqual({
+      path: '$.contributes.importers[0].id',
+      message: 'Renderable contribution id conflicts with renderers: shared-view',
+    })
+  })
+
+  it('rejects malformed command input schemas', () => {
+    const result = validatePluginManifest({
+      id: 'schema-tools',
+      name: 'Schema Tools',
+      version: '1.0.0',
+      contributes: {
+        commands: [
+          {
+            id: 'schema.run',
+            title: 'Run',
+            action: 'schema.run',
+            inputSchema: {
+              type: 'array',
+              properties: {
+                text: {
+                  type: 'string',
+                  required: 'yes',
+                },
+                count: {
+                  type: 'integer',
+                },
+                broken: 'field',
+              },
+            },
+          },
+        ],
+      },
+    })
+
+    expect(result.ok).toBe(false)
+    expect(result.errors).toContainEqual({
+      path: '$.contributes.commands[0].inputSchema.type',
+      message: 'Input schema type must be object',
+    })
+    expect(result.errors).toContainEqual({
+      path: '$.contributes.commands[0].inputSchema.properties.text.required',
+      message: 'Expected a boolean',
+    })
+    expect(result.errors).toContainEqual({
+      path: '$.contributes.commands[0].inputSchema.properties.count.type',
+      message: 'Invalid input schema field type: integer',
+    })
+    expect(result.errors).toContainEqual({
+      path: '$.contributes.commands[0].inputSchema.properties.broken',
+      message: 'Input schema property must be an object',
+    })
+  })
+
+  it('requires markdown syntax contributions to declare block or inline mode', () => {
+    const result = validatePluginManifest({
+      id: 'syntax-plugin',
+      name: 'Syntax Plugin',
+      version: '1.0.0',
+      contributes: {
+        markdownSyntax: [{ id: 'callout', nodeType: 'callout', pattern: '^:::callout' }],
+      },
+    })
+
+    expect(result.ok).toBe(false)
+    expect(result.errors).toContainEqual({
+      path: '$.contributes.markdownSyntax[0]',
+      message: 'Markdown syntax contribution must enable block or inline',
+    })
+  })
+
+  it('rejects unsafe markdown syntax patterns before plugin execution', () => {
+    const result = validatePluginManifest({
+      id: 'unsafe-syntax',
+      name: 'Unsafe Syntax',
+      version: '1.0.0',
+      contributes: {
+        markdownSyntax: [
+          {
+            id: 'unsafe',
+            nodeType: 'unsafeNode',
+            pattern: '(a+)+',
+            block: true,
+          },
+        ],
+      },
+    })
+
+    expect(result.ok).toBe(false)
+    expect(result.errors).toContainEqual({
+      path: '$.contributes.markdownSyntax[0].pattern',
+      message: 'Markdown syntax pattern uses unsafe features',
+    })
+  })
+
+  it('throws a readable aggregate error when parsing invalid manifests', () => {
+    expect(() => parsePluginManifest({})).toThrow(
+      'Invalid plugin manifest:\n- $.id: Expected a non-empty string\n- $.name: Expected a non-empty string\n- $.version: Expected a non-empty string',
+    )
+  })
+})
+
+describe('package icon declaration', () => {
+  const base = { id: 'test.icon', name: 'Icon', version: '1.0.0' }
+  it('preserves a declared package PNG and keeps old manifests valid', () => {
+    expect(parsePluginManifest(base).icon).toBeUndefined()
+    expect(
+      parsePluginManifest({ ...base, icon: 'assets/logo.png', resources: ['assets/logo.png'] })
+        .icon,
+    ).toBe('assets/logo.png')
+  })
+  it.each([
+    'https://example.test/icon.png',
+    'data:image/png;base64,AA==',
+    '/logo.png',
+    '../logo.png',
+    'assets/../logo.png',
+    'assets\\logo.png',
+    'assets/%2e.png',
+    'logo.svg',
+    './logo.png',
+    '',
+  ])('rejects unsafe icon %s', (icon) => {
+    expect(validatePluginManifest({ ...base, icon, resources: [icon] }).ok).toBe(false)
+  })
+  it('requires the icon to be listed in package resources', () => {
+    expect(validatePluginManifest({ ...base, icon: 'logo.png' }).ok).toBe(false)
+  })
+})

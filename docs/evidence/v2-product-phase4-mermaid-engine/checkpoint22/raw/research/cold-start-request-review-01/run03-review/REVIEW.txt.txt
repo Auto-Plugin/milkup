@@ -1,0 +1,108 @@
+03 independent accepted-wire review
+DIAGNOSTIC_PREFIX_STOP_ORIGINAL_COLD_GATE_PASS_NOT_FULL_UI_ACCEPTANCE
+
+Scope and integrity
+Reviewed frozen03 evidence only; no product/browser run or candidate edits.
+Manifest SHA256 5b92991fea762804164a001e8633341dfff96a733f272c746f292f10b68738e2.
+All172 files,16883782 bytes, rehashed with zero differences (freeze-check.json).
+The existing strict audit tool ran unchanged and exited1. Its original output is
+retained as accepted-wire-audit-first.json. The sole error is the differing full-log
+native-dispatch and capture request sets. qualified-audit.json separately records
+valid captured inputs without weakening the strict check or claiming full coverage.
+
+Cold gate evidence and its limits
+Frozen harness.log records PASS preinstalled-cold-before-render, PASS
+preinstalled-cold-window, then DIAGNOSTIC_PREFIX_STOP. Harness and sampler exits0.
+results.json identifies block-000-first-official-example at[108,342), image
+complete=true, natural size663x281, inlineSvg0, live mode, no notice, diagrams
+enabled/no errors. The original cold gate executed and passed in this research
+diagnostic run. Pixel review is left to the independent screenshot reviewer.
+diagnostic-prefix-stop.json explicitly omits independent installation, fallback,
+ordinary/windowed coverage, source/history, matrix and edge checks. Neither
+production acceptance nor fullUI acceptance nor closure of the old production08
+deadline follows from this prefix result. Diagnostic binary SHA remains
+a5fce05f06805931d9e55c2cddc80f1b9e0e4f31c5a756f2bc8eab3b185c0ac8.
+
+Exact identity and retained requests
+App PID/birth468788/8887290; guardian468923/8887623.
+Instance89991fca045be26f50cf9b51dabff036dbd0a170476407fc.
+Plugin milkup.diagrams; renderer diagrams.mermaid.
+Capture6events =1guardian-spawn +5render-accepted. All five retain complete wire,
+correct UTF8 byte count/SHA256, all16 request fields, matching message.id/pluginId,
+matching prior guardian identity, and exactly one matching native dispatch.
+The frozen ordinary.md SHA256 is
+a7267df165778c560a8fba59bfbff7065ae63365741e3eb87078783bc865fd4b.
+
+Input mapping, half-open absolute UTF16 ranges:
+render_1, render_2, render_4: block fence[108,342), body[119,339), lines5-20.
+render_3, render_5: classDiagram fence[440,969), body[451,966), lines26-53.
+All source strings exactly reconstruct from the fixture; source length, line
+bounds, block/content ranges and protected ranges agree. Header Chinese/accent/
+emoji make UTF16 offset108 correspond to scalar105/UTF8 byte121;440 corresponds
+to437/453. utf16-proof.json records this explicitly.
+All five inputs have version0, selection0/0, width1100, light/screen,
+contextKnown=true, completeStart/End=false and one complete=true Mermaid fence.
+These are inputs, not per-request image outcomes. Repetition does not identify
+why the host requested another render. This run's class render_3 cannot identify
+the lost production08 render_3 in a different instance and executable.
+
+Critical capture cutoff qualification
+The driver log contains SIX dispatches: render_1 through render_6. render_6 has
+no captured wire. Its payload/source/range remain UNKNOWN; do not infer it from
+the prior requests, sample ordering, or the previous diagnostic01 run.
+render_6 native dispatch =88881387251420 monotonic ns.
+final status checkpoint =88881398751983 monotonic ns.
+Thus render_6 dispatch is11.500563ms BEFORE final, not after final.
+
+finish.request contains only "cold-prefix-final\n". Neither its creation time nor
+the writer's actual closed.store time is recorded on CLOCK_MONOTONIC. The recorder
+closes observation before draining and writing complete.json, and intentionally
+does not increment attempted/drop counters for capture calls after closure.
+Therefore completion acknowledges the drained capture window, not every request
+before the final checkpoint or application exit. Missing render_6 is consistent
+with this cutoff contract, but the evidence cannot independently place an exact
+finish/closed boundary or prove when render_6 reached the capture call. The final
+timestamp must not be substituted for the close timestamp. No precise assertion
+that render_6 was after finish.request is made here.
+
+Retained-input integrity passes; whole-lifecycle request coverage does not. Keep
+the first strict failure and the separate qualified result. Zero drop counters
+do not repair the missing sixth request or justify calling capture complete for
+the full native log. There are zero deadline-observed traces, which is not proof
+of per-request success; native_trace itself retains its original loss limitation.
+Dispatch-to-dispatch gaps are not renderer execution durations. In particular,
+do not treat the gap between render_3 and render_4 as an observed render timeout.
+
+Completion accounting and observer cost
+status.json and complete.json are identical, SHA256
+ee1a9dda51d3fb0ff8ee872a7ced5fd7d4151b7c447e5ea6108a76faba084049.
+final=true, diagnosticClosed=true, attempted=enqueued=written=6, inFlight0;
+queueFull/disconnected/oversize/capped/ioErrors/incompleteTiming all0.
+The five wire lengths total5362 bytes, matching reservedWireBytes5362.
+capture-finalization.json records completion within its1000ms diagnostic bound.
+
+Summary captureTotalNs1415286 (1.415286ms), captureMaxNs1356979 (1.356979ms).
+Recorded event spans total1414471ns; the815ns difference is later counter timing.
+The largest event is render_4: before→after1356824ns, including metadata/copy1346ns
+and enqueue-to-recorded-end1355478ns. These are elapsed timestamps, not thread CPU;
+they can include scheduling. They do not establish that try_send itself consumed
+that much CPU or explain a renderer delay.
+Dispatch→capture-start gaps for retained inputs are0.025635-0.138466ms.
+Writer thread CPU27228049ns (27.228049ms), over5.161740489s from first guardian
+record to final checkpoint. This belongs to App CPU and excludes final status/
+complete serialization; it is not renderer CPU and not a zero-overhead claim.
+Detailed numbers remain in overhead-review.json.
+
+CPU boundary and outcome
+The sampler recorded21 samples and only App and guardian identities, despite
+exit0/errorCount0. No GTK renderer/WebKit descendant identity was recorded, so
+there is still no renderer CPU/scheduling attribution. Its external observer CPU
+was75795591ns, with after-ready57537785ns and185proc reads. Full CPU interpretation
+belongs to the separately delegated CPU review; those counters cannot fill the
+missing renderer coverage or the wire cutoff gap.
+
+Useful outcome: original cold gate passed in a research prefix; five accepted
+inputs are fully verified and precisely bound. Explicit limitations: capture
+stopped before lifetime request coverage was complete, render_6 input is unknown,
+renderer CPU remains unobserved, and production/fullUI/historical deadline gates
+remain open. Prior01/02 setup failures remain preserved, not overwritten.

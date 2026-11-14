@@ -1,0 +1,170 @@
+{
+  "schemaVersion": 1,
+  "sourceFile": "unicode-fidelity.md",
+  "sourceSHA256": "8efe32b5d3c12890f8ffa21f41de6836c4027e645ec0b52557204facb40dfe74",
+  "normalization": "none; preserve original characters, combining sequences, joiners and variation selectors",
+  "cases": [
+    {
+      "id": "ALIAS_TEXT",
+      "text": "文一人口",
+      "codepoints": ["U+6587", "U+4E00", "U+4EBA", "U+53E3"],
+      "units": ["文一人口"],
+      "contract": "exact source codepoints in each required logical unit",
+      "scope": "original-loss-and-expanded-unicode"
+    },
+    {
+      "id": "ALIAS_RADICAL",
+      "text": "⽂⼀⼈⼝",
+      "codepoints": ["U+2F42", "U+2F00", "U+2F08", "U+2F1D"],
+      "units": ["⽂⼀⼈⼝"],
+      "contract": "exact source codepoints in each required logical unit",
+      "scope": "original-loss-and-expanded-unicode"
+    },
+    {
+      "id": "QUOTES",
+      "text": "const message = '中文代码';",
+      "codepoints": [
+        "U+0063",
+        "U+006F",
+        "U+006E",
+        "U+0073",
+        "U+0074",
+        "U+0020",
+        "U+006D",
+        "U+0065",
+        "U+0073",
+        "U+0073",
+        "U+0061",
+        "U+0067",
+        "U+0065",
+        "U+0020",
+        "U+003D",
+        "U+0020",
+        "U+0027",
+        "U+4E2D",
+        "U+6587",
+        "U+4EE3",
+        "U+7801",
+        "U+0027",
+        "U+003B"
+      ],
+      "units": ["const", "message", "=", "'", "中文代码", ";"],
+      "contract": "exact source codepoints in each required logical unit",
+      "scope": "original-loss-and-expanded-unicode",
+      "requiredExactPhraseReaders": ["popplerRaw", "mupdf"]
+    },
+    {
+      "id": "COMBINING",
+      "text": "é é Å Å",
+      "codepoints": [
+        "U+00E9",
+        "U+0020",
+        "U+0065",
+        "U+0301",
+        "U+0020",
+        "U+00C5",
+        "U+0020",
+        "U+0041",
+        "U+030A"
+      ],
+      "units": ["é", "é", "Å", "Å"],
+      "contract": "exact source codepoints in each required logical unit",
+      "scope": "original-loss-and-expanded-unicode"
+    },
+    {
+      "id": "LIGATURE",
+      "text": "office ffi fi ﬃ ﬁ",
+      "codepoints": [
+        "U+006F",
+        "U+0066",
+        "U+0066",
+        "U+0069",
+        "U+0063",
+        "U+0065",
+        "U+0020",
+        "U+0066",
+        "U+0066",
+        "U+0069",
+        "U+0020",
+        "U+0066",
+        "U+0069",
+        "U+0020",
+        "U+FB03",
+        "U+0020",
+        "U+FB01"
+      ],
+      "units": ["office", "ffi", "fi", "ﬃ", "ﬁ"],
+      "contract": "exact source codepoints in each required logical unit",
+      "scope": "original-loss-and-expanded-unicode"
+    },
+    {
+      "id": "EMOJI",
+      "text": "😀 👩🏽‍💻 ❤️",
+      "codepoints": [
+        "U+1F600",
+        "U+0020",
+        "U+1F469",
+        "U+1F3FD",
+        "U+200D",
+        "U+1F4BB",
+        "U+0020",
+        "U+2764",
+        "U+FE0F"
+      ],
+      "units": ["😀", "👩🏽‍💻", "❤️"],
+      "contract": "exact source codepoints in each required logical unit",
+      "scope": "original-loss-and-expanded-unicode"
+    },
+    {
+      "id": "ARABIC",
+      "text": "العربية لا",
+      "codepoints": [
+        "U+0627",
+        "U+0644",
+        "U+0639",
+        "U+0631",
+        "U+0628",
+        "U+064A",
+        "U+0629",
+        "U+0020",
+        "U+0644",
+        "U+0627"
+      ],
+      "units": ["العربية لا"],
+      "contract": "exact logical sequence",
+      "scope": "expanded-rtl",
+      "requiredExactPhraseReaders": ["popplerRaw", "popplerLayout", "mupdf"]
+    },
+    {
+      "id": "HEBREW",
+      "text": "שלום",
+      "codepoints": ["U+05E9", "U+05DC", "U+05D5", "U+05DD"],
+      "units": ["שלום"],
+      "contract": "exact source codepoints in each required logical unit",
+      "scope": "original-loss-and-expanded-unicode"
+    },
+    {
+      "id": "SVG",
+      "text": "中文输入 冻结内容 打印",
+      "codepoints": [
+        "U+4E2D",
+        "U+6587",
+        "U+8F93",
+        "U+5165",
+        "U+0020",
+        "U+51BB",
+        "U+7ED3",
+        "U+5185",
+        "U+5BB9",
+        "U+0020",
+        "U+6253",
+        "U+5370"
+      ],
+      "units": ["中文输入", "冻结内容", "打印"],
+      "contract": "exact source codepoints in each required logical unit",
+      "scope": "original-loss-and-expanded-unicode"
+    }
+  ],
+  "arabicBoundary": "Exact logical sequence is required but currently fails in the Chromium experiment. Visual glyph correctness and reading-order compatibility require separate review; this is not an expected-pass waiver.",
+  "readerPolicy": "Report exact whole phrase and required codepoint-unit counts independently for Poppler raw/layout and MuPDF. Each unit must occur unchanged the expected number of times in every reader. Quotes/code must additionally match exact spaces in raw and MuPDF. Poppler -layout may insert geometric spacing; retain that whole-phrase mismatch explicitly. Arabic exact logical phrase is mandatory in every reader; no bidi rewriting."
+}

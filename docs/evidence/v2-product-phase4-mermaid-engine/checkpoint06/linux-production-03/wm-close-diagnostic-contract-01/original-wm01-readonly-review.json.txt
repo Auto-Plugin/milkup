@@ -1,0 +1,79 @@
+{
+  "atUtc": "2026-10-16T15:17:47.663720+00:00",
+  "operation": "read-only source and raw evidence review; original RED verdict unchanged",
+  "app": {
+    "pid": 331651,
+    "birth": 5135071,
+    "parent": 331621,
+    "group": 331609,
+    "state": "S",
+    "ticks": 542,
+    "name": "milkup-desktop",
+    "argv": [
+      "/workspace/milkup-mermaid-engine-evidence/linux-production-03/install/usr/bin/milkup-desktop",
+      "/workspace/milkup-mermaid-engine-evidence/linux-production-03/lifecycle/runs/lifecycle-p03-wm-close-01/document.md"
+    ]
+  },
+  "guardian": {
+    "pid": 332021,
+    "birth": 5137063,
+    "parent": 331651,
+    "group": 332021,
+    "state": "S",
+    "ticks": 12,
+    "name": "milkup-desktop",
+    "instanceId": "18cb36c35606f8607ad8f75672117cef36b77d5bb40cc432"
+  },
+  "traces": [
+    {
+      "instanceId": "18cb36c35606f8607ad8f75672117cef36b77d5bb40cc432",
+      "monotonicNs": 51373279614538,
+      "phase": "dispatch",
+      "pid": 331651,
+      "requestId": "render_1"
+    },
+    {
+      "instanceId": "18cb36c35606f8607ad8f75672117cef36b77d5bb40cc432",
+      "monotonicNs": 51375746463098,
+      "phase": "dispatch",
+      "pid": 331651,
+      "requestId": "render_2"
+    },
+    {
+      "instanceId": "18cb36c35606f8607ad8f75672117cef36b77d5bb40cc432",
+      "monotonicNs": 51376014829456,
+      "phase": "kill-start",
+      "pid": 332021,
+      "requestId": null
+    },
+    {
+      "instanceId": "18cb36c35606f8607ad8f75672117cef36b77d5bb40cc432",
+      "monotonicNs": 51376058913397,
+      "phase": "cleanup-confirmed",
+      "pid": 331651,
+      "requestId": null
+    }
+  ],
+  "exactEchildMonotonicNs": null,
+  "proposedUpperBoundMonotonicNs": 51376058913397,
+  "firstClearAfterConfirmation": {
+    "mono": 51376.090301462,
+    "wall": 1792163763.6512604,
+    "appAlive": true,
+    "guardians": [],
+    "members": [],
+    "privateDirectory": "/tmp/milkup-dom-32047fa5a2ac47e2bfcad10ed080d1fab6b29051be01fdcb",
+    "privateDirectoryExists": false
+  },
+  "firstAppGoneAfterConfirmation": {
+    "mono": 51376.150600088,
+    "wall": 1792163763.711559,
+    "appAlive": false,
+    "guardians": [],
+    "members": [],
+    "privateDirectory": "/tmp/milkup-dom-32047fa5a2ac47e2bfcad10ed080d1fab6b29051be01fdcb",
+    "privateDirectoryExists": false
+  },
+  "sourceGuarantee": "plugin_dom_process.rs kill_owned: exact owned Child.try_wait Some(status), require status.success, extension.cleanup, then cleanup-confirmed; guardian cleanup returns Ok only after waitpid ECHILD; main returns exit0",
+  "ancestorNote": "No guardian ancestor record: live App reaped its exact Child before its own exit. Do not invent an ancestor wait or exact ECHILD timestamp."
+}

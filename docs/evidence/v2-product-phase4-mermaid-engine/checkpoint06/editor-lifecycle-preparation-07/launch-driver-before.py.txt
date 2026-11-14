@@ -1,0 +1,10 @@
+import subprocess,sys,json,datetime
+from pathlib import Path
+run,case,binary,sha=sys.argv[1:]
+assert run.startswith('lifecycle-') and case in ['timeout','disable','remove','wm-close','app-sigkill']
+out=Path('/workspace/milkup-mermaid-engine-evidence/editor-lifecycle-runs/control');out.mkdir(parents=True,exist_ok=True)
+record=out/(run+'-driver-owner.json');assert not record.exists()
+p=subprocess.Popen(['bash','/workspace/milkup-mermaid-engine-evidence/editor-lifecycle-preparation-04/driver.sh',run,case,binary,sha],start_new_session=True)
+stat=Path('/proc',str(p.pid),'stat').read_text().rsplit(')',1)[1].split()
+row={'pid':p.pid,'birth':stat[19],'group':int(stat[2]),'startedUtc':datetime.datetime.now(datetime.timezone.utc).isoformat(),'command':['bash','driver.sh',run,case,binary,sha]};record.write_text(json.dumps(row,indent=2)+'\n');print(json.dumps(row),flush=True)
+code=p.wait();row.update(exitCode=code,endedUtc=datetime.datetime.now(datetime.timezone.utc).isoformat());record.write_text(json.dumps(row,indent=2)+'\n');sys.exit(code)

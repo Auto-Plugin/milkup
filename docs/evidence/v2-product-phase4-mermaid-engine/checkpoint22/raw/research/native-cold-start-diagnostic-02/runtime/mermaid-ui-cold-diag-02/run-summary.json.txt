@@ -1,0 +1,73 @@
+{
+  "atUtc": "2026-10-17T01:36:06.145084+00:00",
+  "run": "mermaid-ui-cold-diag-02",
+  "classification": "DIAGNOSTIC_SETUP_FAILURE_NOT_PRODUCT_RED",
+  "fullUIAccepted": false,
+  "coldGateExecuted": false,
+  "harnessExitCode": 1,
+  "samplerExitCode": 0,
+  "firstFailure": "Original harness exact App profile environ verification received EACCES; startup window passed but cold gate not started",
+  "executionContextEvidence": "Driver used require_escalated; harness/CPU used use_default. Subsequent self-only read-only contexts show distinct user namespaces/uid maps; old driver already exited so no reconstruction. Original profile assertion remains unchanged.",
+  "nativeCaptureFinal": {
+    "attempted": 2,
+    "capped": 0,
+    "captureMaxNs": 15486,
+    "captureTotalNs": 21444,
+    "diagnosticClosed": true,
+    "disconnected": 0,
+    "enqueued": 2,
+    "final": true,
+    "inFlight": 0,
+    "incompleteTiming": 0,
+    "ioErrors": 0,
+    "limits": {
+      "events": 256,
+      "queue": 8,
+      "totalWireBytes": 16777216,
+      "wireBytes": 1048576
+    },
+    "monotonicNs": 88444355042720,
+    "oversize": 0,
+    "ownerBirth": 8843827,
+    "ownerPid": 468107,
+    "qualification": "Final only after external finish.request closes observation and drains queue. Future product requests continue unobserved. Missing final or identity or any drops/errors means incomplete.",
+    "queueFull": 0,
+    "reservedWireBytes": 950,
+    "schema": "milkup.cold-accepted-wire-status.v1",
+    "writerCpuScope": "App-owned background writer thread through last status checkpoint, excludes final status/complete serialization; included in App own CPU",
+    "writerThreadCpuNs": 7596874,
+    "written": 2
+  },
+  "cpu": {
+    "stopReason": "controller-stop",
+    "failure": null,
+    "sampleCount": 9,
+    "identityCount": 2,
+    "environmentUnavailableBindings": 1
+  },
+  "cleanup": {
+    "knownOwnedPidsAllAbsent": [
+      468049,
+      468053,
+      468067,
+      468068,
+      468069,
+      468070,
+      468080,
+      468081,
+      468107,
+      468118,
+      468124,
+      468131,
+      468137,
+      468170,
+      468234
+    ],
+    "dedicatedPortsListeners": [],
+    "ancestorReaps": 11,
+    "method": "original App session close then exact original owned-group stop after /status No sessions; wait-only subreaper"
+  },
+  "inputDrift": [],
+  "repositoryStatus": "",
+  "noAutomaticRetry": true
+}

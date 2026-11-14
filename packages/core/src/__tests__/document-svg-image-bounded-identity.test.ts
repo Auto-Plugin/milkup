@@ -1,0 +1,252 @@
+import { describe, expect, it } from 'vitest'
+import { copyDocumentPresentationNode } from '../document-presentation'
+
+// Public closed-tree inputs: no producer font metrics and no private budget edits.
+const length = (value: number) => ({ value, unit: 'user' as const })
+const text = { kind: 'text', children: [{ kind: 'textRun', text: 'Gantt 日期' }] }
+const identity = {
+  kind: 'dropShadowFilter',
+  id: 'bounded',
+  units: 'userSpaceOnUse',
+  primitiveUnits: 'userSpaceOnUse',
+  region: [0, 0, 100, 100].map(length),
+  colorInterpolation: 'sRGB',
+  dx: 0,
+  dy: 0,
+  stdDeviation: [0, 0],
+  color: [0, 0, 0, 0],
+}
+function layer(children: readonly unknown[] = [text]) {
+  return { kind: 'group', style: 0, children }
+}
+function image(children: readonly unknown[] = [layer()]) {
+  return {
+    type: 'svg-image',
+    profile: 'bounded-svg-v1',
+    motion: 'static',
+    width: 100,
+    height: 100,
+    rasterBounds: [0, 0, 100, 100],
+    viewBox: [0, 0, 100, 100],
+    aspect: { align: 'none', fit: 'meet' },
+    styles: [{ opacity: 0.8, filter: { kind: 'definition', ref: 'bounded' } }, { opacity: 0.5 }],
+    definitions: [identity],
+    children,
+  }
+}
+
+describe('explicit identity filter bounds paint without claiming text geometry', () => {
+  it('accepts original group opacity after an explicit identity filter bounds unknown glyph ink', () => {
+    expect(() => copyDocumentPresentationNode(image())).not.toThrow()
+  })
+
+  it('propagates bounded paint through group and symbol/use into ancestor compositing', () => {
+    const input = image([{ kind: 'group', style: 1, children: [{ kind: 'use', ref: 'label' }] }])
+    expect(() =>
+      copyDocumentPresentationNode({
+        ...input,
+        definitions: [...input.definitions, { kind: 'symbol', id: 'label', children: [layer()] }],
+      }),
+    ).not.toThrow()
+  })
+
+  it('preserves uncertainty from an unbounded sibling in the ancestor paint union', () => {
+    expect(() =>
+      copyDocumentPresentationNode(image([{ kind: 'group', style: 1, children: [layer(), text] }])),
+    ).toThrow()
+  })
+
+  it.each(['units', 'primitiveUnits'] as const)(
+    'does not infer text geometry for %s objectBoundingBox',
+    (key) => {
+      expect(() =>
+        copyDocumentPresentationNode({
+          ...image(),
+          definitions: [{ ...identity, [key]: 'objectBoundingBox' }],
+        }),
+      ).toThrow()
+    },
+  )
+
+  it('does not let a bounded child supply an ancestor objectBoundingBox filter geometry', () => {
+    const input = image([{ kind: 'group', style: 2, children: [layer()] }])
+    expect(() =>
+      copyDocumentPresentationNode({
+        ...input,
+        styles: [...input.styles, { filter: { kind: 'definition', ref: 'object' } }],
+        definitions: [
+          ...input.definitions,
+          { ...identity, id: 'object', units: 'objectBoundingBox' },
+        ],
+      }),
+    ).toThrow()
+  })
+
+  it.each(['fill-box', 'stroke-box'])(
+    'keeps ancestor %s transform origin geometry unknown',
+    (transformBox) => {
+      expect(() =>
+        copyDocumentPresentationNode(
+          image([
+            {
+              kind: 'group',
+              transformBox,
+              transformOrigin: [length(0), length(0)],
+              transforms: [{ kind: 'scale', x: 2, y: 2 }],
+              children: [layer()],
+            },
+          ]),
+        ),
+      ).toThrow()
+    },
+  )
+
+  it('validates child compositing before the enclosing filter can bound its output', () => {
+    expect(() => copyDocumentPresentationNode(image([layer([{ ...text, style: 1 }])]))).toThrow()
+  })
+
+  it('does not exempt a tspan effect or a marker text geometry requirement', () => {
+    expect(() =>
+      copyDocumentPresentationNode(
+        image([
+          layer([
+            {
+              kind: 'text',
+              children: [{ kind: 'tspan', style: 1, children: [{ kind: 'textRun', text: 'x' }] }],
+            },
+          ]),
+        ]),
+      ),
+    ).toThrow()
+    const input = image([{ kind: 'line', x1: 0, y1: 0, x2: 10, y2: 0, markerEnd: 'label' }])
+    expect(() =>
+      copyDocumentPresentationNode({
+        ...input,
+        definitions: [
+          ...input.definitions,
+          {
+            kind: 'marker',
+            id: 'label',
+            width: 10,
+            height: 10,
+            refX: length(0),
+            refY: length(0),
+            units: 'userSpaceOnUse',
+            orient: 'auto',
+            children: [layer()],
+          },
+        ],
+      }),
+    ).toThrow()
+  })
+
+  it.each([
+    { dx: 1 },
+    { dy: 1 },
+    { stdDeviation: [1, 0] },
+    { color: [0, 0, 0, 1] },
+    { colorInterpolation: 'linearRGB' },
+  ])('does not extend the unknown-text exception to a nonidentity filter %j', (change) => {
+    expect(() =>
+      copyDocumentPresentationNode({
+        ...image(),
+        definitions: [{ ...identity, ...change }],
+      }),
+    ).toThrow()
+  })
+
+  it('uses the filter definition explicit color space rather than referencing shape inheritance', () => {
+    const input = image()
+    expect(() =>
+      copyDocumentPresentationNode({
+        ...input,
+        styles: [{ ...input.styles[0], colorInterpolationFilters: 'linearRGB' }, input.styles[1]],
+      }),
+    ).not.toThrow()
+    expect(() =>
+      copyDocumentPresentationNode({
+        ...input,
+        styles: [{ ...input.styles[0], colorInterpolationFilters: 'sRGB' }, input.styles[1]],
+        definitions: [{ ...identity, colorInterpolation: 'linearRGB' }],
+      }),
+    ).toThrow()
+  })
+
+  it('charges every pixel intersecting a fractional explicit filter region at the surface limit', () => {
+    const known = image([layer([{ kind: 'rect', x: 1, y: 1, width: 1, height: 1 }])])
+    expect(() =>
+      copyDocumentPresentationNode({
+        ...known,
+        definitions: [{ ...identity, region: [0, 0, 4096, 4096].map(length) }],
+      }),
+    ).not.toThrow()
+    expect(() =>
+      copyDocumentPresentationNode({
+        ...known,
+        definitions: [{ ...identity, region: [0.25, 0.25, 4096, 4096].map(length) }],
+      }),
+    ).toThrow()
+  })
+
+  it.each(['css-shadow', 'svg-shadow', 'opacity'] as const)(
+    'keeps the same integer surface limit for the existing %s path',
+    (effect) => {
+      const withOffset = (offset: number) => ({
+        ...image([{ kind: 'rect', x: offset, y: offset, width: 4096, height: 4096, style: 0 }]),
+        styles: [
+          effect === 'opacity'
+            ? { opacity: 0.5 }
+            : effect === 'css-shadow'
+              ? {
+                  filter: {
+                    kind: 'cssDropShadow',
+                    shadows: [{ dx: 0, dy: 0, blur: 0, color: [0, 0, 0, 0.5] }],
+                  },
+                }
+              : { filter: { kind: 'definition', ref: 'bounded' } },
+        ],
+        definitions: [
+          {
+            ...identity,
+            color: [0, 0, 0, 0.5],
+            region: [offset, offset, 4096, 4096].map(length),
+          },
+        ],
+      })
+      expect(() => copyDocumentPresentationNode(withOffset(0))).not.toThrow()
+      expect(() => copyDocumentPresentationNode(withOffset(0.25))).toThrow()
+    },
+  )
+
+  it('bounds the transformed region in output pixels, including reflection and shear', () => {
+    expect(() =>
+      copyDocumentPresentationNode({
+        ...image([{ ...layer(), transforms: [{ kind: 'matrix', values: [-1, 0, 1, 1, 0, 0] }] }]),
+        definitions: [{ ...identity, region: [0, 0, 3000, 3000].map(length) }],
+      }),
+    ).toThrow()
+  })
+
+  it('shares bounded filter and opacity work across images rather than resetting it', () => {
+    const input = {
+      ...image(Array.from({ length: 8 }, () => layer())),
+      definitions: [{ ...identity, region: [0, 0, 3000, 3000].map(length) }],
+    }
+    expect(() => copyDocumentPresentationNode(input)).not.toThrow()
+    expect(() =>
+      copyDocumentPresentationNode({ type: 'group', children: [input, input] }),
+    ).toThrow()
+  })
+
+  it('still rejects oversized glyph rasterization inside a small enclosing identity region', () => {
+    const input = image([
+      layer([{ ...text, style: 2, transforms: [{ kind: 'scale', x: 5, y: 5 }] }]),
+    ])
+    expect(() =>
+      copyDocumentPresentationNode({
+        ...input,
+        styles: [...input.styles, { fontSize: length(512) }],
+      }),
+    ).toThrow()
+  })
+})

@@ -1,0 +1,31 @@
+Progress: resolved 0, reused 1, downloaded 0, added 0
+Packages are hard linked from the content-addressable store to the virtual store.
+  Content-addressable store is at: /workspace/.cache/pnpm/v11
+  Virtual store is at:             node_modules/.pnpm
+Packages: +55
++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+Progress: resolved 55, reused 55, downloaded 0, added 55, done
+
+devDependencies:
++ @milkup/plugin-sdk 0.3.3
++ esbuild 0.25.12
++ typescript 5.9.3
++ vitest 3.2.7
+
+Done in 381ms using pnpm v12.11.2
+$ tsc --noEmit && node scripts/build.mjs
+Built dist/plugin.js and dist/milkup.footnotes-1.0.0.milkup-plugin
+$ vitest run --config vitest.config.ts
+
+ RUN  v3.2.7 /workspace/milkup-markdown-extensions-phase4-evidence/footnotes/external-revision-final
+
+ ✓ src/indexer.test.ts (9 tests) 20ms
+ ✓ src/presentation.test.ts (4 tests) 21ms
+ ✓ src/controller.test.ts (9 tests) 23ms
+
+ Test Files  3 passed (3)
+      Tests  22 passed (22)
+   Start at  14:26:26
+   Duration  397ms (transform 207ms, setup 0ms, collect 282ms, tests 64ms, environment 0ms, prepare 240ms)
+
+Independent footnotes plugin verified: /workspace/milkup-markdown-extensions-phase4-evidence/footnotes/external-revision-final

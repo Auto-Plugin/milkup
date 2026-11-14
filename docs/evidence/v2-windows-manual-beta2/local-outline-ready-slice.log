@@ -1,0 +1,80 @@
+$ vitest run --config scripts/ci/outline-tests.config.ts
+
+ RUN  v3.2.6 /tmp/milkup-windows-manual-candidate
+
+ ✓ plugins/outline/src/outline-index.test.ts (8 tests) 2626ms
+   ✓ batches visibility leaf reads when collapsed roots are scattered through a complete index  357ms
+   ✓ matches an independent hierarchy oracle for 8775 headings and sparse/global folds  441ms
+   ✓ matches an independent hierarchy oracle for 18000 headings and sparse/global folds  620ms
+   ✓ overlaps at most two bounded page reads for sparse folded roots without changing their content  438ms
+ ❯ plugins/outline/src/plugin.test.ts (32 tests | 1 failed) 7244ms
+   ✓ complete paged outline index > ignores delayed echoes of the last returned slice rather than oscillating between old and prepared ranges  371ms
+   ✓ complete paged outline index > stops following the old active heading immediately and keeps the newest scroll request during storage reads  323ms
+   ✓ complete paged outline index > ignores host slice echoes and settles without a render feedback loop 287ms
+   ✓ complete paged outline index > indexes every contiguous range, preserves the full hierarchy and does not rescan when navigating  306ms
+   × complete paged outline index > folds subtrees across scan boundaries, highlights ancestors and restores a navigated child 1165ms
+     → expected [ undefined, undefined, …(2) ] to deeply equal [ 'Root', 'Child', 'Grandchild', …(1) ]
+   ✓ complete paged outline index > uses source identity for duplicate titles and rejects stale version actions immediately  304ms
+   ✓ complete paged outline index > discards old scans after quick document changes and disposes each temporary index  324ms
+   ✓ complete paged outline index > invalidates cached visible ancestors when a later range adds their first child  313ms
+   ✓ complete paged outline index > shows a partial index honestly, supports cancellation/retry and does not reuse cancelled identities  304ms
+   ✓ complete paged outline index > supports empty documents and reports storage capability or quota failures explicitly  302ms
+   ✓ complete paged outline index > does not silently complete after invalidated, truncated or interrupted scans  455ms
+   ✓ complete paged outline index > accepts Setext headings starting before the next range and deduplicates overlap by source offset 152ms
+   ✓ complete paged outline index > keeps every indexed title available beyond 16384 lines while rendering no more than 500 rows  607ms
+   ✓ complete paged outline index > bounds persisted pages for worst-case escaped labels while preserving folds  322ms
+   ✓ complete paged outline index > does not accept a delayed old-document navigation as current selection  354ms
+   ✓ reports a temporary-index quota failure without presenting a complete or silently empty outline 152ms
+   ✓ disposes delayed storage creation on disable without scheduling stale updates 152ms
+   ✓ does not highlight a guessed current heading before the active line has been scanned 204ms
+   ✓ debounces rapid edits/undo-redo and waits for old temporary-store disposal before indexing the newest version  366ms
+   ✓ cancels a debounced startup before allocating a store and can retry normally  303ms
+   ✓ reports failed sparse fold writes rather than claiming the folded tree is complete 153ms
+   ✓ bounded scan progress refreshes > coalesces sustained batches in a fixed progress window without postponing the deadline or losing headings 7ms
+   ✓ bounded scan progress refreshes > publishes the first heading immediately even when an earlier empty progress event is deferred 2ms
+   ✓ bounded scan progress refreshes > lets completion preempt a deferred progress refresh and leaves no late duplicate 1ms
+   ✓ bounded scan progress refreshes > publishes cancel immediately and cancels its pending progress notification 1ms
+   ✓ bounded scan progress refreshes > publishes invalidated immediately and cancels its pending progress notification 1ms
+   ✓ bounded scan progress refreshes > publishes truncated immediately and cancels its pending progress notification 1ms
+   ✓ bounded scan progress refreshes > keeps user active-heading navigation and fold feedback immediate during scanning 1ms
+   ✓ bounded scan progress refreshes > lets an explicit scroll request preempt pending progress without discarding the requested slice 3ms
+   ✓ bounded scan progress refreshes > drops a deferred progress timer on new-version without publishing old-session rows 2ms
+   ✓ bounded scan progress refreshes > drops a deferred progress timer on new-document without publishing old-session rows 1ms
+   ✓ bounded scan progress refreshes > drops a deferred progress timer on dispose without publishing old-session rows 1ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  plugins/outline/src/plugin.test.ts > complete paged outline index > folds subtrees across scan boundaries, highlights ancestors and restores a navigated child
+AssertionError: expected [ undefined, undefined, …(2) ] to deeply equal [ 'Root', 'Child', 'Grandchild', …(1) ]
+
+- Expected
++ Received
+
+  [
+-   "Root",
+-   "Child",
+-   "Grandchild",
+-   "Sibling",
++   undefined,
++   undefined,
++   undefined,
++   undefined,
+  ]
+
+ ❯ plugins/outline/src/plugin.test.ts:375:53
+    373|     // Require the full expected slice before capturing actions from t…
+    374|     await vi.waitFor(() =>
+    375|       expect(rows(render()).map((row) => row.text)).toEqual([
+       |                                                     ^
+    376|         'Root',
+    377|         'Child',
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed | 1 passed (2)
+      Tests  1 failed | 39 passed (40)
+   Start at  07:08:09
+   Duration  7.84s (transform 266ms, setup 0ms, collect 338ms, tests 9.87s, environment 0ms, prepare 217ms)
+
+[ELIFECYCLE] Command failed with exit code 1.

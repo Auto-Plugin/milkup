@@ -1,0 +1,21 @@
+{
+  "id": "milkup.footnotes",
+  "name": "Milkup Footnotes",
+  "version": "1.0.1",
+  "description": "\u6709\u754c\u811a\u6ce8\u7d22\u5f15\u3001\u5b9a\u4e49\u4e0e\u5f15\u7528\u5bfc\u822a\uff1b\u7f16\u8f91\u65f6\u4fdd\u7559 Markdown \u6e90\u6587\u3002",
+  "host": "worker",
+  "main": "./dist/plugin.js",
+  "engines": {
+    "milkup": "^2.0.0-0",
+    "pluginSdk": ">=0.3.6 <0.4.0"
+  },
+  "permissions": ["document:read"],
+  "contributes": {
+    "documentRenderers": [
+      {
+        "id": "footnotes",
+        "contexts": ["text"]
+      }
+    ]
+  }
+}

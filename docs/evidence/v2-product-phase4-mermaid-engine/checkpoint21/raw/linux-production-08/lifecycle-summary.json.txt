@@ -1,0 +1,1258 @@
+{
+  "atUtc": "2026-10-17T00:46:02.265765+00:00",
+  "scope": "Production-08 extracted Linux deb; all five generic DOM lifecycle cases rerun against the newly frozen approved host source. Official plugin archive is unchanged from gate07. Navigation and official Mermaid matrix acceptance remain separate.",
+  "artifacts": [
+    {
+      "kind": "binary",
+      "path": "/workspace/milkup-mermaid-engine-evidence/linux-production-08/install/usr/bin/milkup-desktop",
+      "bytes": 21872616,
+      "sha256": "cd0f892d274bb363ee663e8b36aead93cbee31a4464bdef26ac849f5018cb304"
+    },
+    {
+      "kind": "deb",
+      "path": "/workspace/milkup-mermaid-engine-evidence/linux-production-08/artifacts/milkup_2.0.0-beta.1_amd64.deb",
+      "bytes": 7501374,
+      "sha256": "4e61a47901a8952dc6507f0e07f9a4456e7d0db1a4cb136280528f152f80b807"
+    },
+    {
+      "kind": "guard",
+      "path": "/workspace/milkup-mermaid-engine-evidence/linux-production-08/artifacts/libmilkup_dom_guard.so",
+      "bytes": 15656,
+      "sha256": "5b1082768123b9ac1923eb8ef3f6f8c0bd05ffd5d66b8b2a023f75b69106c44c",
+      "exactBuildPath": "/workspace/milkup/apps/desktop/src-tauri/target/release/build/milkup-desktop-2c39bf60742e8c2c/out/libmilkup_dom_guard.so",
+      "attribution": "single guard in Cargo binary dependency file; complete guard bytes occur in actual extracted executable"
+    },
+    {
+      "kind": "archive",
+      "path": "/workspace/milkup-mermaid-engine-evidence/linux-production-08/artifacts/milkup.diagrams-1.1.0.milkup-plugin",
+      "bytes": 5726838,
+      "sha256": "9889f1796f9080ff230a1c51147522e83e065bc191a258035208f69403a327df"
+    },
+    {
+      "kind": "sdkTarball",
+      "path": "/workspace/milkup-mermaid-engine-evidence/linux-production-08/artifacts/plugin-sdk-0.3.4.tgz",
+      "bytes": 22524,
+      "sha256": "1717c0114aa165fa3e48a1bfa7687ffd0d9b2e5392d33e99d8b2dc59a1f3ad4f"
+    }
+  ],
+  "cases": [
+    {
+      "run": "lifecycle-p08-timeout-01",
+      "case": "timeout",
+      "command": {
+        "command": [
+          "bash",
+          "-lc",
+          "source /workspace/milkup-mermaid-engine-evidence/linux-production-08/run-env.sh \"$@\"\nexec node tests/native/tauri-dom-plugin-lifecycle.mjs",
+          "bash",
+          "lifecycle-p08-timeout-01",
+          "timeout",
+          "/workspace/milkup-mermaid-engine-evidence/linux-production-08/install/usr/bin/milkup-desktop",
+          "cd0f892d274bb363ee663e8b36aead93cbee31a4464bdef26ac849f5018cb304"
+        ],
+        "cwd": "/workspace/milkup",
+        "startedUtc": "2026-10-17T00:41:28.595931+00:00",
+        "exitCode": 0,
+        "endedUtc": "2026-10-17T00:41:55.173613+00:00"
+      },
+      "request": {
+        "instanceId": "f40c781ce07d6db5270a682ff91c9183a01d8c7a47a76c79",
+        "monotonicNs": 85324304459721,
+        "phase": "dispatch",
+        "pid": 460959,
+        "requestId": "render_2"
+      },
+      "phaseTimingReference": "Seconds from original render dispatch, not UI action or fault injection; scheduling observations rather than real-time guarantees",
+      "phases": [
+        {
+          "instanceId": "f40c781ce07d6db5270a682ff91c9183a01d8c7a47a76c79",
+          "monotonicNs": 85324304459721,
+          "phase": "dispatch",
+          "pid": 460959,
+          "requestId": "render_2",
+          "secondsFromDispatch": 0.0
+        },
+        {
+          "instanceId": "f40c781ce07d6db5270a682ff91c9183a01d8c7a47a76c79",
+          "monotonicNs": 85326304678532,
+          "phase": "deadline-observed",
+          "pid": 460959,
+          "requestId": "render_2",
+          "secondsFromDispatch": 2.000218811
+        },
+        {
+          "instanceId": "f40c781ce07d6db5270a682ff91c9183a01d8c7a47a76c79",
+          "monotonicNs": 85326309757743,
+          "phase": "kill-start",
+          "pid": 461306,
+          "requestId": null,
+          "secondsFromDispatch": 2.005298022
+        },
+        {
+          "instanceId": "f40c781ce07d6db5270a682ff91c9183a01d8c7a47a76c79",
+          "monotonicNs": 85326570762038,
+          "phase": "cleanup-complete",
+          "pid": 461306,
+          "requestId": null,
+          "secondsFromDispatch": 2.266302317
+        },
+        {
+          "instanceId": "f40c781ce07d6db5270a682ff91c9183a01d8c7a47a76c79",
+          "monotonicNs": 85326635329357,
+          "phase": "cleanup-confirmed",
+          "pid": 460959,
+          "requestId": null,
+          "secondsFromDispatch": 2.330869636
+        },
+        {
+          "instanceId": "f40c781ce07d6db5270a682ff91c9183a01d8c7a47a76c79",
+          "monotonicNs": 85326635371545,
+          "phase": "control-emitted",
+          "pid": 460959,
+          "requestId": "render_2",
+          "secondsFromDispatch": 2.330911824
+        },
+        {
+          "instanceId": "f40c781ce07d6db5270a682ff91c9183a01d8c7a47a76c79",
+          "monotonicNs": 85326675890773,
+          "phase": "cleanup-confirmed",
+          "pid": 460959,
+          "requestId": null,
+          "secondsFromDispatch": 2.371431052
+        },
+        {
+          "instanceId": "f40c781ce07d6db5270a682ff91c9183a01d8c7a47a76c79",
+          "monotonicNs": 85326676211539,
+          "phase": "cleanup-confirmed",
+          "pid": 460959,
+          "requestId": null,
+          "secondsFromDispatch": 2.371751818
+        }
+      ],
+      "ownedPidBirth": {
+        "461306": 8531926,
+        "461311": 8531986,
+        "461314": 8532021,
+        "461348": 8532058,
+        "461349": 8532058,
+        "461350": 8532060,
+        "461353": 8532062,
+        "461354": 8532062,
+        "461357": 8532066
+      },
+      "privateDirectory": "/tmp/milkup-dom-58d31d7f77d41ac67ac75342969930768c6f89a71a6ffcd1",
+      "strictCleanup": {
+        "name": "owned-context-cleared",
+        "wall": 1792197714264,
+        "monotonicMs": 25624.556466,
+        "monotonicNs": 85326703890122,
+        "elapsedMs": 1516.3874370000012,
+        "observation": {
+          "mono": 85326.696791476,
+          "wall": 1792197714.2577505,
+          "appAlive": true,
+          "guardians": [],
+          "members": [],
+          "privateDirectory": "/tmp/milkup-dom-58d31d7f77d41ac67ac75342969930768c6f89a71a6ffcd1",
+          "privateDirectoryExists": false
+        }
+      },
+      "busyCpuObservation": {
+        "name": "actual-webkit-busy",
+        "wall": 1792197711989,
+        "monotonicMs": 23349.320965,
+        "monotonicNs": 85324428654899,
+        "busy": {
+          "pid": 461357,
+          "birth": 8532066,
+          "parent": 461354,
+          "group": 461311,
+          "state": "R",
+          "ticks": 70,
+          "name": "WebKitWebProces"
+        },
+        "originalDispatch": {
+          "instanceId": "f40c781ce07d6db5270a682ff91c9183a01d8c7a47a76c79",
+          "monotonicNs": 85324304459721,
+          "phase": "dispatch",
+          "pid": 460959,
+          "requestId": "render_2"
+        }
+      },
+      "sourceAndHarnessManifest": "/workspace/milkup-mermaid-engine-evidence/linux-production-08/lifecycle/control/lifecycle-p08-timeout-01-inputs/manifest.json",
+      "events": "/workspace/milkup-mermaid-engine-evidence/linux-production-08/lifecycle/runs/lifecycle-p08-timeout-01/events.json",
+      "editing-response": {
+        "name": "editing-response",
+        "wall": 1792197712420,
+        "monotonicMs": 23780.166472,
+        "monotonicNs": 85324859499274,
+        "latency": {
+          "domMs": 7,
+          "twoFramesMs": 32
+        },
+        "targetMs": 200,
+        "overTarget": false
+      },
+      "observation-instrumentation-baseline": {
+        "name": "observation-instrumentation-baseline",
+        "wall": 1792197711597,
+        "monotonicMs": 22957.538236,
+        "monotonicNs": 85324036871497,
+        "observation": {
+          "frames": [
+            {
+              "at": 21555,
+              "gap": 8
+            },
+            {
+              "at": 21579,
+              "gap": 24
+            },
+            {
+              "at": 21586,
+              "gap": 7
+            },
+            {
+              "at": 21601,
+              "gap": 15
+            },
+            {
+              "at": 21620,
+              "gap": 19
+            },
+            {
+              "at": 21634,
+              "gap": 14
+            },
+            {
+              "at": 21650,
+              "gap": 16
+            }
+          ],
+          "keys": [],
+          "timers": [
+            {
+              "at": 21569,
+              "gap": 22
+            },
+            {
+              "at": 21589.000000000004,
+              "gap": 20.000000000003638
+            },
+            {
+              "at": 21609,
+              "gap": 19.999999999996362
+            },
+            {
+              "at": 21630,
+              "gap": 21
+            },
+            {
+              "at": 21650.000000000004,
+              "gap": 20.000000000003638
+            }
+          ],
+          "origin": 1792197689940,
+          "input": null
+        },
+        "note": "Page observation listeners/MutationObserver/timers and external process sampler add overhead; no product runtime hooks or timing subtraction."
+      },
+      "instrumentedHeartbeat": {
+        "pageIntervalMs": [
+          22049,
+          24324
+        ],
+        "samples": {
+          "frames": {
+            "count": 121,
+            "maxGapMs": 144,
+            "p95GapMs": 30
+          },
+          "timers": {
+            "count": 91,
+            "maxGapMs": 79,
+            "p95GapMs": 32
+          }
+        },
+        "note": "Observed busy to external cleanup; observation/timer/process-sampler overhead is not subtracted. Input latency is a separate sample; disable/remove typing can be after cleanup."
+      }
+    },
+    {
+      "run": "lifecycle-p08-disable-01",
+      "case": "disable",
+      "command": {
+        "command": [
+          "bash",
+          "-lc",
+          "source /workspace/milkup-mermaid-engine-evidence/linux-production-08/run-env.sh \"$@\"\nexec node tests/native/tauri-dom-plugin-lifecycle.mjs",
+          "bash",
+          "lifecycle-p08-disable-01",
+          "disable",
+          "/workspace/milkup-mermaid-engine-evidence/linux-production-08/install/usr/bin/milkup-desktop",
+          "cd0f892d274bb363ee663e8b36aead93cbee31a4464bdef26ac849f5018cb304"
+        ],
+        "cwd": "/workspace/milkup",
+        "startedUtc": "2026-10-17T00:42:34.122247+00:00",
+        "exitCode": 0,
+        "endedUtc": "2026-10-17T00:43:04.609508+00:00"
+      },
+      "request": {
+        "instanceId": "a23d20333af32d71e0c906ccb8f98f78d0459a6475ec164b",
+        "monotonicNs": 85393742124186,
+        "phase": "dispatch",
+        "pid": 461482,
+        "requestId": "render_2"
+      },
+      "phaseTimingReference": "Seconds from original render dispatch, not UI action or fault injection; scheduling observations rather than real-time guarantees",
+      "phases": [
+        {
+          "instanceId": "a23d20333af32d71e0c906ccb8f98f78d0459a6475ec164b",
+          "monotonicNs": 85393742124186,
+          "phase": "dispatch",
+          "pid": 461482,
+          "requestId": "render_2",
+          "secondsFromDispatch": 0.0
+        },
+        {
+          "instanceId": "a23d20333af32d71e0c906ccb8f98f78d0459a6475ec164b",
+          "monotonicNs": 85394809439209,
+          "phase": "kill-start",
+          "pid": 461840,
+          "requestId": null,
+          "secondsFromDispatch": 1.067315023
+        },
+        {
+          "instanceId": "a23d20333af32d71e0c906ccb8f98f78d0459a6475ec164b",
+          "monotonicNs": 85394932503426,
+          "phase": "cleanup-complete",
+          "pid": 461840,
+          "requestId": null,
+          "secondsFromDispatch": 1.19037924
+        },
+        {
+          "instanceId": "a23d20333af32d71e0c906ccb8f98f78d0459a6475ec164b",
+          "monotonicNs": 85394953045802,
+          "phase": "cleanup-confirmed",
+          "pid": 461482,
+          "requestId": null,
+          "secondsFromDispatch": 1.210921616
+        },
+        {
+          "instanceId": "a23d20333af32d71e0c906ccb8f98f78d0459a6475ec164b",
+          "monotonicNs": 85394953147466,
+          "phase": "cleanup-confirmed",
+          "pid": 461482,
+          "requestId": null,
+          "secondsFromDispatch": 1.21102328
+        }
+      ],
+      "ownedPidBirth": {
+        "461840": 8538893,
+        "461845": 8538905,
+        "461848": 8538910,
+        "461882": 8538932,
+        "461883": 8538932,
+        "461884": 8538933,
+        "461887": 8538934,
+        "461889": 8538934,
+        "461891": 8538936
+      },
+      "privateDirectory": "/tmp/milkup-dom-5e62ad30f29a18fd390c636716ec86ce0d701dedf029c1c6",
+      "strictCleanup": {
+        "name": "owned-context-cleared",
+        "wall": 1792197783222,
+        "monotonicMs": 29057.615618,
+        "monotonicNs": 85395661279028,
+        "elapsedMs": 201.34576899999956,
+        "observation": {
+          "mono": 85395.656893307,
+          "wall": 1792197783.2178528,
+          "appAlive": true,
+          "guardians": [],
+          "members": [],
+          "privateDirectory": "/tmp/milkup-dom-5e62ad30f29a18fd390c636716ec86ce0d701dedf029c1c6",
+          "privateDirectoryExists": false
+        }
+      },
+      "busyCpuObservation": {
+        "name": "actual-webkit-busy",
+        "wall": 1792197781599,
+        "monotonicMs": 27435.188938,
+        "monotonicNs": 85394038851710,
+        "busy": {
+          "pid": 461891,
+          "birth": 8538936,
+          "parent": 461889,
+          "group": 461845,
+          "state": "R",
+          "ticks": 78,
+          "name": "WebKitWebProces"
+        },
+        "originalDispatch": {
+          "instanceId": "a23d20333af32d71e0c906ccb8f98f78d0459a6475ec164b",
+          "monotonicNs": 85393742124186,
+          "phase": "dispatch",
+          "pid": 461482,
+          "requestId": "render_2"
+        }
+      },
+      "sourceAndHarnessManifest": "/workspace/milkup-mermaid-engine-evidence/linux-production-08/lifecycle/control/lifecycle-p08-disable-01-inputs/manifest.json",
+      "events": "/workspace/milkup-mermaid-engine-evidence/linux-production-08/lifecycle/runs/lifecycle-p08-disable-01/events.json",
+      "editing-response": {
+        "name": "editing-response",
+        "wall": 1792197782864,
+        "monotonicMs": 28699.929977,
+        "monotonicNs": 85395303592297,
+        "latency": {
+          "domMs": 7,
+          "twoFramesMs": 36
+        },
+        "targetMs": 200,
+        "overTarget": false
+      },
+      "busy-action-click": {
+        "name": "busy-action-click",
+        "wall": 1792197782092,
+        "monotonicMs": 27927.834784,
+        "monotonicNs": 85394531497151,
+        "action": "disable"
+      },
+      "observation-instrumentation-baseline": {
+        "name": "observation-instrumentation-baseline",
+        "wall": 1792197780796,
+        "monotonicMs": 26631.388914,
+        "monotonicNs": 85393235050872,
+        "observation": {
+          "frames": [
+            {
+              "at": 25520,
+              "gap": 46
+            },
+            {
+              "at": 25544,
+              "gap": 24
+            },
+            {
+              "at": 25559,
+              "gap": 15
+            },
+            {
+              "at": 25575,
+              "gap": 16
+            }
+          ],
+          "keys": [],
+          "timers": [
+            {
+              "at": 25494,
+              "gap": 20
+            },
+            {
+              "at": 25514,
+              "gap": 20
+            },
+            {
+              "at": 25534,
+              "gap": 20
+            },
+            {
+              "at": 25554.000000000004,
+              "gap": 20.000000000003638
+            },
+            {
+              "at": 25574,
+              "gap": 19.999999999996362
+            }
+          ],
+          "origin": 1792197755212.0002,
+          "input": null
+        },
+        "note": "Page observation listeners/MutationObserver/timers and external process sampler add overhead; no product runtime hooks or timing subtraction."
+      },
+      "instrumentedHeartbeat": {
+        "pageIntervalMs": [
+          26386.999755859375,
+          28009.999755859375
+        ],
+        "samples": {
+          "frames": {
+            "count": 47,
+            "maxGapMs": 281,
+            "p95GapMs": 170
+          },
+          "timers": {
+            "count": 57,
+            "maxGapMs": 87,
+            "p95GapMs": 66
+          }
+        },
+        "note": "Observed busy to external cleanup; observation/timer/process-sampler overhead is not subtracted. Input latency is a separate sample; disable/remove typing can be after cleanup."
+      }
+    },
+    {
+      "run": "lifecycle-p08-remove-01",
+      "case": "remove",
+      "command": {
+        "command": [
+          "bash",
+          "-lc",
+          "source /workspace/milkup-mermaid-engine-evidence/linux-production-08/run-env.sh \"$@\"\nexec node tests/native/tauri-dom-plugin-lifecycle.mjs",
+          "bash",
+          "lifecycle-p08-remove-01",
+          "remove",
+          "/workspace/milkup-mermaid-engine-evidence/linux-production-08/install/usr/bin/milkup-desktop",
+          "cd0f892d274bb363ee663e8b36aead93cbee31a4464bdef26ac849f5018cb304"
+        ],
+        "cwd": "/workspace/milkup",
+        "startedUtc": "2026-10-17T00:43:36.798403+00:00",
+        "exitCode": 0,
+        "endedUtc": "2026-10-17T00:44:04.214452+00:00"
+      },
+      "request": {
+        "instanceId": "5886a3acc9880049ac2e91754cd9394d64a26b9d5b3b5bf3",
+        "monotonicNs": 85454426367655,
+        "phase": "dispatch",
+        "pid": 462012,
+        "requestId": "render_2"
+      },
+      "phaseTimingReference": "Seconds from original render dispatch, not UI action or fault injection; scheduling observations rather than real-time guarantees",
+      "phases": [
+        {
+          "instanceId": "5886a3acc9880049ac2e91754cd9394d64a26b9d5b3b5bf3",
+          "monotonicNs": 85454426367655,
+          "phase": "dispatch",
+          "pid": 462012,
+          "requestId": "render_2",
+          "secondsFromDispatch": 0.0
+        },
+        {
+          "instanceId": "5886a3acc9880049ac2e91754cd9394d64a26b9d5b3b5bf3",
+          "monotonicNs": 85455279873866,
+          "phase": "kill-start",
+          "pid": 462359,
+          "requestId": null,
+          "secondsFromDispatch": 0.853506211
+        },
+        {
+          "instanceId": "5886a3acc9880049ac2e91754cd9394d64a26b9d5b3b5bf3",
+          "monotonicNs": 85455337187483,
+          "phase": "cleanup-complete",
+          "pid": 462359,
+          "requestId": null,
+          "secondsFromDispatch": 0.910819828
+        },
+        {
+          "instanceId": "5886a3acc9880049ac2e91754cd9394d64a26b9d5b3b5bf3",
+          "monotonicNs": 85455353533889,
+          "phase": "cleanup-confirmed",
+          "pid": 462012,
+          "requestId": null,
+          "secondsFromDispatch": 0.927166234
+        },
+        {
+          "instanceId": "5886a3acc9880049ac2e91754cd9394d64a26b9d5b3b5bf3",
+          "monotonicNs": 85455353712900,
+          "phase": "cleanup-confirmed",
+          "pid": 462012,
+          "requestId": null,
+          "secondsFromDispatch": 0.927345245
+        }
+      ],
+      "ownedPidBirth": {
+        "462359": 8545084,
+        "462364": 8545111,
+        "462367": 8545119,
+        "462401": 8545134,
+        "462402": 8545134,
+        "462403": 8545135,
+        "462406": 8545135,
+        "462407": 8545136,
+        "462410": 8545141
+      },
+      "privateDirectory": "/tmp/milkup-dom-cb0e13c1762e489ce8167325cb3804b9c8ac075b3aa01663",
+      "strictCleanup": {
+        "name": "owned-context-cleared",
+        "wall": 1792197843431,
+        "monotonicMs": 26564.100723,
+        "monotonicNs": 85455870821550,
+        "elapsedMs": 48.92117799999687,
+        "observation": {
+          "mono": 85455.869801877,
+          "wall": 1792197843.4307609,
+          "appAlive": true,
+          "guardians": [],
+          "members": [],
+          "privateDirectory": "/tmp/milkup-dom-cb0e13c1762e489ce8167325cb3804b9c8ac075b3aa01663",
+          "privateDirectoryExists": false
+        }
+      },
+      "busyCpuObservation": {
+        "name": "actual-webkit-busy",
+        "wall": 1792197842113,
+        "monotonicMs": 25245.783506,
+        "monotonicNs": 85454552605796,
+        "busy": {
+          "pid": 462410,
+          "birth": 8545141,
+          "parent": 462407,
+          "group": 462364,
+          "state": "R",
+          "ticks": 56,
+          "name": "WebKitWebProces"
+        },
+        "originalDispatch": {
+          "instanceId": "5886a3acc9880049ac2e91754cd9394d64a26b9d5b3b5bf3",
+          "monotonicNs": 85454426367655,
+          "phase": "dispatch",
+          "pid": 462012,
+          "requestId": "render_2"
+        }
+      },
+      "sourceAndHarnessManifest": "/workspace/milkup-mermaid-engine-evidence/linux-production-08/lifecycle/control/lifecycle-p08-remove-01-inputs/manifest.json",
+      "events": "/workspace/milkup-mermaid-engine-evidence/linux-production-08/lifecycle/runs/lifecycle-p08-remove-01/events.json",
+      "editing-response": {
+        "name": "editing-response",
+        "wall": 1792197843224,
+        "monotonicMs": 26356.947758,
+        "monotonicNs": 85455663673626,
+        "latency": {
+          "domMs": 6,
+          "twoFramesMs": 24
+        },
+        "targetMs": 200,
+        "overTarget": false
+      },
+      "busy-action-click": {
+        "name": "busy-action-click",
+        "wall": 1792197842578,
+        "monotonicMs": 25710.558798,
+        "monotonicNs": 85455017280145,
+        "action": "remove"
+      },
+      "observation-instrumentation-baseline": {
+        "name": "observation-instrumentation-baseline",
+        "wall": 1792197841886,
+        "monotonicMs": 25018.804313,
+        "monotonicNs": 85454325525094,
+        "observation": {
+          "frames": [
+            {
+              "at": 23772,
+              "gap": 9
+            },
+            {
+              "at": 23794,
+              "gap": 22
+            },
+            {
+              "at": 23805,
+              "gap": 11
+            },
+            {
+              "at": 23821,
+              "gap": 16
+            },
+            {
+              "at": 23837,
+              "gap": 16
+            },
+            {
+              "at": 23853,
+              "gap": 16
+            }
+          ],
+          "keys": [],
+          "timers": [
+            {
+              "at": 23783,
+              "gap": 20
+            },
+            {
+              "at": 23803,
+              "gap": 20
+            },
+            {
+              "at": 23823,
+              "gap": 20
+            },
+            {
+              "at": 23843,
+              "gap": 20
+            },
+            {
+              "at": 23863,
+              "gap": 20
+            }
+          ],
+          "origin": 1792197818015,
+          "input": null
+        },
+        "note": "Page observation listeners/MutationObserver/timers and external process sampler add overhead; no product runtime hooks or timing subtraction."
+      },
+      "instrumentedHeartbeat": {
+        "pageIntervalMs": [
+          24098,
+          25416
+        ],
+        "samples": {
+          "frames": {
+            "count": 36,
+            "maxGapMs": 273,
+            "p95GapMs": 120
+          },
+          "timers": {
+            "count": 49,
+            "maxGapMs": 73,
+            "p95GapMs": 58
+          }
+        },
+        "note": "Observed busy to external cleanup; observation/timer/process-sampler overhead is not subtracted. Input latency is a separate sample; disable/remove typing can be after cleanup."
+      }
+    },
+    {
+      "run": "lifecycle-p08-wm-close-01",
+      "case": "wm-close",
+      "command": {
+        "command": [
+          "bash",
+          "-lc",
+          "source /workspace/milkup-mermaid-engine-evidence/linux-production-08/run-env.sh \"$@\"\nexec node tests/native/tauri-dom-plugin-lifecycle.mjs",
+          "bash",
+          "lifecycle-p08-wm-close-01",
+          "wm-close",
+          "/workspace/milkup-mermaid-engine-evidence/linux-production-08/install/usr/bin/milkup-desktop",
+          "cd0f892d274bb363ee663e8b36aead93cbee31a4464bdef26ac849f5018cb304"
+        ],
+        "cwd": "/workspace/milkup",
+        "startedUtc": "2026-10-17T00:44:31.659780+00:00",
+        "exitCode": 0,
+        "endedUtc": "2026-10-17T00:44:57.267491+00:00"
+      },
+      "request": {
+        "instanceId": "10097c7317a9ac078b74337bcf39684bb99936e86fbb4c29",
+        "monotonicNs": 85509026165141,
+        "phase": "dispatch",
+        "pid": 462531,
+        "requestId": "render_2"
+      },
+      "phaseTimingReference": "Seconds from original render dispatch, not UI action or fault injection; scheduling observations rather than real-time guarantees",
+      "phases": [
+        {
+          "instanceId": "10097c7317a9ac078b74337bcf39684bb99936e86fbb4c29",
+          "monotonicNs": 85509026165141,
+          "phase": "dispatch",
+          "pid": 462531,
+          "requestId": "render_2",
+          "secondsFromDispatch": 0.0
+        },
+        {
+          "instanceId": "10097c7317a9ac078b74337bcf39684bb99936e86fbb4c29",
+          "monotonicNs": 85509310285027,
+          "phase": "kill-start",
+          "pid": 462877,
+          "requestId": null,
+          "secondsFromDispatch": 0.284119886
+        },
+        {
+          "instanceId": "10097c7317a9ac078b74337bcf39684bb99936e86fbb4c29",
+          "monotonicNs": 85509361375349,
+          "phase": "cleanup-complete",
+          "pid": 462877,
+          "requestId": null,
+          "secondsFromDispatch": 0.335210208
+        },
+        {
+          "instanceId": "10097c7317a9ac078b74337bcf39684bb99936e86fbb4c29",
+          "monotonicNs": 85509424102308,
+          "phase": "cleanup-confirmed",
+          "pid": 462531,
+          "requestId": null,
+          "secondsFromDispatch": 0.397937167
+        }
+      ],
+      "ownedPidBirth": {
+        "462877": 8550444,
+        "462883": 8550457,
+        "462886": 8550467,
+        "462920": 8550500,
+        "462921": 8550500,
+        "462922": 8550500,
+        "462925": 8550501,
+        "462927": 8550501,
+        "462928": 8550503
+      },
+      "privateDirectory": "/tmp/milkup-dom-bbfa514b3e351e44324dd39e2b82d3ca360a28173467db63",
+      "strictCleanup": {
+        "name": "owned-context-cleared",
+        "wall": 1792197897106,
+        "monotonicMs": 25355.165061,
+        "monotonicNs": 85509545495878,
+        "elapsedMs": 243.4573109999983,
+        "observation": {
+          "mono": 85509.542916224,
+          "wall": 1792197897.1038754,
+          "appAlive": false,
+          "guardians": [],
+          "members": [],
+          "privateDirectory": "/tmp/milkup-dom-bbfa514b3e351e44324dd39e2b82d3ca360a28173467db63",
+          "privateDirectoryExists": false
+        }
+      },
+      "busyCpuObservation": {
+        "name": "actual-webkit-busy",
+        "wall": 1792197896724,
+        "monotonicMs": 24973.213418,
+        "monotonicNs": 85509163543154,
+        "busy": {
+          "pid": 462928,
+          "birth": 8550503,
+          "parent": 462927,
+          "group": 462883,
+          "state": "R",
+          "ticks": 85,
+          "name": "WebKitWebProces"
+        },
+        "originalDispatch": {
+          "instanceId": "10097c7317a9ac078b74337bcf39684bb99936e86fbb4c29",
+          "monotonicNs": 85509026165141,
+          "phase": "dispatch",
+          "pid": 462531,
+          "requestId": "render_2"
+        }
+      },
+      "sourceAndHarnessManifest": "/workspace/milkup-mermaid-engine-evidence/linux-production-08/lifecycle/control/lifecycle-p08-wm-close-01-inputs/manifest.json",
+      "events": "/workspace/milkup-mermaid-engine-evidence/linux-production-08/lifecycle/runs/lifecycle-p08-wm-close-01/events.json",
+      "fault-action": {
+        "name": "fault-action",
+        "wall": 1792197896728,
+        "monotonicMs": 24976.794682,
+        "monotonicNs": 85509167123262,
+        "action": "wm-close"
+      },
+      "guardian-app-wait-proof": {
+        "name": "guardian-app-wait-proof",
+        "wall": 1792197897111,
+        "monotonicMs": 25360.155857,
+        "monotonicNs": 85509550484160,
+        "guardian": {
+          "pid": 462877,
+          "birth": 8550444,
+          "parent": 462531,
+          "group": 462877,
+          "state": "S",
+          "ticks": 9,
+          "name": "milkup-desktop",
+          "instanceId": "10097c7317a9ac078b74337bcf39684bb99936e86fbb4c29"
+        },
+        "appIdentity": {
+          "pid": 462531,
+          "argv": [
+            "/workspace/milkup-mermaid-engine-evidence/linux-production-08/install/usr/bin/milkup-desktop",
+            "/workspace/milkup-mermaid-engine-evidence/linux-production-08/lifecycle/runs/lifecycle-p08-wm-close-01/document.md",
+            ""
+          ],
+          "birth": "8548446"
+        },
+        "killStarted": {
+          "instanceId": "10097c7317a9ac078b74337bcf39684bb99936e86fbb4c29",
+          "monotonicNs": 85509310285027,
+          "phase": "kill-start",
+          "pid": 462877,
+          "requestId": null
+        },
+        "confirmed": {
+          "instanceId": "10097c7317a9ac078b74337bcf39684bb99936e86fbb4c29",
+          "monotonicNs": 85509424102308,
+          "phase": "cleanup-confirmed",
+          "pid": 462531,
+          "requestId": null
+        },
+        "exactEchildMonotonicNs": 85509361375349,
+        "echildCompletedUpperBoundMonotonicNs": 85509424102308,
+        "upperBoundSource": "Exact App Child.try_wait success, then cleanup-confirmed for bound instance",
+        "terminalDiagnostic": "observed"
+      },
+      "observation-instrumentation-baseline": {
+        "name": "observation-instrumentation-baseline",
+        "wall": 1792197896474,
+        "monotonicMs": 24722.741806,
+        "monotonicNs": 85508913070340,
+        "observation": {
+          "frames": [],
+          "keys": [],
+          "timers": [
+            {
+              "at": 23636,
+              "gap": 20
+            },
+            {
+              "at": 23656,
+              "gap": 20
+            },
+            {
+              "at": 23676.000000000004,
+              "gap": 20.000000000003638
+            },
+            {
+              "at": 23696,
+              "gap": 19.999999999996362
+            },
+            {
+              "at": 23716,
+              "gap": 20
+            }
+          ],
+          "origin": 1792197872748.0002,
+          "input": null
+        },
+        "note": "Page observation listeners/MutationObserver/timers and external process sampler add overhead; no product runtime hooks or timing subtraction."
+      }
+    },
+    {
+      "run": "lifecycle-p08-app-sigkill-01",
+      "case": "app-sigkill",
+      "command": {
+        "command": [
+          "bash",
+          "-lc",
+          "source /workspace/milkup-mermaid-engine-evidence/linux-production-08/run-env.sh \"$@\"\nexec node tests/native/tauri-dom-plugin-lifecycle.mjs",
+          "bash",
+          "lifecycle-p08-app-sigkill-01",
+          "app-sigkill",
+          "/workspace/milkup-mermaid-engine-evidence/linux-production-08/install/usr/bin/milkup-desktop",
+          "cd0f892d274bb363ee663e8b36aead93cbee31a4464bdef26ac849f5018cb304"
+        ],
+        "cwd": "/workspace/milkup",
+        "startedUtc": "2026-10-17T00:45:27.220730+00:00",
+        "exitCode": 0,
+        "endedUtc": "2026-10-17T00:45:51.962699+00:00"
+      },
+      "request": {
+        "instanceId": "a9efec044ecedf6dce11fd4c9fea52452834ec96dc2a3ad9",
+        "monotonicNs": 85563519088979,
+        "phase": "dispatch",
+        "pid": 463027,
+        "requestId": "render_2"
+      },
+      "phaseTimingReference": "Seconds from original render dispatch, not UI action or fault injection; scheduling observations rather than real-time guarantees",
+      "phases": [
+        {
+          "instanceId": "a9efec044ecedf6dce11fd4c9fea52452834ec96dc2a3ad9",
+          "monotonicNs": 85563519088979,
+          "phase": "dispatch",
+          "pid": 463027,
+          "requestId": "render_2",
+          "secondsFromDispatch": 0.0
+        },
+        {
+          "instanceId": "a9efec044ecedf6dce11fd4c9fea52452834ec96dc2a3ad9",
+          "monotonicNs": 85563898742272,
+          "phase": "kill-start",
+          "pid": 463383,
+          "requestId": null,
+          "secondsFromDispatch": 0.379653293
+        },
+        {
+          "instanceId": "a9efec044ecedf6dce11fd4c9fea52452834ec96dc2a3ad9",
+          "monotonicNs": 85564023728891,
+          "phase": "cleanup-complete",
+          "pid": 463383,
+          "requestId": null,
+          "secondsFromDispatch": 0.504639912
+        }
+      ],
+      "ownedPidBirth": {
+        "463383": 8555944,
+        "463388": 8555963,
+        "463391": 8555981,
+        "463425": 8556012,
+        "463426": 8556012,
+        "463427": 8556013,
+        "463430": 8556013,
+        "463431": 8556014,
+        "463434": 8556015
+      },
+      "privateDirectory": "/tmp/milkup-dom-9179ab21176ca425b7db879c3dd0e6751c1c619882a4b4b8",
+      "strictCleanup": {
+        "name": "owned-context-cleared",
+        "wall": 1792197951649,
+        "monotonicMs": 24365.032403,
+        "monotonicNs": 85564088290559,
+        "elapsedMs": 211.0289159999993,
+        "observation": {
+          "mono": 85564.086423362,
+          "wall": 1792197951.647382,
+          "appAlive": false,
+          "guardians": [],
+          "members": [],
+          "privateDirectory": "/tmp/milkup-dom-9179ab21176ca425b7db879c3dd0e6751c1c619882a4b4b8",
+          "privateDirectoryExists": false
+        }
+      },
+      "busyCpuObservation": {
+        "name": "actual-webkit-busy",
+        "wall": 1792197951429,
+        "monotonicMs": 24145.272261,
+        "monotonicNs": 85563868528917,
+        "busy": {
+          "pid": 463434,
+          "birth": 8556015,
+          "parent": 463431,
+          "group": 463388,
+          "state": "R",
+          "ticks": 75,
+          "name": "WebKitWebProces"
+        },
+        "originalDispatch": {
+          "instanceId": "a9efec044ecedf6dce11fd4c9fea52452834ec96dc2a3ad9",
+          "monotonicNs": 85563519088979,
+          "phase": "dispatch",
+          "pid": 463027,
+          "requestId": "render_2"
+        }
+      },
+      "sourceAndHarnessManifest": "/workspace/milkup-mermaid-engine-evidence/linux-production-08/lifecycle/control/lifecycle-p08-app-sigkill-01-inputs/manifest.json",
+      "events": "/workspace/milkup-mermaid-engine-evidence/linux-production-08/lifecycle/runs/lifecycle-p08-app-sigkill-01/events.json",
+      "fault-action": {
+        "name": "fault-action",
+        "wall": 1792197951431,
+        "monotonicMs": 24147.51204,
+        "monotonicNs": 85563870768052,
+        "action": "app-sigkill"
+      },
+      "exact-app-sigkill": {
+        "name": "exact-app-sigkill",
+        "wall": 1792197951.4338028,
+        "monotonicMs": 24150.157077,
+        "monotonicNs": 85563873411669,
+        "event": "SIGKILL-exact-app",
+        "mono": 85563.872843992,
+        "identity": {
+          "pid": 463027,
+          "birth": 8553993,
+          "parent": 463000,
+          "group": 462988,
+          "state": "R",
+          "ticks": 279,
+          "name": "milkup-desktop",
+          "argv": [
+            "/workspace/milkup-mermaid-engine-evidence/linux-production-08/install/usr/bin/milkup-desktop",
+            "/workspace/milkup-mermaid-engine-evidence/linux-production-08/lifecycle/runs/lifecycle-p08-app-sigkill-01/document.md"
+          ]
+        }
+      },
+      "guardian-natural-exit-proof": {
+        "name": "guardian-natural-exit-proof",
+        "wall": 1792197951658,
+        "monotonicMs": 24373.889171,
+        "monotonicNs": 85564097144393,
+        "reaped": {
+          "identity": {
+            "pid": 463383,
+            "birth": "8555944",
+            "parent": 462984,
+            "state": "Z",
+            "group": 463383,
+            "name": "milkup-desktop"
+          },
+          "exitedObservedMonotonicNs": 85564031684308,
+          "waitpidCompletedMonotonicNs": 85564032148856,
+          "exitCode": 0,
+          "noSignalSent": true
+        },
+        "exactEchildMonotonicNs": 85564023728891,
+        "echildCompletedUpperBoundMonotonicNs": 85564031684308,
+        "terminalDiagnostic": "observed",
+        "functionalCleanup": "All tracked PID/birth identities and private directory cleared within original 4.5s observer bound"
+      },
+      "observation-instrumentation-baseline": {
+        "name": "observation-instrumentation-baseline",
+        "wall": 1792197950876,
+        "monotonicMs": 23592.681957,
+        "monotonicNs": 85563315938287,
+        "observation": {
+          "frames": [],
+          "keys": [
+            {
+              "at": 22419,
+              "key": "Home",
+              "trusted": true,
+              "target": "milkup-input-proxy"
+            }
+          ],
+          "timers": [
+            {
+              "at": 22438,
+              "gap": 21
+            },
+            {
+              "at": 22458.000000000004,
+              "gap": 20.000000000003638
+            },
+            {
+              "at": 22479,
+              "gap": 20.999999999996362
+            },
+            {
+              "at": 22501,
+              "gap": 22
+            },
+            {
+              "at": 22521,
+              "gap": 20
+            }
+          ],
+          "origin": 1792197928348,
+          "input": null
+        },
+        "note": "Page observation listeners/MutationObserver/timers and external process sampler add overhead; no product runtime hooks or timing subtraction."
+      }
+    }
+  ],
+  "passingCases": 5,
+  "caseCount": 5,
+  "limitations": [
+    "Native phase timing is relative to original render dispatch.",
+    "Only measured trusted input-to-two-RAF sample has 200ms assertion; not all frame gaps.",
+    "App SIGKILL ancestor only natural wait/reap. If the asynchronous ECHILD trace is missing, exact time is unknown and natural exit is an upper bound; consult the per-case terminalDiagnostic and exactEchildMonotonicNs for whether this condition applies.",
+    "Production-01/02/03/04/05/06/07 originals preserved separately; the reused official plugin archive must match gate07 before this build is accepted."
+  ],
+  "allAttempts": [
+    {
+      "run": "lifecycle-p08-app-sigkill-01",
+      "command": {
+        "command": [
+          "bash",
+          "-lc",
+          "source /workspace/milkup-mermaid-engine-evidence/linux-production-08/run-env.sh \"$@\"\nexec node tests/native/tauri-dom-plugin-lifecycle.mjs",
+          "bash",
+          "lifecycle-p08-app-sigkill-01",
+          "app-sigkill",
+          "/workspace/milkup-mermaid-engine-evidence/linux-production-08/install/usr/bin/milkup-desktop",
+          "cd0f892d274bb363ee663e8b36aead93cbee31a4464bdef26ac849f5018cb304"
+        ],
+        "cwd": "/workspace/milkup",
+        "startedUtc": "2026-10-17T00:45:27.220730+00:00",
+        "exitCode": 0,
+        "endedUtc": "2026-10-17T00:45:51.962699+00:00"
+      },
+      "verdict": {
+        "name": "verdict",
+        "wall": 1792197951718,
+        "monotonicMs": 24434.016951,
+        "monotonicNs": 85564157274192,
+        "status": "passed",
+        "scope": "One full-editor generic DOM lifecycle case; official renderer acceptance separate"
+      }
+    },
+    {
+      "run": "lifecycle-p08-disable-01",
+      "command": {
+        "command": [
+          "bash",
+          "-lc",
+          "source /workspace/milkup-mermaid-engine-evidence/linux-production-08/run-env.sh \"$@\"\nexec node tests/native/tauri-dom-plugin-lifecycle.mjs",
+          "bash",
+          "lifecycle-p08-disable-01",
+          "disable",
+          "/workspace/milkup-mermaid-engine-evidence/linux-production-08/install/usr/bin/milkup-desktop",
+          "cd0f892d274bb363ee663e8b36aead93cbee31a4464bdef26ac849f5018cb304"
+        ],
+        "cwd": "/workspace/milkup",
+        "startedUtc": "2026-10-17T00:42:34.122247+00:00",
+        "exitCode": 0,
+        "endedUtc": "2026-10-17T00:43:04.609508+00:00"
+      },
+      "verdict": {
+        "name": "verdict",
+        "wall": 1792197784359,
+        "monotonicMs": 30195.119431,
+        "monotonicNs": 85396798786010,
+        "status": "passed",
+        "scope": "One full-editor generic DOM lifecycle case; official renderer acceptance separate"
+      }
+    },
+    {
+      "run": "lifecycle-p08-remove-01",
+      "command": {
+        "command": [
+          "bash",
+          "-lc",
+          "source /workspace/milkup-mermaid-engine-evidence/linux-production-08/run-env.sh \"$@\"\nexec node tests/native/tauri-dom-plugin-lifecycle.mjs",
+          "bash",
+          "lifecycle-p08-remove-01",
+          "remove",
+          "/workspace/milkup-mermaid-engine-evidence/linux-production-08/install/usr/bin/milkup-desktop",
+          "cd0f892d274bb363ee663e8b36aead93cbee31a4464bdef26ac849f5018cb304"
+        ],
+        "cwd": "/workspace/milkup",
+        "startedUtc": "2026-10-17T00:43:36.798403+00:00",
+        "exitCode": 0,
+        "endedUtc": "2026-10-17T00:44:04.214452+00:00"
+      },
+      "verdict": {
+        "name": "verdict",
+        "wall": 1792197844066,
+        "monotonicMs": 27199.025175,
+        "monotonicNs": 85456505746278,
+        "status": "passed",
+        "scope": "One full-editor generic DOM lifecycle case; official renderer acceptance separate"
+      }
+    },
+    {
+      "run": "lifecycle-p08-timeout-01",
+      "command": {
+        "command": [
+          "bash",
+          "-lc",
+          "source /workspace/milkup-mermaid-engine-evidence/linux-production-08/run-env.sh \"$@\"\nexec node tests/native/tauri-dom-plugin-lifecycle.mjs",
+          "bash",
+          "lifecycle-p08-timeout-01",
+          "timeout",
+          "/workspace/milkup-mermaid-engine-evidence/linux-production-08/install/usr/bin/milkup-desktop",
+          "cd0f892d274bb363ee663e8b36aead93cbee31a4464bdef26ac849f5018cb304"
+        ],
+        "cwd": "/workspace/milkup",
+        "startedUtc": "2026-10-17T00:41:28.595931+00:00",
+        "exitCode": 0,
+        "endedUtc": "2026-10-17T00:41:55.173613+00:00"
+      },
+      "verdict": {
+        "name": "verdict",
+        "wall": 1792197714992,
+        "monotonicMs": 26351.978865,
+        "monotonicNs": 85327431313409,
+        "status": "passed",
+        "scope": "One full-editor generic DOM lifecycle case; official renderer acceptance separate"
+      }
+    },
+    {
+      "run": "lifecycle-p08-wm-close-01",
+      "command": {
+        "command": [
+          "bash",
+          "-lc",
+          "source /workspace/milkup-mermaid-engine-evidence/linux-production-08/run-env.sh \"$@\"\nexec node tests/native/tauri-dom-plugin-lifecycle.mjs",
+          "bash",
+          "lifecycle-p08-wm-close-01",
+          "wm-close",
+          "/workspace/milkup-mermaid-engine-evidence/linux-production-08/install/usr/bin/milkup-desktop",
+          "cd0f892d274bb363ee663e8b36aead93cbee31a4464bdef26ac849f5018cb304"
+        ],
+        "cwd": "/workspace/milkup",
+        "startedUtc": "2026-10-17T00:44:31.659780+00:00",
+        "exitCode": 0,
+        "endedUtc": "2026-10-17T00:44:57.267491+00:00"
+      },
+      "verdict": {
+        "name": "verdict",
+        "wall": 1792197897176,
+        "monotonicMs": 25425.462049,
+        "monotonicNs": 85509615791887,
+        "status": "passed",
+        "scope": "One full-editor generic DOM lifecycle case; official renderer acceptance separate"
+      }
+    }
+  ],
+  "setupFailures": {}
+}

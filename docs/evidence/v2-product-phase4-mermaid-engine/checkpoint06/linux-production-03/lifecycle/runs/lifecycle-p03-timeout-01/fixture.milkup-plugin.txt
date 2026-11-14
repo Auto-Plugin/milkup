@@ -1,0 +1,35 @@
+{
+  "format": "milkup-plugin",
+  "version": 1,
+  "manifest": {
+    "id": "test.dom.lifecycle.timeout",
+    "name": "Generic DOM lifecycle fixture",
+    "version": "1.0.0",
+    "description": "Test-only layout and non-cooperative renderer fixture",
+    "host": "dom",
+    "main": "main.js",
+    "permissions": [
+      "document:read"
+    ],
+    "contributes": {
+      "documentRenderers": [
+        {
+          "id": "layout",
+          "contexts": [
+            "fence"
+          ],
+          "fenceLanguages": [
+            "dom-probe-timeout"
+          ]
+        }
+      ]
+    }
+  },
+  "files": [
+    {
+      "path": "main.js",
+      "encoding": "utf8",
+      "content": "// Test package only. The shipped host has no knowledge of this fixture or its ID.\nexport default {\n  activate(context) {\n    const languages = new Set(context.manifest.contributes.documentRenderers[0].fenceLanguages)\n    return {\n      documentRenderers: {\n        layout: async (request) => {\n          const fence = request.blocks.find(\n            (block) =>\n              block.kind === 'fence' &&\n              block.complete &&\n              languages.has((block.info ?? '').trim().split(/\\s+/)[0]),\n          )\n          if (!fence) return { fragments: [], complete: true }\n          if (request.source.includes('LOOP_FOREVER')) {\n            while (true) {\n              // Deliberately non-cooperative renderer, terminated by native ownership.\n            }\n          }\n          const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg')\n          const text = document.createElementNS(svg.namespaceURI, 'text')\n          text.textContent = '真实 DOM 中文 😀'\n          svg.append(text)\n          document.body.append(svg)\n          await document.fonts.ready\n          const box = text.getBBox()\n          svg.remove()\n          if (!(box.width > 0 && box.height > 0)) throw new Error('Native layout unavailable')\n          return {\n            fragments: [\n              {\n                from: fence.from,\n                to: fence.to,\n                layout: 'block',\n                content: { type: 'text', text: 'DOM lifecycle ready' },\n                accessibleText: 'DOM lifecycle ready',\n              },\n            ],\n            complete: true,\n          }\n        },\n      },\n    }\n  },\n}\n"
+    }
+  ]
+}

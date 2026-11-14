@@ -1,0 +1,12 @@
+Independent pidfd direct capability review
+
+Root executed the prepared script once under require_escalated. This review only reads its completed direct-first-result.json and frozen source. No second probe, product run, cleanup, or live /proc query was performed.
+
+The recorded 28.856707 ms fixture establishes the narrow capability: exact worker 470393 / birth 8961866 held a pidfd whose fdinfo Pid was 470394, matching direct child birth 8961866 and PPID 470393. Inside enumeration found 9 entries; outside found 8. Both independently selected FD 5 without assuming that number. Repeated raw fdinfo was identical, owner and target raw stat identities/PPID were stable and matched the separately reported child oracle. Seventeen saved consistency checks pass.
+
+Inside FD 8 open failed with errno 2 ENOENT; retain that observation. It does not invalidate the separately validated FD 5 target or establish why FD 8 disappeared. Outside had no recorded FD read error. The fixture records parent releaseReason=pipe-eof; child waitpid and parent waitpid both exit 0. Child's own EOF reason was not separately emitted. No signal or product start was recorded.
+
+This is current same-namespace direct-child capability, not a reconstruction of historical guardian trees, a full renderer subtree, or proof of cross-namespace translation. NSpid is preserved as evidence, not used to translate PIDs. Repeated raw fdinfo rejects an observed change but cannot prove that a same-target ABA transition never occurred. It does not measure native observer overhead or explain any rendering deadline.
+
+Input result SHA256: 4d82b6ffad4874a2f66e9b289413d2d0fce3114f150040e03f794ffa6d957777
+Prepared source SHA256: 1de5425c31e89b64be90b76052284759a43f8194fd4c49461c865df7462338f7

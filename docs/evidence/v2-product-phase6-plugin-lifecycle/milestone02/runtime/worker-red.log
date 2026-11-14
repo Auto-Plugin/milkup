@@ -1,0 +1,86 @@
+
+ RUN  v3.2.6 /workspace/milkup
+
+ ❯ packages/plugin/src/isolation-worker.test.ts (25 tests | 4 failed) 10108ms
+   ✓ browser worker plugin isolation > streams document scan results into an isolated plugin 19ms
+   ✓ browser worker plugin isolation > loads and executes a plugin module inside a worker-style realm 4ms
+   ✓ browser worker plugin isolation > reports worker module import failures during initialization 4ms
+   ✓ browser worker plugin isolation > times out silent startup and releases host and broker listeners exactly once 3ms
+   ✓ browser worker plugin isolation > uses a bounded default startup timeout 1ms
+   ✓ browser worker plugin isolation > rejects early disposal even when startup is awaited later 2ms
+   ✓ browser worker plugin isolation > cleans listeners and terminates when posting initialization fails 1ms
+   ✓ browser worker plugin isolation > does not recreate realm RPC listeners after disposal during module import 1ms
+   ✓ browser worker plugin isolation > installs network guards before importing plugins without network permission 1ms
+   ✓ browser worker plugin isolation > blocks worker importScripts even when network access is brokered 2ms
+   ✓ browser worker plugin isolation > blocks dynamic code execution even when network access is brokered 1ms
+   ✓ browser worker plugin isolation > blocks child worker creation even when network access is brokered 1ms
+   ✓ browser worker plugin isolation > routes ambient worker fetch through the main-thread network broker before import 1ms
+   ✓ browser worker plugin isolation > routes worker file capabilities through the main-thread filesystem broker 3ms
+   ✓ browser worker plugin isolation > propagates filesystem broker denials from the main thread to worker commands 2ms
+   ✓ browser worker plugin isolation > records main-thread filesystem audit entries for worker broker access 3ms
+   ✓ browser worker plugin isolation > routes worker network capabilities through the main-thread network broker 1ms
+   ✓ browser worker plugin isolation > propagates network broker denials from the main thread to worker commands 2ms
+   ✓ browser worker plugin isolation > records main-thread network audit entries for worker broker access 2ms
+   ✓ browser worker plugin isolation > routes allowed ambient fetch through a broker and blocks unbrokered network globals 1ms
+   ✓ browser worker plugin isolation > clears the startup timeout on success and disposes a ready host only once 7ms
+   × worker transaction boundaries > revokes a ready ordinary worker on error and rejects pending RPC 5017ms
+     → Test timed out in 5000ms.
+If this is a long-running test, pass a timeout value as the last argument or configure it globally with "testTimeout".
+   × worker transaction boundaries > revokes a ready ordinary worker on messageerror and rejects pending RPC 5015ms
+     → Test timed out in 5000ms.
+If this is a long-running test, pass a timeout value as the last argument or configure it globally with "testTimeout".
+   × worker transaction boundaries > blocks persistent/raw worker capabilities before module top-level execution 6ms
+     → expected [Function] to throw an error
+   × worker transaction boundaries > gates top-level brokered fetch until a trusted host commit callback changes 5ms
+     → promise resolved "{ ok: true }" instead of rejecting
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 4 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  packages/plugin/src/isolation-worker.test.ts > worker transaction boundaries > revokes a ready ordinary worker on error and rejects pending RPC
+ FAIL  packages/plugin/src/isolation-worker.test.ts > worker transaction boundaries > revokes a ready ordinary worker on messageerror and rejects pending RPC
+Error: Test timed out in 5000ms.
+If this is a long-running test, pass a timeout value as the last argument or configure it globally with "testTimeout".
+ ❯ packages/plugin/src/isolation-worker.test.ts:1150:36
+    1148| 
+    1149| describe('worker transaction boundaries', () => {
+    1150|   it.each(['error', 'messageerror'])('revokes a ready ordinary worker …
+       |                                    ^
+    1151|     class OrdinaryWorker extends EventTarget {
+    1152|       postMessage = vi.fn()
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/4]⎯
+
+ FAIL  packages/plugin/src/isolation-worker.test.ts > worker transaction boundaries > blocks persistent/raw worker capabilities before module top-level execution
+Error: expected [Function] to throw an error
+ ❯ packages/plugin/src/isolation-worker.ts:294:14
+    292|         resolveReady()
+    293|       } else {
+    294|         fail(new Error(lifecycle.error?.message ?? 'Plugin worker init…
+       |              ^
+    295|       }
+    296|     })
+ ❯ eventListener packages/plugin/src/isolation-worker.ts:579:73
+ ❯ packages/plugin/src/isolation-worker.test.ts:1027:9
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/4]⎯
+
+ FAIL  packages/plugin/src/isolation-worker.test.ts > worker transaction boundaries > gates top-level brokered fetch until a trusted host commit callback changes
+Error: promise resolved "{ ok: true }" instead of rejecting
+ ❯ packages/plugin/src/isolation-worker.ts:294:14
+    292|         resolveReady()
+    293|       } else {
+    294|         fail(new Error(lifecycle.error?.message ?? 'Plugin worker init…
+       |              ^
+    295|       }
+    296|     })
+ ❯ eventListener packages/plugin/src/isolation-worker.ts:579:73
+ ❯ packages/plugin/src/isolation-worker.test.ts:1027:9
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/4]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  4 failed | 21 passed (25)
+   Start at  08:30:34
+   Duration  11.59s (transform 698ms, setup 0ms, collect 931ms, tests 10.11s, environment 0ms, prepare 116ms)
+

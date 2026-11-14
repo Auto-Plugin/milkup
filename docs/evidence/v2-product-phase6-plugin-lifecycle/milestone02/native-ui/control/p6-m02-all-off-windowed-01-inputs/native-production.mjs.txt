@@ -1,0 +1,169 @@
+// Drives the built application through system keys; observations use shipped DOM.
+// No Vite transform or private editor state is injected into production assets.
+import assert from 'node:assert/strict'
+import { execFileSync } from 'node:child_process'
+import { writeFile } from 'node:fs/promises'
+import path from 'node:path'
+import {
+  beginNativeStartup,
+  waitForNativeWindow,
+  cleanupNativeApplication,
+  nativeRequestTimeout,
+} from './native-startup.mjs'
+export function unwrapWebDriverValue(data) {
+  return Object.prototype.hasOwnProperty.call(data, 'value') ? data.value : data
+}
+export async function startProduction(file, output, { diagnostics = true } = {}) {
+  const application = path.resolve(
+    process.env.TAURI_APP_PATH ?? 'apps/desktop/src-tauri/target/release/milkup-desktop',
+  )
+  let sid
+  const request = async (method, route, body) => {
+    const response = await fetch(
+      (process.env.TAURI_DRIVER_URL ?? 'http://127.0.0.1:4444') + route,
+      {
+        method,
+        headers: { 'content-type': 'application/json' },
+        body: body === undefined ? undefined : JSON.stringify(body),
+        signal: AbortSignal.timeout(nativeRequestTimeout(method, route)),
+      },
+    )
+    const data = await response.json()
+    if (!response.ok || (data.value?.error && !('ok' in data.value)))
+      throw Error(JSON.stringify(data))
+    return unwrapWebDriverValue(data)
+  }
+  const execute = (script, ...args) =>
+    request('POST', `/session/${sid}/execute/sync`, { script, args })
+  const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms))
+  const until = async (fn, label, limit = 15000) => {
+    const at = Date.now()
+    while (Date.now() - at < limit) {
+      const result = await fn()
+      if (result) return result
+      await delay(80)
+    }
+    throw Error('Timeout: ' + label)
+  }
+  const env = { ...process.env, DISPLAY: process.env.DISPLAY ?? ':99' }
+  const key = async (value) => {
+    execFileSync('xdotool', ['key', '--clearmodifiers', value], { env })
+  }
+  const text = async (value) => {
+    if (/^[\x20-\x7e]*$/.test(value)) {
+      execFileSync('xdotool', ['type', '--clearmodifiers', '--delay', '2', '--', value], { env })
+      return
+    }
+    await request('POST', `/session/${sid}/actions`, {
+      actions: [
+        {
+          type: 'key',
+          id: 'unicode-keyboard',
+          actions: [...value].flatMap((value) => [
+            { type: 'keyDown', value },
+            { type: 'keyUp', value },
+          ]),
+        },
+      ],
+    })
+  }
+  const focus = (selector) => execute('document.querySelector(arguments[0]).focus()', selector)
+  const click = async (selector) => {
+    await focus(selector)
+    await key('Return')
+  }
+  const probe = () =>
+    execute(
+      `const t=s=>document.querySelector(s)?.textContent;const app=document.querySelector('#app');return {url:location.href,path:t('[data-stat="path"]')??(t('[data-title-path]')+'/'+t('[data-title]')+'.md'),loading:app?.dataset.loading,saving:app?.dataset.saving==='true',version:Number(t('[data-stat="version"]')),savedVersion:Number(t('[data-stat="saved"]')),dirty:document.querySelector('[data-save-dot]')?.classList.contains('is-dirty'),notice:t('[data-notice]'),mode:document.querySelector('.milkup-editor')?.dataset.mode,query:document.querySelector('[data-search-input]')?.value,count:t('[data-search-result-count]'),searching:!document.querySelector('[data-search-loading]')?.hidden,message:t('[data-search-message]'),replacing:!document.querySelector('[data-replace-cancel]')?.hidden,replaceDisabled:document.querySelector('[data-replace-all]')?.disabled,cursor:Number(document.querySelector('.milkup-cursor')?.dataset.position),selection:Array.from(document.querySelectorAll('.milkup-selection')).map(e=>({from:Number(e.dataset.from),to:Number(e.dataset.to),line:Number(e.dataset.line)}))}`,
+    )
+  const shot = async (name) => {
+    await delay(200)
+    await writeFile(
+      path.join(output, name + '.png'),
+      Buffer.from(await request('GET', `/session/${sid}/screenshot`), 'base64'),
+    )
+  }
+  const close = async () => {
+    if (sid) await request('DELETE', `/session/${sid}`).catch(() => {})
+    cleanupNativeApplication(application)
+  }
+  try {
+    const started = beginNativeStartup(),
+      pending = request('POST', '/session', {
+        capabilities: { alwaysMatch: { 'tauri:options': { application, args: [file] } } },
+      })
+    pending.catch(() => {})
+    await waitForNativeWindow(started)
+    sid = (await pending).sessionId
+    await until(
+      async () => {
+        const state = await probe()
+        return state.path === file && state.loading === 'ready'
+      },
+      'production CLI open',
+      20000,
+    )
+    const windows = execFileSync(
+      'xdotool',
+      ['search', '--onlyvisible', '--class', 'milkup-desktop'],
+      {
+        encoding: 'utf8',
+        env,
+      },
+    )
+      .trim()
+      .split('\n')
+    execFileSync('xdotool', ['windowfocus', '--sync', windows.at(-1)], { env })
+    const initial = await execute(
+      `return {url:location.href,origin:location.origin,csp:document.querySelector('meta[http-equiv="Content-Security-Policy"]')?.content??null,scripts:Array.from(document.scripts).map(s=>s.src).filter(Boolean),styles:Array.from(document.querySelectorAll('link[rel="stylesheet"]')).map(e=>e.href),developmentProbe:typeof window.__searchProbe}`,
+    )
+    assert.equal(initial.developmentProbe, 'undefined')
+    assert(!/^https?:\/\/127\.0\.0\.1:1420/.test(initial.url))
+    assert(
+      initial.scripts.every(
+        (url) =>
+          new URL(url).protocol === new URL(initial.url).protocol &&
+          new URL(url).host === new URL(initial.url).host,
+      ),
+    )
+    await writeFile(path.join(output, 'production-origin.json'), JSON.stringify(initial, null, 2))
+    if (diagnostics)
+      await execute(
+        `window.__productionDiagnostics={workers:[],errors:[],cspViolations:[]};const NativeWorker=window.Worker;window.Worker=class extends NativeWorker{constructor(...args){super(...args);const item={url:String(args[0]),options:args[1],messages:0,errors:[]};window.__productionDiagnostics.workers.push(item);this.addEventListener('message',()=>item.messages++);this.addEventListener('error',e=>item.errors.push(e.message));}};addEventListener('error',e=>window.__productionDiagnostics.errors.push(e.message));addEventListener('unhandledrejection',e=>window.__productionDiagnostics.errors.push(String(e.reason)));addEventListener('securitypolicyviolation',e=>window.__productionDiagnostics.cspViolations.push({directive:e.violatedDirective,blocked:e.blockedURI}));`,
+      )
+    return {
+      application,
+      request,
+      execute,
+      until,
+      delay,
+      key,
+      text,
+      focus,
+      click,
+      probe,
+      shot,
+      close,
+    }
+  } catch (error) {
+    if (sid) {
+      await writeFile(
+        path.join(output, 'startup-failure.json'),
+        JSON.stringify(
+          {
+            error: String(error),
+            state: await probe().catch(() => null),
+            document: await execute(
+              'return {url:location.href,title:document.title,body:document.body.innerText.slice(0,3000),html:document.documentElement.outerHTML.slice(0,2000)}',
+            ).catch(() => null),
+          },
+          null,
+          2,
+        ),
+      )
+      await shot('startup-failure').catch(() => {})
+    }
+    await close()
+    throw error
+  }
+}

@@ -1,0 +1,25 @@
+from pathlib import Path
+import json,hashlib
+out=Path(__file__).parent;run=Path('/workspace/milkup-mermaid-engine-evidence/product-ui-runs/runs/mermaid-ui-deadline-diagnostic-01');p=run/'results.json'
+if not p.exists(): print(json.dumps({'status':'journal-not-created'}));raise SystemExit
+try:rows=json.loads(p.read_text())
+except json.JSONDecodeError:print(json.dumps({'status':'journal-write-in-progress'}));raise SystemExit
+viewed=set()
+if (out/'viewed-images.jsonl').exists():viewed={json.loads(l)['record'] for l in (out/'viewed-images.jsonl').read_text().splitlines()}
+byname={r['name']:r for r in rows};pending=[];index=0
+samples=['flowchart-006-subgraph','classDiagram-000-first-official-example','userJourney-000-first-official-example','sequenceDiagram-026-alt-group','sankey-000-first-official-example']
+for mode in ['source','live']:
+ for theme in ['light','dark']:
+  for zoom in [100,125,150,200]:
+   for size in ['wide','narrow']:
+    key=f'windowed-{mode}-{theme}-{zoom}-{size}';sample=samples[index%5];index+=1
+    name=f'matrix-{key}-{sample}'
+    if f'matrix-complete-{key}' in byname and name in byname and name not in viewed:pending.append((byname[name],'matrix-combination'))
+for r in rows:
+ name=r['name']
+ if name.startswith(('edges-windowed-live-light-200-narrow-','edges-windowed-live-dark-200-narrow-')) and name not in viewed:pending.append((r,'corner'))
+verified=[]
+for r,scope in pending:
+ shot=next(s for s in r['screenshots'] if s['file'].endswith('-webview.png'));p=run/shot['file'];data=p.read_bytes();digest=hashlib.sha256(data).hexdigest();assert digest==shot['sha256'] and len(data)==shot['bytes'],str(p)
+ verified.append({'record':r['name'],'path':str(p),'scope':scope,'bytes':len(data),'sha256':digest,'combination':r.get('combination'),'sample':r.get('sample')})
+print(json.dumps({'status':'completed-records-only','count':len(rows),'last':rows[-1]['name'] if rows else None,'failure':next((r['name'] for r in rows if r['name']=='FAIL'),None),'windowedCombinationsCompleted':sum(r['name'].startswith('matrix-complete-windowed-') for r in rows),'viewed':len(viewed),'pending':verified},ensure_ascii=False))

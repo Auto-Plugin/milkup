@@ -1,0 +1,66 @@
+{
+  "status": "view patch frozen; Linux production follow-up pending",
+  "baseline": "4523081",
+  "native_before": "../native/run-candidate06-seek02/render-trace.json",
+  "native_facts": {
+    "before_ms": 111359,
+    "before_target_top": 184.75,
+    "editor_top": 154,
+    "before_scroll_top": 1045,
+    "before_window": "11..86",
+    "after_ms": 111433,
+    "after_target_top": -128.25,
+    "after_scroll_top": 1358,
+    "after_window": "12..87",
+    "delta": 313,
+    "renderer_timeout_count": 0,
+    "later_request_from_sequence": [288, 416, 434, 461, 463, 501],
+    "later_footnote_fragment_counts": [3, 3, 3, 1, 1, 0]
+  },
+  "cause": "Source DOM replacement removed preview height before the manager captured an anchor. Repainting then preserved a later visible row and left the previous reading/selected row offscreen. Synchronous repaint also exposed source window metadata that had not yet been updated.",
+  "fix": [
+    "Capture the visible selected row or reading anchor before replacing DOM, reinstall only an existing valid presentation, then restore the matching source-offset/line row in the replacement DOM.",
+    "Require unchanged source identity/version, live mode, configuration, cache and selection. Do not restore a missing row or steal external focus.",
+    "Publish SourceDocumentView window metadata inside the same callback as replaceChildren before presentation layout measures new lines."
+  ],
+  "red": {
+    "96-window-replacement-anchor-before.log": "2 failures: selected row 42→−137; reading anchor −11→−190 (179px lost preview height).",
+    "97-window-metadata-before.log": "Real SourceDocumentView swapped to lines48..55 while geometry still saw metadata1..6; 6 anchor/identity guards passed, metadata assertion failed."
+  },
+  "green": {
+    "99-window-anchor-focused.log": {
+      "tests": 238,
+      "presentation": 51,
+      "ordinary": 123,
+      "source": 64
+    },
+    "101-window-anchor-types-final.log": "PASS",
+    "102-window-anchor-browser.log": "7/7 PASS. First navigation assertion checked last3 of20; archived raw data independently has all20 visible.",
+    "104-window-navigation-strict-browser.log": "1/1 PASS after changing assertion to all20 samples, starting immediately after revealSelection resolves; no extra settling wait."
+  },
+  "geometry": "104-window-navigation-strict/",
+  "data_invariants": [
+    "CRLF/Unicode source unchanged",
+    "version0",
+    "exact selection retained",
+    "ordinary existing history regression passed",
+    "reader position preserved when selection was already offscreen"
+  ],
+  "fixture_issue": "100-window-anchor-types.log initially lacked enabled:true in the new VirtualViewportConfig test fixture; corrected without changing product behavior, then typecheck passed.",
+  "unchanged": [
+    "public core/SDK API",
+    "CSS",
+    "plugin implementations",
+    "worker deadlines",
+    "cache/window budgets",
+    "native harness assertions"
+  ],
+  "limitations": [
+    "New production binary must repeat native source/live ordinary/windowed semantics. Candidate06 still fails.",
+    "Chromium public-view fixture is a geometry regression, not a native Tauri/Worker acceptance result."
+  ],
+  "product_sha256": {
+    "packages/view-dom/src/document-presentation.ts": "7ecdf24f7ee51284163adb1c76bce9834345fb6f4f9d07f34a0b576330afac4a",
+    "packages/view-dom/src/source-document-view.ts": "daed0ce0657a4dbecf612d3f4dedcef7e3a6dd105547bb738d7ac595246cfa05"
+  }
+}

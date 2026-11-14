@@ -1,0 +1,182 @@
+{
+  "finishedUtc": "2026-10-19T13:58:22.178973+00:00",
+  "steps": [
+    {
+      "name": "workspace-tests",
+      "command": [
+        "bash",
+        "scripts/cloud/pnpm.sh",
+        "--config.verify-deps-before-run=false",
+        "--config.manage-package-manager-versions=false",
+        "--workspace-concurrency=1",
+        "-r",
+        "test"
+      ],
+      "startedUtc": "2026-10-19T13:43:40.100571+00:00",
+      "finishedUtc": "2026-10-19T13:45:08.707277+00:00",
+      "elapsedSeconds": 88.60698813300405,
+      "exitCode": 0,
+      "log": "/workspace/milkup-p7-quality-evidence/milestone02/validation/final01-workspace-tests.log",
+      "actualSummaryLines": [
+        " Test Files  1 passed (1)",
+        "      Tests  6 passed (6)",
+        " Test Files  21 passed (21)",
+        "      Tests  189 passed (189)",
+        " Test Files  1 passed (1)",
+        "      Tests  8 passed (8)",
+        " Test Files  9 passed (9)",
+        "      Tests  121 passed (121)",
+        " Test Files  4 passed (4)",
+        "      Tests  75 passed (75)",
+        " Test Files  2 passed (2)",
+        "      Tests  11 passed (11)",
+        " Test Files  1 passed (1)",
+        "      Tests  6 passed (6)",
+        " Test Files  9 passed (9)",
+        "      Tests  55 passed (55)",
+        " Test Files  30 passed (30)",
+        "      Tests  791 passed (791)",
+        " Test Files  46 passed (46)",
+        "      Tests  616 passed (616)",
+        " Test Files  12 passed (12)",
+        "      Tests  12 passed (12)",
+        " Test Files  57 passed (57)",
+        "      Tests  650 passed (650)",
+        "\u2139 tests 4",
+        "\u2139 pass 4",
+        "\u2139 fail 0",
+        " Test Files  1 passed (1)",
+        "      Tests  21 passed (21)"
+      ]
+    },
+    {
+      "name": "workspace-types",
+      "command": [
+        "bash",
+        "scripts/cloud/pnpm.sh",
+        "--config.verify-deps-before-run=false",
+        "--config.manage-package-manager-versions=false",
+        "typecheck"
+      ],
+      "startedUtc": "2026-10-19T13:45:09.032304+00:00",
+      "finishedUtc": "2026-10-19T13:45:47.305153+00:00",
+      "elapsedSeconds": 38.273106549997465,
+      "exitCode": 0,
+      "log": "/workspace/milkup-p7-quality-evidence/milestone02/validation/final01-workspace-types.log"
+    },
+    {
+      "name": "version",
+      "command": [
+        "bash",
+        "scripts/cloud/pnpm.sh",
+        "--config.verify-deps-before-run=false",
+        "--config.manage-package-manager-versions=false",
+        "version:check"
+      ],
+      "startedUtc": "2026-10-19T13:45:47.841199+00:00",
+      "finishedUtc": "2026-10-19T13:45:48.667408+00:00",
+      "elapsedSeconds": 0.8263485520001268,
+      "exitCode": 0,
+      "log": "/workspace/milkup-p7-quality-evidence/milestone02/validation/final01-version.log"
+    },
+    {
+      "name": "workspace-build",
+      "command": [
+        "bash",
+        "scripts/cloud/pnpm.sh",
+        "--config.verify-deps-before-run=false",
+        "--config.manage-package-manager-versions=false",
+        "build"
+      ],
+      "startedUtc": "2026-10-19T13:45:48.877137+00:00",
+      "finishedUtc": "2026-10-19T13:46:23.874211+00:00",
+      "elapsedSeconds": 34.99758845400356,
+      "exitCode": 0,
+      "log": "/workspace/milkup-p7-quality-evidence/milestone02/validation/final01-workspace-build.log"
+    },
+    {
+      "name": "full-format",
+      "command": [
+        "bash",
+        "scripts/cloud/pnpm.sh",
+        "--config.verify-deps-before-run=false",
+        "--config.manage-package-manager-versions=false",
+        "exec",
+        "prettier",
+        "--check",
+        "."
+      ],
+      "startedUtc": "2026-10-19T13:46:24.139842+00:00",
+      "finishedUtc": "2026-10-19T13:48:37.969657+00:00",
+      "elapsedSeconds": 133.83052410600067,
+      "exitCode": 0,
+      "log": "/workspace/milkup-p7-quality-evidence/milestone02/validation/final01-full-format.log"
+    },
+    {
+      "name": "diff-check",
+      "command": [
+        "git",
+        "diff",
+        "--check",
+        "HEAD"
+      ],
+      "startedUtc": "2026-10-19T13:48:38.342242+00:00",
+      "finishedUtc": "2026-10-19T13:48:38.411521+00:00",
+      "elapsedSeconds": 0.06928560700907838,
+      "exitCode": 0,
+      "log": "/workspace/milkup-p7-quality-evidence/milestone02/validation/final01-diff-check.log"
+    },
+    {
+      "name": "browser-list",
+      "command": [
+        "bash",
+        "scripts/cloud/pnpm.sh",
+        "--config.verify-deps-before-run=false",
+        "--config.manage-package-manager-versions=false",
+        "test:e2e",
+        "--list",
+        "--reporter=line"
+      ],
+      "startedUtc": "2026-10-19T13:48:38.581126+00:00",
+      "finishedUtc": "2026-10-19T13:48:40.259719+00:00",
+      "elapsedSeconds": 1.6786494740081253,
+      "exitCode": 0,
+      "log": "/workspace/milkup-p7-quality-evidence/milestone02/validation/final01-browser-list.log",
+      "listed197": true
+    },
+    {
+      "name": "browser",
+      "command": [
+        "bash",
+        "scripts/cloud/pnpm.sh",
+        "--config.verify-deps-before-run=false",
+        "--config.manage-package-manager-versions=false",
+        "test:e2e",
+        "--workers=2",
+        "--retries=0",
+        "--trace=retain-on-failure",
+        "--reporter=line,json",
+        "--output=/workspace/milkup-p7-quality-evidence/milestone02/validation/final01-browser-artifacts"
+      ],
+      "startedUtc": "2026-10-19T13:48:40.440047+00:00",
+      "finishedUtc": "2026-10-19T13:58:21.768072+00:00",
+      "elapsedSeconds": 581.3286029709998,
+      "exitCode": 0,
+      "log": "/workspace/milkup-p7-quality-evidence/milestone02/validation/final01-browser.log",
+      "stats": {
+        "startTime": "2026-10-19T13:48:41.640Z",
+        "duration": 580024.1649999999,
+        "expected": 197,
+        "skipped": 0,
+        "unexpected": 0,
+        "flaky": 0
+      },
+      "errors": [],
+      "all197Passed": true
+    }
+  ],
+  "inputDrift": false,
+  "allPassed": true,
+  "noAutomaticRetry": true,
+  "scope": "Original deadlines, no corrections or installation. Full browser acceptance requires 197 actual passes, no skipped/flaky/unexpected cases. Format is check-only; preserve any raw-evidence failures unchanged."
+}

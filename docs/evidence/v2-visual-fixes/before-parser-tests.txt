@@ -1,0 +1,683 @@
+
+ RUN  v3.2.6 /workspace/milkup-visual-baseline
+
+ ❯ packages/markdown/src/__tests__/inline-parser.test.ts (33 tests | 14 failed) 73ms
+   ✓ parseInline > parses plain text 3ms
+   ✓ parseInline > parses escaped characters 0ms
+   ✓ parseInline > parses inline code spans 0ms
+   ✓ parseInline > represents unclosed inline code spans as incomplete nodes 0ms
+   ✓ parseInline > parses emphasis with child text 0ms
+   ✓ parseInline > parses strong with child text 0ms
+   ✓ parseInline > preserves surrounding text around strong nodes 0ms
+   × parseInline > closes nested emphasis before strong in 粗体中的  11ms
+     → expected [ …(2) ] to have a length of 1 but got 2
+   × parseInline > closes nested emphasis before strong in 粗体中的  5ms
+     → expected { type: 'strong', from: +0, …(5) } to match object { type: 'strong', from: +0, …(5) }
+(1 matching property omitted from actual)
+   × parseInline > closes nested emphasis before strong in 中文 bold  4ms
+     → expected { type: 'strong', from: +0, …(5) } to match object { type: 'strong', from: +0, …(5) }
+(1 matching property omitted from actual)
+   × parseInline > closes nested emphasis before strong in English 中文  6ms
+     → expected { type: 'strong', from: +0, …(5) } to match object { type: 'strong', from: +0, …(5) }
+(1 matching property omitted from actual)
+   × parseInline > closes nested emphasis before strong in 粗体😀  6ms
+     → expected { type: 'strong', from: +0, …(5) } to match object { type: 'strong', from: +0, …(5) }
+(1 matching property omitted from actual)
+   × parseInline > ignores already consumed star delimiters before nested emphasis: \*  2ms
+     → expected { type: 'emphasis', from: 5, …(4) } to match object { type: 'emphasis', …(2) }
+(4 matching properties omitted from actual)
+   × parseInline > ignores already consumed star delimiters before nested emphasis: `*`  2ms
+     → expected { type: 'emphasis', from: 6, …(4) } to match object { type: 'emphasis', …(2) }
+(4 matching properties omitted from actual)
+   × parseInline > ignores already consumed star delimiters before nested emphasis: ``a * ` b``  3ms
+     → expected { type: 'emphasis', from: 14, …(4) } to match object { type: 'emphasis', …(2) }
+(4 matching properties omitted from actual)
+   × parseInline > ignores already consumed star delimiters before nested emphasis: *earlier*  2ms
+     → expected { type: 'emphasis', from: 12, …(4) } to match object { type: 'emphasis', …(2) }
+(4 matching properties omitted from actual)
+   × parseInline > keeps literal stars inside nested emphasis: \* 5ms
+     → expected { type: 'strong', from: +0, …(5) } to match object { type: 'strong', …(2) }
+(4 matching properties omitted from actual)
+   × parseInline > keeps literal stars inside nested emphasis: `*` 5ms
+     → expected { type: 'strong', from: +0, …(5) } to match object { type: 'strong', …(2) }
+(4 matching properties omitted from actual)
+   × parseInline > keeps literal stars inside nested emphasis: ``a * ` b`` 5ms
+     → expected { type: 'strong', from: +0, …(5) } to match object { type: 'strong', …(2) }
+(4 matching properties omitted from actual)
+   × parseInline > keeps successive mixed-language emphasis independent 6ms
+     → expected [ …(7) ] to match object [ { type: 'text', …(1) }, …(5) ]
+   ✓ parseInline > preserves incomplete strong and emphasis children while typing 1ms
+   × parseInline > respects requested ranges when a closing run continues outside them 1ms
+     → expected [ { type: 'strong', from: +0, …(5) } ] to match object [ { type: 'strong', from: +0, …(3) } ]
+(2 matching properties omitted from actual)
+   ✓ parseInline > represents unclosed emphasis as an incomplete node 0ms
+   ✓ parseInline > parses inline links with label children and destination ranges 0ms
+   ✓ parseInline > parses images with alt text and destination ranges 0ms
+   ✓ parseInline > represents unclosed links as incomplete nodes 0ms
+   ✓ parseInline > parses URL autolinks 0ms
+   ✓ parseInline > parses email autolinks 0ms
+   ✓ parseInline > parses hard breaks from two spaces before a newline 0ms
+   ✓ parseInline > parses emphasis inside link labels 0ms
+   ✓ parseInline > parses links and code spans inside emphasis 0ms
+   ✓ parseInlineText > returns a text node over the requested range 0ms
+   ✓ parseInlineText > returns no nodes for an empty range 0ms
+
+⎯⎯⎯⎯⎯⎯ Failed Tests 14 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  packages/markdown/src/__tests__/inline-parser.test.ts > parseInline > closes nested emphasis before strong in 粗体中的
+AssertionError: expected [ …(2) ] to have a length of 1 but got 2
+
+- Expected
++ Received
+
+- 1
++ 2
+
+ ❯ packages/markdown/src/__tests__/inline-parser.test.ts:170:19
+    168|
+    169|     const nodes = parseInline(source)
+    170|     expect(nodes).toHaveLength(trailing ? 2 : 1)
+       |                   ^
+    171|     expect(nodes[0]).toMatchObject({
+    172|       type: 'strong',
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/14]⎯
+
+ FAIL  packages/markdown/src/__tests__/inline-parser.test.ts > parseInline > closes nested emphasis before strong in 粗体中的
+ FAIL  packages/markdown/src/__tests__/inline-parser.test.ts > parseInline > closes nested emphasis before strong in 中文 bold
+ FAIL  packages/markdown/src/__tests__/inline-parser.test.ts > parseInline > closes nested emphasis before strong in English 中文
+ FAIL  packages/markdown/src/__tests__/inline-parser.test.ts > parseInline > closes nested emphasis before strong in 粗体😀
+AssertionError: expected { type: 'strong', from: +0, …(5) } to match object { type: 'strong', from: +0, …(5) }
+(1 matching property omitted from actual)
+
+- Expected
++ Received
+
+@@ -5,50 +5,38 @@
+          "value": "粗体中的 ",
+        },
+        "type": "text",
+      },
+      {
+-       "children": [
+-         {
+-           "data": {
+-             "value": "斜体",
+-           },
+-           "type": "text",
+-         },
+-       ],
+        "from": 7,
+        "markerRanges": [
+          {
+            "from": 7,
+            "to": 8,
+-         },
+-         {
+-           "from": 10,
+-           "to": 11,
+          },
+        ],
+-       "status": "valid",
+-       "to": 11,
++       "status": "incomplete",
++       "to": 10,
+        "type": "emphasis",
+      },
+    ],
+    "contentRanges": [
+      {
+        "from": 2,
+-       "to": 11,
++       "to": 10,
+      },
+    ],
+    "from": 0,
+    "markerRanges": [
+      {
+        "from": 0,
+        "to": 2,
+      },
+      {
+-       "from": 11,
+-       "to": 13,
++       "from": 10,
++       "to": 12,
+      },
+    ],
+    "status": "valid",
+-   "to": 13,
++   "to": 12,
+    "type": "strong",
+  }
+
+ ❯ packages/markdown/src/__tests__/inline-parser.test.ts:171:22
+    169|     const nodes = parseInline(source)
+    170|     expect(nodes).toHaveLength(trailing ? 2 : 1)
+    171|     expect(nodes[0]).toMatchObject({
+       |                      ^
+    172|       type: 'strong',
+    173|       from: 0,
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/14]⎯
+
+ FAIL  packages/markdown/src/__tests__/inline-parser.test.ts > parseInline > ignores already consumed star delimiters before nested emphasis: \*
+AssertionError: expected { type: 'emphasis', from: 5, …(4) } to match object { type: 'emphasis', …(2) }
+(4 matching properties omitted from actual)
+
+- Expected
++ Received
+
+  {
+-   "children": [
+-     {
+-       "data": {
+-         "value": "斜体",
+-       },
+-       "type": "text",
+-     },
+-   ],
+-   "status": "valid",
++   "status": "incomplete",
+    "type": "emphasis",
+  }
+
+ ❯ packages/markdown/src/__tests__/inline-parser.test.ts:213:42
+    211|       expect(nodes).toHaveLength(2)
+    212|       expect(nodes[0]).toMatchObject({ type: 'strong', status: 'valid'…
+    213|       expect(nodes[0]?.children?.at(-1)).toMatchObject({
+       |                                          ^
+    214|         type: 'emphasis',
+    215|         status: 'valid',
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/14]⎯
+
+ FAIL  packages/markdown/src/__tests__/inline-parser.test.ts > parseInline > ignores already consumed star delimiters before nested emphasis: `*`
+AssertionError: expected { type: 'emphasis', from: 6, …(4) } to match object { type: 'emphasis', …(2) }
+(4 matching properties omitted from actual)
+
+- Expected
++ Received
+
+  {
+-   "children": [
+-     {
+-       "data": {
+-         "value": "斜体",
+-       },
+-       "type": "text",
+-     },
+-   ],
+-   "status": "valid",
++   "status": "incomplete",
+    "type": "emphasis",
+  }
+
+ ❯ packages/markdown/src/__tests__/inline-parser.test.ts:213:42
+    211|       expect(nodes).toHaveLength(2)
+    212|       expect(nodes[0]).toMatchObject({ type: 'strong', status: 'valid'…
+    213|       expect(nodes[0]?.children?.at(-1)).toMatchObject({
+       |                                          ^
+    214|         type: 'emphasis',
+    215|         status: 'valid',
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/14]⎯
+
+ FAIL  packages/markdown/src/__tests__/inline-parser.test.ts > parseInline > ignores already consumed star delimiters before nested emphasis: ``a * ` b``
+AssertionError: expected { type: 'emphasis', from: 14, …(4) } to match object { type: 'emphasis', …(2) }
+(4 matching properties omitted from actual)
+
+- Expected
++ Received
+
+  {
+-   "children": [
+-     {
+-       "data": {
+-         "value": "斜体",
+-       },
+-       "type": "text",
+-     },
+-   ],
+-   "status": "valid",
++   "status": "incomplete",
+    "type": "emphasis",
+  }
+
+ ❯ packages/markdown/src/__tests__/inline-parser.test.ts:213:42
+    211|       expect(nodes).toHaveLength(2)
+    212|       expect(nodes[0]).toMatchObject({ type: 'strong', status: 'valid'…
+    213|       expect(nodes[0]?.children?.at(-1)).toMatchObject({
+       |                                          ^
+    214|         type: 'emphasis',
+    215|         status: 'valid',
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/14]⎯
+
+ FAIL  packages/markdown/src/__tests__/inline-parser.test.ts > parseInline > ignores already consumed star delimiters before nested emphasis: *earlier*
+AssertionError: expected { type: 'emphasis', from: 12, …(4) } to match object { type: 'emphasis', …(2) }
+(4 matching properties omitted from actual)
+
+- Expected
++ Received
+
+  {
+-   "children": [
+-     {
+-       "data": {
+-         "value": "斜体",
+-       },
+-       "type": "text",
+-     },
+-   ],
+-   "status": "valid",
++   "status": "incomplete",
+    "type": "emphasis",
+  }
+
+ ❯ packages/markdown/src/__tests__/inline-parser.test.ts:213:42
+    211|       expect(nodes).toHaveLength(2)
+    212|       expect(nodes[0]).toMatchObject({ type: 'strong', status: 'valid'…
+    213|       expect(nodes[0]?.children?.at(-1)).toMatchObject({
+       |                                          ^
+    214|         type: 'emphasis',
+    215|         status: 'valid',
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/14]⎯
+
+ FAIL  packages/markdown/src/__tests__/inline-parser.test.ts > parseInline > keeps literal stars inside nested emphasis: \*
+ FAIL  packages/markdown/src/__tests__/inline-parser.test.ts > parseInline > keeps literal stars inside nested emphasis: `*`
+ FAIL  packages/markdown/src/__tests__/inline-parser.test.ts > parseInline > keeps literal stars inside nested emphasis: ``a * ` b``
+AssertionError: expected { type: 'strong', from: +0, …(5) } to match object { type: 'strong', …(2) }
+(4 matching properties omitted from actual)
+
+- Expected
++ Received
+
+  {
+    "children": [
+      {
++       "contentRanges": [
++         {
++           "from": 2,
++           "to": 5,
++         },
++       ],
++       "data": {
++         "value": "粗体 ",
++       },
++       "from": 2,
++       "status": "valid",
++       "to": 5,
+        "type": "text",
+      },
+      {
+        "children": [
+          {
++           "contentRanges": [
++             {
++               "from": 6,
++               "to": 9,
++             },
++           ],
+            "data": {
+              "value": "斜体 ",
+            },
++           "from": 6,
++           "status": "valid",
++           "to": 9,
+            "type": "text",
+          },
+          {
+-           "type": "escape",
+-         },
++           "contentRanges": [
+              {
++               "from": 9,
++               "to": 10,
++             },
++           ],
+            "data": {
+-             "value": " text",
++             "value": "\\",
+            },
++           "from": 9,
++           "status": "valid",
++           "to": 10,
+            "type": "text",
++         },
++       ],
++       "contentRanges": [
++         {
++           "from": 6,
++           "to": 10,
++         },
++       ],
++       "from": 5,
++       "markerRanges": [
++         {
++           "from": 5,
++           "to": 6,
++         },
++         {
++           "from": 10,
++           "to": 11,
+          },
+        ],
+        "status": "valid",
++       "to": 11,
+        "type": "emphasis",
++     },
++     {
++       "contentRanges": [
++         {
++           "from": 11,
++           "to": 16,
++         },
++       ],
++       "data": {
++         "value": " text",
++       },
++       "from": 11,
++       "status": "valid",
++       "to": 16,
++       "type": "text",
+      },
+    ],
+    "status": "valid",
+    "type": "strong",
+  }
+
+ ❯ packages/markdown/src/__tests__/inline-parser.test.ts:227:24
+    225|       const nodes = parseInline(`**粗体 *斜体 ${literal} text*** 后续`)
+    226|       expect(nodes).toHaveLength(2)
+    227|       expect(nodes[0]).toMatchObject({
+       |                        ^
+    228|         type: 'strong',
+    229|         status: 'valid',
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[7/14]⎯
+
+ FAIL  packages/markdown/src/__tests__/inline-parser.test.ts > parseInline > keeps successive mixed-language emphasis independent
+AssertionError: expected [ …(7) ] to match object [ { type: 'text', …(1) }, …(5) ]
+
+- Expected
++ Received
+
+  [
+    {
++     "contentRanges": [
++       {
++         "from": 0,
++         "to": 3,
++       },
++     ],
+      "data": {
+        "value": "中文 ",
++     },
++     "from": 0,
++     "status": "valid",
++     "to": 3,
++     "type": "text",
++   },
++   {
++     "children": [
++       {
++         "contentRanges": [
++           {
++             "from": 4,
++             "to": 10,
+            },
++         ],
++         "data": {
++           "value": "italic",
++         },
++         "from": 4,
++         "status": "valid",
++         "to": 10,
+          "type": "text",
+        },
++     ],
++     "contentRanges": [
+        {
++         "from": 4,
++         "to": 10,
++       },
++     ],
++     "from": 3,
++     "markerRanges": [
++       {
++         "from": 3,
++         "to": 4,
++       },
++       {
++         "from": 10,
++         "to": 11,
++       },
++     ],
+      "status": "valid",
++     "to": 11,
+      "type": "emphasis",
+    },
+    {
++     "contentRanges": [
++       {
++         "from": 11,
++         "to": 20,
++       },
++     ],
+      "data": {
+        "value": " English ",
++     },
++     "from": 11,
++     "status": "valid",
++     "to": 20,
++     "type": "text",
++   },
++   {
++     "children": [
++       {
++         "contentRanges": [
++           {
++             "from": 22,
++             "to": 25,
++           },
++         ],
++         "data": {
++           "value": "粗体 ",
+          },
++         "from": 22,
++         "status": "valid",
++         "to": 25,
+          "type": "text",
++       },
++       {
++         "contentRanges": [
++           {
++             "from": 26,
++             "to": 28,
++           },
++         ],
++         "from": 25,
++         "markerRanges": [
++           {
++             "from": 25,
++             "to": 26,
++           },
++         ],
++         "status": "incomplete",
++         "to": 28,
++         "type": "emphasis",
++       },
++     ],
++     "contentRanges": [
++       {
++         "from": 22,
++         "to": 28,
++       },
++     ],
++     "from": 20,
++     "markerRanges": [
++       {
++         "from": 20,
++         "to": 22,
+        },
+        {
++         "from": 28,
++         "to": 30,
++       },
++     ],
+      "status": "valid",
++     "to": 30,
+      "type": "strong",
+    },
++   {
++     "children": [
++       {
++         "contentRanges": [
+            {
++             "from": 31,
++             "to": 35,
++           },
++         ],
+          "data": {
+            "value": " 后续 ",
+          },
++         "from": 31,
++         "status": "valid",
++         "to": 35,
+          "type": "text",
++       },
++     ],
++     "contentRanges": [
++       {
++         "from": 31,
++         "to": 35,
+        },
++     ],
++     "from": 30,
++     "markerRanges": [
+        {
++         "from": 30,
++         "to": 31,
++       },
++       {
++         "from": 35,
++         "to": 36,
++       },
++     ],
+      "status": "valid",
+-     "type": "strong",
++     "to": 36,
++     "type": "emphasis",
++   },
++   {
++     "children": [
++       {
++         "contentRanges": [
++           {
++             "from": 37,
++             "to": 41,
++           },
++         ],
++         "data": {
++           "value": "bold",
++         },
++         "from": 37,
++         "status": "valid",
++         "to": 41,
++         "type": "text",
++       },
++     ],
++     "contentRanges": [
++       {
++         "from": 37,
++         "to": 41,
++       },
++     ],
++     "from": 36,
++     "markerRanges": [
++       {
++         "from": 36,
++         "to": 37,
++       },
++       {
++         "from": 41,
++         "to": 42,
++       },
++     ],
++     "status": "valid",
++     "to": 42,
++     "type": "emphasis",
++   },
++   {
++     "contentRanges": [
++       {
++         "from": 43,
++         "to": 43,
++       },
++     ],
++     "from": 42,
++     "markerRanges": [
++       {
++         "from": 42,
++         "to": 43,
++       },
++     ],
++     "status": "incomplete",
++     "to": 43,
++     "type": "emphasis",
+    },
+  ]
+
+ ❯ packages/markdown/src/__tests__/inline-parser.test.ts:248:72
+    246|
+    247|   it('keeps successive mixed-language emphasis independent', () => {
+    248|     expect(parseInline('中文 *italic* English **粗体 *斜体*** 后续 **bold**'))…
+       |                                                                        ^
+    249|       { type: 'text', data: { value: '中文 ' } },
+    250|       { type: 'emphasis', status: 'valid' },
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[8/14]⎯
+
+ FAIL  packages/markdown/src/__tests__/inline-parser.test.ts > parseInline > respects requested ranges when a closing run continues outside them
+AssertionError: expected [ { type: 'strong', from: +0, …(5) } ] to match object [ { type: 'strong', from: +0, …(3) } ]
+(2 matching properties omitted from actual)
+
+- Expected
++ Received
+
+@@ -4,11 +4,15 @@
+      "markerRanges": [
+        {
+          "from": 0,
+          "to": 2,
+        },
++       {
++         "from": 4,
++         "to": 6,
++       },
+      ],
+-     "status": "incomplete",
+-     "to": 5,
++     "status": "valid",
++     "to": 6,
+      "type": "strong",
+    },
+  ]
+
+ ❯ packages/markdown/src/__tests__/inline-parser.test.ts:281:41
+    279|
+    280|   it('respects requested ranges when a closing run continues outside t…
+    281|     expect(parseInline('**粗体**', 0, 5)).toMatchObject([
+       |                                         ^
+    282|       {
+    283|         type: 'strong',
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[9/14]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  14 failed | 19 passed (33)
+   Start at  08:27:08
+   Duration  885ms (transform 254ms, setup 0ms, collect 324ms, tests 73ms, environment 0ms, prepare 127ms)

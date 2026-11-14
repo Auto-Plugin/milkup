@@ -1,0 +1,169 @@
+{
+  "atUtc": "2026-10-16T19:22:06.699058+00:00",
+  "author": "root",
+  "summarySha256": "612153dbe1049244ed5862df11b5486c3aad1f35b63a3c0e4b716c95baabe5a5",
+  "actualRawEventFilesChecked": 5,
+  "identitiesRecheckedAbsentOrNotSameBirth": 55,
+  "actualPixelFilesViewed": [
+    "timeout/02-timeout-failed-card.png",
+    "disable/02-lifecycle-complete.png",
+    "remove/02-lifecycle-complete.png"
+  ],
+  "cases": [
+    {
+      "case": "timeout",
+      "status": "PASS",
+      "observedIdentities": 9,
+      "latency": {
+        "domMs": 10.000000000001819,
+        "twoFramesMs": 31.000000000003638
+      },
+      "phases": [
+        {
+          "phase": "dispatch",
+          "secondsFromDispatch": 0.0
+        },
+        {
+          "phase": "deadline-observed",
+          "secondsFromDispatch": 2.000163297
+        },
+        {
+          "phase": "kill-start",
+          "secondsFromDispatch": 2.001704172
+        },
+        {
+          "phase": "cleanup-complete",
+          "secondsFromDispatch": 2.101721531
+        },
+        {
+          "phase": "cleanup-confirmed",
+          "secondsFromDispatch": 2.125908777
+        },
+        {
+          "phase": "control-emitted",
+          "secondsFromDispatch": 2.126075391
+        },
+        {
+          "phase": "cleanup-confirmed",
+          "secondsFromDispatch": 2.239494796
+        },
+        {
+          "phase": "cleanup-confirmed",
+          "secondsFromDispatch": 2.239709415
+        }
+      ],
+      "terminalGuardianProof": null
+    },
+    {
+      "case": "disable",
+      "status": "PASS",
+      "observedIdentities": 9,
+      "latency": {
+        "domMs": 5,
+        "twoFramesMs": 16
+      },
+      "phases": [
+        {
+          "phase": "dispatch",
+          "secondsFromDispatch": 0.0
+        },
+        {
+          "phase": "kill-start",
+          "secondsFromDispatch": 0.657344161
+        },
+        {
+          "phase": "cleanup-complete",
+          "secondsFromDispatch": 0.689083247
+        },
+        {
+          "phase": "cleanup-confirmed",
+          "secondsFromDispatch": 0.69913287
+        },
+        {
+          "phase": "cleanup-confirmed",
+          "secondsFromDispatch": 0.699194594
+        }
+      ],
+      "terminalGuardianProof": null
+    },
+    {
+      "case": "remove",
+      "status": "PASS",
+      "observedIdentities": 9,
+      "latency": {
+        "domMs": 9,
+        "twoFramesMs": 21
+      },
+      "phases": [
+        {
+          "phase": "dispatch",
+          "secondsFromDispatch": 0.0
+        },
+        {
+          "phase": "kill-start",
+          "secondsFromDispatch": 0.664840991
+        },
+        {
+          "phase": "cleanup-complete",
+          "secondsFromDispatch": 0.713148581
+        },
+        {
+          "phase": "cleanup-confirmed",
+          "secondsFromDispatch": 0.73112931
+        },
+        {
+          "phase": "cleanup-confirmed",
+          "secondsFromDispatch": 0.731228809
+        }
+      ],
+      "terminalGuardianProof": null
+    },
+    {
+      "case": "wm-close",
+      "status": "PASS",
+      "observedIdentities": 9,
+      "latency": null,
+      "phases": [
+        {
+          "phase": "dispatch",
+          "secondsFromDispatch": 0.0
+        },
+        {
+          "phase": "kill-start",
+          "secondsFromDispatch": 0.150154539
+        },
+        {
+          "phase": "cleanup-complete",
+          "secondsFromDispatch": 0.17381494
+        },
+        {
+          "phase": "cleanup-confirmed",
+          "secondsFromDispatch": 0.183079097
+        }
+      ],
+      "terminalGuardianProof": null
+    },
+    {
+      "case": "app-sigkill",
+      "status": "PASS",
+      "observedIdentities": 9,
+      "latency": null,
+      "phases": [
+        {
+          "phase": "dispatch",
+          "secondsFromDispatch": 0.0
+        },
+        {
+          "phase": "kill-start",
+          "secondsFromDispatch": 0.127971433
+        },
+        {
+          "phase": "cleanup-complete",
+          "secondsFromDispatch": 0.148350782
+        }
+      ],
+      "terminalGuardianProof": "observed"
+    }
+  ],
+  "qualification": "First5 cases only; input latency not all frame-gap bound. Official Mermaid UI separate."
+}

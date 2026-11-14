@@ -1,0 +1,126 @@
+#!/usr/bin/env python3
+"""Offline aggregation only; preserves raw artifacts and incomplete cell states."""
+import argparse
+import hashlib
+import json
+import math
+import time
+from pathlib import Path
+
+BASE=Path('/workspace/milkup-mermaid-engine-evidence/research/native-hidden-timer-control-harness-01')
+CELLS=['A-control','C-control','A-single','C-single','A-double','C-double','A-class','C-class']
+
+
+def read(path):
+    return json.loads(path.read_text()) if path.exists() else None
+
+
+def finite(value):
+    return isinstance(value,(int,float)) and not isinstance(value,bool) and math.isfinite(value)
+
+
+def geometry_check(outcome):
+    observation=(outcome or {}).get('timerObservation')
+    geometry=observation.get('geometry') if isinstance(observation,dict) else None
+    if not isinstance(geometry,dict):
+        return {'valid':False,'reason':'No completed control geometry; unavailable/censored, not reconstructed'}
+    box=geometry.get('bbox',{})
+    valid=all(finite(box.get(k)) for k in ['x','y','width','height'])
+    valid=valid and box['width']>0 and box['height']>0
+    matrices={}
+    for key in ['ctm','screenCtm']:
+        matrix=geometry.get(key,{})
+        ok=isinstance(matrix,dict) and all(finite(matrix.get(k)) for k in ['a','b','c','d','e','f'])
+        determinant=matrix['a']*matrix['d']-matrix['b']*matrix['c'] if ok else None
+        ok=ok and finite(determinant) and determinant!=0
+        matrices[key]={'valid':ok,'determinant':determinant}
+        valid=valid and ok
+    return {'valid':bool(valid),'matrices':matrices,'geometry':geometry,
+            'classification':'Additional post-run finite/non-singular sanity; not an assertion in the original frozen test'}
+
+
+def main():
+    parser=argparse.ArgumentParser()
+    parser.add_argument('--preflight',required=True)
+    parser.add_argument('--output',required=True)
+    args=parser.parse_args()
+    preflight=read(Path(args.preflight))
+    integrity=[]
+    for row in preflight['inputs']+preflight['authoritySources']:
+        path=Path(row['path'])
+        data=path.read_bytes() if path.exists() else None
+        digest=hashlib.sha256(data).hexdigest() if data is not None else None
+        integrity.append({'path':str(path),'beforeSha256':row['sha256'],'afterSha256':digest,
+                          'unchanged':digest==row['sha256'] and len(data)==row['bytes'] if data is not None else False})
+    records=[]
+    failure_seen=False
+    for cell in CELLS:
+        directory=BASE/'run'/cell
+        if not directory.exists():
+            records.append({'cell':cell,'state':'not-started'});continue
+        result=directory/'result'
+        outcome=read(result/'outcome.json')
+        identity=read(result/'instance.json')
+        exit_path=directory/'exit-code.txt'
+        code=int(exit_path.read_text()) if exit_path.exists() else None
+        verdict=read(directory/'offline-verdict.json')
+        trace=[]; parse_errors=[]
+        log=directory/'native-test.log'
+        if log.exists():
+            for number,line in enumerate(log.read_text().splitlines(),1):
+                marker=line.find('DOM_NATIVE_TIMING ')
+                if marker<0:continue
+                try:
+                    row=json.loads(line[marker+18:]);row['rawLine']=number
+                    if identity and row.get('instanceId')==identity['instanceId']:trace.append(row)
+                except (ValueError,TypeError) as error:
+                    parse_errors.append({'line':number,'error':str(error)})
+        phases={}
+        for row in trace:phases.setdefault(row['phase'],[]).append(row)
+        request=[r for r in trace if r.get('requestId')=='render_1']
+        points={r['phase']:r['monotonicNs'] for r in request}
+        delta=None
+        if 'dispatch' in points and 'result-settled' in points:
+            delta=(points['result-settled']-points['dispatch'])/1e6
+        windows={p.stem:read(p) for p in result.glob('windows-*.json') if not p.stem.endswith(('-identity','-command'))}
+        owners=read(result/'owned.json') or []
+        final_owners=[]
+        for owner in owners:
+            stat=Path('/proc',str(owner['pid']),'stat')
+            if not stat.exists():final_owners.append({**owner,'present':False});continue
+            fields=stat.read_text().rsplit(')',1)[1].split()
+            final_owners.append({**owner,'present':True,'actualBirth':int(fields[19]),'sameBirth':int(fields[19])==owner['birth'],'state':fields[0],'parent':int(fields[1])})
+        passed=code==0 and verdict is not None and outcome is not None and not parse_errors
+        row={'cell':cell,'state':'completed-mechanism-outcome' if passed else 'first-failure-or-incomplete',
+             'startedAfterPriorFailure':failure_seen,'exitCode':code,'outcome':outcome,'offlineVerdict':verdict,
+             'instance':identity,'input':read(result/'input.json'),'event':read(result/'event.json'),
+             'visibility':{'initial':phases.get('helper-initial-visibility',[]),'frames':phases.get('helper-frame-visibility',[])},
+             'nativePhases':trace,'parseErrors':parse_errors,'dispatchToSettledMs':delta,'windows':windows,
+             'finalOwnerStatus':final_owners,'cleanupConfirmed':bool(phases.get('cleanup-confirmed'))}
+        if cell.endswith('-control'):row['postRunGeometrySanity']=geometry_check(outcome)
+        records.append(row)
+        if not passed:failure_seen=True
+    controls={r['cell']:r.get('postRunGeometrySanity') for r in records if r['cell'].endswith('-control')}
+    valid_controls=all(controls.get(c) and controls[c]['valid'] for c in ['A-control','C-control'])
+    report={'created':time.time(),'classification':'NATIVE_MECHANISM_DIAGNOSTIC_NOT_EDITOR_ACCEPTANCE','cells':records,
+            'inputsAndSources':integrity,'allInputsAndSourcesUnchanged':all(r['unchanged'] for r in integrity),
+            'controlGeometry':{'bothValid':valid_controls,'equalObservedValues':controls['A-control']['geometry']==controls['C-control']['geometry'] if valid_controls else None,
+                               'ifInvalid':'No valid geometry support; experiment cannot be called a successful candidate.'},
+            'allEightCompleted':all(r['state']=='completed-mechanism-outcome' for r in records),
+            'batchStoppedAfterFirstFailure':not any(r.get('startedAfterPriorFailure') for r in records),
+            'limits':['No CPU data or sampler. Native elapsed/phase intervals are not CPU execution time.',
+                      'Single/double timers have no predicted 1s/2s expectation; low nesting does not establish hidden 1s alignment.',
+                      'JS performance clock and native monotonic clock are separate; no direct subtraction.',
+                      'Timeout censors completion/callback data; no unseen values reconstructed.',
+                      'Visibility and X11 snapshots are discrete and cannot exclude transient behavior.',
+                      'Class typed result is not frontend schema validation or full visual regression.'],
+            'artifactManifest':[]}
+    for path in sorted((BASE/'run').rglob('*')):
+        if path.is_file():
+            data=path.read_bytes();report['artifactManifest'].append({'path':str(path),'bytes':len(data),'sha256':hashlib.sha256(data).hexdigest()})
+    with Path(args.output).open('x') as output:json.dump(report,output,indent=2);output.write('\n')
+    print(json.dumps({'output':args.output,'allEightCompleted':report['allEightCompleted'],'geometryValid':valid_controls}))
+
+
+if __name__=='__main__':
+    main()

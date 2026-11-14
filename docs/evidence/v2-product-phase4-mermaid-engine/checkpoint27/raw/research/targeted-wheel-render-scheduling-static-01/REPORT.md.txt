@@ -1,0 +1,45 @@
+# Targeted wheel / render scheduling: read-only review
+
+The recorded deadline is real; this review does not establish a directly fixable cache, cancellation or scroll correctness defect. Do not change product scheduling or the watchdog on this evidence alone. No product was edited or executed, and no tests/build/browser were run for this review.
+
+## What the frozen run proves
+
+The exact App instance `7bc0620d4b97b639ac92c79eb5b8a6d8dbd074c6944199ab`, App PID498871, dispatched `render_1037` at native monotonic103752604699038 and observed its deadline at103754632275437: **2027.576399ms between those App trace points**. The trace then records guardian kill/cleanup, App cleanup confirmation and trusted control emission. This elapsed number is not pure Mermaid CPU time or the exact watchdog deadline (the dispatch trace precedes deadline assignment; observation can be late).
+
+No accepted-wire payload, cancel event, successful settlement timestamp, manager key or outer scrollTop is recorded here. Consequently the target preview `[434,2752)` cannot identify render1037's input. The numeric suffix1037 is a frontend allocation sequence, not proof that1037 jobs reached native execution. Dispatch gaps cannot be presented as completed request durations. The failure's disabled registry entry and source fallback are consistent with the intentional timeout cleanup.
+
+Source version0, saved version0, dirty=false and selection marker384..432 are unchanged across the last sample, bottom-right shot and failure. This excludes a recorded edit/selection change at those snapshots, not intermediate viewport/window changes. Failure height changes after the timeout notice cannot be used as its cause.
+
+## Why wheel activity can lead to native rendering
+
+`document-presentation.ts:460–488,600–606` schedules synchronization after content child mutations, coalesced ResizeObserver layout and outer-root scroll. The root scroll listener is **not capture**. Native element scroll events do not bubble; the source view's separate capture listener (`source-document-view.ts:379–387`) only handles `.milkup-block-code`, not this presentation span. It is therefore incorrect to say every inner-preview scroll directly invokes the provider.
+
+However actual outer scrolling invokes `source-document-view.ts:239–283`, which rereads/renderVisibleWindow. Its same-position guard suppresses duplicate positions; real position changes remain valid user navigation. `renderVisibleWindow:820ff` can replace mounted lines. Presentation's window algorithm (`document-presentation.ts:635–765`) chooses bounded mounted rows around viewport geometry, expands known complete blocks and computes visible offsets. New rows/geometry can change the request even when the selected source and displayed image are unchanged.
+
+The view's sole response cache uses source identity/version, documentVersion, **window from/to, width, epoch and exact selection** (`794–825`). Full key also includes visibleFrom/visibleTo. A context-known, complete aggregate is reusable for changed visible priority only when the base key stays identical. An incomplete aggregate is only reusable at its exact key. New window bounds/width or epoch invalidate that reuse; same-key in-flight work is deduplicated. Theme/config/provider changes invalidate or refresh via config/epoch and the desktop service revision. Selection and source edits legitimately affect eligibility and cannot be omitted from keys indiscriminately.
+
+The desktop service (`document-presentation-service.ts:170–291`) has no per-fence result memo. It validates the whole current context, prioritizes recognized complete fences by distance from the visible range, then invokes providers **one fence at a time**, including eligible neighboring fences in the window. A new aggregate request may therefore invoke the same fence again. It keeps the original10s preparation budget and admits a new fence only with at least2.1s remaining. Aggregate budget pressure/provider failure can produce complete=false. We cannot tell which of these cache-miss cases occurred for1037 from this run.
+
+## Actual inner wheel versus explicit harness outer alignment
+
+These are separate, and neither is automatically a product bug:
+
+* Last bottom-right inner vertical batch starts at innerTop0 / previewRectTop133.6875. First3-tick batch reaches96 with the same rect. Second reaches inner maximum106 and rectTop107.6875; next horizontal-axis start has rectTop69.6875. These observations are compatible with wheel chaining at the inner boundary or accompanying layout change. They do not record the exact outer scroll offset or manager key.
+* **The harness then intentionally moves the outer editor:** `alignScrollCorner` (`tauri-mermaid-ui-targeted.mjs:1099–1199,1384`) emits a genuine single wheel tick over the editor gutter. The last alignment record explicitly shows ticks1, inner offsets106/69 preserved, preview top69.6875→37.6875, completion within1724ms, fileUnchanged=true. This32px displacement must not be attributed to an unsolicited product scroll.
+* Next top-left inner vertical batches go106→10 with unchanged top37.6875, then10→0 while the preview top becomes101.6875. This occurs **before** top-left corner alignment, which is never reached. At the next horizontal-axis start the preview is gone and the assertion fails. Thus the earlier gutter tick explains part, not all, of the observed movement. The latter64px movement is compatible with up-wheel boundary chaining; an exact causal attribution would need evidence absent here.
+
+The current preview intentionally uses overflow:auto/max-height (`document-presentation.ts:1725–1740`) and does not specify scroll containment. Chaining when its boundary is reached is ordinary browser behavior; blocking it would change navigation semantics. Do not add overscroll containment simply to make this test avoid outer viewport updates.
+
+## Cancellation and the original deadline
+
+`document-render-rpc.ts:69–113,117–126,172–186`: a queued cancellation removes the queued job. Canceling an already dispatched job rejects its caller and sends cancel, **but retains active ownership until remote settlement or trusted timeout**. No next native job is pumped while active. This avoids concurrent rendering and watchdog bypass; canceled work can still time out and disable the plugin.
+
+`plugin_dom_bootstrap.js:120–143` aborts the running controller. `renderer.ts:150–158` awaits official `mermaid.render(...)` and checks abort afterward; the abort signal is not passed into Mermaid. Cancellation is cooperative, not preemption of synchronous JS/layout or an ongoing Mermaid promise. A canceled result is discarded; native deadline protection remains necessary. There is no cancel observation proving1037 was canceled.
+
+`plugin_dom_process.rs:207–241,278–306,313–382`: owner JSON serialization and validation precede deadline assignment. Once validated/admitted, dispatch is traced and `active = (id, Instant::now()+2s)` is set **before waiting for input readiness/pipe mutex/write**. The deadline therefore covers remaining outbound transport, helper dispatch/render/layout/conversion/serialization, return transport, parsing and owner result validation. Cancel neither clears nor extends it. Both valid ok:true and ok:false results settle only after the original deadline checks and payload validation; the owner clears active then emits. Validating a result too late still kills the exact instance. Initialization10s is a separate existing budget.
+
+## Decision and smallest useful next check
+
+There is a concrete path from intentional outer scrolling to changed presentation window, cache miss and fresh native fence work; that alone is not a correctness error. This run cannot prove identical input was redundantly dispatched, canceled work was improperly restarted, or that1037 belonged to the currently displayed diagram. Preserve the first failure and do not patch cache/scroll/cancel behavior on speculation.
+
+If later evidence identifies duplicate *exact* fence requests, a narrowly scoped unit test around the existing service/view seams can check whether unchanged full input/provider generation is reused while whole-window bounds change. Such a cache would need explicit provider purity/invalidation semantics, complete validation and bounded ownership; it is not an authorized or established fix here. If the target is merely inner-wheel navigation, separate expected edge chaining from the harness's explicit gutter alignment using the records already retained. No new native diagnostic system or rerun is proposed by this review.

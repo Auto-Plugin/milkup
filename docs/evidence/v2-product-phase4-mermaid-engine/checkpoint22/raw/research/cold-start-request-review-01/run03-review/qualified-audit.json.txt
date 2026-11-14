@@ -1,0 +1,37 @@
+{
+  "classification": "DIAGNOSTIC_PREFIX_STOP_ORIGINAL_COLD_GATE_PASS_NOT_FULL_UI_ACCEPTANCE",
+  "strictWholeLogAuditPassed": false,
+  "strictAuditPreserved": "accepted-wire-audit-first.json",
+  "capturedInputIntegrityPassed": true,
+  "captureSubsetNativeBindingPassed": true,
+  "fullLifecycleRequestCoverage": false,
+  "capturedEventCount": 6,
+  "capturedRenderCount": 5,
+  "nativeDispatchCount": 6,
+  "uncoveredNativeDispatches": [
+    {
+      "instanceId": "89991fca045be26f50cf9b51dabff036dbd0a170476407fc",
+      "monotonicNs": 88881387251420,
+      "phase": "dispatch",
+      "pid": 468788,
+      "requestId": "render_6",
+      "dispatchMinusFinalCheckpointNs": -11500563,
+      "payloadKnown": false
+    }
+  ],
+  "captureFinalCheckpointNs": 88881398751983,
+  "finishRequest": {
+    "content": "cold-prefix-final\n",
+    "monotonicCreationTimeRecorded": false,
+    "closeObservedMonotonicTimeRecorded": false,
+    "cannotAssignPreciseCutoff": true
+  },
+  "cutoffInterpretation": "Writer closes observation before queue drain and final checkpoint; after-close captures intentionally do not increment attempted/drop counters. Missing render_6 is consistent with this truncated observation contract, but no exact finish/close timestamp or reached-capture trace exists to independently timestamp the boundary. Render_6 dispatch is BEFORE final by11.500563ms, not after final. Do not infer its payload or call whole-lifecycle capture complete.",
+  "coldGatePassed": true,
+  "productionAcceptance": false,
+  "fullUIAccepted": false,
+  "historicalProduction08FailureResolved": false,
+  "nativeDeadlineTraceCount": 0,
+  "zeroDropScope": "No counted admission/writing loss for the6 recorded pre-cutoff events, not a count of future requests after diagnosticClosed.",
+  "inputSourceFixtureSha256": "a7267df165778c560a8fba59bfbff7065ae63365741e3eb87078783bc865fd4b"
+}

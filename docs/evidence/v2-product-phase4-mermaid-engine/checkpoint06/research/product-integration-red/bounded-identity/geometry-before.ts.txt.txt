@@ -1,0 +1,774 @@
+import type {
+  DocumentSvgBox,
+  DocumentSvgDefinition,
+  DocumentSvgImage,
+  DocumentSvgLength,
+  DocumentSvgMatrix,
+  DocumentSvgNode,
+  DocumentSvgPathCommand,
+  DocumentSvgStyle,
+  DocumentSvgText,
+  DocumentSvgTransform,
+  DocumentSvgTspan,
+} from './document-svg-image'
+
+/** Internal bounds use min/max coordinates, unlike the public x/y/width/height box. */
+type Bounds = readonly [left: number, top: number, right: number, bottom: number]
+type MaybeBounds = Bounds | null
+type Point = readonly [x: number, y: number]
+type ContainerDefinition = Extract<
+  DocumentSvgDefinition,
+  { readonly kind: 'symbol' | 'marker' | 'clipPath' }
+>
+type GeometryNode = DocumentSvgNode | ContainerDefinition
+type StyleSubject = GeometryNode | DocumentSvgTspan
+type MutableStyle = { -readonly [K in keyof DocumentSvgStyle]: DocumentSvgStyle[K] }
+interface StyleContext {
+  readonly style: DocumentSvgStyle
+  readonly own: DocumentSvgStyle
+  readonly font: number
+  readonly stroke: number
+}
+interface GeometryResult {
+  readonly fill: MaybeBounds
+  readonly ink: MaybeBounds
+  readonly uncertain: boolean
+}
+interface GeometryLimits {
+  readonly surfacePixels: number
+  readonly filterWork: number
+  readonly blur: number
+}
+type Fail = (reason: string, code: string) => never
+
+const IDENTITY: DocumentSvgMatrix = [1, 0, 0, 1, 0, 0]
+const EMPTY_BOX: Bounds = [0, 0, 0, 0]
+const MAX_ENVELOPE_COORDINATE = 32768
+const MAX_DEPTH = 64
+const MAX_FONT_SIZE = 512
+const MAX_GLYPH_PIXELS = 2048
+const MAX_STROKE_WIDTH = 8192
+
+function multiply(a: DocumentSvgMatrix, b: DocumentSvgMatrix): DocumentSvgMatrix {
+  return [
+    a[0] * b[0] + a[2] * b[1],
+    a[1] * b[0] + a[3] * b[1],
+    a[0] * b[2] + a[2] * b[3],
+    a[1] * b[2] + a[3] * b[3],
+    a[0] * b[4] + a[2] * b[5] + a[4],
+    a[1] * b[4] + a[3] * b[5] + a[5],
+  ]
+}
+function union(a: MaybeBounds, b: MaybeBounds): MaybeBounds {
+  if (!a) return b
+  if (!b) return a
+  return [Math.min(a[0], b[0]), Math.min(a[1], b[1]), Math.max(a[2], b[2]), Math.max(a[3], b[3])]
+}
+function pointBounds(x: number, y: number): Bounds {
+  return [x, y, x, y]
+}
+function inflate(box: MaybeBounds, x: number, y = x): MaybeBounds {
+  return box ? [box[0] - x, box[1] - y, box[2] + x, box[3] + y] : null
+}
+function transformBounds(box: MaybeBounds, matrix: DocumentSvgMatrix): MaybeBounds {
+  if (!box) return null
+  let result: MaybeBounds = null
+  // Two diagonal corners do not enclose a rotated or sheared rectangle.
+  for (const x of [box[0], box[2]]) {
+    for (const y of [box[1], box[3]]) {
+      result = union(
+        result,
+        pointBounds(
+          matrix[0] * x + matrix[2] * y + matrix[4],
+          matrix[1] * x + matrix[3] * y + matrix[5],
+        ),
+      )
+    }
+  }
+  return result
+}
+function trig(degrees: number): Point {
+  const radians = (degrees * Math.PI) / 180
+  return [Math.cos(radians), Math.sin(radians)]
+}
+function transformMatrix(transform: DocumentSvgTransform): DocumentSvgMatrix {
+  switch (transform.kind) {
+    case 'matrix':
+      return transform.values
+    case 'translate':
+      return [1, 0, 0, 1, transform.x, transform.y]
+    case 'scale':
+      return [transform.x, 0, 0, transform.y, 0, 0]
+    case 'rotate': {
+      const [cos, sin] = trig(transform.degrees)
+      return multiply(
+        multiply([1, 0, 0, 1, transform.cx, transform.cy], [cos, sin, -sin, cos, 0, 0]),
+        [1, 0, 0, 1, -transform.cx, -transform.cy],
+      )
+    }
+    case 'skewX':
+      return [1, 0, Math.tan((transform.degrees * Math.PI) / 180), 1, 0, 0]
+    case 'skewY':
+      return [1, Math.tan((transform.degrees * Math.PI) / 180), 0, 1, 0, 0]
+  }
+}
+function viewportMatrix(
+  box: DocumentSvgBox,
+  width: number,
+  height: number,
+  aspect: DocumentSvgImage['aspect'] = { align: 'xMidYMid', fit: 'meet' },
+): DocumentSvgMatrix {
+  const [x, y, viewWidth, viewHeight] = box
+  const sx = width / viewWidth
+  const sy = height / viewHeight
+  if (aspect.align === 'none') return [sx, 0, 0, sy, -x * sx, -y * sy]
+  const scale = aspect.fit === 'slice' ? Math.max(sx, sy) : Math.min(sx, sy)
+  const ax = aspect.align.includes('xMin') ? 0 : aspect.align.includes('xMax') ? 1 : 0.5
+  const ay = aspect.align.includes('YMin') ? 0 : aspect.align.includes('YMax') ? 1 : 0.5
+  return [
+    scale,
+    0,
+    0,
+    scale,
+    (width - viewWidth * scale) * ax - x * scale,
+    (height - viewHeight * scale) * ay - y * scale,
+  ]
+}
+
+/** Correct undersized endpoint radii, then enclose the complete rotated ellipse.
+ * Both possible centers are included, so neither large-arc nor sweep can escape.
+ */
+function arcBounds(
+  x: number,
+  y: number,
+  rx0: number,
+  ry0: number,
+  degrees: number,
+  endX: number,
+  endY: number,
+): MaybeBounds {
+  if (!rx0 || !ry0 || (x === endX && y === endY))
+    return union(pointBounds(x, y), pointBounds(endX, endY))
+  const [cos, sin] = trig(degrees)
+  const dx = (x - endX) / 2
+  const dy = (y - endY) / 2
+  const xp = cos * dx + sin * dy
+  const yp = -sin * dx + cos * dy
+  const factor = Math.max(1, Math.hypot(xp / rx0, yp / ry0))
+  const rx = rx0 * factor
+  const ry = ry0 * factor
+  const denominator = rx * rx * yp * yp + ry * ry * xp * xp
+  const numerator = Math.max(0, rx * rx * ry * ry - denominator)
+  const coefficient = denominator ? Math.sqrt(numerator / denominator) : 0
+  const cxp = (coefficient * rx * yp) / ry
+  const cyp = (-coefficient * ry * xp) / rx
+  const ux = cos * cxp - sin * cyp
+  const uy = sin * cxp + cos * cyp
+  const mx = (x + endX) / 2
+  const my = (y + endY) / 2
+  const bx = Math.hypot(rx * cos, ry * sin)
+  const by = Math.hypot(rx * sin, ry * cos)
+  return union(
+    [mx + ux - bx, my + uy - by, mx + ux + bx, my + uy + by],
+    [mx - ux - bx, my - uy - by, mx - ux + bx, my - uy + by],
+  )
+}
+
+/** Control-point hulls conservatively enclose Beziers, including reflected S/T controls. */
+function pathBounds(commands: readonly DocumentSvgPathCommand[]): MaybeBounds {
+  let x = 0
+  let y = 0
+  let startX = 0
+  let startY = 0
+  let previous = ''
+  let control: Point | null = null
+  let result: MaybeBounds = null
+  const add = (px: number, py: number): void => {
+    result = union(result, pointBounds(px, py))
+  }
+  for (const command of commands) {
+    const operation = command[0].toUpperCase()
+    const relative = operation !== command[0]
+    const ox = relative ? x : 0
+    const oy = relative ? y : 0
+    switch (command[0]) {
+      case 'Z':
+      case 'z':
+        x = startX
+        y = startY
+        control = null
+        break
+      case 'H':
+      case 'h':
+        x = command[1] + ox
+        control = null
+        break
+      case 'V':
+      case 'v':
+        y = command[1] + oy
+        control = null
+        break
+      case 'M':
+      case 'm':
+      case 'L':
+      case 'l':
+        x = command[1] + ox
+        y = command[2] + oy
+        control = null
+        if (operation === 'M') {
+          startX = x
+          startY = y
+        }
+        break
+      case 'C':
+      case 'c':
+        add(command[1] + ox, command[2] + oy)
+        control = [command[3] + ox, command[4] + oy]
+        add(control[0], control[1])
+        x = command[5] + ox
+        y = command[6] + oy
+        break
+      case 'S':
+      case 's': {
+        const reflected: Point =
+          (previous === 'C' || previous === 'S') && control
+            ? [2 * x - control[0], 2 * y - control[1]]
+            : [x, y]
+        add(reflected[0], reflected[1])
+        control = [command[1] + ox, command[2] + oy]
+        add(control[0], control[1])
+        x = command[3] + ox
+        y = command[4] + oy
+        break
+      }
+      case 'Q':
+      case 'q':
+        control = [command[1] + ox, command[2] + oy]
+        add(control[0], control[1])
+        x = command[3] + ox
+        y = command[4] + oy
+        break
+      case 'T':
+      case 't': {
+        const reflected: Point =
+          (previous === 'Q' || previous === 'T') && control
+            ? [2 * x - control[0], 2 * y - control[1]]
+            : [x, y]
+        add(reflected[0], reflected[1])
+        control = reflected
+        x = command[1] + ox
+        y = command[2] + oy
+        break
+      }
+      case 'A':
+      case 'a': {
+        const endX = command[6] + ox
+        const endY = command[7] + oy
+        result = union(result, arcBounds(x, y, command[1], command[2], command[3], endX, endY))
+        x = endX
+        y = endY
+        control = null
+        break
+      }
+    }
+    add(x, y)
+    previous = operation
+  }
+  return result
+}
+
+/** Rendering multiplicity, shared by geometry and the codec's reference DAG.
+ * SVG 2 Painting 13.7.2 assigns start/end to the entire path, not each subpath;
+ * every intervening vertex receives marker-mid, including subpath endpoints.
+ * Closing adds a vertex at the initial point, even if it is already coincident.
+ * Consecutive movetos retain their vertices (SVG 2 Paths 9.5.3). Empty data has
+ * none. Zero-length segments are retained, conservatively including degenerate
+ * arcs that a renderer may omit. A command after close starts a new subpath.
+ * https://www.w3.org/TR/SVG2/painting.html#VertexMarkerProperties
+ */
+export function documentSvgMarkerInstances(node: {
+  readonly kind: string
+  readonly commands?: readonly DocumentSvgPathCommand[]
+  readonly points?: readonly Point[]
+}): { readonly markerStart: number; readonly markerMid: number; readonly markerEnd: number } {
+  let vertices = 0
+  if (node.kind === 'line') vertices = 2
+  else if (node.kind === 'polyline' || node.kind === 'polygon') {
+    vertices = node.points?.length ?? 0
+    if (node.kind === 'polygon' && vertices > 0) vertices += 1
+  } else if (node.kind === 'path') {
+    let active = false
+    for (const command of node.commands ?? []) {
+      const operation = command[0].toUpperCase()
+      if (operation === 'M') {
+        vertices += 1
+        active = true
+      } else {
+        // The codec requires the first command to be M/m. After a close,
+        // another drawing/close command introduces an implicit initial vertex.
+        if (!active) vertices += 1
+        vertices += 1
+        active = operation !== 'Z'
+      }
+    }
+  }
+  const endpoint = vertices > 0 ? 1 : 0
+  return { markerStart: endpoint, markerMid: Math.max(0, vertices - 2), markerEnd: endpoint }
+}
+
+const INHERITED_KEYS = [
+  'shapeRendering',
+  'fill',
+  'stroke',
+  'fillOpacity',
+  'strokeOpacity',
+  'fillRule',
+  'clipRule',
+  'strokeWidth',
+  'dashArray',
+  'dashOffset',
+  'lineCap',
+  'lineJoin',
+  'miterLimit',
+  'visibility',
+  'fontId',
+  'fontSize',
+  'fontWeight',
+  'fontStyle',
+  'letterSpacing',
+  'wordSpacing',
+  'textAnchor',
+  'dominantBaseline',
+  'alignmentBaseline',
+  'decoration',
+  'whiteSpace',
+  'textTransform',
+] as const satisfies readonly (keyof DocumentSvgStyle)[]
+
+function inheritProperty<K extends keyof DocumentSvgStyle>(
+  target: MutableStyle,
+  source: DocumentSvgStyle,
+  key: K,
+): void {
+  const value = source[key]
+  if (value !== undefined) target[key] = value
+}
+function cssLength(length: DocumentSvgLength, font: number, basis: number): number {
+  if (length.unit === 'em') return length.value * font
+  if (length.unit === 'percent') return (length.value * basis) / 100
+  return length.value
+}
+function area(box: MaybeBounds): number {
+  return box ? Math.max(0, box[2] - box[0]) * Math.max(0, box[3] - box[1]) : 0
+}
+/** Include every output pixel partly intersecting this world-space envelope. */
+function pixelArea(box: MaybeBounds): number {
+  return box
+    ? Math.max(0, Math.ceil(box[2]) - Math.floor(box[0])) *
+        Math.max(0, Math.ceil(box[3]) - Math.floor(box[1]))
+    : 0
+}
+/** sqrt(||A||1 * ||A||infinity) bounds the largest singular value of the
+ * affine linear part, including shear. For Gaussian covariance Sigma, the
+ * transformed standard deviation is at most this bound * max(sigmaX,sigmaY).
+ * Translation does not change a filter kernel. Surface areas are separately
+ * mapped into the same output-pixel coordinate system before charging work.
+ */
+function maximumScale(matrix: DocumentSvgMatrix): number {
+  const norm1 = Math.max(
+    Math.abs(matrix[0]) + Math.abs(matrix[1]),
+    Math.abs(matrix[2]) + Math.abs(matrix[3]),
+  )
+  const normInfinity = Math.max(
+    Math.abs(matrix[0]) + Math.abs(matrix[2]),
+    Math.abs(matrix[1]) + Math.abs(matrix[3]),
+  )
+  return Math.sqrt(norm1 * normInfinity)
+}
+function requiresCompositing(style: DocumentSvgStyle): boolean {
+  return (
+    (style.opacity !== undefined && style.opacity < 1) ||
+    (style.mixBlendMode !== undefined && style.mixBlendMode !== 'normal') ||
+    style.isolation === 'isolate'
+  )
+}
+
+/** Accepts only the codec's normalized closed tree, after reference/cycle checks.
+ * `budget` belongs to the whole document-render response, not this image. Its work
+ * counter is deliberately neither initialized nor reset here, including on failure.
+ */
+export function validateGeometryCost(
+  image: DocumentSvgImage,
+  budget: { work: number },
+  limits: GeometryLimits,
+  fail: Fail,
+): void {
+  const definitions = new Map(image.definitions.map((definition) => [definition.id, definition]))
+  const invalid = (reason: string): never => fail(reason, 'limit-exceeded')
+  const unsupported = (reason: string): never => fail(reason, 'unsupported-feature')
+  function definition<K extends DocumentSvgDefinition['kind']>(
+    id: string,
+    kind: K,
+  ): Extract<DocumentSvgDefinition, { kind: K }> {
+    const found = definitions.get(id)
+    if (!found || found.kind !== kind)
+      fail('missing or mismatched geometry definition', 'invalid-output')
+    // The runtime discriminator is checked above. TS cannot narrow a generic K.
+    return found as Extract<DocumentSvgDefinition, { kind: K }>
+  }
+  function checkMatrix(matrix: DocumentSvgMatrix): void {
+    if (
+      matrix.some((value) => !Number.isFinite(value) || Math.abs(value) > MAX_ENVELOPE_COORDINATE)
+    )
+      invalid('composed viewport/transform')
+  }
+  function checkBounds(box: MaybeBounds): void {
+    if (box?.some((value) => !Number.isFinite(value) || Math.abs(value) > MAX_ENVELOPE_COORDINATE))
+      invalid('geometry envelope')
+  }
+  function work(surface: number, blur = 0, instances = 1): void {
+    if (!Number.isFinite(surface) || surface < 0 || surface > limits.surfacePixels)
+      invalid('intermediate surface')
+    budget.work += instances * surface * (1 + blur / 4)
+    if (!Number.isFinite(budget.work) || budget.work > limits.filterWork)
+      invalid('aggregate render work')
+  }
+  const rootMap = viewportMatrix(image.viewBox, image.width, image.height, image.aspect)
+  checkMatrix(rootMap)
+  // The host's integer outer viewport is the actual output surface. The inner
+  // SVG retains its fractional viewport; this charges one raster, not two.
+  const [rasterX, rasterY, rasterWidth, rasterHeight] = image.rasterBounds
+  work(
+    (Math.ceil(rasterX + rasterWidth) - Math.floor(rasterX)) *
+      (Math.ceil(rasterY + rasterHeight) - Math.floor(rasterY)),
+  )
+
+  function styleFor(
+    node: StyleSubject,
+    parent: StyleContext,
+    viewport: DocumentSvgBox,
+  ): StyleContext {
+    const own = 'style' in node && node.style !== undefined ? image.styles[node.style] : {}
+    if (!own) fail('missing geometry style', 'invalid-output')
+    const inherited: MutableStyle = {}
+    for (const key of INHERITED_KEYS) inheritProperty(inherited, parent.style, key)
+    const style: DocumentSvgStyle = { ...inherited, ...own }
+    const font =
+      node.kind === 'textBox'
+        ? node.fontSizePx
+        : own.fontSize
+          ? cssLength(own.fontSize, parent.font, parent.font)
+          : parent.font
+    if (!Number.isFinite(font) || font < 0 || font > MAX_FONT_SIZE) invalid('resolved font size')
+    const diagonal = Math.hypot(viewport[2], viewport[3]) / Math.SQRT2
+    const stroke = style.strokeWidth ? cssLength(style.strokeWidth, font, diagonal) : 1
+    if (!Number.isFinite(stroke) || stroke < 0 || stroke > MAX_STROKE_WIDTH)
+      invalid('resolved stroke width')
+    return { style, own, font, stroke }
+  }
+
+  function textStyles(
+    node: DocumentSvgText | DocumentSvgTspan,
+    context: StyleContext,
+    viewport: DocumentSvgBox,
+    world: DocumentSvgMatrix,
+  ): void {
+    for (const child of node.children) {
+      if (child.kind !== 'tspan') continue
+      const next = styleFor(child, context, viewport)
+      if (next.font * maximumScale(world) > MAX_GLYPH_PIXELS) invalid('tspan glyph pixel size')
+      if (
+        child.transforms?.length ||
+        child.transformOrigin ||
+        (next.own.filter && next.own.filter.kind !== 'none') ||
+        next.own.clipPath ||
+        requiresCompositing(next.own)
+      )
+        unsupported('tspan geometry-dependent effects require text metrics')
+      textStyles(child, next, viewport, world)
+    }
+  }
+
+  function visit(
+    node: GeometryNode,
+    parent: StyleContext,
+    viewport: DocumentSvgBox,
+    world: DocumentSvgMatrix,
+    depth = 1,
+    instances = 1,
+  ): GeometryResult {
+    if (depth > MAX_DEPTH) invalid('geometry depth')
+    const context = styleFor(node, parent, viewport)
+    const style = context.style
+    let baseLocal = IDENTITY
+    if ('transforms' in node) {
+      for (const transform of node.transforms ?? [])
+        baseLocal = multiply(baseLocal, transformMatrix(transform))
+    }
+    const childWorld = multiply(world, baseLocal)
+    checkMatrix(childWorld)
+    let fill: MaybeBounds = null
+    let ink: MaybeBounds = null
+    let uncertain = false
+    const add = (result: GeometryResult): void => {
+      fill = union(fill, result.fill)
+      ink = union(ink, result.ink)
+      uncertain ||= result.uncertain
+    }
+    switch (node.kind) {
+      case 'rect':
+        fill = [node.x, node.y, node.x + node.width, node.y + node.height]
+        break
+      case 'circle':
+        fill = [node.cx - node.r, node.cy - node.r, node.cx + node.r, node.cy + node.r]
+        break
+      case 'ellipse':
+        fill = [node.cx - node.rx, node.cy - node.ry, node.cx + node.rx, node.cy + node.ry]
+        break
+      case 'line':
+        fill = union(pointBounds(node.x1, node.y1), pointBounds(node.x2, node.y2))
+        break
+      case 'path':
+        fill = pathBounds(node.commands)
+        break
+      case 'polyline':
+      case 'polygon':
+        for (const point of node.points) fill = union(fill, pointBounds(point[0], point[1]))
+        break
+      case 'text':
+        // Host font availability is a prerequisite, not a proof of glyph bounds.
+        uncertain = true
+        textStyles(node, context, viewport, childWorld)
+        break
+      case 'textBox':
+        uncertain = true
+        fill = [node.box[0], node.box[1], node.box[0] + node.box[2], node.box[1] + node.box[3]]
+        break
+    }
+    if (fill) {
+      const strokePresent = style.stroke && style.stroke.kind !== 'none'
+      const join =
+        style.lineJoin === 'miter' || style.lineJoin === undefined ? (style.miterLimit ?? 4) : 1
+      ink = inflate(fill, strokePresent ? (context.stroke / 2) * join : 0)
+    }
+    if (node.kind === 'use') {
+      const symbol = definition(node.ref, 'symbol')
+      const width = node.width ?? symbol.width ?? viewport[2]
+      const height = node.height ?? symbol.height ?? viewport[3]
+      if (symbol.viewBox && (symbol.viewBox[2] <= 0 || symbol.viewBox[3] <= 0))
+        invalid('symbol viewBox')
+      const mapping = symbol.viewBox ? viewportMatrix(symbol.viewBox, width, height) : IDENTITY
+      const local = multiply([1, 0, 0, 1, node.x ?? 0, node.y ?? 0], mapping)
+      const transformedWorld = multiply(childWorld, local)
+      checkMatrix(transformedWorld)
+      const result = visit(
+        symbol,
+        context,
+        symbol.viewBox ?? viewport,
+        transformedWorld,
+        depth + 1,
+        instances,
+      )
+      add({
+        fill: transformBounds(result.fill, local),
+        ink: transformBounds(result.ink, local),
+        uncertain: result.uncertain,
+      })
+    }
+    if (
+      node.kind === 'group' ||
+      node.kind === 'symbol' ||
+      node.kind === 'marker' ||
+      node.kind === 'clipPath'
+    ) {
+      for (const child of node.children)
+        add(visit(child, context, viewport, childWorld, depth + 1, instances))
+    }
+    if (node.kind === 'textAlternative') {
+      add(visit(node.primary, context, viewport, childWorld, depth + 1, instances))
+      add(visit(node.fallback, context, viewport, childWorld, depth + 1, instances))
+    }
+
+    // A marker may rotate at any vertex. Its circular envelope includes every
+    // orientation, with markerUnits resolved against the inherited stroke.
+    if (
+      node.kind === 'line' ||
+      node.kind === 'path' ||
+      node.kind === 'polyline' ||
+      node.kind === 'polygon'
+    ) {
+      const multiplicity = documentSvgMarkerInstances(node)
+      for (const key of ['markerStart', 'markerMid', 'markerEnd'] as const) {
+        const id = node[key]
+        if (!id || multiplicity[key] === 0) continue
+        const marker = definition(id, 'marker')
+        const markerViewport: DocumentSvgBox = marker.viewBox ?? [0, 0, marker.width, marker.height]
+        const markerContext = styleFor(marker, rootContext, markerViewport)
+        const unit = marker.units === 'strokeWidth' ? context.stroke : 1
+        const mapping = marker.viewBox
+          ? viewportMatrix(marker.viewBox, marker.width, marker.height)
+          : IDENTITY
+        const markerScale = unit * maximumScale(mapping) * Math.SQRT2
+        const markerWorld = multiply(childWorld, [markerScale, 0, 0, markerScale, 0, 0])
+        checkMatrix(markerWorld)
+        const result = visit(
+          marker,
+          rootContext,
+          markerViewport,
+          markerWorld,
+          depth + 1,
+          instances * multiplicity[key],
+        )
+        if (result.uncertain) unsupported('marker text bounds unavailable')
+        const mapped = transformBounds(result.ink, mapping)
+        // SVG 2 13.7.1: references use marker-content coordinates; percentages
+        // use viewBox dimensions. Map the reference and ink into the same space.
+        const refX = cssLength(marker.refX, markerContext.font, markerViewport[2])
+        const refY = cssLength(marker.refY, markerContext.font, markerViewport[3])
+        const reference = transformBounds(pointBounds(refX, refY), mapping)
+        if (!reference) return unsupported('empty marker reference')
+        let radius = 0
+        if (mapped) {
+          for (const x of [mapped[0], mapped[2]]) {
+            for (const y of [mapped[1], mapped[3]])
+              radius = Math.max(radius, Math.hypot(x - reference[0], y - reference[1]) * unit)
+          }
+        }
+        ink = union(ink, inflate(fill, radius))
+      }
+    }
+
+    let local = baseLocal
+    if ('transformOrigin' in node && node.transformOrigin) {
+      const kind = node.transformBox ?? 'view-box'
+      if (uncertain && kind !== 'view-box') unsupported('text bbox-dependent transform origin')
+      const reference =
+        kind === 'view-box'
+          ? ([
+              viewport[0],
+              viewport[1],
+              viewport[0] + viewport[2],
+              viewport[1] + viewport[3],
+            ] as const)
+          : kind === 'stroke-box'
+            ? ink
+            : fill
+      if (!reference) return unsupported('empty geometry transform origin')
+      const x =
+        reference[0] + cssLength(node.transformOrigin[0], context.font, reference[2] - reference[0])
+      const y =
+        reference[1] + cssLength(node.transformOrigin[1], context.font, reference[3] - reference[1])
+      local = multiply(multiply([1, 0, 0, 1, x, y], local), [1, 0, 0, 1, -x, -y])
+    }
+    const total = multiply(world, local)
+    checkMatrix(total)
+    checkBounds(transformBounds(ink, total))
+    if (uncertain && context.font * maximumScale(total) > MAX_GLYPH_PIXELS)
+      invalid('resolved glyph pixel size')
+
+    const filter = context.own.filter
+    if (filter && filter.kind !== 'none') {
+      if (uncertain) unsupported('text bbox-dependent filter requires trusted metrics')
+      if (filter.kind === 'unresolved-local') {
+        // A guaranteed-absent local target leaves the unfiltered ink unchanged.
+        // Preserve non-none grouping cost; it is not a free/no-bounds token.
+        // The uncertainty check above also covers text-containing groups.
+        work(pixelArea(transformBounds(ink, total)), 0, instances)
+      } else if (filter.kind === 'cssDropShadow') {
+        let output = ink
+        for (const shadow of filter.shadows) {
+          const envelope = inflate(output, 3 * shadow.blur)
+          const shifted: MaybeBounds = envelope
+            ? [
+                envelope[0] + shadow.dx,
+                envelope[1] + shadow.dy,
+                envelope[2] + shadow.dx,
+                envelope[3] + shadow.dy,
+              ]
+            : null
+          output = union(output, shifted)
+          checkBounds(transformBounds(output, total))
+          work(area(transformBounds(output, total)), shadow.blur * maximumScale(total), instances)
+        }
+        ink = output
+      } else {
+        const definitionFilter = definition(filter.ref, 'dropShadowFilter')
+        const bounds = fill ?? EMPTY_BOX
+        const width = bounds[2] - bounds[0]
+        const height = bounds[3] - bounds[1]
+        const objectUnits = definitionFilter.units === 'objectBoundingBox'
+        const resolve = (length: DocumentSvgLength, axis: number, size: number): number =>
+          objectUnits
+            ? (length.unit === 'percent' ? length.value / 100 : length.value) * size
+            : cssLength(length, context.font, axis)
+        if (
+          objectUnits &&
+          definitionFilter.region.some(
+            (length) => length.unit !== 'user' && length.unit !== 'percent',
+          )
+        )
+          unsupported('objectBoundingBox length unit')
+        const x =
+          resolve(definitionFilter.region[0], viewport[2], width) + (objectUnits ? bounds[0] : 0)
+        const y =
+          resolve(definitionFilter.region[1], viewport[3], height) + (objectUnits ? bounds[1] : 0)
+        const rw = resolve(definitionFilter.region[2], viewport[2], width)
+        const rh = resolve(definitionFilter.region[3], viewport[3], height)
+        const region: Bounds = [x, y, x + rw, y + rh]
+        const bx =
+          definitionFilter.stdDeviation[0] *
+          (definitionFilter.primitiveUnits === 'objectBoundingBox' ? width : 1)
+        const by =
+          definitionFilter.stdDeviation[1] *
+          (definitionFilter.primitiveUnits === 'objectBoundingBox' ? height : 1)
+        if (Math.max(bx, by) > limits.blur) invalid('resolved filter blur')
+        checkBounds(transformBounds(region, total))
+        work(
+          area(transformBounds(region, total)),
+          Math.max(bx, by) * maximumScale(total),
+          instances,
+        )
+        // Object-bbox positions are relative to an upper bound, so retain a
+        // conservative envelope; negative positions cannot hide allocation.
+        const envelope = objectUnits
+          ? inflate(bounds, Math.abs(x - bounds[0]) + rw, Math.abs(y - bounds[1]) + rh)
+          : region
+        checkBounds(transformBounds(envelope, total))
+        ink = union(ink, envelope)
+      }
+    }
+    // Offscreen layers are charged per element and per ancestor, including a
+    // repeated symbol instance. The shared response work counter never resets.
+    if (requiresCompositing(context.own)) {
+      if (uncertain) unsupported('text bbox-dependent compositing requires trusted metrics')
+      work(area(transformBounds(ink, total)), 0, instances)
+    }
+    // A clip cannot reduce a safety envelope. Its own geometry remains checked.
+    if (context.own.clipPath) {
+      const clip = definition(context.own.clipPath, 'clipPath')
+      if (uncertain && clip.units === 'objectBoundingBox') unsupported('text bbox-dependent clip')
+      const bounds = fill ?? EMPTY_BOX
+      const mapping: DocumentSvgMatrix =
+        clip.units === 'objectBoundingBox'
+          ? [bounds[2] - bounds[0], 0, 0, bounds[3] - bounds[1], bounds[0], bounds[1]]
+          : IDENTITY
+      const clipWorld = multiply(total, mapping)
+      checkMatrix(clipWorld)
+      visit(clip, context, viewport, clipWorld, depth + 1, instances)
+    }
+    return { fill: transformBounds(fill, local), ink: transformBounds(ink, local), uncertain }
+  }
+
+  const defaults: StyleContext = { style: { fontId: 'sans' }, own: {}, font: 16, stroke: 1 }
+  const root: Extract<DocumentSvgNode, { kind: 'group' }> = {
+    kind: 'group',
+    ...(image.rootStyle === undefined ? {} : { style: image.rootStyle }),
+    children: image.children,
+  }
+  // Definitions are serialized below the root SVG's <defs>. Marker contents
+  // inherit there, never from the shape that references the marker (SVG 2 13.7.4).
+  const rootContext = styleFor(root, defaults, image.viewBox)
+  visit(root, defaults, image.viewBox, rootMap)
+  // Unreached definitions allocate no surface. Codec syntax/reference checks
+  // independently cover their structure, cycles and expansion budgets.
+}

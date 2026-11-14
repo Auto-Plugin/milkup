@@ -1,0 +1,25 @@
+{
+  "status": "PROGRESS_COALESCING_FROZEN_TARGETED_GREEN_NATIVE_PENDING",
+  "atUtc": "2026-10-19T13:40:25.624548+00:00",
+  "files": [
+    {
+      "path": "plugins/outline/src/plugin.ts",
+      "sha256": "3fa3d659e3934a1ecd1763741979fac4a60f6b5247c4974111fa0d16152e083d"
+    },
+    {
+      "path": "plugins/outline/src/plugin.test.ts",
+      "sha256": "11be327ed74698ff49b0cb7a4db8eb2fd72e22a5e8e79b5cea4aae02fc7ce857"
+    }
+  ],
+  "validation": {
+    "red": "11 FAIL, 21 skipped; unchanged product",
+    "green": "11 PASS, 21 skipped",
+    "compatible": "36 PASS, 4 SKIP; all 32 plugin tests plus 4 existing index tests",
+    "excluded": "Other agent pending RED: overlaps at most two bounded page reads / drains the sibling page read (3 parameter values)",
+    "typecheckExit": 0,
+    "formatExit": 0
+  },
+  "manifestVersionUnchanged": "1.3.2",
+  "scope": "Only plugin.ts and plugin.test.ts; no index algorithm, SDK/core, permissions or public API changes",
+  "timingEvidence": "Native diagnostic first-complete only; one in-flight updatePanel span. Overlapping spans not summed. No new native optimization claim."
+}

@@ -1,0 +1,36 @@
+// Build-artifact verification only; never launches the product.
+import fs from 'node:fs'
+import path from 'node:path'
+import assert from 'node:assert/strict'
+import crypto from 'node:crypto'
+import { brotliDecompressSync } from 'node:zlib'
+const [specPath, outputPath] = process.argv.slice(2)
+const spec = JSON.parse(fs.readFileSync(specPath))
+const hash = b => crypto.createHash('sha256').update(b).digest('hex')
+const candidates = fs.readdirSync(path.join(spec.frontendDist, 'assets')).filter(n => n.endsWith('.js'))
+  .map(n => path.join(spec.frontendDist, 'assets', n)).filter(p => fs.readFileSync(p).includes(Buffer.from('__milkupRenderQueueTrace')))
+assert.equal(candidates.length, 1, 'One research bundle must contain the queue trace marker')
+const original = fs.readFileSync(candidates[0]), binary = fs.readFileSync(spec.binary), matches = []
+assert(original.length <= 32 * 1024 * 1024)
+let files = 0, bytes = 0
+for (const outDir of spec.emittedBuildOutDirs) {
+  const assets = path.join(outDir, 'tauri-codegen-assets')
+  if (!fs.existsSync(assets)) continue
+  for (const name of fs.readdirSync(assets).filter(n => n.endsWith('.js'))) {
+    assert(++files <= 512, 'Bounded exact build-output artifact enumeration')
+    const p = path.join(assets, name), data = fs.readFileSync(p)
+    bytes += data.length
+    assert(bytes <= 128 * 1024 * 1024)
+    let decoded = data, representation = 'raw'
+    if (!data.equals(original)) {
+      try { decoded = brotliDecompressSync(data, { maxOutputLength: 32 * 1024 * 1024 }); representation = 'brotli' }
+      catch { continue }
+    }
+    if (!decoded.equals(original)) continue
+    const offset = binary.indexOf(data)
+    if (offset >= 0 && binary.indexOf(data, offset + 1) < 0)
+      matches.push({path:p,sha256:hash(data),bytes:data.length,representation,embeddedOffset:offset})
+  }
+}
+assert.equal(matches.length, 1, 'Exact research JS bytes, possibly compressed, must uniquely occur in binary')
+fs.writeFileSync(outputPath, JSON.stringify({researchAsset:{path:candidates[0],sha256:hash(original),bytes:original.length},binary:{path:spec.binary,sha256:hash(binary)},match:matches[0],enumeratedFiles:files,enumeratedBytes:bytes,scope:'Exact research queue-trace JS payload embedding only; other assets frozen separately'},null,2)+'\n',{flag:'wx'})

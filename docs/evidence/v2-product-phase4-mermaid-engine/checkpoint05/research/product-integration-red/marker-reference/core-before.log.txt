@@ -1,0 +1,84 @@
+
+ RUN  v3.2.6 /workspace/milkup
+
+ ❯ packages/core/src/__tests__/document-svg-image-marker-reference.test.ts (6 tests | 5 failed) 24ms
+   × marker reference points share the marker viewBox coordinate mapping > rejects the real oversized parent surface when a scaled marker uses its far reference corner 14ms
+     → expected [Function] to throw an error
+   × marker reference points share the marker viewBox coordinate mapping > retains the same cost rejection after a viewBox-origin shift and reflected parent placement 2ms
+     → expected [Function] to throw an error
+   × marker reference points share the marker viewBox coordinate mapping > resolves percentage references in viewBox dimensions before applying the viewport transform 2ms
+     → expected [Function] to throw an error
+   ✓ marker reference points share the marker viewBox coordinate mapping > keeps an ordinary scaled marker accepted 1ms
+   × marker reference points share the marker viewBox coordinate mapping > does not let a referencing shape erase the marker stroke inherited from the root 2ms
+     → expected [Function] to throw an error
+   × marker reference points share the marker viewBox coordinate mapping > resolves marker em references from the marker font, independent of the shape font 2ms
+     → expected [Function] to throw an error
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 5 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  packages/core/src/__tests__/document-svg-image-marker-reference.test.ts > marker reference points share the marker viewBox coordinate mapping > rejects the real oversized parent surface when a scaled marker uses its far reference corner
+AssertionError: expected [Function] to throw an error
+ ❯ packages/core/src/__tests__/document-svg-image-marker-reference.test.ts:55:7
+     53|     expect(() =>
+     54|       copyDocumentPresentationNode(markedLayer([0, 0, 1000, 1000], len…
+     55|     ).toThrow()
+       |       ^
+     56|   })
+     57|   it('retains the same cost rejection after a viewBox-origin shift and…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/5]⎯
+
+ FAIL  packages/core/src/__tests__/document-svg-image-marker-reference.test.ts > marker reference points share the marker viewBox coordinate mapping > retains the same cost rejection after a viewBox-origin shift and reflected parent placement
+AssertionError: expected [Function] to throw an error
+ ❯ packages/core/src/__tests__/document-svg-image-marker-reference.test.ts:64:59
+     62|       children: [{ ...first, transforms: [{ kind: 'scale', x: -1, y: 1…
+     63|     }
+     64|     expect(() => copyDocumentPresentationNode(reflected)).toThrow()
+       |                                                           ^
+     65|   })
+     66|   it('resolves percentage references in viewBox dimensions before appl…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/5]⎯
+
+ FAIL  packages/core/src/__tests__/document-svg-image-marker-reference.test.ts > marker reference points share the marker viewBox coordinate mapping > resolves percentage references in viewBox dimensions before applying the viewport transform
+AssertionError: expected [Function] to throw an error
+ ❯ packages/core/src/__tests__/document-svg-image-marker-reference.test.ts:71:7
+     69|         markedLayer([-500, -500, 500, 500], length(100, 'percent'), le…
+     70|       ),
+     71|     ).toThrow()
+       |       ^
+     72|   })
+     73|   it('keeps an ordinary scaled marker accepted', () => {
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/5]⎯
+
+ FAIL  packages/core/src/__tests__/document-svg-image-marker-reference.test.ts > marker reference points share the marker viewBox coordinate mapping > does not let a referencing shape erase the marker stroke inherited from the root
+AssertionError: expected [Function] to throw an error
+ ❯ packages/core/src/__tests__/document-svg-image-marker-reference.test.ts:95:59
+     93|       children: [{ kind: 'group', style: 0, children: [{ ...subject, s…
+     94|     }
+     95|     expect(() => copyDocumentPresentationNode(inherited)).toThrow()
+       |                                                           ^
+     96|   })
+     97| 
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/5]⎯
+
+ FAIL  packages/core/src/__tests__/document-svg-image-marker-reference.test.ts > marker reference points share the marker viewBox coordinate mapping > resolves marker em references from the marker font, independent of the shape font
+AssertionError: expected [Function] to throw an error
+ ❯ packages/core/src/__tests__/document-svg-image-marker-reference.test.ts:113:59
+    111|       children: [{ kind: 'group', style: 0, children: [{ ...subject, s…
+    112|     }
+    113|     expect(() => copyDocumentPresentationNode(inherited)).toThrow()
+       |                                                           ^
+    114|   })
+    115| })
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/5]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  5 failed | 1 passed (6)
+   Start at  12:03:20
+   Duration  655ms (transform 160ms, setup 0ms, collect 177ms, tests 24ms, environment 0ms, prepare 79ms)
+

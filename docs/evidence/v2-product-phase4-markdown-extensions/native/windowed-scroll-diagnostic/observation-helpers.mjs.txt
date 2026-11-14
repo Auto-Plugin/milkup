@@ -1,0 +1,45 @@
+
+// External observation only. No DOM attributes, scroll positions or application state are written.
+const windowedScrollCollection = {diagnosticOnly:true,attempts:[],geometryCalls:[],error:null}
+async function installWindowedScrollObservation(from) {
+  await app.execute(`
+const editor=document.querySelector('.milkup-editor');
+const content=editor?.querySelector('.milkup-editor-content');
+if(!editor||!content) throw Error('Windowed content must exist before observer setup');
+if(window.__milkupWindowedScrollDiagnostic) throw Error('Fresh diagnostic page required');
+const ids=new WeakMap();let nextId=1,dropped=0;
+const nodeId=n=>{if(!n)return null;let id=ids.get(n);if(!id){id=nextId++;ids.set(n,id)}return id};
+const targetFrom=arguments[0],events=[];
+const find=()=>[...content.querySelectorAll('[data-document-presentation]')].find(p=>Number(p.dataset.presentationFrom)<=targetFrom&&Number(p.dataset.presentationTo)>targetFrom)||null;
+const state=p=>({previewNodeId:nodeId(p),connected:!!p?.isConnected,previewScrollTop:p?.scrollTop??null,
+ previewScrollLeft:p?.scrollLeft??null,rootScrollTop:editor.scrollTop,rootScrollLeft:editor.scrollLeft,
+ previewFrom:p?Number(p.dataset.presentationFrom):null,previewTo:p?Number(p.dataset.presentationTo):null});
+const add=(kind,detail)=>{events.push({kind,mono:performance.now(),timeOrigin:performance.timeOrigin,...detail});if(events.length>256){events.shift();dropped++}};
+let previous=find(),lastState=state(previous);
+add('installed',{current:lastState,contentNodeId:nodeId(content)});
+const onScroll=event=>{
+ const current=find();
+ if(event.target!==editor&&event.target!==current&&event.target!==previous)return;
+ const next=state(current);
+ add('scroll',{targetNodeId:nodeId(event.target),targetKind:event.target===editor?'editor':'preview',before:lastState,current:next});
+ lastState=next;
+};
+editor.addEventListener('scroll',onScroll,true);
+const observer=new MutationObserver(records=>{
+ const current=find();
+ const relevant=current!==previous||records.some(r=>r.target===content||r.target===previous||previous?.contains(r.target)||current?.contains(r.target));
+ if(!relevant)return;
+ const next=state(current);
+ add('childList',{replacement:current!==previous,previousNodeId:nodeId(previous),previousDetachedState:state(previous),before:lastState,current:next,mutationCount:records.length});
+ previous=current;lastState=next;
+});
+observer.observe(content,{childList:true,subtree:true});
+window.__milkupWindowedScrollDiagnostic={nodeId,snapshot:()=>({diagnosticOnly:true,targetFrom,limit:256,dropped,events:[...events],current:state(find())}),
+ stop:()=>{observer.disconnect();editor.removeEventListener('scroll',onScroll,true)}};
+`,from)
+}
+async function persistWindowedScrollObservation(stage) {
+  let browser=null,browserReadError=null
+  if(app)try{browser=await app.execute('return window.__milkupWindowedScrollDiagnostic?.snapshot()??null')}catch(error){browserReadError=String(error)}
+  await writeFile(path.join(output,stage==='caught-failure'?'windowed-scroll-observation-failure.json':'windowed-scroll-observation.json'),JSON.stringify({stage,...windowedScrollCollection,browser,browserReadError},null,2))
+}

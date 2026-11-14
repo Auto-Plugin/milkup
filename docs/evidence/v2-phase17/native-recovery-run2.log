@@ -1,0 +1,55 @@
+2026-10-13T20:26:29.321Z NATIVE_STARTUP_WINDOW 1051ms
+2026-10-13T20:26:33.327Z NATIVE_STARTUP_WINDOW 1036ms
+2026-10-13T20:26:36.413Z NATIVE_STARTUP_WINDOW 1037ms
+2026-10-13T20:26:38.669Z NATIVE_STARTUP_WINDOW 1038ms
+2026-10-13T20:26:42.487Z NATIVE_STARTUP_WINDOW 1033ms
+2026-10-13T20:26:45.756Z NATIVE_STARTUP_WINDOW 1035ms
+2026-10-13T20:26:48.125Z NATIVE_STARTUP_WINDOW 1285ms
+2026-10-13T20:26:51.801Z NATIVE_STARTUP_WINDOW 1031ms
+X Error of failed request:  BadWindow (invalid Window parameter)
+  Major opcode of failed request:  20 (X_GetProperty)
+  Resource id in failed request:  0x20000e
+  Serial number of failed request:  13
+  Current serial number in output stream:  13
+node:internal/errors:985
+  const err = new Error(message);
+              ^
+
+Error: Command failed: xprop -id 0x20000e _NET_WM_PID
+X Error of failed request:  BadWindow (invalid Window parameter)
+  Major opcode of failed request:  20 (X_GetProperty)
+  Resource id in failed request:  0x20000e
+  Serial number of failed request:  13
+  Current serial number in output stream:  13
+
+    at genericNodeError (node:internal/errors:985:15)
+    at wrappedFn (node:internal/errors:539:14)
+    at checkExecSyncError (node:child_process:942:11)
+    at execFileSync (node:child_process:978:15)
+    at windowPid (file:///workspace/milkup/tests/helpers/native-startup.mjs:17:18)
+    at file:///workspace/milkup/tests/helpers/native-startup.mjs:27:20
+    at Array.map (<anonymous>)
+    at milkupPids (file:///workspace/milkup/tests/helpers/native-startup.mjs:27:9)
+    at beginNativeStartup (file:///workspace/milkup/tests/helpers/native-startup.mjs:34:46)
+    at startProduction (file:///workspace/milkup/tests/helpers/native-production.mjs:88:21) {
+  status: 1,
+  signal: null,
+  output: [
+    null,
+    '_NET_WM_PID',
+    'X Error of failed request:  BadWindow (invalid Window parameter)\n' +
+      '  Major opcode of failed request:  20 (X_GetProperty)\n' +
+      '  Resource id in failed request:  0x20000e\n' +
+      '  Serial number of failed request:  13\n' +
+      '  Current serial number in output stream:  13\n'
+  ],
+  pid: 123194,
+  stdout: '_NET_WM_PID',
+  stderr: 'X Error of failed request:  BadWindow (invalid Window parameter)\n' +
+    '  Major opcode of failed request:  20 (X_GetProperty)\n' +
+    '  Resource id in failed request:  0x20000e\n' +
+    '  Serial number of failed request:  13\n' +
+    '  Current serial number in output stream:  13\n'
+}
+
+Node.js v24.19.0

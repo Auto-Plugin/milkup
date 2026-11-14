@@ -1,0 +1,41 @@
+
+ RUN  v3.2.6 /workspace/milkup
+
+ ❯ tests/native/p6-catalog-fixtures.test.ts (9 tests | 1 failed) 39ms
+   × P6 native lifecycle fixture contracts > packages base using the public archive shape 14ms
+     → Invalid plugin manifest:
+- $.contributes.commands[0].id: Command id must be an action-style id
+- $.contributes.commands[1].id: Command id must be an action-style id
+   ✓ P6 native lifecycle fixture contracts > packages failure using the public archive shape 2ms
+   ✓ P6 native lifecycle fixture contracts > packages raw using the public archive shape 1ms
+   ✓ P6 native lifecycle fixture contracts > packages dynamic using the public archive shape 0ms
+   ✓ P6 native lifecycle fixture contracts > admits base as a closed Worker bundle 14ms
+   ✓ P6 native lifecycle fixture contracts > admits failure as a closed Worker bundle 0ms
+   ✓ P6 native lifecycle fixture contracts > admits raw as a closed Worker bundle 3ms
+   ✓ P6 native lifecycle fixture contracts > rejects the deliberate dynamic import before Worker publication 2ms
+   ✓ P6 native lifecycle fixture contracts > probes raw fetch with a successful local data URL, not a DNS failure mistaken for a guard 1ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/native/p6-catalog-fixtures.test.ts > P6 native lifecycle fixture contracts > packages base using the public archive shape
+Error: Invalid plugin manifest:
+- $.contributes.commands[0].id: Command id must be an action-style id
+- $.contributes.commands[1].id: Command id must be an action-style id
+ ❯ parsePluginManifest packages/plugin/src/manifest.ts:163:11
+    161| 
+    162|   if (!result.ok || !result.manifest) {
+    163|     throw new Error(
+       |           ^
+    164|       `Invalid plugin manifest:\n${result.errors
+    165|         .map((error) => `- ${error.path}: ${error.message}`)
+ ❯ parsePluginPackageArchive packages/plugin/src/package.ts:34:20
+ ❯ tests/native/p6-catalog-fixtures.test.ts:8:21
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 8 passed (9)
+   Start at  08:45:44
+   Duration  1.21s (transform 201ms, setup 0ms, collect 247ms, tests 39ms, environment 0ms, prepare 172ms)
+

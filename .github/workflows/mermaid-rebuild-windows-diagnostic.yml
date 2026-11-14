@@ -1,0 +1,215 @@
+name: Mermaid original Windows build-tree diagnostic
+
+# Reproduce the exact first-run source; instrumentation comes from this workflow.
+# No installer, upload, browser execution or Runtime setup.
+on:
+  push:
+    branches: [dot/mermaid-rebuild-20261103]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: mermaid-rebuild-windows-compile
+  queue: max
+  cancel-in-progress: false
+
+jobs:
+  source:
+    if: >-
+      github.repository == 'Auto-Plugin/milkup' &&
+      github.ref == 'refs/heads/dot/mermaid-rebuild-20261103' &&
+      github.event.repository.private == false &&
+      (github.event_name == 'workflow_dispatch' ||
+       (github.event.deleted == false &&
+        contains(github.event.head_commit.message, '[mermaid-original-diagnostic]')))
+    runs-on: windows-latest
+    timeout-minutes: 60
+    defaults:
+      run:
+        shell: pwsh
+    env:
+      CARGO_BUILD_JOBS: '2'
+      CARGO_INCREMENTAL: '0'
+      CARGO_PROFILE_DEV_DEBUG: '0'
+      CARGO_PROFILE_TEST_DEBUG: '0'
+      CARGO_TERM_COLOR: never
+      PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: '1'
+      GIT_CONFIG_COUNT: '1'
+      GIT_CONFIG_KEY_0: core.longpaths
+      GIT_CONFIG_VALUE_0: 'true'
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ca10c4e17fa1b8114ba65bd32da8082d625fbe16
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Verify exact new candidate and engine bytes
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $head = @(git rev-parse HEAD)
+          if ($LASTEXITCODE -ne 0 -or $head.Count -ne 1 -or $head[0].Trim() -cne 'ca10c4e17fa1b8114ba65bd32da8082d625fbe16') { throw 'Checkout SHA mismatch' }
+          git merge-base --is-ancestor 5ea31846e0cd72d52ca6c9ae83a77a695861acaf HEAD
+          if ($LASTEXITCODE -ne 0) { throw 'Candidate is outside the reviewed rebuild baseline' }
+          if (git status --porcelain) { throw 'Dirty candidate checkout' }
+          if (Test-Path scripts/experiments/mermaid-fixed-prototype) { throw 'Historical prototype must not enter the product build' }
+          $engine = Get-Item apps/desktop/src-tauri/mermaid-engine/assets/mermaid-12.2.0.min.js
+          if ($engine.Length -ne 5494801 -or (Get-FileHash $engine.FullName -Algorithm SHA256).Hash.ToLowerInvariant() -cne 'a8a6a6f805b074a8261a2825c86f99c8054acb3b35f50bb7e24a4f9f2c3c3b9f') { throw 'Pinned official engine mismatch' }
+          'CARGO_TARGET_DIR=' + (Join-Path $env:RUNNER_TEMP 'mermaid-rebuild-cargo-target') >> $env:GITHUB_ENV
+      - name: Prepare read-only phase snapshots outside the original checkout
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $script = Join-Path $env:RUNNER_TEMP 'mermaid-original-source-snapshot.ps1'
+          @'
+          param([Parameter(Mandatory)][string]$Phase)
+          $ErrorActionPreference = 'Stop'
+          $status = @(git status --porcelain)
+          if ($LASTEXITCODE -ne 0) { throw 'Cannot inspect original source status' }
+          $changed = @(& git -c core.quotepath=false diff --name-only HEAD)
+          $untracked = @(& git -c core.quotepath=false ls-files --others --exclude-standard)
+          $files = foreach ($path in (@($changed + $untracked) | Sort-Object -Unique)) {
+            if (Test-Path -LiteralPath $path -PathType Leaf) {
+              $file = Get-Item -LiteralPath $path
+              [ordered]@{ path = $path; bytes = $file.Length; sha256 = (Get-FileHash -LiteralPath $path -Algorithm SHA256).Hash.ToLowerInvariant() }
+            } else { [ordered]@{ path = $path; missingOrNotFile = $true } }
+          }
+          $record = [ordered]@{
+            phase = $Phase; candidateSha = 'ca10c4e17fa1b8114ba65bd32da8082d625fbe16'
+            instrumentationSha = $env:GITHUB_SHA; status = $status; files = @($files)
+          }
+          $json = $record | ConvertTo-Json -Depth 8
+          $json | Set-Content (Join-Path $env:RUNNER_TEMP ('original-source-' + $Phase + '.json'))
+          Write-Host "::group::original-source-$Phase"
+          $json | Write-Host
+          $diff = @(& git diff --no-ext-diff --no-textconv HEAD)
+          $diff | Set-Content (Join-Path $env:RUNNER_TEMP ('original-source-' + $Phase + '.diff'))
+          $diff | Write-Host
+          Write-Host '::endgroup::'
+          '@ | Set-Content -LiteralPath $script -Encoding utf8
+          "MERMAID_SOURCE_SNAPSHOT=$script" >> $env:GITHUB_ENV
+          & $script 'checkout'
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: 24.19.0
+      - name: Select pinned source-build tools
+        run: |
+          $ErrorActionPreference = 'Stop'
+          npm install --global pnpm@11.7.0 --ignore-scripts
+          if ($LASTEXITCODE -ne 0) { throw 'pnpm setup failed' }
+          rustup toolchain install 1.99.0 --profile minimal
+          if ($LASTEXITCODE -ne 0) { throw 'Rust compiler setup failed' }
+          'RUSTUP_TOOLCHAIN=1.99.0' >> $env:GITHUB_ENV
+          rustup run 1.99.0 rustc --version --verbose
+          if ($LASTEXITCODE -ne 0) { throw 'Pinned compiler unavailable' }
+          node --version
+          pnpm --version
+      - name: Restore locked workspace and stage reviewed product plugins
+        run: |
+          $ErrorActionPreference = 'Stop'
+          pnpm install --frozen-lockfile --config.manage-package-manager-versions=false
+          $phaseExit = $LASTEXITCODE
+          & $env:MERMAID_SOURCE_SNAPSHOT 'workspace-restore'
+          if ($phaseExit -ne 0) { throw 'Locked workspace restore failed' }
+          # The frozen old public SDK is intentionally not fetched from npm.
+          # Math's build-only KaTeX input is staged separately, without modifying
+          # any product/plugin manifest or lockfile or weakening archive seals.
+          $mathDependencies = Join-Path $env:RUNNER_TEMP 'mermaid-rebuild-math-input'
+          npm install --prefix $mathDependencies --ignore-scripts --no-audit --no-fund katex@0.19.0
+          if ($LASTEXITCODE -ne 0) { throw 'Pinned KaTeX build input restore failed' }
+          $katex = Join-Path $mathDependencies 'node_modules/katex'
+          if ((Get-Content (Join-Path $katex 'package.json') -Raw | ConvertFrom-Json).version -cne '0.19.0') { throw 'Wrong KaTeX build input' }
+          $mathModules = Join-Path $PWD 'plugins/math/node_modules'
+          New-Item -ItemType Directory -Force -Path $mathModules | Out-Null
+          $katexLink = Join-Path $mathModules 'katex'
+          if (Test-Path -LiteralPath $katexLink) { throw 'Unexpected preexisting math build input' }
+          New-Item -ItemType Junction -Path $katexLink -Target $katex | Out-Null
+          node scripts/check-versions.mjs
+          if ($LASTEXITCODE -ne 0) { throw 'Product version mismatch' }
+          node scripts/ci/prepare-bundled-plugins.mjs
+          $phaseExit = $LASTEXITCODE
+          & $env:MERMAID_SOURCE_SNAPSHOT 'plugin-stage'
+          if ($phaseExit -ne 0) { throw 'Reviewed bundled-plugin staging failed' }
+          pnpm --filter @milkup/desktop build
+          $phaseExit = $LASTEXITCODE
+          & $env:MERMAID_SOURCE_SNAPSHOT 'frontend-build'
+          if ($phaseExit -ne 0) { throw 'Production frontend build failed' }
+      - name: Check and test private fixed-engine Rust contracts
+        run: |
+          $ErrorActionPreference = 'Stop'
+          cargo check --locked --manifest-path apps/desktop/src-tauri/mermaid-engine/Cargo.toml --all-targets
+          $phaseExit = $LASTEXITCODE
+          & $env:MERMAID_SOURCE_SNAPSHOT 'private-check'
+          if ($phaseExit -ne 0) { throw 'Private engine Windows type check failed' }
+          cargo test --locked --manifest-path apps/desktop/src-tauri/mermaid-engine/Cargo.toml --lib -- --test-threads=1
+          $phaseExit = $LASTEXITCODE
+          & $env:MERMAID_SOURCE_SNAPSHOT 'private-tests'
+          if ($phaseExit -ne 0) { throw 'Private engine Windows unit tests failed' }
+      - name: Check and test desktop Rust integration
+        run: |
+          $ErrorActionPreference = 'Stop'
+          cargo check --locked --manifest-path apps/desktop/src-tauri/Cargo.toml --all-targets
+          $phaseExit = $LASTEXITCODE
+          & $env:MERMAID_SOURCE_SNAPSHOT 'desktop-check'
+          if ($phaseExit -ne 0) { throw 'Desktop Windows type check failed' }
+          cargo test --locked --manifest-path apps/desktop/src-tauri/Cargo.toml --lib -- --test-threads=1
+          $phaseExit = $LASTEXITCODE
+          & $env:MERMAID_SOURCE_SNAPSHOT 'desktop-tests'
+          if ($phaseExit -ne 0) { throw 'Desktop Windows library tests failed' }
+      - name: Link desktop with embedded production assets without executing it
+        run: |
+          $ErrorActionPreference = 'Stop'
+          cargo build --locked --manifest-path apps/desktop/src-tauri/Cargo.toml --bin milkup-desktop --features tauri/custom-protocol
+          $phaseExit = $LASTEXITCODE
+          & $env:MERMAID_SOURCE_SNAPSHOT 'desktop-link'
+          if ($phaseExit -ne 0) { throw 'Desktop production-asset binary link failed' }
+          $binary = Get-Item (Join-Path $env:CARGO_TARGET_DIR 'debug/milkup-desktop.exe')
+          [ordered]@{
+            candidateSha = 'ca10c4e17fa1b8114ba65bd32da8082d625fbe16'
+            instrumentationSha = $env:GITHUB_SHA
+            platform = 'Windows x86_64'
+            profile = 'dev-with-production-custom-protocol-assets'
+            binaryBytes = $binary.Length
+            binarySha256 = (Get-FileHash $binary.FullName -Algorithm SHA256).Hash.ToLowerInvariant()
+            engineVersion = '12.2.0'
+            engineSha256 = 'a8a6a6f805b074a8261a2825c86f99c8054acb3b35f50bb7e24a4f9f2c3c3b9f'
+            nativeMermaidRenderingExecuted = $false
+            windowsPixelsAccepted = $false
+            installerBuilt = $false
+            artifactsUploaded = $false
+          } | ConvertTo-Json -Depth 4 | Write-Host
+      - name: Record source state and acceptance boundary
+        if: always()
+        run: |
+          $ErrorActionPreference = 'Stop'
+          & $env:MERMAID_SOURCE_SNAPSHOT 'final'
+          # Diagnose using the existing schema classifier, but keep the stricter
+          # original dirty-tree failure until actual Windows drift is reviewed.
+          # Never restore source or classify an unseen first-run difference as safe.
+          $dirty = @(git status --porcelain)
+          if ($LASTEXITCODE -ne 0) { throw 'Cannot read exact source status' }
+          Write-Host '::group::exact-source-status'
+          $dirty | Write-Host
+          git diff --stat HEAD
+          git diff --no-ext-diff --no-textconv HEAD
+          $changed = @(& git -c core.quotepath=false diff --name-only HEAD)
+          $untracked = @(& git -c core.quotepath=false ls-files --others --exclude-standard)
+          $paths = @($changed + $untracked) | Sort-Object -Unique
+          foreach ($path in $paths) {
+            if (Test-Path -LiteralPath $path -PathType Leaf) {
+              $file = Get-Item -LiteralPath $path
+              [ordered]@{ path = $path; bytes = $file.Length; sha256 = (Get-FileHash -LiteralPath $path -Algorithm SHA256).Hash.ToLowerInvariant() } | ConvertTo-Json -Compress | Write-Host
+            } else {
+              [ordered]@{ path = $path; missingOrNotFile = $true } | ConvertTo-Json -Compress | Write-Host
+            }
+          }
+          Write-Host '::endgroup::'
+          $proof = Join-Path $env:RUNNER_TEMP 'mermaid-rebuild-source-build-tree.json'
+          node tests/windows/verify-build-tree.mjs $PWD $proof
+          $treeExit = $LASTEXITCODE
+          if (Test-Path -LiteralPath $proof) { Get-Content -LiteralPath $proof -Raw | Write-Host }
+          git diff --cached --exit-code
+          if ($LASTEXITCODE -ne 0) { throw 'Build modified the source index' }
+          if ($treeExit -ne 0) { throw 'Build changed a source, lockfile or unexpected output; see exact preserved status' }
+          if ($dirty.Count -ne 0) { throw 'Build tree remains dirty; exact changes are retained for review, including known generated schemas' }
+          'Windows compile/link and unit tests only. The desktop binary is not executed. No WebView2 rendering, same-login runtime cleanup, native scale/IME, installer, upgrade/rollback or pixel acceptance. No Fixed Runtime, Runtime provisioning, remote-instance access, account/token changes or artifact upload.' >> $env:GITHUB_STEP_SUMMARY

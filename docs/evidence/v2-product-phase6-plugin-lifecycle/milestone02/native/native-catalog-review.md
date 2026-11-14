@@ -1,0 +1,36 @@
+# Production03 native catalog independent review
+
+Reviewed six terminal runs under `../native-ui/runs/p6-m02-{catalog-cas,trial-restart,startup-restart,mirror-restart,catalog-corruption,remove-failure}-01`. All six `completion.json` files report passed; the independent checks below agree with their bounded claims. No product edit, UI execution or Cargo invocation was performed for this review.
+
+All six preflights identify production03 binary SHA-256 `be389f84f182bc8e33280fc6c1d4dd6db3b54267e3ca0c399c38041f7e1f4346`. Origin records show packaged `tauri://localhost`, asset `index-CViZJAyI.js`, and no development probe. This review does not reinterpret a null DOM CSP field as proof of absent or present response-header CSP. These are production03 results; they are not native acceptance of the subsequent production04 manager UI change.
+
+## Independently checked state and original files
+
+Read every completion/event record, the CAS result, harness injection implementation, retained profile primary/backup catalog files, corruption originals and retained user data. Recomputed the checksums of all 12 current primary/backup envelopes and both saved pre-corruption envelopes: all matched. Compared final catalog state with the final observed event for each fixture. Verified all active fixture generation file seals for the four non-tombstone lifecycle runs. Rehashed all six saved `source.md` files: each matches completion SHA `1704d1855305b320d9d8f316d69a90a9c734ac8a242faf6e39ab575f87687bd6`; final document events report version/savedVersion 4, clean and saved.
+
+| Case | Observed decision and independent conclusion |
+| --- | --- |
+| Same-ID CAS | Concurrent approve/abort both carried entry revision 1. Approve fulfilled and abort rejected with `[plugin-catalog:conflict] entry revision changed`. Disk entry revision 2/catalog revision 13 contains exactly the approved prepared candidate, no active instance, enabled=false. Backup is entry revision 1/catalog 12. This proves the exercised same-ID race, not every possible concurrency interleaving. |
+| Interrupted trial | The native-only injected trial was persisted at entry revision 7/catalog 18, with old verified active generation retained and enabled=false. A real process restart produced revision 8/catalog 19, pending=null, startAttempt=null, enabled=false, and the explicit interrupted-trial diagnostic. The old active generation ID and seals remain unchanged. Its existing approval remains; this is disabled-for-review recovery, not approval revocation. The aborted candidate directory remains physically present in this profile; no immediate candidate GC acceptance is claimed. |
+| Interrupted startup | Persisted startup intent had enabled=true and nonnull attempt at revision 6/catalog 17. After restart revision 7/catalog 18 clears the attempt and disables automatic retry, retaining the same sealed active generation and its existing approval. This does not prove a plugin actually hung during startup: the incomplete native intent was deliberately injected. |
+| Broken mirror | The harness deliberately replaced localStorage mirror text, then restarted. Native active generation/content/approval stayed unchanged, startup completed, enabled=true, and a valid mirror with the fixture was rebuilt. Catalog revision advanced 15→17 for startup begin/complete. The corrupt mirror string is recorded in harness code, not preserved as a separate pre-restart raw artifact. |
+| Corrupt primary | Saved original primary (catalog 16, disabled) and valid backup (catalog 15, enabled/approved) both have correct checksums. The retained `catalog-corrupt-*.json` contains exactly the 33 injected bytes `{P6 intentionally corrupt primary` (SHA `fc82cffabc355f4995168cd9a44e69036e940e379d668614dbdf58c8ea792648`). Recovery uses the backup package but clears every entry's enabled/startAttempt and active approval. Fixture is revision 5/catalog 16, approvedFingerprint=null; mirror approvals are empty. The formerly enabled backup did not revive authority. |
+| Removal failure/retry | The owned generations directory was chmod 0500 to produce an actual Permission denied error. Before restart the catalog already has tombstone=true, enabled=false, no pending/attempt and null active approval (entry 7/catalog 18). Restart preserves that state; the mirror excludes it. After restoring permissions and retrying, entry 8/catalog 19 is still tombstoned and disabled. Independently read the generations directory: empty. Independently read user-data sentinel: exact `P6 user data 中文 😀`. No resurrection or user-data deletion occurred. |
+
+`native-catalog-review-files.json` records file hashes, checksum results, final revisions, raw corruption bytes and remaining generations. `native-catalog-review-transitions.json` records the reduced event sequence and source evidence hashes. Original evidence files were not altered.
+
+## Screenshots actually inspected
+
+Viewed these original screenshots using the image viewer, not inferred from their filenames:
+
+- `p6-m02-catalog-corruption-01/launch-2/native-corruption-recovered-fail-closed.png`: manager remains usable and shows the retained fixture plus collapsed catalog diagnostics.
+- `p6-m02-remove-failure-01/launch-2/remove-retried-data-retained.png`: manager list remains rendered after retry. The visible viewport does not expose the deleted fixture's status or user-data bytes; disk/event checks establish those facts.
+- `p6-m02-trial-restart-01/launch-2/interrupted-trial-recovered.png`: retained fixture appears in the manager list after restart; detailed disabled/failed state comes from catalog/mirror records, not this list-only screenshot.
+
+## Limits and follow-up observations
+
+These are Linux native filesystem/process acceptance cases with **trusted-host WebDriver IPC and controlled mutations confined to test profiles**. They do not show that plugins possess raw native catalog authority, establish a complete malicious-code sandbox, or cover Windows/macOS. Restart cases use graceful driver/process exit after a deliberately persisted unfinished intent, not arbitrary power interruption during rename/fsync. The corruption case modifies a closed app's primary file; deletion failure changes an owned directory's permissions. No real user profile was altered by this review.
+
+Direct trusted-host mutations intentionally bypass manager publication: immediately after the injected removal, the old mirror/detail text still says approved even though native authority is already revoked; restart rebuilds the mirror without the tombstone. Thus these runs prove native authority ordering and recovery, not mounted manager UI coherence on every mutation. Root's separate production04 UI regression must cover that boundary. The removal retry also retains its earlier `cleanup pending` diagnostic after the directory is actually empty; treat it as historical, not evidence that cleanup still fails. Neither detail should be hidden by the six PASS labels.
+
+User-data preservation has a real on-disk sentinel specifically in the removal case. Other cases prove unchanged fixture package seals and unchanged saved document bytes; they do not independently exercise arbitrary plugin settings/storage schemas or promise rollback of completed external effects. P6 overall completion is not established by this review.

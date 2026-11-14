@@ -1,0 +1,26 @@
+{
+  "kind": "independent-final-static-scroll-review",
+  "status": "no-blocking-issue-found-in-single-helper-change",
+  "manager": {
+    "path": "/workspace/milkup/packages/view-dom/src/document-presentation.ts",
+    "sha256": "8dc1f4a2571539cdb32b85bb7f8cecee6c32cf2aa2f1f757b580d1087301d8e3"
+  },
+  "previousManager": {
+    "snapshot": "/workspace/milkup-mermaid-engine-evidence/research/production-ui-window/view/29-decoded-replacement/manager-before-scroll.ts",
+    "sha256": "8a432ce365e4748bb41697f4928882c21baa7b53ada5f7f5ae311c0e819aad3b"
+  },
+  "exactDiff": "--- 8a432c\n+++ 8dc1f4\n@@ -1632,10 +1632,7 @@\n     )\n   }\n   private displayedFragment(fragment: DocumentPresentationFragment): DocumentPresentationFragment {\n-    const owner = this.fragmentImages.get(fragment)\n-    return owner && !owner.failed && owner.images.some((image) => image.state !== 'decoded')\n-      ? (this.previousFragmentImages.get(fragmentKey(fragment))?.owner.fragment ?? fragment)\n-      : fragment\n+    return this.previousFragmentImages.get(fragmentKey(fragment))?.owner.fragment ?? fragment\n   }\n   /** Keep offsets only within this synchronous replacement, never across documents or edits. */\n   private capturePreviewScroll(): PreviewScroll | undefined {\n",
+  "assessment": [
+    "The only manager change is displayedFragment: while a previous owner remains in the map, it returns that complete old fragment regardless of the new image decode state.",
+    "Capture runs before atomic paint replacement, so a newly decoded pending image must not relabel the still-mounted old DOM as new semantics. The previous map remains the correct identity until the replacement paint removes it.",
+    "After atomic replacement the previous entry is disposed/removed; restore then compares the actual new fragment against the captured old one and declines to carry inner scroll across different semantics. Identical semantics still retain scroll through the existing full equality guard.",
+    "This change does not alter provider budgets, image ownership lifetime, pointer leases, decode timing or navigation."
+  ],
+  "evidenceReportedByOwner": {
+    "before": "Ordinary and windowed scroll-reset assertions failed twice before this helper change.",
+    "after": "199 focused passed and2 browser layout cases passed in22.2s.",
+    "priorFullBrowser": "34-case full browser passed on8a432c, not claimed as a full rerun on8dc1f4."
+  },
+  "reviewerExecution": "Read-only source comparison and SHA calculation; no tests or UI executed.",
+  "remainingValidation": "Final packaged native validation remains independent. Earlier5c and8a exact-revision reviews were not overwritten."
+}

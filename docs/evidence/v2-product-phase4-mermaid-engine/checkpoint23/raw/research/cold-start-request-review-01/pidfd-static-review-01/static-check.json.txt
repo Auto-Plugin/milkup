@@ -1,0 +1,45 @@
+{
+  "reviewedAtUtc": "2026-10-17T01:53:36.416172+00:00",
+  "status": "STATIC_ONLY_NO_EXECUTION",
+  "sourceFiles": [
+    {
+      "path": "/workspace/milkup-mermaid-engine-evidence/research/cold-start-cpu-review-01/pidfd-capability-preparation/pidfd_capability.py",
+      "bytes": 11311,
+      "sha256": "1de5425c31e89b64be90b76052284759a43f8194fd4c49461c865df7462338f7",
+      "matchesPreparedManifest": true
+    },
+    {
+      "path": "/workspace/milkup-mermaid-engine-evidence/research/cold-start-cpu-review-01/pidfd-capability-preparation/PLAN.txt",
+      "bytes": 5186,
+      "sha256": "ce2aae3a2e0ed370453afbdc891213d4700ecbd95cf0d12d8bdbbdf45276326c",
+      "matchesPreparedManifest": true
+    }
+  ],
+  "preparedManifestSha256": "7d37f32fd3a232d81d0b485cf2ac9cd1b520ee972df83803e4c854ded8f29a5d",
+  "astParsed": true,
+  "selectedCalls": [
+    {
+      "line": 81,
+      "call": "os.scandir(f\"/proc/{parent['pid']}/fdinfo\")"
+    },
+    {
+      "line": 148,
+      "call": "os.waitpid(pid, os.WNOHANG)"
+    },
+    {
+      "line": 157,
+      "call": "os.fork()"
+    },
+    {
+      "line": 171,
+      "call": "os.pidfd_open(child, 0)"
+    },
+    {
+      "line": 191,
+      "call": "os.fork()"
+    }
+  ],
+  "dynamicTests": 0,
+  "probesRun": 0,
+  "productLaunches": 0
+}

@@ -1,0 +1,87 @@
+
+ RUN  v3.2.6 /tmp/milkup-windows-manual-candidate/packages/view-dom
+
+ ✓ src/__tests__/editor-view.test.ts (123 tests) 8072ms
+   ✓ EditorView > focuses from blank editor space and places the cursor by editor coordinates  574ms
+   ✓ EditorView > maps live table row clicks to visible cells instead of hidden pipes  322ms
+   ✓ EditorView > keeps docs/coding-plan.md live interactions bounded to affected lines  5292ms
+ ✓ src/__tests__/document-svg-image.test.ts (83 tests) 11447ms
+   ✓ keeps full mapped source until decode, then mounts an inert owned image (false)  566ms
+   ✓ restores a whole compound fragment when any decoded image later errors (false)  787ms
+   ✓ revokes selection ABA decode and ignores an old image error after replacement (false)  551ms
+   ✓ reserves actual negative and positive ink inside the mapped scrollable fragment (false)  604ms
+   ✓ revokes pending decode on source, ignoring its late completion (false)  1056ms
+ ✓ src/__tests__/p7-document-navigation.test.ts (34 tests) 2209ms
+   ✓ windowed source explicit document navigation > notifies start only after deferred reveal, preserving Shift=false anchor  332ms
+ ✓ src/__tests__/p7-source-line-reuse.test.ts (26 tests) 18399ms
+   ✓ ordinary source single-line rendering reuse > retains unrelated line nodes for Unicode insert at line 1  2920ms
+   ✓ ordinary source single-line rendering reuse > retains unrelated line nodes for Unicode delete at line 1  3302ms
+   ✓ ordinary source single-line rendering reuse > retains unrelated line nodes for Unicode replace at line 1  1243ms
+   ✓ ordinary source single-line rendering reuse > retains unrelated line nodes for Unicode insert at line 512  1073ms
+   ✓ ordinary source single-line rendering reuse > retains unrelated line nodes for Unicode delete at line 512  826ms
+   ✓ ordinary source single-line rendering reuse > retains unrelated line nodes for Unicode replace at line 512  818ms
+   ✓ ordinary source single-line rendering reuse > retains unrelated line nodes for Unicode insert at line 1024  1140ms
+   ✓ ordinary source single-line rendering reuse > retains unrelated line nodes for Unicode delete at line 1024  1567ms
+   ✓ ordinary source single-line rendering reuse > retains unrelated line nodes for Unicode replace at line 1024  1696ms
+   ✓ ordinary source single-line rendering reuse > preserves a reversed selection in a retained later line and restores it through history  2341ms
+   ✓ ordinary source single-line rendering reuse > uses updated offsets when clicking a retained later line after grow  509ms
+ ✓ src/__tests__/presentation.test.ts (19 tests) 3987ms
+   ✓ editor presentation > applies spaces-2 to future windowed source edits only  825ms
+   ✓ editor presentation > changes ordinary live layout without a document transaction  1967ms
+ ✓ src/__tests__/document-presentation.test.ts (70 tests) 6278ms
+   ✓ does not carry a prior diagram position across identity replacement (false)  450ms
+   ✓ cancels the old selection job and discards its late output (false)  342ms
+   ✓ uses real MathML, retains mapped source and reveals on selection (false)  319ms
+ ✓ src/__tests__/source-unicode.test.ts (33 tests) 1307ms
+   ✓ windowed source Unicode keys > moves and extends selection over the whole 😀  310ms
+ ✓ src/__tests__/windowed-table.test.ts (8 tests) 4425ms
+   ✓ recovers the full table across viewport boundaries without rendering every row  896ms
+   ✓ keeps Unicode, escaped pipes, visual breaks and complete-column history atomic  1325ms
+   ✓ keeps typing queued during an asynchronous column command without dropping characters  746ms
+   ✓ keeps visual cell breaks during optimistic input while native reads are delayed  873ms
+ ✓ src/__tests__/p7-input-audit.test.ts (48 tests) 2775ms
+   ✓ P7 source input boundaries > keeps programmatic root navigation without making it a second sequential Tab stop  1464ms
+ ✓ src/__tests__/document-presentation-boundaries.test.ts (16 tests) 4269ms
+   ✓ keeps an oversized complete fence literal at the lines budget  489ms
+   ✓ bounds and remembers unsuccessful unclosed supplementary reads  499ms
+   ✓ bounds and remembers unsuccessful over-lines supplementary reads  1171ms
+ ✓ src/__tests__/source-scroll-limits.test.ts (13 tests) 1543ms
+   ✓ bounded document scroll coordinates > renders an explicit jump once but still renders a subsequent user scroll  1051ms
+ ✓ src/__tests__/live-controls.test.ts (33 tests) 2912ms
+   ✓ windowed live controls > applies left, center and right alignment to header and body cells  367ms
+ ✓ src/__tests__/source-document-view.test.ts (64 tests) 3415ms
+   ✓ SourceDocumentView > restores the source caret after a save lock rerenders the window  404ms
+ ✓ src/__tests__/table-keyboard.test.ts (27 tests) 1207ms
+ ✓ src/__tests__/p7-live-parse-budget.test.ts (2 tests) 841ms
+   ✓ ordinary live navigation parse budget > reuses the current syntax tree for cursor reveal and coordinate queries  798ms
+ ✓ src/__tests__/document-presentation-restore.test.ts (18 tests) 1129ms
+ ✓ src/__tests__/code-presentation.test.ts (26 tests) 3512ms
+   ✓ windowed highlights safe source text and changes only fence language with undo  972ms
+   ✓ windowed supports empty/incomplete fences and plain text without losing trailing metadata  383ms
+   ✓ windowed isolates language history from typed Unicode and composition commits  361ms
+ ✓ src/__tests__/input-boundaries.test.ts (6 tests) 487ms
+stdout | src/__tests__/document-presentation-pointer.test.ts > keeps a settled response waiting when a new primary gesture replaces the released lease
+pointer-handoff {"originalConnected":true,"sameButton":true,"activeLease":true,"provided":2,"navigationCalls":0}
+
+ ✓ src/__tests__/document-presentation-pointer.test.ts (23 tests) 426ms
+ ✓ src/__tests__/block-keyboard.test.ts (37 tests) 791ms
+ ✓ src/__tests__/async-paste-unicode.test.ts (15 tests) 220ms
+ ✓ src/__tests__/image-hooks.test.ts (19 tests) 860ms
+   ✓ routes only empty clipboard payloads to the controlled fallback (true)  300ms
+ ✓ src/__tests__/public-table-editing.test.ts (15 tests) 557ms
+   ✓ runs explicit windowed table operations in source against the complete table  314ms
+ ✓ src/__tests__/document-presentation-anchor-guards.test.ts (24 tests) 522ms
+ ✓ src/__tests__/document-presentation-viewport.test.ts (6 tests) 579ms
+ ✓ src/__tests__/table-cursor.test.ts (1 test) 392ms
+   ✓ uses the empty cell bounds and padding instead of a following text cell  390ms
+ ✓ src/__tests__/document-presentation-preparation.test.ts (17 tests) 204ms
+ ✓ src/__tests__/plugin-renderer.test.ts (6 tests) 51ms
+ ✓ src/__tests__/controlled-fields.test.ts (3 tests) 41ms
+ ✓ src/__tests__/measured-line-heights.test.ts (1 test) 5ms
+ ✓ src/__tests__/view-benchmark.test.ts (1 test) 2ms
+
+ Test Files  31 passed (31)
+      Tests  817 passed (817)
+   Start at  02:15:37
+   Duration  51.60s (transform 3.81s, setup 0ms, collect 13.46s, tests 82.86s, environment 38.55s, prepare 4.98s)
+

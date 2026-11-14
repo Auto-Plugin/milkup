@@ -1,0 +1,112 @@
+{
+  "status": "completed-development-native-and-current-independent-host-validation",
+  "officialCases": 37,
+  "officialConverterReady": 30,
+  "officialHostAccepted": 29,
+  "officialHostRejected": 1,
+  "fixedContracts": 31,
+  "fixedContractsPassed": 31,
+  "readyOutputsTotal": 48,
+  "hostAcceptedTotal": 47,
+  "allNativeExitZero": true,
+  "allCleanupEmpty": true,
+  "fixedBudget": "2 seconds incl render/conversion/serialize/transfer and 256KiB per frame; unchanged",
+  "originalOfficialRequestsByteContentUnchanged": true,
+  "rejections": [
+    {
+      "index": 6,
+      "id": "flowchart-069-image",
+      "error": {
+        "code": "invalid-output",
+        "path": "",
+        "reason": "Loading error."
+      }
+    },
+    {
+      "index": 7,
+      "id": "flowchart-086-animated-edge",
+      "error": {
+        "code": "unsupported-animation",
+        "path": "0/1/12/1/0",
+        "reason": "effective CSS animation"
+      }
+    },
+    {
+      "index": 8,
+      "id": "flowchart-088-classDef",
+      "error": {
+        "code": "unsupported-animation",
+        "path": "0/1/12/1/0",
+        "reason": "effective CSS animation"
+      }
+    },
+    {
+      "index": 27,
+      "id": "timeline-000-first-official-example",
+      "error": {
+        "code": "unsupported-feature",
+        "path": "0/6",
+        "reason": "filter function"
+      }
+    },
+    {
+      "index": 31,
+      "id": "flow-url-image",
+      "error": {
+        "code": "invalid-output",
+        "path": "",
+        "reason": "Loading error."
+      }
+    },
+    {
+      "index": 32,
+      "id": "flow-style-url",
+      "error": {
+        "code": "invalid-output",
+        "path": "",
+        "reason": "Parse error on line 3:\n...sDef remote fill:url(https://example.inv\n-----------------------^\nExpecting 'SEMI', 'NEWLINE', 'SPACE', 'EOF', 'COLON', 'STYLE', 'NUM', 'COMMA', 'NODE_STRING', 'UNIT', 'BRKT', 'PCT', got 'PS'"
+      }
+    },
+    {
+      "index": 34,
+      "id": "flow-link-strict",
+      "error": {
+        "code": "unsafe-output",
+        "path": "0/1/12/3/0",
+        "reason": "element a"
+      }
+    }
+  ],
+  "hostRed": {
+    "index": 11,
+    "id": "gantt-000-first-official-example",
+    "reason": "opacity .8 axis tick groups contain text with unknown host-side ink bbox; compositing guard rejects. No budget or guard weakened. Far today line had been independently culled and is not this rejection."
+  },
+  "metadataBefore": "product-converter03-before-native.log: real converter returned title4097 before fix, expected limit-exceeded failed",
+  "harnessFailurePreserved": "product-converter03-harness-failure.json: fixed samples lacked sourceSha256 and failed post-result evidence recording; incomplete batch not counted",
+  "typesAndUnit": "../diagrams-product-development: types03.log/types-all03.log passed against current public SDK source paths; unit03.log 78 tests/4 files including15 mock renderer, not production SDK frozen install proof",
+  "pixelAcceptance": false,
+  "sourceRows": [
+    {
+      "file": "/workspace/milkup/plugins/diagrams/src/svg-converter.ts",
+      "snapshot": "/workspace/milkup-mermaid-engine-evidence/research/svg-converter-prototype/native-runner/revision-product-converter04/src/svg-converter.ts",
+      "sha256": "65ea18376e73ad4d93966204aeab2c3a1adaaf2dd3a8faaa468915ceb5fa12b4"
+    },
+    {
+      "file": "/workspace/milkup/plugins/diagrams/src/svg-primitives.ts",
+      "snapshot": "/workspace/milkup-mermaid-engine-evidence/research/svg-converter-prototype/native-runner/revision-product-converter04/src/svg-primitives.ts",
+      "sha256": "e6489c3fe5b3e5dffd4b37edad4f9a9cd138ab54ea2997fdf05b0dc54f3b67af"
+    },
+    {
+      "file": "/workspace/milkup/plugins/diagrams/src/paint-envelope.ts",
+      "snapshot": "/workspace/milkup-mermaid-engine-evidence/research/svg-converter-prototype/native-runner/revision-product-converter04/src/paint-envelope.ts",
+      "sha256": "541ac7c29e9485cf1f814ef4c5ffe63cbfb55dba2a4b3890fc8b05664950ec82"
+    }
+  ],
+  "engine": {
+    "path": "/workspace/milkup-mermaid-engine-evidence/research/svg-converter-prototype/native-runner/helper/assets/mermaid-full-12.2.0.mjs",
+    "sha256": "043c33385b8b41bb628872f4e419c7f20886403152b045736382db36072d8c0c",
+    "bytes": 5254581
+  },
+  "next": "current-raster native edge/pixel validation; Gantt compositing and timeline brightness remain explicit fallback limitations, not broad support acceptance"
+}

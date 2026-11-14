@@ -1,0 +1,41 @@
+mermaid-ui-cold-diag-03 独立CPU与后代发现缺口审查
+范围：root明确授权，在03 freeze后只读完成证据；不启动产品/实验、不改冻结输入/代码/预算、不读live /proc或清理。
+
+结论
+03原cold-prefix实际通过：results有preinstalled-cold-before-render及preinstalled-cold-window，block-000-first-official-example图像complete=true、naturalWidth663/naturalHeight281，harness exit0后按prefix STOP。该成功来自实际图像gate记录，不来自observer exit0。CPU observer正常controller-stop保存21行，但仍只有App和guardian各21样本；renderer树覆盖未建立。此诊断prefix不是full UI/生产验收，不关闭production08历史render_3 deadline失败，不可把不同run相同requestId视为同一请求。
+
+完整性与上下文
+run03-frozen-manifest.json SHA256 5b92991fea762804164a001e8633341dfff96a733f272c746f292f10b68738e2；172files/16883782bytes全部匹配。见manifest-verification.json。
+本轮driver祖先与harness controller启动前记录均require_escalated，user:[4026531837]、相同uid/gid映射；Node/CPU继承harness context。与02的事后自查不同，本轮有实际启动前记录。额外guardian environ检查现在matched=true、unavailable=0；原App profile断言也已走过。但统一outer context没有自动补齐renderer后代发现。
+
+精确身份和首次覆盖缺口
+App468788/birth8887290，parent468706；guardian468923/birth8887623，parent468788；instance89991fca045be26f50cf9b51dabff036dbd0a170476407fc。native guardian-spawn与CPU记录一致、环境匹配，nativeCreationProof device27/inode706831。App绑定以实际argv与双stat核验，未重绑其他进程。
+App boundNs88876251015747，约在App birth后3351.015747ms（birth tick粒度10ms）。App firstSeen88876251021169，firstSample88876251451376；guardian firstSeen88876251253945，firstSample88876251531906。native guardian创建记录88876237011494→binding观察88876251258145，延迟14.246651ms。未测App最初约3.35s，renderer没有firstSeen，不能给它虚拟零延迟或零CPU。
+
+CPU：仅各自完整观测端点之间，不是单请求
+App首start88876251451376/end88876251527308→末start88881251517455/end88881251624314；起点间隔5.000066079s。user+19/system+15 ticks（100Hz）=自身0.34CPU s，约6.799910%单核。
+guardian首start88876251531906/end88876251581654→末start88881251627668/end88881251664059；5.000095762s。user+7/system+1ticks=自身0.08CPU s，约1.599969%单核。guardian监督进程CPU不得归作renderer。
+App leader schedstat delta运行218.582023ms、runqueue wait99.738376ms、timeslices873；guardian leader运行84.505754ms、wait7.065732ms、timeslices17。仅leader线程，不是全进程所有线程等待。renderer CPU与shared-cgroup CPU均未测（null），不能用App低CPU或leader wait推断renderer/旧deadline根因。
+full-observed-intervals.json从42个有效成员样本独立复算端点/ticks/read brackets，保留未插值边缘。
+
+请求时间轴与截断边界
+raw driver有render_1..render_6六条dispatch，mono分别88878045749057、88878307100538、88878504142972、88880680393747、88880894415796、88881387251420。没有deadline-observed，也没有可直接作请求终点的response trace；本run没有准确的dispatch→deadline区间可计算。不能用相邻dispatch差、2000ms常量或session清理kill-start填补终点。
+CPU nativeEvents只保存render_1..5，native log观察延迟分别205.804455、194.510600、249.854227、71.102922、107.197659ms。CPU最后sample约88881251664059，先于render_6 dispatch；controller-stop在88881487313048，未再次完成log poll。eventDrops=0是内部数组未超cap，不代表raw driver尾部没有漏观测。
+Native capture=6events（1guardian+5accepted），final/closed=true、attempted=enqueued=written=6，无queue/drop/error/inFlight；5个wire hash/UTF8长度/requestId核对通过。第6条dispatch没有对应wire记录，不能回填payload。finish.request使native观察关闭后仍允许产品请求继续；final只证明关闭范围内已入队记录drain完成，不证明整个App生命周期所有请求均捕获。日志与complete时刻不足以确定第6次缺capture的精确closed瞬时。
+guardian kill-start88881450226668、cleanup-complete88881497758073，约47.531405ms；这是prefix session清理，不是deadline路径。不可把kill-start当render_6终点或声称旧deadline被复现。
+
+质量与观测开销
+21样本均保留，sampleIncomplete/evictedRows/skippedSlots/eventDrops/errorCount=0；maxLateNs143337982=143.337982ms。最大迟到显著但小于250ms周期，所以skippedSlots=0不等于准时或无调度等待。
+10次discovery，discoveryTasks19，incomplete0；仅两个身份。185次proc读取总8.742531ms/最大0.988498ms；sample累计9.025382ms/最大3.061736ms（独立复算一致）；discovery累计6.581704ms/最大2.409050ms。
+observer wall9.230743677s，ownCPU75.795591ms；prelaunch hash18.261164ms；afterReady57.537785ms（采样前等待/绑定/日志/发现也在其中）。native log读10.997009ms、identity log读10.242687ms。函数wall时间重叠，不与ownCPU简单相加；三CPU分割值读时刻略不同，不要求精确同刻加和。
+Native writerThreadCpu27.228049ms已经属于App自身CPU；captureTotal1.415286ms、max1.356979ms是同步wall时间，不能作为额外CPU相加。没有renderer树实际采样，因此无法从这组轻量“两进程”成本证明“完整renderer树观测开销已达标”。没有反事实无observer对照，不声称扰动为零。
+
+静态发现逻辑审查（未执行实验）
+1. sampler Files.tasks只枚举/proc/<已知PID>/task，最多128 task entries/round；children读取/proc/PID/task/TID/children。所有child必须stat.parent==owner.pid且birth>=owner.birth，双stat通过；discover从native绑定的guardian及既知后代开始，没有全局/proc扫描或按名字揣测归属。该路径与guardian正常fork出的直接child关系在静态逻辑上相容。
+2. 关键可观测性缺口：children()把每个task children文件的FileNotFoundError静默continue；读取候选stat消失也静默continue，discover对整个owner FileNotFoundError也continue。没有保存各children文件的errno/byte count/候选PID/parent拒绝计数。因此“discoveryIncomplete=0，发现0后代”可能掩盖接口缺失或不可见，并非已证“接口读取成功且无children”。目前无法从历史输出区分这些分支。
+3. 原guardian在supervise中PR_SET_CHILD_SUBREAPER后libc::fork；child关闭FD4，setpgid(0,0)，直接helper::run；parent为child建pidfd并poll，只有stop/child退出才cleanup。此处没有detach/CLONE_PARENT/二次fork或改变parent的代码。process::launch先setsid创建guardian，child setpgid仅设置group，不提供“后代应从parent树消失”的静态解释。后续WebKit子进程可能有自己的生命周期，但至少renderer leader路径应先经过这次fork。静态源码不证明实际每个时间点child一定存活，仍需运行证据。
+4. /proc children接口是否被当前容器实现/挂载暴露、是否因访问模式看不到、是否瞬时消失都只是待验证假设。本次不读取新/proc、不猜树不存在、不把权限问题泛化为唯一原因。03同outer context仍未发现renderer，已足以否定“只要统一context就必然补齐覆盖”的强断言。
+
+最小后续验证建议（单独审批后执行，当前未执行）
+使用独立受控父子fork fixture，与产品完全隔离；同require_escalated context；自有parent及child通过pipe握手保证child在观察期间活着。parent内部读取自己的各task children，独立observer读取同exact parent的同一路径；同时读已知child stat前后验证birth/PPID。每个read保存路径、errno包括ENOENT、原始有界children字节、解析PID、readStart/End；不吞错误。仅一次快照（必要第二次需明确报告），不全局扫、不碰产品、不发信号。child由pipe EOF正常退出，parent wait/reap；全流程<=10s。
+若明确已知live child PPID正确但children稳定ENOENT/空，则优先定位接口/挂载可见性，不能以调高采样频率解释。若fixture能读child，继续比对原observer过滤、guardian实际namespace/接口条件；不因此自动重跑产品。可选另独立case复用最小bwrap user/mount/proc组合，在相同已知fork关系下比较，但须先审阅并授权，避免把产品wrapper全套引入新变量。

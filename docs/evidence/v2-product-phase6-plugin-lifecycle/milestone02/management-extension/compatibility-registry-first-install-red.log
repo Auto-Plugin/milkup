@@ -1,0 +1,37 @@
+
+ RUN  v3.2.6 /workspace/milkup
+
+ ❯ packages/plugin/src/management-compatibility.test.ts (4 tests | 1 failed) 21ms
+   ✓ keeps existing outline manifest compatible with SDK 0.3.7 without changing its declared range 9ms
+   ✓ keeps existing footnotes manifest compatible with SDK 0.3.7 without changing its declared range 1ms
+   ✓ keeps existing diagrams manifest compatible with SDK 0.3.7 without changing its declared range 1ms
+   × requires SDK 0.3.7 for the management capability and preserves explicit approval 8ms
+     → expected undefined to be false // Object.is equality
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  packages/plugin/src/management-compatibility.test.ts > requires SDK 0.3.7 for the management capability and preserves explicit approval
+AssertionError: expected undefined to be false // Object.is equality
+
+- Expected: 
+false
+
++ Received: 
+undefined
+
+ ❯ packages/plugin/src/management-compatibility.test.ts:32:26
+     30|     manifestPath: '/plugins/management/plugin.json',
+     31|   })
+     32|   expect(record.enabled).toBe(false)
+       |                          ^
+     33|   expect(record.approvals).toEqual({ permissions: [], networkOrigins: …
+     34| })
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 3 passed (4)
+   Start at  08:46:49
+   Duration  646ms (transform 136ms, setup 0ms, collect 167ms, tests 21ms, environment 0ms, prepare 85ms)
+

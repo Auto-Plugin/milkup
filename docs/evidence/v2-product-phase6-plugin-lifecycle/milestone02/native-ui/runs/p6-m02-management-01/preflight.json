@@ -1,0 +1,229 @@
+{
+  "profile": "/tmp/milkup-p6-profiles/p6-m02-management-01",
+  "binary": "/workspace/milkup-plugin-lifecycle-evidence/milestone02/production04/milkup-desktop",
+  "binarySha256": "892089be0177d44e178bde43bd58711abfeed134c4e03ef6043631a22765e9d8",
+  "archivePath": "/workspace/milkup-plugin-lifecycle-evidence/milestone02/management-extension/external/dist/milkup.management-1.0.0.milkup-plugin",
+  "archiveSha256": "800c6bc03eaa63e06dbd324caeb64eef719920be4defbb3e21d7ca8ba96844b0",
+  "manifest": {
+    "id": "milkup.management",
+    "name": "Milkup Plugin Management",
+    "version": "1.0.0",
+    "description": "查看插件兼容要求、权限变化、设置说明与故障建议，并打开可信宿主详情。",
+    "host": "worker",
+    "main": "./dist/plugin.js",
+    "engines": {
+      "milkup": "^2.0.0-0",
+      "pluginSdk": ">=0.3.7 <0.4.0"
+    },
+    "permissions": [
+      "app:plugins"
+    ],
+    "contributes": {
+      "commands": [
+        {
+          "id": "management.refresh",
+          "title": "刷新插件列表",
+          "action": "management.refresh"
+        },
+        {
+          "id": "management.details",
+          "title": "查看插件说明",
+          "action": "management.details",
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "required": true
+              }
+            }
+          }
+        },
+        {
+          "id": "management.back",
+          "title": "返回插件列表",
+          "action": "management.back"
+        },
+        {
+          "id": "management.hostDetails",
+          "title": "打开宿主插件详情",
+          "action": "management.hostDetails"
+        },
+        {
+          "id": "management.hostSettings",
+          "title": "打开宿主插件设置",
+          "action": "management.hostSettings"
+        }
+      ],
+      "ui": [
+        {
+          "id": "management-panel",
+          "slot": "modal",
+          "title": "插件说明",
+          "scope": "app"
+        }
+      ]
+    }
+  },
+  "fixtures": {
+    "base": {
+      "path": "/workspace/milkup-plugin-lifecycle-evidence/milestone02/native-ui/runs/p6-m02-management-01/base.milkup-plugin",
+      "sha256": "3997261e1426b65df3c1d81748928125193edd5fcfb419686002df95fa92e242",
+      "manifest": {
+        "id": "example.catalog-lifecycle",
+        "name": "Catalog lifecycle fixture",
+        "version": "1.0.0",
+        "description": "Native transaction acceptance fixture",
+        "host": "worker",
+        "main": "dist/plugin.js",
+        "permissions": [],
+        "contributes": {
+          "ui": [
+            {
+              "id": "catalog-probe",
+              "slot": "modal",
+              "title": "P6 lifecycle probe",
+              "scope": "app"
+            }
+          ],
+          "commands": [
+            {
+              "id": "catalogFixture.ping",
+              "title": "P6 ping",
+              "action": "catalogFixture.ping"
+            },
+            {
+              "id": "catalogFixture.delayed",
+              "title": "P6 delayed command",
+              "action": "catalogFixture.delayed"
+            }
+          ]
+        },
+        "settings": {
+          "schema": {
+            "showHints": {
+              "type": "boolean"
+            }
+          },
+          "defaults": {
+            "showHints": true
+          }
+        },
+        "engines": {
+          "milkup": "^2.0.0-0",
+          "pluginSdk": ">=0.3.6 <0.4.0"
+        }
+      }
+    },
+    "candidate": {
+      "path": "/workspace/milkup-plugin-lifecycle-evidence/milestone02/native-ui/runs/p6-m02-management-01/candidate.milkup-plugin",
+      "sha256": "c00ba8b9bfeba212ab3a471ac83e99b32c62f5464b87f1d850b77971df7eaeee",
+      "manifest": {
+        "id": "example.catalog-lifecycle",
+        "name": "Catalog lifecycle fixture",
+        "version": "1.0.2",
+        "description": "Native transaction acceptance fixture",
+        "host": "worker",
+        "main": "dist/plugin.js",
+        "permissions": [
+          "document:read",
+          "network:access"
+        ],
+        "contributes": {
+          "ui": [
+            {
+              "id": "catalog-probe",
+              "slot": "modal",
+              "title": "P6 lifecycle probe",
+              "scope": "app"
+            }
+          ],
+          "commands": [
+            {
+              "id": "catalogFixture.ping",
+              "title": "P6 ping",
+              "action": "catalogFixture.ping"
+            },
+            {
+              "id": "catalogFixture.delayed",
+              "title": "P6 delayed command",
+              "action": "catalogFixture.delayed"
+            }
+          ]
+        },
+        "settings": {
+          "schema": {
+            "showHints": {
+              "type": "boolean"
+            }
+          },
+          "defaults": {
+            "showHints": true
+          }
+        },
+        "engines": {
+          "milkup": "^2.0.0-0",
+          "pluginSdk": ">=0.3.6 <0.4.0"
+        },
+        "networkOrigins": [
+          "https://p6-management-never-contact.invalid"
+        ]
+      }
+    },
+    "failure": {
+      "path": "/workspace/milkup-plugin-lifecycle-evidence/milestone02/native-ui/runs/p6-m02-management-01/failure.milkup-plugin",
+      "sha256": "717b9dae48b9e8cc18b7ac72ea533f4dbcb940e52907c7b03149231274162529",
+      "manifest": {
+        "id": "example.catalog-lifecycle",
+        "name": "Catalog lifecycle fixture",
+        "version": "1.0.3",
+        "description": "Native transaction acceptance fixture",
+        "host": "worker",
+        "main": "dist/plugin.js",
+        "permissions": [],
+        "contributes": {
+          "ui": [
+            {
+              "id": "catalog-probe",
+              "slot": "modal",
+              "title": "P6 lifecycle probe",
+              "scope": "app"
+            }
+          ],
+          "commands": [
+            {
+              "id": "catalogFixture.ping",
+              "title": "P6 ping",
+              "action": "catalogFixture.ping"
+            },
+            {
+              "id": "catalogFixture.delayed",
+              "title": "P6 delayed command",
+              "action": "catalogFixture.delayed"
+            }
+          ]
+        },
+        "settings": {
+          "schema": {
+            "showHints": {
+              "type": "boolean"
+            }
+          },
+          "defaults": {
+            "showHints": true
+          }
+        },
+        "engines": {
+          "milkup": "^2.0.0-0",
+          "pluginSdk": ">=0.3.6 <0.4.0"
+        }
+      }
+    }
+  },
+  "methods": {
+    "writes": "shipped controls, GTK picker, native Return key",
+    "observations": "DOM + readonly native plugin_catalog_read",
+    "plugin": "independently built public SDK package, no private plugin imports",
+    "limits": "Linux only; script preparation is not execution evidence"
+  }
+}

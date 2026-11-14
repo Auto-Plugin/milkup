@@ -1,0 +1,17 @@
+node:internal/fs/promises:697
+  return new FileHandle(await PromisePrototypeThen(
+                        ^
+
+Error: ENOENT: no such file or directory, open '/workspace/milkup-markdown-extensions-phase4-evidence/native/helpers/native-production.mjs'
+    at async open (node:internal/fs/promises:697:25)
+    at async readFile (node:internal/fs/promises:1348:14)
+    at async file:///workspace/milkup-markdown-extensions-phase4-evidence/native/environment/candidate08-install-only.mjs:243:18
+    at async Promise.all (index 1)
+    at async file:///workspace/milkup-markdown-extensions-phase4-evidence/native/environment/candidate08-install-only.mjs:234:24 {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: '/workspace/milkup-markdown-extensions-phase4-evidence/native/helpers/native-production.mjs'
+}
+
+Node.js v24.19.0

@@ -1,0 +1,124 @@
+// External diagnostic only. Preserve group opacity and the original live DOM.
+// The region comes from the hidden root viewport, not a trusted glyph/bbox claim.
+const NS = 'http://www.w3.org/2000/svg'
+const finite = n => Number.isFinite(n) && Math.abs(n) <= 65536
+const css = node => node.ownerDocument.defaultView.getComputedStyle(node)
+const get = (style, property) => style.getPropertyValue(property).trim()
+const none = value => !value || value === 'none'
+const pathFrom = (root, node) => {
+  const path = []
+  while (node !== root) {
+    const parent = node.parentElement
+    if (!parent) throw Error('outside original root')
+    path.unshift(Array.prototype.indexOf.call(parent.children, node))
+    node = parent
+  }
+  return path
+}
+const atPath = (root, path) => {
+  let node = root
+  for (const index of path) {
+    node = node.children[index]
+    if (!node) throw Error('candidate topology mismatch')
+  }
+  return node
+}
+function effectFree(node, allowOpacity) {
+  if (node.namespaceURI !== NS) throw Error('non-SVG node')
+  const style = css(node)
+  for (const property of ['filter', 'clip-path', 'mask-image', '-webkit-mask-image', 'text-shadow'])
+    if (!none(get(style, property))) throw Error('existing effect ' + property)
+  if ((get(style, 'mix-blend-mode') || 'normal') !== 'normal' || (get(style, 'isolation') || 'auto') !== 'auto') throw Error('existing blend/isolation')
+  if (get(style, 'display') === 'none' || get(style, 'visibility') !== 'visible') throw Error('hidden node')
+  if (!allowOpacity && Number(get(style, 'opacity')) !== 1) throw Error('nested opacity')
+  if (!none(get(style, 'animation-name')) || node.querySelector('animate,animateTransform,animateMotion,set')) throw Error('animation')
+  return style
+}
+function rootRegion(root, group, rootRect) {
+  const matrix = group.getScreenCTM()
+  if (!matrix || ![matrix.a, matrix.b, matrix.c, matrix.d, matrix.e, matrix.f].every(finite)) throw Error('unbounded group CTM')
+  const inverse = matrix.inverse()
+  if (![inverse.a, inverse.b, inverse.c, inverse.d, inverse.e, inverse.f].every(finite)) throw Error('noninvertible group CTM')
+  const corners = []
+  for (const x of [rootRect.x, rootRect.x + rootRect.width])
+    for (const y of [rootRect.y, rootRect.y + rootRect.height])
+      corners.push([inverse.a * x + inverse.c * y + inverse.e, inverse.b * x + inverse.d * y + inverse.f])
+  const left = Math.floor(Math.min(...corners.map(p => p[0])))
+  const top = Math.floor(Math.min(...corners.map(p => p[1])))
+  const right = Math.ceil(Math.max(...corners.map(p => p[0])))
+  const bottom = Math.ceil(Math.max(...corners.map(p => p[1])))
+  const region = [left, top, right - left, bottom - top]
+  if (!region.every(finite) || region[2] <= 0 || region[3] <= 0) throw Error('invalid explicit region')
+  return { region, rootScreenRect: [rootRect.x, rootRect.y, rootRect.width, rootRect.height],
+    matrix: [matrix.a, matrix.b, matrix.c, matrix.d, matrix.e, matrix.f],
+    inverse: [inverse.a, inverse.b, inverse.c, inverse.d, inverse.e, inverse.f], inverseViewportCorners: corners }
+}
+
+export function normalizeBoundedIdentityGroups(originalRoot, candidateRoot) {
+  if (!originalRoot.isConnected || originalRoot === candidateRoot || originalRoot.outerHTML !== candidateRoot.outerHTML)
+    throw Error('requires attached original and byte-equivalent independent clone')
+  const originalBytes = originalRoot.outerHTML
+  const rootStyle = effectFree(originalRoot, true)
+  if (get(rootStyle, 'overflow-x') !== 'hidden' || get(rootStyle, 'overflow-y') !== 'hidden') throw Error('root must have actual hidden clipping')
+  if (!none(get(rootStyle, 'transform'))) throw Error('root CSS transform outside diagnostic')
+  const rootRect = originalRoot.getBoundingClientRect()
+  if (![rootRect.x, rootRect.y, rootRect.width, rootRect.height].every(finite) || rootRect.width <= 0 || rootRect.height <= 0)
+    throw Error('invalid root viewport')
+  const groups = [], rejected = [], plans = []
+  const all = [...originalRoot.querySelectorAll('g')]
+  if (all.length > 4096) throw Error('group limit')
+  for (const group of all) {
+    const opacity = Number(get(css(group), 'opacity'))
+    if (!finite(opacity) || opacity < 0 || opacity > 1) throw Error('invalid opacity')
+    if (opacity === 0 || opacity === 1) continue
+    const path = pathFrom(originalRoot, group)
+    try {
+      effectFree(group, true)
+      // No ancestor may sample ink outside the clipped root and move it inside.
+      for (let ancestor = group.parentElement; ancestor && ancestor !== originalRoot; ancestor = ancestor.parentElement)
+        effectFree(ancestor, true)
+      if (group.children.length !== 2) throw Error('not exactly two original paint leaves')
+      const children = [...group.children]
+      const line = children.find(n => n.localName === 'line')
+      const text = children.find(n => n.localName === 'text')
+      if (!line || !text || line.children.length || text.childNodes.length !== 1 || text.firstChild.nodeType !== 3)
+        throw Error('outside line plus plain text diagnostic')
+      for (const child of children) {
+        const style = effectFree(child, false)
+        for (const property of ['marker-start', 'marker-mid', 'marker-end'])
+          if (!none(get(style, property))) throw Error('existing marker')
+      }
+      const proof = rootRegion(originalRoot, group, rootRect)
+      plans.push({ group, path, opacity, proof })
+    } catch (error) { rejected.push({ path, reason: String(error?.message || error) }) }
+  }
+  const usedIds = new Set([...originalRoot.querySelectorAll('[id]')].map(n => n.id))
+  const defs = originalRoot.ownerDocument.createElementNS(NS, 'defs')
+  for (const [i, plan] of plans.entries()) {
+    let id = 'milkup-opacity-identity-probe-' + i
+    while (usedIds.has(id)) id += '-x'
+    usedIds.add(id)
+    const filter = originalRoot.ownerDocument.createElementNS(NS, 'filter')
+    const [x, y, width, height] = plan.proof.region
+    for (const [key, value] of Object.entries({ id, filterUnits: 'userSpaceOnUse', primitiveUnits: 'userSpaceOnUse',
+      x, y, width, height, 'color-interpolation-filters': 'sRGB' })) filter.setAttribute(key, String(value))
+    const operation = originalRoot.ownerDocument.createElementNS(NS, 'feDropShadow')
+    for (const [key, value] of Object.entries({ dx: 0, dy: 0, stdDeviation: '0 0', 'flood-color': 'rgba(0, 0, 0, 0)', in: 'SourceGraphic' }))
+      operation.setAttribute(key, String(value))
+    // Per Filter Effects 9.4, the SourceGraphic primitive's default subregion
+    // equals this explicit filter region. No new primitive-region DTO is used.
+    filter.append(operation); defs.append(filter)
+    const out = atPath(candidateRoot, plan.path)
+    if (out.localName !== 'g') throw Error('clone group mismatch')
+    out.style.setProperty('filter', 'url(#' + id + ')', 'important')
+    groups.push({ path: plan.path, opacityBefore: plan.opacity, opacityAfter: plan.opacity,
+      proof: plan.proof, filterId: id, filterUnits: 'userSpaceOnUse', primitiveUnits: 'userSpaceOnUse',
+      primitiveSubregion: 'SourceGraphic default equals explicit filter region',
+      operation: { dx: 0, dy: 0, stdDeviation: [0, 0], rgba: [0, 0, 0, 0], colorInterpolation: 'sRGB' } })
+  }
+  if (groups.length) candidateRoot.append(defs)
+  if (originalRoot.outerHTML !== originalBytes) throw Error('original input was mutated')
+  return { diagnosticOnly: true, productNormalizationApproved: false, groups, rejected, originalUnchanged: true,
+    requiresActualPixelComparison: true,
+    boundary: 'Preserved original opacity and child paint alpha; added an explicit-root-viewport bounded zero-alpha zero-kernel identity filter. No host guard change.' }
+}

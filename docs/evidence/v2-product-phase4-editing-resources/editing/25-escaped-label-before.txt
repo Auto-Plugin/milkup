@@ -1,0 +1,175 @@
+$ vitest run src/__tests__/inline-parser.test.ts
+
+ RUN  v3.2.6 /workspace/milkup/packages/markdown
+
+ ❯ src/__tests__/inline-parser.test.ts (39 tests | 3 failed) 89ms
+   ✓ parseInline > parses strikethrough with nested emphasis and leaves following Unicode text plain 4ms
+   ✓ parseInline > ignores strike delimiters in escaped text and complete code spans 3ms
+   ✓ parseInline > preserves incomplete strike while typing and does not treat single or triple tildes as strike 0ms
+   ✓ parseInline > parses plain text 0ms
+   ✓ parseInline > parses escaped characters 0ms
+   ✓ parseInline > parses inline code spans 0ms
+   ✓ parseInline > represents unclosed inline code spans as incomplete nodes 1ms
+   ✓ parseInline > parses emphasis with child text 0ms
+   ✓ parseInline > parses strong with child text 0ms
+   ✓ parseInline > preserves surrounding text around strong nodes 1ms
+   ✓ parseInline > closes nested emphasis before strong in 粗体中的  2ms
+   ✓ parseInline > closes nested emphasis before strong in 粗体中的  1ms
+   ✓ parseInline > closes nested emphasis before strong in 中文 bold  0ms
+   ✓ parseInline > closes nested emphasis before strong in English 中文  0ms
+   ✓ parseInline > closes nested emphasis before strong in 粗体😀  0ms
+   ✓ parseInline > ignores already consumed star delimiters before nested emphasis: \*  1ms
+   ✓ parseInline > ignores already consumed star delimiters before nested emphasis: `*`  0ms
+   ✓ parseInline > ignores already consumed star delimiters before nested emphasis: ``a * ` b``  0ms
+   ✓ parseInline > ignores already consumed star delimiters before nested emphasis: *earlier*  1ms
+   ✓ parseInline > keeps literal stars inside nested emphasis: \* 1ms
+   ✓ parseInline > keeps literal stars inside nested emphasis: `*` 1ms
+   ✓ parseInline > keeps literal stars inside nested emphasis: ``a * ` b`` 1ms
+   ✓ parseInline > keeps successive mixed-language emphasis independent 1ms
+   ✓ parseInline > preserves incomplete strong and emphasis children while typing 1ms
+   ✓ parseInline > respects requested ranges when a closing run continues outside them 1ms
+   ✓ parseInline > represents unclosed emphasis as an incomplete node 0ms
+   ✓ parseInline > parses inline links with label children and destination ranges 1ms
+   × parseInline > recognizes escaped closing brackets in ! labels without extending the range 58ms
+     → expected { type: 'text', from: +0, to: 1, …(3) } to match object { Object (type, status, ...) }
+(1 matching property omitted from actual)
+   × parseInline > recognizes escaped closing brackets in  labels without extending the range 2ms
+     → expected { type: 'text', from: +0, to: 2, …(3) } to match object { type: 'link', status: 'valid', …(4) }
+(1 matching property omitted from actual)
+   × parseInline > uses backslash parity for label delimiters and preserves incomplete bounded labels 3ms
+     → expected { type: 'text', from: +0, to: 1, …(3) } to match object { Object (type, status, ...) }
+(4 matching properties omitted from actual)
+   ✓ parseInline > parses images with alt text and destination ranges 0ms
+   ✓ parseInline > represents unclosed links as incomplete nodes 0ms
+   ✓ parseInline > parses URL autolinks 0ms
+   ✓ parseInline > parses email autolinks 0ms
+   ✓ parseInline > parses hard breaks from two spaces before a newline 0ms
+   ✓ parseInline > parses emphasis inside link labels 0ms
+   ✓ parseInline > parses links and code spans inside emphasis 0ms
+   ✓ parseInlineText > returns a text node over the requested range 0ms
+   ✓ parseInlineText > returns no nodes for an empty range 0ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 3 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/__tests__/inline-parser.test.ts > parseInline > recognizes escaped closing brackets in ! labels without extending the range
+AssertionError: expected { type: 'text', from: +0, to: 1, …(3) } to match object { Object (type, status, ...) }
+(1 matching property omitted from actual)
+
+- Expected
++ Received
+
+  {
+    "contentRanges": [
+      {
+-       "from": 2,
+-       "to": 9,
++       "from": 0,
++       "to": 1,
+      },
+-     {
+-       "from": 11,
+-       "to": 25,
+-     },
+    ],
+    "data": {
+-     "destination": "assets/pic.png",
+-     "label": "左\\]右 😀",
++     "value": "!",
+    },
+    "from": 0,
+    "status": "valid",
+-   "to": 26,
+-   "type": "image",
++   "to": 1,
++   "type": "text",
+  }
+
+ ❯ src/__tests__/inline-parser.test.ts:400:22
+    398|     const label = String.raw`左\]右 😀`, source = `${prefix}[${label}](a…
+    399|     const nodes = parseInline(source)
+    400|     expect(nodes[0]).toMatchObject({
+       |                      ^
+    401|       type: prefix ? 'image' : 'link', status: 'valid', from: 0,
+    402|       to: source.indexOf(' tail'),
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/3]⎯
+
+ FAIL  src/__tests__/inline-parser.test.ts > parseInline > recognizes escaped closing brackets in  labels without extending the range
+AssertionError: expected { type: 'text', from: +0, to: 2, …(3) } to match object { type: 'link', status: 'valid', …(4) }
+(1 matching property omitted from actual)
+
+- Expected
++ Received
+
+  {
+    "contentRanges": [
+      {
+-       "from": 1,
+-       "to": 8,
++       "from": 0,
++       "to": 2,
+      },
+-     {
+-       "from": 10,
+-       "to": 24,
+-     },
+    ],
+    "data": {
+-     "destination": "assets/pic.png",
+-     "label": "左\\]右 😀",
++     "value": "[左",
+    },
+    "from": 0,
+    "status": "valid",
+-   "to": 25,
+-   "type": "link",
++   "to": 2,
++   "type": "text",
+  }
+
+ ❯ src/__tests__/inline-parser.test.ts:400:22
+    398|     const label = String.raw`左\]右 😀`, source = `${prefix}[${label}](a…
+    399|     const nodes = parseInline(source)
+    400|     expect(nodes[0]).toMatchObject({
+       |                      ^
+    401|       type: prefix ? 'image' : 'link', status: 'valid', from: 0,
+    402|       to: source.indexOf(' tail'),
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/3]⎯
+
+ FAIL  src/__tests__/inline-parser.test.ts > parseInline > uses backslash parity for label delimiters and preserves incomplete bounded labels
+AssertionError: expected { type: 'text', from: +0, to: 1, …(3) } to match object { Object (type, status, ...) }
+(4 matching properties omitted from actual)
+
+- Expected
++ Received
+
+  {
+    "data": {
+-     "label": "left\\\\\\]right",
++     "value": "!",
+    },
+    "status": "valid",
+-   "type": "image",
++   "type": "text",
+  }
+
+ ❯ src/__tests__/inline-parser.test.ts:413:33
+    411|     expect(parseInline(even)[0]).toMatchObject({ type: 'image', status…
+    412|     const odd = String.raw`![left\\\]right](assets/x.png)`
+    413|     expect(parseInline(odd)[0]).toMatchObject({ type: 'image', status:…
+       |                                 ^
+    414|     const partial = String.raw`![left\]right](assets/x.png)`
+    415|     const end = partial.indexOf('](')
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/3]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  3 failed | 36 passed (39)
+   Start at  08:47:20
+   Duration  3.87s (transform 1.87s, setup 0ms, collect 2.07s, tests 89ms, environment 0ms, prepare 473ms)
+
+/workspace/milkup/packages/markdown:
+[ERR_PNPM_RECURSIVE_RUN_FIRST_FAIL] @milkup/markdown@2.0.0-beta.1 test: `vitest run src/__tests__/inline-parser.test.ts`
+Exit status 1

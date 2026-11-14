@@ -1,0 +1,73 @@
+--- manager-before-pointer.ts
++++ packages/view-dom/src/document-presentation.ts
+@@ -245,6 +245,8 @@
+   private epoch = 0
+   private stopped = false
+   private painting = false
++  private successfulImageRevision = -1
++  private referenceImagePaintPending = false
+   private scheduled = false
+   private job: Job | undefined
+   private cache:
+@@ -1233,6 +1235,29 @@
+       childLines.every((line, index) => line === this.painted!.lines[index])
+     )
+       return
++    // A successful decode can arrive after provider settlement, while the user
++    // is pressing a reference in the previous complete fragment. Reuse the
++    // native-click lease; failures and deadline expiry never take this gate.
++    if (
++      this.painted?.response === response &&
++      this.samePaintContext(this.painted.context, context) &&
++      this.painted.imageRevision !== this.imageRevision &&
++      this.successfulImageRevision === this.imageRevision &&
++      !Array.from(this.fragmentImages.values()).some((owner) => owner.failed) &&
++      this.hasReferencePointer()
++    ) {
++      if (!this.referenceImagePaintPending) {
++        const waiting = this.waitForReferencePointer()
++        if (waiting) {
++          this.referenceImagePaintPending = true
++          void waiting.then(() => {
++            this.referenceImagePaintPending = false
++            this.schedule()
++          })
++        }
++      }
++      return
++    }
+     this.painting = true
+     this.observer.disconnect()
+     const anchor = this.captureScrollAnchor(currentSelection)
+@@ -1472,6 +1497,7 @@
+     }
+     const timer = setTimeout(() => {
+       if (this.previousFragmentImages.get(key)?.owner !== owner) return
++      this.releaseReferencePointer()
+       this.disposePreviousFragmentImages(key)
+       // A succession of distinct pending results must not renew the original
+       // replacement deadline or keep an older presentation visible forever.
+@@ -1543,6 +1569,7 @@
+       const key = fragmentKey(currentFragment)
+       if (this.previousFragmentImages.get(key)?.owner === owner) {
+         if (owner.images.some((image) => image.state !== 'decoded')) {
++          this.releaseReferencePointer()
+           this.disposePreviousFragmentImages(key)
+           this.imageRevision++
+           this.schedule()
+@@ -1562,6 +1589,7 @@
+         return
+       }
+       if (owner.images.some((image) => image.state === 'failed')) {
++        this.releaseReferencePointer()
+         owner.failed = true
+         for (const image of owner.images) image.dispose()
+       }
+@@ -1569,6 +1597,7 @@
+       // not hide any source; a retained failure cannot restart via observation.
+       if (owner.failed || owner.images.every((image) => image.state === 'decoded')) {
+         this.imageRevision++
++        if (!owner.failed) this.successfulImageRevision = this.imageRevision
+         this.schedule()
+       }
+     }

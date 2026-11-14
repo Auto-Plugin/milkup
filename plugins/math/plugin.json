@@ -1,0 +1,16 @@
+{
+  "id": "milkup.math",
+  "name": "数学公式",
+  "version": "1.0.0",
+  "description": "离线呈现行内与独立数学公式；不支持或超限的表达式保留可编辑源码。",
+  "host": "worker",
+  "main": "./dist/plugin.js",
+  "engines": { "milkup": "^2.0.0-0", "pluginSdk": "^0.3.3" },
+  "permissions": ["document:read"],
+  "resources": ["LICENSE-KATEX.txt"],
+  "contributes": {
+    "documentRenderers": [
+      { "id": "math.document", "contexts": ["text", "fence"], "fenceLanguages": ["math"] }
+    ]
+  }
+}

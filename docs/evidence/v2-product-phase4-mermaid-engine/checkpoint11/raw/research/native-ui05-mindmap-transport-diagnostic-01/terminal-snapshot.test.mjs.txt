@@ -1,0 +1,63 @@
+import assert from "node:assert/strict";
+import vm from "node:vm";
+import { readFile } from "node:fs/promises";
+const source = await readFile(
+  new URL("./terminal-snapshot.js", import.meta.url),
+  "utf8",
+);
+function run(count, bytes, done = true) {
+  let reads = 0;
+  const children = new Proxy(
+    { length: count },
+    {
+      get(target, key) {
+        if (key === "length") return count;
+        reads++;
+        assert(reads <= 256);
+        return {
+          classList: { contains: () => true },
+          dataset: {
+            from: String(Number(key) * 10),
+            to: String(Number(key) * 10 + 9),
+            line: key,
+          },
+          style: { display: "" },
+          getBoundingClientRect: () => ({
+            toJSON: () => ({ top: 0, bottom: 10 }),
+          }),
+        };
+      },
+    },
+  );
+  const content = {
+    children,
+    clientWidth: 1048,
+    querySelector: () => undefined,
+    getBoundingClientRect: () => ({ toJSON: () => ({ width: 1048 }) }),
+  };
+  const context = vm.createContext({
+    TextEncoder,
+    performance: { now: () => 10000 },
+    window: {
+      __milkupTransportDiagnostic: {
+        state: { done, restored: done, serializedBytes: bytes },
+      },
+    },
+    document: { querySelector: () => content },
+  });
+  return { result: vm.runInContext("(" + source + ")()", context), reads };
+}
+const bounded = run(1000, 0);
+assert.equal(bounded.reads, 256);
+assert.equal(bounded.result.rows.length, 256);
+assert.equal(bounded.result.rowLimitTruncated, true);
+assert.equal(bounded.result.content.clientWidth, 1048);
+assert(!JSON.stringify(bounded.result).includes("textContent"));
+console.log("PASS terminal inspects at most256 lines without text");
+const full = run(1000, 2097152);
+assert.equal(full.result.rows.length, 0);
+assert.equal(full.result.rowBytes, 0);
+assert.equal(full.result.budgetTruncated, true);
+console.log("PASS exhausted wire budget retains no extra line metadata");
+assert.throws(() => run(1, 0, false), /must restore/);
+console.log("PASS terminal refuses active observer");

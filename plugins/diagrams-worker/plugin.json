@@ -1,0 +1,16 @@
+{
+  "id": "milkup.diagrams",
+  "name": "Mermaid 图表（导出受限）",
+  "version": "1.3.0",
+  "description": "配套桌面程序的正文使用 Mermaid 12.2.0；独立 Worker 与导出仅支持基础无环流程图和简单时序图，其他内容保留源码。",
+  "host": "worker",
+  "main": "./dist/plugin.js",
+  "engines": { "milkup": "^2.0.0-0", "pluginSdk": ">=0.3.4 <0.4.0" },
+  "permissions": ["document:read"],
+  "contributes": {
+    "documentRenderers": [
+      { "id": "diagrams.mermaid", "contexts": ["fence"], "fenceLanguages": ["mermaid"] }
+    ]
+  },
+  "resources": ["THIRD-PARTY-NOTICES.txt", "dependency-provenance.json"]
+}

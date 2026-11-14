@@ -1,0 +1,29 @@
+{
+  "createdAt": "2026-10-19T10:58:57.077575+00:00",
+  "scope": "Independent static follow-up; root-authorized host-only lifecycle correction. Tests prepared, not executed; native baseline measurement must finish first.",
+  "originalFindings": "Text-only focus and same-tree focus departure fixes verified in current source.",
+  "remainingFindings": [
+    {
+      "lines": "desktop-plugin-ui.ts:537-543,884-885",
+      "issue": "Document/version stale success returns without dropping its pending keyboard target; subsequent ArrowDown reuses the former End rank."
+    },
+    {
+      "lines": "desktop-plugin-ui.ts:652-658",
+      "issue": "Rejected request checks sequence only; stale document/version or detached generation may still receive error DOM."
+    }
+  ],
+  "snapshots": [
+    {
+      "source": "apps/desktop/src/desktop-plugin-ui.ts",
+      "snapshot": "/workspace/milkup-p7-quality-evidence/milestone01/outline/host-before-lifecycle-fix.txt",
+      "bytes": 48815,
+      "sha256": "02b8d94610031e6515e79f81c20900848510853a594319922d2f692c29aae1ad"
+    },
+    {
+      "source": "apps/desktop/src/desktop-plugin-ui.test.ts",
+      "snapshot": "/workspace/milkup-p7-quality-evidence/milestone01/outline/tests-lifecycle-red.txt",
+      "bytes": 58458,
+      "sha256": "539e0f97fa98d241227a14cf637957da4cc701a02d49e35cdc2a28b5b0ad3584"
+    }
+  ]
+}

@@ -1,0 +1,180 @@
+{"command": ["bash", "scripts/cloud/pnpm.sh", "--filter", "@milkup/core", "exec", "vitest", "run", "src/__tests__/document-svg-image.test.ts"], "cwd": "/workspace/milkup", "started": "2026-10-16T11:01:59.387082+00:00"}
+
+ RUN  v3.2.6 /workspace/milkup/packages/core
+
+ ❯ src/__tests__/document-svg-image.test.ts (8 tests | 8 failed) 19ms
+   × closed SVG image document presentation contract > accepts and independently clones the new typed image through the existing validator 7ms
+     → Document presentation: invalid-output
+   × closed SVG image document presentation contract > serializes canonical geometry and escaped accessible text, never producer markup 1ms
+     → Document presentation: invalid-output
+   × closed SVG image document presentation contract > rejects an unknown child as a whole instead of silently dropping it 5ms
+     → expected [Function] to not throw an error but 'DocumentPresentationError: Document p…' was thrown
+   × closed SVG image document presentation contract > does not reset the charged-node budget for each SVG image 1ms
+     → expected [Function] to not throw an error but 'DocumentPresentationError: Document p…' was thrown
+   × closed SVG image document presentation contract > shares the node budget with existing MathML and ordinary presentation nodes 1ms
+     → expected [Function] to not throw an error but 'DocumentPresentationError: Document p…' was thrown
+   × closed SVG image document presentation contract > applies depth to the whole presentation tree, not from each nested image root 1ms
+     → expected [Function] to not throw an error but 'DocumentPresentationError: Document p…' was thrown
+   × closed SVG image document presentation contract > caps aggregate canonical bytes after XML escaping, not only input JSON bytes 0ms
+     → Document presentation: invalid-output
+   × closed SVG image document presentation contract > checks local reference kinds and rebinds IDs in canonical output 1ms
+     → expected [Function] to not throw an error but 'DocumentPresentationError: Document p…' was thrown
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 8 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/__tests__/document-svg-image.test.ts > closed SVG image document presentation contract > accepts and independently clones the new typed image through the existing validator
+DocumentPresentationError: Document presentation: invalid-output
+ ❯ fail src/document-presentation.ts:600:11
+    598| ): DocumentPresentationNode {
+    599|   const fail = (): never => {
+    600|     throw new DocumentPresentationError('invalid-output')
+       |           ^
+    601|   }
+    602|   const result = node(value, { nodes: 0, text: 0 }, 1, fail, request)
+ ❯ record src/document-presentation.ts:198:12
+ ❯ node src/document-presentation.ts:539:13
+ ❯ copyDocumentPresentationNode src/document-presentation.ts:602:18
+ ❯ src/__tests__/document-svg-image.test.ts:64:20
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/8]⎯
+
+ FAIL  src/__tests__/document-svg-image.test.ts > closed SVG image document presentation contract > serializes canonical geometry and escaped accessible text, never producer markup
+DocumentPresentationError: Document presentation: invalid-output
+ ❯ fail src/document-presentation.ts:600:11
+    598| ): DocumentPresentationNode {
+    599|   const fail = (): never => {
+    600|     throw new DocumentPresentationError('invalid-output')
+       |           ^
+    601|   }
+    602|   const result = node(value, { nodes: 0, text: 0 }, 1, fail, request)
+ ❯ record src/document-presentation.ts:198:12
+ ❯ node src/document-presentation.ts:539:13
+ ❯ copyDocumentPresentationNode src/document-presentation.ts:602:18
+ ❯ serializeDocumentPresentationNode src/document-presentation.ts:675:21
+ ❯ src/__tests__/document-svg-image.test.ts:72:20
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/8]⎯
+
+ FAIL  src/__tests__/document-svg-image.test.ts > closed SVG image document presentation contract > rejects an unknown child as a whole instead of silently dropping it
+AssertionError: expected [Function] to not throw an error but 'DocumentPresentationError: Document p…' was thrown
+
+- Expected: 
+undefined
+
++ Received: 
+"DocumentPresentationError: Document presentation: invalid-output"
+
+ ❯ src/__tests__/document-svg-image.test.ts:81:59
+     79| 
+     80|   it('rejects an unknown child as a whole instead of silently dropping…
+     81|     expect(() => copyDocumentPresentationNode(svg())).not.toThrow()
+       |                                                           ^
+     82|     expect(() =>
+     83|       copyDocumentPresentationNode(
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/8]⎯
+
+ FAIL  src/__tests__/document-svg-image.test.ts > closed SVG image document presentation contract > does not reset the charged-node budget for each SVG image
+AssertionError: expected [Function] to not throw an error but 'DocumentPresentationError: Document p…' was thrown
+
+- Expected: 
+undefined
+
++ Received: 
+"DocumentPresentationError: Document presentation: invalid-output"
+
+ ❯ src/__tests__/document-svg-image.test.ts:102:59
+    100|       })),
+    101|     )
+    102|     expect(() => copyDocumentPresentationNode(image)).not.toThrow()
+       |                                                           ^
+    103|     expect(() => aggregate([image, image])).toThrow()
+    104|   })
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/8]⎯
+
+ FAIL  src/__tests__/document-svg-image.test.ts > closed SVG image document presentation contract > shares the node budget with existing MathML and ordinary presentation nodes
+AssertionError: expected [Function] to not throw an error but 'DocumentPresentationError: Document p…' was thrown
+
+- Expected: 
+undefined
+
++ Received: 
+"DocumentPresentationError: Document presentation: invalid-output"
+
+ ❯ src/__tests__/document-svg-image.test.ts:123:59
+    121|       },
+    122|     }
+    123|     expect(() => copyDocumentPresentationNode(image)).not.toThrow()
+       |                                                           ^
+    124|     expect(() => copyDocumentPresentationNode(math)).not.toThrow()
+    125|     expect(() => aggregate([image, math])).toThrow()
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/8]⎯
+
+ FAIL  src/__tests__/document-svg-image.test.ts > closed SVG image document presentation contract > applies depth to the whole presentation tree, not from each nested image root
+AssertionError: expected [Function] to not throw an error but 'DocumentPresentationError: Document p…' was thrown
+
+- Expected: 
+undefined
+
++ Received: 
+"DocumentPresentationError: Document presentation: invalid-output"
+
+ ❯ src/__tests__/document-svg-image.test.ts:131:59
+    129|     let image: unknown = svg()
+    130|     // Independently valid subtree, nested inside existing presentatio…
+    131|     expect(() => copyDocumentPresentationNode(image)).not.toThrow()
+       |                                                           ^
+    132|     for (let i = 0; i < 64; i++) image = { type: 'group', children: [i…
+    133|     expect(() => copyDocumentPresentationNode(image)).toThrow()
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/8]⎯
+
+ FAIL  src/__tests__/document-svg-image.test.ts > closed SVG image document presentation contract > caps aggregate canonical bytes after XML escaping, not only input JSON bytes
+DocumentPresentationError: Document presentation: invalid-output
+ ❯ fail src/document-presentation.ts:600:11
+    598| ): DocumentPresentationNode {
+    599|   const fail = (): never => {
+    600|     throw new DocumentPresentationError('invalid-output')
+       |           ^
+    601|   }
+    602|   const result = node(value, { nodes: 0, text: 0 }, 1, fail, request)
+ ❯ record src/document-presentation.ts:198:12
+ ❯ node src/document-presentation.ts:539:13
+ ❯ copyDocumentPresentationNode src/document-presentation.ts:602:18
+ ❯ serializeDocumentPresentationNode src/document-presentation.ts:675:21
+ ❯ src/__tests__/document-svg-image.test.ts:143:20
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[7/8]⎯
+
+ FAIL  src/__tests__/document-svg-image.test.ts > closed SVG image document presentation contract > checks local reference kinds and rebinds IDs in canonical output
+AssertionError: expected [Function] to not throw an error but 'DocumentPresentationError: Document p…' was thrown
+
+- Expected: 
+undefined
+
++ Received: 
+"DocumentPresentationError: Document presentation: invalid-output"
+
+ ❯ src/__tests__/document-svg-image.test.ts:162:59
+    160|       ],
+    161|     }
+    162|     expect(() => copyDocumentPresentationNode(image)).not.toThrow()
+       |                                                           ^
+    163|     const output = serializeDocumentPresentationNode(image)
+    164|     expect(output).not.toContain('href="#owned-icon"')
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[8/8]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  8 failed (8)
+   Start at  11:02:00
+   Duration  438ms (transform 106ms, setup 0ms, collect 103ms, tests 19ms, environment 0ms, prepare 77ms)
+
+undefined
+/workspace/milkup/packages/core:
+[ERR_PNPM_RECURSIVE_EXEC_FIRST_FAIL] Command failed with exit code 1: vitest run src/__tests__/document-svg-image.test.ts
+
+{"exit": 1, "durationSeconds": 1.7715584230027162}

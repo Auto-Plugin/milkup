@@ -1,0 +1,55 @@
+{
+  "startedUtc": "2026-10-17T01:41:29.135087+00:00",
+  "owner": {
+    "pid": 468689,
+    "birth": "8885678",
+    "bootId": "dbd08833-6204-4080-9084-7b5e12bb7f3d",
+    "group": 468689,
+    "ancestorPid": 468687,
+    "ancestorRole": "subreaper wait-only, no signals or directory deletion",
+    "startedUtc": "2026-10-17T01:40:44.348284+00:00",
+    "command": [
+      "bash",
+      "/workspace/milkup-mermaid-engine-evidence/research/native-cold-start-diagnostic-03/RUN.sh",
+      "driver"
+    ]
+  },
+  "statusBefore": {
+    "response": {
+      "value": {
+        "ready": true,
+        "message": "No sessions"
+      }
+    }
+  },
+  "identityBefore": {
+    "pid": 468689,
+    "birth": "8885678",
+    "group": 468689,
+    "state": "S"
+  },
+  "cleanupMethod": "existing production08 owned process group after exact PID/birth/PGID and no active App session; no descendant discovery",
+  "signal": "SIGTERM",
+  "signalTarget": {
+    "group": 468689,
+    "verifiedLeader": {
+      "pid": 468689,
+      "birth": "8885678",
+      "group": 468689,
+      "state": "S"
+    }
+  },
+  "signalRequestedUtc": "2026-10-17T01:41:29.150234+00:00",
+  "signalResult": "sent",
+  "result": "signal sent; inspect exact post-state and ancestor reap record",
+  "endedUtc": "2026-10-17T01:41:29.150974+00:00",
+  "identityAfter": {
+    "pid": 468689,
+    "birth": "8885678",
+    "group": 468689,
+    "state": "Z"
+  },
+  "statusAfter": {
+    "unavailable": "ConnectionResetError(104, 'Connection reset by peer')"
+  }
+}

@@ -1,0 +1,419 @@
+[
+  {
+    "run": "run-appearance01",
+    "startedAt": "2026-10-23T07:06:02.677Z",
+    "finishedAt": "2026-10-23T07:06:09.492Z",
+    "expectedVersion": "2.0.0-beta.7",
+    "sourceSha": "d73b46a2a745ba330949a929191e687dd5c408e9",
+    "sourceShaBoundary": "Supplied build provenance; binary hash and displayed About version checked independently.",
+    "binarySha256": "939a6c1e770a9c389529ab854678f24780dc1b3af42ed42ea059dee0623cf8e8",
+    "harnessSha256": "c35536c6b0efc79e76306ed39451157006d8f2e12bf8860485f7df990aa2e14b",
+    "counts": {
+      "rows": 0,
+      "passed": 0,
+      "failed": 0
+    },
+    "classification": "Harness observation response contained error=\"false\", which the generic WebDriver response helper treated as an error; zero steps completed.",
+    "rows": []
+  },
+  {
+    "run": "run-appearance02",
+    "startedAt": "2026-10-23T07:07:45.814Z",
+    "finishedAt": "2026-10-23T07:08:18.741Z",
+    "expectedVersion": "2.0.0-beta.7",
+    "sourceSha": "d73b46a2a745ba330949a929191e687dd5c408e9",
+    "sourceShaBoundary": "Supplied build provenance; binary hash and displayed About version checked independently.",
+    "binarySha256": "939a6c1e770a9c389529ab854678f24780dc1b3af42ed42ea059dee0623cf8e8",
+    "harnessSha256": "f989832f8395454eec194ac702f6f81be1ac239ae19ce4454410c22f533d3e9b",
+    "counts": {
+      "rows": 3,
+      "passed": 2,
+      "failed": 1
+    },
+    "classification": "Real product CSP style failure: dynamic appearance/panel styles had no authorized nonce and no style sheet; mode action timed out.",
+    "rows": [
+      {
+        "name": "01-default-three-mode-preview-screenshots",
+        "passed": true
+      },
+      {
+        "name": "02-titlebar-native-drag-and-menu-rapid-toggle",
+        "passed": true
+      },
+      {
+        "name": "03-light-native-mode-apply",
+        "passed": false,
+        "error": "Error: Timeout: Native theme mode light"
+      }
+    ]
+  },
+  {
+    "run": "run-appearance03",
+    "startedAt": "2026-10-23T07:54:21.505Z",
+    "finishedAt": "2026-10-23T07:55:25.066Z",
+    "expectedVersion": "2.0.0-beta.7",
+    "sourceSha": "6e124b792fbddb5753e3a4cd5c26f81baf3e2f2b",
+    "sourceShaBoundary": "Supplied build provenance; binary hash and displayed About version checked independently.",
+    "binarySha256": "08a7c00fec882196bdbf845f6fac04221ee732cac64399d1fd77836d2cad4b56",
+    "harnessSha256": "f989832f8395454eec194ac702f6f81be1ac239ae19ce4454410c22f533d3e9b",
+    "counts": {
+      "rows": 15,
+      "passed": 14,
+      "failed": 1
+    },
+    "classification": "Native run failed OCR label assertion after 14 passing rows. Root reviewed original visible labels; later bounded OCR replay is separate, not a retroactive pass.",
+    "rows": [
+      {
+        "name": "01-default-three-mode-preview-screenshots",
+        "passed": true
+      },
+      {
+        "name": "02-titlebar-native-drag-and-menu-rapid-toggle",
+        "passed": true
+      },
+      {
+        "name": "03-light-native-mode-apply",
+        "passed": true
+      },
+      {
+        "name": "04-light-mode-survives-real-restart",
+        "passed": true
+      },
+      {
+        "name": "05-dark-native-mode-apply",
+        "passed": true
+      },
+      {
+        "name": "06-dark-mode-survives-real-restart",
+        "passed": true
+      },
+      {
+        "name": "07-system-native-mode-apply",
+        "passed": true
+      },
+      {
+        "name": "08-system-mode-survives-real-restart",
+        "passed": true
+      },
+      {
+        "name": "09-real-os-default-css-association-request",
+        "passed": true
+      },
+      {
+        "name": "10-import-unicode-special-path-preserves-selection",
+        "passed": true
+      },
+      {
+        "name": "11-imported-theme-live-and-source-exact-edit-undo-redo",
+        "passed": true
+      },
+      {
+        "name": "12-existing-diagrams-card-enables-current-document",
+        "passed": true
+      },
+      {
+        "name": "13-light-imported-body-table-alignment-visible",
+        "passed": true
+      },
+      {
+        "name": "14-light-imported-body-code-highlighting-and-picker-visible",
+        "passed": true
+      },
+      {
+        "name": "15-light-imported-body-flowchart-visible-labels-and-connector",
+        "passed": false,
+        "error": "AssertionError [ERR_ASSERTION]: Actual screenshot OCR contains both Start and End labels"
+      }
+    ]
+  },
+  {
+    "run": "run-appearance04",
+    "startedAt": "2026-10-23T08:02:15.895Z",
+    "finishedAt": "2026-10-23T08:03:26.717Z",
+    "expectedVersion": "2.0.0-beta.7",
+    "sourceSha": "6e124b792fbddb5753e3a4cd5c26f81baf3e2f2b",
+    "sourceShaBoundary": "Supplied build provenance; binary hash and displayed About version checked independently.",
+    "binarySha256": "08a7c00fec882196bdbf845f6fac04221ee732cac64399d1fd77836d2cad4b56",
+    "harnessSha256": "e19c0c2aaba657abac4d16264352ac089abd7c9b47a44fd1d6d5cb39fe0aa3b2",
+    "counts": {
+      "rows": 18,
+      "passed": 17,
+      "failed": 1
+    },
+    "classification": "Native run failed dark OCR label assertion after 17 passing rows; End was misrecognized. Later OCR normalization replay is separate.",
+    "rows": [
+      {
+        "name": "01-default-three-mode-preview-screenshots",
+        "passed": true
+      },
+      {
+        "name": "02-titlebar-native-drag-and-menu-rapid-toggle",
+        "passed": true
+      },
+      {
+        "name": "03-light-native-mode-apply",
+        "passed": true
+      },
+      {
+        "name": "04-light-mode-survives-real-restart",
+        "passed": true
+      },
+      {
+        "name": "05-dark-native-mode-apply",
+        "passed": true
+      },
+      {
+        "name": "06-dark-mode-survives-real-restart",
+        "passed": true
+      },
+      {
+        "name": "07-system-native-mode-apply",
+        "passed": true
+      },
+      {
+        "name": "08-system-mode-survives-real-restart",
+        "passed": true
+      },
+      {
+        "name": "09-real-os-default-css-association-request",
+        "passed": true
+      },
+      {
+        "name": "10-import-unicode-special-path-preserves-selection",
+        "passed": true
+      },
+      {
+        "name": "11-imported-theme-live-and-source-exact-edit-undo-redo",
+        "passed": true
+      },
+      {
+        "name": "12-existing-diagrams-card-enables-current-document",
+        "passed": true
+      },
+      {
+        "name": "13-light-imported-body-table-alignment-visible",
+        "passed": true
+      },
+      {
+        "name": "14-light-imported-body-code-highlighting-and-picker-visible",
+        "passed": true
+      },
+      {
+        "name": "15-light-imported-body-flowchart-visible-labels-and-connector",
+        "passed": true
+      },
+      {
+        "name": "16-dark-imported-body-table-alignment-visible",
+        "passed": true
+      },
+      {
+        "name": "17-dark-imported-body-code-highlighting-and-picker-visible",
+        "passed": true
+      },
+      {
+        "name": "18-dark-imported-body-flowchart-visible-labels-and-connector",
+        "passed": false,
+        "error": "AssertionError [ERR_ASSERTION]: Actual screenshot OCR contains both Start and End labels"
+      }
+    ]
+  },
+  {
+    "run": "run-appearance05",
+    "startedAt": "2026-10-23T08:22:18.232Z",
+    "finishedAt": "2026-10-23T08:25:19.353Z",
+    "expectedVersion": "2.0.0-beta.7",
+    "sourceSha": "cc2cfc1d44b937e56cfcbd6e8f3cdcf3ded10189",
+    "sourceShaBoundary": "Supplied build provenance; binary hash and displayed About version checked independently.",
+    "binarySha256": "ca0b00526f756528e9513fa528f654c2b166455d81b24eb5a1351db9595c197b",
+    "harnessSha256": "e6038311d37c80e016515bf4a73c7e6ba8460325ddb594c9b2d17b95d7ccad80",
+    "counts": {
+      "rows": 20,
+      "passed": 19,
+      "failed": 1
+    },
+    "classification": "19 rows passed; responsive matrix recorded 13 passed configurations and one failure from xdotool X_QueryTree BadWindow. Not a completed native pass.",
+    "rows": [
+      {
+        "name": "01-default-three-mode-preview-screenshots",
+        "passed": true
+      },
+      {
+        "name": "02-titlebar-native-drag-and-menu-rapid-toggle",
+        "passed": true
+      },
+      {
+        "name": "03-light-native-mode-apply",
+        "passed": true
+      },
+      {
+        "name": "04-light-mode-survives-real-restart",
+        "passed": true
+      },
+      {
+        "name": "05-dark-native-mode-apply",
+        "passed": true
+      },
+      {
+        "name": "06-dark-mode-survives-real-restart",
+        "passed": true
+      },
+      {
+        "name": "07-system-native-mode-apply",
+        "passed": true
+      },
+      {
+        "name": "08-system-mode-survives-real-restart",
+        "passed": true
+      },
+      {
+        "name": "09-real-os-default-css-association-request",
+        "passed": true
+      },
+      {
+        "name": "10-import-unicode-special-path-preserves-selection",
+        "passed": true
+      },
+      {
+        "name": "11-imported-theme-live-and-source-exact-edit-undo-redo",
+        "passed": true
+      },
+      {
+        "name": "12-existing-diagrams-card-enables-current-document",
+        "passed": true
+      },
+      {
+        "name": "13-light-imported-body-table-alignment-visible",
+        "passed": true
+      },
+      {
+        "name": "14-light-imported-body-code-highlighting-and-picker-visible",
+        "passed": true
+      },
+      {
+        "name": "15-light-imported-body-flowchart-visible-labels-and-connector",
+        "passed": true
+      },
+      {
+        "name": "16-dark-imported-body-table-alignment-visible",
+        "passed": true
+      },
+      {
+        "name": "17-dark-imported-body-code-highlighting-and-picker-visible",
+        "passed": true
+      },
+      {
+        "name": "18-dark-imported-body-flowchart-visible-labels-and-connector",
+        "passed": true
+      },
+      {
+        "name": "19-imported-theme-dark-mode-and-previews",
+        "passed": true
+      },
+      {
+        "name": "20-native-responsive-menu-two-windows-four-zooms-light-dark",
+        "passed": false,
+        "error": "Error: Command failed: xdotool search --onlyvisible --class milkup-desktop\nX Error of failed request:  BadWindow (invalid Window parameter)\n  Major opcode of failed request:  15 (X_QueryTree)\n  Resource id in failed request:  0x100488e\n  Serial number of failed request:  275\n  Current serial number in output stream:  275\n"
+      }
+    ],
+    "matrixConfigurations": [
+      {
+        "width": 760,
+        "height": 520,
+        "zoom": 1,
+        "theme": "light",
+        "passed": true
+      },
+      {
+        "width": 760,
+        "height": 520,
+        "zoom": 1,
+        "theme": "dark",
+        "passed": true
+      },
+      {
+        "width": 760,
+        "height": 520,
+        "zoom": 1.25,
+        "theme": "light",
+        "passed": true
+      },
+      {
+        "width": 760,
+        "height": 520,
+        "zoom": 1.25,
+        "theme": "dark",
+        "passed": true
+      },
+      {
+        "width": 760,
+        "height": 520,
+        "zoom": 1.5,
+        "theme": "light",
+        "passed": true
+      },
+      {
+        "width": 760,
+        "height": 520,
+        "zoom": 1.5,
+        "theme": "dark",
+        "passed": true
+      },
+      {
+        "width": 760,
+        "height": 520,
+        "zoom": 2,
+        "theme": "light",
+        "passed": true
+      },
+      {
+        "width": 760,
+        "height": 520,
+        "zoom": 2,
+        "theme": "dark",
+        "passed": true
+      },
+      {
+        "width": 1280,
+        "height": 800,
+        "zoom": 1,
+        "theme": "light",
+        "passed": true
+      },
+      {
+        "width": 1280,
+        "height": 800,
+        "zoom": 1,
+        "theme": "dark",
+        "passed": true
+      },
+      {
+        "width": 1280,
+        "height": 800,
+        "zoom": 1.25,
+        "theme": "light",
+        "passed": true
+      },
+      {
+        "width": 1280,
+        "height": 800,
+        "zoom": 1.25,
+        "theme": "dark",
+        "passed": true
+      },
+      {
+        "width": 1280,
+        "height": 800,
+        "zoom": 1.5,
+        "theme": "light",
+        "passed": true
+      },
+      {
+        "width": 1280,
+        "height": 800,
+        "zoom": 1.5,
+        "theme": "dark",
+        "passed": false
+      }
+    ]
+  }
+]

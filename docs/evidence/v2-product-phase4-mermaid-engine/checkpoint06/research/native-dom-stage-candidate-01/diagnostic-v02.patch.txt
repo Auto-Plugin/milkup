@@ -1,0 +1,367 @@
+--- production04/apps/desktop/src-tauri/src/plugin_dom.rs
++++ diagnostic01-v02/apps/desktop/src-tauri/src/plugin_dom.rs
+@@ -537,17 +537,112 @@
+     }
+ }
+ #[cfg(target_os = "linux")]
+-fn native_trace(phase: &str, instance_id: Option<&str>, request_id: Option<&str>) {
+-    if std::env::var_os("MILKUP_DOM_DIAGNOSTICS").as_deref() != Some(std::ffi::OsStr::new("1")) {
+-        return;
++fn native_diagnostics_enabled() -> bool {
++    std::env::var_os("MILKUP_DOM_DIAGNOSTICS").as_deref() == Some(std::ffi::OsStr::new("1"))
++}
++
++#[cfg(target_os = "linux")]
++#[derive(Clone, Serialize)]
++#[serde(rename_all = "camelCase")]
++struct DiagnosticMessage {
++    protocol: &'static str,
++    kind: &'static str,
++    id: Option<String>,
++}
++
++#[cfg(target_os = "linux")]
++impl DiagnosticMessage {
++    fn from_value(message: &Value) -> Self {
++        Self {
++            protocol: match message["protocol"].as_str() {
++                Some(RENDER_PROTOCOL) => "document-render",
++                Some(RPC_PROTOCOL) => "isolation-rpc",
++                _ => "unknown",
++            },
++            kind: match message["type"].as_str() {
++                Some("render") => "render",
++                Some("cancel") => "cancel",
++                Some("request") => "request",
++                Some("result") => "result",
++                Some("response") => "response",
++                _ => "unknown",
++            },
++            id: message["id"]
++                .as_str()
++                .filter(|id| {
++                    !id.is_empty()
++                        && id.len() <= 80
++                        && id
++                            .bytes()
++                            .all(|b| b.is_ascii_alphanumeric() || b == b'_' || b == b'-')
++                })
++                .map(str::to_owned),
++        }
++    }
++}
++
++#[cfg(target_os = "linux")]
++#[derive(Serialize)]
++#[serde(tag = "detailType", rename_all = "camelCase")]
++enum NativeTraceDetails<'a> {
++    Frame {
++        message: &'a DiagnosticMessage,
++    },
++    Request {
++        from: Option<u64>,
++        to: Option<u64>,
++        source_bytes: usize,
++        source_sha256: String,
++        width: Option<f64>,
++        theme: &'static str,
++    },
++    Evaluation {
++        message: &'a DiagnosticMessage,
++        success: bool,
++        callback_entry_monotonic_ns: Option<u64>,
++        result_kind: &'static str,
++    },
++    Received {
++        message: &'a DiagnosticMessage,
++        entry_monotonic_ns: u64,
++        ok: Option<bool>,
++    },
++    Settled {
++        message: &'a DiagnosticMessage,
++        ok: Option<bool>,
++    },
++}
++
++#[cfg(target_os = "linux")]
++fn native_diagnostic_time() -> Option<u64> {
++    if !native_diagnostics_enabled() {
++        return None;
+     }
+     let mut now = libc::timespec {
+         tv_sec: 0,
+         tv_nsec: 0,
+     };
+     if unsafe { libc::clock_gettime(libc::CLOCK_MONOTONIC, &mut now) } != 0 {
++        return None;
++    }
++    Some((now.tv_sec as u64) * 1_000_000_000 + now.tv_nsec as u64)
++}
++
++#[cfg(target_os = "linux")]
++fn native_trace(phase: &str, instance_id: Option<&str>, request_id: Option<&str>) {
++    native_trace_details(phase, instance_id, request_id, None);
++}
++
++#[cfg(target_os = "linux")]
++fn native_trace_details(
++    phase: &str,
++    instance_id: Option<&str>,
++    request_id: Option<&str>,
++    details: Option<NativeTraceDetails<'_>>,
++) {
++    let Some(now) = native_diagnostic_time() else {
+         return;
+-    }
++    };
+     let inherited = std::env::var("MILKUP_INTERNAL_DOM_INSTANCE_ID").ok();
+     // Diagnostics must never make watchdog/cleanup depend on a blocking stderr.
+     static TRACE: std::sync::OnceLock<std::sync::mpsc::SyncSender<String>> =
+@@ -563,7 +658,11 @@
+             });
+         tx
+     });
+-    let _ = sender.try_send(format!("DOM_NATIVE_TIMING {}", json!({"phase":phase,"instanceId":instance_id.or(inherited.as_deref()),"requestId":request_id,"pid":std::process::id(),"monotonicNs":(now.tv_sec as u64)*1_000_000_000+now.tv_nsec as u64})));
++    let mut record = json!({"phase":phase,"instanceId":instance_id.or(inherited.as_deref()),"requestId":request_id,"pid":std::process::id(),"monotonicNs":now});
++    if let Some(details) = details {
++        record["details"] = json!(details);
++    }
++    let _ = sender.try_send(format!("DOM_NATIVE_TIMING {record}"));
+ }
+ 
+ pub fn run_helper_if_requested() -> bool {
+--- production04/apps/desktop/src-tauri/src/plugin_dom_helper.rs
++++ diagnostic01-v02/apps/desktop/src-tauri/src/plugin_dom_helper.rs
+@@ -279,12 +279,29 @@
+         if busy.get() {
+             return glib::ControlFlow::Continue;
+         }
++        let mut diagnostic_input = None;
+         let script = match receiver.try_recv() {
+             Ok(Some(bytes)) => {
+                 let Ok(message) = std::str::from_utf8(&bytes) else {
+                     gtk::main_quit();
+                     return glib::ControlFlow::Break;
+                 };
++                if native_diagnostics_enabled() {
++                    // Metadata parsing is diagnostic only; the original frame is untouched.
++                    diagnostic_input = Some(
++                        serde_json::from_slice::<Value>(&bytes)
++                            .map(|value| DiagnosticMessage::from_value(&value))
++                            .unwrap_or_else(|_| DiagnosticMessage::from_value(&Value::Null)),
++                    );
++                    if let Some(frame) = &diagnostic_input {
++                        native_trace_details(
++                            "helper-frame-dequeued",
++                            None,
++                            frame.id.as_deref(),
++                            Some(NativeTraceDetails::Frame { message: frame }),
++                        );
++                    }
++                }
+                 format!("this.__milkupDom({dispatch_token},{message})")
+             }
+             Ok(None) => {
+@@ -300,6 +317,14 @@
+         busy.set(true);
+         let busy = busy.clone();
+         let output = output.clone();
++        if let Some(frame) = &diagnostic_input {
++            native_trace_details(
++                "helper-evaluate-submitted",
++                None,
++                frame.id.as_deref(),
++                Some(NativeTraceDetails::Frame { message: frame }),
++            );
++        }
+         native.evaluate_javascript(
+             &script,
+             None,
+@@ -307,13 +332,50 @@
+             None::<&gio::Cancellable>,
+             move |result| {
+                 busy.set(false);
++                // Input callbacks only: do not sample/log the 200 Hz empty polls.
++                let diagnostic_callback_entry = diagnostic_input
++                    .as_ref()
++                    .and_then(|_| native_diagnostic_time());
++                let diagnostic_success = result.is_ok();
+                 let result = result
+                     .ok()
+                     .and_then(|v| v.to_json(0))
+                     .and_then(|s| serde_json::from_str::<Value>(&s).ok());
++                if let Some(frame) = &diagnostic_input {
++                    native_trace_details(
++                        "helper-evaluate-callback",
++                        None,
++                        frame.id.as_deref(),
++                        Some(NativeTraceDetails::Evaluation {
++                            message: frame,
++                            success: diagnostic_success,
++                            callback_entry_monotonic_ns: diagnostic_callback_entry,
++                            result_kind: match &result {
++                                Some(Value::Null) => "null",
++                                Some(Value::String(_)) => "string",
++                                Some(_) => "other",
++                                None => "unavailable",
++                            },
++                        }),
++                    );
++                }
+                 match result {
+                     Some(Value::Null) => {}
+                     Some(Value::String(message)) if message.len() <= OUTPUT_WIRE_LIMIT => {
++                        // Attribute a result to its own ID, never to the triggering input/poll.
++                        let diagnostic_result = native_diagnostics_enabled().then(|| {
++                            serde_json::from_str::<Value>(&message)
++                                .map(|value| DiagnosticMessage::from_value(&value))
++                                .unwrap_or_else(|_| DiagnosticMessage::from_value(&Value::Null))
++                        });
++                        if let Some(frame) = &diagnostic_result {
++                            native_trace_details(
++                                "helper-result-drained",
++                                None,
++                                frame.id.as_deref(),
++                                Some(NativeTraceDetails::Frame { message: frame }),
++                            );
++                        }
+                         let mut output = output.borrow_mut();
+                         if output
+                             .write_all(message.as_bytes())
+@@ -322,6 +384,13 @@
+                             .is_err()
+                         {
+                             gtk::main_quit();
++                        } else if let Some(frame) = &diagnostic_result {
++                            native_trace_details(
++                                "helper-result-write-complete",
++                                None,
++                                frame.id.as_deref(),
++                                Some(NativeTraceDetails::Frame { message: frame }),
++                            );
+                         }
+                     }
+                     _ => gtk::main_quit(),
+--- production04/apps/desktop/src-tauri/src/plugin_dom_process.rs
++++ diagnostic01-v02/apps/desktop/src-tauri/src/plugin_dom_process.rs
+@@ -283,6 +283,33 @@
+                 _ => return Err("Unsupported DOM message".into()),
+             }
+         }
++        // Diagnostic-only work starts after the original active deadline was armed.
++        let diagnostic_message =
++            native_diagnostics_enabled().then(|| DiagnosticMessage::from_value(&message));
++        if let Some(frame) = &diagnostic_message {
++            if frame.protocol == "document-render" && frame.kind == "render" {
++                let request = &message["payload"]["request"];
++                if let Some(source) = request["source"].as_str() {
++                    native_trace_details(
++                        "request-meta",
++                        Some(&self.id),
++                        frame.id.as_deref(),
++                        Some(NativeTraceDetails::Request {
++                            from: request["from"].as_u64(),
++                            to: request["to"].as_u64(),
++                            source_bytes: source.len(),
++                            source_sha256: format!("{:x}", Sha256::digest(source.as_bytes())),
++                            width: request["width"].as_f64().filter(|v| v.is_finite()),
++                            theme: match request["theme"].as_str() {
++                                Some("light") => "light",
++                                Some("dark") => "dark",
++                                _ => "unknown",
++                            },
++                        }),
++                    );
++                }
++            }
++        }
+         let result = (|| {
+             let mut ready = self.input_ready.lock().map_err(|e| e.to_string())?;
+             while !*ready {
+@@ -305,12 +332,39 @@
+                 .and_then(|_| pipe.flush())
+                 .map_err(|e| e.to_string())
+         })();
++        if result.is_ok() {
++            if let Some(frame) = &diagnostic_message {
++                native_trace_details(
++                    "pipe-write-complete",
++                    Some(&self.id),
++                    frame.id.as_deref(),
++                    Some(NativeTraceDetails::Frame { message: frame }),
++                );
++            }
++        }
+         if let Err(error) = &result {
+             self.fail(error.clone());
+         }
+         result
+     }
+     fn receive(&self, message: Value) {
++        // Entry is after stdout frame JSON parsing, not first pipe-byte arrival.
++        // Preserve this observation even when the original deadline branch rejects it.
++        let diagnostic_entry = native_diagnostic_time();
++        let diagnostic_message = diagnostic_entry.map(|_| DiagnosticMessage::from_value(&message));
++        if let (Some(entry), Some(frame)) = (diagnostic_entry, &diagnostic_message) {
++            native_trace_details(
++                "receive-entry",
++                Some(&self.id),
++                frame.id.as_deref(),
++                Some(NativeTraceDetails::Received {
++                    message: frame,
++                    entry_monotonic_ns: entry,
++                    ok: message["ok"].as_bool(),
++                }),
++            );
++        }
++        let mut diagnostic_settled = false;
+         // All child parsing and payload sizing precede the final monotonic
+         // settlement decision; no expensive serialization owns control.
+         let oversized = message
+@@ -341,6 +395,18 @@
+             if !is_result(&message, id) {
+                 return;
+             }
++            if let (Some(entry), Some(frame)) = (diagnostic_entry, &diagnostic_message) {
++                native_trace_details(
++                    "matching-result-received",
++                    Some(&self.id),
++                    frame.id.as_deref(),
++                    Some(NativeTraceDetails::Received {
++                        message: frame,
++                        entry_monotonic_ns: entry,
++                        ok: message["ok"].as_bool(),
++                    }),
++                );
++            }
+             if oversized {
+                 drop(control);
+                 self.fail("DOM output exceeds the public payload budget".into());
+@@ -355,6 +421,7 @@
+                 return;
+             }
+             control.active = None;
++            diagnostic_settled = true;
+         } else if let Some(id) = &control.rpc {
+             if !is_rpc_result(&message, id) {
+                 return;
+@@ -379,6 +446,19 @@
+         }
+         self.wake.notify_all();
+         drop(control);
++        if diagnostic_settled {
++            if let Some(frame) = &diagnostic_message {
++                native_trace_details(
++                    "result-settled",
++                    Some(&self.id),
++                    frame.id.as_deref(),
++                    Some(NativeTraceDetails::Settled {
++                        message: frame,
++                        ok: message["ok"].as_bool(),
++                    }),
++                );
++            }
++        }
+         (self.emit)(self.event("message", Some(message), None, None));
+     }
+     fn watch(&self) {

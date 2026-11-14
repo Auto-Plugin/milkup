@@ -1,0 +1,300 @@
+import {
+  afterEach,
+  expect,
+  it,
+  vi,
+} from "/workspace/milkup/node_modules/vitest/dist/index.js";
+import { writeFileSync } from "node:fs";
+import { createDocumentRenderRpcClient } from "./candidate";
+import { createDocumentRenderRpcServer } from "/workspace/milkup/packages/plugin/src/document-render-rpc.ts";
+import type { IsolatedPluginDocumentRenderRequest } from "/workspace/milkup/packages/plugin/src/isolation.ts";
+type Row = {
+  client: number;
+  nativeInstanceId: string | null;
+  phase: string;
+  requestId: string | null;
+  requestJson: string | null;
+  activeId: string | null;
+  queueDepth: number;
+  frontendMs: number;
+  captureEndMs: number;
+};
+type Sink = {
+  events: Row[];
+  clients: number;
+  bytes: number;
+  dropped: number;
+  errors: number;
+};
+const globals = globalThis as typeof globalThis & {
+  __milkupRenderQueueTrace?: Sink;
+};
+const out =
+  "/workspace/milkup-mermaid-engine-evidence/research/frontend-queue-trace-v03-tests-01";
+const save = (name: string, value: unknown) =>
+  writeFileSync(`${out}/${name}.json`, JSON.stringify(value, null, 2) + "\n", {
+    flag: "wx",
+  });
+const initializedSink = globals.__milkupRenderQueueTrace;
+it("module initializes capture before clients without late harness installation", () => {
+  expect(initializedSink).toEqual({
+    events: [],
+    clients: 0,
+    bytes: 0,
+    dropped: 0,
+    errors: 0,
+  });
+});
+afterEach(() => {
+  delete globals.__milkupRenderQueueTrace;
+});
+function sink(): Sink {
+  return { events: [], clients: 0, bytes: 0, dropped: 0, errors: 0 };
+}
+function pair() {
+  const a = new Set<(v: unknown) => void>(),
+    b = new Set<(v: unknown) => void>();
+  const sent: unknown[] = [];
+  return {
+    sent,
+    main: {
+      postMessage: (v: unknown) => {
+        sent.push(v);
+        for (const f of b) f(v);
+      },
+      on: (_: string, f: (v: unknown) => void) => {
+        a.add(f);
+      },
+      off: (_: string, f: (v: unknown) => void) => {
+        a.delete(f);
+      },
+    },
+    worker: {
+      postMessage: (v: unknown) => {
+        for (const f of a) f(v);
+      },
+      on: (_: string, f: (v: unknown) => void) => {
+        b.add(f);
+      },
+      off: (_: string, f: (v: unknown) => void) => {
+        b.delete(f);
+      },
+    },
+  };
+}
+function payload(label: string): IsolatedPluginDocumentRenderRequest {
+  return {
+    pluginId: "fixture",
+    rendererId: "diagram",
+    request: {
+      documentId: label,
+      version: 1,
+      from: 0,
+      to: 5,
+      source: "hello",
+      fromLine: 1,
+      toLine: 1,
+      completeStart: true,
+      completeEnd: true,
+      contextKnown: true,
+      protectedRanges: [],
+      blocks: [],
+      selection: { anchor: 0, head: 0 },
+      theme: "light",
+      target: "screen",
+      width: 380,
+    },
+  };
+}
+async function until(f: () => boolean) {
+  for (let n = 0; n < 100; n++) {
+    if (f()) return;
+    await Promise.resolve();
+  }
+  throw Error("Controlled microtask gate failed");
+}
+it("captures immutable complete queued JSON and canceled queue/active settlement ordering", async () => {
+  const s = (globals.__milkupRenderQueueTrace = sink()),
+    e = pair(),
+    calls: string[] = [],
+    ends: Array<() => void> = [];
+  const server = createDocumentRenderRpcServer(e.worker, {
+    activate: () => ({}),
+    deactivate: () => {},
+    runCommand: () => ({}),
+    render: () => null,
+    renderDocument: async (p) => {
+      calls.push(p.request.documentId);
+      await new Promise<void>((r) => ends.push(r));
+      return { complete: true, fragments: [] };
+    },
+  });
+  const client = createDocumentRenderRpcClient(e.main, () => {}),
+    firstAbort = new AbortController(),
+    secondAbort = new AbortController();
+  try {
+    const first = client
+      .render(payload("first"), { signal: firstAbort.signal })
+      .catch((error) => error);
+    await until(() => calls.length === 1);
+    const input = payload("removed"),
+      originalJson = JSON.stringify(input);
+    const removed = client
+      .render(input, { signal: secondAbort.signal })
+      .catch((error) => error);
+    // The host copies the request. Mutating caller-owned input must not rewrite a prior diagnostic snapshot.
+    Object.assign(input.request, { width: 999 });
+    const survivor = client.render(payload("survivor"));
+    secondAbort.abort();
+    firstAbort.abort();
+    expect(await removed).toMatchObject({ code: "aborted" });
+    expect(await first).toMatchObject({ code: "aborted" });
+    expect(calls).toEqual(["first"]);
+    expect(
+      s.events.find((r) => r.phase === "queued" && r.requestId === "render_2")
+        ?.requestJson,
+    ).toBe(originalJson);
+    expect(
+      s.events.some(
+        (r) => r.phase === "dispatch" && r.requestId === "render_2",
+      ),
+    ).toBe(false);
+    ends[0]();
+    await until(() => calls.length === 2);
+    ends[1]();
+    await survivor;
+    const order = s.events.map((r) => `${r.phase}:${r.requestId}`);
+    expect(order.indexOf("cancel-active:render_1")).toBeLessThan(
+      order.indexOf("remote-settled:render_1"),
+    );
+    expect(order.indexOf("remote-settled:render_1")).toBeLessThan(
+      order.indexOf("dispatch:render_3"),
+    );
+    expect(calls).toEqual(["first", "survivor"]);
+    expect(s.errors).toBe(0);
+    expect(s.dropped).toBe(0);
+    expect(s.events.every((r) => r.captureEndMs >= r.frontendMs)).toBe(true);
+    save("queue-order", { sink: s, calls, sent: e.sent });
+  } finally {
+    client.dispose();
+    server.dispose();
+  }
+});
+for (const mode of [
+  "absent",
+  "event-cap",
+  "byte-cap",
+  "oversize-next-row",
+  "throwing-push",
+  "throwing-getter",
+] as const)
+  it(`trace ${mode} preserves result and remote dispatch`, async () => {
+    const e = pair(),
+      s = sink();
+    if (mode !== "absent") globals.__milkupRenderQueueTrace = s;
+    if (mode === "event-cap")
+      s.events = Array.from({ length: 1024 }, () => ({
+        phase: "preexisting",
+        client: 0,
+        nativeInstanceId: null,
+        requestId: null,
+        requestJson: null,
+        activeId: null,
+        queueDepth: 0,
+        frontendMs: 0,
+        captureEndMs: 0,
+      }));
+    if (mode === "byte-cap") s.bytes = 16 * 1024 * 1024;
+    if (mode === "oversize-next-row") s.bytes = 16 * 1024 * 1024 - 1;
+    if (mode === "throwing-push")
+      s.events.push = () => {
+        throw Error("controlled capture failure");
+      };
+    if (mode === "throwing-getter")
+      Object.defineProperty(globals, "__milkupRenderQueueTrace", {
+        configurable: true,
+        get() {
+          throw Error("controlled sink getter failure");
+        },
+      });
+    const render = vi.fn(async () => ({ complete: true, fragments: [] }));
+    const server = createDocumentRenderRpcServer(e.worker, {
+      activate: () => ({}),
+      deactivate: () => {},
+      runCommand: () => ({}),
+      render: () => null,
+      renderDocument: render,
+    });
+    const client = createDocumentRenderRpcClient(e.main, () => {});
+    try {
+      await expect(client.render(payload(mode))).resolves.toEqual({
+        complete: true,
+        fragments: [],
+      });
+      expect(render).toHaveBeenCalledTimes(1);
+      if (mode.includes("cap") || mode === "oversize-next-row")
+        expect(s.dropped).toBeGreaterThan(0);
+      if (mode === "throwing-push") expect(s.errors).toBeGreaterThan(0);
+      save(mode, {
+        events: s.events.length,
+        bytes: s.bytes,
+        dropped: s.dropped,
+        errors: s.errors,
+        renderCalls: render.mock.calls.length,
+        sent: e.sent,
+      });
+    } finally {
+      client.dispose();
+      server.dispose();
+    }
+  });
+
+it("preserves exact readonly native instance identity and emits null without one", async () => {
+  const s = (globals.__milkupRenderQueueTrace = sink());
+  const expected = "7bc0620d4b97b639ac92c79eb5b8a6d8dbd074c6944199ab";
+  for (const instanceId of [expected, undefined]) {
+    const e = pair();
+    const endpoint =
+      instanceId === undefined
+        ? e.main
+        : Object.defineProperty(e.main, "instanceId", {
+            value: instanceId,
+            writable: false,
+            enumerable: true,
+            configurable: false,
+          });
+    const start = s.events.length;
+    const server = createDocumentRenderRpcServer(e.worker, {
+      activate: () => ({}),
+      deactivate: () => {},
+      runCommand: () => ({}),
+      render: () => null,
+      renderDocument: async () => ({ complete: true, fragments: [] }),
+    });
+    const client = createDocumentRenderRpcClient(endpoint, () => {});
+    try {
+      await expect(client.render(payload("same-input"))).resolves.toEqual({
+        complete: true,
+        fragments: [],
+      });
+    } finally {
+      client.dispose();
+      server.dispose();
+    }
+    const captured = s.events.slice(start);
+    expect(captured.map((row) => row.phase)).toEqual([
+      "queued",
+      "dispatch",
+      "remote-settled",
+      "dispose",
+    ]);
+    expect(
+      captured.every((row) => row.nativeInstanceId === (instanceId ?? null)),
+    ).toBe(true);
+    expect(captured[0].requestId).toBe("render_1");
+  }
+  expect(new Set(s.events.map((row) => row.client)).size).toBe(2);
+  expect(s.errors).toBe(0);
+  expect(s.dropped).toBe(0);
+  save("native-instance-correlation", s);
+});

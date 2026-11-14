@@ -1,0 +1,31 @@
+"""Call this through a require_escalated tool, once per role, only after Root GO."""
+import datetime
+import json
+import os
+import subprocess
+import sys
+from pathlib import Path
+
+base = Path(__file__).resolve().parent
+assert len(sys.argv) == 2 and sys.argv[1] in ('driver', 'harness')
+role = sys.argv[1]
+subprocess.run([sys.executable, str(base / 'verify-runtime-go.py')], check=True)
+namespaces = {}
+for name in ('user', 'pid', 'mnt', 'time', 'time_for_children'):
+    try:
+        namespaces[name] = {'status': 'read', 'value': os.readlink('/proc/self/ns/' + name)}
+    except OSError as error:
+        namespaces[name] = {'status': 'error', 'errno': error.errno, 'error': repr(error)}
+record = {'role': role + '-launch-tool', 'requiredSandboxPermissions': 'require_escalated',
+          'utc': datetime.datetime.now(datetime.timezone.utc).isoformat(), 'pid': os.getpid(),
+          'namespaces': namespaces,
+          'scope': 'Self-only snapshot in the actual launch tool before exec; no environment dump. Outer time namespace is not WebProcess time namespace proof.'}
+for name, field in (('uid_map', 'uidMap'), ('gid_map', 'gidMap')):
+    try:
+        record[field] = Path('/proc/self', name).read_text()
+    except OSError as error:
+        record[field] = {'status': 'error', 'errno': error.errno, 'error': repr(error)}
+with (base / (role + '-tool-context.json')).open('x') as output:
+    output.write(json.dumps(record, indent=2) + '\n')
+entry = 'launch-driver-reaping.py' if role == 'driver' else 'run-harness.py'
+os.execv(sys.executable, [sys.executable, str(base / entry)])

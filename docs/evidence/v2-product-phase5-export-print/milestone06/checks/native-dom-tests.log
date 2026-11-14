@@ -1,0 +1,42 @@
+   Compiling tauri v2.11.5
+   Compiling tauri-macros v2.6.3
+   Compiling tauri-plugin-fs v2.5.1
+   Compiling tauri-plugin-updater v2.10.1
+   Compiling tauri-plugin-dialog v2.7.1
+   Compiling milkup-desktop v2.0.0-beta.1 (/workspace/milkup/apps/desktop/src-tauri)
+warning: unused import: `std::sync::Arc`
+    --> src/piece_tree.rs:1029:9
+     |
+1029 |     use std::sync::Arc;
+     |         ^^^^^^^^^^^^^^
+     |
+     = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: `milkup-desktop` (lib test) generated 1 warning (run `cargo fix --lib -p milkup-desktop --tests` to apply 1 suggestion)
+    Finished `release` profile [optimized] target(s) in 1m 30s
+     Running unittests src/lib.rs (apps/desktop/src-tauri/target/release/deps/milkup_desktop_lib-3f9b790e86d0f8bf)
+
+running 18 tests
+test plugin_dom::guardian::tests::guardian_adopts_unsampled_escaped_descendant_on_control_eof ... proot info: pid 123604: terminated with signal 9
+proot info: pid 123605: terminated with signal 9
+ok
+test plugin_dom::guardian::tests::guardian_escape_worker ... ignored, private subprocess fixture, launched by the guardian ownership test
+test plugin_dom::helper::diagnostic_tests::diagnostic_envelope_read_is_content_free_and_never_authorizes_messages ... ok
+test plugin_dom::process::tests::a_matching_result_after_the_native_deadline_never_settles_successfully ... ok
+test plugin_dom::process::tests::blocked_pipe_write_does_not_block_native_watchdog ... ok
+test plugin_dom::process::tests::cancelled_and_malformed_result_retains_deadline_and_kills_all_owned_children ... ok
+test plugin_dom::process::tests::pipe_limits_include_terminator_without_unbounded_lines ... ok
+test plugin_dom::process::tests::real_webkit_default_module_bbox_resources_and_native_loop_deadline ... ignored, requires the freshly built desktop executable and a real sandbox-enabled native display
+test plugin_dom::process::tests::release_old_lease_cannot_stop_replacement_instance ... ok
+test plugin_dom::process::tests::source_limit_counts_utf16_not_escaped_wire_bytes ... ok
+test plugin_dom::process::tests::strict_settlement_rejects_forged_late_shape_and_wrong_id ... ok
+test plugin_dom::tests::confined_reader_rejects_symlinks_fifo_and_oversize ... ok
+test plugin_dom::tests::consumed_leases_still_count_toward_snapshot_memory_budget ... ok
+test plugin_dom::tests::lease_release_is_exact_and_expiry_is_bounded ... ok
+test plugin_dom::tests::profile_and_approved_identity_reject_drift_and_extra_capabilities ... ok
+test plugin_dom::tests::render_diagnostics_include_only_fixed_non_content_fields_without_mutating_input ... ok
+test plugin_dom::tests::snapshot_is_installed_bound_utf8_and_immutable ... ok
+test plugin_dom::tests::traversal_and_url_module_paths_are_never_accepted ... ok
+
+test result: ok. 16 passed; 0 failed; 2 ignored; 0 measured; 136 filtered out; finished in 12.61s
+

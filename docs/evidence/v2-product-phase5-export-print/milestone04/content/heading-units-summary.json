@@ -1,0 +1,41 @@
+{
+  "scope": "heading + one complete ordinary Markdown render unit; screen contents / print soft avoid CSS unchanged",
+  "files": [
+    "packages/export/src/static-html.ts",
+    "packages/export/src/static-html.test.ts"
+  ],
+  "implementation": "Extract original list-continuation fallback / block presentation / ordinary block selection into side-effect-free renderUnit descriptor. Determine grouping before callbacks render exactly once in source order. No resource, safety, budget or plugin API changes.",
+  "red": {
+    "log": "heading-units-before.log",
+    "exit": "heading-units-before.exit",
+    "tests": 68,
+    "failed": 8,
+    "passed": 60
+  },
+  "green": {
+    "log": "heading-units-after.log",
+    "exit": "heading-units-after.exit",
+    "tests": 75,
+    "passed": 75,
+    "note": "Added two table/list inline MathML and absolute anchor regressions, plus five existing single-node fallback regression cases after initial red capture."
+  },
+  "typecheck": {
+    "log": "heading-units-typecheck.log",
+    "exit": "heading-units-typecheck.exit",
+    "status": "passed"
+  },
+  "fixtureCorrection": "heading-units-test-fixture-correction.log/.exit records first authoring run: corrected count of nested SVG elements to one presentation container and excluded warning appendix UL from no-list assertion before valid red capture.",
+  "regressionCoverage": [
+    "five ordinary following block types, Unicode/escaping/ordered start, exact original body preservation",
+    "60-row table/80-line code/80-item list not split or duplicated; no pagination claim from DOM tests",
+    "nested list continuation fallback original source/absolute warning range and following math anchor preserved",
+    "block presentations retain original ownership and are not grouped",
+    "inline math and bidirectional absolute footnote anchors in both table/list",
+    "prior paragraph/fragment/budget/CSP tests remain green",
+    "2-space nested list, HTML/fence-bearing lists, mermaid/math fenced raw fallback grouped as unchanged source with exact warning ranges; no flattening or enhancement output"
+  ],
+  "budget": "Wrapper included by unchanged final bytes(html) check; existing final HTML/source budget tests retained. No large mirror budget fixture added.",
+  "nativeBoundary": "Whole-unit wrapper fixes observed short block orphans. Long table/code/list orphans remain FAILED, with complete tail markers and no new clipping/blank pages. Caption candidate also failed and is not product code.",
+  "remaining": "Parent production rebuild and actual HTML/PDF/print revalidation.",
+  "fallbackBoundary": "Multi-block list continuation coalescing units are not grouped. A valid ordinary AST node that block() renders as raw fallback (2-space nested list, inline HTML/fence list, absent math/mermaid renderer) MAY be grouped as one unchanged raw-source unit; no claim of nested/enhancement support. Original fallback text/warnings/absolute offsets retained."
+}

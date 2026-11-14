@@ -1,0 +1,13 @@
+from pathlib import Path
+import subprocess,json,hashlib,time
+p=Path(__file__).parent;cases=json.loads((p/'cases-product-converter01.json').read_text());rows=[]
+for i,c in enumerate(cases):
+ name=f'product-converter-second-{i:02d}';log=p/(name+'.log');started=time.monotonic()
+ with log.open('x') as f:proc=subprocess.run(['bash',str(p/'run-product-converter01.sh'),name,str(i)],stdout=f,stderr=subprocess.STDOUT)
+ r=p/'runs'/name;valuefile=r/(c['request']['id']+'-result.json');value=json.loads(valuefile.read_text()) if valuefile.exists() else {};trace=json.loads((r/'result.json').read_text()) if (r/'result.json').exists() else {}
+ row={'index':i,'sample':c['sample'],'run':str(r),'exitCode':proc.returncode,'converterOk':value.get('ok'),'error':value.get('error'),'elapsedMs':value.get('elapsedMs'),'resultFile':str(valuefile) if valuefile.exists() else None,'resultSha256':hashlib.sha256(valuefile.read_bytes()).hexdigest() if valuefile.exists() else None,'supervisorResults':trace.get('results'),'supervisorFailures':[e for e in trace.get('events',[]) if e['kind']=='failed'],'cleanup':[e.get('remainingGroupMembers') for e in trace.get('events',[]) if e['kind']=='cleanup']};rows.append(row)
+ (p/'product-converter-second-summary.json').write_text(json.dumps({'status':'complete' if len(rows)==len(cases) else 'in-progress','count':len(rows),'rows':rows},ensure_ascii=False,indent=2)+'\n')
+ print(json.dumps({'index':i,'id':c['sample']['id'],'exit':proc.returncode,'ok':value.get('ok'),'error':value.get('error')},ensure_ascii=False),flush=True)
+ if not valuefile.exists() or not row['cleanup'] or any(group for group in row['cleanup']) or any(e['kind']=='cleanup-failed' for e in trace.get('events',[])):
+  print(json.dumps({'batchStopped':'setup/no-result/cleanup failure','index':i}),flush=True);break
+

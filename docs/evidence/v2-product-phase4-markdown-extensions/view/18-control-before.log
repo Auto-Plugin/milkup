@@ -1,0 +1,62 @@
+
+ RUN  v3.2.6 /workspace/milkup/packages/view-dom
+
+ ❯ src/__tests__/document-presentation.test.ts (24 tests | 2 failed) 1012ms
+   ✓ uses real MathML, retains mapped source and reveals on selection (false) 157ms
+   ✓ keeps source literal and disable restores source without a transaction (false) 42ms
+   ✓ excludes preview text from mapped offsets, coalesces and invalidates (false) 51ms
+   ✓ mounts a multiline block once and restores every original line (false) 48ms
+   ✓ uses accessible references without editing or swallowing keyboard activation (false) 27ms
+   × preserves an ordinary task control alongside inline presentation (false) 37ms
+     → expected  to have a length of 1 but got +0
+   ✓ rejects protected and malformed output while preserving editable source (false) 12ms
+   ✓ bounds requests before invoking a provider on a huge line (false) 37ms
+   ✓ discards old-document results while a fresh document remains editable (false) 43ms
+   ✓ discards an asynchronous result after disable (false) 29ms
+   ✓ uses real MathML, retains mapped source and reveals on selection (true) 129ms
+   ✓ keeps source literal and disable restores source without a transaction (true) 75ms
+   ✓ excludes preview text from mapped offsets, coalesces and invalidates (true) 46ms
+   ✓ mounts a multiline block once and restores every original line (true) 52ms
+   ✓ uses accessible references without editing or swallowing keyboard activation (true) 19ms
+   × preserves an ordinary task control alongside inline presentation (true) 28ms
+     → expected  to have a length of 1 but got +0
+   ✓ rejects protected and malformed output while preserving editable source (true) 11ms
+   ✓ bounds requests before invoking a provider on a huge line (true) 21ms
+   ✓ discards old-document results while a fresh document remains editable (true) 39ms
+   ✓ discards an asynchronous result after disable (true) 19ms
+   ✓ constructs inert SVG and maps only validated MathML attribute names 5ms
+   ✓ checks the host navigation lease after asynchronous viewport loading 6ms
+   ✓ checks the host navigation assertion before changing selection 7ms
+   ✓ measures collapsed block continuation lines as zero and restores their heights 72ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/__tests__/document-presentation.test.ts > preserves an ordinary task control alongside inline presentation (false)
+ FAIL  src/__tests__/document-presentation.test.ts > preserves an ordinary task control alongside inline presentation (true)
+AssertionError: expected  to have a length of 1 but got +0
+
+- Expected
++ Received
+
+- 1
++ 0
+
+ ❯ src/__tests__/document-presentation.test.ts:208:69
+    206|     const view=await make('live',provider(6,11),'- [ ] $a/b$ tail')
+    207|     expect(view.contentDOM.querySelectorAll('math')).toHaveLength(1)
+    208|     expect(view.contentDOM.querySelectorAll('.milkup-task-marker')).to…
+       |                                                                     ^
+    209|   })
+    210|   it(`rejects protected and malformed output while preserving editable…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  2 failed | 22 passed (24)
+   Start at  11:45:16
+   Duration  4.30s (transform 1.11s, setup 0ms, collect 1.46s, tests 1.01s, environment 1.19s, prepare 77ms)
+
+undefined
+/workspace/milkup/packages/view-dom:
+[ERR_PNPM_RECURSIVE_EXEC_FIRST_FAIL] Command failed with exit code 1: vitest run src/__tests__/document-presentation.test.ts

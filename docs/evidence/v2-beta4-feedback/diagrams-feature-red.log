@@ -1,0 +1,47 @@
+
+ RUN  v3.2.6 /tmp/milkup-windows-manual-candidate/plugins/diagrams-worker
+
+ ❯ src/compiler.test.ts (9 tests | 1 failed) 26ms
+   ✓ compiles Unicode flowchart through fixed official grammar without DOM 9ms
+   ✓ compiles aliases and dotted sequence return messages 6ms
+   ✓ explicitly rejects unsupported input without partial diagram: pie
+"x":1 1ms
+   ✓ explicitly rejects unsupported input without partial diagram: flowchart TD
+A-->A 1ms
+   ✓ explicitly rejects unsupported input without partial diagram: flowchart TD
+A-->B
+click A "https://example.com" 0ms
+   ✓ explicitly rejects unsupported input without partial diagram: flowchart TD
+A["<img src=x>"] 0ms
+   ✓ explicitly rejects unsupported input without partial diagram: sequenceDiagram
+loop Again
+A->>B: x
+end 1ms
+   ✓ explicitly rejects unsupported input without partial diagram: ---
+config: x
+---
+flowchart TD
+A-->B 0ms
+   × wraps long CJK labels to bounded text lines instead of overflowing node geometry 7ms
+     → expected 19 to be less than or equal to 12
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/compiler.test.ts > wraps long CJK labels to bounded text lines instead of overflowing node geometry
+AssertionError: expected 19 to be less than or equal to 12
+ ❯ src/compiler.test.ts:14:103
+     12| it('wraps long CJK labels to bounded text lines instead of overflowing…
+     13|  const result=compileDiagram('flowchart TD\n A["这是最多二十四个字符的中文标签不应溢出"] …
+     14|  for(const primitive of result.children)if(primitive.type==='text')exp…
+       |                                                                                                       ^
+     15| })
+     16| 
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 8 passed (9)
+   Start at  05:39:05
+   Duration  1.94s (transform 1.12s, setup 0ms, collect 1.34s, tests 26ms, environment 0ms, prepare 187ms)
+

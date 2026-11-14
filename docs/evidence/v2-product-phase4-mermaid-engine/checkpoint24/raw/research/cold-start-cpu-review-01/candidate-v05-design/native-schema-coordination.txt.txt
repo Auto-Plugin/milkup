@@ -1,0 +1,10 @@
+Coordination received from cold_native; proposed native source not yet frozen/built/tested.
+Root scope: static plan first, then separately authorize implementation/tests/runtime.
+Native gate and output dir: MILKUP_WEBPROCESS_PIDFD_DIAGNOSTICS=1; MILKUP_WEBPROCESS_PIDFD_OUTPUT_DIR.
+root exists0700; helper claims mkdirat(root,slot,0700) exclusively, existing disables diagnostic only.
+Fixed records: slot/helper-{helperPid}-{helperBirth}-armed.json and -result.json. Each <=8192B; temp0600 O_EXCL|O_NOFOLLOW -> exclusive linkat final, never replace.
+schema milkup.webprocess-self-pidfd.v1; instanceId; helper {pid,birth,parent}; guardian {pid,birth,parent}; kind; nativeMonotonicNs.
+result held/failed; heldFd duplicate CLOEXEC intentionally retained through process exit; receiverFdinfoRaw<=4096 and receiverReadStart/EndNs; C nativeStart/EndNs; pageId; errno/stage/GError domain/code.
+Native private context receives instance token tuple from C page-created callback, no JavaScript endpoint. Exactly one descriptor. Gate is initialization data, not assumed inherited environment. Message name/instance alone is not provenance proof.
+No authoritative outer targetPID; external exact-helper fdinfo supplies observer-proc-view Pid. Native receiverRaw is evidence in that receiver proc view only.
+Pending before implementation: frozen exact kind/key spellings and source evidence that the private receiver verifies gate/token, exactly1FD, immutable publication and hold lifetime. Runtime FD transport/sandbox capability remains unverified even after those static checks.

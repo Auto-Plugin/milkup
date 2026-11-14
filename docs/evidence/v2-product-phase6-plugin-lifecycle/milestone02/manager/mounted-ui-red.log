@@ -1,0 +1,53 @@
+
+ RUN  v3.2.6 /workspace/milkup
+
+ ❯ apps/desktop/src/desktop-plugin-manager-catalog.test.ts (21 tests | 1 failed) 270ms
+   ✓ P6 authoritative catalog transactions > stages without running or replacing old active approval; exact review is required 13ms
+   ✓ P6 authoritative catalog transactions > tears old epoch down before trial, commits before publish, and recovers old version with new epoch on failure 6ms
+   ✓ P6 authoritative catalog transactions > cannot grant candidate capabilities via pending approval or side effects during activate 1ms
+   ✓ P6 authoritative catalog transactions > serializes queued approval and remove; tombstone keeps data/settings and never revives from mirror 1ms
+   ✓ P6 authoritative catalog transactions > recovers a committed generation when contribution publication fails 4ms
+   ✓ P6 candidate failure injection > denies a swallowed initialization write and restores unchanged data 5ms
+   ✓ P6 candidate failure injection > recovers old active after native commit rejects without publishing the candidate 3ms
+   ✓ P6 candidate failure injection > caps hanging candidate activation and attempts new-epoch recovery 5ms
+   ✓ P6 candidate failure injection > does not trust a poisoned mirror and quarantines an interrupted startup instead of retrying forever 2ms
+   ✓ P6 retirement and public diagnostic boundaries > retains a rejected isolation owner and retries before any new activation 3ms
+   ✓ P6 retirement and public diagnostic boundaries > keeps callback errors diagnostic when the trusted owner confirms termination 1ms
+   ✓ P6 retirement and public diagnostic boundaries > never exposes native or activation paths through the public management adapter 3ms
+   ✓ P6 sealed generations > permits package reads, refuses package writes/deletes, and gives data a distinct writable scope 3ms
+   ✓ P6 sealed generations > disables a newly committed first installation if publication fails with no previous generation 2ms
+   ✓ P6 compatibility at execution boundary > quarantines incompatible native active intent after a host/SDK change without loading code 4ms
+   ✓ P6 compatibility at execution boundary > does not run an incompatible native pending candidate or retire the old active instance 2ms
+   ✓ P6 compatibility at execution boundary > blocks candidate data writes before publication even when approval includes file write 3ms
+   ✓ P6 native read-only renderer profile > permits only the sealed read-only DOM renderer and awaits its retirement before replacement 4ms
+   ✓ P6 bounded management metadata > lists all 512 valid native entries with long Unicode metadata and keeps differences exact 188ms
+   × P6 mounted UI retirement > retires mounted UI without dispatching renderer RPC after epoch revocation 15ms
+     → promise rejected "AggregateError: Plugin cleanup did not fu… { errors: [ Error: … ] }" instead of resolving
+   ✓ P6 mounted UI retirement > still rejects real owner stop failure when a UI was mounted 2ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  apps/desktop/src/desktop-plugin-manager-catalog.test.ts > P6 mounted UI retirement > retires mounted UI without dispatching renderer RPC after epoch revocation
+AssertionError: promise rejected "AggregateError: Plugin cleanup did not fu… { errors: [ Error: … ] }" instead of resolving
+ ❯ apps/desktop/src/desktop-plugin-manager-catalog.test.ts:768:41
+    766|     await s.manager.renderUi(s.id,'outline-panel','mount')
+    767|     const renderCount=s.render.mock.calls.length
+    768|     await expect(s.manager.disable(s.id)).resolves.toBeDefined()
+       |                                         ^
+    769|     await expect(s.manager.renderUi(s.id,'outline-panel','dispose')).r…
+    770|     expect(s.render).toHaveBeenCalledTimes(renderCount)
+
+Caused by: AggregateError: Plugin cleanup did not fully complete
+ ❯ DesktopPluginManager.unloadRuntimePlugin apps/desktop/src/desktop-plugin-manager.ts:2150:23
+ ❯ apps/desktop/src/desktop-plugin-manager.ts:1056:11
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯
+Serialized Error: { errors: [ { stack: 'Error: Renderer is not available: outline-panel\n    at DesktopPluginManager.renderUi (/workspace/milkup/apps/desktop/src/desktop-plugin-manager.ts:1257:11)', message: 'Renderer is not available: outline-panel', constructor: 'Function<Error>', name: 'Error', toString: 'Function<toString>' } ] }
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 20 passed (21)
+   Start at  09:18:48
+   Duration  1.82s (transform 819ms, setup 0ms, collect 1.08s, tests 270ms, environment 0ms, prepare 85ms)
+

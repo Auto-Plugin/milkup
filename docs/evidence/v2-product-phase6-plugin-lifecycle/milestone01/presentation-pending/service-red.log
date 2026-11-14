@@ -1,0 +1,62 @@
+
+ RUN  v3.2.6 /workspace/milkup
+
+ ❯ apps/desktop/src/document-presentation-service.test.ts (24 tests | 2 failed) 170ms
+   × desktop document presentation service > preserves explicit text provider preparation in the aggregate 16ms
+     → expected { fragments: [], complete: false } to deeply equal { Object (complete, fragments, ...) }
+   × desktop document presentation service > preserves explicit fence provider preparation in the aggregate 2ms
+     → expected { fragments: [], complete: false } to deeply equal { Object (complete, fragments, ...) }
+   ✓ desktop document presentation service > uses trusted context and validates inert results 2ms
+   ✓ desktop document presentation service > rejects results after document replacement even when IDs and versions match 1ms
+   ✓ desktop document presentation service > rejects a mutable native source version changed while its renderer is pending 2ms
+   ✓ desktop document presentation service > rejects source replacement with unchanged view identity, document ID and version 2ms
+   ✓ desktop document presentation service > drops code-overlap and stale contributions while preserving source 1ms
+   ✓ desktop document presentation service > invalidates in-flight work and does not cache a rejected provider 1ms
+   ✓ bounded slow-source presentation preparation > retains completed prefix checkpoints across a settled ten-second preparation abort 20ms
+   ✓ bounded slow-source presentation preparation > does not publish a prefix checkpoint from an uncancellable read resolved after abort 8ms
+   ✓ bounded slow-source presentation preparation > discards prefix checkpoints when the same source moves to another document version 6ms
+   ✓ viewport-prioritized bounded fence presentation > keeps an independently valid fence when the shared canonical budget is full 31ms
+   ✓ viewport-prioritized bounded fence presentation > promotes a later visible fence without relying on selection or overscan changes 25ms
+   ✓ viewport-prioritized bounded fence presentation > keeps all competing providers in a fence conflict before budget admission 32ms
+   ✓ viewport-prioritized bounded fence presentation > retains source ordering when later viewport fragments are admitted first 2ms
+   ✓ viewport-prioritized bounded fence presentation > settles a valid partial without starting another task inside the deadline reserve 1ms
+   ✓ viewport-prioritized bounded fence presentation > shares one absolute preparation deadline across every fence (supplied: undefined) 1ms
+   ✓ viewport-prioritized bounded fence presentation > shares one absolute preparation deadline across every fence (supplied: 8000) 2ms
+   ✓ viewport-prioritized bounded fence presentation > does not impose a fixed two-fence limit on fast small results 1ms
+   ✓ viewport-prioritized bounded fence presentation > rejects a malformed individual response without losing later valid fences 1ms
+   ✓ viewport-prioritized bounded fence presentation > does not let a mixed-context provider win a fence by hiding its competitor 1ms
+   ✓ viewport-prioritized bounded fence presentation > discards an aborted first fence and never starts a later task 1ms
+   ✓ viewport-prioritized bounded fence presentation > discards late output after renderer withdrawal and makes no subsequent renderer call 1ms
+   ✓ viewport-prioritized bounded fence presentation > uses trusted prefix context when a mid-fence window locally invents opening markers 6ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  apps/desktop/src/document-presentation-service.test.ts > desktop document presentation service > preserves explicit text provider preparation in the aggregate
+ FAIL  apps/desktop/src/document-presentation-service.test.ts > desktop document presentation service > preserves explicit fence provider preparation in the aggregate
+AssertionError: expected { fragments: [], complete: false } to deeply equal { Object (complete, fragments, ...) }
+
+- Expected
++ Received
+
+  {
+    "complete": false,
+    "fragments": [],
+-   "pending": true,
+  }
+
+ ❯ apps/desktop/src/document-presentation-service.test.ts:59:29
+     57|     })
+     58|     const response = await service.provide(window, { signal: new Abort…
+     59|     expect(response.result).toEqual({ complete: false, fragments: [], …
+       |                             ^
+     60|   })
+     61| 
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  2 failed | 22 passed (24)
+   Start at  07:25:26
+   Duration  1.07s (transform 361ms, setup 0ms, collect 484ms, tests 170ms, environment 0ms, prepare 79ms)
+

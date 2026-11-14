@@ -1,0 +1,215 @@
+--- UI09-frozen439232
++++ class-scroll-diagnostic
+@@ -192,6 +192,7 @@
+ )
+ 
+ let app, nativeWindow, activeFile
++let wireObserverInstalled = false
+ const ui = nativeFixture(() => app),
+   results = []
+ const preferences = '[data-plugin-ui="milkup.preferences:preferences-panel"]'
+@@ -1087,57 +1088,141 @@
+   )
+   nativeWindow = ui.windowId()
+   x('windowsize', nativeWindow, '1100', '760')
+-  await coldBundledWindow()
+   await install()
+-  for (const sample of isolatedFallbacks) await isolatedFallback(sample)
+-  for (const name of ['ordinary', 'windowed']) {
+-    await openDocument(name)
+-    await appearance('light', 1)
+-    for (const sample of samples) {
+-      await seek(sample, 'live')
+-      await shot(`coverage-${name}-${sample.id}`, {
+-        sample: sample.id,
+-        ...(await assertSample(sample, 'live')),
+-      })
++  await openDocument('ordinary')
++  x('windowsize', nativeWindow, '760', '520')
++  await appearance('light', 2)
++  const sample = samples.find((item) => item.id === 'classDiagram-000-first-official-example')
++  assert(sample && sample.from === 440 && sample.to === 969)
++  const observerSource = await readFile(new URL('../observer.js', import.meta.url), 'utf8')
++  const observerInstalledAt = Date.now()
++  const installation = await app.execute('return (' + observerSource + ')()')
++  await writeFile(
++    path.join(output, 'observer-installation.json'),
++    JSON.stringify(installation, null, 2) + '\n',
++  )
++  assert.equal(installation.installed, true, installation.reason)
++  wireObserverInstalled = true
++  const phases = []
++  const phase = async (name, extra = {}) => {
++    const dom = await observe(),
++      document = await app.probe()
++    phases.push({
++      phase: name,
++      wallAt: Date.now(),
++      elapsedMs: Date.now() - observerInstalledAt,
++      document,
++      dom,
++      ...extra,
++    })
++    await writeFile(path.join(output, 'phases.json'), JSON.stringify(phases, null, 2) + '\n')
++    assert.deepEqual(dom.diagnostics.errors, [])
++    assert.deepEqual(dom.diagnostics.cspViolations, [])
++    return dom
++  }
++  await seek(sample, 'live')
++  await phase('seek-complete')
++  const remaining = () => Math.max(1, observerInstalledAt + 9500 - Date.now())
++  await app.until(
++    async () => {
++      const p = (await observe()).previews.find((p) => p.from === 440 && p.to === 969)
++      return (
++        p &&
++        p.images.length &&
++        p.images.every((i) => i.complete && i.naturalWidth > 0 && i.naturalHeight > 0)
++      )
++    },
++    'class decoded within observation window',
++    remaining(),
++  )
++  const read = async () => (await observe()).previews.find((p) => p.from === 440 && p.to === 969)
++  const before = await read()
++  assert(before)
++  const target = {
++    top: before.scrollHeight - before.clientHeight,
++    left: before.scrollWidth - before.clientWidth,
++  }
++  await phase('before-wheel', { before, target, historicalTarget: { top: 125, left: 69 } })
++  const dom = await observe(),
++    rect = before.rect
++  const px =
++    (Math.max(rect.left, dom.editor.left) + Math.min(rect.right, dom.editor.right, dom.width)) / 2
++  const py =
++    (Math.max(rect.top, dom.editor.top) + Math.min(rect.bottom, dom.editor.bottom, dom.height)) / 2
++  assert(
++    await app.execute(
++      'return document.querySelector(arguments[0])?.contains(document.elementFromPoint(arguments[1],arguments[2]))',
++      selectorFor(sample),
++      px,
++      py,
++    ),
++    'Real preview wheel hit test',
++  )
++  const scale =
++    Number(/WIDTH=(\d+)/.exec(x('getwindowgeometry', '--shell', nativeWindow))[1]) / dom.width
++  x(
++    'mousemove',
++    '--window',
++    nativeWindow,
++    String(Math.round(px * scale)),
++    String(Math.round(py * scale)),
++  )
++  for (const [button, axis] of [
++    ['5', 'top'],
++    ['7', 'left'],
++  ]) {
++    let groups = 0
++    while (
++      groups < 6 &&
++      Date.now() < observerInstalledAt + 8500 &&
++      Math.abs((await read())[axis] - target[axis]) > 1
++    ) {
++      x('click', '--repeat', '3', '--delay', '70', button)
++      groups++
++      await app.delay(120)
+     }
+-    await sourceSelection(
+-      name,
+-      matrixSamples.find((sample) => sample.expected === 'ready'),
+-    )
+-    for (const mode of ['source', 'live']) await history(name, mode)
+-  }
+-  for (const combination of matrix) {
+-    const { view, mode, theme, zoom, narrow, key } = combination
+-    await openDocument(view)
+-    x('windowsize', nativeWindow, narrow ? '760' : '1100', narrow ? '520' : '760')
+-    await appearance(theme, zoom)
+-    const before = await app.probe()
+-    for (const sample of matrixSamples) {
+-      await seek(sample, mode)
+-      await shot(`matrix-${key}-${sample.id}`, {
+-        combination,
+-        sample: sample.id,
+-        ...(await assertSample(sample, mode)),
+-      })
+-      if (mode === 'live' && zoom === 2 && narrow && sample.expected === 'ready')
+-        await scrollEdges(sample, key)
+-    }
+-    assert.equal((await app.probe()).version, before.version)
+-    assert.deepEqual(await readFile(activeFile), Buffer.from(contents.get(view)))
+-    assert.deepEqual((await observe()).diagnostics.errors, [])
+-    await record('matrix-complete-' + key, {
+-      combination,
+-      exactFileSha256: sha256(await readFile(activeFile)),
+-    })
+-  }
++    const current = await read()
++    await phase('wheel-axis-' + axis, { groups, target, current })
++    assert(Math.abs(current[axis] - target[axis]) <= 1, 'Bounded wheel reaches ' + axis + ' edge')
++  }
++  const afterWheel = await read()
++  await shot('DIAGNOSTIC-BOTTOM-RIGHT', { sample: sample.id, before, after: afterWheel })
++  await phase('after-bottom-right-screenshot')
++  await app.delay(Math.max(0, observerInstalledAt + 10300 - Date.now()))
++  const observation = await app.execute('return window.__milkupTransportDiagnostic.state')
++  await writeFile(
++    path.join(output, 'transport-observation.json'),
++    JSON.stringify(observation, null, 2) + '\n',
++  )
++  const snapshotSource = await readFile(new URL('../terminal-snapshot.js', import.meta.url), 'utf8')
++  const terminal = await app.execute('return (' + snapshotSource + ')()')
++  await writeFile(
++    path.join(output, 'terminal-snapshot.json'),
++    JSON.stringify(terminal, null, 2) + '\n',
++  )
++  assert(observation.done && observation.restored, 'Observer automatically restored')
++  assert(observation.restored.fetchSameFunction && observation.restored.descriptorEqual)
++  assert(observation.restored.callbacks.every((c) => c.restoredOriginal || c.removed))
++  await shot('DIAGNOSTIC-END', { sample: sample.id })
++  const finalDom = await phase('final')
++  const final = finalDom.previews.find((p) => p.from === 440 && p.to === 969)
+   assert.equal(sha256(await readFile(binary)), process.env.MILKUP_MERMAID_BINARY_SHA256)
+   assert.equal(sha256(await readFile(archivePath)), process.env.MILKUP_MERMAID_ARCHIVE_SHA256)
+-  await record('PASS', {
+-    combinations: matrix.length,
+-    samplesPerCombination: matrixSamples.length,
+-    pixelReview: 'required-separately',
+-    nativeIsolation: 'not-established-by-this-harness',
++  assert.deepEqual(await readFile(activeFile), Buffer.from(contents.get('ordinary')))
++  await record('DIAGNOSTIC-CAPTURE-COMPLETE', {
++    diagnosticOnly: true,
++    acceptance: false,
++    target,
++    afterWheel,
++    final,
++    observerBudgetMs: 10000,
++    captureComplete: observation.dropped === 0 && observation.observerErrors.length === 0,
+   })
++  assert(final, 'Class preview still present at end')
++  assert(
++    Math.abs(final.top - target.top) <= 1 && Math.abs(final.left - target.left) <= 1,
++    'Class bottom-right scroll must remain at its measured edge through observation',
++  )
+ } catch (error) {
+   await writeFile(
+     path.join(output, 'failure.json'),
+@@ -1146,5 +1231,16 @@
+   if (app) await shot('FAIL', { error: String(error) }).catch(() => {})
+   throw error
+ } finally {
++  if (app && wireObserverInstalled) {
++    const observation = await app
++      .execute(
++        "const o=window.__milkupTransportDiagnostic;if(!o)return null;o.stop('runner-finally');const state=o.state;delete window.__milkupTransportDiagnostic;return state",
++      )
++      .catch((error) => ({ retrievalError: String(error) }))
++    await writeFile(
++      path.join(output, 'observer-finally.json'),
++      JSON.stringify(observation, null, 2) + '\n',
++    )
++  }
+   if (app) await app.close()
+ }

@@ -1,0 +1,66 @@
+{
+  "updates_plugin": {
+    "source": "/workspace/milkup/plugins/updates",
+    "external_build": "updater-external/build.log",
+    "unit_tests": "updater-external/test.log",
+    "tests_passed": 17,
+    "archive": "updater-external/dist/milkup.updates-1.0.0.milkup-plugin"
+  },
+  "native": {
+    "production_binary": "installed/usr/bin/milkup-desktop",
+    "installation_approval_png_keyboard": {
+      "status": "passed",
+      "evidence": "updates-native-final/results.json",
+      "note": "Initial GTK install/approval/PNG and corrected Tab/Escape flow passed. This run later hit a stale-observation test race; retained in full."
+    },
+    "matrix_lifecycle_recovery": {
+      "status": "passed",
+      "evidence": "updates-native-complete/results.json",
+      "log": "updates-native-complete/run.log",
+      "matrix_cases": 16,
+      "note": "Resumed already installed/approved plugin; final script uses read-only MutationObserver and atomic state snapshots. Source/live edit, byte-exact save, uninstall persistence and SIGKILL recovery passed."
+    },
+    "baseline": {
+      "status": "passed",
+      "evidence": "migration-baseline/baseline.json",
+      "version": "0.1.0",
+      "outline": "1.2.0"
+    },
+    "migration": {
+      "status": "passed",
+      "evidence": "migration-native/results.json",
+      "log": "migration-native/run.log",
+      "note": "Old outline rejected; independent 1.3.1 GTK install, enable and restart; updates remains inactive/unapproved; original document bytes preserved."
+    },
+    "windowed": {
+      "status": "passed",
+      "evidence": "windowed-native-complete/results.json",
+      "log": "windowed-native-complete/run.log",
+      "body_lines": 18000,
+      "screenshot_pairs": 5,
+      "note": "Updates absent; selection3..8/cursor8 survive source/live/source; both modes input/undo/redo/save checked against all Unicode/CRLF bytes; exact UTF16 tail cursor."
+    },
+    "focus_regressions": {
+      "before": "updates-key-debug/focus.json",
+      "note": "Native ShiftTab key=Unidentified/code=Tab and transient button focus loss found, then fixed by parent agent; subsequent native main flow passed."
+    },
+    "repaint_diagnostic": {
+      "evidence": ["updates-repaint-after/results.json", "updates-repaint-no-raf/results.json"],
+      "note": "With and without continuous rAF observation, first check after 5s displayed correct result before mouse/focus/resize, in both WebDriver and X11 pixels; hasFocus=true, visibility=visible, native MapState=IsViewable. No stable resize-required defect reproduced. Initial <1s screenshots remained stale and are not used as result-pixel evidence. Auxiliary ordinary-edit follow-up timed out on diagnostic navigation; ordinary editing is independently passed in lifecycle and windowed runs."
+    },
+    "preserved_failures": [
+      "updates-native",
+      "updates-native-after",
+      "updates-native-final",
+      "windowed-native-after"
+    ]
+  },
+  "source_changes": [
+    "tests/native/tauri-application-update.mjs",
+    "tests/native/tauri-version-migration.mjs",
+    "tests/native/tauri-plugin-architecture.mjs",
+    "tests/helpers/native-updates-fixture.mjs"
+  ],
+  "no_product_source_changes_in_native_task": true,
+  "remaining_blockers": []
+}

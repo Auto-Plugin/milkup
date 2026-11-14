@@ -1,0 +1,43 @@
+[
+  {
+    "name": "search-tests-final",
+    "command": ["pnpm", "exec", "vitest", "run", "apps/desktop/src/large-document-search.test.ts"],
+    "started": "2026-10-13T18:20:51.938263+00:00",
+    "exitCode": 0
+  },
+  {
+    "name": "typecheck-final",
+    "command": ["pnpm", "typecheck"],
+    "started": "2026-10-13T18:20:53.030843+00:00",
+    "exitCode": 0
+  },
+  {
+    "name": "browser",
+    "command": ["pnpm", "test:e2e", "--workers=1"],
+    "started": "2026-10-13T18:21:03.765645+00:00",
+    "exitCode": 1
+  },
+  {
+    "name": "browser-final",
+    "command": ["pnpm", "test:e2e", "--workers=1"],
+    "exitCode": 0,
+    "passed": 60,
+    "note": "Ignore hidden controls in geometry assertion and separately assert cancel is hidden while idle."
+  },
+  {
+    "name": "native-quality-xtest",
+    "command": ["node", "tests/native/tauri-large-search-quality.mjs"],
+    "environment": {
+      "MILKUP_NATIVE_XTEST": "1"
+    },
+    "exitCode": 0,
+    "passed": 20
+  },
+  {
+    "name": "native-unicode-lifecycle",
+    "command": ["node", "tests/native/tauri-unicode-search-quality.mjs"],
+    "exitCode": 0,
+    "passed": 5,
+    "physicalDirectoryRelease": "source/live: one native snapshot directory before close, zero after close"
+  }
+]

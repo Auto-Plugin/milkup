@@ -1,0 +1,132 @@
+{
+  "resultSha256": "4d82b6ffad4874a2f66e9b289413d2d0fce3114f150040e03f794ffa6d957777",
+  "scriptSha256": "1de5425c31e89b64be90b76052284759a43f8194fd4c49461c865df7462338f7",
+  "allChecksPass": true,
+  "checks": [
+    {
+      "check": "stat-raw-parsed",
+      "path": "/proc/470393/stat",
+      "passed": true
+    },
+    {
+      "check": "stat-raw-parsed",
+      "path": "/proc/470393/stat",
+      "passed": true
+    },
+    {
+      "check": "inside-owner-stable",
+      "passed": true
+    },
+    {
+      "check": "stat-raw-parsed",
+      "path": "/proc/470394/stat",
+      "passed": true
+    },
+    {
+      "check": "stat-raw-parsed",
+      "path": "/proc/470394/stat",
+      "passed": true
+    },
+    {
+      "check": "inside-pidfd-target-proof",
+      "passed": true
+    },
+    {
+      "check": "stat-raw-parsed",
+      "path": "/proc/470393/stat",
+      "passed": true
+    },
+    {
+      "check": "stat-raw-parsed",
+      "path": "/proc/470393/stat",
+      "passed": true
+    },
+    {
+      "check": "outside-owner-stable",
+      "passed": true
+    },
+    {
+      "check": "stat-raw-parsed",
+      "path": "/proc/470394/stat",
+      "passed": true
+    },
+    {
+      "check": "stat-raw-parsed",
+      "path": "/proc/470394/stat",
+      "passed": true
+    },
+    {
+      "check": "outside-pidfd-target-proof",
+      "passed": true
+    },
+    {
+      "check": "elapsed",
+      "passed": true
+    },
+    {
+      "check": "child-reaped-zero",
+      "passed": true
+    },
+    {
+      "check": "parent-reaped-zero",
+      "passed": true
+    },
+    {
+      "check": "same-context-not-cross-ns",
+      "passed": true
+    },
+    {
+      "check": "frozen-script",
+      "passed": true
+    }
+  ],
+  "details": [
+    {
+      "side": "inside",
+      "enumerated": 9,
+      "accepted": [
+        {
+          "fd": 5,
+          "pid": 470394,
+          "birth": 8961866,
+          "parent": 470393,
+          "nspid": [
+            470394
+          ]
+        }
+      ],
+      "fdErrors": [
+        {
+          "fd": 8,
+          "before": {
+            "path": "/proc/470393/fdinfo/8",
+            "readStartNs": 89618668110171,
+            "status": "error",
+            "errorClass": "FileNotFoundError",
+            "errno": 2,
+            "errnoName": "ENOENT",
+            "readEndNs": 89618668216103
+          },
+          "status": "fdinfo-unavailable"
+        }
+      ]
+    },
+    {
+      "side": "outside",
+      "enumerated": 8,
+      "accepted": [
+        {
+          "fd": 5,
+          "pid": 470394,
+          "birth": 8961866,
+          "parent": 470393,
+          "nspid": [
+            470394
+          ]
+        }
+      ],
+      "fdErrors": []
+    }
+  ],
+  "scope": "Current same-namespace direct-child pidfd capability only; no complete renderer tree or cross-namespace guarantee"
+}

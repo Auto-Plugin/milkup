@@ -1,0 +1,9 @@
+$ tsc -p tsconfig.json --noEmit
+src/manifest-dom.test.ts(34,232): error TS2345: Argument of type '(permissions: string | undefined) => void' is not assignable to parameter of type '(...args: [] | [string, string]) => Awaitable<void>'.
+  Types of parameters 'permissions' and 'args' are incompatible.
+    Type '[] | [string, string]' is not assignable to type '[permissions: string | undefined]'.
+      Type '[]' is not assignable to type '[permissions: string | undefined]'.
+        Source has 0 element(s) but target requires 1.
+/workspace/milkup/packages/plugin:
+[ERR_PNPM_RECURSIVE_RUN_FIRST_FAIL] @milkup/plugin@2.0.0-beta.1 typecheck: `tsc -p tsconfig.json --noEmit`
+Exit status 2

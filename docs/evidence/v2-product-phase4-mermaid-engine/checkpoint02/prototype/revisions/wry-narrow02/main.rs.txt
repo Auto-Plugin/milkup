@@ -1,0 +1,67 @@
+//! External Linux mechanism probe, not product implementation or Mermaid acceptance.
+use std::{borrow::Cow, io::{self, BufRead, Read, Write}, sync::{Arc, atomic::{AtomicBool, Ordering}}};
+use tao::{event::{Event,WindowEvent},event_loop::{ControlFlow,EventLoopBuilder},window::WindowBuilder};
+use tao::platform::unix::WindowExtUnix;
+use wry::{WebViewBuilder,WebViewBuilderExtUnix,WebViewExtUnix,PageLoadEvent,NewWindowResponse,http::Response};
+use webkit2gtk::{WebViewExt, WebContextExt, SettingsExt, PermissionRequestExt, FileChooserRequestExt};
+use serde_json::{json,Value};
+#[derive(Debug)]enum User { Loaded, Ready(String), Task(String), Result(String), Eof }
+const URL:&str="milkup-render://job/index.html";
+const CSP:&str="default-src 'none'; script-src milkup-render://job/engine.js; style-src 'unsafe-inline'; connect-src 'none'; img-src 'none'; font-src 'none'; frame-src 'none'; child-src 'none'; worker-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'";
+fn emit(v:Value){let mut out=io::stdout().lock();writeln!(out,"{}",v).unwrap();out.flush().unwrap();}
+fn main(){
+ let extension=std::env::var_os("MILKUP_PROBE_EXTENSIONS").expect("explicit extension path required");
+ let events=EventLoopBuilder::<User>::with_user_event().build();
+ let window=WindowBuilder::new().with_title("Isolated DOM mechanism probe").with_inner_size(tao::dpi::LogicalSize::new(640.,200.)).with_visible(false).build(&events).unwrap();
+ let nav=Arc::new(AtomicBool::new(false));let nav2=nav.clone();let loaded=events.create_proxy();
+ let webview=WebViewBuilder::new().with_incognito(true).with_extensions_path(extension)
+  .with_custom_protocol("milkup-render".into(),|_,request|{
+   let (status,mime,body)=match (request.method().as_str(),request.uri().to_string().as_str()){
+    ("GET","milkup-render://job/index.html")=>(200,"text/html; charset=utf-8",include_bytes!("../assets/index.html").as_slice()),
+    ("GET","milkup-render://job/engine.js")=>(200,"text/javascript; charset=utf-8",include_bytes!("../assets/engine.js").as_slice()),
+    _=>(403,"text/plain",b"denied".as_slice())};
+   Response::builder().status(status).header("Content-Type",mime).header("Content-Security-Policy",CSP).header("X-Content-Type-Options","nosniff").header("Cache-Control","no-store").body(Cow::Borrowed(body)).unwrap()
+  })
+  .with_navigation_handler(move |url|url==URL&&!nav2.swap(true,Ordering::SeqCst))
+  .with_new_window_req_handler(|_,_|NewWindowResponse::Deny)
+  .with_download_started_handler(|_,_|false)
+  .with_on_page_load_handler(move |event,url|{if matches!(event,PageLoadEvent::Finished)&&url==URL{let _=loaded.send_event(User::Loaded);}})
+  .build_gtk(window.default_vbox().unwrap()).unwrap();
+ let native=webview.webview();let context=native.context().unwrap();
+ // Wry construction may already spawn children. Never toggle sandbox after that.
+ // Refuse execution if the runtime context is not already sandboxed.
+ assert!(context.is_sandbox_enabled(),"WebKit sandbox must already be enabled");
+ // Configure content guards before the first document load.
+ let settings=native.settings().unwrap();
+ settings.set_allow_file_access_from_file_urls(false);settings.set_allow_universal_access_from_file_urls(false);
+ settings.set_enable_webrtc(false);settings.set_enable_media_stream(false);settings.set_enable_webgl(false);
+ settings.set_enable_html5_database(false);settings.set_enable_html5_local_storage(false);settings.set_enable_dns_prefetching(false);
+ settings.set_javascript_can_open_windows_automatically(false);settings.set_enable_developer_extras(false);
+ native.connect_permission_request(|_,p|{p.deny();true});
+ native.connect_run_file_chooser(|_,p|{p.cancel();true});
+ native.connect_script_dialog(|_,dialog|{dialog.close();true});
+ emit(json!({"type":"native-policy","sandbox":context.is_sandbox_enabled(),"ephemeral":native.is_ephemeral(),"tauriBridge":false,"allowedResources":2,"settings":"file/universal/webrtc/media/webgl/storage/dns/windows/devtools denied"}));
+ let input=events.create_proxy();std::thread::spawn(move||{
+  let mut reader=io::stdin().lock();
+  loop {let mut bytes=Vec::new();match reader.by_ref().take(130).read_until(b'\n',&mut bytes){
+   Ok(0)=>break,Ok(_) if bytes.len()<=129 && bytes.last()==Some(&b'\n')=>{bytes.pop();match String::from_utf8(bytes){Ok(line)=>{let _=input.send_event(User::Task(line));},Err(_)=>break}},_=>break
+  }}
+  let _=input.send_event(User::Eof);
+ });
+ webview.load_url(URL).unwrap();
+ let callback=events.create_proxy();let mut ready=false;
+ events.run(move |event,_,flow|{*flow=ControlFlow::Wait;
+  match event{
+   Event::UserEvent(User::Loaded)=>{let cb=callback.clone();webview.evaluate_script_with_callback("window.__fixedDomProbe.ready()",move|s|{let _=cb.send_event(User::Ready(s));}).unwrap();},
+   Event::UserEvent(User::Ready(s))=>{let value:Value=serde_json::from_str(&s).unwrap_or(Value::Null);ready=value.get("ready")==Some(&Value::Bool(true));emit(json!({"type":"ready","value":value}));},
+   Event::UserEvent(User::Task(task))=>{
+    if !ready||!matches!(task.as_str(),"bbox"|"loop"|"policy"){emit(json!({"type":"rejected"}));*flow=ControlFlow::Exit;return}
+    let cb=callback.clone();let script=format!("window.__fixedDomProbe.run({})",serde_json::to_string(&task).unwrap());
+    webview.evaluate_script_with_callback(&script,move|s|{let _=cb.send_event(User::Result(s));}).unwrap();
+   },
+   Event::UserEvent(User::Result(s))=>{if s.len()>65536{emit(json!({"type":"oversize"}));*flow=ControlFlow::Exit;}else{emit(json!({"type":"result","value":serde_json::from_str::<Value>(&s).unwrap_or(Value::Null)}));}},
+   Event::UserEvent(User::Eof)|Event::WindowEvent{event:WindowEvent::CloseRequested,..}=>*flow=ControlFlow::Exit,
+   _=>{}
+  }
+ });
+}

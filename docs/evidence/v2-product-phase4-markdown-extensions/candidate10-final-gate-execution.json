@@ -1,0 +1,54 @@
+{
+  "steps": [
+    {
+      "gate": "unit",
+      "command": ["pnpm", "test"],
+      "log": "full-unit-candidate10-final.log",
+      "started": "2026-10-16T05:18:27.636455+00:00",
+      "finished": "2026-10-16T05:19:58.575293+00:00",
+      "exitCode": 0
+    },
+    {
+      "gate": "types",
+      "command": ["pnpm", "typecheck"],
+      "log": "full-types-candidate10-final.log",
+      "started": "2026-10-16T05:19:58.717892+00:00",
+      "finished": "2026-10-16T05:20:44.001505+00:00",
+      "exitCode": 0
+    },
+    {
+      "gate": "build",
+      "command": ["pnpm", "build"],
+      "log": "full-build-candidate10-final.log",
+      "started": "2026-10-16T05:20:44.061146+00:00",
+      "finished": "2026-10-16T05:21:11.315633+00:00",
+      "exitCode": 0
+    },
+    {
+      "gate": "format",
+      "command": ["pnpm", "lint"],
+      "log": "full-format-candidate10-final.log",
+      "started": "2026-10-16T05:21:11.357027+00:00",
+      "finished": "2026-10-16T05:21:55.828582+00:00",
+      "exitCode": 0
+    },
+    {
+      "gate": "browser",
+      "command": [
+        "pnpm",
+        "exec",
+        "playwright",
+        "test",
+        "--workers=1",
+        "--retries=0",
+        "--output=/workspace/milkup-markdown-extensions-phase4-evidence/browser-candidate10-final"
+      ],
+      "log": "browser-full-candidate10-final.log",
+      "started": "2026-10-16T05:21:55.881636+00:00",
+      "finished": "2026-10-16T05:30:20.096730+00:00",
+      "exitCode": 1
+    }
+  ],
+  "sourceFiles": 679,
+  "sourceChanges": []
+}

@@ -1,0 +1,73 @@
+
+ RUN  v3.2.6 /workspace/milkup/packages/view-dom
+
+ ❯ src/__tests__/document-presentation.test.ts (42 tests | 1 failed | 41 skipped) 76ms
+   × keeps preview keyboard focus when the view refreshes its source DOM (false) 74ms
+     → Invalid editor presentation
+   ↓ anchors an asynchronously growing preview above the visible selection (false)
+   ↓ refreshes selection-dependent third-party output without repaint loops (false)
+   ↓ cancels the old selection job and discards its late output (false)
+   ↓ uses real MathML, retains mapped source and reveals on selection (false)
+   ↓ keeps source literal and disable restores source without a transaction (false)
+   ↓ excludes preview text from mapped offsets, coalesces and invalidates (false)
+   ↓ mounts a multiline block once and restores every original line (false)
+   ↓ renders the native CRLF matrix range without consuming its line ending (false)
+   ↓ uses accessible references without editing or swallowing keyboard activation (false)
+   ↓ preserves an ordinary task control alongside inline presentation (false)
+   ↓ rejects protected and malformed output while preserving editable source (false)
+   ↓ bounds requests before invoking a provider on a huge line (false)
+   ↓ discards old-document results while a fresh document remains editable (false)
+   ↓ discards an asynchronous result after disable (false)
+   ↓ keeps preview keyboard focus when the view refreshes its source DOM (true)
+   ↓ anchors an asynchronously growing preview above the visible selection (true)
+   ↓ refreshes selection-dependent third-party output without repaint loops (true)
+   ↓ cancels the old selection job and discards its late output (true)
+   ↓ uses real MathML, retains mapped source and reveals on selection (true)
+   ↓ keeps source literal and disable restores source without a transaction (true)
+   ↓ excludes preview text from mapped offsets, coalesces and invalidates (true)
+   ↓ mounts a multiline block once and restores every original line (true)
+   ↓ renders the native CRLF matrix range without consuming its line ending (true)
+   ↓ uses accessible references without editing or swallowing keyboard activation (true)
+   ↓ preserves an ordinary task control alongside inline presentation (true)
+   ↓ rejects protected and malformed output while preserving editable source (true)
+   ↓ bounds requests before invoking a provider on a huge line (true)
+   ↓ discards old-document results while a fresh document remains editable (true)
+   ↓ discards an asynchronous result after disable (true)
+   ↓ constructs inert SVG and maps only validated MathML attribute names
+   ↓ checks the host navigation lease after asynchronous viewport loading
+   ↓ checks the host navigation assertion before changing selection
+   ↓ measures collapsed block continuation lines as zero and restores their heights
+   ↓ allows bounded host snapshot preparation beyond the renderer worker deadline
+   ↓ cancels a slow host preparation without waiting for its deadline
+   ↓ rejects a completed job if selection changed before the next synchronization
+   ↓ preserves the correct viewport anchor during preview growth (visible)
+   ↓ preserves the correct viewport anchor during preview growth (scrolled-away)
+   ↓ preserves the correct viewport anchor during preview growth (source)
+   ↓ preserves block focus across a viewport job without stealing a later external focus
+   ↓ preserves reference focus across a viewport job without stealing a later external focus
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/__tests__/document-presentation.test.ts > keeps preview keyboard focus when the view refreshes its source DOM (false)
+RangeError: Invalid editor presentation
+ ❯ validatePresentation src/presentation.ts:31:11
+     29|     !['spaces-2', 'spaces-4', 'tabs'].includes(value.indentation)
+     30|   ) {
+     31|     throw new RangeError('Invalid editor presentation')
+       |           ^
+     32|   }
+     33|   return Object.freeze({ ...value })
+ ❯ EditorView.setPresentation src/editor-view.ts:325:18
+ ❯ src/__tests__/document-presentation.test.ts:114:12
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 41 skipped (42)
+   Start at  13:40:51
+   Duration  1.45s (transform 485ms, setup 0ms, collect 638ms, tests 76ms, environment 501ms, prepare 71ms)
+
+undefined
+/workspace/milkup/packages/view-dom:
+[ERR_PNPM_RECURSIVE_EXEC_FIRST_FAIL] Command failed with exit code 1: vitest run src/__tests__/document-presentation.test.ts '--maxWorkers=2' -t 'source DOM \(false\)'

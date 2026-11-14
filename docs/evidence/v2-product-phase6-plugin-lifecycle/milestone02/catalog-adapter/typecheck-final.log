@@ -1,0 +1,12 @@
+../../packages/plugin/src/management-broker.ts(89,26): error TS2339: Property 'aborted' does not exist on type '{}'.
+../../packages/plugin/src/management-broker.ts(94,22): error TS2339: Property 'addEventListener' does not exist on type '{}'.
+../../packages/plugin/src/management-broker.ts(121,24): error TS2339: Property 'removeEventListener' does not exist on type '{}'.
+../../packages/plugin/src/management-broker.ts(125,3): error TS2322: Type 'Readonly<{ snapshot: (options?: PluginManagementOperationOptions | undefined) => Promise<PluginManagementSnapshot>; describe: (input: PluginManagementIdentity, options?: PluginManagementOperationOptions | undefined) => Promise<...>; requestHostView: (input: PluginManagementHostViewRequest, options?: PluginManagement...' is not assignable to type 'RevocablePluginManagementBroker'.
+  The types returned by 'requestHostView(...)' are incompatible between these types.
+    Type 'Promise<unknown>' is not assignable to type 'Promise<PluginManagementHostViewResult>'.
+      Type 'unknown' is not assignable to type 'PluginManagementHostViewResult'.
+../../packages/plugin/src/management-broker.ts(160,11): error TS2345: Argument of type 'unknown' is not assignable to parameter of type 'string | undefined'.
+../../packages/plugin/src/management-broker.ts(165,18): error TS2345: Argument of type '{ signal: {}; } | undefined' is not assignable to parameter of type 'PluginManagementOperationOptions | undefined'.
+  Type '{ signal: {}; }' is not assignable to type 'PluginManagementOperationOptions'.
+    Types of property 'signal' are incompatible.
+      Type '{}' is missing the following properties from type 'AbortSignal': aborted, onabort, reason, throwIfAborted, and 3 more.

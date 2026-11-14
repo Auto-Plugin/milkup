@@ -1,0 +1,501 @@
+[
+  {
+    "name": "locked-workspace-restore",
+    "startedAt": "2026-10-21T10:52:37.1090523Z",
+    "status": "passed",
+    "endedAt": "2026-10-21T10:52:41.3331114Z",
+    "commands": [
+      {
+        "executable": "node",
+        "arguments": [
+          "C:\\npm\\prefix\\node_modules\\pnpm\\bin\\pnpm.cjs",
+          "install",
+          "--frozen-lockfile",
+          "--config.manage-package-manager-versions=false"
+        ],
+        "exitCode": 0,
+        "startedAt": "2026-10-21T10:52:37.1115217Z",
+        "endedAt": "2026-10-21T10:52:41.3300839Z"
+      }
+    ]
+  },
+  {
+    "name": "updater-vendor-provenance",
+    "startedAt": "2026-10-21T10:52:41.3418699Z",
+    "status": "passed",
+    "endedAt": "2026-10-21T10:52:41.4053644Z",
+    "commands": [
+      {
+        "executable": "node",
+        "arguments": [
+          "scripts/check-updater-vendor.mjs"
+        ],
+        "exitCode": 0,
+        "startedAt": "2026-10-21T10:52:41.3428968Z",
+        "endedAt": "2026-10-21T10:52:41.4052185Z"
+      }
+    ]
+  },
+  {
+    "name": "source-check-contracts",
+    "startedAt": "2026-10-21T10:52:41.4077197Z",
+    "status": "passed",
+    "endedAt": "2026-10-21T10:52:44.5636759Z",
+    "commands": [
+      {
+        "executable": "node",
+        "arguments": [
+          "--test",
+          "scripts/check-versions.test.mjs",
+          "scripts/check-updater-vendor.test.mjs",
+          "tests/ci/windows-desktop-source-check.test.mjs",
+          "tests/ci/stage-public-plugin-check.test.mjs",
+          "tests/ci/public-plugin-windows-checkout.test.mjs",
+          "tests/ci/diagrams-build-paths.test.mjs",
+          "tests/ci/public-plugin-build-contract.test.mjs",
+          "tests/ci/public-plugin-dom-build.test.mjs",
+          "tests/ci/public-plugin-sdk-artifact.test.mjs"
+        ],
+        "exitCode": 0,
+        "startedAt": "2026-10-21T10:52:41.4087680Z",
+        "endedAt": "2026-10-21T10:52:44.5635235Z"
+      }
+    ]
+  },
+  {
+    "name": "public-sdk-build",
+    "startedAt": "2026-10-21T10:52:44.5662121Z",
+    "status": "passed",
+    "endedAt": "2026-10-21T10:52:45.7366101Z",
+    "commands": [
+      {
+        "executable": "node",
+        "arguments": [
+          "C:\\npm\\prefix\\node_modules\\pnpm\\bin\\pnpm.cjs",
+          "--filter",
+          "@milkup/plugin-sdk",
+          "build"
+        ],
+        "exitCode": 0,
+        "startedAt": "2026-10-21T10:52:44.5677063Z",
+        "endedAt": "2026-10-21T10:52:45.7364976Z"
+      }
+    ]
+  },
+  {
+    "name": "eleven-independent-public-plugins",
+    "startedAt": "2026-10-21T10:52:45.7396447Z",
+    "status": "passed",
+    "endedAt": "2026-10-21T10:53:43.7506575Z",
+    "commands": [
+      {
+        "executable": "node",
+        "arguments": [
+          "scripts/ci/verify-public-plugin-builds.mjs",
+          "D:\\a\\_temp\\manual-beta2-source\\public-plugins",
+          "C:\\npm\\prefix\\node_modules\\pnpm\\bin\\pnpm.cjs"
+        ],
+        "exitCode": 0,
+        "startedAt": "2026-10-21T10:52:45.7406647Z",
+        "endedAt": "2026-10-21T10:53:43.7505132Z"
+      }
+    ]
+  },
+  {
+    "name": "eleven-independent-plugin-types",
+    "startedAt": "2026-10-21T10:53:43.7532235Z",
+    "status": "passed",
+    "endedAt": "2026-10-21T10:53:54.1903330Z",
+    "commands": [
+      {
+        "executable": "node",
+        "arguments": [
+          "C:\\npm\\prefix\\node_modules\\pnpm\\bin\\pnpm.cjs",
+          "--dir",
+          "D:\\a\\_temp\\manual-beta2-source\\public-plugins\\milkup.diagrams",
+          "exec",
+          "tsc",
+          "--noEmit",
+          "-p",
+          "tsconfig.json"
+        ],
+        "exitCode": 0,
+        "startedAt": "2026-10-21T10:53:43.7732476Z",
+        "endedAt": "2026-10-21T10:53:45.2891095Z"
+      },
+      {
+        "executable": "node",
+        "arguments": [
+          "C:\\npm\\prefix\\node_modules\\pnpm\\bin\\pnpm.cjs",
+          "--dir",
+          "D:\\a\\_temp\\manual-beta2-source\\public-plugins\\milkup.footnotes",
+          "exec",
+          "tsc",
+          "--noEmit",
+          "-p",
+          "tsconfig.json"
+        ],
+        "exitCode": 0,
+        "startedAt": "2026-10-21T10:53:45.2895102Z",
+        "endedAt": "2026-10-21T10:53:46.1367305Z"
+      },
+      {
+        "executable": "node",
+        "arguments": [
+          "C:\\npm\\prefix\\node_modules\\pnpm\\bin\\pnpm.cjs",
+          "--dir",
+          "D:\\a\\_temp\\manual-beta2-source\\public-plugins\\milkup.formatting",
+          "exec",
+          "tsc",
+          "--noEmit",
+          "-p",
+          "tsconfig.json"
+        ],
+        "exitCode": 0,
+        "startedAt": "2026-10-21T10:53:46.1371168Z",
+        "endedAt": "2026-10-21T10:53:47.0803139Z"
+      },
+      {
+        "executable": "node",
+        "arguments": [
+          "C:\\npm\\prefix\\node_modules\\pnpm\\bin\\pnpm.cjs",
+          "--dir",
+          "D:\\a\\_temp\\manual-beta2-source\\public-plugins\\milkup.images",
+          "exec",
+          "tsc",
+          "--noEmit",
+          "-p",
+          "tsconfig.json"
+        ],
+        "exitCode": 0,
+        "startedAt": "2026-10-21T10:53:47.0806292Z",
+        "endedAt": "2026-10-21T10:53:47.9306343Z"
+      },
+      {
+        "executable": "node",
+        "arguments": [
+          "C:\\npm\\prefix\\node_modules\\pnpm\\bin\\pnpm.cjs",
+          "--dir",
+          "D:\\a\\_temp\\manual-beta2-source\\public-plugins\\milkup.management",
+          "exec",
+          "tsc",
+          "--noEmit",
+          "-p",
+          "tsconfig.json"
+        ],
+        "exitCode": 0,
+        "startedAt": "2026-10-21T10:53:47.9309652Z",
+        "endedAt": "2026-10-21T10:53:48.7652248Z"
+      },
+      {
+        "executable": "node",
+        "arguments": [
+          "C:\\npm\\prefix\\node_modules\\pnpm\\bin\\pnpm.cjs",
+          "--dir",
+          "D:\\a\\_temp\\manual-beta2-source\\public-plugins\\milkup.math",
+          "exec",
+          "tsc",
+          "--noEmit",
+          "-p",
+          "tsconfig.json"
+        ],
+        "exitCode": 0,
+        "startedAt": "2026-10-21T10:53:48.7658016Z",
+        "endedAt": "2026-10-21T10:53:49.6742782Z"
+      },
+      {
+        "executable": "node",
+        "arguments": [
+          "C:\\npm\\prefix\\node_modules\\pnpm\\bin\\pnpm.cjs",
+          "--dir",
+          "D:\\a\\_temp\\manual-beta2-source\\public-plugins\\milkup.outline",
+          "exec",
+          "tsc",
+          "--noEmit",
+          "-p",
+          "tsconfig.json"
+        ],
+        "exitCode": 0,
+        "startedAt": "2026-10-21T10:53:49.6746827Z",
+        "endedAt": "2026-10-21T10:53:50.6907085Z"
+      },
+      {
+        "executable": "node",
+        "arguments": [
+          "C:\\npm\\prefix\\node_modules\\pnpm\\bin\\pnpm.cjs",
+          "--dir",
+          "D:\\a\\_temp\\manual-beta2-source\\public-plugins\\milkup.preferences",
+          "exec",
+          "tsc",
+          "--noEmit",
+          "-p",
+          "tsconfig.json"
+        ],
+        "exitCode": 0,
+        "startedAt": "2026-10-21T10:53:50.6910787Z",
+        "endedAt": "2026-10-21T10:53:51.6237328Z"
+      },
+      {
+        "executable": "node",
+        "arguments": [
+          "C:\\npm\\prefix\\node_modules\\pnpm\\bin\\pnpm.cjs",
+          "--dir",
+          "D:\\a\\_temp\\manual-beta2-source\\public-plugins\\milkup.shortcuts",
+          "exec",
+          "tsc",
+          "--noEmit",
+          "-p",
+          "tsconfig.json"
+        ],
+        "exitCode": 0,
+        "startedAt": "2026-10-21T10:53:51.6240708Z",
+        "endedAt": "2026-10-21T10:53:52.4853997Z"
+      },
+      {
+        "executable": "node",
+        "arguments": [
+          "C:\\npm\\prefix\\node_modules\\pnpm\\bin\\pnpm.cjs",
+          "--dir",
+          "D:\\a\\_temp\\manual-beta2-source\\public-plugins\\milkup.updates",
+          "exec",
+          "tsc",
+          "--noEmit",
+          "-p",
+          "tsconfig.json"
+        ],
+        "exitCode": 0,
+        "startedAt": "2026-10-21T10:53:52.4857103Z",
+        "endedAt": "2026-10-21T10:53:53.3433698Z"
+      },
+      {
+        "executable": "node",
+        "arguments": [
+          "C:\\npm\\prefix\\node_modules\\pnpm\\bin\\pnpm.cjs",
+          "--dir",
+          "D:\\a\\_temp\\manual-beta2-source\\public-plugins\\milkup.workspace",
+          "exec",
+          "tsc",
+          "--noEmit",
+          "-p",
+          "tsconfig.json"
+        ],
+        "exitCode": 0,
+        "startedAt": "2026-10-21T10:53:53.3436790Z",
+        "endedAt": "2026-10-21T10:53:54.1902298Z"
+      }
+    ]
+  },
+  {
+    "name": "verified-bundle-staging",
+    "startedAt": "2026-10-21T10:53:54.1926754Z",
+    "status": "passed",
+    "endedAt": "2026-10-21T10:53:54.3811915Z",
+    "commands": [
+      {
+        "executable": "node",
+        "arguments": [
+          "scripts/ci/stage-public-plugin-check.mjs",
+          "D:\\a\\_temp\\manual-beta2-source\\public-plugins"
+        ],
+        "exitCode": 0,
+        "startedAt": "2026-10-21T10:53:54.1936028Z",
+        "endedAt": "2026-10-21T10:53:54.3810983Z"
+      }
+    ]
+  },
+  {
+    "name": "workspace-tests",
+    "startedAt": "2026-10-21T10:53:54.3834034Z",
+    "status": "passed",
+    "endedAt": "2026-10-21T10:55:06.2811168Z",
+    "commands": [
+      {
+        "executable": "node",
+        "arguments": [
+          "C:\\npm\\prefix\\node_modules\\pnpm\\bin\\pnpm.cjs",
+          "test"
+        ],
+        "exitCode": 0,
+        "startedAt": "2026-10-21T10:53:54.3842969Z",
+        "endedAt": "2026-10-21T10:55:06.2809593Z"
+      }
+    ]
+  },
+  {
+    "name": "workspace-types",
+    "startedAt": "2026-10-21T10:55:06.2834816Z",
+    "status": "passed",
+    "endedAt": "2026-10-21T10:55:30.5169654Z",
+    "commands": [
+      {
+        "executable": "node",
+        "arguments": [
+          "C:\\npm\\prefix\\node_modules\\pnpm\\bin\\pnpm.cjs",
+          "typecheck"
+        ],
+        "exitCode": 0,
+        "startedAt": "2026-10-21T10:55:06.2843095Z",
+        "endedAt": "2026-10-21T10:55:30.5168492Z"
+      }
+    ]
+  },
+  {
+    "name": "workspace-build",
+    "startedAt": "2026-10-21T10:55:30.5195369Z",
+    "status": "passed",
+    "endedAt": "2026-10-21T10:55:55.0532704Z",
+    "commands": [
+      {
+        "executable": "node",
+        "arguments": [
+          "C:\\npm\\prefix\\node_modules\\pnpm\\bin\\pnpm.cjs",
+          "build"
+        ],
+        "exitCode": 0,
+        "startedAt": "2026-10-21T10:55:30.5204301Z",
+        "endedAt": "2026-10-21T10:55:55.0531673Z"
+      }
+    ]
+  },
+  {
+    "name": "desktop-check-all-targets",
+    "startedAt": "2026-10-21T10:55:55.0555201Z",
+    "status": "passed",
+    "endedAt": "2026-10-21T10:58:31.1438871Z",
+    "commands": [
+      {
+        "executable": "cargo",
+        "arguments": [
+          "check",
+          "--locked",
+          "--manifest-path",
+          "apps/desktop/src-tauri/Cargo.toml",
+          "--all-targets"
+        ],
+        "exitCode": 0,
+        "startedAt": "2026-10-21T10:55:55.0563896Z",
+        "endedAt": "2026-10-21T10:58:31.1437929Z"
+      }
+    ]
+  },
+  {
+    "name": "windows-updater-launch-tests",
+    "startedAt": "2026-10-21T10:58:31.1461479Z",
+    "status": "passed",
+    "endedAt": "2026-10-21T10:59:42.1963114Z",
+    "commands": [
+      {
+        "executable": "cargo",
+        "arguments": [
+          "test",
+          "--locked",
+          "--manifest-path",
+          "apps/desktop/src-tauri/Cargo.toml",
+          "-p",
+          "tauri-plugin-updater",
+          "--lib",
+          "windows_install::tests::",
+          "--",
+          "--list"
+        ],
+        "exitCode": 0,
+        "startedAt": "2026-10-21T10:58:31.1502987Z",
+        "endedAt": "2026-10-21T10:59:41.7185929Z"
+      },
+      {
+        "executable": "cargo",
+        "arguments": [
+          "test",
+          "--locked",
+          "--manifest-path",
+          "apps/desktop/src-tauri/Cargo.toml",
+          "-p",
+          "tauri-plugin-updater",
+          "--lib",
+          "windows_install::tests::",
+          "--",
+          "--nocapture",
+          "--test-threads=1"
+        ],
+        "exitCode": 0,
+        "startedAt": "2026-10-21T10:59:41.7226475Z",
+        "endedAt": "2026-10-21T10:59:42.1962297Z"
+      }
+    ]
+  },
+  {
+    "name": "desktop-full-library-tests",
+    "startedAt": "2026-10-21T10:59:42.1988264Z",
+    "status": "passed",
+    "endedAt": "2026-10-21T11:02:04.4317117Z",
+    "commands": [
+      {
+        "executable": "cargo",
+        "arguments": [
+          "test",
+          "--locked",
+          "--manifest-path",
+          "apps/desktop/src-tauri/Cargo.toml",
+          "--lib",
+          "--message-format=json"
+        ],
+        "exitCode": 0,
+        "evidence": "rust-test-result.json"
+      }
+    ]
+  },
+  {
+    "name": "desktop-production-compile-link",
+    "startedAt": "2026-10-21T11:02:04.4337943Z",
+    "status": "passed",
+    "endedAt": "2026-10-21T11:07:58.9066113Z",
+    "commands": [
+      {
+        "executable": "cargo",
+        "arguments": [
+          "build",
+          "--locked",
+          "--manifest-path",
+          "apps/desktop/src-tauri/Cargo.toml",
+          "--release",
+          "--bin",
+          "milkup-desktop",
+          "--features",
+          "tauri/custom-protocol"
+        ],
+        "exitCode": 0,
+        "startedAt": "2026-10-21T11:02:04.4350606Z",
+        "endedAt": "2026-10-21T11:07:58.8144535Z"
+      }
+    ]
+  },
+  {
+    "name": "tracked-source-unchanged",
+    "startedAt": "2026-10-21T11:07:58.9082612Z",
+    "status": "passed",
+    "endedAt": "2026-10-21T11:07:59.0812366Z",
+    "commands": [
+      {
+        "executable": "git",
+        "arguments": [
+          "diff",
+          "--exit-code"
+        ],
+        "exitCode": 0,
+        "startedAt": "2026-10-21T11:07:58.9093338Z",
+        "endedAt": "2026-10-21T11:07:59.0454338Z"
+      },
+      {
+        "executable": "git",
+        "arguments": [
+          "diff",
+          "--cached",
+          "--exit-code"
+        ],
+        "exitCode": 0,
+        "startedAt": "2026-10-21T11:07:59.0455695Z",
+        "endedAt": "2026-10-21T11:07:59.0811685Z"
+      }
+    ]
+  }
+]

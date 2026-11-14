@@ -1,0 +1,70 @@
+--- formal-revised
++++ segmented
+@@ -8,10 +8,10 @@
+ import { createHash } from 'node:crypto'
+ import { mkdir, readFile, writeFile, readdir, access } from 'node:fs/promises'
+ import path from 'node:path'
+-import { startProduction } from '../helpers/native-production.mjs'
+-import { ownedApplication } from '../helpers/native-owned-process.mjs'
+-import { ownNativeClipboard } from '../helpers/native-clipboard.mjs'
+-import { action, nativeFixture, x } from '../helpers/native-updates-fixture.mjs'
++import { startProduction } from '/workspace/milkup/tests/helpers/native-production.mjs'
++import { ownedApplication } from '/workspace/milkup/tests/helpers/native-owned-process.mjs'
++import { ownNativeClipboard } from '/workspace/milkup/tests/helpers/native-clipboard.mjs'
++import { action, nativeFixture, x } from '/workspace/milkup/tests/helpers/native-updates-fixture.mjs'
+ 
+ const evidence = '/workspace/milkup-markdown-extensions-phase4-evidence'
+ const output = path.resolve(process.env.MILKUP_NATIVE_EVIDENCE_DIR || path.join(evidence, 'native'))
+@@ -234,10 +234,10 @@
+ const harnessSources = await Promise.all(
+   [
+     import.meta.url,
+-    new URL('../helpers/native-production.mjs', import.meta.url).href,
+-    new URL('../helpers/native-updates-fixture.mjs', import.meta.url).href,
+-    new URL('../helpers/native-owned-process.mjs', import.meta.url).href,
+-    new URL('../helpers/native-clipboard.mjs', import.meta.url).href,
++    new URL('/workspace/milkup/tests/helpers/native-production.mjs', import.meta.url).href,
++    new URL('/workspace/milkup/tests/helpers/native-updates-fixture.mjs', import.meta.url).href,
++    new URL('/workspace/milkup/tests/helpers/native-owned-process.mjs', import.meta.url).href,
++    new URL('/workspace/milkup/tests/helpers/native-clipboard.mjs', import.meta.url).href,
+   ].map(async (url) => ({
+     file: new URL(url).pathname,
+     sha256: hash(await readFile(new URL(url))),
+@@ -1296,26 +1296,17 @@
+ }
+ try {
+   await start()
+-  if (!diagnosticInstall || process.env.MILKUP_NATIVE_DIAGNOSTIC_REUSE !== '1')
+-    await installExternal()
+-  if (diagnosticInstall) {
+-    await semantics('ordinary')
+-    await record('DIAGNOSTIC-install-semantics-complete', { acceptance: false })
+-  } else {
+-    for (const name of ['ordinary', 'windowed']) {
+-      await semantics(name)
+-      if (name === 'windowed') await remoteFootnote()
+-      for (const mode of ['source', 'live']) await editHistory(name, mode)
+-    }
+-    await visualMatrix()
+-    await disableAndRecover()
+-    await record('PASS', {
+-      matrixCases: 64,
+-      matrixSampleCaptures: 384,
+-      allTenDisabled: true,
+-      windowsFonts: 'not-tested',
+-    })
+-  }
++  await installExternal()
++  await visualMatrix()
++  await disableAndRecover()
++  await record('SEGMENTED-MATRIX-RECOVERY-COMPLETE', {
++    acceptance: false,
++    overallAcceptance: 'FAILED',
++    matrixCases: 64,
++    matrixSampleCaptures: 384,
++    allTenDisabled: true,
++    windowsFonts: 'not-tested',
++  })
+ } catch (error) {
+   await writeFile(
+     path.join(output, 'failure.json'),

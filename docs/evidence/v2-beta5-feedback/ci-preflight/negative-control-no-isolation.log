@@ -1,0 +1,30 @@
+✖ intentional negative control must execute and fail (1.855029ms)
+ℹ tests 1
+ℹ suites 0
+ℹ pass 0
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 17.32937
+
+✖ failing tests:
+
+test at ../milkup-beta5-evidence/node-test-execution-probe.mjs:7:1
+✖ intentional negative control must execute and fail (1.855029ms)
+  AssertionError [ERR_ASSERTION]: EXPECTED_NEGATIVE_CONTROL_NOT_PRODUCT_FAILURE
+  
+  1 !== 2
+  
+      at TestContext.<anonymous> (file:///tmp/milkup-beta5-evidence/node-test-execution-probe.mjs:9:10)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1382:25)
+      at Test.start (node:internal/test_runner/test:1242:17)
+      at startSubtestAfterBootstrap (node:internal/test_runner/harness:387:17) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: 1,
+    expected: 2,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }

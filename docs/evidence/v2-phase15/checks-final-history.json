@@ -1,0 +1,65 @@
+[
+  {
+    "name": "js-final",
+    "command": ["pnpm", "-r", "--workspace-concurrency=1", "test"],
+    "started": "2026-10-13T19:17:29.022286+00:00",
+    "exitCode": 0,
+    "log": "js-final-history.log"
+  },
+  {
+    "name": "supplemental-final",
+    "command": [
+      "pnpm",
+      "exec",
+      "vitest",
+      "run",
+      "plugins/outline/src/plugin.test.ts",
+      "tests/helpers/native-startup.test.ts"
+    ],
+    "started": "2026-10-13T19:17:53.643413+00:00",
+    "exitCode": 0,
+    "log": "supplemental-final-history.log"
+  },
+  {
+    "name": "typecheck-final",
+    "command": ["pnpm", "typecheck"],
+    "started": "2026-10-13T19:17:54.855865+00:00",
+    "exitCode": 0,
+    "log": "typecheck-final-history.log"
+  },
+  {
+    "name": "build-final",
+    "command": ["pnpm", "build"],
+    "started": "2026-10-13T19:18:06.041891+00:00",
+    "exitCode": 0,
+    "log": "build-final-history.log"
+  },
+  {
+    "name": "rust-final",
+    "command": ["cargo", "test", "--manifest-path", "apps/desktop/src-tauri/Cargo.toml", "--lib"],
+    "started": "2026-10-13T19:18:16.712793+00:00",
+    "exitCode": 0,
+    "log": "rust-final-history.log"
+  },
+  {
+    "name": "rust-fmt-final",
+    "command": ["cargo", "fmt", "--manifest-path", "apps/desktop/src-tauri/Cargo.toml", "--check"],
+    "started": "2026-10-13T19:18:17.188120+00:00",
+    "exitCode": 0,
+    "log": "rust-fmt-final-history.log"
+  },
+  {
+    "name": "browser-final",
+    "command": ["pnpm", "test:e2e", "--workers=1"],
+    "started": "2026-10-13T19:18:17.271282+00:00",
+    "exitCode": 0,
+    "log": "browser-final-history.log"
+  },
+  {
+    "name": "release-final",
+    "command": ["pnpm", "--filter", "@milkup/desktop", "tauri", "build", "--no-bundle"],
+    "started": "2026-10-13T19:19:06.416407+00:00",
+    "exitCode": 0,
+    "log": "release-final-history.log"
+  }
+]

@@ -1,0 +1,52 @@
+
+ RUN  v3.2.6 /workspace/milkup
+
+ ❯ apps/desktop/src/desktop-plugin-manager-catalog.test.ts (5 tests | 5 failed) 32ms
+   × P6 authoritative catalog transactions > stages without running or replacing old active approval; exact review is required 24ms
+     → Plugin cleanup did not fully complete
+   × P6 authoritative catalog transactions > tears old epoch down before trial, commits before publish, and recovers old version with new epoch on failure 2ms
+     → Plugin cleanup did not fully complete
+   × P6 authoritative catalog transactions > cannot grant candidate capabilities via pending approval or side effects during activate 2ms
+     → Plugin cleanup did not fully complete
+   × P6 authoritative catalog transactions > serializes queued approval and remove; tombstone keeps data/settings and never revives from mirror 1ms
+     → Plugin cleanup did not fully complete
+   × P6 authoritative catalog transactions > recovers a committed generation when contribution publication fails 1ms
+     → Plugin cleanup did not fully complete
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 5 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  apps/desktop/src/desktop-plugin-manager-catalog.test.ts > P6 authoritative catalog transactions > stages without running or replacing old active approval; exact review is required
+ FAIL  apps/desktop/src/desktop-plugin-manager-catalog.test.ts > P6 authoritative catalog transactions > tears old epoch down before trial, commits before publish, and recovers old version with new epoch on failure
+ FAIL  apps/desktop/src/desktop-plugin-manager-catalog.test.ts > P6 authoritative catalog transactions > cannot grant candidate capabilities via pending approval or side effects during activate
+ FAIL  apps/desktop/src/desktop-plugin-manager-catalog.test.ts > P6 authoritative catalog transactions > recovers a committed generation when contribution publication fails
+AggregateError: Plugin cleanup did not fully complete
+ ❯ DesktopPluginManager.unloadRuntimePlugin apps/desktop/src/desktop-plugin-manager.ts:1605:21
+    1603|     this.executingRecords.delete(pluginId)
+    1604|     if(errors.length) {
+    1605|       const failure=new AggregateError(errors,'Plugin cleanup did not …
+       |                     ^
+    1606|       this.managerDiagnostics.push(failure.message+': '+errors.map(Str…
+    1607|       if(this.registry.get(pluginId))this.registry.markFailed(pluginId…
+ ❯ DesktopPluginManager.trialCandidate apps/desktop/src/desktop-plugin-manager.ts:535:7
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/5]⎯
+
+ FAIL  apps/desktop/src/desktop-plugin-manager-catalog.test.ts > P6 authoritative catalog transactions > serializes queued approval and remove; tombstone keeps data/settings and never revives from mirror
+AggregateError: Plugin cleanup did not fully complete
+ ❯ DesktopPluginManager.unloadRuntimePlugin apps/desktop/src/desktop-plugin-manager.ts:1605:21
+    1603|     this.executingRecords.delete(pluginId)
+    1604|     if(errors.length) {
+    1605|       const failure=new AggregateError(errors,'Plugin cleanup did not …
+       |                     ^
+    1606|       this.managerDiagnostics.push(failure.message+': '+errors.map(Str…
+    1607|       if(this.registry.get(pluginId))this.registry.markFailed(pluginId…
+ ❯ apps/desktop/src/desktop-plugin-manager.ts:858:13
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/5]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  5 failed (5)
+   Start at  08:38:31
+   Duration  1.41s (transform 686ms, setup 0ms, collect 925ms, tests 32ms, environment 0ms, prepare 76ms)
+

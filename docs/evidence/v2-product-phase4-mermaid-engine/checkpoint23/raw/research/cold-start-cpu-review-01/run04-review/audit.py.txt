@@ -1,0 +1,54 @@
+"""Offline frozen-run audit only. No live proc, process creation or candidate execution."""
+from pathlib import Path
+import hashlib,json,collections,importlib.util
+BASE=Path('/workspace/milkup-mermaid-engine-evidence/research')
+OUT=BASE/'cold-start-cpu-review-01/run04-review'
+RUNBASE=BASE/'native-cold-start-diagnostic-04'
+RUN=RUNBASE/'runtime/mermaid-ui-cold-diag-04'
+def save(name,data): (OUT/name).write_text(json.dumps(data,indent=2)+'\n')
+manifest=RUNBASE/'run04-frozen-manifest.json';m=json.loads(manifest.read_text());verified=[]
+for entry in m['files']:
+ p=Path(entry['path']);raw=p.read_bytes();verified.append(dict(path=str(p),bytes=len(raw),byteMatch=len(raw)==entry['bytes'],hashMatch=hashlib.sha256(raw).hexdigest()==entry['sha256']))
+save('manifest-verification.json',dict(manifestSha256=hashlib.sha256(manifest.read_bytes()).hexdigest(),fileCount=len(verified),totalBytes=sum(x['bytes'] for x in verified),allMatch=all(x['byteMatch'] and x['hashMatch'] for x in verified),files=verified))
+spec=importlib.util.spec_from_file_location('offline',BASE/'cold-start-cpu-review-01/postrun_verify.py');offline=importlib.util.module_from_spec(spec);spec.loader.exec_module(offline)
+save('offline-audit.json',offline.verify(RUN))
+s=json.loads((RUN/'cpu-observer/summary.json').read_text());rows=[json.loads(x) for x in (RUN/'cpu-observer/samples.ndjson').read_text().splitlines()];hz=s['clockTicksPerSecond'];known={(x['pid'],x['birth']):x for x in s['knownIdentities']}
+checks=[]
+def check(label,value,**kw):checks.append(dict(check=label,passed=bool(value),**kw))
+proofs=[]
+for key,origin in known.items():
+ if 'pidfdProof' not in origin:continue
+ p=origin['pidfdProof'];owner=known[(p['ownerPid'],p['ownerBirth'])];targetpair=[p['targetBefore'],p['targetAfter']];ownerpair=[p['ownerBefore'],p['ownerAfter']]
+ check('target-double-stat-birth-parent-live',all((x['pid'],x['birth'])==key and x['parent']==owner['pid'] and x['birth']>=owner['birth'] and x['state'] not in ['Z','X','x'] for x in targetpair),pid=key[0])
+ check('owner-double-stat-birth',all((x['pid'],x['birth'])==(owner['pid'],owner['birth']) for x in ownerpair),pid=key[0])
+ fields={k:v.strip() for k,v in (line.split(':',1) for line in p['fdinfoBefore'].splitlines())}
+ check('raw-fdinfo-repeated-Pid-NSpid',p['fdinfoBefore']==p['fdinfoAfter'] and int(fields['Pid'])==key[0] and list(map(int,fields['NSpid'].split()))==p['pidFields']['nspid'],pid=key[0])
+ av=origin['argvEvidence'];raw=bytes.fromhex(av['rawHex']);argv=raw.rstrip(b'\0').decode().split('\0')
+ check('argv-raw-parsed-bounded-time',argv==av['parsed'] and len(raw)<=av['byteLimit'] and p['firstReadStartNs']<=av['readStartNs']<=av['readEndNs']<=p['secondReadEndNs']<=origin['firstSeenNs']<=origin['firstSampleNs'],pid=key[0])
+ expected='renderer-leader' if argv==[s['app']['argv'][0],'--milkup-internal-dom-helper'] and owner['role']=='guardian' else 'webkit-network' if Path(argv[0]).name=='WebKitNetworkProcess' else 'webkit-web' if Path(argv[0]).name=='WebKitWebProcess' else 'renderer-descendant'
+ check('binding-time-role',origin['role']==expected,pid=key[0])
+ proofs.append(dict(pid=key[0],birth=key[1],parent=owner['pid'],ownerStates=[x['state'] for x in ownerpair],fd=p['fd'],argv=argv,role=origin['role']))
+records=s['pidfdRecords'];status=collections.Counter(x['status'] for x in records)
+check('pidfd-nonordinary-status-counts',all(status[k]==v for k,v in s['pidfdStatusCounts'].items() if k!='not-pidfd'))
+check('fdinfo-read-accounting',s['pidfdReadAttempts']==s['pidfdStatusCounts']['not-pidfd']+2*s['pidfdStatusCounts']['verified-direct-child'])
+check('round-count-sums',len(s['discoveryRounds'])==s['discoveryCount'] and sum(x['fdinfoReadAttempts'] for x in s['discoveryRounds'])==s['pidfdReadAttempts'] and sum(x['taskEntries'] for x in s['discoveryRounds'])==s['discoveryTasks'])
+check('reported-round-caps',all(x['fdCandidates']<=128 and x['fdinfoReadAttempts']<=128 and x['taskEntries']<=128 for x in s['discoveryRounds']))
+save('identity-proof-audit.json',dict(allChecksPass=all(c['passed'] for c in checks),checks=checks,proofs=proofs,repeatedVerificationCounts=[dict(ownerPid=k[0],targetPid=k[1],count=v) for k,v in collections.Counter((x['ownerPid'],x['targetPid']) for x in records if x['status']=='verified-direct-child').items()],gaps=[x for x in records if x['coverageGap']],qualifications=['Only first-adoption full raw proofs are saved; 36 repeats have status/time/Pid but not their full raw stat/fdinfo snapshots.','All saved proof owner states are live; source same(owner) tests birth only, not terminal state.','Ordinary not-pidfd results retain aggregate counts only: no owner/FD/raw details. No absence proof for a WebProcess or bwrap children.','Round caps independently checked from retained rounds; per-owner read counts are not retained separately, bounded by frozen code only.']))
+processes=[];dispatches=[x for x in s['nativeEvents'] if x['phase']=='dispatch'];first_dispatch=min(x['monotonicNs'] for x in dispatches)
+for key,origin in known.items():
+ vals=[member for row in rows for member in row['members'] if (member['pid'],member['birth'])==key]
+ good=[x for x in vals if x['status']=='sample'];a=good[0];z=good[-1]
+ intervals=[]
+ for left,right in zip(vals,vals[1:]):
+  if left['status']!='sample' or right['status']!='sample':continue
+  assert left['readEndNs']<=right['readStartNs']
+  delta=right['userTicks']+right['systemTicks']-left['userTicks']-left['systemTicks'];assert delta>=0
+  sd={k:right['leaderSchedstat'][k]-v for k,v in left['leaderSchedstat'].items()} if left.get('leaderSchedstat') and right.get('leaderSchedstat') else None
+  if sd:assert all(v>=0 for v in sd.values())
+  intervals.append(dict(firstReadStartNs=left['readStartNs'],lastReadEndNs=right['readEndNs'],cpuTicks=delta,cpuSeconds=delta/hz,leaderSchedstatDelta=sd))
+ processes.append(dict(pid=key[0],birth=key[1],role=origin['role'],argv=origin.get('argvEvidence',{}).get('parsed'),validSamples=len(good),otherSampleStatuses=[x['status'] for x in vals if x['status']!='sample'],firstSeenNs=origin['firstSeenNs'],birthQuantizationMs=1000/hz,firstSeenMinusBirthTickMs=(origin['firstSeenNs']-key[1]*1e9/hz)/1e6,firstSampleMinusFirstSeenMs=(a['readStartNs']-origin['firstSeenNs'])/1e6,firstSeenMinusFirstDispatchMs=(origin['firstSeenNs']-first_dispatch)/1e6,firstReadStartNs=a['readStartNs'],lastReadEndNs=z['readEndNs'],sampleSpanSeconds=(z['readStartNs']-a['readStartNs'])/1e9,firstCounterTicks=a['userTicks']+a['systemTicks'],lastCounterTicks=z['userTicks']+z['systemTicks'],cpuSeconds=sum(x['cpuSeconds'] for x in intervals),leaderRuntimeNs=sum(x['leaderSchedstatDelta']['runtimeNs'] for x in intervals),leaderWaitNs=sum(x['leaderSchedstatDelta']['runqueueWaitNs'] for x in intervals),intervals=intervals))
+save('full-observed-intervals.json',dict(scope='Per PID first-to-last observed adjacent sample intervals; not individual render request durations',processes=processes))
+rawnative=[json.loads(l[18:]) for l in (RUN/'driver.log').read_text().splitlines() if l.startswith('DOM_NATIVE_TIMING ')];cap=[json.loads(l) for l in (RUN/'native-capture/events.jsonl').read_text().splitlines()];complete=json.loads((RUN/'native-capture/complete.json').read_text())
+timeline=dict(rawNativeEvents=rawnative,cpuNativeEvents=s['nativeEvents'],captureEvents=[{k:v for k,v in e.items() if k not in ['wire']} for e in cap],captureClosedNs=complete['monotonicNs'],lastSampleEndNs=max(x['readEndNs'] for row in rows for x in row['members'] if x['status']=='sample'),observerFinishedNs=s['finishedMonoNs'],nativeCaptureFinal=complete,overhead=s['overhead'],sampleQuality={k:s[k] for k in ['sampleCount','sampleIncomplete','evictedRows','skippedSlots','maxLateNs']},discoveryRounds=s['discoveryRounds'])
+save('timeline-quality.json',timeline)
+print(json.dumps(dict(manifestFiles=len(verified),manifestAllMatch=all(x['byteMatch'] and x['hashMatch'] for x in verified),proofChecksAllPass=all(x['passed'] for x in checks),processes=[{k:v for k,v in x.items() if k!='intervals'} for x in processes],tail={k:timeline[k] for k in ['captureClosedNs','lastSampleEndNs','observerFinishedNs']}),indent=2))

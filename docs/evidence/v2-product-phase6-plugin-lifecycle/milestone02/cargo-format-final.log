@@ -1,0 +1,94 @@
+Diff in /workspace/milkup/apps/desktop/src-tauri/src/lib.rs:410:
+ 
+ #[tauri::command]
+ async fn plugin_catalog_read(app: AppHandle) -> Result<serde_json::Value, String> {
+-    let root = app.path().app_data_dir().map_err(|e| e.to_string())?.join("plugins");
++    let root = app
++        .path()
++        .app_data_dir()
++        .map_err(|e| e.to_string())?
++        .join("plugins");
+     tauri::async_runtime::spawn_blocking(move || plugin_catalog::read(&root))
+-        .await.map_err(|e| e.to_string())?
++        .await
++        .map_err(|e| e.to_string())?
+ }
+ 
+ #[tauri::command]
+Diff in /workspace/milkup/apps/desktop/src-tauri/src/lib.rs:422:
+     source_path: String,
+     expected_revision: Option<u64>,
+ ) -> Result<serde_json::Value, String> {
+-    let root = app.path().app_data_dir().map_err(|e| e.to_string())?.join("plugins");
++    let root = app
++        .path()
++        .app_data_dir()
++        .map_err(|e| e.to_string())?
++        .join("plugins");
+     tauri::async_runtime::spawn_blocking(move || {
+         plugin_catalog::prepare(&root, archive, source_path, expected_revision)
+-    }).await.map_err(|e| e.to_string())?
++    })
++    .await
++    .map_err(|e| e.to_string())?
+ }
+ 
+ #[tauri::command]
+Diff in /workspace/milkup/apps/desktop/src-tauri/src/lib.rs:435:
+     expected_revision: u64,
+     action: serde_json::Value,
+ ) -> Result<serde_json::Value, String> {
+-    let root = app.path().app_data_dir().map_err(|e| e.to_string())?.join("plugins");
++    let root = app
++        .path()
++        .app_data_dir()
++        .map_err(|e| e.to_string())?
++        .join("plugins");
+     tauri::async_runtime::spawn_blocking(move || {
+         plugin_catalog::transition(&root, &plugin_id, expected_revision, action)
+-    }).await.map_err(|e| e.to_string())?
++    })
++    .await
++    .map_err(|e| e.to_string())?
+ }
+ 
+ #[tauri::command]
+Diff in /workspace/milkup/apps/desktop/src-tauri/src/lib.rs:447:
+     legacy_raw: String,
+     validation: Option<serde_json::Value>,
+ ) -> Result<serde_json::Value, String> {
+-    let root = app.path().app_data_dir().map_err(|e| e.to_string())?.join("plugins");
++    let root = app
++        .path()
++        .app_data_dir()
++        .map_err(|e| e.to_string())?
++        .join("plugins");
+     tauri::async_runtime::spawn_blocking(move || {
+         plugin_catalog::migrate(&root, &legacy_raw, validation)
+     })
+Diff in /workspace/milkup/apps/desktop/src-tauri/src/lib.rs:454:
+-        .await.map_err(|e| e.to_string())?
++    .await
++    .map_err(|e| e.to_string())?
+ }
+ 
+ #[tauri::command]
+Diff in /workspace/milkup/apps/desktop/src-tauri/src/lib.rs:460:
+     plugin_id: String,
+     generation: String,
+ ) -> Result<String, String> {
+-    let root = app.path().app_data_dir().map_err(|e| e.to_string())?.join("plugins");
++    let root = app
++        .path()
++        .app_data_dir()
++        .map_err(|e| e.to_string())?
++        .join("plugins");
+     tauri::async_runtime::spawn_blocking(move || {
+         plugin_catalog::read_worker_module(&root, &plugin_id, &generation)
+-    }).await.map_err(|e| e.to_string())?
++    })
++    .await
++    .map_err(|e| e.to_string())?
+ }
+ 
+ #[tauri::command]

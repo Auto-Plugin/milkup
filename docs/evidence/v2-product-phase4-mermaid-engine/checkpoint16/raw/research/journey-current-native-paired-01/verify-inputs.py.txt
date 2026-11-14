@@ -1,0 +1,6 @@
+from pathlib import Path
+import hashlib,json
+R=Path(__file__).resolve().parent
+for row in json.loads((R/'prepared-inputs.json').read_text())['files']:
+ p=Path(row['path']);b=p.read_bytes();assert len(b)==row['bytes'] and hashlib.sha256(b).hexdigest()==row['sha256'],str(p)
+print('Frozen preparation inputs unchanged')

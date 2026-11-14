@@ -1,0 +1,33 @@
+{
+  "scope": "Read-only CSS and matrix review; product unchanged; DISPLAY 126 unused",
+  "input": "../native-ui/runs/p5-large-02/layout-matrix.json",
+  "facts": {
+    "rows": 32,
+    "passed": 28,
+    "failed": 4,
+    "failedWindow": [760, 520],
+    "failedZoom": 2,
+    "cssViewport": [380, 260],
+    "affected": "format/scope/resources select controls in both themes and source/live",
+    "selectRectAfterIndividualFocus": [0, 185, 319, 44],
+    "hits": [true, false, true, false],
+    "rightSampleX": 309,
+    "button": "95px-wide start button passes all samples"
+  },
+  "css": [
+    "style.css:2546 plugin-form and plugin-form-field use grid minmax(0,1fr) and min-width:0.",
+    "style.css:2567 plugin-form-control already has width:100%, box-sizing:border-box and min-width:0. Adding min-width:0 again would not address a new mechanism.",
+    "style.css:2220 narrow sidebar uses width:min(320px,calc(100% - 24px)) and 1px right border. The select's 319px measured width matches this interior, not viewport overflow.",
+    "style.css:2230 narrow sidebar slot uses overflow:auto. Generic panel and body use overflow:hidden. Very short viewport can introduce scrolling at more than one ancestor.",
+    "desktop-plugin-ui.ts focusin calls scrollIntoView({block:'nearest',inline:'nearest'}), so per-control focus can alter scroll positions. The saved matrix screenshot follows the final button focus, not the failed select focus."
+  ],
+  "assessment": "No demonstrated intrinsic select sizing or viewport overflow defect. A scrollbar/overlay or ancestor clipping affecting the right sample is a plausible mechanism, but cornerHits=false alone proves neither visual clipping nor inability to operate the control.",
+  "pendingNativeObservations": [
+    "Screenshot while each failed select is focused, before focusing the next control.",
+    "elementFromPoint identity and ancestor chain at both right corners, right-center and control center.",
+    "Each ancestor's rect, clientWidth, offsetWidth, scrollWidth, clientHeight, scrollHeight, scrollLeft/Top, overflowX/Y and any clipping.",
+    "Repeat samples after pointer moves away and idle delay to distinguish transient overlay scrollbar hit behavior.",
+    "Real pointer activation at visible dropdown arrow/center, real keyboard option change, and resulting controlled field state; restore initial values afterward."
+  ],
+  "decision": "Do not change shared CSS until these observations establish an actual clipped or unusable control. If a scrollbar covers the control, address the measured scroll owner/gutter instead of arbitrary select max-width or plugin-specific selectors."
+}

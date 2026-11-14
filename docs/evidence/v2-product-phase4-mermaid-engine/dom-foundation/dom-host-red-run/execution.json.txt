@@ -1,0 +1,40 @@
+[
+  {
+    "name": "plugin",
+    "command": [
+      "pnpm",
+      "--filter",
+      "@milkup/plugin",
+      "exec",
+      "vitest",
+      "run",
+      "src/manifest-dom.test.ts",
+      "src/package-dom.test.ts",
+      "src/registry-dom.test.ts",
+      "--maxWorkers=2",
+      "--minWorkers=1"
+    ],
+    "started": "2026-10-16T10:04:21.680445+00:00",
+    "finished": "2026-10-16T10:04:24.848265+00:00",
+    "exitCode": 1,
+    "log": "plugin.log"
+  },
+  {
+    "name": "desktop",
+    "command": [
+      "pnpm",
+      "--filter",
+      "@milkup/desktop",
+      "exec",
+      "vitest",
+      "run",
+      "src/desktop-plugin-manager-dom.test.ts",
+      "--maxWorkers=2",
+      "--minWorkers=1"
+    ],
+    "started": "2026-10-16T10:04:24.848796+00:00",
+    "finished": "2026-10-16T10:04:28.896655+00:00",
+    "exitCode": 1,
+    "log": "desktop.log"
+  }
+]

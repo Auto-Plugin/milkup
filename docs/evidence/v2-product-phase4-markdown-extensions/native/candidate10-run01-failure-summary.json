@@ -1,0 +1,62 @@
+{
+  "candidate": "10",
+  "acceptance": false,
+  "exitCode": 1,
+  "classification": "GTK native crash; external installation blocked; environment-versus-product root cause unconfirmed",
+  "binarySha256": "12fe5aa449d3e650b2c89da593330d52fc3b72851397014bb6529bf211526995",
+  "harnessSha256": "1c6e05423abf0acd304b66e03056115c333b697179fbdb2657fb4df55f837fa2",
+  "failure": {
+    "error": "Error: Timeout: normal GTK Open File picker",
+    "stack": "Error: Timeout: normal GTK Open File picker\n    at Object.until (file:///workspace/milkup/tests/helpers/native-production.mjs:46:11)\n    at async Object.picker (file:///workspace/milkup/tests/helpers/native-updates-fixture.mjs:169:16)\n    at async nativePicker (file:///workspace/milkup/tests/native/tauri-markdown-extensions.mjs:709:5)\n    at async installExternal (file:///workspace/milkup/tests/native/tauri-markdown-extensions.mjs:800:5)\n    at async file:///workspace/milkup/tests/native/tauri-markdown-extensions.mjs:1300:5"
+  },
+  "completed": ["00-installed-distribution", "installed-milkup.math", "enabled-milkup.math"],
+  "notReached": [
+    "diagrams/footnotes installation and enable",
+    "ordinary/windowed semantics and history",
+    "far footnote",
+    "64x6matrix",
+    "all-disabled/recovery"
+  ],
+  "nativeLog": "/workspace/milkup-markdown-extensions-phase4-evidence/native/driver-candidate10-run01.log",
+  "timeline": [
+    "05:56:04.916 startup window after3149ms",
+    "05:56:17 GTK tree-model assertions during picker lifecycle",
+    "05:56:30.926 GTK filesystem info Bad address",
+    "05:56:30.930 pixbuf warning then gtkiconhelper fatal image-missing.svg unrecognized format"
+  ],
+  "environmentScript": {
+    "path": "/workspace/milkup-markdown-extensions-phase4-evidence/native/environment/run-env-candidate10.sh",
+    "sha256": "4b6ac93cfa7259ebaf6e33887790390e3c405983c101037e59676f14dc5fb0f8",
+    "text": "source /workspace/.cloud/milkup-v2/env.sh\nexport DISPLAY=:118\nexport GDK_PIXBUF_MODULE_FILE=/workspace/milkup-markdown-extensions-phase4-evidence/native/environment/loaders-sysroot.cache\nexport GDK_PIXBUF_MODULEDIR=/workspace/.cloud/milkup-v2/sysroot/usr/lib/x86_64-linux-gnu/gdk-pixbuf-2.0/2.10.0/loaders\nexport PROOT_NO_SECCOMP=1\nexport XDG_CONFIG_HOME=/workspace/milkup-markdown-extensions-phase4-evidence/native/profile-${MILKUP_RUN}/config\nexport XDG_CACHE_HOME=/workspace/milkup-markdown-extensions-phase4-evidence/native/profile-${MILKUP_RUN}/cache\nexport XDG_DATA_HOME=/workspace/milkup-markdown-extensions-phase4-evidence/native/profile-${MILKUP_RUN}/data\nexport TAURI_APP_PATH=/workspace/milkup-markdown-extensions-phase4-evidence/native/install-candidate10/usr/bin/milkup-desktop\nexport TAURI_DRIVER_URL=http://127.0.0.1:4618\nexport MILKUP_RECOVERY_PROFILE=$XDG_DATA_HOME/app.milkup.desktop/recovery-v1\nexport MILKUP_NATIVE_EVIDENCE_DIR=/workspace/milkup-markdown-extensions-phase4-evidence/native/run-${MILKUP_RUN}\nexport MILKUP_NATIVE_EXCLUSIVE_DISPLAY=1\nexport MILKUP_MARKDOWN_BINARY_CONFIRMED=1\nexport MILKUP_MARKDOWN_ARCHIVES_JSON='{\"milkup.math\":\"/workspace/milkup-markdown-extensions-phase4-evidence/math/external-crlf-final/dist/milkup.math-1.0.0.milkup-plugin\",\"milkup.diagrams\":\"/workspace/milkup-markdown-extensions-phase4-evidence/diagrams/external/dist/milkup.diagrams-1.0.0.milkup-plugin\",\"milkup.footnotes\":\"/workspace/milkup-markdown-extensions-phase4-evidence/footnotes/external-revision-final/dist/milkup.footnotes-1.0.0.milkup-plugin\"}'\nmkdir -p \"$XDG_CONFIG_HOME\" \"$XDG_CACHE_HOME\" \"$XDG_DATA_HOME\" \"$MILKUP_NATIVE_EVIDENCE_DIR\"\n\nexport MILKUP_MARKDOWN_BINARY_SHA256=12fe5aa449d3e650b2c89da593330d52fc3b72851397014bb6529bf211526995\n"
+  },
+  "appProcessesRemainingAtCleanup": [],
+  "cleanup": [
+    {
+      "pid": 139874,
+      "argv": [
+        "/workspace/.cargo/bin/tauri-driver",
+        "--port",
+        "4618",
+        "--native-port",
+        "4619",
+        "--native-driver",
+        "/workspace/.cloud/milkup-v2/sysroot/usr/bin/WebKitWebDriver"
+      ],
+      "statBefore": "139874 (tauri-driver) S 139872 139865 139865 0 -1 4194560 570 0 0 0 6 7 0 0 20 0 1 0 1776639 21110784 512 18446744073709551615 1 1 0 0 0 0 0 4096 17478 0 0 0 17 4 0 0 0 0 0 0 0 0 0 0 0 0 0\n"
+    },
+    {
+      "pid": 139875,
+      "argv": [
+        "/workspace/.cloud/milkup-v2/sysroot/usr/bin/WebKitWebDriver",
+        "--port=4619",
+        "--host=127.0.0.1"
+      ],
+      "statBefore": "139875 (WebKitWebDriver) S 139874 139865 139865 0 -1 4194560 4141 49853 0 0 25 22 163 251 20 0 5 0 1776640 69401624576 3158 18446744073709551615 1 1 0 0 0 0 0 4096 512 0 0 0 17 2 0 0 0 0 0 0 0 0 0 0 0 0 0\n"
+    }
+  ],
+  "limits": [
+    "Native process crashed before failure screenshot could be obtained; preserved prior actual screenshots and complete driver/harnesslogs.",
+    "No new decode/GTKdiagnostic, no environment/sandbox/product change, no retry.",
+    "Same symptom as candidate08run01 does not prove identical root cause or missingloader; prior sameproot static decode succeeded."
+  ]
+}

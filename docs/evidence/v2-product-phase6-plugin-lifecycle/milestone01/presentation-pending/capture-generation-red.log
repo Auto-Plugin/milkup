@@ -1,0 +1,4351 @@
+
+ RUN  v3.2.6 /workspace/milkup
+
+ ❯ apps/desktop/src/output-presentations-readiness.test.ts (9 tests | 2 failed) 87ms
+   ✓ explicit per-document preparation readiness > waits for the first stable-version result and does not retain a temporary warning 13ms
+   ✓ explicit per-document preparation readiness > does not retry permanent incomplete output from existing plugins 1ms
+   ✓ explicit per-document preparation readiness > bounds pending retries by the original absolute preparation deadline 3ms
+   ✓ explicit per-document preparation readiness > cancels preparation between attempts without dispatching another request 2ms
+   ✓ explicit per-document preparation readiness > rejects a changed capture before another pending attempt 1ms
+   ✓ explicit per-document preparation readiness > does not dispatch again after the provider is disabled while preparing 1ms
+   × explicit per-document preparation readiness > does not reuse preparation after disable and re-enable of the same renderer ID 9ms
+     → expected undefined to match object { code: 'revoked' }
+   × explicit per-document preparation readiness > revokes earlier completed windows when the provider changes during a later window 52ms
+     → promise resolved "{ …(2) }" instead of rejecting
+   ✓ explicit per-document preparation readiness > retries only the pending provider, retaining other completed providers 3ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  apps/desktop/src/output-presentations-readiness.test.ts > explicit per-document preparation readiness > does not reuse preparation after disable and re-enable of the same renderer ID
+AssertionError: expected undefined to match object { code: 'revoked' }
+
+- Expected: 
+{
+  "code": "revoked",
+}
+
++ Received: 
+undefined
+
+ ❯ apps/desktop/src/output-presentations-readiness.test.ts:124:27
+    122|     render.mockResolvedValue({ complete: true, fragments: [] })
+    123|     await vi.advanceTimersByTimeAsync(250)
+    124|     expect(await outcome).toMatchObject({ code: 'revoked' })
+       |                           ^
+    125|     expect(render).toHaveBeenCalledTimes(1)
+    126|   })
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯
+
+ FAIL  apps/desktop/src/output-presentations-readiness.test.ts > explicit per-document preparation readiness > revokes earlier completed windows when the provider changes during a later window
+AssertionError: promise resolved "{ …(2) }" instead of rejecting
+
+- Expected
++ Received
+
+- Error {
+-   "message": "rejected promise",
++ {
++   "presentations": [
++     {
++       "declarations": [
++         {
++           "contexts": [
++             "text",
++           ],
++           "id": "references",
++           "pluginId": "independent.index",
++         },
++       ],
++       "request": {
++         "blocks": [
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 0,
++                 "to": 1,
++               },
++             ],
++             "from": 0,
++             "kind": "text",
++             "to": 1,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 2,
++                 "to": 2,
++               },
++             ],
++             "from": 2,
++             "kind": "text",
++             "to": 2,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 3,
++                 "to": 4,
++               },
++             ],
++             "from": 3,
++             "kind": "text",
++             "to": 4,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 5,
++                 "to": 5,
++               },
++             ],
++             "from": 5,
++             "kind": "text",
++             "to": 5,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 6,
++                 "to": 7,
++               },
++             ],
++             "from": 6,
++             "kind": "text",
++             "to": 7,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 8,
++                 "to": 8,
++               },
++             ],
++             "from": 8,
++             "kind": "text",
++             "to": 8,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 9,
++                 "to": 10,
++               },
++             ],
++             "from": 9,
++             "kind": "text",
++             "to": 10,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 11,
++                 "to": 11,
++               },
++             ],
++             "from": 11,
++             "kind": "text",
++             "to": 11,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 12,
++                 "to": 13,
++               },
++             ],
++             "from": 12,
++             "kind": "text",
++             "to": 13,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 14,
++                 "to": 14,
++               },
++             ],
++             "from": 14,
++             "kind": "text",
++             "to": 14,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 15,
++                 "to": 16,
++               },
++             ],
++             "from": 15,
++             "kind": "text",
++             "to": 16,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 17,
++                 "to": 17,
++               },
++             ],
++             "from": 17,
++             "kind": "text",
++             "to": 17,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 18,
++                 "to": 19,
++               },
++             ],
++             "from": 18,
++             "kind": "text",
++             "to": 19,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 20,
++                 "to": 20,
++               },
++             ],
++             "from": 20,
++             "kind": "text",
++             "to": 20,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 21,
++                 "to": 22,
++               },
++             ],
++             "from": 21,
++             "kind": "text",
++             "to": 22,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 23,
++                 "to": 23,
++               },
++             ],
++             "from": 23,
++             "kind": "text",
++             "to": 23,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 24,
++                 "to": 25,
++               },
++             ],
++             "from": 24,
++             "kind": "text",
++             "to": 25,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 26,
++                 "to": 26,
++               },
++             ],
++             "from": 26,
++             "kind": "text",
++             "to": 26,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 27,
++                 "to": 28,
++               },
++             ],
++             "from": 27,
++             "kind": "text",
++             "to": 28,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 29,
++                 "to": 29,
++               },
++             ],
++             "from": 29,
++             "kind": "text",
++             "to": 29,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 30,
++                 "to": 31,
++               },
++             ],
++             "from": 30,
++             "kind": "text",
++             "to": 31,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 32,
++                 "to": 32,
++               },
++             ],
++             "from": 32,
++             "kind": "text",
++             "to": 32,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 33,
++                 "to": 34,
++               },
++             ],
++             "from": 33,
++             "kind": "text",
++             "to": 34,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 35,
++                 "to": 35,
++               },
++             ],
++             "from": 35,
++             "kind": "text",
++             "to": 35,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 36,
++                 "to": 37,
++               },
++             ],
++             "from": 36,
++             "kind": "text",
++             "to": 37,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 38,
++                 "to": 38,
++               },
++             ],
++             "from": 38,
++             "kind": "text",
++             "to": 38,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 39,
++                 "to": 40,
++               },
++             ],
++             "from": 39,
++             "kind": "text",
++             "to": 40,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 41,
++                 "to": 41,
++               },
++             ],
++             "from": 41,
++             "kind": "text",
++             "to": 41,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 42,
++                 "to": 43,
++               },
++             ],
++             "from": 42,
++             "kind": "text",
++             "to": 43,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 44,
++                 "to": 44,
++               },
++             ],
++             "from": 44,
++             "kind": "text",
++             "to": 44,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 45,
++                 "to": 46,
++               },
++             ],
++             "from": 45,
++             "kind": "text",
++             "to": 46,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 47,
++                 "to": 47,
++               },
++             ],
++             "from": 47,
++             "kind": "text",
++             "to": 47,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 48,
++                 "to": 49,
++               },
++             ],
++             "from": 48,
++             "kind": "text",
++             "to": 49,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 50,
++                 "to": 50,
++               },
++             ],
++             "from": 50,
++             "kind": "text",
++             "to": 50,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 51,
++                 "to": 52,
++               },
++             ],
++             "from": 51,
++             "kind": "text",
++             "to": 52,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 53,
++                 "to": 53,
++               },
++             ],
++             "from": 53,
++             "kind": "text",
++             "to": 53,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 54,
++                 "to": 55,
++               },
++             ],
++             "from": 54,
++             "kind": "text",
++             "to": 55,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 56,
++                 "to": 56,
++               },
++             ],
++             "from": 56,
++             "kind": "text",
++             "to": 56,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 57,
++                 "to": 58,
++               },
++             ],
++             "from": 57,
++             "kind": "text",
++             "to": 58,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 59,
++                 "to": 59,
++               },
++             ],
++             "from": 59,
++             "kind": "text",
++             "to": 59,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 60,
++                 "to": 61,
++               },
++             ],
++             "from": 60,
++             "kind": "text",
++             "to": 61,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 62,
++                 "to": 62,
++               },
++             ],
++             "from": 62,
++             "kind": "text",
++             "to": 62,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 63,
++                 "to": 64,
++               },
++             ],
++             "from": 63,
++             "kind": "text",
++             "to": 64,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 65,
++                 "to": 65,
++               },
++             ],
++             "from": 65,
++             "kind": "text",
++             "to": 65,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 66,
++                 "to": 67,
++               },
++             ],
++             "from": 66,
++             "kind": "text",
++             "to": 67,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 68,
++                 "to": 68,
++               },
++             ],
++             "from": 68,
++             "kind": "text",
++             "to": 68,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 69,
++                 "to": 70,
++               },
++             ],
++             "from": 69,
++             "kind": "text",
++             "to": 70,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 71,
++                 "to": 71,
++               },
++             ],
++             "from": 71,
++             "kind": "text",
++             "to": 71,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 72,
++                 "to": 73,
++               },
++             ],
++             "from": 72,
++             "kind": "text",
++             "to": 73,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 74,
++                 "to": 74,
++               },
++             ],
++             "from": 74,
++             "kind": "text",
++             "to": 74,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 75,
++                 "to": 76,
++               },
++             ],
++             "from": 75,
++             "kind": "text",
++             "to": 76,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 77,
++                 "to": 77,
++               },
++             ],
++             "from": 77,
++             "kind": "text",
++             "to": 77,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 78,
++                 "to": 79,
++               },
++             ],
++             "from": 78,
++             "kind": "text",
++             "to": 79,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 80,
++                 "to": 80,
++               },
++             ],
++             "from": 80,
++             "kind": "text",
++             "to": 80,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 81,
++                 "to": 82,
++               },
++             ],
++             "from": 81,
++             "kind": "text",
++             "to": 82,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 83,
++                 "to": 83,
++               },
++             ],
++             "from": 83,
++             "kind": "text",
++             "to": 83,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 84,
++                 "to": 85,
++               },
++             ],
++             "from": 84,
++             "kind": "text",
++             "to": 85,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 86,
++                 "to": 86,
++               },
++             ],
++             "from": 86,
++             "kind": "text",
++             "to": 86,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 87,
++                 "to": 88,
++               },
++             ],
++             "from": 87,
++             "kind": "text",
++             "to": 88,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 89,
++                 "to": 89,
++               },
++             ],
++             "from": 89,
++             "kind": "text",
++             "to": 89,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 90,
++                 "to": 91,
++               },
++             ],
++             "from": 90,
++             "kind": "text",
++             "to": 91,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 92,
++                 "to": 92,
++               },
++             ],
++             "from": 92,
++             "kind": "text",
++             "to": 92,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 93,
++                 "to": 94,
++               },
++             ],
++             "from": 93,
++             "kind": "text",
++             "to": 94,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 95,
++                 "to": 95,
++               },
++             ],
++             "from": 95,
++             "kind": "text",
++             "to": 95,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 96,
++                 "to": 97,
++               },
++             ],
++             "from": 96,
++             "kind": "text",
++             "to": 97,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 98,
++                 "to": 98,
++               },
++             ],
++             "from": 98,
++             "kind": "text",
++             "to": 98,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 99,
++                 "to": 100,
++               },
++             ],
++             "from": 99,
++             "kind": "text",
++             "to": 100,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 101,
++                 "to": 101,
++               },
++             ],
++             "from": 101,
++             "kind": "text",
++             "to": 101,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 102,
++                 "to": 103,
++               },
++             ],
++             "from": 102,
++             "kind": "text",
++             "to": 103,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 104,
++                 "to": 104,
++               },
++             ],
++             "from": 104,
++             "kind": "text",
++             "to": 104,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 105,
++                 "to": 106,
++               },
++             ],
++             "from": 105,
++             "kind": "text",
++             "to": 106,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 107,
++                 "to": 107,
++               },
++             ],
++             "from": 107,
++             "kind": "text",
++             "to": 107,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 108,
++                 "to": 109,
++               },
++             ],
++             "from": 108,
++             "kind": "text",
++             "to": 109,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 110,
++                 "to": 110,
++               },
++             ],
++             "from": 110,
++             "kind": "text",
++             "to": 110,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 111,
++                 "to": 112,
++               },
++             ],
++             "from": 111,
++             "kind": "text",
++             "to": 112,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 113,
++                 "to": 113,
++               },
++             ],
++             "from": 113,
++             "kind": "text",
++             "to": 113,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 114,
++                 "to": 115,
++               },
++             ],
++             "from": 114,
++             "kind": "text",
++             "to": 115,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 116,
++                 "to": 116,
++               },
++             ],
++             "from": 116,
++             "kind": "text",
++             "to": 116,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 117,
++                 "to": 118,
++               },
++             ],
++             "from": 117,
++             "kind": "text",
++             "to": 118,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 119,
++                 "to": 119,
++               },
++             ],
++             "from": 119,
++             "kind": "text",
++             "to": 119,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 120,
++                 "to": 121,
++               },
++             ],
++             "from": 120,
++             "kind": "text",
++             "to": 121,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 122,
++                 "to": 122,
++               },
++             ],
++             "from": 122,
++             "kind": "text",
++             "to": 122,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 123,
++                 "to": 124,
++               },
++             ],
++             "from": 123,
++             "kind": "text",
++             "to": 124,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 125,
++                 "to": 125,
++               },
++             ],
++             "from": 125,
++             "kind": "text",
++             "to": 125,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 126,
++                 "to": 127,
++               },
++             ],
++             "from": 126,
++             "kind": "text",
++             "to": 127,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 128,
++                 "to": 128,
++               },
++             ],
++             "from": 128,
++             "kind": "text",
++             "to": 128,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 129,
++                 "to": 130,
++               },
++             ],
++             "from": 129,
++             "kind": "text",
++             "to": 130,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 131,
++                 "to": 131,
++               },
++             ],
++             "from": 131,
++             "kind": "text",
++             "to": 131,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 132,
++                 "to": 133,
++               },
++             ],
++             "from": 132,
++             "kind": "text",
++             "to": 133,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 134,
++                 "to": 134,
++               },
++             ],
++             "from": 134,
++             "kind": "text",
++             "to": 134,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 135,
++                 "to": 136,
++               },
++             ],
++             "from": 135,
++             "kind": "text",
++             "to": 136,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 137,
++                 "to": 137,
++               },
++             ],
++             "from": 137,
++             "kind": "text",
++             "to": 137,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 138,
++                 "to": 139,
++               },
++             ],
++             "from": 138,
++             "kind": "text",
++             "to": 139,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 140,
++                 "to": 140,
++               },
++             ],
++             "from": 140,
++             "kind": "text",
++             "to": 140,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 141,
++                 "to": 142,
++               },
++             ],
++             "from": 141,
++             "kind": "text",
++             "to": 142,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 143,
++                 "to": 143,
++               },
++             ],
++             "from": 143,
++             "kind": "text",
++             "to": 143,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 144,
++                 "to": 145,
++               },
++             ],
++             "from": 144,
++             "kind": "text",
++             "to": 145,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 146,
++                 "to": 146,
++               },
++             ],
++             "from": 146,
++             "kind": "text",
++             "to": 146,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 147,
++                 "to": 148,
++               },
++             ],
++             "from": 147,
++             "kind": "text",
++             "to": 148,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 149,
++                 "to": 149,
++               },
++             ],
++             "from": 149,
++             "kind": "text",
++             "to": 149,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 150,
++                 "to": 151,
++               },
++             ],
++             "from": 150,
++             "kind": "text",
++             "to": 151,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 152,
++                 "to": 152,
++               },
++             ],
++             "from": 152,
++             "kind": "text",
++             "to": 152,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 153,
++                 "to": 154,
++               },
++             ],
++             "from": 153,
++             "kind": "text",
++             "to": 154,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 155,
++                 "to": 155,
++               },
++             ],
++             "from": 155,
++             "kind": "text",
++             "to": 155,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 156,
++                 "to": 157,
++               },
++             ],
++             "from": 156,
++             "kind": "text",
++             "to": 157,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 158,
++                 "to": 158,
++               },
++             ],
++             "from": 158,
++             "kind": "text",
++             "to": 158,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 159,
++                 "to": 160,
++               },
++             ],
++             "from": 159,
++             "kind": "text",
++             "to": 160,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 161,
++                 "to": 161,
++               },
++             ],
++             "from": 161,
++             "kind": "text",
++             "to": 161,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 162,
++                 "to": 163,
++               },
++             ],
++             "from": 162,
++             "kind": "text",
++             "to": 163,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 164,
++                 "to": 164,
++               },
++             ],
++             "from": 164,
++             "kind": "text",
++             "to": 164,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 165,
++                 "to": 166,
++               },
++             ],
++             "from": 165,
++             "kind": "text",
++             "to": 166,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 167,
++                 "to": 167,
++               },
++             ],
++             "from": 167,
++             "kind": "text",
++             "to": 167,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 168,
++                 "to": 169,
++               },
++             ],
++             "from": 168,
++             "kind": "text",
++             "to": 169,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 170,
++                 "to": 170,
++               },
++             ],
++             "from": 170,
++             "kind": "text",
++             "to": 170,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 171,
++                 "to": 172,
++               },
++             ],
++             "from": 171,
++             "kind": "text",
++             "to": 172,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 173,
++                 "to": 173,
++               },
++             ],
++             "from": 173,
++             "kind": "text",
++             "to": 173,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 174,
++                 "to": 175,
++               },
++             ],
++             "from": 174,
++             "kind": "text",
++             "to": 175,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 176,
++                 "to": 176,
++               },
++             ],
++             "from": 176,
++             "kind": "text",
++             "to": 176,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 177,
++                 "to": 178,
++               },
++             ],
++             "from": 177,
++             "kind": "text",
++             "to": 178,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 179,
++                 "to": 179,
++               },
++             ],
++             "from": 179,
++             "kind": "text",
++             "to": 179,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 180,
++                 "to": 181,
++               },
++             ],
++             "from": 180,
++             "kind": "text",
++             "to": 181,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 182,
++                 "to": 182,
++               },
++             ],
++             "from": 182,
++             "kind": "text",
++             "to": 182,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 183,
++                 "to": 184,
++               },
++             ],
++             "from": 183,
++             "kind": "text",
++             "to": 184,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 185,
++                 "to": 185,
++               },
++             ],
++             "from": 185,
++             "kind": "text",
++             "to": 185,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 186,
++                 "to": 187,
++               },
++             ],
++             "from": 186,
++             "kind": "text",
++             "to": 187,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 188,
++                 "to": 188,
++               },
++             ],
++             "from": 188,
++             "kind": "text",
++             "to": 188,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 189,
++                 "to": 190,
++               },
++             ],
++             "from": 189,
++             "kind": "text",
++             "to": 190,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 191,
++                 "to": 191,
++               },
++             ],
++             "from": 191,
++             "kind": "text",
++             "to": 191,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 192,
++                 "to": 193,
++               },
++             ],
++             "from": 192,
++             "kind": "text",
++             "to": 193,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 194,
++                 "to": 194,
++               },
++             ],
++             "from": 194,
++             "kind": "text",
++             "to": 194,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 195,
++                 "to": 196,
++               },
++             ],
++             "from": 195,
++             "kind": "text",
++             "to": 196,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 197,
++                 "to": 197,
++               },
++             ],
++             "from": 197,
++             "kind": "text",
++             "to": 197,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 198,
++                 "to": 199,
++               },
++             ],
++             "from": 198,
++             "kind": "text",
++             "to": 199,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 200,
++                 "to": 200,
++               },
++             ],
++             "from": 200,
++             "kind": "text",
++             "to": 200,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 201,
++                 "to": 202,
++               },
++             ],
++             "from": 201,
++             "kind": "text",
++             "to": 202,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 203,
++                 "to": 203,
++               },
++             ],
++             "from": 203,
++             "kind": "text",
++             "to": 203,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 204,
++                 "to": 205,
++               },
++             ],
++             "from": 204,
++             "kind": "text",
++             "to": 205,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 206,
++                 "to": 206,
++               },
++             ],
++             "from": 206,
++             "kind": "text",
++             "to": 206,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 207,
++                 "to": 208,
++               },
++             ],
++             "from": 207,
++             "kind": "text",
++             "to": 208,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 209,
++                 "to": 209,
++               },
++             ],
++             "from": 209,
++             "kind": "text",
++             "to": 209,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 210,
++                 "to": 211,
++               },
++             ],
++             "from": 210,
++             "kind": "text",
++             "to": 211,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 212,
++                 "to": 212,
++               },
++             ],
++             "from": 212,
++             "kind": "text",
++             "to": 212,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 213,
++                 "to": 214,
++               },
++             ],
++             "from": 213,
++             "kind": "text",
++             "to": 214,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 215,
++                 "to": 215,
++               },
++             ],
++             "from": 215,
++             "kind": "text",
++             "to": 215,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 216,
++                 "to": 217,
++               },
++             ],
++             "from": 216,
++             "kind": "text",
++             "to": 217,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 218,
++                 "to": 218,
++               },
++             ],
++             "from": 218,
++             "kind": "text",
++             "to": 218,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 219,
++                 "to": 220,
++               },
++             ],
++             "from": 219,
++             "kind": "text",
++             "to": 220,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 221,
++                 "to": 221,
++               },
++             ],
++             "from": 221,
++             "kind": "text",
++             "to": 221,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 222,
++                 "to": 223,
++               },
++             ],
++             "from": 222,
++             "kind": "text",
++             "to": 223,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 224,
++                 "to": 224,
++               },
++             ],
++             "from": 224,
++             "kind": "text",
++             "to": 224,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 225,
++                 "to": 226,
++               },
++             ],
++             "from": 225,
++             "kind": "text",
++             "to": 226,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 227,
++                 "to": 227,
++               },
++             ],
++             "from": 227,
++             "kind": "text",
++             "to": 227,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 228,
++                 "to": 229,
++               },
++             ],
++             "from": 228,
++             "kind": "text",
++             "to": 229,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 230,
++                 "to": 230,
++               },
++             ],
++             "from": 230,
++             "kind": "text",
++             "to": 230,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 231,
++                 "to": 232,
++               },
++             ],
++             "from": 231,
++             "kind": "text",
++             "to": 232,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 233,
++                 "to": 233,
++               },
++             ],
++             "from": 233,
++             "kind": "text",
++             "to": 233,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 234,
++                 "to": 235,
++               },
++             ],
++             "from": 234,
++             "kind": "text",
++             "to": 235,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 236,
++                 "to": 236,
++               },
++             ],
++             "from": 236,
++             "kind": "text",
++             "to": 236,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 237,
++                 "to": 238,
++               },
++             ],
++             "from": 237,
++             "kind": "text",
++             "to": 238,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 239,
++                 "to": 239,
++               },
++             ],
++             "from": 239,
++             "kind": "text",
++             "to": 239,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 240,
++                 "to": 241,
++               },
++             ],
++             "from": 240,
++             "kind": "text",
++             "to": 241,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 242,
++                 "to": 242,
++               },
++             ],
++             "from": 242,
++             "kind": "text",
++             "to": 242,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 243,
++                 "to": 244,
++               },
++             ],
++             "from": 243,
++             "kind": "text",
++             "to": 244,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 245,
++                 "to": 245,
++               },
++             ],
++             "from": 245,
++             "kind": "text",
++             "to": 245,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 246,
++                 "to": 247,
++               },
++             ],
++             "from": 246,
++             "kind": "text",
++             "to": 247,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 248,
++                 "to": 248,
++               },
++             ],
++             "from": 248,
++             "kind": "text",
++             "to": 248,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 249,
++                 "to": 250,
++               },
++             ],
++             "from": 249,
++             "kind": "text",
++             "to": 250,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 251,
++                 "to": 251,
++               },
++             ],
++             "from": 251,
++             "kind": "text",
++             "to": 251,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 252,
++                 "to": 253,
++               },
++             ],
++             "from": 252,
++             "kind": "text",
++             "to": 253,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 254,
++                 "to": 254,
++               },
++             ],
++             "from": 254,
++             "kind": "text",
++             "to": 254,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 255,
++                 "to": 256,
++               },
++             ],
++             "from": 255,
++             "kind": "text",
++             "to": 256,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 257,
++                 "to": 257,
++               },
++             ],
++             "from": 257,
++             "kind": "text",
++             "to": 257,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 258,
++                 "to": 259,
++               },
++             ],
++             "from": 258,
++             "kind": "text",
++             "to": 259,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 260,
++                 "to": 260,
++               },
++             ],
++             "from": 260,
++             "kind": "text",
++             "to": 260,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 261,
++                 "to": 262,
++               },
++             ],
++             "from": 261,
++             "kind": "text",
++             "to": 262,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 263,
++                 "to": 263,
++               },
++             ],
++             "from": 263,
++             "kind": "text",
++             "to": 263,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 264,
++                 "to": 265,
++               },
++             ],
++             "from": 264,
++             "kind": "text",
++             "to": 265,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 266,
++                 "to": 266,
++               },
++             ],
++             "from": 266,
++             "kind": "text",
++             "to": 266,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 267,
++                 "to": 268,
++               },
++             ],
++             "from": 267,
++             "kind": "text",
++             "to": 268,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 269,
++                 "to": 269,
++               },
++             ],
++             "from": 269,
++             "kind": "text",
++             "to": 269,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 270,
++                 "to": 271,
++               },
++             ],
++             "from": 270,
++             "kind": "text",
++             "to": 271,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 272,
++                 "to": 272,
++               },
++             ],
++             "from": 272,
++             "kind": "text",
++             "to": 272,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 273,
++                 "to": 274,
++               },
++             ],
++             "from": 273,
++             "kind": "text",
++             "to": 274,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 275,
++                 "to": 275,
++               },
++             ],
++             "from": 275,
++             "kind": "text",
++             "to": 275,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 276,
++                 "to": 277,
++               },
++             ],
++             "from": 276,
++             "kind": "text",
++             "to": 277,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 278,
++                 "to": 278,
++               },
++             ],
++             "from": 278,
++             "kind": "text",
++             "to": 278,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 279,
++                 "to": 280,
++               },
++             ],
++             "from": 279,
++             "kind": "text",
++             "to": 280,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 281,
++                 "to": 281,
++               },
++             ],
++             "from": 281,
++             "kind": "text",
++             "to": 281,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 282,
++                 "to": 283,
++               },
++             ],
++             "from": 282,
++             "kind": "text",
++             "to": 283,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 284,
++                 "to": 284,
++               },
++             ],
++             "from": 284,
++             "kind": "text",
++             "to": 284,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 285,
++                 "to": 286,
++               },
++             ],
++             "from": 285,
++             "kind": "text",
++             "to": 286,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 287,
++                 "to": 287,
++               },
++             ],
++             "from": 287,
++             "kind": "text",
++             "to": 287,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 288,
++                 "to": 289,
++               },
++             ],
++             "from": 288,
++             "kind": "text",
++             "to": 289,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 290,
++                 "to": 290,
++               },
++             ],
++             "from": 290,
++             "kind": "text",
++             "to": 290,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 291,
++                 "to": 292,
++               },
++             ],
++             "from": 291,
++             "kind": "text",
++             "to": 292,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 293,
++                 "to": 293,
++               },
++             ],
++             "from": 293,
++             "kind": "text",
++             "to": 293,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 294,
++                 "to": 295,
++               },
++             ],
++             "from": 294,
++             "kind": "text",
++             "to": 295,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 296,
++                 "to": 296,
++               },
++             ],
++             "from": 296,
++             "kind": "text",
++             "to": 296,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 297,
++                 "to": 298,
++               },
++             ],
++             "from": 297,
++             "kind": "text",
++             "to": 298,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 299,
++                 "to": 299,
++               },
++             ],
++             "from": 299,
++             "kind": "text",
++             "to": 299,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 300,
++                 "to": 301,
++               },
++             ],
++             "from": 300,
++             "kind": "text",
++             "to": 301,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 302,
++                 "to": 302,
++               },
++             ],
++             "from": 302,
++             "kind": "text",
++             "to": 302,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 303,
++                 "to": 304,
++               },
++             ],
++             "from": 303,
++             "kind": "text",
++             "to": 304,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 305,
++                 "to": 305,
++               },
++             ],
++             "from": 305,
++             "kind": "text",
++             "to": 305,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 306,
++                 "to": 307,
++               },
++             ],
++             "from": 306,
++             "kind": "text",
++             "to": 307,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 308,
++                 "to": 308,
++               },
++             ],
++             "from": 308,
++             "kind": "text",
++             "to": 308,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 309,
++                 "to": 310,
++               },
++             ],
++             "from": 309,
++             "kind": "text",
++             "to": 310,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 311,
++                 "to": 311,
++               },
++             ],
++             "from": 311,
++             "kind": "text",
++             "to": 311,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 312,
++                 "to": 313,
++               },
++             ],
++             "from": 312,
++             "kind": "text",
++             "to": 313,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 314,
++                 "to": 314,
++               },
++             ],
++             "from": 314,
++             "kind": "text",
++             "to": 314,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 315,
++                 "to": 316,
++               },
++             ],
++             "from": 315,
++             "kind": "text",
++             "to": 316,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 317,
++                 "to": 317,
++               },
++             ],
++             "from": 317,
++             "kind": "text",
++             "to": 317,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 318,
++                 "to": 319,
++               },
++             ],
++             "from": 318,
++             "kind": "text",
++             "to": 319,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 320,
++                 "to": 320,
++               },
++             ],
++             "from": 320,
++             "kind": "text",
++             "to": 320,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 321,
++                 "to": 322,
++               },
++             ],
++             "from": 321,
++             "kind": "text",
++             "to": 322,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 323,
++                 "to": 323,
++               },
++             ],
++             "from": 323,
++             "kind": "text",
++             "to": 323,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 324,
++                 "to": 325,
++               },
++             ],
++             "from": 324,
++             "kind": "text",
++             "to": 325,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 326,
++                 "to": 326,
++               },
++             ],
++             "from": 326,
++             "kind": "text",
++             "to": 326,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 327,
++                 "to": 328,
++               },
++             ],
++             "from": 327,
++             "kind": "text",
++             "to": 328,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 329,
++                 "to": 329,
++               },
++             ],
++             "from": 329,
++             "kind": "text",
++             "to": 329,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 330,
++                 "to": 331,
++               },
++             ],
++             "from": 330,
++             "kind": "text",
++             "to": 331,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 332,
++                 "to": 332,
++               },
++             ],
++             "from": 332,
++             "kind": "text",
++             "to": 332,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 333,
++                 "to": 334,
++               },
++             ],
++             "from": 333,
++             "kind": "text",
++             "to": 334,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 335,
++                 "to": 335,
++               },
++             ],
++             "from": 335,
++             "kind": "text",
++             "to": 335,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 336,
++                 "to": 337,
++               },
++             ],
++             "from": 336,
++             "kind": "text",
++             "to": 337,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 338,
++                 "to": 338,
++               },
++             ],
++             "from": 338,
++             "kind": "text",
++             "to": 338,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 339,
++                 "to": 340,
++               },
++             ],
++             "from": 339,
++             "kind": "text",
++             "to": 340,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 341,
++                 "to": 341,
++               },
++             ],
++             "from": 341,
++             "kind": "text",
++             "to": 341,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 342,
++                 "to": 343,
++               },
++             ],
++             "from": 342,
++             "kind": "text",
++             "to": 343,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 344,
++                 "to": 344,
++               },
++             ],
++             "from": 344,
++             "kind": "text",
++             "to": 344,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 345,
++                 "to": 346,
++               },
++             ],
++             "from": 345,
++             "kind": "text",
++             "to": 346,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 347,
++                 "to": 347,
++               },
++             ],
++             "from": 347,
++             "kind": "text",
++             "to": 347,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 348,
++                 "to": 349,
++               },
++             ],
++             "from": 348,
++             "kind": "text",
++             "to": 349,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 350,
++                 "to": 350,
++               },
++             ],
++             "from": 350,
++             "kind": "text",
++             "to": 350,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 351,
++                 "to": 352,
++               },
++             ],
++             "from": 351,
++             "kind": "text",
++             "to": 352,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 353,
++                 "to": 353,
++               },
++             ],
++             "from": 353,
++             "kind": "text",
++             "to": 353,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 354,
++                 "to": 355,
++               },
++             ],
++             "from": 354,
++             "kind": "text",
++             "to": 355,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 356,
++                 "to": 356,
++               },
++             ],
++             "from": 356,
++             "kind": "text",
++             "to": 356,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 357,
++                 "to": 358,
++               },
++             ],
++             "from": 357,
++             "kind": "text",
++             "to": 358,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 359,
++                 "to": 359,
++               },
++             ],
++             "from": 359,
++             "kind": "text",
++             "to": 359,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 360,
++                 "to": 361,
++               },
++             ],
++             "from": 360,
++             "kind": "text",
++             "to": 361,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 362,
++                 "to": 362,
++               },
++             ],
++             "from": 362,
++             "kind": "text",
++             "to": 362,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 363,
++                 "to": 364,
++               },
++             ],
++             "from": 363,
++             "kind": "text",
++             "to": 364,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 365,
++                 "to": 365,
++               },
++             ],
++             "from": 365,
++             "kind": "text",
++             "to": 365,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 366,
++                 "to": 367,
++               },
++             ],
++             "from": 366,
++             "kind": "text",
++             "to": 367,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 368,
++                 "to": 368,
++               },
++             ],
++             "from": 368,
++             "kind": "text",
++             "to": 368,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 369,
++                 "to": 370,
++               },
++             ],
++             "from": 369,
++             "kind": "text",
++             "to": 370,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 371,
++                 "to": 371,
++               },
++             ],
++             "from": 371,
++             "kind": "text",
++             "to": 371,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 372,
++                 "to": 373,
++               },
++             ],
++             "from": 372,
++             "kind": "text",
++             "to": 373,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 374,
++                 "to": 374,
++               },
++             ],
++             "from": 374,
++             "kind": "text",
++             "to": 374,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 375,
++                 "to": 376,
++               },
++             ],
++             "from": 375,
++             "kind": "text",
++             "to": 376,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 377,
++                 "to": 377,
++               },
++             ],
++             "from": 377,
++             "kind": "text",
++             "to": 377,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 378,
++                 "to": 379,
++               },
++             ],
++             "from": 378,
++             "kind": "text",
++             "to": 379,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 380,
++                 "to": 380,
++               },
++             ],
++             "from": 380,
++             "kind": "text",
++             "to": 380,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 381,
++                 "to": 382,
++               },
++             ],
++             "from": 381,
++             "kind": "text",
++             "to": 382,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 383,
++                 "to": 383,
++               },
++             ],
++             "from": 383,
++             "kind": "text",
++             "to": 383,
++           },
++         ],
++         "completeEnd": true,
++         "completeStart": true,
++         "contextKnown": true,
++         "documentId": "frozen",
++         "from": 0,
++         "fromLine": 1,
++         "protectedRanges": [],
++         "selection": {
++           "anchor": 0,
++           "head": 0,
++         },
++         "source": "A
++
++ A
++
++ A
++
++ A
++
++ A
++
++ A
++
++ A
++
++ A
++
++ A
++
++ A
++
++ A
++
++ A
++
++ A
++
++ A
++
++ A
++
++ A
++
++ A
++
++ A
++
++ A
++
++ A
++
++ A
++
++ A
++
++ A
++
++ A
++
++ A
++
++ A
++
++ A
++
++ A
++
++ A
++
++ A
++
++ A
++
++ A
++
++ A
++
++ A
++
++ A
++
++ A
++
++ A
++
++ A
++
++ A
++
++ A
++
++ A
++
++ A
++
++ A
++
++ A
++
++ A
++
++ A
++
++ A
++
++ A
++
++ A
++
++ A
++
++ A
++
++ A
++
++ A
++
++ A
++
++ A
++
++ A
++
++ A
++
++ A
++
++ A
++
++ A
++
++ A
++
++ A
++
++ A
++
++ A
++
++ A
++
++ A
++
++ A
++
++ A
++
++ A
++
++ A
++
++ A
++
++ A
++
++ A
++
++ A
++
++ A
++
++ A
++
++ A
++
++ A
++
++ A
++
++ A
++
++ A
++
++ A
++
++ A
++
++ A
++
++ A
++
++ A
++
++ A
++
++ A
++
++ A
++
++ A
++
++ A
++
++ A
++
++ A
++
++ A
++
++ A
++
++ A
++
++ A
++
++ A
++
++ A
++
++ A
++
++ A
++
++ A
++
++ A
++
++ A
++
++ A
++
++ A
++
++ A
++
++ A
++
++ A
++
++ A
++
++ A
++
++ A
++
++ A
++
++ A
++
++ A
++
++ A
++
++ A
++
++ A
++
++ A
++
++ A
++
++ A
++
++ A
++
++ A
++
++ A
++
++ A
++
++ A
++
++ A
++
++ A
++ ",
++         "target": "export",
++         "theme": "light",
++         "to": 383,
++         "toLine": 256,
++         "version": 3,
++         "width": 760,
++       },
++       "result": {
++         "complete": true,
++         "fragments": [
++           {
++             "accessibleText": "old-instance",
++             "content": {
++               "text": "old-instance",
++               "type": "text",
++             },
++             "from": 0,
++             "layout": "inline",
++             "to": 1,
++           },
++         ],
++       },
++     },
++     {
++       "declarations": [
++         {
++           "contexts": [
++             "text",
++           ],
++           "id": "references",
++           "pluginId": "independent.index",
++         },
++       ],
++       "request": {
++         "blocks": [
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 383,
++                 "to": 383,
++               },
++             ],
++             "from": 383,
++             "kind": "text",
++             "to": 383,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 384,
++                 "to": 385,
++               },
++             ],
++             "from": 384,
++             "kind": "text",
++             "to": 385,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 386,
++                 "to": 386,
++               },
++             ],
++             "from": 386,
++             "kind": "text",
++             "to": 386,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 387,
++                 "to": 388,
++               },
++             ],
++             "from": 387,
++             "kind": "text",
++             "to": 388,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 389,
++                 "to": 389,
++               },
++             ],
++             "from": 389,
++             "kind": "text",
++             "to": 389,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 390,
++                 "to": 391,
++               },
++             ],
++             "from": 390,
++             "kind": "text",
++             "to": 391,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 392,
++                 "to": 392,
++               },
++             ],
++             "from": 392,
++             "kind": "text",
++             "to": 392,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 393,
++                 "to": 394,
++               },
++             ],
++             "from": 393,
++             "kind": "text",
++             "to": 394,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 395,
++                 "to": 395,
++               },
++             ],
++             "from": 395,
++             "kind": "text",
++             "to": 395,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 396,
++                 "to": 397,
++               },
++             ],
++             "from": 396,
++             "kind": "text",
++             "to": 397,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 398,
++                 "to": 398,
++               },
++             ],
++             "from": 398,
++             "kind": "text",
++             "to": 398,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 399,
++                 "to": 400,
++               },
++             ],
++             "from": 399,
++             "kind": "text",
++             "to": 400,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 401,
++                 "to": 401,
++               },
++             ],
++             "from": 401,
++             "kind": "text",
++             "to": 401,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 402,
++                 "to": 403,
++               },
++             ],
++             "from": 402,
++             "kind": "text",
++             "to": 403,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 404,
++                 "to": 404,
++               },
++             ],
++             "from": 404,
++             "kind": "text",
++             "to": 404,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 405,
++                 "to": 406,
++               },
++             ],
++             "from": 405,
++             "kind": "text",
++             "to": 406,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 407,
++                 "to": 407,
++               },
++             ],
++             "from": 407,
++             "kind": "text",
++             "to": 407,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 408,
++                 "to": 409,
++               },
++             ],
++             "from": 408,
++             "kind": "text",
++             "to": 409,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 410,
++                 "to": 410,
++               },
++             ],
++             "from": 410,
++             "kind": "text",
++             "to": 410,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 411,
++                 "to": 412,
++               },
++             ],
++             "from": 411,
++             "kind": "text",
++             "to": 412,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 413,
++                 "to": 413,
++               },
++             ],
++             "from": 413,
++             "kind": "text",
++             "to": 413,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 414,
++                 "to": 415,
++               },
++             ],
++             "from": 414,
++             "kind": "text",
++             "to": 415,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 416,
++                 "to": 416,
++               },
++             ],
++             "from": 416,
++             "kind": "text",
++             "to": 416,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 417,
++                 "to": 418,
++               },
++             ],
++             "from": 417,
++             "kind": "text",
++             "to": 418,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 419,
++                 "to": 419,
++               },
++             ],
++             "from": 419,
++             "kind": "text",
++             "to": 419,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 420,
++                 "to": 421,
++               },
++             ],
++             "from": 420,
++             "kind": "text",
++             "to": 421,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 422,
++                 "to": 422,
++               },
++             ],
++             "from": 422,
++             "kind": "text",
++             "to": 422,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 423,
++                 "to": 424,
++               },
++             ],
++             "from": 423,
++             "kind": "text",
++             "to": 424,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 425,
++                 "to": 425,
++               },
++             ],
++             "from": 425,
++             "kind": "text",
++             "to": 425,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 426,
++                 "to": 427,
++               },
++             ],
++             "from": 426,
++             "kind": "text",
++             "to": 427,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 428,
++                 "to": 428,
++               },
++             ],
++             "from": 428,
++             "kind": "text",
++             "to": 428,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 429,
++                 "to": 430,
++               },
++             ],
++             "from": 429,
++             "kind": "text",
++             "to": 430,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 431,
++                 "to": 431,
++               },
++             ],
++             "from": 431,
++             "kind": "text",
++             "to": 431,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 432,
++                 "to": 433,
++               },
++             ],
++             "from": 432,
++             "kind": "text",
++             "to": 433,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 434,
++                 "to": 434,
++               },
++             ],
++             "from": 434,
++             "kind": "text",
++             "to": 434,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 435,
++                 "to": 436,
++               },
++             ],
++             "from": 435,
++             "kind": "text",
++             "to": 436,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 437,
++                 "to": 437,
++               },
++             ],
++             "from": 437,
++             "kind": "text",
++             "to": 437,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 438,
++                 "to": 439,
++               },
++             ],
++             "from": 438,
++             "kind": "text",
++             "to": 439,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 440,
++                 "to": 440,
++               },
++             ],
++             "from": 440,
++             "kind": "text",
++             "to": 440,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 441,
++                 "to": 442,
++               },
++             ],
++             "from": 441,
++             "kind": "text",
++             "to": 442,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 443,
++                 "to": 443,
++               },
++             ],
++             "from": 443,
++             "kind": "text",
++             "to": 443,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 444,
++                 "to": 445,
++               },
++             ],
++             "from": 444,
++             "kind": "text",
++             "to": 445,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 446,
++                 "to": 446,
++               },
++             ],
++             "from": 446,
++             "kind": "text",
++             "to": 446,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 447,
++                 "to": 448,
++               },
++             ],
++             "from": 447,
++             "kind": "text",
++             "to": 448,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 449,
++                 "to": 449,
++               },
++             ],
++             "from": 449,
++             "kind": "text",
++             "to": 449,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 450,
++                 "to": 451,
++               },
++             ],
++             "from": 450,
++             "kind": "text",
++             "to": 451,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 452,
++                 "to": 452,
++               },
++             ],
++             "from": 452,
++             "kind": "text",
++             "to": 452,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 453,
++                 "to": 454,
++               },
++             ],
++             "from": 453,
++             "kind": "text",
++             "to": 454,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 455,
++                 "to": 455,
++               },
++             ],
++             "from": 455,
++             "kind": "text",
++             "to": 455,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 456,
++                 "to": 457,
++               },
++             ],
++             "from": 456,
++             "kind": "text",
++             "to": 457,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 458,
++                 "to": 458,
++               },
++             ],
++             "from": 458,
++             "kind": "text",
++             "to": 458,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 459,
++                 "to": 460,
++               },
++             ],
++             "from": 459,
++             "kind": "text",
++             "to": 460,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 461,
++                 "to": 461,
++               },
++             ],
++             "from": 461,
++             "kind": "text",
++             "to": 461,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 462,
++                 "to": 463,
++               },
++             ],
++             "from": 462,
++             "kind": "text",
++             "to": 463,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 464,
++                 "to": 464,
++               },
++             ],
++             "from": 464,
++             "kind": "text",
++             "to": 464,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 465,
++                 "to": 466,
++               },
++             ],
++             "from": 465,
++             "kind": "text",
++             "to": 466,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 467,
++                 "to": 467,
++               },
++             ],
++             "from": 467,
++             "kind": "text",
++             "to": 467,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 468,
++                 "to": 469,
++               },
++             ],
++             "from": 468,
++             "kind": "text",
++             "to": 469,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 470,
++                 "to": 470,
++               },
++             ],
++             "from": 470,
++             "kind": "text",
++             "to": 470,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 471,
++                 "to": 472,
++               },
++             ],
++             "from": 471,
++             "kind": "text",
++             "to": 472,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 473,
++                 "to": 473,
++               },
++             ],
++             "from": 473,
++             "kind": "text",
++             "to": 473,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 474,
++                 "to": 475,
++               },
++             ],
++             "from": 474,
++             "kind": "text",
++             "to": 475,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 476,
++                 "to": 476,
++               },
++             ],
++             "from": 476,
++             "kind": "text",
++             "to": 476,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 477,
++                 "to": 478,
++               },
++             ],
++             "from": 477,
++             "kind": "text",
++             "to": 478,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 479,
++                 "to": 479,
++               },
++             ],
++             "from": 479,
++             "kind": "text",
++             "to": 479,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 480,
++                 "to": 480,
++               },
++             ],
++             "from": 480,
++             "kind": "text",
++             "to": 480,
++           },
++         ],
++         "completeEnd": true,
++         "completeStart": true,
++         "contextKnown": true,
++         "documentId": "frozen",
++         "from": 383,
++         "fromLine": 256,
++         "protectedRanges": [],
++         "selection": {
++           "anchor": 0,
++           "head": 0,
++         },
++         "source": "
++ A
++
++ A
++
++ A
++
++ A
++
++ A
++
++ A
++
++ A
++
++ A
++
++ A
++
++ A
++
++ A
++
++ A
++
++ A
++
++ A
++
++ A
++
++ A
++
++ A
++
++ A
++
++ A
++
++ A
++
++ A
++
++ A
++
++ A
++
++ A
++
++ A
++
++ A
++
++ A
++
++ A
++
++ A
++
++ A
++
++ A
++
++ A
++
++ ",
++         "target": "export",
++         "theme": "light",
++         "to": 480,
++         "toLine": 321,
++         "version": 3,
++         "width": 760,
++       },
++       "result": {
++         "complete": false,
++         "fragments": [],
++       },
++     },
++   ],
++   "warnings": [
++     {
++       "code": "presentation-windowed",
++       "message": "Rich content is rendered in bounded Markdown windows; extensions spanning windows retain their original source.",
++     },
++     {
++       "code": "presentation-unavailable",
++       "message": "A rich renderer was unavailable or rejected its input; original Markdown is retained.",
++     },
++     {
++       "code": "presentation-incomplete",
++       "message": "Some rich content could not be rendered completely; original Markdown is retained where needed.",
++     },
++   ],
+  }
+
+ ❯ apps/desktop/src/output-presentations-readiness.test.ts:138:24
+    136|       },
+    137|     })
+    138|     await expect(output).rejects.toMatchObject({ code: 'revoked' })
+       |                        ^
+    139|     expect(calls).toBeGreaterThan(1)
+    140|   })
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/2]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  2 failed | 7 passed (9)
+   Start at  07:36:12
+   Duration  929ms (transform 339ms, setup 0ms, collect 432ms, tests 87ms, environment 0ms, prepare 72ms)
+

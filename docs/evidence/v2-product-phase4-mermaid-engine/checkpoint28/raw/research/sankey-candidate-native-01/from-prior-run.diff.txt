@@ -1,0 +1,189 @@
+--- /workspace/milkup-mermaid-engine-evidence/research/production08-sankey-deadline-repro-preparation-01/RUN.sh
++++ /workspace/milkup-mermaid-engine-evidence/research/sankey-candidate-native-01/RUN.sh
+@@ -1,11 +1,11 @@
+ #!/usr/bin/env bash
+ set -euo pipefail
+-ROOT=/workspace/milkup-mermaid-engine-evidence/research/production08-sankey-deadline-repro-preparation-01
+-RUN=mermaid-ui-sankey-deadline-repro-01
++ROOT=/workspace/milkup-mermaid-engine-evidence/research/sankey-candidate-native-01
++RUN=mermaid-ui-sankey-candidate-repro-01
+ source "$ROOT/reviewed-binary.env"
+ [[ "$BINARY" == "/workspace/milkup-mermaid-engine-evidence/research/native-sankey-short-sequence-build-01/build-attempt-02/diagnostic-binary/milkup-desktop" ]]
+-ARCHIVE=/workspace/milkup-mermaid-engine-evidence/linux-production-08/artifacts/milkup.diagrams-1.1.0.milkup-plugin
+-ARCHIVE_SHA=9889f1796f9080ff230a1c51147522e83e065bc191a258035208f69403a327df
++ARCHIVE=/workspace/milkup-mermaid-engine-evidence/research/renderer-exact-memo-product-integration-01/artifacts/milkup.diagrams-1.1.1.milkup-plugin
++ARCHIVE_SHA=2351692438a2083a72bcb8cddce28c7a530a8557734926992a3a2e3120c68a19
+ export MILKUP_COLD_REQUEST_DIAGNOSTICS=1
+ export MILKUP_COLD_REQUEST_OUTPUT_DIR="$ROOT/runtime/$RUN/native-capture"
+ python3 "$ROOT/verify-runtime-go.py"
+--- /workspace/milkup-mermaid-engine-evidence/research/production08-sankey-deadline-repro-preparation-01/driver.sh
++++ /workspace/milkup-mermaid-engine-evidence/research/sankey-candidate-native-01/driver.sh
+@@ -1,6 +1,6 @@
+ #!/usr/bin/env bash
+ set -euo pipefail
+-source /workspace/milkup-mermaid-engine-evidence/research/production08-sankey-deadline-repro-preparation-01/run-env.sh "$@"
++source /workspace/milkup-mermaid-engine-evidence/research/sankey-candidate-native-01/run-env.sh "$@"
+ # A fresh profile, log and evidence directory are mandatory for each attempt.
+ [[ ! -e "$XDG_RUNTIME_DIR" && ! -e "$MILKUP_NATIVE_PROFILE_ROOT" && ! -e "$MILKUP_NATIVE_APP_LOG" && ! -e "$MILKUP_NATIVE_EVIDENCE_DIR" ]]
+ mkdir -p "$XDG_CONFIG_HOME" "$XDG_CACHE_HOME" "$XDG_DATA_HOME" "$(dirname "$MILKUP_NATIVE_APP_LOG")" "$(dirname "$MILKUP_NATIVE_EVIDENCE_DIR")"
+--- /workspace/milkup-mermaid-engine-evidence/research/production08-sankey-deadline-repro-preparation-01/execution-context-contract.json
++++ /workspace/milkup-mermaid-engine-evidence/research/sankey-candidate-native-01/execution-context-contract.json
+@@ -1,17 +1,17 @@
+ {
+-  "run": "mermaid-ui-sankey-deadline-repro-01",
++  "run": "mermaid-ui-sankey-candidate-repro-01",
+   "driverCall": {
+-    "cmd": "python3 /workspace/milkup-mermaid-engine-evidence/research/production08-sankey-deadline-repro-preparation-01/tool-launch.py driver",
++    "cmd": "python3 /workspace/milkup-mermaid-engine-evidence/research/sankey-candidate-native-01/tool-launch.py driver",
+     "workdir": "/workspace/milkup",
+     "sandbox_permissions": "require_escalated"
+   },
+   "harnessCall": {
+-    "cmd": "python3 /workspace/milkup-mermaid-engine-evidence/research/production08-sankey-deadline-repro-preparation-01/tool-launch.py harness",
++    "cmd": "python3 /workspace/milkup-mermaid-engine-evidence/research/sankey-candidate-native-01/tool-launch.py harness",
+     "workdir": "/workspace/milkup",
+     "sandbox_permissions": "require_escalated"
+   },
+   "stopDriverCall": {
+-    "cmd": "python3 /workspace/milkup-mermaid-engine-evidence/research/production08-sankey-deadline-repro-preparation-01/stop-driver.py",
++    "cmd": "python3 /workspace/milkup-mermaid-engine-evidence/research/sankey-candidate-native-01/stop-driver.py",
+     "workdir": "/workspace/milkup",
+     "sandbox_permissions": "require_escalated"
+   },
+--- /workspace/milkup-mermaid-engine-evidence/research/production08-sankey-deadline-repro-preparation-01/launch-driver-reaping.py
++++ /workspace/milkup-mermaid-engine-evidence/research/sankey-candidate-native-01/launch-driver-reaping.py
+@@ -2,7 +2,7 @@
+ import ctypes, datetime, json, os, subprocess, sys, time
+ from pathlib import Path
+ assert sys.argv[1:]==[]
+-run='mermaid-ui-sankey-deadline-repro-01'
++run='mermaid-ui-sankey-candidate-repro-01'
+ base=Path(__file__).parent
+ subprocess.run([sys.executable,str(base/'verify-runtime-go.py')],check=True)
+ libc=ctypes.CDLL(None,use_errno=True)
+--- /workspace/milkup-mermaid-engine-evidence/research/production08-sankey-deadline-repro-preparation-01/native/sankey-short-sequence.mjs
++++ /workspace/milkup-mermaid-engine-evidence/research/sankey-candidate-native-01/native/sankey-short-sequence.mjs
+@@ -38,7 +38,7 @@
+ assert.equal(archive.format, 'milkup-plugin')
+ assert.equal(archive.version, 1)
+ assert.equal(archive.manifest.id, 'milkup.diagrams')
+-assert.equal(archive.manifest.version, '1.1.0')
++assert.equal(archive.manifest.version, '1.1.1')
+ assert.equal(archive.manifest.host, 'dom')
+ assert.deepEqual(archive.manifest.permissions, ['document:read'])
+ assert(archive.manifest.engines.pluginSdk.includes('0.3.4'))
+--- /workspace/milkup-mermaid-engine-evidence/research/production08-sankey-deadline-repro-preparation-01/preflight.py
++++ /workspace/milkup-mermaid-engine-evidence/research/sankey-candidate-native-01/preflight.py
+@@ -1,7 +1,7 @@
+ """Static/read-only exact environment preflight. Does not launch or signal anything."""
+ import hashlib,json,shutil,subprocess,sys
+ from pathlib import Path
+-BASE=Path(__file__).resolve().parent;REPO=Path('/workspace/milkup');RUN='mermaid-ui-sankey-deadline-repro-01'
++BASE=Path(__file__).resolve().parent;REPO=Path('/workspace/milkup');RUN='mermaid-ui-sankey-candidate-repro-01'
+ mode=sys.argv[1] if len(sys.argv)>1 else '--runtime';assert mode in ['--build','--runtime']
+ def sha(p):return hashlib.sha256(Path(p).read_bytes()).hexdigest()
+ inputs=json.loads((BASE/('build-inputs.json' if mode=='--build' else 'runtime-inputs.json')).read_text())
+@@ -11,7 +11,7 @@
+ head=subprocess.check_output(['git','rev-parse','HEAD'],cwd=REPO,text=True).strip()
+ if head!=inputs['head']:errors.append('HEAD drift')
+ free=shutil.disk_usage(BASE).free
+-if free<800*1024*1024 and mode=='--build':errors.append('Less than 800MiB free')
++if free<800*1024*1024+inputs['reserveBytes']:errors.append('Less than 800MiB floor plus reserved run space')
+ result={'mode':mode,'head':head,'freeBytes':free,'inputFileCount':len(inputs['files']),'errors':errors}
+ if mode=='--runtime':
+  expected=inputs['dedicatedDisplay'];pid=expected['pid']
+@@ -34,9 +34,13 @@
+  if inputs['binary']['sha256']!=inputs['reviewedDiagnosticBinarySha256']:errors.append('Wrong reviewed diagnostic candidate')
+ if mode=='--runtime':
+  source=json.loads(Path(inputs['sourceBefore']).read_text())['files']
+- source_drift=[row['path'] for row in source if not (REPO/row['path']).is_file() or sha(REPO/row['path'])!=row['sha256']]
++ approved={row['path']:row['sha256'] for row in inputs['approvedSourceDelta']+inputs['approvedGeneratedDelta']}
++ source_drift=[row['path'] for row in source if not (REPO/row['path']).is_file() or sha(REPO/row['path'])!=approved.get(row['path'],row['sha256'])]
++ source_drift += [path for path,digest in approved.items() if not (REPO/path).is_file() or sha(REPO/path)!=digest]
+  result['sourceFilesChecked']=len(source);result['sourceDrift']=source_drift
+- if source_drift:errors.append('Production08 source drift')
++ result['approvedSourceDelta']=inputs['approvedSourceDelta']
++ result['approvedGeneratedDelta']=inputs['approvedGeneratedDelta']
++ if source_drift:errors.append('Source drift outside frozen integration baseline')
+  provenance=json.loads(Path(inputs['productionProvenance']).read_text())
+  expected_front={str(Path(row['path']).relative_to(Path(inputs['productionProvenance']).parent/'frontend')):row['sha256'] for row in provenance['frontend']}
+  actual_front={str(p.relative_to(REPO/'apps/desktop/dist')):sha(p) for p in (REPO/'apps/desktop/dist').rglob('*') if p.is_file()}
+@@ -45,7 +49,7 @@
+  result['productionBinaryMatches']=sha(provenance['binary']['path'])==provenance['binary']['sha256']
+  if not result['productionBinaryMatches']:errors.append('Original production08 binary drift')
+  result['repositoryStatus']=subprocess.check_output(['git','status','--porcelain'],cwd=REPO,text=True)
+- if result['repositoryStatus']:errors.append('Repository not clean')
++ if result['repositoryStatus']!=inputs['repositoryStatus']:errors.append('Repository status differs from frozen approved integration')
+  result['driverLogCheck']='Deferred until owned driver is ready and before App launch: run-harness lstat requires own regular log; ordinary file may still block.'
+ result['ready']=not errors
+ print(json.dumps(result,indent=2))
+--- /workspace/milkup-mermaid-engine-evidence/research/production08-sankey-deadline-repro-preparation-01/run-env.sh
++++ /workspace/milkup-mermaid-engine-evidence/research/sankey-candidate-native-01/run-env.sh
+@@ -25,12 +25,12 @@
+ export DISPLAY=:126
+ export GDK_PIXBUF_MODULE_FILE=/workspace/milkup-markdown-extensions-phase4-evidence/native/environment/loaders-sysroot.cache
+ export GDK_PIXBUF_MODULEDIR=/workspace/.cloud/milkup-v2/sysroot/usr/lib/x86_64-linux-gnu/gdk-pixbuf-2.0/2.10.0/loaders
+-export MILKUP_NATIVE_PROFILE_ROOT=/workspace/milkup-mermaid-engine-evidence/research/production08-sankey-deadline-repro-preparation-01/runtime/$MILKUP_NATIVE_RUN/profile
++export MILKUP_NATIVE_PROFILE_ROOT=/workspace/milkup-mermaid-engine-evidence/research/sankey-candidate-native-01/runtime/$MILKUP_NATIVE_RUN/profile
+ export XDG_CONFIG_HOME=$MILKUP_NATIVE_PROFILE_ROOT/config
+ export XDG_CACHE_HOME=$MILKUP_NATIVE_PROFILE_ROOT/cache
+ export XDG_DATA_HOME=$MILKUP_NATIVE_PROFILE_ROOT/data
+-export MILKUP_NATIVE_EVIDENCE_DIR=/workspace/milkup-mermaid-engine-evidence/research/production08-sankey-deadline-repro-preparation-01/runtime/$MILKUP_NATIVE_RUN/evidence
+-export MILKUP_NATIVE_APP_LOG=/workspace/milkup-mermaid-engine-evidence/research/production08-sankey-deadline-repro-preparation-01/runtime/$MILKUP_NATIVE_RUN/driver.log
++export MILKUP_NATIVE_EVIDENCE_DIR=/workspace/milkup-mermaid-engine-evidence/research/sankey-candidate-native-01/runtime/$MILKUP_NATIVE_RUN/evidence
++export MILKUP_NATIVE_APP_LOG=/workspace/milkup-mermaid-engine-evidence/research/sankey-candidate-native-01/runtime/$MILKUP_NATIVE_RUN/driver.log
+ export TAURI_DRIVER_URL=http://127.0.0.1:4626
+ export MILKUP_NATIVE_EXCLUSIVE_DISPLAY=1
+ unset MILKUP_WEBPROCESS_PIDFD_DIAGNOSTICS MILKUP_WEBPROCESS_PIDFD_OUTPUT_DIR MILKUP_COLD_STAGE_DIAGNOSTICS MILKUP_COLD_STAGE_OUTPUT_DIR
+@@ -38,7 +38,7 @@
+ export MILKUP_MERMAID_BINARY_CONFIRMED=1
+ export MILKUP_MERMAID_ARCHIVE="$(realpath "$4")"
+ export MILKUP_MERMAID_ARCHIVE_SHA256="$5"
+-export MILKUP_MERMAID_CASES_JSON=/workspace/milkup-mermaid-engine-evidence/research/production08-sankey-deadline-repro-preparation-01/targeted-cases.json
++export MILKUP_MERMAID_CASES_JSON=/workspace/milkup-mermaid-engine-evidence/research/sankey-candidate-native-01/targeted-cases.json
+ if [[ "$(sha256sum "$MILKUP_MERMAID_ARCHIVE" | cut -d ' ' -f 1)" != "$MILKUP_MERMAID_ARCHIVE_SHA256" ]]; then
+   echo 'Frozen archive SHA256 mismatch' >&2
+   return 1
+@@ -46,6 +46,6 @@
+ 
+ export XDG_RUNTIME_DIR=/tmp/milkup-runtime-$MILKUP_NATIVE_RUN
+ 
+-# No accepted-wire, stage, self-pidfd, CPU or transport observer is enabled.
++# Existing accepted-wire capture is enabled by RUN.sh; no stage, self-pidfd or CPU observer.
+ 
+ # Final reviewed RUN.sh must set accepted-wire gate/output before App startup.
+--- /workspace/milkup-mermaid-engine-evidence/research/production08-sankey-deadline-repro-preparation-01/run-harness.py
++++ /workspace/milkup-mermaid-engine-evidence/research/sankey-candidate-native-01/run-harness.py
+@@ -9,7 +9,7 @@
+ from pathlib import Path
+ 
+ base = Path(__file__).resolve().parent
+-run = 'mermaid-ui-sankey-deadline-repro-01'
++run = 'mermaid-ui-sankey-candidate-repro-01'
+ out = base / 'runtime' / run
+ subprocess.run([sys.executable, str(base / 'verify-runtime-go.py')], check=True)
+ owner = json.loads((out / 'control' / (run + '-driver-owner.json')).read_text())
+--- /workspace/milkup-mermaid-engine-evidence/research/production08-sankey-deadline-repro-preparation-01/stop-driver.py
++++ /workspace/milkup-mermaid-engine-evidence/research/sankey-candidate-native-01/stop-driver.py
+@@ -4,8 +4,8 @@
+ import datetime,json,os,signal,sys,time,urllib.request
+ from pathlib import Path
+ assert sys.argv[1:]==[]
+-base=Path(__file__).resolve().parent;control=base/'runtime/mermaid-ui-sankey-deadline-repro-01/control'
+-row=json.loads((control/'mermaid-ui-sankey-deadline-repro-01-driver-owner.json').read_text())
++base=Path(__file__).resolve().parent;control=base/'runtime/mermaid-ui-sankey-candidate-repro-01/control'
++row=json.loads((control/'mermaid-ui-sankey-candidate-repro-01-driver-owner.json').read_text())
+ assert row['bootId']==Path('/proc/sys/kernel/random/boot_id').read_text().strip()
+ out=control/'driver-stop.json';assert not out.exists()
+ def utc():return datetime.datetime.now(datetime.timezone.utc).isoformat()
+--- /workspace/milkup-mermaid-engine-evidence/research/production08-sankey-deadline-repro-preparation-01/verify-runtime-go.py
++++ /workspace/milkup-mermaid-engine-evidence/research/sankey-candidate-native-01/verify-runtime-go.py
+@@ -8,7 +8,7 @@
+ assert go['authorized'] is True
+ assert go['runtimeInputsSha256'] == hashlib.sha256(manifest.read_bytes()).hexdigest()
+ inputs = json.loads(manifest.read_text())
+-assert inputs['run'] == 'mermaid-ui-sankey-deadline-repro-01'
++assert inputs['run'] == 'mermaid-ui-sankey-candidate-repro-01'
+ assert inputs['classification'] == 'ONE_DIAGNOSTIC_SANKEY_SHORT_SEQUENCE'
+ assert inputs['binary']['sha256'] == '9c8d9e7391a4fdcbbaff6aacaa6329707ea9fb17fee2d535f3658ba87544abde'
+ for row in inputs['files']:

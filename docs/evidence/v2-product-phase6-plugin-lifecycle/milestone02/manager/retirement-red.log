@@ -1,0 +1,101 @@
+
+ RUN  v3.2.6 /workspace/milkup
+
+ ❯ apps/desktop/src/desktop-plugin-manager-catalog.test.ts (12 tests | 3 failed) 66ms
+   ✓ P6 authoritative catalog transactions > stages without running or replacing old active approval; exact review is required 14ms
+   ✓ P6 authoritative catalog transactions > tears old epoch down before trial, commits before publish, and recovers old version with new epoch on failure 6ms
+   ✓ P6 authoritative catalog transactions > cannot grant candidate capabilities via pending approval or side effects during activate 1ms
+   ✓ P6 authoritative catalog transactions > serializes queued approval and remove; tombstone keeps data/settings and never revives from mirror 1ms
+   ✓ P6 authoritative catalog transactions > recovers a committed generation when contribution publication fails 9ms
+   ✓ P6 candidate failure injection > denies a swallowed initialization write and restores unchanged data 3ms
+   ✓ P6 candidate failure injection > recovers old active after native commit rejects without publishing the candidate 2ms
+   ✓ P6 candidate failure injection > caps hanging candidate activation and attempts new-epoch recovery 7ms
+   ✓ P6 candidate failure injection > does not trust a poisoned mirror and quarantines an interrupted startup instead of retrying forever 2ms
+   × P6 retirement and public diagnostic boundaries > retains a rejected isolation owner and retries before any new activation 13ms
+     → promise resolved "{ manifest: { …(5) }, …(12) }" instead of rejecting
+   × P6 retirement and public diagnostic boundaries > keeps callback errors diagnostic when the trusted owner confirms termination 5ms
+     → Plugin cleanup did not fully complete
+   × P6 retirement and public diagnostic boundaries > never exposes native or activation paths through the public management adapter 2ms
+     → expected '[{"code":"catalog","message":"Activat…' not to match /private|secret|Users|plugin\.js/
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 3 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  apps/desktop/src/desktop-plugin-manager-catalog.test.ts > P6 retirement and public diagnostic boundaries > retains a rejected isolation owner and retries before any new activation
+AssertionError: promise resolved "{ manifest: { …(5) }, …(12) }" instead of rejecting
+
+- Expected
++ Received
+
+- Error {
+-   "message": "rejected promise",
++ {
++   "approvals": {
++     "hosts": [
++       "worker",
++     ],
++     "networkOrigins": [],
++     "permissions": [],
++   },
++   "dataRoot": "/data/test.lifecycle",
++   "enabled": true,
++   "errors": [],
++   "installedAt": 0,
++   "manifest": {
++     "host": "worker",
++     "id": "test.lifecycle",
++     "main": "./dist/plugin.js",
++     "name": "Lifecycle",
++     "version": "1.0.0",
++   },
++   "manifestPath": "/plugins/test.lifecycle/generations/g1/plugin.json",
++   "rootPath": "/plugins/test.lifecycle/generations/g1",
++   "sourcePath": "/candidate.milkup-plugin",
++   "state": "enabled",
++   "storageRoot": "/storage/test.lifecycle",
++   "trust": "untrusted",
++   "updatedAt": 1792400063974,
+  }
+
+ ❯ apps/desktop/src/desktop-plugin-manager-catalog.test.ts:129:50
+    127|   const owner=(s.manager as any).loadedModules.get('test.lifecycle');l…
+    128|   await expect(s.manager.disable('test.lifecycle')).rejects.toThrow('c…
+    129|   await expect(s.manager.enable('test.lifecycle')).rejects.toThrow('cl…
+       |                                                  ^
+    130|   expect(s.events.filter(x=>x==='activate:1.0.0')).toHaveLength(1)
+    131|   confirmed=true;await s.manager.enable('test.lifecycle')
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/3]⎯
+
+ FAIL  apps/desktop/src/desktop-plugin-manager-catalog.test.ts > P6 retirement and public diagnostic boundaries > keeps callback errors diagnostic when the trusted owner confirms termination
+AggregateError: Plugin cleanup did not fully complete
+ ❯ DesktopPluginManager.unloadRuntimePlugin apps/desktop/src/desktop-plugin-manager.ts:1680:21
+    1678|     this.executingRecords.delete(pluginId)
+    1679|     if(errors.length) {
+    1680|       const failure=new AggregateError(errors,'Plugin cleanup did not …
+       |                     ^
+    1681|       this.managerDiagnostics.push(failure.message+': '+errors.map(Str…
+    1682|       if(this.registry.get(pluginId))this.registry.markFailed(pluginId…
+ ❯ apps/desktop/src/desktop-plugin-manager.ts:862:20
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/3]⎯
+
+ FAIL  apps/desktop/src/desktop-plugin-manager-catalog.test.ts > P6 retirement and public diagnostic boundaries > never exposes native or activation paths through the public management adapter
+AssertionError: expected '[{"code":"catalog","message":"Activat…' not to match /private|secret|Users|plugin\.js/
+
+- Expected: 
+/private|secret|Users|plugin\.js/
+
++ Received: 
+"[{\"code\":\"catalog\",\"message\":\"Activation failed: /private/home/secret/plugin.js:1\",\"severity\":\"error\"},{\"code\":\"catalog\",\"message\":\"Native cleanup failed at C:\\\\Users\\\\private\\\\plugin\",\"severity\":\"error\"}]"
+
+ ❯ apps/desktop/src/desktop-plugin-manager-catalog.test.ts:145:93
+
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/3]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  3 failed | 9 passed (12)
+   Start at  08:54:21
+   Duration  2.22s (transform 1.12s, setup 0ms, collect 1.42s, tests 66ms, environment 0ms, prepare 121ms)
+

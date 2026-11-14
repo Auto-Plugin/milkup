@@ -1,0 +1,28 @@
+
+ RUN  v3.2.6 /workspace/milkup
+
+ ✓ plugins/outline/src/outline-index.test.ts (3 tests) 1192ms
+   ✓ matches an independent hierarchy oracle for 8775 headings and sparse/global folds  447ms
+   ✓ matches an independent hierarchy oracle for 18000 headings and sparse/global folds  664ms
+ ✓ plugins/outline/src/plugin.test.ts (21 tests) 6587ms
+   ✓ complete paged outline index > ignores delayed echoes of the last returned slice rather than oscillating between old and prepared ranges  371ms
+   ✓ complete paged outline index > stops following the old active heading immediately and keeps the newest scroll request during storage reads  354ms
+   ✓ complete paged outline index > indexes every contiguous range, preserves the full hierarchy and does not rescan when navigating  306ms
+   ✓ complete paged outline index > folds subtrees across scan boundaries, highlights ancestors and restores a navigated child  358ms
+   ✓ complete paged outline index > uses source identity for duplicate titles and rejects stale version actions immediately  306ms
+   ✓ complete paged outline index > discards old scans after quick document changes and disposes each temporary index  324ms
+   ✓ complete paged outline index > invalidates cached visible ancestors when a later range adds their first child  308ms
+   ✓ complete paged outline index > shows a partial index honestly, supports cancellation/retry and does not reuse cancelled identities  304ms
+   ✓ complete paged outline index > supports empty documents and reports storage capability or quota failures explicitly  303ms
+   ✓ complete paged outline index > does not silently complete after invalidated, truncated or interrupted scans  456ms
+   ✓ complete paged outline index > keeps every indexed title available beyond 16384 lines while rendering no more than 500 rows  722ms
+   ✓ complete paged outline index > bounds persisted pages for worst-case escaped labels while preserving folds  348ms
+   ✓ complete paged outline index > does not accept a delayed old-document navigation as current selection  354ms
+   ✓ debounces rapid edits/undo-redo and waits for old temporary-store disposal before indexing the newest version  365ms
+   ✓ cancels a debounced startup before allocating a store and can retry normally  302ms
+
+ Test Files  2 passed (2)
+      Tests  24 passed (24)
+   Start at  10:29:09
+   Duration  7.03s (transform 196ms, setup 0ms, collect 257ms, tests 7.78s, environment 1ms, prepare 173ms)
+

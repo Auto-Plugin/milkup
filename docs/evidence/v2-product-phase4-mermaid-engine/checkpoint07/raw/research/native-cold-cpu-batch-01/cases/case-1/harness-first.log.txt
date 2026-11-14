@@ -1,0 +1,22 @@
+2026-10-16T17:45:20.021Z NATIVE_STARTUP_WINDOW 1499ms
+PASS preinstalled-cold-before-render
+PASS preinstalled-cold-window
+PASS DIAGNOSTIC-COLD-ONLY-COMPLETE
+node:internal/modules/run_main:107
+    triggerUncaughtException(
+    ^
+
+AssertionError [ERR_ASSERTION]: CPU diagnostic sampler must complete successfully
+
+2 !== 0
+
+    at file:///workspace/milkup-mermaid-engine-evidence/research/native-cold-cpu-batch-01/cold-diagnostic.mjs:888:10 {
+  generatedMessage: false,
+  code: 'ERR_ASSERTION',
+  actual: 2,
+  expected: 0,
+  operator: 'strictEqual',
+  diff: 'simple'
+}
+
+Node.js v24.19.0

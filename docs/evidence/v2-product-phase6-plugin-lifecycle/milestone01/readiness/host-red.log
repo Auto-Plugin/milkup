@@ -1,0 +1,472 @@
+
+ RUN  v3.2.6 /workspace/milkup/apps/desktop
+
+(node:140632) PromiseRejectionHandledWarning: Promise rejection was handled asynchronously (rejection id: 2)
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:140632) PromiseRejectionHandledWarning: Promise rejection was handled asynchronously (rejection id: 4)
+ ❯ src/output-presentations-readiness.test.ts (7 tests | 5 failed) 70ms
+   × explicit per-document preparation readiness > waits for the first stable-version result and does not retain a temporary warning 31ms
+     → expected true to be false // Object.is equality
+   ✓ explicit per-document preparation readiness > does not retry permanent incomplete output from existing plugins 2ms
+   × explicit per-document preparation readiness > bounds pending retries by the original absolute preparation deadline 2ms
+     → expected 1 to be greater than 1
+   × explicit per-document preparation readiness > cancels preparation between attempts without dispatching another request 17ms
+     → promise resolved "{ presentations: [ { …(3) } ], …(1) }" instead of rejecting
+   × explicit per-document preparation readiness > rejects a changed capture before another pending attempt 9ms
+     → promise resolved "{ presentations: [ { …(3) } ], …(1) }" instead of rejecting
+   ✓ explicit per-document preparation readiness > does not dispatch again after the provider is disabled while preparing 1ms
+   × explicit per-document preparation readiness > retries only the pending provider, retaining other completed providers 6ms
+     → expected [ { …(2) } ] to deeply equal []
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 5 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/output-presentations-readiness.test.ts > explicit per-document preparation readiness > waits for the first stable-version result and does not retain a temporary warning
+AssertionError: expected true to be false // Object.is equality
+
+- Expected
++ Received
+
+- false
++ true
+
+ ❯ src/output-presentations-readiness.test.ts:25:21
+     23|     const output = collectOutputPresentations(options).then((value) =>…
+     24|     await vi.advanceTimersByTimeAsync(0)
+     25|     expect(settled).toBe(false)
+       |                     ^
+     26|     await vi.advanceTimersByTimeAsync(250)
+     27|     const result = await output
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/5]⎯
+
+ FAIL  src/output-presentations-readiness.test.ts > explicit per-document preparation readiness > bounds pending retries by the original absolute preparation deadline
+AssertionError: expected 1 to be greater than 1
+ ❯ src/output-presentations-readiness.test.ts:45:38
+     43|     await vi.advanceTimersByTimeAsync(10_001)
+     44|     const result = await output
+     45|     expect(render.mock.calls.length).toBeGreaterThan(1)
+       |                                      ^
+     46|     expect(render.mock.calls.length).toBeLessThanOrEqual(40)
+     47|     expect(result.warnings.some((w) => w.code === 'presentation-timeou…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/5]⎯
+
+ FAIL  src/output-presentations-readiness.test.ts > explicit per-document preparation readiness > cancels preparation between attempts without dispatching another request
+AssertionError: promise resolved "{ presentations: [ { …(3) } ], …(1) }" instead of rejecting
+
+- Expected
++ Received
+
+- [Error: rejected promise]
++ Object {
++   "presentations": Array [
++     Object {
++       "declarations": Array [
++         Object {
++           "contexts": Array [
++             "text",
++           ],
++           "id": "references",
++           "pluginId": "independent.index",
++         },
++       ],
++       "request": Object {
++         "blocks": Array [
++           Object {
++             "complete": true,
++             "contentRanges": Array [
++               Object {
++                 "from": 0,
++                 "to": 11,
++               },
++             ],
++             "from": 0,
++             "kind": "text",
++             "to": 11,
++           },
++           Object {
++             "complete": true,
++             "contentRanges": Array [
++               Object {
++                 "from": 12,
++                 "to": 12,
++               },
++             ],
++             "from": 12,
++             "kind": "text",
++             "to": 12,
++           },
++         ],
++         "completeEnd": true,
++         "completeStart": true,
++         "contextKnown": true,
++         "documentId": "frozen",
++         "from": 0,
++         "fromLine": 1,
++         "protectedRanges": Array [],
++         "selection": Object {
++           "anchor": 0,
++           "head": 0,
++         },
++         "source": "A reference
++ ",
++         "target": "export",
++         "theme": "light",
++         "to": 12,
++         "toLine": 2,
++         "version": 3,
++         "width": 760,
++       },
++       "result": Object {
++         "complete": false,
++         "fragments": Array [],
++       },
++     },
++   ],
++   "warnings": Array [
++     Object {
++       "code": "presentation-incomplete",
++       "message": "Some rich content could not be rendered completely; original Markdown is retained where needed.",
++     },
++   ],
++ }
+
+ ❯ src/output-presentations-readiness.test.ts:54:35
+     52|     const { options, render, abort } = fixture()
+     53|     const output = collectOutputPresentations(options)
+     54|     const rejected = expect(output).rejects.toMatchObject({ code: 'abo…
+       |                                   ^
+     55|     await vi.advanceTimersByTimeAsync(0)
+     56|     abort.abort()
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/5]⎯
+
+ FAIL  src/output-presentations-readiness.test.ts > explicit per-document preparation readiness > rejects a changed capture before another pending attempt
+AssertionError: promise resolved "{ presentations: [ { …(3) } ], …(1) }" instead of rejecting
+
+- Expected
++ Received
+
+- [Error: rejected promise]
++ Object {
++   "presentations": Array [
++     Object {
++       "declarations": Array [
++         Object {
++           "contexts": Array [
++             "text",
++           ],
++           "id": "references",
++           "pluginId": "independent.index",
++         },
++       ],
++       "request": Object {
++         "blocks": Array [
++           Object {
++             "complete": true,
++             "contentRanges": Array [
++               Object {
++                 "from": 0,
++                 "to": 11,
++               },
++             ],
++             "from": 0,
++             "kind": "text",
++             "to": 11,
++           },
++           Object {
++             "complete": true,
++             "contentRanges": Array [
++               Object {
++                 "from": 12,
++                 "to": 12,
++               },
++             ],
++             "from": 12,
++             "kind": "text",
++             "to": 12,
++           },
++         ],
++         "completeEnd": true,
++         "completeStart": true,
++         "contextKnown": true,
++         "documentId": "frozen",
++         "from": 0,
++         "fromLine": 1,
++         "protectedRanges": Array [],
++         "selection": Object {
++           "anchor": 0,
++           "head": 0,
++         },
++         "source": "A reference
++ ",
++         "target": "export",
++         "theme": "light",
++         "to": 12,
++         "toLine": 2,
++         "version": 3,
++         "width": 760,
++       },
++       "result": Object {
++         "complete": false,
++         "fragments": Array [],
++       },
++     },
++   ],
++   "warnings": Array [
++     Object {
++       "code": "presentation-incomplete",
++       "message": "Some rich content could not be rendered completely; original Markdown is retained where needed.",
++     },
++   ],
++ }
+
+ ❯ src/output-presentations-readiness.test.ts:67:35
+     65|     let current = true
+     66|     const output = collectOutputPresentations({ ...options, assertCurr…
+     67|     const rejected = expect(output).rejects.toThrow('capture changed')
+       |                                   ^
+     68|     await vi.advanceTimersByTimeAsync(0)
+     69|     current = false
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/5]⎯
+
+ FAIL  src/output-presentations-readiness.test.ts > explicit per-document preparation readiness > retries only the pending provider, retaining other completed providers
+AssertionError: expected [ { …(2) } ] to deeply equal []
+
+- Expected
++ Received
+
+- []
++ [
++   {
++     "code": "presentation-incomplete",
++     "message": "Some rich content could not be rendered completely; original Markdown is retained where needed.",
++   },
++ ]
+
+ ❯ src/output-presentations-readiness.test.ts:101:37
+     99|     })
+    100|     await vi.advanceTimersByTimeAsync(500)
+    101|     expect((await output).warnings).toEqual([])
+       |                                     ^
+    102|     expect(counts.get(renderer.pluginId)).toBe(3)
+    103|     expect(counts.get('independent.complete')).toBe(1)
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/5]⎯
+
+⎯⎯⎯⎯⎯⎯ Unhandled Errors ⎯⎯⎯⎯⎯⎯
+
+Vitest caught 2 unhandled errors during the test run.
+This might cause false positive tests. Resolve unhandled errors to make sure your tests are not affected.
+
+⎯⎯⎯⎯ Unhandled Rejection ⎯⎯⎯⎯⎯
+AssertionError: promise resolved "{ presentations: [ { …(3) } ], …(1) }" instead of rejecting
+
+- Expected
++ Received
+
+- Error {
+-   "message": "rejected promise",
++ {
++   "presentations": [
++     {
++       "declarations": [
++         {
++           "contexts": [
++             "text",
++           ],
++           "id": "references",
++           "pluginId": "independent.index",
++         },
++       ],
++       "request": {
++         "blocks": [
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 0,
++                 "to": 11,
++               },
++             ],
++             "from": 0,
++             "kind": "text",
++             "to": 11,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 12,
++                 "to": 12,
++               },
++             ],
++             "from": 12,
++             "kind": "text",
++             "to": 12,
++           },
++         ],
++         "completeEnd": true,
++         "completeStart": true,
++         "contextKnown": true,
++         "documentId": "frozen",
++         "from": 0,
++         "fromLine": 1,
++         "protectedRanges": [],
++         "selection": {
++           "anchor": 0,
++           "head": 0,
++         },
++         "source": "A reference
++ ",
++         "target": "export",
++         "theme": "light",
++         "to": 12,
++         "toLine": 2,
++         "version": 3,
++         "width": 760,
++       },
++       "result": {
++         "complete": false,
++         "fragments": [],
++       },
++     },
++   ],
++   "warnings": [
++     {
++       "code": "presentation-incomplete",
++       "message": "Some rich content could not be rendered completely; original Markdown is retained where needed.",
++     },
++   ],
+  }
+
+ ❯ _Assertion.__VITEST_REJECTS__ ../../node_modules/.pnpm/@vitest+expect@3.2.6/node_modules/@vitest/expect/dist/index.js:1610:17
+ ❯ _Assertion.propertyGetter ../../node_modules/.pnpm/chai@5.3.3/node_modules/chai/index.js:1557:27
+ ❯ Object.proxyGetter [as get] ../../node_modules/.pnpm/chai@5.3.3/node_modules/chai/index.js:1645:22
+ ❯ src/output-presentations-readiness.test.ts:54:35
+     52|     const { options, render, abort } = fixture()
+     53|     const output = collectOutputPresentations(options)
+     54|     const rejected = expect(output).rejects.toMatchObject({ code: 'abo…
+       |                                   ^
+     55|     await vi.advanceTimersByTimeAsync(0)
+     56|     abort.abort()
+ ❯ ../../node_modules/.pnpm/@vitest+runner@3.2.6/node_modules/@vitest/runner/dist/chunk-hooks.js:155:11
+ ❯ ../../node_modules/.pnpm/@vitest+runner@3.2.6/node_modules/@vitest/runner/dist/chunk-hooks.js:752:26
+ ❯ ../../node_modules/.pnpm/@vitest+runner@3.2.6/node_modules/@vitest/runner/dist/chunk-hooks.js:1897:20
+ ❯ runWithTimeout ../../node_modules/.pnpm/@vitest+runner@3.2.6/node_modules/@vitest/runner/dist/chunk-hooks.js:1863:10
+
+This error originated in "src/output-presentations-readiness.test.ts" test file. It doesn't mean the error was thrown inside the file itself, but while it was running.
+The latest test that might've caused the error is "cancels preparation between attempts without dispatching another request". It might mean one of the following:
+- The error was thrown, while Vitest was running this test.
+- If the error occurred after the test had been completed, this was the last documented test before it was thrown.
+
+⎯⎯⎯⎯ Unhandled Rejection ⎯⎯⎯⎯⎯
+AssertionError: promise resolved "{ presentations: [ { …(3) } ], …(1) }" instead of rejecting
+
+- Expected
++ Received
+
+- Error {
+-   "message": "rejected promise",
++ {
++   "presentations": [
++     {
++       "declarations": [
++         {
++           "contexts": [
++             "text",
++           ],
++           "id": "references",
++           "pluginId": "independent.index",
++         },
++       ],
++       "request": {
++         "blocks": [
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 0,
++                 "to": 11,
++               },
++             ],
++             "from": 0,
++             "kind": "text",
++             "to": 11,
++           },
++           {
++             "complete": true,
++             "contentRanges": [
++               {
++                 "from": 12,
++                 "to": 12,
++               },
++             ],
++             "from": 12,
++             "kind": "text",
++             "to": 12,
++           },
++         ],
++         "completeEnd": true,
++         "completeStart": true,
++         "contextKnown": true,
++         "documentId": "frozen",
++         "from": 0,
++         "fromLine": 1,
++         "protectedRanges": [],
++         "selection": {
++           "anchor": 0,
++           "head": 0,
++         },
++         "source": "A reference
++ ",
++         "target": "export",
++         "theme": "light",
++         "to": 12,
++         "toLine": 2,
++         "version": 3,
++         "width": 760,
++       },
++       "result": {
++         "complete": false,
++         "fragments": [],
++       },
++     },
++   ],
++   "warnings": [
++     {
++       "code": "presentation-incomplete",
++       "message": "Some rich content could not be rendered completely; original Markdown is retained where needed.",
++     },
++   ],
+  }
+
+ ❯ _Assertion.__VITEST_REJECTS__ ../../node_modules/.pnpm/@vitest+expect@3.2.6/node_modules/@vitest/expect/dist/index.js:1610:17
+ ❯ _Assertion.propertyGetter ../../node_modules/.pnpm/chai@5.3.3/node_modules/chai/index.js:1557:27
+ ❯ Object.proxyGetter [as get] ../../node_modules/.pnpm/chai@5.3.3/node_modules/chai/index.js:1645:22
+ ❯ src/output-presentations-readiness.test.ts:67:35
+     65|     let current = true
+     66|     const output = collectOutputPresentations({ ...options, assertCurr…
+     67|     const rejected = expect(output).rejects.toThrow('capture changed')
+       |                                   ^
+     68|     await vi.advanceTimersByTimeAsync(0)
+     69|     current = false
+ ❯ ../../node_modules/.pnpm/@vitest+runner@3.2.6/node_modules/@vitest/runner/dist/chunk-hooks.js:155:11
+ ❯ ../../node_modules/.pnpm/@vitest+runner@3.2.6/node_modules/@vitest/runner/dist/chunk-hooks.js:752:26
+ ❯ ../../node_modules/.pnpm/@vitest+runner@3.2.6/node_modules/@vitest/runner/dist/chunk-hooks.js:1897:20
+ ❯ runWithTimeout ../../node_modules/.pnpm/@vitest+runner@3.2.6/node_modules/@vitest/runner/dist/chunk-hooks.js:1863:10
+
+This error originated in "src/output-presentations-readiness.test.ts" test file. It doesn't mean the error was thrown inside the file itself, but while it was running.
+The latest test that might've caused the error is "rejects a changed capture before another pending attempt". It might mean one of the following:
+- The error was thrown, while Vitest was running this test.
+- If the error occurred after the test had been completed, this was the last documented test before it was thrown.
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯
+
+
+ Test Files  1 failed (1)
+      Tests  5 failed | 2 passed (7)
+     Errors  2 errors
+   Start at  07:17:00
+   Duration  1.09s (transform 390ms, setup 0ms, collect 509ms, tests 70ms, environment 0ms, prepare 85ms)
+

@@ -1,0 +1,53 @@
+
+ RUN  v3.2.6 /workspace/milkup/packages/view-dom
+
+ ❯ src/__tests__/image-hooks.test.ts (15 tests | 2 failed | 13 skipped) 140ms
+   × renders an escaped closing bracket in image alt text (false) 106ms
+     → expected undefined to be 'blob:escaped-alt' // Object.is equality
+   ↓ refreshes a newly available local image without a document transaction (false)
+   ↓ delivers real paste files with the event-time selection and aborts on disable (false)
+   ↓ renders only resolver-owned blobs, preserves text, and disposes on destroy (false)
+   ↓ reports selection ABA changes and composition without changing content (false)
+   ↓ disposes a late resolver response after the view is destroyed (false)
+   ↓ renders nested strikethrough with mapped Unicode content (false)
+   × renders an escaped closing bracket in image alt text (true) 32ms
+     → expected undefined to be 'blob:escaped-alt' // Object.is equality
+   ↓ refreshes a newly available local image without a document transaction (true)
+   ↓ delivers real paste files with the event-time selection and aborts on disable (true)
+   ↓ renders only resolver-owned blobs, preserves text, and disposes on destroy (true)
+   ↓ reports selection ABA changes and composition without changing content (true)
+   ↓ disposes a late resolver response after the view is destroyed (true)
+   ↓ renders nested strikethrough with mapped Unicode content (true)
+   ↓ rejects remote, absolute, traversal and encoded path escapes before resource lookup
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/__tests__/image-hooks.test.ts > renders an escaped closing bracket in image alt text (false)
+ FAIL  src/__tests__/image-hooks.test.ts > renders an escaped closing bracket in image alt text (true)
+AssertionError: expected undefined to be 'blob:escaped-alt' // Object.is equality
+
+- Expected: 
+"blob:escaped-alt"
+
++ Received: 
+undefined
+
+ ❯ src/__tests__/image-hooks.test.ts:18:40
+     16|     await settle();await settle()
+     17|     const image = view.contentDOM.querySelector('img')
+     18|     expect(image?.getAttribute('src')).toBe('blob:escaped-alt')
+       |                                        ^
+     19|     expect(image?.alt).toBe('图 [A] \\')
+     20|   })
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  2 failed | 13 skipped (15)
+   Start at  08:47:18
+   Duration  11.99s (transform 5.52s, setup 0ms, collect 8.18s, tests 140ms, environment 2.59s, prepare 202ms)
+
+undefined
+/workspace/milkup/packages/view-dom:
+[ERR_PNPM_RECURSIVE_EXEC_FIRST_FAIL] Command failed with exit code 1: vitest run src/__tests__/image-hooks.test.ts -t 'escaped closing bracket'

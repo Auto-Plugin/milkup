@@ -1,0 +1,104 @@
+Independent static review: controlled fork + pidfd capability preparation
+STATIC ONLY. No import/execution of candidate, fork, pidfd_open, dynamic tests,
+probe, product launch, privilege escalation or candidate rewrite performed.
+
+Reviewed source
+research/cold-start-cpu-review-01/pidfd-capability-preparation/pidfd_capability.py
+SHA256 1de5425c31e89b64be90b76052284759a43f8194fd4c49461c865df7462338f7.
+PLAN.txt SHA256 ce2aae3a2e0ed370453afbdc891213d4700ecbd95cf0d12d8bdbbdf45276326c.
+Both match prepared-manifest.json. AST-only parsing and selected-call inventory
+are retained in static-check.json. Actual capability remains untested by this review.
+
+Conclusion
+The candidate can support the narrow intended experiment: derive an observed,
+live direct child of an exactly identified fixture worker from an existing pidfd,
+then compare with the private fork-handshake oracle. No blocking static ownership
+or global-discovery defect was found for this single same-context controlled case.
+This is not approval evidence from a runtime result and cannot establish a full
+renderer descendant tree, WebKit sandbox behavior or historical CPU coverage.
+The qualifications below must remain explicit when interpreting the one result.
+
+Discovery and bounds
+The only os.scandir call targets /proc/<known-worker-pid>/fdinfo. It materializes
+at most32+1 entries; overflow clears the candidate FD list rather than sampling a
+potentially misleading subset. Numeric FD names only. Each read is bounded to4096
+bytes plus one overflow byte. The20ms scan budget is checked before each FD.
+There is no /proc root scan, children-file discovery, guessed renderer PID, signal
+or product command. The scanner receives no known pidfd number. Worker holds its
+actual os.pidfd_open(fork-return-child,0) handle, while both snapshots discover
+its number independently among the known owner's descriptors.
+The limits are cooperative: enumeration/kernel reads cannot be interrupted by
+the20ms/8s checks, and the final record may finish after its nominal scan budget.
+The plan already says this. MAX_FRAME65536 may reject an unusually large snapshot;
+that must remain a failed/inconclusive attempt, not trigger a retry or broad scan.
+
+PID view and identity binding
+Positive fdinfo Pid is used directly as /proc/<Pid>/stat in the snapshot reader's
+existing proc view. NSpid is parsed and retained, never indexed from the tail or
+used to invent an outer namespace mapping. The controlled fixture creates no new
+PID namespace; worker/observer context links/maps are emitted. This experiment
+does not test reading a differently mounted or differently nested proc view.
+The code does not assert NSpid[0]==Pid. Hence it proves no consistency or translation
+of the NSpid vector beyond parsing/positivity; its accepted-target binding relies
+on Pid plus the two target stat reads and PPID. If actual output shows inconsistent
+Pid/NSpid/context values, classify that evidence as unresolved, not a successful
+cross-namespace identity mapping. Do not use NSpid alone to rescue a failed target
+stat lookup.
+
+Before scanning, owner PID/birth must match the private worker identity. Each
+candidate target must have exact PPID=worker PID, birth>=worker birth and a live
+non-zombie state. The same fdinfo path is reread and its full raw text must match.
+The second target stat must retain PID/birth/PPID and live state. Owner PID/birth
+is reread after scanning; mismatch clears all acceptedTargets. Those checks
+correctly constrain the claim to a directly owned child at the observation times.
+
+FD reuse precision
+The repeated full raw fdinfo rejects observed target-changing descriptor reuse;
+the two target identities reject visible PID/birth changes. These are non-atomic
+observations. They cannot prove that an FD was never closed and reopened between
+reads, particularly an ABA replacement by another pidfd for the same still-live
+target, which can have identical fdinfo. Such same-target ABA does not invalidate
+the narrow derived child identity, but the output must not be described as proof
+of one unchanged open-file-description or universal rejection of every FD reuse.
+The known fixture deliberately holds its pidfd throughout both snapshots, which
+further narrows the runtime claim; do not generalize that fixture behavior to the
+production guardian without separately observed evidence.
+
+Oracle independence and incomplete scans
+oracle_child is included in snapshot metadata but is not consulted when choosing
+FDs, parsing Pid or acceptingTargets. It is compared only after the discovery and
+owner-after checks, using derived PID/birth/PPID. Thus it does not supply the PID
+to discovery or turn an arbitrary known-child stat read into pidfd discovery.
+If a scan exceeds its budget after deriving a verified target and the oracle
+matches, this can still demonstrate the narrow target capability. It cannot mean
+that all owner FDs were examined. If overflow/budget/error occurs without finding
+the target, capability is inconclusive/unavailable in that attempt, not proof
+that no pidfd exists. directPidfdCapabilityObserved=true requires both inside and
+outside oracle matches, but does not require both scans to be exhaustive.
+
+Protocol, EOF and wait
+Topology is observer -> worker -> child, with private pipes. Observer closes its
+control writer; worker then closes the child hold writer. Each process waits only
+for its own exact fork-return child using waitpid(pid,WNOHANG), with10ms bounded
+polls. No kill fallback, unrelated-child wait or global cleanup exists. Worker
+closes retained pidfd in finally; unreaped outcomes stay explicit. This is a
+reasonable bounded, normally EOF-driven fixture teardown design.
+Runtime interpretation still needs care: child discards its await_eof return,
+so child EOF versus its bounded hold timeout is not directly reported. Worker
+does retain releaseReason (pipe-eof or bounded-timeout). Do not state both EOFs
+were individually observed solely from complete=true; inspect recorded duration,
+worker releaseReason and exact exit/reap records, and keep any uncertainty.
+
+Meaning of complete, CLI exit and capability
+complete checks no outer exception and both reap booleans. It does not require
+the child/worker exitCode to be zero. The CLI exits0 when complete is true, so
+CLI exit0 alone must not be called normal successful teardown or capability.
+Report parentReap/fixtureFinal.childReap exitCode and releaseReason separately.
+Conversely, directPidfdCapabilityObserved is independently computed from the two
+oracle matches and can retain an observation even if later teardown is incomplete.
+Require a complete output plus acceptable exact exit/reap records before calling
+the one experiment operationally clean; preserve partial capability observations
+and cleanup failures independently rather than collapsing either into a pass.
+fullDescendantTreeCoverage is always false and correctly prevents renderer-tree
+claims. No preparation result establishes what the actual one authorized run
+will return. Root retains responsibility for deciding whether/where to run it.

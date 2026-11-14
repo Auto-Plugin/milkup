@@ -1,0 +1,29 @@
+{
+  "reviewedBy": "root",
+  "reviewedAt": "2026-10-16T08:46:59.160026+00:00",
+  "method": "Original PNGs actually opened with view_image. These duplicate matrix views are spot checks and are not added to the unique four-quadrant review count.",
+  "files": [
+    {
+      "path": "run-candidate11-namespace-run01/matrix-windowed-source-light-200-narrow-matrix-x11.png",
+      "sha256": "2edd0228fd204d074fec11ae7feb902dcfe9e5676cc0e71fa031656ae851b453",
+      "observed": "Formula source is readable; horizontal scrollbar and complete bottom status bar remain visible through physical y520. Black desktop starts below the app, not at y448."
+    },
+    {
+      "path": "run-candidate11-namespace-run01/matrix-windowed-source-light-200-narrow-matrix-webview.png",
+      "sha256": "477cf6b909e496d910de2ea999e5fcb3bc9361732dbbefb3707ad26063a7dcaa",
+      "observed": "The 760x520 WebView agrees with the X11 frame: complete status bar and readable formula source."
+    },
+    {
+      "path": "run-candidate11-namespace-run01/matrix-windowed-source-light-200-narrow-root-x11.png",
+      "sha256": "6a707c288c82919911de67659663c8d9973f54c6c99cfd4fe901f42cfb1b393f",
+      "observed": "Root formula source and its markers are visible; long literal extends horizontally, with horizontal scrollbar and complete status bar. Static frame does not prove line-tail reachability."
+    },
+    {
+      "path": "run-candidate11-namespace-run01/matrix-ordinary-live-light-100-wide-pie-x11.png",
+      "sha256": "64e86910acea3b54723413d32bc171d9b878230cf32a51dbe950c2ed8b55c1ee",
+      "observed": "Pie chart lower edge is outside the current outer viewport; complete legend is visible. This static frame is partial and does not prove scrolling reachability."
+    }
+  ],
+  "correction": "A batch display initially suggested a black lower area to the secondary reviewer. Independent opening of originals and reviewer pixel-coordinate checks confirmed the complete status bar; this was not identified as a product defect.",
+  "limitations": ["Four images only.", "Linux native only; no Windows or system DPI verification."]
+}

@@ -1,0 +1,42 @@
+{
+  "started": "2026-10-19T13:22:00.662523+00:00",
+  "command": [
+    "bash",
+    "scripts/cloud/pnpm.sh",
+    "--config.verify-deps-before-run=false",
+    "--config.manage-package-manager-versions=false",
+    "test:e2e",
+    "tests/e2e/desktop-formatting.spec.ts",
+    "--project=desktop-msedge",
+    "--grep=^formatting toolbar geometry 760x520 dark 125%$",
+    "--workers=1",
+    "--retries=0",
+    "--trace=retain-on-failure",
+    "--reporter=line,json",
+    "--output=/workspace/milkup-p7-quality-evidence/milestone02/validation/browser-target01-artifacts"
+  ],
+  "head": "78e9329004d2ff244585d98dbe0d7cdd98ab9495",
+  "inputsBeforeSha256": "b8422e690c46044a52e0d860999c0911c395f2959ed9c8d0396bed7a15bfc16e",
+  "browser": "Chromium 154.0.8037.57 built on Debian GNU/Linux 13 (trixie)",
+  "expectedCaseCount": 1,
+  "originalTestAndDeadlinesUnchanged": true,
+  "finished": "2026-10-19T13:22:09.053928+00:00",
+  "elapsedSeconds": 8.391420167987235,
+  "exitCode": 1,
+  "inputsAfterSha256": "b8422e690c46044a52e0d860999c0911c395f2959ed9c8d0396bed7a15bfc16e",
+  "inputsUnchanged": true,
+  "stats": {
+    "startTime": "2026-10-19T13:22:02.555Z",
+    "duration": 6116.503,
+    "expected": 0,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0
+  },
+  "errors": [
+    {
+      "message": "Error: No tests found.\nMake sure that arguments are regular expressions matching test files.\nYou may need to escape symbols like \"$\" or \"*\" and quote the arguments.",
+      "stack": "Error: No tests found.\nMake sure that arguments are regular expressions matching test files.\nYou may need to escape symbols like \"$\" or \"*\" and quote the arguments."
+    }
+  ]
+}

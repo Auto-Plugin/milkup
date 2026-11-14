@@ -1,0 +1,30 @@
+{
+  "author": "release_sdk",
+  "kind": "independent-incremental-static-review",
+  "harnessSha256": "439232d486fa4a29858924412f23cc09a87023236739cf5bcd3892b7d51f280b",
+  "previousReview": "research/ui08-projection-invariant-implementation-review.json",
+  "previousHarnessSha256": "367ae35de7fde6cb683ddb3c25259efb92bc12ee33c1b3b271a475bd7e066198",
+  "verdict": "No blocking issue found in the two targeted tightenings. Previous scope and runtime qualifications remain.",
+  "changesReviewed": [
+    {
+      "change": "Validate all mounted source rows before projection assertions",
+      "finding": "The single DOM snapshot now retains invalidRows based on integer from/to/line, nonnegative from, to>=from and line>=1 before using range-filtered markerLines. Raw invalidRows are appended to selection-projections.jsonl, then required to be empty. Missing/NaN/misordered numeric metadata no longer silently disappears as an unmounted marker."
+    },
+    {
+      "change": "Preserve existing positioning failure when post-position projection also fails",
+      "finding": "The after-projection catch rethrows when no previous positioning failure exists. With a previous failure, it returns a secondary error record and allows positioning.jsonl to retain the earlier error plus observations. The existing document integrity assertions remain; the final original failure is thrown when those checks pass. This is not suppression of an otherwise-successful projection failure."
+    }
+  ],
+  "byteProof": {
+    "baselineSha256": "4d3e797a75d0377306fd3a4da5d839ad08bafaafcaa2698c51de608fda82fbc8",
+    "method": "Remove the complete added helper, before call, after call/catch, and selectionProjection log field; restore the one removed raw selection equality assertion.",
+    "exactReconstruction": true,
+    "unchanged": "All remaining module bytes, including navigation readiness, complete catalog/matrix, image/history/error assertions, positioning bounds and document version/dirty/saved-bytes checks."
+  },
+  "limits": [
+    "Metadata checks cover the current source DOM numeric contract; this review is not a generalized DOM security validator.",
+    "If an existing document integrity assertion fails after positioning, that assertion can still terminate first as before; this patch specifically preserves an earlier positioning failure against a new secondary projection failure.",
+    "No runtime or full09 outcome is claimed; prior native copy evidence remains separately scoped."
+  ],
+  "execution": "Lightweight source reads, SHA and exact text reconstruction only. No tests/build/browser/native/product edits; old reports unchanged."
+}

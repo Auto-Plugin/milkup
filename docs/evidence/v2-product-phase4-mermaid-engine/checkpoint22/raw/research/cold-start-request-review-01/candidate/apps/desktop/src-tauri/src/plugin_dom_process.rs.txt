@@ -1,0 +1,1127 @@
+//! Linux process owner. The monotonic watchdog never holds pipe or GUI locks.
+use super::*;
+use std::{
+    collections::{HashMap, HashSet},
+    fs::File,
+    io::{BufRead, BufReader, Read, Write},
+    os::{
+        fd::{AsRawFd, FromRawFd},
+        unix::process::CommandExt,
+    },
+    process::{Child, ChildStdin, Command, Stdio},
+    sync::Condvar,
+    thread,
+};
+const INIT_DEADLINE: Duration = Duration::from_secs(10);
+const RENDER_DEADLINE: Duration = Duration::from_secs(2);
+
+pub(super) struct Instance {
+    pub id: String,
+    diagnostic: Option<&'static request_diagnostic::Recorder>,
+    plugin_id: String,
+    manifest: Value,
+    child: Mutex<Child>,
+    pid: i32,
+    birth: u64,
+    stdin: Mutex<ChildStdin>,
+    guardian_stop: Option<Mutex<File>>,
+    input_ready: Mutex<bool>,
+    input_wake: Condvar,
+    control: Mutex<Control>,
+    wake: Condvar,
+    owned: Mutex<HashMap<i32, u64>>,
+    #[cfg(test)]
+    sample_owned_calls: std::sync::atomic::AtomicUsize,
+    emit: Emit,
+    extension: helper::PrivateDirectory,
+}
+struct Control {
+    stopped: bool,
+    initialized: bool,
+    init_deadline: Instant,
+    activation: Option<String>,
+    active: Option<(String, Instant)>,
+    rpc: Option<String>,
+    rpc_deadline: Option<Instant>,
+}
+impl Instance {
+    pub fn start(plugin_id: String, snapshot: Snapshot, emit: Emit) -> Result<Arc<Self>, String> {
+        Self::launch(
+            plugin_id,
+            snapshot,
+            emit,
+            std::env::current_exe().map_err(|e| e.to_string())?,
+        )
+    }
+    fn launch(
+        plugin_id: String,
+        snapshot: Snapshot,
+        emit: Emit,
+        executable: std::path::PathBuf,
+    ) -> Result<Arc<Self>, String> {
+        // Only the production current_exe call above reaches this method outside
+        // unit tests. No executable/path option is exposed through a command.
+        let id = opaque_id()?;
+        let start = Instant::now();
+        // Research-only observer initialization stays inside the original init budget.
+        let diagnostic = request_diagnostic::initialize();
+        let extension = helper::private_extension()?;
+        let mut fds = [-1; 2];
+        if unsafe { libc::pipe2(fds.as_mut_ptr(), libc::O_CLOEXEC) } != 0 {
+            return Err(std::io::Error::last_os_error().to_string());
+        }
+        let reader = unsafe { File::from_raw_fd(fds[0]) };
+        let writer = unsafe { File::from_raw_fd(fds[1]) };
+        let write_fd = writer.as_raw_fd();
+        let mut control_fds = [-1; 2];
+        if unsafe { libc::pipe2(control_fds.as_mut_ptr(), libc::O_CLOEXEC | libc::O_NONBLOCK) } != 0
+        {
+            return Err(std::io::Error::last_os_error().to_string());
+        }
+        let control_reader = unsafe { File::from_raw_fd(control_fds[0]) };
+        let control_writer = unsafe { File::from_raw_fd(control_fds[1]) };
+        let control_fd = control_reader.as_raw_fd();
+        let mut command = Command::new(executable);
+        command
+            .arg("--milkup-internal-dom-helper")
+            .env("MILKUP_INTERNAL_DOM_GUARD_DIR", &extension.0)
+            .env("MILKUP_INTERNAL_DOM_INSTANCE_ID", &id)
+            .stdin(Stdio::piped())
+            .stdout(Stdio::null())
+            .stderr(Stdio::inherit());
+        let parent_pid = unsafe { libc::getpid() };
+        unsafe {
+            command.pre_exec(move || {
+                if libc::setsid() < 0 {
+                    return Err(std::io::Error::last_os_error());
+                }
+                if libc::getppid() != parent_pid {
+                    return Err(std::io::Error::new(
+                        std::io::ErrorKind::BrokenPipe,
+                        "DOM owner exited during spawn",
+                    ));
+                }
+                if libc::dup2(write_fd, 3) < 0 || libc::fcntl(3, libc::F_SETFD, 0) < 0 {
+                    return Err(std::io::Error::last_os_error());
+                }
+                if libc::dup2(control_fd, 4) < 0 || libc::fcntl(4, libc::F_SETFD, 0) < 0 {
+                    return Err(std::io::Error::last_os_error());
+                }
+                Ok(())
+            });
+        }
+        let mut child = command.spawn().map_err(|e| e.to_string())?;
+        drop(writer);
+        drop(control_reader);
+        let pid = child.id() as i32;
+        let birth = match proc_stat(pid) {
+            Some(p) => p.birth,
+            None => {
+                drop(control_writer);
+                let _ = child.wait();
+                return Err("DOM guardian exited before ownership was established".into());
+            }
+        };
+        let stdin = match child.stdin.take() {
+            Some(stdin) => stdin,
+            None => {
+                drop(control_writer);
+                let _ = child.wait();
+                return Err("DOM helper input pipe unavailable".into());
+            }
+        };
+        let instance = Arc::new(Self {
+            id,
+            diagnostic,
+            plugin_id,
+            manifest: snapshot.manifest.clone(),
+            child: Mutex::new(child),
+            pid,
+            birth,
+            stdin: Mutex::new(stdin),
+            guardian_stop: Some(Mutex::new(control_writer)),
+            input_ready: Mutex::new(false),
+            input_wake: Condvar::new(),
+            control: Mutex::new(Control {
+                stopped: false,
+                initialized: false,
+                init_deadline: start + INIT_DEADLINE,
+                activation: None,
+                active: None,
+                rpc: None,
+                rpc_deadline: None,
+            }),
+            wake: Condvar::new(),
+            owned: Mutex::new(HashMap::from([(pid, birth)])),
+            #[cfg(test)]
+            sample_owned_calls: std::sync::atomic::AtomicUsize::new(0),
+            emit,
+            extension,
+        });
+        // Arm the owner before reading/writing anything to the child.
+        let watcher = instance.clone();
+        thread::spawn(move || watcher.watch());
+        if let Some(recorder) = instance.diagnostic {
+            recorder.guardian(&instance.id, &instance.plugin_id, pid, birth);
+        }
+        // The dedicated guardian discovers and cleans up its descendants. The
+        // production owner does not need a second process-table sampling loop.
+        let output = instance.clone();
+        thread::spawn(move || {
+            let mut reader = BufReader::new(reader);
+            loop {
+                match read_frame(&mut reader, OUTPUT_WIRE_LIMIT) {
+                    Ok(Some(bytes)) => match serde_json::from_slice(&bytes) {
+                        Ok(message) => output.receive(message),
+                        Err(_) => {
+                            output.fail("DOM helper emitted invalid JSON".into());
+                            break;
+                        }
+                    },
+                    Ok(None) => {
+                        output.fail("DOM helper result pipe closed".into());
+                        break;
+                    }
+                    Err(e) => {
+                        output.fail(e);
+                        break;
+                    }
+                }
+            }
+        });
+        let input = instance.clone();
+        thread::spawn(move || {
+            // Binary length prefix avoids JSON expanding an 8 MiB UTF-8 module
+            // to an unbounded preparation frame. This is trusted snapshot data.
+            let result = (|| {
+                let bytes = serde_json::to_vec(&snapshot).map_err(|e| e.to_string())?;
+                let mut pipe = input.stdin.lock().map_err(|e| e.to_string())?;
+                pipe.write_all(&(bytes.len() as u32).to_le_bytes())
+                    .and_then(|_| pipe.write_all(&bytes))
+                    .and_then(|_| pipe.flush())
+                    .map_err(|e| e.to_string())
+            })();
+            if let Ok(mut ready) = input.input_ready.lock() {
+                *ready = true;
+                input.input_wake.notify_all();
+            }
+            if let Err(error) = result {
+                input.fail(error);
+            }
+        });
+        Ok(instance)
+    }
+    pub fn send(&self, message: Value) -> Result<(), String> {
+        let mut diagnostic_render_accepted = false;
+        let bytes = serde_json::to_vec(&message).map_err(|e| e.to_string())?;
+        if bytes.len() > INPUT_WIRE_LIMIT {
+            return Err("DOM input frame exceeds its bounded wire budget".into());
+        }
+        {
+            let mut control = self.control.lock().map_err(|e| e.to_string())?;
+            if control.stopped {
+                return Err("DOM instance was revoked".into());
+            }
+            let id = valid_id(&message)
+                .ok_or("Invalid DOM request ID")?
+                .to_string();
+            match (message["protocol"].as_str(), message["type"].as_str()) {
+                (Some(RENDER_PROTOCOL), Some("render")) => {
+                    if !control.initialized {
+                        return Err("DOM instance is not activated".into());
+                    }
+                    if control.active.is_some() || control.rpc.is_some() {
+                        return Err("DOM renderer is busy".into());
+                    }
+                    validate_render(&message, &self.plugin_id, &self.manifest)?;
+                    // This dispatch is authoritative, including serialization in
+                    // the helper, layout, and result transfer back to the owner.
+                    native_trace("dispatch", Some(&self.id), Some(&id));
+                    control.active = Some((id, Instant::now() + RENDER_DEADLINE));
+                    self.wake.notify_all();
+                    diagnostic_render_accepted = true;
+                }
+                (Some(RENDER_PROTOCOL), Some("cancel")) => {
+                    if !keys(&message, &["protocol", "type", "id"]) {
+                        return Err("Invalid DOM cancellation".into());
+                    }
+                    // Cancellation neither settles nor resets the active deadline.
+                    if !control
+                        .active
+                        .as_ref()
+                        .is_some_and(|(active, _)| active == &id)
+                    {
+                        return Ok(());
+                    }
+                }
+                (Some(RPC_PROTOCOL), Some("request")) => {
+                    if !keys(&message, &["protocol", "type", "id", "method", "payload"])
+                        || message["payload"]["pluginId"] != self.plugin_id
+                    {
+                        return Err("Invalid DOM lifecycle request".into());
+                    }
+                    if control.rpc.is_some() || control.active.is_some() {
+                        return Err("DOM instance is busy".into());
+                    }
+                    match message["method"].as_str() {
+                        Some("activate")
+                            if !control.initialized && control.activation.is_none() =>
+                        {
+                            if approved_identity(&message["payload"]["manifest"])
+                                != approved_identity(&self.manifest)
+                                || message["payload"]["permissions"] != json!(["document:read"])
+                            {
+                                return Err(
+                                    "DOM activation does not match its approved snapshot".into()
+                                );
+                            }
+                            control.activation = Some(id.clone());
+                        }
+                        Some("deactivate" | "dispose") if control.initialized => {}
+                        _ => return Err("Unsupported DOM lifecycle method".into()),
+                    }
+                    control.rpc = Some(id);
+                    control.rpc_deadline = Some(if control.initialized {
+                        Instant::now() + INIT_DEADLINE
+                    } else {
+                        control.init_deadline
+                    });
+                    self.wake.notify_all();
+                }
+                _ => return Err("Unsupported DOM message".into()),
+            }
+        }
+        if diagnostic_render_accepted {
+            if let Some(recorder) = self.diagnostic {
+                // Original native dispatch/deadline above remain authoritative.
+                // No I/O, hash, wait, or new lock on this accepted-request path.
+                recorder.render(
+                    &self.id,
+                    &self.plugin_id,
+                    valid_id(&message).unwrap_or(""),
+                    self.pid,
+                    self.birth,
+                    &bytes,
+                );
+            }
+        }
+        let result = (|| {
+            let mut ready = self.input_ready.lock().map_err(|e| e.to_string())?;
+            while !*ready {
+                if self.control.lock().map_err(|e| e.to_string())?.stopped {
+                    return Err("DOM instance was revoked".into());
+                }
+                ready = self
+                    .input_wake
+                    .wait_timeout(ready, Duration::from_millis(50))
+                    .map_err(|e| e.to_string())?
+                    .0;
+            }
+            drop(ready);
+            let mut pipe = self.stdin.lock().map_err(|e| e.to_string())?;
+            if self.control.lock().map_err(|e| e.to_string())?.stopped {
+                return Err("DOM instance was revoked".into());
+            }
+            pipe.write_all(&bytes)
+                .and_then(|_| pipe.write_all(b"\n"))
+                .and_then(|_| pipe.flush())
+                .map_err(|e| e.to_string())
+        })();
+        if let Err(error) = &result {
+            self.fail(error.clone());
+        }
+        result
+    }
+    fn receive(&self, message: Value) {
+        // All child parsing and payload sizing precede the final monotonic
+        // settlement decision; no expensive serialization owns control.
+        let oversized = message
+            .get("value")
+            .is_some_and(|v| serde_json::to_vec(v).map_or(true, |b| b.len() > 262144));
+        let mut control = match self.control.lock() {
+            Ok(c) => c,
+            Err(_) => return,
+        };
+        if control.stopped {
+            return;
+        }
+        let now = Instant::now();
+        if !control.initialized && now >= control.init_deadline {
+            drop(control);
+            self.fail("DOM initialization exceeded 10 seconds".into());
+            return;
+        }
+        if let Some((id, deadline)) = &control.active {
+            if now >= *deadline {
+                let id = id.clone();
+                control.stopped = true;
+                control.active = None;
+                drop(control);
+                self.finish(Some(id), None);
+                return;
+            }
+            if !is_result(&message, id) {
+                return;
+            }
+            if oversized {
+                drop(control);
+                self.fail("DOM output exceeds the public payload budget".into());
+                return;
+            }
+            if Instant::now() >= *deadline {
+                let id = id.clone();
+                control.stopped = true;
+                control.active = None;
+                drop(control);
+                self.finish(Some(id), None);
+                return;
+            }
+            control.active = None;
+        } else if let Some(id) = &control.rpc {
+            if !is_rpc_result(&message, id) {
+                return;
+            }
+            if control.rpc_deadline.is_some_and(|d| Instant::now() >= d) {
+                drop(control);
+                self.fail("DOM lifecycle deadline exceeded".into());
+                return;
+            }
+            if control.activation.as_ref() == Some(id) {
+                if message["ok"] != true {
+                    drop(control);
+                    self.fail("DOM plugin activation failed".into());
+                    return;
+                }
+                control.initialized = true;
+            }
+            control.rpc = None;
+            control.rpc_deadline = None;
+        } else {
+            return;
+        }
+        self.wake.notify_all();
+        drop(control);
+        (self.emit)(self.event("message", Some(message), None, None));
+    }
+    fn watch(&self) {
+        loop {
+            let mut control = match self.control.lock() {
+                Ok(c) => c,
+                Err(_) => return,
+            };
+            if control.stopped {
+                return;
+            }
+            let deadline = if !control.initialized {
+                Some(control.init_deadline)
+            } else {
+                control
+                    .active
+                    .as_ref()
+                    .map(|(_, d)| *d)
+                    .or(control.rpc_deadline)
+            };
+            if deadline.is_some_and(|d| Instant::now() >= d) {
+                let request_id = control.active.take().map(|(id, _)| id);
+                control.stopped = true;
+                drop(control);
+                let error = if request_id.is_none() {
+                    Some("DOM initialization or lifecycle exceeded 10 seconds".into())
+                } else {
+                    None
+                };
+                self.finish(request_id, error);
+                return;
+            }
+            let remaining = deadline
+                .map(|d| d.saturating_duration_since(Instant::now()))
+                .unwrap_or(Duration::from_millis(25));
+            // Process discovery belongs to guardian cleanup, never this watchdog.
+            let wait = remaining.min(Duration::from_millis(25));
+            if let Ok((next, _)) = self.wake.wait_timeout(control, wait) {
+                control = next;
+            } else {
+                return;
+            }
+            drop(control);
+        }
+    }
+    fn event(
+        &self,
+        kind: &'static str,
+        message: Option<Value>,
+        request_id: Option<String>,
+        error: Option<String>,
+    ) -> DomEvent {
+        DomEvent {
+            plugin_id: self.plugin_id.clone(),
+            instance_id: self.id.clone(),
+            kind,
+            message,
+            request_id,
+            error,
+        }
+    }
+    fn finish(&self, request_id: Option<String>, error: Option<String>) {
+        if request_id.is_some() {
+            native_trace("deadline-observed", Some(&self.id), request_id.as_deref());
+        }
+        self.wake.notify_all();
+        let cleanup = self.kill_owned();
+        let error = match cleanup {
+            Ok(()) => error,
+            Err(e) => Some(format!(
+                "{}; {e}",
+                error.unwrap_or_else(|| "DOM context exceeded its deadline".into())
+            )),
+        };
+        // Cleanup precedes trusted control delivery. OS scheduling can delay
+        // this observation; there is no zero scheduling latency claim.
+        let kind = if error.is_some() {
+            "error"
+        } else {
+            "document-render-timeout"
+        };
+        native_trace("control-emitted", Some(&self.id), request_id.as_deref());
+        (self.emit)(self.event(kind, None, request_id, error));
+    }
+    fn fail(&self, error: String) {
+        let mut control = match self.control.lock() {
+            Ok(c) => c,
+            Err(_) => return,
+        };
+        if control.stopped {
+            return;
+        }
+        control.stopped = true;
+        control.active = None;
+        drop(control);
+        self.finish(None, Some(error));
+    }
+    pub fn stop(&self) -> Result<(), String> {
+        {
+            let mut control = self.control.lock().map_err(|e| e.to_string())?;
+            control.stopped = true;
+            control.active = None;
+        }
+        self.wake.notify_all();
+        self.kill_owned()
+    }
+    fn sample_owned(&self) {
+        #[cfg(test)]
+        self.sample_owned_calls
+            .fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+        let table = proc_table();
+        let Ok(mut owned) = self.owned.lock() else {
+            return;
+        };
+        let leader_matches = table.get(&self.pid).is_some_and(|p| p.birth == self.birth);
+        let mut selected: HashSet<_> = table
+            .iter()
+            .filter(|(pid, p)| {
+                owned.get(pid) == Some(&p.birth) || (leader_matches && p.group == self.pid)
+            })
+            .map(|(pid, _)| *pid)
+            .collect();
+        loop {
+            let additional: Vec<_> = table
+                .iter()
+                .filter(|(pid, p)| !selected.contains(pid) && selected.contains(&p.parent))
+                .map(|(pid, _)| *pid)
+                .collect();
+            if additional.is_empty() {
+                break;
+            }
+            selected.extend(additional);
+        }
+        for pid in selected {
+            if let Some(p) = table.get(&pid) {
+                owned.insert(pid, p.birth);
+            }
+        }
+    }
+    fn kill_owned(&self) -> Result<(), String> {
+        // Serialize cleanup/reaping only, never request writes or watchdog state.
+        let mut child = self.child.lock().map_err(|e| e.to_string())?;
+        if let Some(channel) = &self.guardian_stop {
+            // Never SIGKILL the guardian ahead of its cleanup. The dedicated
+            // nonblocking pipe cannot be held up by renderer input or its GUI.
+            if child.try_wait().map_err(|e| e.to_string())?.is_none() {
+                let channel = channel.lock().map_err(|e| e.to_string())?;
+                let byte = [1u8];
+                let result = unsafe { libc::write(channel.as_raw_fd(), byte.as_ptr().cast(), 1) };
+                if result < 0
+                    && ![Some(libc::EAGAIN), Some(libc::EPIPE)]
+                        .contains(&std::io::Error::last_os_error().raw_os_error())
+                {
+                    return Err(std::io::Error::last_os_error().to_string());
+                }
+            }
+            let until = Instant::now() + Duration::from_secs(4);
+            loop {
+                if let Some(status) = child.try_wait().map_err(|e| e.to_string())? {
+                    if !status.success() {
+                        return Err(format!(
+                            "DOM guardian exited before confirming descendant cleanup: {status}"
+                        ));
+                    }
+                    self.extension.cleanup();
+                    native_trace("cleanup-confirmed", Some(&self.id), None);
+                    return Ok(());
+                }
+                if Instant::now() >= until {
+                    return Err("DOM guardian has not confirmed descendant cleanup; it remains alive to finish cleanup".into());
+                }
+                thread::sleep(Duration::from_millis(5));
+            }
+        }
+        // Test-only standalone process fixtures use the exact identity cleanup
+        // path below. Production instances always have a dedicated guardian.
+        // The unreaped leader reserves its PID/process group. SIGKILL first;
+        // audit and escaped-child signals follow, never a graceful wait first.
+        if proc_stat(self.pid).is_some_and(|p| p.birth == self.birth) {
+            unsafe {
+                libc::kill(-self.pid, libc::SIGKILL);
+            }
+        }
+        self.sample_owned();
+        let until = Instant::now() + Duration::from_secs(3);
+        loop {
+            self.sample_owned();
+            let owned = self.owned.lock().map_err(|e| e.to_string())?.clone();
+            let mut alive = Vec::new();
+            for (pid, birth) in owned {
+                if let Some(stat) = proc_stat(pid).filter(|s| s.birth == birth) {
+                    signal_exact(pid, birth)?;
+                    if pid != self.pid {
+                        unsafe {
+                            libc::waitpid(pid, std::ptr::null_mut(), libc::WNOHANG);
+                        }
+                    }
+                    if stat.state != 'Z' || proc_stat(pid).is_some() {
+                        alive.push(pid);
+                    }
+                }
+            }
+            let _ = child.try_wait().map_err(|e| e.to_string())?;
+            if alive.is_empty() {
+                self.extension.cleanup();
+                return Ok(());
+            }
+            if Instant::now() >= until {
+                return Err(format!("DOM owned descendants did not clear: {alive:?}"));
+            }
+            thread::sleep(Duration::from_millis(10));
+        }
+    }
+}
+pub(super) fn signal_exact(pid: i32, birth: u64) -> Result<(), String> {
+    // A pidfd fixes identity across the check-to-signal interval.
+    let fd = unsafe { libc::syscall(libc::SYS_pidfd_open, pid, 0) as i32 };
+    if fd < 0 {
+        if std::io::Error::last_os_error().raw_os_error() == Some(libc::ESRCH) {
+            return Ok(());
+        }
+        return Err(format!(
+            "Cannot acquire exact DOM process identity: {}",
+            std::io::Error::last_os_error()
+        ));
+    }
+    let file = unsafe { File::from_raw_fd(fd) };
+    if proc_stat(pid).is_some_and(|p| p.birth == birth) {
+        let result = unsafe {
+            libc::syscall(
+                libc::SYS_pidfd_send_signal,
+                file.as_raw_fd(),
+                libc::SIGKILL,
+                std::ptr::null::<libc::siginfo_t>(),
+                0,
+            )
+        };
+        if result < 0 && std::io::Error::last_os_error().raw_os_error() != Some(libc::ESRCH) {
+            return Err(std::io::Error::last_os_error().to_string());
+        }
+    }
+    Ok(())
+}
+pub(super) struct ProcStat {
+    pub(super) parent: i32,
+    group: i32,
+    pub(super) birth: u64,
+    state: char,
+}
+fn proc_stat(pid: i32) -> Option<ProcStat> {
+    let text = std::fs::read_to_string(format!("/proc/{pid}/stat")).ok()?;
+    let fields: Vec<_> = text.rsplit_once(')')?.1.split_whitespace().collect();
+    Some(ProcStat {
+        state: fields.first()?.chars().next()?,
+        parent: fields.get(1)?.parse().ok()?,
+        group: fields.get(2)?.parse().ok()?,
+        birth: fields.get(19)?.parse().ok()?,
+    })
+}
+pub(super) fn proc_table() -> HashMap<i32, ProcStat> {
+    std::fs::read_dir("/proc")
+        .into_iter()
+        .flatten()
+        .filter_map(|e| e.ok())
+        .filter_map(|e| e.file_name().to_str()?.parse::<i32>().ok())
+        .filter_map(|pid| proc_stat(pid).map(|p| (pid, p)))
+        .collect()
+}
+pub(super) fn read_frame(
+    reader: &mut impl BufRead,
+    limit: usize,
+) -> Result<Option<Vec<u8>>, String> {
+    let mut bytes = Vec::new();
+    let n = reader
+        .take((limit + 2) as u64)
+        .read_until(b'\n', &mut bytes)
+        .map_err(|e| e.to_string())?;
+    if n == 0 {
+        return Ok(None);
+    }
+    if bytes.last() != Some(&b'\n') || bytes.len() > limit + 1 {
+        return Err("DOM result pipe exceeded its bounded frame budget".into());
+    }
+    bytes.pop();
+    Ok(Some(bytes))
+}
+fn keys(value: &Value, allowed: &[&str]) -> bool {
+    value
+        .as_object()
+        .is_some_and(|o| o.keys().all(|k| allowed.contains(&k.as_str())))
+}
+fn valid_id(message: &Value) -> Option<&str> {
+    message["id"].as_str().filter(|id| {
+        !id.is_empty()
+            && id.len() <= 80
+            && id
+                .bytes()
+                .all(|b| b.is_ascii_alphanumeric() || b == b'_' || b == b'-')
+    })
+}
+fn is_result(message: &Value, id: &str) -> bool {
+    if !keys(message, &["protocol", "type", "id", "ok", "value", "error"])
+        || message["protocol"] != RENDER_PROTOCOL
+        || message["type"] != "result"
+        || valid_id(message) != Some(id)
+    {
+        return false;
+    }
+    match message["ok"].as_bool() {
+        Some(true) => message.get("value").is_some() && message.get("error").is_none(),
+        Some(false) => {
+            message.get("value").is_none()
+                && message["error"].as_str().is_some_and(|e| {
+                    [
+                        "invalid-input",
+                        "invalid-output",
+                        "revoked",
+                        "aborted",
+                        "busy",
+                        "timeout",
+                        "unavailable",
+                    ]
+                    .contains(&e)
+                })
+        }
+        None => false,
+    }
+}
+fn is_rpc_result(message: &Value, id: &str) -> bool {
+    if !keys(message, &["protocol", "type", "id", "ok", "value", "error"])
+        || message["protocol"] != RPC_PROTOCOL
+        || message["type"] != "response"
+        || valid_id(message) != Some(id)
+    {
+        return false;
+    }
+    match message["ok"].as_bool() {
+        Some(true) => message.get("value").is_some() && message.get("error").is_none(),
+        Some(false) => {
+            message.get("value").is_none()
+                && keys(&message["error"], &["message"])
+                && message["error"]["message"]
+                    .as_str()
+                    .is_some_and(|s| s.len() <= 4096)
+        }
+        None => false,
+    }
+}
+fn validate_render(message: &Value, plugin_id: &str, manifest: &Value) -> Result<(), String> {
+    let payload = &message["payload"];
+    let source = payload["request"]["source"]
+        .as_str()
+        .ok_or("DOM render source must be UTF-8 text")?;
+    if !keys(message, &["protocol", "type", "id", "payload"])
+        || !keys(payload, &["pluginId", "rendererId", "request"])
+        || payload["pluginId"] != plugin_id
+        || !manifest["contributes"]["documentRenderers"]
+            .as_array()
+            .is_some_and(|a| a.iter().any(|r| r["id"] == payload["rendererId"]))
+        || source.encode_utf16().count() > 65536
+        || source.split('\n').count() > 256
+    {
+        return Err("Invalid bounded DOM document render request".into());
+    }
+    Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::os::unix::ffi::OsStrExt;
+    #[test]
+    fn strict_settlement_rejects_forged_late_shape_and_wrong_id() {
+        let valid =
+            json!({"protocol": RENDER_PROTOCOL, "type":"result", "id":"r1", "ok":true, "value":{}});
+        assert!(is_result(&valid, "r1"));
+        assert!(!is_result(&valid, "r2"));
+        let mut extra = valid.clone();
+        extra["extra"] = json!(true);
+        assert!(!is_result(&extra, "r1"));
+        let mut both = valid.clone();
+        both["error"] = json!("timeout");
+        assert!(!is_result(&both, "r1"));
+        let mut malformed = valid;
+        malformed["ok"] = json!(false);
+        malformed.as_object_mut().unwrap().remove("value");
+        malformed["error"] = json!(["timeout"]);
+        assert!(!is_result(&malformed, "r1"));
+        malformed["error"] = json!("aborted");
+        assert!(is_result(&malformed, "r1"));
+        assert!(!is_result(
+            &json!({"kind":"document-render-timeout","requestId":"r1"}),
+            "r1"
+        ));
+    }
+    #[test]
+    fn pipe_limits_include_terminator_without_unbounded_lines() {
+        let mut input = std::io::Cursor::new(b"1234\nnext\n");
+        assert_eq!(read_frame(&mut input, 4).unwrap().unwrap(), b"1234");
+        assert_eq!(read_frame(&mut input, 4).unwrap().unwrap(), b"next");
+        assert!(read_frame(&mut input, 4).unwrap().is_none());
+        assert!(read_frame(&mut std::io::Cursor::new(b"12345\n"), 4).is_err());
+        assert!(read_frame(&mut std::io::Cursor::new(b"1234"), 4).is_err());
+    }
+    #[test]
+    fn source_limit_counts_utf16_not_escaped_wire_bytes() {
+        let manifest = json!({"contributes":{"documentRenderers":[{"id":"test.renderer"}]}});
+        let mut request = json!({"protocol":RENDER_PROTOCOL,"type":"render","id":"r1","payload":{"pluginId":"test.dom","rendererId":"test.renderer","request":{"source":"\u{0001}".repeat(65536)}}});
+        assert!(serde_json::to_vec(&request).unwrap().len() > 262144);
+        assert!(validate_render(&request, "test.dom", &manifest).is_ok());
+        request["payload"]["request"]["source"] = json!("😀".repeat(32769));
+        assert!(validate_render(&request, "test.dom", &manifest).is_err());
+        request["payload"]["request"]["source"] = json!("\n".repeat(256));
+        assert!(validate_render(&request, "test.dom", &manifest).is_err());
+    }
+    // Test actual process ownership with an escaped process-group descendant.
+    fn fixture() -> (Arc<Instance>, std::sync::mpsc::Receiver<DomEvent>) {
+        assert_eq!(
+            unsafe { libc::prctl(libc::PR_SET_CHILD_SUBREAPER, 1, 0, 0, 0) },
+            0
+        );
+        let mut command = Command::new("python3");
+        command.args(["-u", "-c", "import os,time,sys\np=os.fork()\nif p==0:\n os.setsid()\n while True: time.sleep(1)\nprint(p,flush=True)\nwhile True: time.sleep(1)"]).stdin(Stdio::piped()).stdout(Stdio::piped());
+        unsafe {
+            command.pre_exec(|| {
+                if libc::setsid() < 0 {
+                    return Err(std::io::Error::last_os_error());
+                }
+                Ok(())
+            });
+        }
+        let mut child = command.spawn().unwrap();
+        let mut line = String::new();
+        BufReader::new(child.stdout.take().unwrap())
+            .read_line(&mut line)
+            .unwrap();
+        let descendant = line.trim().parse::<i32>().unwrap();
+        let pid = child.id() as i32;
+        let birth = proc_stat(pid).unwrap().birth;
+        let stdin = child.stdin.take().unwrap();
+        let (tx, rx) = std::sync::mpsc::channel();
+        let instance = Arc::new(Instance {
+            id: "fixture".into(),
+            diagnostic: None,
+            plugin_id: "test.dom".into(),
+            manifest: json!({"contributes":{"documentRenderers":[{"id":"test.renderer"}]}}),
+            child: Mutex::new(child),
+            pid,
+            birth,
+            stdin: Mutex::new(stdin),
+            guardian_stop: None,
+            input_ready: Mutex::new(true),
+            input_wake: Condvar::new(),
+            control: Mutex::new(Control {
+                stopped: false,
+                initialized: true,
+                init_deadline: Instant::now(),
+                activation: None,
+                active: None,
+                rpc: None,
+                rpc_deadline: None,
+            }),
+            wake: Condvar::new(),
+            owned: Mutex::new(HashMap::from([
+                (pid, birth),
+                (descendant, proc_stat(descendant).unwrap().birth),
+            ])),
+            sample_owned_calls: std::sync::atomic::AtomicUsize::new(0),
+            emit: Arc::new(move |e| {
+                let _ = tx.send(e);
+            }),
+            extension: helper::private_extension().unwrap(),
+        });
+        (instance, rx)
+    }
+    #[test]
+    fn cancelled_and_malformed_result_retains_deadline_and_kills_all_owned_children() {
+        let (instance, rx) = fixture();
+        let watcher = instance.clone();
+        thread::spawn(move || watcher.watch());
+        let start = Instant::now();
+        instance.send(json!({"protocol":RENDER_PROTOCOL,"type":"render","id":"r1","payload":{"pluginId":"test.dom","rendererId":"test.renderer","request":{"source":"test"}}})).unwrap();
+        let deadline = instance.control.lock().unwrap().active.clone().unwrap().1;
+        instance
+            .send(json!({"protocol":RENDER_PROTOCOL,"type":"cancel","id":"r1"}))
+            .unwrap();
+        instance.receive(
+            json!({"protocol":RENDER_PROTOCOL,"type":"result","id":"wrong","ok":true,"value":{}}),
+        );
+        instance.receive(json!({"kind":"document-render-timeout","requestId":"r1"}));
+        assert_eq!(
+            instance.control.lock().unwrap().active.clone().unwrap().1,
+            deadline
+        );
+        let event = rx.recv_timeout(Duration::from_secs(5)).unwrap();
+        assert_eq!(event.kind, "document-render-timeout");
+        assert_eq!(event.request_id.as_deref(), Some("r1"));
+        assert!(start.elapsed() >= RENDER_DEADLINE);
+        for (pid, birth) in instance.owned.lock().unwrap().iter() {
+            assert!(!proc_stat(*pid).is_some_and(|p| p.birth == *birth));
+        }
+        instance.stop().unwrap();
+    }
+    #[test]
+    fn blocked_pipe_write_does_not_block_native_watchdog() {
+        let (instance, rx) = fixture();
+        let watcher = instance.clone();
+        thread::spawn(move || watcher.watch());
+        let sender = instance.clone();
+        let send = thread::spawn(move || {
+            sender.send(json!({"protocol":RENDER_PROTOCOL,"type":"render","id":"r2","payload":{"pluginId":"test.dom","rendererId":"test.renderer","request":{"source":"x".repeat(65536)}}}))
+        });
+        assert_eq!(
+            rx.recv_timeout(Duration::from_secs(5)).unwrap().kind,
+            "document-render-timeout"
+        );
+        assert!(send.join().unwrap().is_err());
+        instance.stop().unwrap();
+    }
+    #[test]
+    fn release_old_lease_cannot_stop_replacement_instance() {
+        let (mut old, _) = fixture();
+        Arc::get_mut(&mut old).unwrap().id = "old-instance".into();
+        let (mut current, _) = fixture();
+        Arc::get_mut(&mut current).unwrap().id = "new-instance".into();
+        let registry = DomRegistry::default();
+        for (lease_id, instance) in [("old-lease", old.clone()), ("new-lease", current.clone())] {
+            registry.0.lock().unwrap().insert(
+                lease_id.into(),
+                Lease {
+                    plugin_id: "test.dom".into(),
+                    expires: Instant::now() + LEASE_LIFETIME,
+                    bytes: 100,
+                    snapshot: None,
+                    instance: Some(instance),
+                },
+            );
+        }
+        registry.release("test.dom", "old-lease").unwrap();
+        registry.release("test.dom", "old-lease").unwrap();
+        assert!(old.control.lock().unwrap().stopped);
+        assert!(!current.control.lock().unwrap().stopped);
+        assert!(proc_stat(current.pid).is_some_and(|p| p.birth == current.birth));
+        assert!(registry.instance("test.dom", "old-instance").is_err());
+        assert_eq!(
+            registry.instance("test.dom", "new-instance").unwrap().id,
+            "new-instance"
+        );
+        registry.release("test.dom", "new-lease").unwrap();
+    }
+    #[test]
+    fn a_matching_result_after_the_native_deadline_never_settles_successfully() {
+        let (instance, rx) = fixture();
+        instance.control.lock().unwrap().active = Some(("late".into(), Instant::now()));
+        instance.receive(
+            json!({"protocol":RENDER_PROTOCOL,"type":"result","id":"late","ok":true,"value":{}}),
+        );
+        assert_eq!(
+            rx.recv_timeout(Duration::from_secs(4)).unwrap().kind,
+            "document-render-timeout"
+        );
+        assert!(rx.try_recv().is_err());
+    }
+
+    #[test]
+    #[ignore = "requires the freshly built desktop executable and a real sandbox-enabled native display"]
+    fn real_webkit_default_module_bbox_resources_and_native_loop_deadline() {
+        let executable = std::path::PathBuf::from(
+            std::env::var_os("MILKUP_DOM_NATIVE_TEST_EXECUTABLE")
+                .expect("explicit freshly built native executable"),
+        );
+        let manifest = json!({"id":"test.dom","name":"DOM native fixture","version":"1.0.0","host":"dom","main":"main.js","permissions":["document:read"],"contributes":{"documentRenderers":[{"id":"test.renderer","contexts":["text"]}]}});
+        let module = r#"
+export default { activate(context) {
+ if (Object.keys(context.host).length || globalThis.__TAURI_INTERNALS__) throw Error('host leaked');
+ return { documentRenderers: { 'test.renderer': async (request) => {
+  if (request.source === 'loop') { while (true) {} }
+  if (request.source === 'rebind') { const original=globalThis; const fake={ __milkupDom(){ throw Error('token leaked'); } }; original.globalThis=fake; try { original.window=fake; } catch {} try { original.self=fake; } catch {} return { rebound:true }; }
+  if (request.source === 'guard') { try { await import('milkup-dom://job/module.js?guard-check'); return {guard:'allowed'}; } catch { return {guard:'rejected'}; } }
+  if (request.source === 'network') { const values = await Promise.all(['https://example.invalid/probe','file:///etc/passwd'].map(async url => { try { await fetch(url); return 'allowed'; } catch { return 'denied'; } })); return { values }; }
+  const svg = document.createElementNS('http://www.w3.org/2000/svg','svg');
+  const text = document.createElementNS('http://www.w3.org/2000/svg','text');
+  text.textContent='Unicode 文本 😀'; text.setAttribute('font-size','20'); svg.append(text); document.body.append(svg);
+  await document.fonts.ready; const bbox = text.getBBox(); const result = { width:bbox.width, height:bbox.height, viewport:innerWidth }; svg.remove(); return result;
+ } } };
+} };
+"#.to_string();
+        let snapshot = Snapshot {
+            manifest: manifest.clone(),
+            sha256: format!("{:x}", Sha256::digest(module.as_bytes())),
+            module,
+        };
+        let (tx, rx) = std::sync::mpsc::channel();
+        let instance = Instance::launch(
+            "test.dom".into(),
+            snapshot,
+            Arc::new(move |event| {
+                let _ = tx.send(event);
+            }),
+            executable.clone(),
+        )
+        .unwrap();
+        struct Cleanup(Arc<Instance>);
+        impl Drop for Cleanup {
+            fn drop(&mut self) {
+                let _ = self.0.stop();
+            }
+        }
+        let _cleanup = Cleanup(instance.clone());
+        instance.send(json!({"protocol":RPC_PROTOCOL,"type":"request","id":"activate1","method":"activate","payload":{"pluginId":"test.dom","manifest":manifest,"permissions":["document:read"],"hostCapabilities":[]}})).unwrap();
+        let activation = rx.recv_timeout(Duration::from_secs(12)).unwrap();
+        assert_eq!(activation.kind, "message", "{activation:?}");
+        assert_eq!(
+            activation.message.unwrap()["value"]["documentRenderers"],
+            json!(["test.renderer"])
+        );
+        let mut observed_descendants = Vec::new();
+        for (id, source) in [
+            ("r1", "bbox"),
+            ("r2", "guard"),
+            ("r3", "network"),
+            ("r4", "rebind"),
+            ("r5", "loop"),
+        ] {
+            if source == "loop" {
+                // Observe the real tree independently of the parent's optional
+                // sampling cache. This remains meaningful without that cache.
+                let table = proc_table();
+                assert!(table
+                    .get(&instance.pid)
+                    .is_some_and(|p| p.birth == instance.birth));
+                let mut selected = HashSet::from([instance.pid]);
+                loop {
+                    let children: Vec<_> = table
+                        .iter()
+                        .filter(|(pid, p)| !selected.contains(pid) && selected.contains(&p.parent))
+                        .map(|(pid, _)| *pid)
+                        .collect();
+                    if children.is_empty() {
+                        break;
+                    }
+                    selected.extend(children);
+                }
+                let mut observed_helper = false;
+                let mut observed_webkit = false;
+                for pid in selected {
+                    let observed = &table[&pid];
+                    let current = proc_stat(pid).expect("observed native process remains alive");
+                    assert_eq!(current.birth, observed.birth);
+                    assert_eq!(current.parent, observed.parent);
+                    let raw = std::fs::read(format!("/proc/{pid}/cmdline")).unwrap();
+                    let mut arguments: Vec<_> = raw.split(|byte| *byte == 0).collect();
+                    if arguments.last() == Some(&b"".as_slice()) {
+                        arguments.pop();
+                    }
+                    let direct_helper = current.parent == instance.pid
+                        && arguments.len() == 2
+                        && arguments[0] == executable.as_os_str().as_bytes()
+                        && arguments[1] == b"--milkup-internal-dom-helper";
+                    let webkit = arguments.first().is_some_and(|argument| {
+                        std::path::Path::new(std::ffi::OsStr::from_bytes(argument)).file_name()
+                            == Some(std::ffi::OsStr::new("WebKitWebProcess"))
+                    });
+                    let rechecked = proc_stat(pid).expect("observed identity survives role read");
+                    assert_eq!(rechecked.birth, observed.birth);
+                    assert_eq!(rechecked.parent, observed.parent);
+                    observed_helper |= direct_helper;
+                    observed_webkit |= webkit;
+                    let role = if pid == instance.pid {
+                        "guardian"
+                    } else if direct_helper {
+                        "helper"
+                    } else if webkit {
+                        "webkit-web"
+                    } else {
+                        "other-owned"
+                    };
+                    eprintln!(
+                        "DOM_NATIVE_PROBE observed_role={role} pid={pid} birth={}",
+                        observed.birth
+                    );
+                    observed_descendants.push((pid, observed.birth));
+                }
+                assert!(observed_helper, "expected exact direct GTK helper");
+                assert!(observed_webkit, "expected owned WebKit web process");
+                eprintln!("DOM_NATIVE_PROBE independently_observed={observed_descendants:?}");
+            }
+            let before = Instant::now();
+            instance.send(json!({"protocol":RENDER_PROTOCOL,"type":"render","id":id,"payload":{"pluginId":"test.dom","rendererId":"test.renderer","request":{"source":source}}})).unwrap();
+            let event = rx.recv_timeout(Duration::from_secs(6)).unwrap();
+            eprintln!(
+                "DOM_NATIVE_PROBE {source} elapsed={:?} event={event:?}",
+                before.elapsed()
+            );
+            if source == "loop" {
+                assert_eq!(event.kind, "document-render-timeout", "{event:?}");
+                assert!(before.elapsed() >= RENDER_DEADLINE);
+            } else {
+                assert_eq!(event.kind, "message", "{event:?}");
+                let result = event.message.unwrap();
+                assert_eq!(result["ok"], true);
+                match source {
+                    "bbox" => {
+                        assert!(result["value"]["width"].as_f64().unwrap() > 0.0);
+                        assert!(result["value"]["height"].as_f64().unwrap() > 0.0);
+                    }
+                    "guard" => assert_eq!(result["value"]["guard"], "rejected"),
+                    "network" => assert_eq!(result["value"]["values"], json!(["denied", "denied"])),
+                    "rebind" => assert_eq!(result["value"]["rebound"], true),
+                    _ => unreachable!(),
+                }
+            }
+        }
+        for (pid, birth) in &observed_descendants {
+            assert!(!proc_stat(*pid).is_some_and(|p| p.birth == *birth));
+        }
+        instance.stop().unwrap();
+        let scans = instance
+            .sample_owned_calls
+            .load(std::sync::atomic::Ordering::Relaxed);
+        eprintln!("DOM_NATIVE_PROBE production_parent_sample_owned_calls={scans}");
+        assert_eq!(scans, 0, "guardian-backed production instances must not scan all processes in a background worker");
+    }
+}

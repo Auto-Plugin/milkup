@@ -1,0 +1,29 @@
+{
+  "nativeUiStarted": false,
+  "oldFailurePreserved": "p5-m06-product-cancel",
+  "expectedSha256": "a5913b56a09f91e1428b07f44dd7493a5da30dd9216f1a716aef8818cb6ec01d",
+  "actualFailedSourceSha256": "9acceef503c58d9538d8a68a3c8d5bcc157cb88deba238eb73a63436725d7708",
+  "differences": [
+    {
+      "op": "insert",
+      "expected": "",
+      "actual": "👩🏽",
+      "actualCodepoints": [
+        "U+1F469",
+        "U+1F3FD"
+      ]
+    },
+    {
+      "op": "insert",
+      "expected": "",
+      "actual": "💻",
+      "actualCodepoints": [
+        "U+1F4BB"
+      ]
+    }
+  ],
+  "interpretation": "Matches the known WebKitDriver astral key-action duplication noted in tests/native/tauri-editing-resources.mjs:911-912. This run has no input-event trace proving the exact responsible layer; the product is not independently exonerated by this comparison. Native clipboard rerun with exact saved SHA remains required.",
+  "change": "Only cancel/retry full-document replacement uses existing ownNativeClipboard with real Ctrl+V; ASCII disable-all path unchanged.",
+  "clipboardHelperSha256": "82a7ce9bae5f9782728f71f14695b85049c7dead10e57bfe957ea8e2c66a7180",
+  "harnessSha256": "af1eaa490ea09f498bc8aabd216494007d614c7f4ad6fc99f43395d124a9d215"
+}

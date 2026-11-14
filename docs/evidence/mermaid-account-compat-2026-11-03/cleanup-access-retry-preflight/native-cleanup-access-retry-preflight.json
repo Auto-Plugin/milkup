@@ -1,0 +1,85 @@
+{
+  "schema": 1,
+  "recordedAt": "2026-11-03T19:24:15.690253+00:00",
+  "baseHead": "45c47830814dbc21fac1e560b5216d8d72a7ffe6",
+  "scope": "Retry exactly Windows deletion errors 5,32,33 under unchanged31-call/100ms/3s bounds; final absence verification and prior cleanup failures unchanged.",
+  "actualMotivatingFailure": {
+    "runId": 41699494037,
+    "candidate": "b2415e9ec06ac6a5defcac2833de81840a61b007",
+    "requestId": "510499d9da9a44e983880ff143574858",
+    "rawOsError": 5,
+    "attempts": 1,
+    "absenceChecked": false,
+    "underlyingCauseKnown": false
+  },
+  "localRustTests": {
+    "passed": 64,
+    "failed": 0,
+    "ignored": 0
+  },
+  "windowsGnuCheck": {
+    "passed": true,
+    "targets": [
+      "lib",
+      "tests"
+    ],
+    "windowsRuntimeExecuted": false
+  },
+  "auditBudget": {
+    "startedBytes": 4250,
+    "finishedBytes": 7388,
+    "maxBytes": 8192,
+    "readyLimitBytes": 4096,
+    "readyChanged": false
+  },
+  "sourceFiles": [
+    {
+      "path": "/workspace/milkup-mermaid-rebuild/apps/desktop/src-tauri/mermaid-engine/src/cleanup.rs",
+      "bytes": 22467,
+      "sha256": "b5cb653bbd25cd13505f5e3425534d3f4331cfa6a62157169b2b88312629f428"
+    },
+    {
+      "path": "/workspace/milkup-mermaid-rebuild/apps/desktop/src-tauri/mermaid-engine/src/audit.rs",
+      "bytes": 49257,
+      "sha256": "db807cae6eebbddc3092f35783b5ff8c5500ab5d88daba3825c4f4371d1dc154"
+    },
+    {
+      "path": "/workspace/milkup-mermaid-rebuild/apps/desktop/src-tauri/mermaid-engine/README.md",
+      "bytes": 12123,
+      "sha256": "4f5bbfd5d8f8e1a537f129a6b3eb3ff3cb152156d7ce960ffb345fd2bb3f00e7"
+    }
+  ],
+  "logs": [
+    {
+      "path": "/workspace/mermaid-rebuild-evidence/native-cleanup-access-retry-linux-tests.log",
+      "bytes": 7770,
+      "sha256": "65a44db6c95697cf72c5bf1aedeb35d9888d5d377d38cb63cbd4db83a1241460"
+    },
+    {
+      "path": "/workspace/mermaid-rebuild-evidence/native-cleanup-access-retry-windows-check.log",
+      "bytes": 710,
+      "sha256": "71f7c31ae3ba2632d02d2dd35f1a836b355eeaa3ef0a81fc7c13462fec743142"
+    },
+    {
+      "path": "/workspace/mermaid-rebuild-evidence/native-cleanup-access-retry-budget.log",
+      "bytes": 2041,
+      "sha256": "44ee01fe563cf3e57c75e374eab9a480d636a6036d3c6dcbba23f5683d963916"
+    }
+  ],
+  "commands": [
+    "source /workspace/mermaid-rebuild-evidence/dependency-env.sh; unset CARGO_TARGET_X86_64_UNKNOWN_LINUX_GNU_RUNNER",
+    "cargo test --locked --manifest-path apps/desktop/src-tauri/mermaid-engine/Cargo.toml --lib -- --test-threads=1",
+    "cargo check --locked --manifest-path apps/desktop/src-tauri/mermaid-engine/Cargo.toml --target x86_64-pc-windows-gnu --lib --tests",
+    "cargo test --locked --manifest-path apps/desktop/src-tauri/mermaid-engine/Cargo.toml --lib audit::tests::four_maximum_token_views_and_cleanup_fit_original_audit_budget -- --nocapture"
+  ],
+  "officialSourceReviewed": [
+    "https://raw.githubusercontent.com/rust-lang/rust/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/std/src/sys/fs/windows/remove_dir_all.rs",
+    "https://raw.githubusercontent.com/rust-lang/rust/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/std/src/sys/fs/windows.rs"
+  ],
+  "limitations": [
+    "No new Windows product run yet. Full two-account acceptance remains pending.",
+    "No attribution of OS5 to readonly state, image mapping, antivirus, permissions, or deletion races.",
+    "Prior IPC995 failure is neither explained nor repaired by this change.",
+    "Exact same removal API; no added ACL, attribute, credential, runtime, token or process operations."
+  ]
+}

@@ -1,0 +1,105 @@
+01 independent accepted-wire review
+Classification: DIAGNOSTIC_SETUP_FAILURE_NOT_PRODUCT_RED
+Cold gate executed: false. Full UI accepted: false. Harness exit1. CPU sampler exit2.
+
+Evidence integrity
+Reviewed only after the parent supplied the frozen run manifest. Recomputed all172
+file hashes and lengths with zero mismatches. Manifest SHA256:
+34075c3348416bf710325c29ac6a68e0cfaf34b3d6b5dbbb3a72f5dd159ad40e.
+Input root:
+/workspace/milkup-mermaid-engine-evidence/research/native-cold-start-diagnostic-01/runtime/mermaid-ui-cold-diag-01
+freeze-check.json records verification. accepted-wire-audit.json is the output of
+the prepared read-only script; its ok=true means wire/integrity checks passed,
+not cold/product acceptance. No application or browser was started for this review.
+
+What actually failed
+The original startup helper timed out after60000ms before editing/cold assertions.
+Frozen startup-wm-class-observation.txt shows the1100x760 window named milkup,
+but its WM_CLASS is diagnostic-only-milkup-desktop, not milkup-desktop expected by
+the original helper. failure.json/harness.log record that editing assertions were
+not started. This is a diagnostic setup failure, not evidence of a product red.
+Separately, CPU sampling stopped on PermissionError for /proc/467203/environ.
+There are zero retained samples, zero discovery rounds, and no renderer identity
+binding. The exact App identity baseline is not a CPU interval. CPU silence is
+not renderer idleness or successful work.
+
+Exact identities and complete inputs
+App PID/birth:467079/8800972.
+Guardian PID/birth:467203/8801335.
+Plugin:milkup.diagrams; renderer:diagrams.mermaid.
+Instance:bd116273eaca71980477744e6232e6674d6100c1f91725d4.
+9events =1guardian-spawn +8render-accepted, not9renders.
+All8 native dispatch keys match captured instance/request keys exactly once.
+All8 full serialized message strings pass UTF8 byte-count/SHA256 checks, retain
+all16 request fields, and bind their message.id/pluginId to native metadata and
+the prior exact guardian identity. No input was recovered from sample names.
+
+Request membership in frozen ordinary.md (absolute UTF16, half-open ranges):
+render_1, render_2, render_4, render_6: [108,342), single block fence,
+  content [119,339), lines5-20,234UTF16 units.
+render_3, render_5, render_7: [440,969), single classDiagram fence,
+  content [451,966), lines26-53,529UTF16 units.
+render_8: [1087,1257), single entityRelationshipDiagram fence,
+  content [1098,1254), lines59-67,170UTF16 units.
+Each source exactly equals the corresponding frozen fixture slice. fromLine/toLine
+also reconstruct correctly; protectedRanges is the same complete fence range.
+All8 carry version0, selection anchor/head0, width1100, light theme, screen target,
+contextKnown=true, completeStart/completeEnd=false and one complete=true fence.
+These values describe input, not output or image visibility. Repeated source
+requests do not establish why the renderer was invoked repeatedly.
+
+The frozen fixture SHA256 is
+a7267df165778c560a8fba59bfbff7065ae63365741e3eb87078783bc865fd4b.
+Its heading contains Chinese, a combining accent and emoji. UTF16 offset108 is
+Unicode-scalar index105 and UTF8 byte offset121;440 maps to437/453;1087 maps to
+1084/1100. Therefore scalar or UTF8 byte slicing would have been wrong.
+utf16-offset-proof.json supplies explicit offset, line and source-hash checks.
+
+Native timing interpretation
+The frozen driver log has8dispatch records and no deadline-observed records.
+It does not record successful result settlement or image decode. Do not convert
+absence of deadline into a coldPASS, especially because the original native trace
+has no loss counter and coldBundledWindow never ran. Adjacent dispatch intervals
+are not measured renderer execution times.
+This run's render_3 payload is classDiagram, but it is a different instance/run
+and a diagnostic binary. It does NOT identify the lost production08 render_3
+payload under instance32334888594142dd8481207c9921d47cfd83a3935befe193.
+No internal timed-out block can be inferred here; no timeout was observed here.
+
+Finalization and counters
+status.json and complete.json are identical, bothSHA256
+ed4b320d0094eb1bb42b175e37ff8825c3b90461d3a265e1b0460d307ee2abc6.
+final=true, diagnosticClosed=true; attempted=enqueued=written=9; inFlight0;
+queueFull/disconnected/oversize/capped/ioErrors/incompleteTiming all0.
+Reserved wire bytes8450 equals sum of all8 retained wire lengths.
+Harness capture-finalization.json records completion within its1000ms bound.
+The diagnostic cutoff covers pre-close accepted requests only; it is not a
+product stop or proof of subsequent request coverage.
+
+Measured observer cost
+Summary captureTotalNs119826 (0.119826ms), captureMaxNs45758 (0.045758ms),
+including the guardian event. Sum of per-event before→after timestamp spans is
+119011ns; maximum45651ns. These spans end earlier than the final counter checkpoint,
+so the815ns aggregate difference is not evidence loss. Their complete breakdown
+is in overhead-review.json.
+Native dispatch→capture-start gaps range0.031244-0.115343ms; they include work
+outside the new capture span and must not be treated as only recorder-copy cost.
+Background writer thread CPU=240684198ns (0.240684198s), through the last status
+checkpoint, excluding final status/complete serialization. The span from first
+guardian record to final checkpoint is56.436250791s; thread creation/initialization
+and scheduling interference are not all represented by these counters. This CPU
+belongs to the App and must not be counted again as renderer CPU or subtracted
+to claim uninstrumented product timing.
+The independent failed CPU observer reports own CPU37001747ns, of which prelaunch
+hash CPU20149633ns and after-ready CPU16854649ns;8proc reads totaling194718ns,
+max71792ns. It provides no renderer CPU/scheduling deltas.
+
+Cleanup and conclusion
+After diagnostic finalization, an explicitly authorized exact App PID/birth pidfd
+SIGTERM was recorded. Native kill-start/cleanup-complete then came from the guardian;
+these are cleanup observations, not render deadline records. Frozen run-summary
+records owned identities absent, dedicated ports clear and unchanged inputs.
+Useful outcome: complete early accepted inputs and exact native request mapping
+were demonstrated in this diagnostic startup. Remaining blockers: cold assertion
+was never reached and CPU sampling failed. No production acceptance result or
+historical payload/root-cause reconstruction is claimed.

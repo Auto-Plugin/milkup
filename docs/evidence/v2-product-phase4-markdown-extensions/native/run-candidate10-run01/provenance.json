@@ -1,0 +1,118 @@
+{
+  "binary": "/workspace/milkup-markdown-extensions-phase4-evidence/native/install-candidate10/usr/bin/milkup-desktop",
+  "binarySha256": "12fe5aa449d3e650b2c89da593330d52fc3b72851397014bb6529bf211526995",
+  "harnessSources": [
+    {
+      "file": "/workspace/milkup/tests/native/tauri-markdown-extensions.mjs",
+      "sha256": "1c6e05423abf0acd304b66e03056115c333b697179fbdb2657fb4df55f837fa2"
+    },
+    {
+      "file": "/workspace/milkup/tests/helpers/native-production.mjs",
+      "sha256": "03ac0552a832266af30b85cee28fb12239965dd15e42778de584821e44e558cc"
+    },
+    {
+      "file": "/workspace/milkup/tests/helpers/native-updates-fixture.mjs",
+      "sha256": "eae310d5f13a8623d0f5c8a386e5929405f588ba67a120cc927cb51cd48a5ae4"
+    },
+    {
+      "file": "/workspace/milkup/tests/helpers/native-owned-process.mjs",
+      "sha256": "63dc05ca826ea7e912f10df989c69d51ca8445d06f981ff757019f3095ef051b"
+    },
+    {
+      "file": "/workspace/milkup/tests/helpers/native-clipboard.mjs",
+      "sha256": "82a7ce9bae5f9782728f71f14695b85049c7dead10e57bfe957ea8e2c66a7180"
+    }
+  ],
+  "packages": [
+    {
+      "id": "milkup.math",
+      "archive": "/workspace/milkup-markdown-extensions-phase4-evidence/math/external-crlf-final/dist/milkup.math-1.0.0.milkup-plugin",
+      "sha256": "93c62f43c20c1efd3c20e6038d2c50cf5bc2082fe571c531d5f17a742940c226",
+      "manifest": {
+        "id": "milkup.math",
+        "name": "数学公式",
+        "version": "1.0.0",
+        "description": "离线呈现行内与独立数学公式；不支持或超限的表达式保留可编辑源码。",
+        "host": "worker",
+        "main": "./dist/plugin.js",
+        "engines": {
+          "milkup": "^2.0.0-0",
+          "pluginSdk": "^0.3.3"
+        },
+        "permissions": ["document:read"],
+        "resources": ["LICENSE-KATEX.txt"],
+        "contributes": {
+          "documentRenderers": [
+            {
+              "id": "math.document",
+              "contexts": ["text", "fence"],
+              "fenceLanguages": ["math"]
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "milkup.diagrams",
+      "archive": "/workspace/milkup-markdown-extensions-phase4-evidence/diagrams/external/dist/milkup.diagrams-1.0.0.milkup-plugin",
+      "sha256": "d92d19db21a9c7e63949201db6b065a8aab4c6077fb928a94e6c3275474f89a9",
+      "manifest": {
+        "id": "milkup.diagrams",
+        "name": "Milkup Diagrams",
+        "version": "1.0.0",
+        "description": "离线呈现 Mermaid 流程图、时序图与饼图的受限安全子集；不支持的语法保留完整源码。",
+        "host": "worker",
+        "main": "./dist/plugin.js",
+        "engines": {
+          "milkup": "^2.0.0-0",
+          "pluginSdk": ">=0.3.3 <0.4.0"
+        },
+        "permissions": ["document:read"],
+        "contributes": {
+          "documentRenderers": [
+            {
+              "id": "diagrams.mermaid",
+              "contexts": ["fence"],
+              "fenceLanguages": ["mermaid"]
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "milkup.footnotes",
+      "archive": "/workspace/milkup-markdown-extensions-phase4-evidence/footnotes/external-revision-final/dist/milkup.footnotes-1.0.0.milkup-plugin",
+      "sha256": "531481d11059563cffac0e0372c911a857ac903d92e5acbd597596efa2d5bfed",
+      "manifest": {
+        "id": "milkup.footnotes",
+        "name": "Milkup Footnotes",
+        "version": "1.0.0",
+        "description": "有界脚注索引、定义与引用导航；编辑时保留 Markdown 源文。",
+        "host": "worker",
+        "main": "./dist/plugin.js",
+        "engines": {
+          "milkup": "^2.0.0-0",
+          "pluginSdk": ">=0.3.3 <0.4.0"
+        },
+        "permissions": ["document:read"],
+        "contributes": {
+          "documentRenderers": [
+            {
+              "id": "footnotes",
+              "contexts": ["text"]
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "display": ":118",
+  "driver": "http://127.0.0.1:4618",
+  "profile": "/workspace/milkup-markdown-extensions-phase4-evidence/native/profile-candidate10-run01/data",
+  "recoveryProfile": "/workspace/milkup-markdown-extensions-phase4-evidence/native/profile-candidate10-run01/data/app.milkup.desktop/recovery-v1",
+  "head": "39fda4d51934e8681613081584cbe6e519217c26",
+  "windowsFonts": "not-tested",
+  "input": "Native XTest/GTK input, public DOM observation and focus; no private APIs",
+  "renderTrace": true,
+  "diagnosticOnly": false
+}

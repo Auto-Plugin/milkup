@@ -1,0 +1,44 @@
+
+ RUN  v3.2.6 /tmp/milkup-windows-manual-candidate/packages/view-dom
+
+ ❯ src/__tests__/document-presentation-hot-focus.test.ts (4 tests | 4 failed) 803ms
+   × shows newly enabled block when old caret lost editing focus and restores source on edit (false) 326ms
+     → expected undefined to be 'A to B' // Object.is equality
+   × keeps error diagnostics even while caret edits the unsupported block (false) 101ms
+     → the given combination of arguments (undefined and string) is invalid for this assertion. You can use an array, a map, an object, a set, a string, or a weakset instead of a string
+   × shows newly enabled block when old caret lost editing focus and restores source on edit (true) 228ms
+     → expected undefined to be 'A to B' // Object.is equality
+   × keeps error diagnostics even while caret edits the unsupported block (true) 146ms
+     → the given combination of arguments (undefined and string) is invalid for this assertion. You can use an array, a map, an object, a set, a string, or a weakset instead of a string
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 4 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/__tests__/document-presentation-hot-focus.test.ts > shows newly enabled block when old caret lost editing focus and restores source on edit (false)
+ FAIL  src/__tests__/document-presentation-hot-focus.test.ts > shows newly enabled block when old caret lost editing focus and restores source on edit (true)
+AssertionError: expected undefined to be 'A to B' // Object.is equality
+
+- Expected: 
+"A to B"
+
++ Received: 
+undefined
+
+ ❯ src/__tests__/document-presentation-hot-focus.test.ts:17:215
+
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/4]⎯
+
+ FAIL  src/__tests__/document-presentation-hot-focus.test.ts > keeps error diagnostics even while caret edits the unsupported block (false)
+ FAIL  src/__tests__/document-presentation-hot-focus.test.ts > keeps error diagnostics even while caret edits the unsupported block (true)
+AssertionError: the given combination of arguments (undefined and string) is invalid for this assertion. You can use an array, a map, an object, a set, a string, or a weakset instead of a string
+ ❯ src/__tests__/document-presentation-hot-focus.test.ts:21:310
+
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/4]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  4 failed (4)
+   Start at  08:19:32
+   Duration  7.98s (transform 2.97s, setup 0ms, collect 4.61s, tests 803ms, environment 1.62s, prepare 286ms)
+

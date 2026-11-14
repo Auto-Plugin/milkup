@@ -1,0 +1,69 @@
+"""Prepared offline synthetic cases. No product/proc/browser/native operations."""
+import copy
+import importlib.util
+import json
+from pathlib import Path
+import unittest
+
+p=Path(__file__).with_name('audit-stages.py')
+spec=importlib.util.spec_from_file_location('stage_audit',p);a=importlib.util.module_from_spec(spec);spec.loader.exec_module(a)
+I='a'*48;R='render_1'
+
+def row(role,phase,details,rid=R,at=200):
+    return dict(schema='milkup.cold-stage.v1',sequence=0,emitterPid=1 if role=='app' else 3,emitterBirth=10 if role=='app' else 30,role=role,instanceId=I,requestId=rid,phase=phase,nativeMonotonicNs=at,captureBeforeNs=at+1000,details=details)
+
+def package(role,rows,reverse=False):
+    for i,e in enumerate(rows):e['sequence']=i+1
+    raw=b''.join((json.dumps(e,separators=(',',':'))+'\n').encode() for e in (list(reversed(rows)) if reverse else rows))
+    status=dict(schema='milkup.cold-stage-status.v1',pid=1 if role=='app' else 3,birth=10 if role=='app' else 30,role=role,limits=a.LIMITS,final=True,closed=True,dropped=0,unknownOrUnadmitted=0,ioErrors=0,inFlight=0,attempted=len(rows),enqueued=len(rows),written=len(rows),reservedBytes=len(raw),captureTotalNs=100,captureMaxNs=10,admitTotalNs=10,collectionInclusiveNs=100,collectionCalls=1,writerThreadCpuNs=50)
+    return dict(label=f"/frozen/{role}-{status['pid']}-{status['birth']}",events=raw,status=json.dumps(status).encode(),complete=json.dumps(status).encode())
+
+def fixture():
+    app=[row('app','launch',dict(guardianPid=2,guardianBirth=20),None,110),row('app','owner-accepted',dict(wireBytes=100),at=120),row('app','owner-pipe-complete',dict(ok=True,type='render'),at=500),row('app','owner-frame-read',dict(bytes=80),at=300),row('app','owner-receive',{},at=310),row('app','render-settled',dict(ok=True,rpcId=None),at=320)]
+    helper=[row('helper','helper-dequeue',dict(type='render',diagnosticParseIncluded=True)),row('helper','evaluate-submit',{}),row('helper','evaluate-callback',dict(ok=True)),row('helper','result-drained',dict(bytes=80)),row('helper','result-pipe-complete',{})]
+    names=['invoke-start','invoke-resolve','typed-stringify-start','typed-stringify-end','typed-encode-end','typed-parse-end','envelope-start','envelope-stringify-end','envelope-encode-end','output-ready']
+    helper += [row('helper','js-mark',dict(phase=n,jsMs=i,trust='untrusted-js-wall-time')) for i,n in enumerate(names)]
+    helper += [row('helper','js-state',dict(marks=len(names),dropped=0,drains=1,bytes=5000,markMs=1),None)]
+    wire=dict(ok=True,owner=dict(pid=1,birth=10),requests=[dict(instanceId=I,requestId=R,guardianPid=2,guardianBirth=20,input=dict(wireBytes=100),nativeDispatch=[dict(monotonicNs=100)],nativeDeadlines=[])])
+    cpu=dict(knownIdentities=[dict(pid=3,birth=30,role='renderer-leader',instanceId=I,parentIdentity=dict(pid=2,birth=20))])
+    return app,helper,wire,cpu
+
+def check(app,helper,wire,cpu,reverse=False):return a.audit([package('app',app,reverse),package('helper',helper)],wire,cpu,json.loads)
+
+class Tests(unittest.TestCase):
+    def test_valid_and_sender_pipe_later_than_settlement(self):
+        self.assertTrue(check(*fixture())['ok'])
+    def test_app_enqueue_file_order_not_global_time_order(self):
+        self.assertTrue(check(*fixture(),reverse=True)['ok'])
+    def test_original_strict_wire_failure_never_overridden(self):
+        app,h,w,c=fixture();w['ok']=False;self.assertFalse(check(app,h,w,c)['ok'])
+    def test_exact_instance_not_request_only(self):
+        app,h,w,c=fixture();h[0]['instanceId']='b'*48;self.assertFalse(check(app,h,w,c)['integrityOk'])
+    def test_helper_birth_and_guardian_identity(self):
+        app,h,w,c=fixture();c['knownIdentities'][0]['parentIdentity']['birth']=21;self.assertFalse(check(app,h,w,c)['integrityOk'])
+    def test_conflicting_terminal_rejected(self):
+        app,h,w,c=fixture();app.append(row('app','deadline',dict(hasError=False),at=400));self.assertFalse(check(app,h,w,c)['integrityOk'])
+    def test_missing_success_js_mark_is_gap(self):
+        app,h,w,c=fixture();h=[e for e in h if e['details'].get('phase')!='typed-parse-end'];self.assertFalse(check(app,h,w,c)['ok'])
+    def test_js_clock_not_compared_to_native(self):
+        app,h,w,c=fixture()
+        for e in h:
+            if e['phase']=='js-mark':e['details']['jsMs']+=1_000_000
+        self.assertTrue(check(app,h,w,c)['ok'])
+    def test_js_invoke_must_not_be_null_scope(self):
+        app,h,w,c=fixture();next(e for e in h if e['details'].get('phase')=='invoke-start')['requestId']=None
+        self.assertFalse(check(app,h,w,c)['integrityOk'])
+    def test_js_state_drops_and_reset(self):
+        app,h,w,c=fixture();h[-1]['details']['dropped']=1;self.assertFalse(check(app,h,w,c)['ok'])
+        app,h,w,c=fixture();h.append(copy.deepcopy(h[-1]));h[-1]['details']['marks']=0;self.assertFalse(check(app,h,w,c)['integrityOk'])
+    def test_stalled_js_does_not_invent_success(self):
+        app,h,w,c=fixture();app=app[:2]+[row('app','deadline',dict(hasError=False),at=2100)];h=h[:2];w['requests'][0]['nativeDeadlines']=[dict(monotonicNs=2100)]
+        result=check(app,h,w,c);self.assertTrue(result['integrityOk']);self.assertEqual(result['requests'][0]['terminal']['kind'],'deadline-observed')
+    def test_queue_loss_final_and_row_cap(self):
+        app,h,w,c=fixture();streams=[package('app',app),package('helper',h)]
+        s=json.loads(streams[0]['status']);s['dropped']=1;s['final']=False
+        streams[0]['status']=streams[0]['complete']=json.dumps(s).encode()
+        self.assertFalse(a.audit(streams,w,c,json.loads)['ok'])
+        app,h,w,c=fixture();app[0]['details']['padding']='x'*1024;self.assertFalse(check(app,h,w,c)['integrityOk'])
+
+if __name__=='__main__':unittest.main()

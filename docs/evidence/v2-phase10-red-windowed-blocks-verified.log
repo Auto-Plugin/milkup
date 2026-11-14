@@ -1,0 +1,184 @@
+
+ RUN  v3.2.6 /workspace/milkup/packages/view-dom
+
+ ❯ src/__tests__/source-document-view.test.ts (54 tests | 6 failed | 48 skipped) 2195ms
+   ↓ SourceDocumentView > renders an async document source as a bounded line window
+   ↓ SourceDocumentView > refreshes the source line window on scroll without rendering offscreen lines
+   ↓ SourceDocumentView > can swap to another source and resets the scroll window
+   ↓ SourceDocumentView > keeps scroll position when updating the same source document version
+   ↓ SourceDocumentView > scrolls directly to a requested line window
+   ↓ SourceDocumentView > renders the requested line even when the browser clamps a huge scroll offset
+   ↓ SourceDocumentView > renders search highlights and marks the active result
+   ↓ SourceDocumentView > renders live mode from a padded markdown line window without offscreen DOM
+   ↓ SourceDocumentView > maps live-mode clicks through visible source spans before editing
+   ↓ SourceDocumentView > positions the source cursor from the rendered line box instead of guessed line number
+   ↓ SourceDocumentView > moves the source cursor with arrow keys without editing
+   ↓ SourceDocumentView > handles source cursor arrow keys from the focused root element
+   ↓ SourceDocumentView > moves the source cursor vertically by preserving line offset
+   ↓ SourceDocumentView > moves vertically from rendered lines when the source cannot resolve positions directly
+   ↓ SourceDocumentView > uses measured line width when source cursor range measurement is unavailable
+   ↓ SourceDocumentView > uses font-size instead of line-height for the source cursor height
+   ↓ SourceDocumentView > caches live markdown windows by document version and line range
+   ↓ SourceDocumentView > shows live block syntax around the source cursor
+   ↓ SourceDocumentView > hides table pipes between rendered source cells
+   ↓ SourceDocumentView > preserves native horizontal code-scrollbar dragging in the source view
+   ↓ SourceDocumentView > patches the edited visible source line without rereading the window
+   ↓ SourceDocumentView > warms markdown windows around the visible viewport without repeated source reads
+   ↓ SourceDocumentView > emits bounded visible edits when editable source mode receives keyboard input
+   ↓ SourceDocumentView > continues list prefixes when editable source mode receives Enter
+   ↓ SourceDocumentView > commits only finalized IME composition text
+   ↓ SourceDocumentView > clears the IME placeholder before immediately handling enter and delete
+   ↓ SourceDocumentView > does not let a stale composition flag block enter and delete
+   ↓ SourceDocumentView > handles editing keys reported with the legacy IME key code
+   ↓ SourceDocumentView > flushes pending source edits before save operations
+   ↓ SourceDocumentView > does not block saving when a structural edit commits but its viewport refresh fails
+   ↓ SourceDocumentView > keeps consecutive structural edits in separate native history commits
+   ↓ SourceDocumentView > flush waits for every isolated batch even when the first commit is delayed
+   ↓ SourceDocumentView > flush rejects when a later isolated edit fails instead of reporting a successful save
+   ↓ SourceDocumentView > renders structural edits while the native commit is still pending
+   ↓ SourceDocumentView > rolls back an optimistic structural edit when the native commit fails
+   ↓ SourceDocumentView > deletes a selected range inside the rendered source window
+   ↓ SourceDocumentView > commits enter and delete keys when lineAtPosition is unavailable
+   ↓ SourceDocumentView > deletes complete surrogate pairs from a rendered-only source
+   ↓ SourceDocumentView > copies, cuts, and pastes a selection through clipboard events
+   ↓ SourceDocumentView > renders live list markers like the regular editor
+   ↓ SourceDocumentView > keeps live list clicks out of source marker ranges
+   ↓ SourceDocumentView > keeps task-list syntax rendered after the cursor enters the item
+   ↓ SourceDocumentView > creates a selection while dragging through a rendered source window
+   ↓ SourceDocumentView > does not let stale single-line commits replace newer optimistic input
+   ↓ SourceDocumentView > does not emit edits when the source view remains readonly
+   ↓ reveals an exact source search selection without stealing focus
+   ↓ moves a source outline cursor to the revealed heading line
+   ↓ ignores a pending reveal after the document identity changes
+   × windowed source block commands > exits an empty nested list without inserting another marker 1446ms
+     → expected 'before\n  - \n  - ' to be 'before\n- ' // Object.is equality
+   × windowed source block commands > does not continue literal lists inside a fence outside the rendered window and preserves CRLF 313ms
+     → expected '```md\r\nliteral\r\nliteral\r\nlitera…' to be '```md\r\nliteral\r\nliteral\r\nlitera…' // Object.is equality
+   × windowed source block commands > indents a reversed selection across windows in one edit and preserves its direction 60ms
+     → expected '- item0\r\n- item1\r\n- item2\r\n- it…' to be '  - item0\r\n  - item1\r\n  - item2\r…' // Object.is equality
+   × windowed live block commands > exits an empty nested list without inserting another marker 156ms
+     → expected 'before\n  - \n  - ' to be 'before\n- ' // Object.is equality
+   × windowed live block commands > does not continue literal lists inside a fence outside the rendered window and preserves CRLF 96ms
+     → expected '```md\r\nliteral\r\nliteral\r\nlitera…' to be '```md\r\nliteral\r\nliteral\r\nlitera…' // Object.is equality
+   × windowed live block commands > indents a reversed selection across windows in one edit and preserves its direction 107ms
+     → expected '- item0\r\n- item1\r\n- item2\r\n- it…' to be '  - item0\r\n  - item1\r\n  - item2\r…' // Object.is equality
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 6 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/__tests__/source-document-view.test.ts > windowed source block commands > exits an empty nested list without inserting another marker
+ FAIL  src/__tests__/source-document-view.test.ts > windowed live block commands > exits an empty nested list without inserting another marker
+AssertionError: expected 'before\n  - \n  - ' to be 'before\n- ' // Object.is equality
+
+- Expected
++ Received
+
+  before
+- -
++   -
++   -
+
+ ❯ src/__tests__/source-document-view.test.ts:1694:52
+    1692|     it('exits an empty nested list without inserting another marker', …
+    1693|       const s = await setup('before\n  - ', 2, Selection.cursor(11))
+    1694|       try { await s.key('Enter'); expect(s.text()).toBe('before\n- ');…
+       |                                                    ^
+    1695|     })
+    1696|     it('does not continue literal lists inside a fence outside the ren…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/6]⎯
+
+ FAIL  src/__tests__/source-document-view.test.ts > windowed source block commands > does not continue literal lists inside a fence outside the rendered window and preserves CRLF
+ FAIL  src/__tests__/source-document-view.test.ts > windowed live block commands > does not continue literal lists inside a fence outside the rendered window and preserves CRLF
+AssertionError: expected '```md\r\nliteral\r\nliteral\r\nlitera…' to be '```md\r\nliteral\r\nliteral\r\nlitera…' // Object.is equality
+
+- Expected
++ Received
+
+@@ -37,8 +37,8 @@
+  literal
+  literal
+  literal
+  literal
+  literal
+- - text
++ - text
+-
++ -
+  ```
+
+ ❯ src/__tests__/source-document-view.test.ts:1700:52
+    1698|       const end = initial.indexOf('- text') + 6
+    1699|       const s = await setup(initial, 42, Selection.cursor(end))
+    1700|       try { await s.key('Enter'); expect(s.text()).toBe(initial.slice(…
+       |                                                    ^
+    1701|     })
+    1702|     it('indents a reversed selection across windows in one edit and pr…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/6]⎯
+
+ FAIL  src/__tests__/source-document-view.test.ts > windowed source block commands > indents a reversed selection across windows in one edit and preserves its direction
+ FAIL  src/__tests__/source-document-view.test.ts > windowed live block commands > indents a reversed selection across windows in one edit and preserves its direction
+AssertionError: expected '- item0\r\n- item1\r\n- item2\r\n- it…' to be '  - item0\r\n  - item1\r\n  - item2\r…' // Object.is equality
+
+- Expected
++ Received
+
+-   - item0
++ - item0
+-   - item1
++ - item1
+-   - item2
++ - item2
+-   - item3
++ - item3
+-   - item4
++ - item4
+-   - item5
++ - item5
+-   - item6
++ - item6
+-   - item7
++ - item7
+-   - item8
++ - item8
+-   - item9
++ - item9
+-   - item10
++ - item10
+-   - item11
++ - item11
+-   - item12
++ - item12
+-   - item13
++ - item13
+-   - item14
++ - item14
+-   - item15
++ - item15
+-   - item16
++ - item16
+-   - item17
++ - item17
+-   - item18
++ - item18
+  - item19
+
+ ❯ src/__tests__/source-document-view.test.ts:1709:26
+    1707|         await s.key('Tab')
+    1708|         const expected = initial.split('\r\n').map((x,i)=>i<19?'  '+x:…
+    1709|         expect(s.text()).toBe(expected); expect(s.edits).toHaveLength(…
+       |                          ^
+    1710|         expect(s.view.selection.main.anchor).toBe(end+38); expect(s.vi…
+    1711|         await s.key('Tab',true); expect(s.text()).toBe(initial)
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/6]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  6 failed | 48 skipped (54)
+   Start at  12:36:27
+   Duration  19.40s (transform 4.83s, setup 0ms, collect 6.71s, tests 2.19s, environment 7.23s, prepare 444ms)
+
+undefined
+/workspace/milkup/packages/view-dom:
+[ERR_PNPM_RECURSIVE_EXEC_FIRST_FAIL] Command failed with exit code 1: vitest run src/__tests__/source-document-view.test.ts -t 'windowed .* block commands'

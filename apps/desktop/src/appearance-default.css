@@ -1,0 +1,126 @@
+/* Milkup 默认主题示例：亮色与暗色写在同一个文件中。
+ * 模式由应用的「浅色 / 深色 / 系统」设置控制；@media 的 prefers-color-scheme
+ * 也会转换为应用的当前模式，不会覆盖用户明确选择的浅色/深色。
+ * :root 允许下方宿主颜色变量，以及自定义 --theme-* 变量。
+ * 文档选择器只作用于 .milkup-editor 内；可使用列出的 .milkup-* 类或常用
+ * Markdown HTML 标签、子/后代/兄弟选择器及 :where/:is/:not。
+ * 允许颜色、渐变、字体族、字重、字距、文本装饰、边框颜色/圆角与 outline。
+ * 字号/行高仅支持 .milkup-editor 根的统一设置；不支持逐行尺寸、margin/padding
+ * 或边框宽度，以保留普通/窗口化编辑的光标与选区坐标。不允许网络/文件资源、
+ * @import、@font-face、url()、position、display、脚本或 !important。
+ * 性能限额：文件 128KiB、256 条规则、变量 192 个、单条选择器 256 token。
+ * 阴影/圆角最大 64，轮廓 16，字距 32，渐变分隔项 64；这些尺寸不支持变量/计算。
+ * 字号 8–72px，行高 8–144px 或 0.8–4 倍；根字体设置会覆盖编辑设置的字体值。
+ * 不会改变文档内容；恢复默认可随时撤销主题。编辑此文件后请重新导入。
+ */
+:root {
+  --chrome-bg: #fbfcfd;
+  --button-text: #354052;
+  --neutral-hover: #eef1f5;
+  --menu-overlay: rgb(244 246 248 / 94%);
+  --loading-overlay: rgb(244 246 248 / 72%);
+  --modal-shade: rgb(31 38 48 / 28%);
+  --primary-bg: #1f2630;
+  --primary-hover: #111827;
+  --on-primary: #ffffff;
+  --danger-border: rgb(180 35 24 / 30%);
+  --danger-soft: #fff1f0;
+  --quote-bg: #f5f7f9;
+  --table-header-bg: #f4f7f9;
+  --code-text: #27364a;
+  --code-bg: #f2f5f7;
+  --inline-code-bg: #eef1f4;
+  --inline-code-text: #8d2d46;
+  --link: #1b63a3;
+  --search-outline: #b56b00;
+  --scroll-thumb: #aeb7c4;
+  --scroll-hover: #8793a3;
+
+  --app-bg: #f4f6f8;
+  --panel-bg: #ffffff;
+  --panel-subtle: #f7f8fa;
+  --border: #d9dee7;
+  --border-strong: #c4ccd8;
+  --text: #1f2630;
+  --text-muted: #687385;
+  --text-soft: #647083;
+  --accent: #246b4f;
+  --accent-strong: #1f5d45;
+  --accent-soft: #e5f2ec;
+  --warning: #b45309;
+  --danger: #b42318;
+  --selection: rgb(36 107 79 / 18%);
+  --shadow-soft: 0 16px 40px rgb(32 38 48 / 8%);
+}
+
+:root[data-theme='dark'] {
+  --app-bg: #141920;
+  --panel-bg: #1b222c;
+  --panel-subtle: #222c38;
+  --chrome-bg: #171e27;
+  --border: #3b4758;
+  --border-strong: #58677c;
+  --text: #e4eaf3;
+  --text-muted: #aebacc;
+  --text-soft: #a7b5c8;
+  --button-text: #d2dce9;
+  --accent: #78d9ac;
+  --accent-strong: #a1edca;
+  --accent-soft: #263f35;
+  --warning: #f6c177;
+  --danger: #ffaaa1;
+  --danger-border: #995b59;
+  --danger-soft: #40282c;
+  --selection: rgb(120 217 172 / 28%);
+  --shadow-soft: 0 16px 40px rgb(0 0 0 / 30%);
+  --neutral-hover: #2b3847;
+  --menu-overlay: rgb(20 25 32 / 96%);
+  --loading-overlay: rgb(20 25 32 / 85%);
+  --modal-shade: rgb(0 0 0 / 55%);
+  --primary-bg: #bfead5;
+  --primary-hover: #d6f5e6;
+  --on-primary: #112b20;
+  --quote-bg: #222d37;
+  --table-header-bg: #273441;
+  --code-text: #d7e3f0;
+  --code-bg: #242f3b;
+  --inline-code-bg: #332b38;
+  --inline-code-text: #f4b6cc;
+  --link: #8fc6ff;
+  --search-outline: #ffd477;
+  --scroll-thumb: #67798f;
+  --scroll-hover: #94a9c0;
+}
+
+/* 下列是真实编辑器类，预览使用同一组规则。 */
+.milkup-editor {
+  /* 可选统一字号：font-size: 16px; line-height: 24px; */
+  background: var(--panel-bg);
+  color: var(--text);
+}
+.milkup-block-heading {
+  color: var(--text);
+  font-weight: 800;
+}
+.milkup-block-blockquote {
+  color: var(--text-muted);
+  background: var(--quote-bg);
+  border-left-color: var(--border-strong);
+}
+.milkup-block-code {
+  color: var(--code-text);
+  background: var(--code-bg);
+}
+.milkup-inline-inlineCode {
+  color: var(--inline-code-text);
+  background: var(--inline-code-bg);
+}
+.milkup-table-cell {
+  border-color: var(--border);
+  background: var(--panel-bg);
+}
+:where(.milkup-inline-link, .milkup-inline-autolink) {
+  color: var(--link);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}

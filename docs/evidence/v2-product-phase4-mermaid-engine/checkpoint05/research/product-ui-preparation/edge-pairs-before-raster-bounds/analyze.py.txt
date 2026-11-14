@@ -1,0 +1,31 @@
+#!/usr/bin/env python3
+"""Compare actual native PNGs without converting SVG or masking disagreements."""
+import hashlib, json, pathlib, sys
+from PIL import Image, ImageChops
+
+root = pathlib.Path(sys.argv[1])
+baseline = Image.open(root / 'controlled-original.png').convert('RGBA')
+pairs = []
+for name in ['canonical-inline', 'canonical-img']:
+    candidate = Image.open(root / (name + '.png')).convert('RGBA')
+    if candidate.size != baseline.size:
+        raise ValueError('Native snapshot dimensions differ')
+    difference = ImageChops.difference(baseline, candidate)
+    # RGBA alpha can be equal despite unequal RGB; inspect every channel.
+    bbox = difference.convert('RGB').getbbox()
+    changed = sum(any(channel for channel in pixel) for pixel in difference.getdata())
+    difference.convert('RGB').save(root / (name + '-difference.png'))
+    pairs.append({'candidate': name, 'identicalPixels': changed == 0,
+                  'changedPixels': changed, 'differenceBounds': bbox,
+                  'baselineSha256': hashlib.sha256((root / 'controlled-original.png').read_bytes()).hexdigest(),
+                  'candidateSha256': hashlib.sha256((root / (name + '.png')).read_bytes()).hexdigest()})
+states = {name: json.loads((root / (name + '-state.json')).read_text())
+          for name in ['controlled-original', 'canonical-inline', 'canonical-img']}
+report = {'nativePixelPairs': pairs, 'states': states, 'humanReview': 'pending',
+          'scope': 'Exact paired snapshot comparison; no crop, tolerance, scaling, masks or image repair.',
+          'pass': all(row['identicalPixels'] for row in pairs)}
+target = root / 'pixel-comparison.json'
+with target.open('x') as output:
+    json.dump(report, output, indent=2)
+print(json.dumps({'path': str(target), 'pass': report['pass'], 'pairs': pairs}, indent=2))
+raise SystemExit(0 if report['pass'] else 1)

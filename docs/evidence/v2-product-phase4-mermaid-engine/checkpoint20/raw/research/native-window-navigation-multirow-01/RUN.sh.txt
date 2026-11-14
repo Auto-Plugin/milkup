@@ -1,0 +1,17 @@
+#!/usr/bin/env bash
+set -euo pipefail
+ROOT=/workspace/milkup-mermaid-engine-evidence/research/native-window-navigation-multirow-01
+BINARY=/workspace/milkup-mermaid-engine-evidence/linux-production-07/install/usr/bin/milkup-desktop
+BINARY_SHA=df7b509fefa335df89b004a9992d16cb3a712f062281f418518d3e59d96e5d72
+ARCHIVE=/workspace/milkup-mermaid-engine-evidence/linux-production-07/artifacts/milkup.diagrams-1.1.0.milkup-plugin
+ARCHIVE_SHA=9889f1796f9080ff230a1c51147522e83e065bc191a258035208f69403a327df
+RUN=mermaid-ui-window-navigation-multirow-01
+case "${1:-}" in
+  driver) exec bash "$ROOT/driver.sh" "$RUN" "$BINARY" "$BINARY_SHA" "$ARCHIVE" "$ARCHIVE_SHA" ;;
+  harness)
+    source "$ROOT/run-env.sh" "$RUN" "$BINARY" "$BINARY_SHA" "$ARCHIVE" "$ARCHIVE_SHA"
+    cd /workspace/milkup
+    exec node "$ROOT/run.mjs"
+    ;;
+  *) echo 'Choose driver or harness only after separate runtime GO.' >&2; exit 2 ;;
+esac

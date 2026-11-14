@@ -1,0 +1,128 @@
+--- frozen-native-phase01.mjs
++++ cold-diagnostic.mjs
+@@ -1,10 +1,10 @@
+-// Diagnostic-only native-stage prefix derived from frozen UI04 harness.
++// Diagnostic-only bounded cold run; no installation, prefix or acceptance matrix.
+ // Uses the separately frozen diagnostic binary; not a production acceptance run.
+ // No JS wire observer or IPC hooks. Original public-input/DOM assertions retained.
+ import assert from 'node:assert/strict'
+-import { execFileSync } from 'node:child_process'
++import { execFileSync, spawn } from 'node:child_process'
+ import { createHash } from 'node:crypto'
+-import { mkdir, readFile, writeFile, realpath } from 'node:fs/promises'
++import { mkdir, readFile, writeFile, realpath, open } from 'node:fs/promises'
+ import path from 'node:path'
+ import { startProduction } from '/workspace/milkup/tests/helpers/native-production.mjs'
+ import { ownedApplication } from '/workspace/milkup/tests/helpers/native-owned-process.mjs'
+@@ -112,9 +112,9 @@
+   preparedOnly: process.argv.includes('--preflight'),
+   diagnosticOnly: true,
+   executionPrefix:
+-    'Cold bundled, independent installation, four isolated fallbacks and notices, ordinary block/class/ER/flow; stop before other cases or matrix.',
++    'Fresh-profile coldBundledWindow original gate only; immediate normal close after pass or failure.',
+   listedMatrixIsNotExecuted: true,
+-  observer: 'Native stage traces only; no JS wire observer.',
++  observer: 'Native stage traces and bounded external read-only CPU sampler; no JS wire observer.',
+   archive: { path: archivePath, sha256: sha256(archiveBytes), manifest: archive.manifest },
+   catalog: { path: catalogPath, sha256: sha256(catalogBytes) },
+   samples,
+@@ -782,6 +782,17 @@
+   }
+ }
+ 
++// Frozen sampler CLI adapter; execution still requires root runtime approval.
++// Verify the sampler before App startup; never pause the product to await sampling.
++assert(process.env.MILKUP_COLD_CPU_SAMPLER, 'A reviewed sampler path is required')
++assert.match(process.env.MILKUP_COLD_CPU_SAMPLER_SHA256 ?? '', /^[a-f0-9]{64}$/)
++const samplerPath = await realpath(process.env.MILKUP_COLD_CPU_SAMPLER)
++assert.equal(sha256(await readFile(samplerPath)), process.env.MILKUP_COLD_CPU_SAMPLER_SHA256)
++const samplerOut = await open(path.join(output, 'cpu-sampler-stdout.log'), 'wx')
++const samplerErr = await open(path.join(output, 'cpu-sampler-stderr.log'), 'wx')
++let samplerCompletion
++let samplerInputError = null
++
+ try {
+   activeFile = path.join(output, 'ordinary.md')
+   app = await startProduction(activeFile, output, { diagnostics: false })
+@@ -814,32 +825,41 @@
+     JSON.stringify({ ...owner.identity, runtimeUrl: runtimeUrl.href, verifiedProfile }, null, 2) +
+       '\n',
+   )
++  // The first native dispatch may precede this handshake. The sampler must
++  // retain that original dispatch timestamp and report the missed prefix.
++  const samplerIdentity = { ...owner.identity }
++  await writeFile(
++    path.join(output, 'cpu-sampler-handshake.json'),
++    JSON.stringify(samplerIdentity, null, 2) + '\n',
++  )
++  const sampler = spawn('/usr/bin/python3', [
++    samplerPath,
++    '--output', path.join(output, 'cpu-observer'),
++    '--app-log', process.env.MILKUP_NATIVE_APP_LOG,
++  ], { stdio: ['pipe', samplerOut.fd, samplerErr.fd] })
++  samplerCompletion = new Promise((resolve) => {
++    sampler.once('error', (error) => resolve({ error: String(error), exitCode: null }))
++    sampler.once('close', (exitCode, signal) => resolve({ exitCode, signal }))
++  })
++  sampler.stdin.on('error', (error) => {
++    samplerInputError = String(error)
++  })
++  sampler.stdin.end(JSON.stringify(samplerIdentity) + '\n')
++  // No await of armed/sample/dispatch: continue the original public UI gate.
+   await app.execute(
+     `window.__productionDiagnostics={errors:[],cspViolations:[]};addEventListener('error',e=>window.__productionDiagnostics.errors.push(e.message));addEventListener('unhandledrejection',e=>window.__productionDiagnostics.errors.push(String(e.reason)));addEventListener('securitypolicyviolation',e=>window.__productionDiagnostics.cspViolations.push({directive:e.violatedDirective,blocked:e.blockedURI}));`,
+   )
+   nativeWindow = ui.windowId()
+   x('windowsize', nativeWindow, '1100', '760')
+   await coldBundledWindow()
+-  await install()
+-  for (const sample of isolatedFallbacks) await isolatedFallback(sample)
+-  const name = 'ordinary'
+-  await openDocument(name)
+-  await appearance('light', 1)
+-  for (const sample of samples.slice(0, 4)) {
+-    await seek(sample, 'live')
+-    await shot(`coverage-${name}-${sample.id}`, {
+-      sample: sample.id,
+-      ...(await assertSample(sample, 'live')),
+-    })
+-  }
+   assert.equal(sha256(await readFile(binary)), process.env.MILKUP_MERMAID_BINARY_SHA256)
+   assert.equal(sha256(await readFile(archivePath)), process.env.MILKUP_MERMAID_ARCHIVE_SHA256)
+-  await record('DIAGNOSTIC-NATIVE-PREFIX-COMPLETE', {
++  await record('DIAGNOSTIC-COLD-ONLY-COMPLETE', {
+     diagnosticOnly: true,
+     acceptance: false,
+-    stoppedAfter: 'ordinary flowchart-000-first-official-example',
++    stoppedAfter: 'preinstalled cold window; no independent install or later prefix',
+     completeAcceptanceMatrix: false,
+-    observer: 'Native stage traces only; no JS wire observer.',
++    observer: 'Native stage traces and bounded external read-only CPU sampler; no JS wire observer.',
+   })
+ } catch (error) {
+   await writeFile(
+@@ -849,5 +869,22 @@
+   if (app) await shot('FAIL', { error: String(error) }).catch(() => {})
+   throw error
+ } finally {
+-  if (app) await app.close()
+-}
++  // Preserve App close timing. Sampler never keeps the product alive.
++  try {
++    if (app) await app.close()
++  } finally {
++    if (samplerCompletion) {
++      const completion = await samplerCompletion
++      await writeFile(path.join(output, 'cpu-sampler-completion.json'), JSON.stringify({ ...completion, stdinError: samplerInputError }, null, 2) + '\n')
++    }
++    await samplerOut.close()
++    await samplerErr.close()
++  }
++}
++// A sampler failure stops the batch even when the cold UI gate passed.
++if (samplerCompletion) {
++  const completion = await samplerCompletion
++  assert.equal(completion.exitCode, 0, 'CPU diagnostic sampler must complete successfully')
++  assert.equal(samplerInputError, null, 'CPU sampler identity stdin must be delivered')
++}
++

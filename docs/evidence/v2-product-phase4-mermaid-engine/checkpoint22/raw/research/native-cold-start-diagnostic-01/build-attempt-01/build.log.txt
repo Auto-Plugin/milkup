@@ -1,0 +1,16 @@
+   Compiling milkup-desktop v2.0.0-beta.1 (/workspace/milkup/apps/desktop/src-tauri)
+warning: use of deprecated method `std::sync::atomic::Atomic::<u64>::fetch_update`: renamed to `try_update` for consistency
+   --> src/plugin_dom_request_diagnostic.rs:180:22
+    |
+180 |                     .fetch_update(Ordering::Relaxed, Ordering::Relaxed, |n| {
+    |                      ^^^^^^^^^^^^
+    |
+    = note: `#[warn(deprecated)]` on by default
+help: replace the use of the deprecated method
+    |
+180 -                     .fetch_update(Ordering::Relaxed, Ordering::Relaxed, |n| {
+180 +                     .try_update(Ordering::Relaxed, Ordering::Relaxed, |n| {
+    |
+
+warning: `milkup-desktop` (lib) generated 1 warning (run `cargo fix --lib -p milkup-desktop` to apply 1 suggestion)
+    Finished `release` profile [optimized] target(s) in 1m 06s

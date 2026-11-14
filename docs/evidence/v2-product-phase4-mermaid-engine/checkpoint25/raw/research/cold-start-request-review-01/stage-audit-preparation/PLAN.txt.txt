@@ -1,0 +1,18 @@
+Layer1 independent stage auditor — protocol-dependent preparation
+Scope: offline frozen files only. No native process/browser/probe/retry. Stage candidate remains owned by dom_transport; this reviewer edits only separate research audit artifacts.
+
+Original accepted-wire auditor SHA256 b6cd88e6a7990a06212879a294ab874d7d49499f6a1efce1bdb9d5932c53b2f9 must stay unchanged. First strict full-log outcome must be preserved independently. A stage result cannot override a failed wire audit, remove missing keys or infer unknown payload.
+
+Planned auditor input: freeze manifest; original accepted-wire events/status/complete+driver log+fixture+plan; independent stage root with per-emitter events/status/complete; frozen CPU identity summary to tie helper PID/birth/instance to accepted-wire guardian. All bytes read once and SHA/size matched before interpretation. Never infer completeness by generating a freeze from live files.
+
+Checks: exact event/status schemas and bounded allowed phases/details; actor PID/birth/role and directory identity; App from accepted-wire binding, helper from independently bound renderer-leader identity. Request-bearing events must join exact(instance,request) accepted keys, not requestId alone. Initialization events are explicitly request=null. No plugin/page claims override App identity or native envelope facts.
+
+Queue/capture quality: per-process event512/bytes65536/row1024/queue32/request8 caps from final protocol; final+closed and inFlight0; missing complete/status, drops, unknown/unadmitted or IO errors remain incomplete. Zero-loss sequence set and counts must match retained rows; do not invent attempted=enqueued+dropped when admit-lock failure increments dropped before attempted. Native rows may arrive out of sequence due concurrent producers. Final is not exact close instant or full-lifecycle coverage.
+
+Native ordering: original dispatch is authoritative start, never owner-accepted. App frame-read<=receive<=render-settled for the same exact request; accepted precedes settlement. owner-pipe-complete need not precede read/settlement because sender can be descheduled after write. Exactly one observed settlement/deadline terminal per request; error result may validly settle and is distinct from oktrue success. Missing terminal remains unknown. Settlement sample occurs just after active=None and after unchanged deadline checks, not at emit completion. Do not infer budget-check violation merely from timestamp crossing2000ms after the last check.
+
+JS: final allowlist and wrapper validation pending author freeze. Treat performance.now as local realm-relative clock, never subtract from App CLOCK_MONOTONIC or unknown-origin helper timestamp. Validate monotone same-scope marks, allowed success/reject/serialization sequences, bounded requests/marks/init/bytes/drains/drop counters. Preserve private-drain cumulative state independently. A synchronous infinite loop can prevent every buffered JS mark from draining; no mark is not no work. Loss may hide preceding stages. No plugin-internal phase, diagram block or causal claim.
+
+Synthetic negative plans: mismatched instance/PID/birth, accepted key missing, invalid schema/phase/details, duplicate sequence/terminal, arbitrary prototype-like keys, nonfinite/negative JS time, oversized rows/requestcap/eventcap, lost queue/status, incomplete final, reset cumulative JS state, unknownrequest mislabelled init, mixed clock arithmetic, and valid stalled-request partial records. No real /proc reads. Prepare tests only; execution needs root instruction where applicable.
+
+Implementation waits for author final phase/details/JS-state schema and freeze. Do not ship a guessed parser as evidence validation.

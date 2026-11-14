@@ -1,0 +1,188 @@
+{
+  "atUtc": "2026-10-16T23:33:03.404338+00:00",
+  "scope": "Read-only source and existing failure observations; no product edit, native/browser execution or archive of active run",
+  "sources": [
+    {
+      "path": "/workspace/milkup/apps/desktop/src/main.ts",
+      "bytes": 191146,
+      "sha256": "826a7a485a0d1117d1f08a625ac4f17672f31b86a404cce6bc57f890d81ed571",
+      "equalsProduction07Snapshot": true
+    },
+    {
+      "path": "/workspace/milkup/packages/view-dom/src/source-document-view.ts",
+      "bytes": 143278,
+      "sha256": "ad1a9a7a746c8eaf641e132ee5a91cb4779c4d860c9f9f445231c8d2b8923206",
+      "equalsProduction07Snapshot": true
+    },
+    {
+      "path": "/workspace/milkup/packages/view-dom/src/document-presentation.ts",
+      "bytes": 72119,
+      "sha256": "07cbcfb4d576ff148585a397195edb691ab8780fe539c2fad52e246b081462b7",
+      "equalsProduction07Snapshot": true
+    },
+    {
+      "path": "/workspace/milkup/apps/desktop/src/large-document-search.ts",
+      "bytes": 8030,
+      "sha256": "4c57612d8820f4f78e0d1f34f18942dcdb96dd776a9db2e79f3de04c2b286c64",
+      "equalsProduction07Snapshot": true
+    }
+  ],
+  "evidenceRead": [
+    {
+      "path": "/workspace/milkup-mermaid-engine-evidence/product-ui-runs/runs/mermaid-ui-deadline-diagnostic-01/failure.json",
+      "bytes": 649,
+      "sha256": "6d26db6d801043d80eae8654be52088c9b9036d742fb55b9820119e6551ef0f8"
+    },
+    {
+      "path": "/workspace/milkup-mermaid-engine-evidence/product-ui-runs/runs/mermaid-ui-deadline-diagnostic-01/results.json",
+      "bytes": 820617,
+      "sha256": "aabff50ad148a186cbd13d00849a78c33067f75585dafb65113b78cf3ffda9d6"
+    },
+    {
+      "path": "/workspace/milkup-mermaid-engine-evidence/product-ui-runs/runs/mermaid-ui-deadline-diagnostic-01/transport-ring.json",
+      "bytes": 130392,
+      "sha256": "b88bdd37b21807dc4e13903e34cfb0f4e623d1a4a4e9b437c83202ad14ffb35d"
+    }
+  ],
+  "facts": {
+    "failure": "Error: Timeout: complete sample marker selection after native search navigation",
+    "document": {
+      "message": "字面匹配 · 忽略大小写 · 忽略查询首尾空白",
+      "query": "MERMAID-SAMPLE-sequenceDiagram-000-first-official-example",
+      "mode": "live",
+      "count": "0/0",
+      "searching": false,
+      "selection": [],
+      "path": "/workspace/milkup-mermaid-engine-evidence/product-ui-runs/runs/mermaid-ui-deadline-diagnostic-01/windowed.md",
+      "saving": false,
+      "notice": "就绪",
+      "dirty": false,
+      "cursor": null,
+      "url": "tauri://localhost",
+      "replaceDisabled": true,
+      "savedVersion": 0,
+      "replacing": false,
+      "loading": "ready",
+      "version": 0
+    },
+    "previewRanges": [
+      [
+        8878,
+        9181,
+        775.5
+      ]
+    ],
+    "lastObservedRenderRequests": [
+      {
+        "requestId": "render_1130",
+        "instanceId": "16c0e11cc2f2fe3ebb34d7533b631aaeec7b685be8365f06",
+        "selection": {
+          "head": 8160,
+          "anchor": 8103
+        },
+        "range": [
+          8878,
+          9181
+        ],
+        "lines": [
+          433,
+          447
+        ],
+        "result": {
+          "observedAt": 377239.00000000006,
+          "error": null,
+          "ok": true
+        }
+      },
+      {
+        "requestId": "render_1131",
+        "instanceId": "16c0e11cc2f2fe3ebb34d7533b631aaeec7b685be8365f06",
+        "selection": {
+          "head": 8160,
+          "anchor": 8103
+        },
+        "range": [
+          9267,
+          9398
+        ],
+        "lines": [
+          453,
+          459
+        ],
+        "result": {
+          "observedAt": 377399,
+          "error": null,
+          "ok": true
+        }
+      },
+      {
+        "requestId": "render_1132",
+        "instanceId": "16c0e11cc2f2fe3ebb34d7533b631aaeec7b685be8365f06",
+        "selection": {
+          "head": 8160,
+          "anchor": 8103
+        },
+        "range": [
+          8878,
+          9181
+        ],
+        "lines": [
+          433,
+          447
+        ],
+        "result": {
+          "observedAt": 377906,
+          "error": null,
+          "ok": true
+        }
+      }
+    ],
+    "transportQualification": [
+      "incoming-instance-not-observed-since-install"
+    ]
+  },
+  "sourceConclusions": [
+    {
+      "at": "main.ts:4033-4047",
+      "finding": "Input schedule synchronously cancels previous controllers, clears result state and rerenders count before 150ms debounce. Normal input path does not retain an old 1/1 count beside new query."
+    },
+    {
+      "at": "main.ts:4124-4125; harness seek",
+      "finding": "Done/count is published before awaiting jump/reveal. Query+not-searching+count containing1 is not navigation-complete and is not an exact uniqueness assertion. Existing post-Escape marker assertion detects missing projection rather than silently accepting it."
+    },
+    {
+      "at": "main.ts:4004-4018,4482-4495; source-document-view.ts:716-778",
+      "finding": "Escape closes search, clears highlights and cancels search controllers; it does not pass abort signal to search revealSelection or increment that view navigationRevision. Source view focus uses preventScroll. There is no direct Escape-aborts-started-reveal mechanism here."
+    },
+    {
+      "at": "source-document-view.ts:759-778,3230-3279",
+      "finding": "Logical cursor/selection is assigned before awaiting live syntax reads. Afterward only document/version/navigation revision are checked; no target-row remount or vertical reveal is ensured."
+    },
+    {
+      "at": "document-presentation.ts:1047-1097,1186-1193,1434-1435; source-document-view.ts:240-285,850-857,1042-1062",
+      "finding": "Presentation layout updates measured heights/spacers and scroll restoration directly writes root.scrollTop without updating view scrollAnchor. A differing outer scroll generates a newer window request. Latest-applied request ordering can accept that later viewport window even while navigation is pending; this is a candidate interleaving, not a demonstrated cause."
+    },
+    {
+      "at": "source-document-view.ts:2980-3014,3121-3141",
+      "finding": "Selection/caret DOM derives from currently mounted source rows. Logical selection can remain correct while no corresponding overlay/caret exists; cursor null in probe is not proof of unset logical cursor."
+    }
+  ],
+  "candidate": "A legitimate preview decode/paint or source-window replacement changes measured geometry during/after marker navigation; resulting scroll and newer viewport render replace the target window. Correct logical selection persists but target mounted projection disappears. Current records do not identify the exact interleaving or prove causality.",
+  "minimumControlledReproduction": [
+    "Use actual SourceDocumentView + MemoryDocumentSource and valid asynchronous presentation provider; initial decoded tall preview, then reveal the actual distant marker without signal/assertCurrent (matching desktop search).",
+    "Gate the target/live-syntax read after target is mounted and logical selection is assigned. Release a valid preview decode/height change so real measure/spacer/anchor/outer-scroll code runs; do not artificially scroll away as a substitute cause.",
+    "Capture ordered read requests/resolutions, actual source selection, mounted row bounds, scrollTop/spacers and target rect around reveal completion. Assert marker stays mounted/visible and complete selection projection persists; retain first deterministic RED before proposing a fix.",
+    "Desktop search integration variant should observe search done before release and issue real Escape, compare with leaving search open only as a separately declared control. No timeout extension or poll-until-green."
+  ],
+  "minimumAdditionalObservation": [
+    "A bounded timestamped sequence of mounted window fromLine/toLine and target row rect, root scrollTop, top/bottom spacer sizes, actual public view selection at search done/before Escape/after reveal and legitimate preview decode.",
+    "If a controlled seam is used, log request-id creation/application and navigation revision around target read, live-syntax read and presentation layout; no production-wide hook or additional native run is authorized here."
+  ],
+  "notEstablished": [
+    "Escape directly canceled reveal",
+    "stale previous search result passed the new query gate",
+    "logical target selection was never set",
+    "same cause as prior UI08",
+    "Mermaid render deadline or failed result caused this failure"
+  ]
+}

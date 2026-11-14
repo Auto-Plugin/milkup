@@ -1,0 +1,64 @@
+{
+  "kind": "independent-static-sampler-and-cold-harness-review",
+  "status": "no-remaining-blocking-issue-found-in-revision03; execution-requires-parent-GO",
+  "reviewedFiles": [
+    {
+      "path": "/workspace/milkup-mermaid-engine-evidence/research/native-dom-cpu-sampler-01/cpu_sampler.py",
+      "sha256": "30110c5ae58816d8ae5fb318d3b46094fd19dc77f22f527cde2b222f798424f9",
+      "bytes": 23595
+    },
+    {
+      "path": "/workspace/milkup-mermaid-engine-evidence/research/native-dom-cpu-sampler-01/PLAN-AND-CONTRACT.md",
+      "sha256": "8f4db965482ce24243793e1384fedbf857e3bc161751d6aedfc5341d5acd9cce",
+      "bytes": 10442
+    },
+    {
+      "path": "/workspace/milkup-mermaid-engine-evidence/research/native-cold-cpu-batch-01/cold-diagnostic.mjs",
+      "sha256": "cc701be3719d95aac956ab671e7b20e5a19de3ea4a9f609aad399c7a66157328",
+      "bytes": 35927
+    },
+    {
+      "path": "/workspace/milkup-mermaid-engine-evidence/research/native-cold-cpu-batch-01/plan.json",
+      "sha256": "d36aaa2314b566f03245a4ce2d367fbf5d9159c3b8e25617ca826fb9faeb4599",
+      "bytes": 6898
+    },
+    {
+      "path": "/workspace/milkup-mermaid-engine-evidence/research/native-cold-cpu-batch-01/prepared-inputs-revision03.json",
+      "sha256": "47b51a9ddfa8a54e0fb7f99184dbdd4e331683c823c135cfbceb51ff9b6b5f50",
+      "bytes": 16823
+    }
+  ],
+  "scope": "Read-only review of sampler, contract, revised cold harness and plan. No import/execution of sampler, test, build, UI or runtime.",
+  "closedFindings": [
+    {
+      "initialIssue": "Discovery limits were applied after unbounded task listing and accumulated child candidates.",
+      "revision03": "os.scandir plus islice(MAX_TASKS+1) bounds actual enumeration; child candidate and known identity caps checked before insertion; exceeding task/list/candidate/identity bounds immediately exits incomplete."
+    },
+    {
+      "initialIssue": "Earliest retained asynchronous log dispatch was described as the actual global first dispatch.",
+      "revision03": "First retained exact-App dispatch is selected from log beginning and must be client-local render_1; otherwise incomplete with no search for later qualifying requests. Plan and summary explicitly preserve best-effort/client-local uncertainty and do not claim complete global first-ten-second coverage."
+    },
+    {
+      "initialIssue": "App liveness excluded Z but not X/x.",
+      "revision03": "App and descendant terminal-state handling now consistently excludes Z/X/x from live accounting."
+    }
+  ],
+  "checks": [
+    "App binding validates exact PID/birth/argv and fixed executable path/hash. Guardian binding uses proven direct child ancestry, exact helper argv and exact instance environment; descendant adoption uses explicit proven parent children and birth rechecks, not process-name scans.",
+    "Sampling anchors to the retained qualifying dispatch CLOCK_MONOTONIC, not first sample or attachment. Entire missed window fails; late attachment records the head gap without extending10s. CPU delta requires same-birth, nonterminal pairs wholly within that window.",
+    "At most128 known identities and bounded per-PID task/child discovery; target50ms samples and250ms discovery skip late slots rather than burst catch-up. Output retains a2MiB total cap including128KiB summary reserve; read errors/truncation produce incomplete observation.",
+    "No signals, cleanup, product IPC, page wrappers or CPU load generator are added by sampler. Guardian labels follow ownership proof; Z/X lifetime counters remain raw rather than active CPU.",
+    "Harness launches the exact-hash sampler via/usr/bin/python3 after existing ownership/profile checks, sends one identity frame and does not await armed. Cold public gate function is byte-identical to the retained previous diagnostic harness.",
+    "Original App close runs before awaiting sampler natural completion. Product failure is retained and rethrown; sampler nonzero/stdin failure also fails the run. Maximum3 fresh cases use manual serial orchestration, no retry; both product and observer must succeed before another case.",
+    "Requested --cgroup-cpu-stat is actually passed. Raw counters and actual read timestamps are shared cgroup observations, not DOM-exclusive activity or proof of historical throttling cause."
+  ],
+  "coldGateSha256": "7a96068b02467bdb8518a6fb71eef35f8646f2d5d31d37ea7c6f2f565a7bb621",
+  "provenance": "Root separately verified all36 actual files and36 frozen snapshots. This reviewer hashed the five listed review inputs and directly compared the cold function; it did not rehash the large binary.",
+  "remainingLimits": [
+    "No actual sampler overhead or functional runtime behavior has been measured by this review.",
+    "250ms discovery can miss short-lived unobserved descendants; initial/lost/terminal CPU intervals are not reconstructed.",
+    "Best-effort trace loss can hide an earlier different client/instance; render_1 is not a global App sequence.",
+    "High CPU does not identify a library/request; low CPU does not establish scheduler fault. Instrumentation overhead remains in the original deadline.",
+    "Runtime GO, exact driver cleanup and first-failure stop remain owner responsibilities."
+  ]
+}

@@ -1,0 +1,86 @@
+# Windows 独立 DOM 后端：最小实施方案
+
+结论：应新增独立 Win32/WebView2 helper，并用 App 持有的 Windows Job Object 约束其生命周期；复用现有通用插件协议、不可变快照和原生截止状态机。修改 `supported()` 或重新打包不能补齐此功能。此文是实施计划，尚未写产品代码、构建、下载 Runtime、打包或上传。
+
+基线为 `b0b1f34f1e2df79bb97c925ee89f2b24ef0820c9`。当前 `plugin_dom.rs:203` 只接受 Linux；同文件的 Lease.instance、启动/发送/停止、快照读取、随机 ID、helper 分派也依赖 Linux。`plugin_dom_process.rs` 包含 Unix FD、setsid 和 guardian；`plugin_dom_helper.rs` 使用 GTK/WebKit；Linux C guard 在 WebProcess 的 send-request 层拦截资源。Windows 需要对应实现，而不是让主 Tauri WebView 执行插件。
+
+## 1. 保留的公共合同
+
+- 通用 `Snapshot { manifest,module,sha256 }`、审批身份比对、一次性 lease、pluginId/instanceId 精确绑定保持不变。manifest≤1MiB，module≤8MiB，16 leases/32MiB 快照预算、60s 未使用 lease 期限保留。
+- `milkup.plugin.document-render.v1` 和 `milkup.plugin.isolation.rpc.v1` 不变；保留 render/result/cancel 与 activate/deactivate/dispose。不得为 Mermaid 增加专属 native 方法。
+- 保留现有 bootstrap 的私有 token、默认导出 renderer 注册、typed JSON→UTF8→parse 语义及 262144 typed/266240 envelope 上限。输入 wire≤1MiB。prepare 长度前缀和结果 JSON 行边界分别保持现状；Windows COM ExecuteScript 的 JSON 编码返回只在 helper 解码一层，原 bootstrap 输出字符串再原样送 result pipe，不能双重 stringify。
+- 10s 初始化从原 launch 起点开始，涵盖 spawn/Runtime/context/module/activate；2s render 从 App 接受准确请求时开始。cancel、不匹配或畸形结果不得清除/刷新 deadline；结果接收和清除 active 前重复检查 deadline。超时/撤销产生一次终态，迟到结果拒绝。
+- 这些合同通过共享纯 Rust 验证器/状态机与共享 JS 维持；Linux 的 guardian/guard 不替换、不减弱。不能把日志、UI 成功或 next dispatch 当成独立请求完成端点。
+
+## 2. 最小架构与所有权
+
+复用当前 `main.rs` 在 Tauri 初始化前调用的 helper 分派，Windows 分支进入新 helper，绝不执行 Tauri builder、IPC command handler、插件 manager 或 editor bridge。App 仍持有 registry/Emit/截止线程；helper 只持有传入快照、私有结果管道、不可见 WebView2 和一个 STA 消息循环。COM 和 WebView2 的创建/调用/回调全部留在该 STA，管道 reader 通过有界队列及窗口消息提交工作，不能在 STA 同步等待异步 WebView2 回调。[Microsoft STA 线程约束](https://learn.microsoft.com/en-us/microsoft-edge/webview2/concepts/threading-model)
+
+每个实例独立新建随机 UDF/环境，不能复用主 Tauri 的 UDF 或 browser process。启用 `ExclusiveUserDataFolderAccess=true`；保留 creator 持有的目录身份/ACL，拒绝预先存在、reparse、非预期 owner 的目录。Runtime 仍需要自己的缓存/配置文件，这不是插件文件访问权限。环境可用 invisible `HWND_MESSAGE` controller，但必须设置有效非零布局 bounds，并真实验证 getBBox/font/layout；“不可见”不能推导出无节流或字体已就绪。[进程组与 UDF](https://learn.microsoft.com/en-us/microsoft-edge/webview2/concepts/process-model)、[独占 UDF](https://learn.microsoft.com/en-us/microsoft-edge/webview2/reference/win32/icorewebview2environmentoptions2?view=webview2-1.0.3405.78)、[不可见 controller](https://learn.microsoft.com/en-us/microsoft-edge/webview2/reference/win32/icorewebview2environment)
+
+App 新建 unnamed、不可继承的 Job，设置 `JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE`，不设置 BREAKAWAY/SILENT_BREAKAWAY。Windows 10+ 优先用 `STARTUPINFOEX + PROC_THREAD_ATTRIBUTE_JOB_LIST` 在创建时关联；也可采用 CREATE_SUSPENDED→AssignProcessToJobObject→验证→ResumeThread，但任何 assign 失败都必须在恢复执行前终止并回收 child。不能先运行 helper、再按 PID 补挂 Job。使用精确 HANDLE_LIST，仅继承输入/结果/必要控制管道；helper 在 WebView2 启动前清除这些 handle 的继承位，Job handle 永不传给 helper，避免浏览器继承它而破坏 App 死亡清理。[进程创建属性](https://learn.microsoft.com/en-us/windows/win32/api/processthreadsapi/nf-processthreadsapi-updateprocthreadattribute)、[Job 关联](https://learn.microsoft.com/en-us/windows/win32/api/jobapi2/nf-jobapi2-assignprocesstojobobject)
+
+App 独立 watchdog 不等待 pipe/COM/GUI 锁。超时先撤销状态，再 `TerminateJobObject`，清理路径用 owned process handles + QueryInformationJobObject 的 active-process accounting/list 确认清空。completion-port 通知仅用于唤醒，不单靠通知缺席认定进程消失。不要把 job handle 普通 WaitForSingleObject 当作任意终止后的可靠空集合证明。App 异常退出时最后 Job handle 关闭触发 kill-on-close。Job 内 browser/renderer/GPU/utility 的实际归属必须在 Windows 验收；WebView2 可能使用自己的 nested jobs，不能为了兼容打开 breakaway。Job 管理生命周期，不是文件/网络安全边界。[Job Objects 官方行为与通知限制](https://learn.microsoft.com/en-us/windows/win32/procthread/job-objects)
+
+helper 提供 BrowserProcessId/GetProcessInfos 仅作精确环境归属的补充核对；App 使用 process HANDLE/creation time、IsProcessInJob 核验，不用名字、命令行或全局 taskkill 搜索。若发现任何该环境进程不在 owned job，初始化失败，禁止插件模块执行；若环境 broker 模式使启动前全树约束不成立，该 Runtime/平台路径不支持。UDF 独占与 Job 双重边界缺一不可。普通 Close 是正常退出优化，不能替代 hung renderer 的硬清理；清理失败必须返回可见失败，不能提前删除 UDF 或宣称 stop 成功。
+
+## 3. 原生资源与能力策略：注册完成后才允许模块执行
+
+注册 `milkup-dom` custom scheme（HasAuthorityComponent=true），只提供内存中的精确 GET `milkup-dom://job/index.html`、`bootstrap.js`、`module.js`。不设 file mapping/localhost HTTP server，不读插件传入 URL，未知 method/host/path/query、redirect、userinfo/port、路径编码绕过均拒绝。custom-scheme AllowedOrigins 不是完整访问控制：官方明确无 Origin 请求仍可能被允许，所以必须在每次 native resource handler 做精确 allowlist。[Custom scheme 注册与 CSP/CORS](https://learn.microsoft.com/en-us/microsoft-edge/webview2/reference/win32/icorewebview2customschemeregistration)
+
+导航前安装 `ICoreWebView2_22::AddWebResourceRequestedFilterWithRequestSourceKinds("*", ALL, ALL)` 和 WebResourceRequested。只对三个内存资源返回200，其余显式403/空 response，handler 失败撤销实例；不能留下默认网络 fallback。此新接口覆盖 service/shared worker 等来源，旧 document-only filter 不是等价替代。资源 request 的规范化不能被当作安全原始字符串验证；URI 重构结果/用途必须与固定资源匹配。[过滤 API 的来源与规范化说明](https://learn.microsoft.com/en-us/microsoft-edge/webview2/reference/win32/icorewebview2_22?view=webview2-1.0.3405.78)
+
+HTML response 发送现有 CSP：default/connect/img/font/frame/child/worker/object/form/base 全 deny，仅两条固定 script、必要 inline style；附 nosniff/no-store。只允许首次 index 导航；后续 NavigationStarting、FrameNavigationStarting 全取消；NewWindowRequested handled=true 且不创建窗口；Downloading cancel；PermissionRequested deny；默认 dialogs/contextmenu/devtools/host objects/webmessages 关闭，不注册 HostObject/WebMessage handler，不调 ShellExecute、外部命令或任意文件 API。JS 仍必须启用，否则 DOM renderer 不工作。每次 ExecuteScript 前及回调核对 Source 与原页面 generation；导航/崩溃即撤销，不能把新文档回包结算给旧请求。[Microsoft 安全指南](https://learn.microsoft.com/en-us/microsoft-edge/webview2/concepts/security)、[Settings](https://learn.microsoft.com/en-us/microsoft-edge/webview2/reference/win32/icorewebview2settings)
+
+`LaunchingExternalUriScheme` 无条件 cancel，覆盖 mailto/ms-settings/自定义 OS handler，不能照抄官方示例中的 ShellExecute。禁止向JS发送 FileSystemHandle：`ICoreWebView2_23` 实际是携带额外DOM对象的消息接口，不是file-picker取消接口。当前0.38.2 bindings检索未找到 FilePicker/FileChooser/FileDialog hook，不能捏造对应native API；任何未受控 picker/download/dialog 出现即验收失败。无用户输入的独立窗口和Web API user-activation要求可形成测试条件，不能替代可复核的阻止策略；此处与WebRTC一起进入W0能力闸门。[外部协议取消](https://learn.microsoft.com/en-us/microsoft-edge/webview2/reference/win32/icorewebview2_18)、[额外文件对象能力警告](https://learn.microsoft.com/en-us/microsoft-edge/webview2/reference/win32/icorewebview2_23?view=webview2-1.0.3405.78)
+
+重要未决门槛：上述方案建立的是 native 资源 allowlist + 无宿主能力桥；不据此承诺“任意网络协议、Runtime 后台通信或 renderer 被利用后的网络全部为零”。WebRTC data-channel/ICE 不能仅由摄像头权限 deny 或 JS 删构造器证明封锁；网络请求事件也不能冒充系统防火墙。Linux 当前明确关闭 WebRTC，Windows 必须找出并验证对应的受支持原生/OS 策略，不能猜测 Chromium flag、使用 no-sandbox/disable-web-security 或 JS monkeypatch 后宣布安全。
+
+因此在第一阶段 Windows capability spike 中必须先验证禁止网络请求的矩阵（包括 RTC/UDP/DNS/loopback），再决定实现完成。若公共 WebView2 API 无法满足产品的强制无网络语义，应保持 Windows DOM unsupported，并把 AppContainer/受限 token 或其他 browser engine 作为另一次明确范围的设计决定。Microsoft AppContainer 提供资源/网络能力隔离，但这里没有官方证据证明将 WebView2 helper 放入自建无网络 AppContainer 仍能正确创建所有子进程、字体/COM/UDF；不能把这项待验证的兼容性假定成已选实现，也不自动引入管理员 WFP/firewall 安装。[AppContainer 隔离](https://learn.microsoft.com/en-us/windows/win32/secauthz/appcontainer-isolation)
+
+环境参数由 native 控制，禁用调试/remote-debugging/扩展/SSO。不得继承用户传入的 WEBVIEW2_* 选项来扩大能力，显式约束 runtime discovery/UDF，并检查实际 browser version/环境。官方说明非提权 host 会响应环境/注册表 overrides；只清环境不足以证明 registry policies 无覆盖，因此 hostile debug/policy override 是必须拒绝或测试的部署条件，不以提权绕开。[安全指南的 override 行为](https://learn.microsoft.com/en-us/microsoft-edge/webview2/concepts/security)
+
+## 4. 文件级改动清单（下一实施阶段，当前未创建这些产品文件）
+
+| 文件 | 最小责任 |
+| --- | --- |
+| `plugin_dom.rs` | registry 统一引用平台 `process::Instance`；将 supported 判断接入 Windows capability，保留其他平台明确 unavailable；helper 分派 Windows 分支。 |
+| 新 `plugin_dom_protocol.rs` | 提取当前 read_frame/is_result/is_rpc_result、尺寸限制及可复用 Control 状态转移；Linux/Windows 共用测试，严禁更改截止起点。 |
+| 现 `plugin_dom_process.rs` | 仍是 Linux owner，改为引用纯公共部分；guardian/guard/fork 顺序不变。 |
+| 新 `plugin_dom_windows_process.rs` | Instance/start/send/receive/watch/stop 的 Windows transport；Job/handles、bounded IO、watchdog；与Linux同Emit合同。 |
+| 新 `plugin_dom_windows_helper.rs` | 早期内部入口、COM STA/消息循环、私有WebView2环境/资源策略/ExecuteScript drain；无Tauri。 |
+| 新 `plugin_dom_windows_os.rs` | RAII Job/handle、私有UDF ACL、BCrypt随机、confined snapshot读取；不得有插件可调用函数。 |
+| `Cargo.toml`/`Cargo.lock` | Windows target 直接依赖已锁定的 `webview2-com=0.38.2`、`windows=0.61.3`并明确最小 Win32 features；提交锁变化，不能把 transitives 当可直接 import。 |
+| `build.rs` | Linux guard 构建原样；Windows loader/link/resource 按现依赖处理，避免引入系统PATH下任意DLL。 |
+| 新 `tests/native/windows-dom-contract.ps1` 与 Windows test fixture | 下面阶段的调用入口和 raw evidence/exit freeze；不含自动重试、Runtime安装或打包。 |
+
+Windows 快照读取不能移植为单纯 `canonicalize + read`。将根限定到受控本地绝对目录，按组件保持目录 handle，拒绝 reparse/UNC/device/ADS/相对路径/保留名称；使用 `CreateFileW` 的 OPEN_REPARSE_POINT/BACKUP_SEMANTICS 和文件类型/最终路径/卷身份检查，避免 canonicalization 到读取间的替换；目录及最终文件不共享删除，最终读取不共享写，保留 handle 直到 bounded read/hash 完成。share violation/reparse/路径歧义直接失败。该路径需专门 Windows race/junction 测试，不应在没有证明前替代 Linux openat/O_NOFOLLOW。一次快照发送后 helper 不再打开 package 路径。24字节随机 ID 用 BCryptGenRandom，不能回退时间/PID。[CreateFileW flags/共享语义](https://learn.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-createfilew)、[系统随机源](https://learn.microsoft.com/en-us/windows/win32/api/bcrypt/nf-bcrypt-bcryptgenrandom)
+
+## 5. 分阶段执行与拒绝条件
+
+**W0，Windows能力闸门，先于产品接线。** 用明确研究 helper 验证现有 Runtime/架构版本、必需 COM interfaces、私有独占UDF、创建即入Job、所有已知环境进程在Job、隐藏WebView真实DOM布局，以及禁止网络/外部协议/文件访问矩阵。保留成功和失败HRESULT、系统/Runtime版本、原始输入和完整退出记录。缺 Runtime/接口/Job归属/资源策略不满足，停止；不安装Runtime、不放开breakaway/安全设置、不退回主WebView。无网络强语义缺口是该阶段的实际阻断项。
+
+**W1，公共逻辑与Windows OS层。** 提取公共协议纯测试，增加Windows manifest/module安全读取及Job fixture。测试：错plugin/instance/request、额外key、畸形UTF8/JSON、1MiB/266240边界、cancel不刷新deadline、重复/迟到result、lease重放/审批变更/模块hash、父目录junction/最终symlink/ADS/UNC/保留名/路径并发替换、关闭句柄数。Job fixture在resume后立即创建子孙，包括显式breakaway尝试和重新parent尝试；测试App被强制结束、helper崩溃、pipe满/不读、owner关闭时Job active count最终为0。不得靠进程名扫描“验证”。
+
+**W2，真实WebView2通用协议。** 接实际 bootstrap，使用非Mermaid小模块测default export注册、SVG DOM/getBBox/字体、异步resolve/reject、typed输出限制、无限同步循环和永不resolve；禁用JS定时器也不能破坏App2s截止。测init hang10s、错误模块hash/import、伪造token/直接chrome.webview调用、document.navigation、iframe/srcdoc/blob/data、query/编码URI、http/https/ws/wss/fetch/XHR/beacon/img/CSS/font/worker/serviceworker/WebRTC、file/UNC、本地协议与file picker。外部测试端点的连接计数/抓包等只在明确授权的本机隔离测试中使用；无连接证据、原生deny证据和纯JS异常分别保存。
+
+**W3，集成与跨平台回归。** Windows registry整套prepare/start/send/stop/release/remove流程；两个实例同时运行且UDF/browser/job不同，杀A不影响B或编辑器；主App重启不得复用旧模块/缓存，job清空后才删除私有目录。恢复/取消/撤销无挂起future、无不可见残留进程。运行现有Linux协议/guardian实测以验证提取未降级。仅两平台均通过才扩大supported()。
+
+**W4，真实Windows产品验收。** 最低支持Windows版本与当前Windows11、实际x64（ARM64需独立验证后再声明），正常用户、已有Evergreen Runtime至少基线与当前版本、带宿主Job的CI/企业环境、杀进程场景，随后正式Windows原生UI字节/history/selection/主题/缩放/窄窗/窗口化矩阵。WebView2版本缺失/接口过旧时清楚报告unavailable。MSI/NSIS重打包不能替代W0–W4，也不能从Linux UI PASS推断Windows/DPI/IME通过。[Runtime与应用分发是独立依赖](https://learn.microsoft.com/en-us/microsoft-edge/webview2/concepts/distribution)
+
+## 6. 当前环境与编译路径
+
+2026-10-17只读核验：当前为Linux x86_64，HEAD如上。`/workspace/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/lib/rustlib`仅安装x86_64-unknown-linux-gnu标准库；PATH无cargo/rustc，但已知工具在`/workspace/.cargo/bin`、对应rustup目录，环境脚本为`/workspace/.cloud/milkup-v2/env.sh`。没有查到mingw gcc、clang-cl、lld-link、Wine、PowerShell或cl.exe。Cargo.lock已有webview2-com/sys0.38.2和windows0.61.3，registry缓存确有源码与所需COM binding符号；这说明可选择依赖，不代表Windows后端已编译。
+
+当前可在后续获授权实现后跑共享纯Rust/Node bootstrap测试和Linux回归；不能在此环境验证Win32 COM/Job/ACL/浏览器进程行为。没有Windows target/SDK/linker，当前也不能声称可直接进行Windows cargo check。此任务未执行编译、test或下载任何target。
+
+未来在预配置Windows x64 MSVC+Windows SDK机器，根目录明确版本后执行：
+
+```powershell
+cargo check --manifest-path apps/desktop/src-tauri/Cargo.toml --locked --target x86_64-pc-windows-msvc --lib
+cargo test --manifest-path apps/desktop/src-tauri/Cargo.toml --locked --target x86_64-pc-windows-msvc --lib plugin_dom_protocol::tests
+cargo test --manifest-path apps/desktop/src-tauri/Cargo.toml --locked --target x86_64-pc-windows-msvc --lib plugin_dom_windows_os::tests -- --test-threads=1
+# 接下来才是单独批准的 Windows native helper fixture / product UI 运行；命令由实现阶段冻结。
+```
+
+上面是计划入口，模块尚不存在，不能当成已运行命令。`cargo check`只证实类型检查；MSVC链接/loader加载、Runtime存在性、资源deny和硬清理都需对应后续证据。WebView2 Runtime与SDK不是同一物件，不能凭Tauri依赖缓存或已有Windows安装包宣称可运行。计划至此结束，不主动扩大到实现、重构建或交付。

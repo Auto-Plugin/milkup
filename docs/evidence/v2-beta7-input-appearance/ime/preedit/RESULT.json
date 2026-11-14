@@ -1,0 +1,107 @@
+{
+  "rootCause": "Ordinary EditorView stored compositionupdate.data without ever rendering compositionText; the native input is deliberately transparent. SourceDocumentView already painted preedit.",
+  "pixelFinding": "The first drawing-only fix overlapped the unchanged source text in both views. The shared final overlay uses nearest opaque line/ancestor fill and line typography to make preedit readable without reflow.",
+  "changes": [
+    "packages/view-dom/src/editor-view.ts",
+    "packages/view-dom/src/source-document-view.ts",
+    "packages/view-dom/src/composition-overlay.ts",
+    "packages/view-dom/src/__tests__/ime-preedit.test.ts"
+  ],
+  "fileSha256": {
+    "packages/view-dom/src/editor-view.ts": "b7efd974fc35c9700cba39f7f09333aabc6a2f089a6497502a44a1d8d95a2ed5",
+    "packages/view-dom/src/source-document-view.ts": "a00aa35b3e47498a633caab413fd050ba9a809528908d7cc91c5218f07528c35",
+    "packages/view-dom/src/composition-overlay.ts": "8bbcf3d46e53bb03b9048b98569ca7dbef4c4c15cdabd7adb0e80709b97439d7",
+    "packages/view-dom/src/__tests__/ime-preedit.test.ts": "697164951798d66a6a25f6a5b8770e8410985a43c5cd1a7a341202d2d03c7111"
+  },
+  "unitBefore": {
+    "command": "Existing installed Vitest, src/__tests__/ime-preedit.test.ts",
+    "passed": 6,
+    "failed": 6,
+    "log": "unit-before-direct.log",
+    "ordinaryCasesAllFailed": true,
+    "windowedCasesAllPassed": true
+  },
+  "unitAfter": {
+    "passed": 77,
+    "failed": 0,
+    "files": [
+      "ime-preedit.test.ts",
+      "input-boundaries.test.ts",
+      "refresh-layout.test.ts",
+      "code-presentation.test.ts"
+    ],
+    "log": "unit-readable.log"
+  },
+  "browserBefore": {
+    "passed": 8,
+    "failed": 8,
+    "report": "browser-before.json",
+    "exactCapturedOrdinaryViewSource": "editor-view-before.ts"
+  },
+  "browserDrawingOnly": {
+    "assertionsPassed": 16,
+    "failed": 0,
+    "report": "browser-after.json",
+    "visualReview": "Not accepted: preedit overlapped original characters."
+  },
+  "browserFinal": {
+    "passed": 16,
+    "failed": 0,
+    "report": "browser-final.json",
+    "sourceHashesStableDuringRun": true,
+    "covers": [
+      "ordinary/windowed",
+      "source/live",
+      "paragraph/code",
+      "light/dark",
+      "CDP browser composition",
+      "layout refresh input identity and exact anchor rectangle",
+      "single final commit and undo/redo",
+      "shortened preedit",
+      "cancelled preedit with original data and history intact"
+    ]
+  },
+  "representativeScreenshots": [
+    "before-ordinary-paragraph-light.png",
+    "after-ordinary-paragraph-light.png",
+    "after-readable-ordinary-paragraph-light.png",
+    "after-readable-ordinary-code-dark.png",
+    "after-readable-windowed-code-dark.png",
+    "final-ordinary-paragraph-light.png",
+    "final-windowed-code-dark.png"
+  ],
+  "visualReview": "Three after-readable screenshots were actually viewed: ordinary paragraph light, ordinary code dark, and windowed code dark. Final rerun uses the same semantic renderer after formatting and retains screenshots for independent root review. Not all screenshots were individually reviewed.",
+  "limitations": [
+    "Browser component harness loads actual desktop CSS and core views; it is not the production native application.",
+    "CDP composition is actual Chromium browser composition but not a real OS IME/candidate window or Windows validation.",
+    "Current environment has no usable Chinese IBus/fcitx engine; no runtime installed or system configuration changed.",
+    "Preedit temporarily covers following source glyphs within its width, without changing document layout/content.",
+    "For translucent fills or gradient artwork the nearest opaque ancestor is a readable fallback, not exact reproduction of arbitrary background artwork.",
+    "Only core view/helper/test files changed by this agent; list rendering changes in the two shared views belong to the delivery agent."
+  ],
+  "executionFailures": [
+    {
+      "log": "unit-before.log",
+      "kind": "pnpm attempted dependency check/install into missing read-only home store; no test ran; existing Vitest was used directly afterward."
+    },
+    {
+      "log": "browser-before.log",
+      "kind": "Direct Chromium launch with sandbox enabled aborted on unavailable SUID sandbox helper; no --no-sandbox fallback or system changes."
+    },
+    {
+      "kind": "First browser harness import named a nonexistent top-level playwright-core package; resolved to the existing @playwright/test export before actual runs; tool output retained, no package installed."
+    },
+    {
+      "kind": "Initial localhost Vite listen was denied by execution network sandbox; same loopback-only server started with approved network permission, then actual browser tests ran wholly in a fresh private network namespace."
+    }
+  ],
+  "sandbox": "Own /tmp wrapper follows the existing approved bwrap private user/PID/IPC/UTS/network + clearenv model, uses installed /usr/lib/chromium/chromium with chromiumSandbox:true, mounts source/dependencies read-only, and permits output only in this task evidence directory. No default product isolation settings changed.",
+  "notDone": [
+    "No commit",
+    "No push",
+    "No CI",
+    "No native GUI or :125 use",
+    "No installer",
+    "No upload"
+  ]
+}

@@ -1,0 +1,8 @@
+{
+  "atUtc": "2026-10-16T16:16:24.585629+00:00",
+  "managerSha256": "8dc1f4a2571539cdb32b85bb7f8cecee6c32cf2aa2f1f757b580d1087301d8e3",
+  "previousReview": "root-final-static-review.json",
+  "diff": "--- /workspace/milkup-mermaid-engine-evidence/research/production-ui-window/view/29-decoded-replacement/manager-before-scroll.ts\t2026-10-16 16:12:26.729470964 +0000\n+++ /workspace/milkup/packages/view-dom/src/document-presentation.ts\t2026-10-16 16:15:22.653681900 +0000\n@@ -1632,10 +1632,7 @@\n     )\n   }\n   private displayedFragment(fragment: DocumentPresentationFragment): DocumentPresentationFragment {\n-    const owner = this.fragmentImages.get(fragment)\n-    return owner && !owner.failed && owner.images.some((image) => image.state !== 'decoded')\n-      ? (this.previousFragmentImages.get(fragmentKey(fragment))?.owner.fragment ?? fragment)\n-      : fragment\n+    return this.previousFragmentImages.get(fragmentKey(fragment))?.owner.fragment ?? fragment\n   }\n   /** Keep offsets only within this synchronous replacement, never across documents or edits. */\n   private capturePreviewScroll(): PreviewScroll | undefined {\n",
+  "result": "No additional blocker; the only manager change since reviewed8a revision makes scroll identity follow the previous owner until atomic paint removes it. Capture sees actual old semantic tree, restoration sees the new tree, so changed semantics correctly reset offsets.",
+  "qualification": "Root static diff/source review only. Owner public-view red/green and browser layout rerun separately documented; native and fullrepo final gates pending."
+}

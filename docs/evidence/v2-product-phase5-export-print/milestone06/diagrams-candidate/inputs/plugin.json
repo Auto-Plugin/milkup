@@ -1,0 +1,23 @@
+{
+  "id": "milkup.diagrams",
+  "name": "Milkup Diagrams",
+  "version": "1.1.2",
+  "description": "使用完整官方 Mermaid 引擎离线呈现图表；无法安全呈现的内容保留完整源码。",
+  "host": "dom",
+  "main": "./dist/plugin.js",
+  "engines": {
+    "milkup": "^2.0.0-0",
+    "pluginSdk": ">=0.3.4 <0.4.0"
+  },
+  "permissions": ["document:read"],
+  "contributes": {
+    "documentRenderers": [
+      {
+        "id": "diagrams.mermaid",
+        "contexts": ["fence"],
+        "fenceLanguages": ["mermaid"]
+      }
+    ]
+  },
+  "resources": ["THIRD-PARTY-NOTICES.txt", "dependency-provenance.json"]
+}

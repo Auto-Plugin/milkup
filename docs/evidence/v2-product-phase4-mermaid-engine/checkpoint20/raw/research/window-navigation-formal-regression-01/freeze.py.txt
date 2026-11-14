@@ -1,0 +1,31 @@
+from pathlib import Path
+import json,hashlib,datetime,struct
+b=Path(__file__).parent
+sha=lambda p:hashlib.sha256(p.read_bytes()).hexdigest()
+def write(name,obj): (b/name).write_text(json.dumps(obj,indent=2,ensure_ascii=False)+'\n')
+def specs(suites):
+ for s in suites:
+  yield from s.get('specs',[])
+  yield from specs(s.get('suites',[]))
+def outcome(group):
+ folder=b/group;report=json.loads((folder/'report.json').read_text());cases=list(specs(report['suites']))
+ results=[r for s in cases for t in s['tests'] for r in t['results']]
+ p=next((folder/'artifacts').rglob('result.json'));d=json.loads(p.read_text())
+ enter=next(e for e in d['events'] if e.get('type')=='source-gate-enter');leave=next(e for e in d['events'] if e.get('type')=='source-gate-release')
+ return {'execution':json.loads((folder/'execution.json').read_text()),'reportStats':report['stats'],'cases':len(cases),'resultCount':len(results),'statuses':[r['status'] for r in results],'retryValues':[r['retry'] for r in results],'newCaseResult':str(p.relative_to(b)),'sourceGateMilliseconds':leave['at']-enter['at'],'sourceGateFrames':d['final']['sourceGateFrames'],'initialFence':d['initialState']['fence'],'final':d['final'],'sourceUnchanged':d['unchanged'],'version':d['version'],'errors':d['errors'],'drops':d['drops'],'traceCounts':{k:len(d[k]) for k in ['reads','events','phases']}}
+old=outcome('old-red');new=outcome('fixed-full-green')
+assert old['statuses']==['failed'] and new['statuses']==['passed']*36
+assert old['sourceGateFrames']==new['sourceGateFrames']==2
+assert all(x==0 for x in old['retryValues']+new['retryValues'])
+inputs_before=json.loads((b/'inputs-before-swap.json').read_text());inputs_final=json.loads((b/'inputs-final.json').read_text());assert inputs_before==inputs_final
+review=[]
+for group,observation in [('old-red','Actual image shows later sequence025/026/027 literal Markdown. Target sequence000 marker is absent from the viewport. This is not the all-white native screenshot shape.'),('fixed-full-green','Actual image shows selected sequence000 marker at the top below the title bar, its literal code, and following sequence001. Text is readable; no viewport-wide blank region. Pixel review does not independently establish caret blink or earlier timing.')]:
+ p=next((b/group/'artifacts').rglob('result.png'));dims=struct.unpack('>II',p.read_bytes()[16:24]);review.append({'file':str(p.relative_to(b)),'sha256':sha(p),'bytes':p.stat().st_size,'dimensions':list(dims),'actuallyViewed':True,'method':'view_image original PNG','observation':observation})
+write('pixel-review.json',{'status':'COMPLETE_FOR_TWO_FORMAL_CASE_IMAGES','images':review,'scope':'Two actual Linux Chromium screenshots only; no claim of native WebKit or official Mermaid rendering equivalence.'})
+summary={'status':'COMPLETE_OLD_TARGETED_RED_FIXED_FULL_36_PASS','created':datetime.datetime.now(datetime.timezone.utc).isoformat(),'old':old,'fixed':new,'inputAudit':{'count':len(inputs_before),'beforeSwapEqualsFinal':True,'eachRunUnchanged':old['execution']['inputsUnchanged'] and new['execution']['inputsUnchanged'],'managerOldSHA':sha(b/'old-manager.ts'),'managerRestoredSHA':sha(b/'fixed-manager-backup.ts'),'formalTestSHA':sha(b/'formal-test.ts'),'formalFixtureSHA':sha(b/'formal-fixture.txt')},'cleanup':json.loads((b/'cleanup.json').read_text()),'scope':{'browser':'real Linux Chromium with public SourceDocumentView and MemoryDocumentSource wrapper','fixture':'580-line isolated catalog-derived source; target77-line Sankey fence and marker398 offsets unchanged. Earlier unrelated fences are equal UTF16-length padding. Controlled legal typed image is not official Mermaid.','gate':'Only qualified actual renderSingleLiveLine navigation read awaits2realRAF with500ms safety; explicit frames===2 qualification. Provider new-selection hold8RAF with750ms safety. No artificial scroll, refresh, source mutation or private patch.','primary':'Marker398, exact selection projection8103..8160 and caret8160/line398 remain mounted and intersect editor37..730; source unchanged/version0/errors empty.','limits':['Controlled Chromium race reproduction, not a precise replay of native IPC timing or160k-line compression.','Native production rerun and repository gates are separate parent-owned validation.','No user-scroll, source-version change or theme variation tested by this new single case; existing35 related browser cases ran in the fixed suite.','Old primary marker-null failure stops later test assertions; old raw DOM independently records missing overlays/cursors and unchanged source.']},'toolIncident':'After completed exit0 and successful cleanup, a read-only report extraction failed to create its process due to exec-server transport disconnected. A later harmless pwd succeeded and static extraction resumed. No test retry, source edit or budget change occurred.', 'pixelReview':'pixel-review.json'}
+write('summary.json',summary)
+files=[]
+for p in sorted(b.rglob('*')):
+ if p.is_file() and p.name!='completed-manifest.json':files.append({'path':str(p.relative_to(b)),'bytes':p.stat().st_size,'sha256':sha(p)})
+write('completed-manifest.json',{'status':'COMPLETE','scope':'Explicit file list frozen after single old target and single fixed fullfile; excludes manifest itself. Later parent reviews are independent additions.','files':files})
+print(json.dumps({'summarySHA':sha(b/'summary.json'),'manifestSHA':sha(b/'completed-manifest.json'),'files':len(files),'pixelReviewSHA':sha(b/'pixel-review.json'),'inputs':len(inputs_before)},indent=2))

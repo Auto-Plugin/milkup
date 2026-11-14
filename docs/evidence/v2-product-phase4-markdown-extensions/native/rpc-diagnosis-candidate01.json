@@ -1,0 +1,40 @@
+{
+  "status": "original failure not yet reproduced; no protocol or budget change",
+  "originalFailure": "/workspace/milkup-markdown-extensions-phase4-evidence/native/run-candidate01-run01/failure.json",
+  "diagnostic": "/workspace/milkup-markdown-extensions-phase4-evidence/native/run-candidate01-diagnostic03/trace.json",
+  "diagnosticScope": "Same WebKit production candidate and ordinary document; explicit disable/enable and source-to-live transition. Driver reused diagnostic02 profile, so this is diagnosis rather than fresh-profile acceptance.",
+  "roundTrips": [
+    {
+      "id": "render_1",
+      "sourceUtf16": 717,
+      "blocks": 34,
+      "roundTripMs": 58,
+      "ok": true,
+      "fragments": 4
+    },
+    {
+      "id": "render_2",
+      "sourceUtf16": 412,
+      "blocks": 18,
+      "roundTripMs": 45,
+      "ok": true,
+      "fragments": 3
+    }
+  ],
+  "maximumMainIntervalDeltaMs": 309,
+  "registry": {
+    "errors": [],
+    "enabled": true,
+    "id": "milkup.diagrams",
+    "state": "enabled"
+  },
+  "svgPreviews": 3,
+  "protocolAudit": {
+    "cancelKeepsWatchdogUntilSettlement": true,
+    "successAndErrorBothAcknowledge": true,
+    "abortedResponseClearsClientDeadline": true,
+    "pendingRemovedBeforeSendAvoidsReentrantBusy": true,
+    "hypothesis": "A blocked main thread could dispatch an expired timer before an already queued Worker response; no >2s main-thread stall appears in this short diagnostic. Do not claim this as established cause."
+  },
+  "nextEvidence": "Trace original three-plugin install/enable then first GTK-open sequence; compare render/result/cancel/terminate and main interval drift before any fix."
+}

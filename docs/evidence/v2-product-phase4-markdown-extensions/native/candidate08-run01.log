@@ -1,0 +1,21 @@
+2026-10-16T03:12:14.814Z NATIVE_STARTUP_WINDOW 4537ms
+PASS 00-installed-distribution
+PASS installed-milkup.math
+PASS enabled-milkup.math
+X Error of failed request:  BadWindow (invalid Window parameter)
+  Major opcode of failed request:  15 (X_QueryTree)
+  Resource id in failed request:  0x20000e
+  Serial number of failed request:  37
+  Current serial number in output stream:  37
+node:internal/modules/run_main:107
+    triggerUncaughtException(
+    ^
+
+Error: Timeout: normal GTK Open File picker
+    at Object.until (file:///workspace/milkup/tests/helpers/native-production.mjs:46:11)
+    at async Object.picker (file:///workspace/milkup/tests/helpers/native-updates-fixture.mjs:169:16)
+    at async nativePicker (file:///workspace/milkup/tests/native/tauri-markdown-extensions.mjs:703:5)
+    at async installExternal (file:///workspace/milkup/tests/native/tauri-markdown-extensions.mjs:794:5)
+    at async file:///workspace/milkup/tests/native/tauri-markdown-extensions.mjs:1294:5
+
+Node.js v24.19.0

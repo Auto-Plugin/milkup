@@ -1,0 +1,38 @@
+{
+  "baseCommit": "ff5a4ccb5f7ab7a90169fe911291f8caf0b3ed9f",
+  "branch": "dot/milkup-v2-quality",
+  "unitIntegration": {
+    "passed": 652,
+    "command": "pnpm -r --workspace-concurrency=1 test --maxWorkers=1 --no-file-parallelism"
+  },
+  "rust": {
+    "passed": 44,
+    "command": "cargo test --locked --manifest-path apps/desktop/src-tauri/Cargo.toml (native runner unset)"
+  },
+  "browser": {
+    "passed": 37,
+    "command": "MILKUP_BROWSER_EXECUTABLE=/usr/bin/chromium pnpm test:e2e --workers=2"
+  },
+  "native": {
+    "passedScenarioGroups": 12,
+    "command": "TAURI_DRIVER_URL=http://127.0.0.1:4446 node tests/native/tauri-quality.mjs",
+    "runtime": "Tauri / WebKitGTK / X11",
+    "dialogs": "test path seam; actual GTK chooser blocked by proot Bad address",
+    "windowClosure": "WebDriver response plus captured X11 window ID absent"
+  },
+  "checks": {
+    "typecheck": "pass",
+    "build": "pass (JS/TS/Vite and Tauri debug binary; no installer)",
+    "lint": "pass",
+    "rustfmt": "pass",
+    "diffCheck": "pass"
+  },
+  "notAccepted": [
+    "system Chinese IME",
+    "OS file picker completion",
+    "Windows/macOS native platform verification",
+    "absolute inter-process compare-and-swap",
+    "power-loss durability and ACL/xattr/hardlink metadata",
+    "large-document performance benchmarks"
+  ]
+}

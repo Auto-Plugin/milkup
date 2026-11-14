@@ -1,0 +1,115 @@
+"""Prepared single frontend+native diagnostic build. Requires exact Root GO; no product runtime."""
+import datetime,fcntl,hashlib,json,os,shutil,signal,subprocess,sys
+from pathlib import Path
+BASE=Path(__file__).resolve().parent;REPO=Path('/workspace/milkup');PROD=Path('/workspace/milkup-mermaid-engine-evidence/linux-production-08')
+def sha(p):return hashlib.sha256(Path(p).read_bytes()).hexdigest()
+def dump(p,x):p.write_text(json.dumps(x,indent=2)+'\n')
+def utc():return datetime.datetime.now(datetime.timezone.utc).isoformat()
+assert sys.argv[1:]==['--execute-root-reviewed-build']
+manifest=BASE/'build-inputs-attempt02.json';go=json.loads((BASE/'root-build-go-attempt02.json').read_text());inputs=json.loads(manifest.read_text())
+assert go['authorized'] is True and go['buildInputsSha256']==sha(manifest)
+assert inputs['status']=='ROOT_REVIEWED_BUILD_INPUTS' and inputs['pending']==[]
+assert go['exclusiveRepositoryAndCargoTarget'] is True
+expected={'apps/desktop/src-tauri/src/plugin_dom.rs','apps/desktop/src-tauri/src/plugin_dom_process.rs','apps/desktop/src-tauri/src/plugin_dom_request_diagnostic.rs','packages/plugin/src/document-render-rpc.ts'}
+assert {r['repositoryPath'] for r in inputs['overlays']}==expected and len(inputs['overlays'])==4
+assert subprocess.check_output(['git','status','--porcelain'],cwd=REPO,text=True)==''
+assert subprocess.check_output(['git','rev-parse','HEAD'],cwd=REPO,text=True).strip()==inputs['head']
+lock=(BASE.parent/'native-cold-start-diagnostic-01/build-exclusive.lock').open('a');fcntl.flock(lock,fcntl.LOCK_EX|fcntl.LOCK_NB)
+for r in inputs['files']:assert Path(r['path']).stat().st_size==r['bytes'] and sha(r['path'])==r['sha256'],r['path']
+provenance=json.loads((PROD/'provenance.json').read_text());sources=json.loads((PROD/'source-before.json').read_text())['files']
+front={str(Path(r['path']).relative_to(PROD/'frontend')):r['sha256'] for r in provenance['frontend']}
+def verify_original():
+ assert {str(p.relative_to(REPO/'apps/desktop/dist')):sha(p) for p in (REPO/'apps/desktop/dist').rglob('*') if p.is_file()}==front
+ assert len(front)==12 and sha(provenance['binary']['path'])==provenance['binary']['sha256']
+ assert sha(inputs['archive']['path'])==inputs['archive']['sha256']
+ return {'frontendFiles':len(front),'productionBinary':provenance['binary']['sha256'],'archive':inputs['archive']['sha256']}
+verify_original()
+for r in sources:assert sha(REPO/r['path'])==r['sha256'],r['path']
+assert shutil.disk_usage(BASE).free>=800*1024*1024,'800MiB admission floor; no automatic cleanup'
+attempt=BASE/'build-attempt-02';attempt.mkdir();research=BASE/'build-attempt-01/research-dist';assert research.is_dir()
+for r in inputs['researchFrontendFiles']:assert sha(r['path'])==r['sha256']
+backups={};child=None;result={'startedUtc':utc(),'classification':'RESEARCH_FRONTEND_NATIVE_DIAGNOSTIC_NOT_PRODUCTION','sourceDelta':inputs['overlays'],'formalFrontendBefore':verify_original()}
+def interrupted(signum,frame):raise InterruptedError('Build signal '+str(signum))
+for sig in [signal.SIGINT,signal.SIGTERM]:signal.signal(sig,interrupted)
+def execute(label,command,cwd,env=None):
+ global child
+ rec={'command':command,'cwd':str(cwd),'startedUtc':utc()};result[label]=rec;dump(attempt/'build-progress.json',result)
+ with (attempt/(label+'.log')).open('x') as log:
+  child=subprocess.Popen(command,cwd=cwd,env=env,stdout=log,stderr=subprocess.STDOUT,start_new_session=True)
+  rec['exitCode']=child.wait()
+ rec['finishedUtc']=utc();dump(attempt/(label+'-execution.json'),rec)
+ assert rec['exitCode']==0,label+' first failure; no retry'
+try:
+ target=REPO/'apps/desktop/src-tauri/target/release';prior=[target/'milkup-desktop',*sorted(target.glob('build/milkup-desktop-*/out/libmilkup_dom_guard.so'))]
+ refs=inputs['priorTargetReferences'];assert {str(p) for p in prior}=={r['currentPath'] for r in refs}
+ for r in refs:
+  assert Path(r['frozenPath']).is_relative_to(PROD.parent/'research')
+  assert sha(r['currentPath'])==sha(r['frozenPath'])==r['sha256']
+  assert Path(r['currentPath']).stat().st_size==Path(r['frozenPath']).stat().st_size==r['bytes']
+ dump(attempt/'target-before-references.json',refs)
+ for r in inputs['overlays']:
+  p=REPO/r['repositoryPath'];candidate=Path(r['candidatePath']);assert sha(candidate)==r['candidateSha256']
+  old=p.read_bytes() if p.exists() else None;backups[p]=old
+  assert (hashlib.sha256(old).hexdigest() if old is not None else None)==r['originalSha256']
+  if old is not None:
+   backup=attempt/'restore'/r['repositoryPath'];backup.parent.mkdir(parents=True,exist_ok=True);backup.write_bytes(old)
+  p.write_bytes(candidate.read_bytes())
+ envcmd='source /workspace/.cloud/milkup-v2/env.sh\nunset CARGO_TARGET_X86_64_UNKNOWN_LINUX_GNU_RUNNER PROOT_NO_SECCOMP\nexec "$@"'
+ result['frontendReuse']='Exact frozen firstattempt researchdist; no Vite rerun'
+ for r in inputs['researchFrontendFiles']:assert sha(r['path'])==r['sha256']
+ result['formalFrontendAfterVite']=verify_original()
+ assets=[{'path':str(p),'relativePath':str(p.relative_to(research)),'bytes':p.stat().st_size,'sha256':sha(p)} for p in sorted(research.rglob('*')) if p.is_file()]
+ assert assets and (research/'index.html').is_file();dump(attempt/'research-frontend-manifest.json',{'files':assets})
+ config={'build':{'frontendDist':str(research)}};dump(attempt/'tauri-config-override.json',config)
+ env=os.environ.copy()
+ command=['bash','-lc',envcmd,'build-native','python3',str(BASE/'cargo-with-research-config.py'),str(research),str(attempt/'effective-tauri-config.json'),'cargo','build','--manifest-path','apps/desktop/src-tauri/Cargo.toml','--release','--locked','--offline','--features','tauri/custom-protocol','--bin','milkup-desktop','--message-format=json-render-diagnostics']
+ execute('cargo',command,REPO,env)
+ result['formalFrontendAfterCargo']=verify_original()
+ for r in assets:assert sha(r['path'])==r['sha256'],'Research dist changed during embedding'
+ dest=attempt/'diagnostic-binary/milkup-desktop';dest.parent.mkdir();shutil.copy2(target/'milkup-desktop',dest)
+ result['binary']={'path':str(dest),'bytes':dest.stat().st_size,'sha256':sha(dest)}
+ dirs=set()
+ for line in (attempt/'cargo.log').read_text(errors='replace').splitlines():
+  try:j=json.loads(line)
+  except json.JSONDecodeError:continue
+  if j.get('reason')=='build-script-executed' and j.get('out_dir'):
+   p=Path(j['out_dir'])
+   if p.is_relative_to(target/'build') and p.parent.name.startswith('milkup-desktop-'):dirs.add(str(p))
+ assert 1<=len(dirs)<=16
+ blob=dest.read_bytes();matches=[]
+ for directory in dirs:
+  p=Path(directory)/'libmilkup_dom_guard.so'
+  if p.is_file():
+   data=p.read_bytes()
+   if data and blob.count(data)==1:matches.append((p,data,blob.find(data)))
+ assert len(matches)==1,'One emitted C guard with unique binary occurrence required'
+ p,data,offset=matches[0];so=dest.parent/'libmilkup_dom_guard.so';so.write_bytes(data)
+ result['extension']={'compiledPath':str(p),'path':str(so),'bytes':len(data),'sha256':sha(so),'embeddedOffset':offset,'embeddedOccurrences':1}
+ spec=attempt/'frontend-embedded-spec.json';dump(spec,{'frontendDist':str(research),'binary':str(dest),'emittedBuildOutDirs':sorted(dirs),'expectedBinarySha256':sha(dest)})
+ execute('frontend-embedded-proof',['node',str(BASE/'verify-all-frontend-embedded-attempt02.mjs'),str(spec),str(attempt/'frontend-embedded-proof.json')],REPO)
+except BaseException as error:
+ result['error']=repr(error)
+ raise
+finally:
+ for sig in [signal.SIGINT,signal.SIGTERM]:signal.signal(sig,signal.SIG_IGN)
+ if child is not None and child.poll() is None:
+  os.killpg(child.pid,signal.SIGTERM)
+  try:child.wait(timeout=15)
+  except subprocess.TimeoutExpired:os.killpg(child.pid,signal.SIGKILL);child.wait()
+ restored=[];restore_errors=[]
+ for p,data in backups.items():
+  try:
+   if data is None:p.unlink(missing_ok=True);assert not p.exists()
+   else:p.write_bytes(data);assert p.read_bytes()==data
+   restored.append(str(p))
+  except BaseException as error:restore_errors.append({'path':str(p),'error':repr(error)})
+ result['restoredSources']=restored;result['restoreErrors']=restore_errors;result['finishedUtc']=utc()
+ try:
+  result['formalFrontendFinal']=verify_original()
+  result['sourceDrift']=[r['path'] for r in sources if sha(REPO/r['path'])!=r['sha256']]
+  mutable={str(REPO/r['repositoryPath']) for r in inputs['overlays']}
+  result['immutableInputDrift']=[r['path'] for r in inputs['files'] if r['path'] not in {x['currentPath'] for x in inputs['priorTargetReferences']} and sha(r['path'])!=r['sha256']]
+  result['repositoryStatus']=subprocess.check_output(['git','status','--porcelain'],cwd=REPO,text=True)
+ except BaseException as error:result['finalVerificationError']=repr(error)
+ dump(attempt/'build-result.json',result)
+ assert not restore_errors and not result.get('sourceDrift') and not result.get('immutableInputDrift') and not result.get('repositoryStatus') and 'finalVerificationError' not in result,'Restoration/final verification failed'

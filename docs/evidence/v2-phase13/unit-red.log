@@ -1,0 +1,80 @@
+$ vitest run src/__tests__/source-scroll-limits.test.ts --maxWorkers=1 --no-file-parallelism
+
+ RUN  v3.2.6 /workspace/milkup/packages/view-dom
+
+ ❯ src/__tests__/source-scroll-limits.test.ts (4 tests | 4 failed) 192ms
+   × bounded document scroll coordinates > keeps physical height bounded and reaches the last logical line at the scrollbar end 136ms
+     → expected 34406442 to be less than 16000000
+   × bounded document scroll coordinates > maps explicit far jumps and subsequent scroll events to the same lines 26ms
+     → expected 33599979 to be less than 16000000
+   × bounded document scroll coordinates > uses document end/start and page navigation while preserving shifted selection direction 17ms
+     → expected +0 to be 104857727 // Object.is equality
+   × bounded document scroll coordinates > bounds long-line overscan while keeping the entire visible viewport 12ms
+     → expected 81 to be less than or equal to 42
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 4 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/__tests__/source-scroll-limits.test.ts > bounded document scroll coordinates > keeps physical height bounded and reaches the last logical line at the scrollbar end
+AssertionError: expected 34406442 to be less than 16000000
+ ❯ src/__tests__/source-scroll-limits.test.ts:32:26
+     30|     const view=viewFor()
+     31|     await view.renderVisibleWindow()
+     32|     expect(height(view)).toBeLessThan(16_000_000)
+       |                          ^
+     33|     view.dom.scrollTop=height(view)-693
+     34|     await view.renderVisibleWindow()
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/4]⎯
+
+ FAIL  src/__tests__/source-scroll-limits.test.ts > bounded document scroll coordinates > maps explicit far jumps and subsequent scroll events to the same lines
+AssertionError: expected 33599979 to be less than 16000000
+ ❯ src/__tests__/source-scroll-limits.test.ts:43:34
+     41|     for(const line of [1_600_000,50,1_638_402,738_419,1]) {
+     42|       await view.scrollToLine(line)
+     43|       expect(view.dom.scrollTop).toBeLessThan(16_000_000)
+       |                                  ^
+     44|       await view.renderVisibleWindow()
+     45|       expect(Number(view.contentDOM.dataset.fromLine)).toBeLessThanOrE…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/4]⎯
+
+ FAIL  src/__tests__/source-scroll-limits.test.ts > bounded document scroll coordinates > uses document end/start and page navigation while preserving shifted selection direction
+AssertionError: expected +0 to be 104857727 // Object.is equality
+
+- Expected
++ Received
+
+- 104857727
++ 0
+
+ ❯ src/__tests__/source-scroll-limits.test.ts:59:38
+     57|     }
+     58|     await key('End',true)
+     59|     expect(view.selection.main.head).toBe(view.source.length)
+       |                                      ^
+     60|     await key('PageUp',false,true)
+     61|     expect(view.selection.main.anchor).toBe(view.source.length)
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/4]⎯
+
+ FAIL  src/__tests__/source-scroll-limits.test.ts > bounded document scroll coordinates > bounds long-line overscan while keeping the entire visible viewport
+AssertionError: expected 81 to be less than or equal to 42
+ ❯ src/__tests__/source-scroll-limits.test.ts:76:23
+     74|     expect(from).toBeLessThanOrEqual(101)
+     75|     expect(to).toBeGreaterThanOrEqual(133)
+     76|     expect(to-from+1).toBeLessThanOrEqual(42)
+       |                       ^
+     77|     view.destroy()
+     78|   })
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/4]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  4 failed (4)
+   Start at  15:42:13
+   Duration  1.17s (transform 290ms, setup 0ms, collect 379ms, tests 192ms, environment 348ms, prepare 52ms)
+
+/workspace/milkup/packages/view-dom:
+[ERR_PNPM_RECURSIVE_RUN_FIRST_FAIL] @milkup/view-dom@0.0.0 test: `vitest run src/__tests__/source-scroll-limits.test.ts --maxWorkers=1 --no-file-parallelism`
+Exit status 1

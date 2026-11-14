@@ -1,0 +1,155 @@
+{
+  "config": {
+    "argv": [
+      "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+      "/workspace/milkup/node_modules/@playwright/test/cli.js",
+      "test",
+      "--config=/workspace/milkup-mermaid-engine-evidence/research/window-navigation-multirow-browser-03/playwright.config.ts",
+      "--project=desktop-msedge",
+      "--workers=1",
+      "--retries=0",
+      "--reporter=line,json"
+    ],
+    "configFile": "/workspace/milkup-mermaid-engine-evidence/research/window-navigation-multirow-browser-03/playwright.config.ts",
+    "rootDir": "/workspace/milkup-mermaid-engine-evidence/research/window-navigation-multirow-browser-03",
+    "failOnFlakyTests": false,
+    "forbidOnly": false,
+    "fullyParallel": false,
+    "globalSetup": null,
+    "globalTeardown": null,
+    "globalTimeout": 0,
+    "grep": {},
+    "grepInvert": null,
+    "maxFailures": 0,
+    "metadata": {
+      "actualWorkers": 1
+    },
+    "preserveOutput": "always",
+    "projects": [
+      {
+        "outputDir": "/workspace/milkup-mermaid-engine-evidence/research/window-navigation-multirow-browser-03/artifacts",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "desktop-msedge",
+        "name": "desktop-msedge",
+        "testDir": "/workspace/milkup-mermaid-engine-evidence/research/window-navigation-multirow-browser-03",
+        "testIgnore": [],
+        "testMatch": [
+          "/multirow\\.spec\\.ts/"
+        ],
+        "timeout": 60000
+      }
+    ],
+    "quiet": false,
+    "reporter": [
+      [
+        "line"
+      ],
+      [
+        "json"
+      ]
+    ],
+    "reportSlowTests": {
+      "max": 5,
+      "threshold": 300000
+    },
+    "shard": null,
+    "tags": [],
+    "updateSnapshots": "missing",
+    "updateSourceMethod": "patch",
+    "version": "1.61.1",
+    "workers": 1,
+    "webServer": null
+  },
+  "suites": [
+    {
+      "title": "multirow.spec.ts",
+      "file": "multirow.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "public navigation across a 77-line collapsed fence retains target projection while new selection provider waits",
+          "ok": false,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "desktop-msedge",
+              "projectName": "desktop-msedge",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "failed",
+                  "duration": 6450,
+                  "error": {
+                    "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mnot\u001b[2m.\u001b[22mtoBeNull\u001b[2m()\u001b[22m\n\nReceived: \u001b[31mnull\u001b[39m",
+                    "stack": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mnot\u001b[2m.\u001b[22mtoBeNull\u001b[2m()\u001b[22m\n\nReceived: \u001b[31mnull\u001b[39m\n    at /workspace/milkup-mermaid-engine-evidence/research/window-navigation-multirow-browser-03/multirow.spec.ts:206:37",
+                    "location": {
+                      "file": "/workspace/milkup-mermaid-engine-evidence/research/window-navigation-multirow-browser-03/multirow.spec.ts",
+                      "column": 37,
+                      "line": 206
+                    },
+                    "snippet": "  204 |     expect(result.version).toBe(0)\n  205 |     expect(result.final.selection).toMatchObject({ anchor: result.from, head: result.to })\n> 206 |     expect(result.final.marker).not.toBeNull()\n      |                                     ^\n  207 |     const viewport = result.final.editor!\n  208 |     expect(result.final.marker!.rect!.bottom).toBeGreaterThan(viewport.top)\n  209 |     expect(result.final.marker!.rect!.top).toBeLessThan(viewport.bottom)"
+                  },
+                  "errors": [
+                    {
+                      "location": {
+                        "file": "/workspace/milkup-mermaid-engine-evidence/research/window-navigation-multirow-browser-03/multirow.spec.ts",
+                        "column": 37,
+                        "line": 206
+                      },
+                      "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mnot\u001b[2m.\u001b[22mtoBeNull\u001b[2m()\u001b[22m\n\nReceived: \u001b[31mnull\u001b[39m\n\n  204 |     expect(result.version).toBe(0)\n  205 |     expect(result.final.selection).toMatchObject({ anchor: result.from, head: result.to })\n> 206 |     expect(result.final.marker).not.toBeNull()\n      |                                     ^\n  207 |     const viewport = result.final.editor!\n  208 |     expect(result.final.marker!.rect!.bottom).toBeGreaterThan(viewport.top)\n  209 |     expect(result.final.marker!.rect!.top).toBeLessThan(viewport.bottom)\n    at /workspace/milkup-mermaid-engine-evidence/research/window-navigation-multirow-browser-03/multirow.spec.ts:206:37"
+                    }
+                  ],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-17T00:13:28.340Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "error-context",
+                      "contentType": "text/markdown",
+                      "path": "/workspace/milkup-mermaid-engine-evidence/research/window-navigation-multirow-browser-03/artifacts/multirow-public-navigation-39a98-ew-selection-provider-waits-desktop-msedge/error-context.md"
+                    },
+                    {
+                      "name": "trace",
+                      "contentType": "application/zip",
+                      "path": "/workspace/milkup-mermaid-engine-evidence/research/window-navigation-multirow-browser-03/artifacts/multirow-public-navigation-39a98-ew-selection-provider-waits-desktop-msedge/trace.zip"
+                    }
+                  ],
+                  "errorLocation": {
+                    "file": "/workspace/milkup-mermaid-engine-evidence/research/window-navigation-multirow-browser-03/multirow.spec.ts",
+                    "column": 37,
+                    "line": 206
+                  }
+                }
+              ],
+              "status": "unexpected"
+            }
+          ],
+          "id": "fdb45cc1a0ed7578123e-4f46c79ffbb36f2eef81",
+          "file": "multirow.spec.ts",
+          "line": 6,
+          "column": 5
+        }
+      ]
+    }
+  ],
+  "errors": [],
+  "stats": {
+    "startTime": "2026-10-17T00:13:23.736Z",
+    "duration": 11649.809000000001,
+    "expected": 0,
+    "skipped": 0,
+    "unexpected": 1,
+    "flaky": 0
+  }
+}

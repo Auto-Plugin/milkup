@@ -1,0 +1,65 @@
+{
+  "id": "milkup.preferences",
+  "name": "编辑偏好",
+  "version": "1.0.0",
+  "description": "预览并保存字体、正文宽度、缩进与外观偏好；取消或关闭会撤销未保存的预览。",
+  "host": "worker",
+  "main": "./dist/plugin.js",
+  "engines": {
+    "milkup": "^2.0.0-0",
+    "pluginSdk": "^0.3.1"
+  },
+  "permissions": ["settings:write"],
+  "icon": "assets/preferences.png",
+  "resources": ["assets/preferences.png"],
+  "contributes": {
+    "commands": [
+      {
+        "id": "preferences.change",
+        "title": "预览偏好",
+        "action": "preferences.change",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "field": {
+              "type": "string"
+            },
+            "value": {
+              "type": "string"
+            }
+          },
+          "required": ["field", "value"]
+        }
+      },
+      {
+        "id": "preferences.save",
+        "title": "保存偏好",
+        "action": "preferences.save"
+      },
+      {
+        "id": "preferences.cancel",
+        "title": "取消偏好更改",
+        "action": "preferences.cancel"
+      },
+      {
+        "id": "preferences.reset",
+        "title": "预览默认偏好",
+        "action": "preferences.reset"
+      },
+      {
+        "id": "preferences.retry",
+        "title": "重新加载偏好",
+        "action": "preferences.retry"
+      }
+    ],
+    "ui": [
+      {
+        "id": "preferences-panel",
+        "slot": "modal",
+        "title": "编辑偏好",
+        "scope": "app",
+        "viewportUpdates": false
+      }
+    ]
+  }
+}

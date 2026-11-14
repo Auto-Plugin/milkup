@@ -1,0 +1,11 @@
+2026-10-13T18:42:41.196Z NATIVE_STARTUP_WINDOW 1310ms
+file:///workspace/milkup/tests/helpers/native-production.mjs:14
+ const until=async(fn,label,limit=15000)=>{const at=Date.now();while(Date.now()-at<limit){const result=await fn();if(result)return result;await delay(80)}throw Error('Timeout: '+label)}
+                                                                                                                                                                ^
+
+Error: Timeout: production CLI open
+    at until (file:///workspace/milkup/tests/helpers/native-production.mjs:14:161)
+    at async startProduction (file:///workspace/milkup/tests/helpers/native-production.mjs:28:3)
+    at async file:///workspace/milkup/tests/native/tauri-production-search.mjs:13:11
+
+Node.js v24.19.0

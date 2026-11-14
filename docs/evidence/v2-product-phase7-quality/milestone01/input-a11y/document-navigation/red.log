@@ -1,0 +1,189 @@
+
+ RUN  v3.2.6 /workspace/milkup/packages/view-dom
+
+ ❯ src/__tests__/p7-document-navigation.test.ts (18 tests | 12 failed) 1859ms
+   × windowed source explicit document navigation > notifies start only after deferred reveal, preserving Shift=false anchor 1093ms
+     → expected [] to deeply equal [ { edge: 'start', anchor: +0, …(2) } ]
+   × windowed source explicit document navigation > notifies start only after deferred reveal, preserving Shift=true anchor 178ms
+     → expected [] to deeply equal [ { edge: 'start', anchor: 24, …(2) } ]
+   × windowed source explicit document navigation > notifies end only after deferred reveal, preserving Shift=false anchor 55ms
+     → expected [] to deeply equal [ { edge: 'end', anchor: 26, …(2) } ]
+   × windowed source explicit document navigation > notifies end only after deferred reveal, preserving Shift=true anchor 64ms
+     → expected [] to deeply equal [ { edge: 'end', anchor: 2, …(2) } ]
+   × windowed source explicit document navigation > drops a deferred old End after document 56ms
+     → Invalid line number: 3
+   ✓ windowed source explicit document navigation > drops a deferred old End after destroy 30ms
+   × windowed source explicit document navigation > drops a deferred old End after new-key 34ms
+     → expected [] to deeply equal [ 'start' ]
+   ✓ windowed source explicit document navigation > keeps failed reads visible and does not notify 26ms
+   ✓ windowed source explicit document navigation > does not notify ordinary cursor movement or typing 26ms
+   × windowed live explicit document navigation > notifies start only after deferred reveal, preserving Shift=false anchor 62ms
+     → expected [] to deeply equal [ { edge: 'start', anchor: +0, …(2) } ]
+   × windowed live explicit document navigation > notifies start only after deferred reveal, preserving Shift=true anchor 59ms
+     → expected [] to deeply equal [ { edge: 'start', anchor: 24, …(2) } ]
+   × windowed live explicit document navigation > notifies end only after deferred reveal, preserving Shift=false anchor 36ms
+     → expected [] to deeply equal [ { edge: 'end', anchor: 26, …(2) } ]
+   × windowed live explicit document navigation > notifies end only after deferred reveal, preserving Shift=true anchor 27ms
+     → expected [] to deeply equal [ { edge: 'end', anchor: 2, …(2) } ]
+   × windowed live explicit document navigation > drops a deferred old End after document 23ms
+     → Invalid line number: 3
+   ✓ windowed live explicit document navigation > drops a deferred old End after destroy 20ms
+   × windowed live explicit document navigation > drops a deferred old End after new-key 24ms
+     → expected [] to deeply equal [ 'start' ]
+   ✓ windowed live explicit document navigation > keeps failed reads visible and does not notify 14ms
+   ✓ windowed live explicit document navigation > does not notify ordinary cursor movement or typing 27ms
+
+⎯⎯⎯⎯⎯⎯ Failed Tests 12 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/__tests__/p7-document-navigation.test.ts > windowed source explicit document navigation > notifies start only after deferred reveal, preserving Shift=false anchor
+ FAIL  src/__tests__/p7-document-navigation.test.ts > windowed live explicit document navigation > notifies start only after deferred reveal, preserving Shift=false anchor
+AssertionError: expected [] to deeply equal [ { edge: 'start', anchor: +0, …(2) } ]
+
+- Expected
++ Received
+
+- [
+-   {
+-     "anchor": 0,
+-     "edge": "start",
+-     "head": 0,
+-     "renderedHead": 0,
+-   },
+- ]
++ []
+
+ ❯ src/__tests__/p7-document-navigation.test.ts:61:28
+     59|         await s.view.flushPendingEdits()
+     60|         const head = edge === 'start' ? 0 : text.length
+     61|         expect(s.notified).toEqual([{ edge, anchor: shift ? before : h…
+       |                            ^
+     62|         expect(s.onEdit).not.toHaveBeenCalled()
+     63|       } finally { s.dispose() }
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/12]⎯
+
+ FAIL  src/__tests__/p7-document-navigation.test.ts > windowed source explicit document navigation > notifies start only after deferred reveal, preserving Shift=true anchor
+ FAIL  src/__tests__/p7-document-navigation.test.ts > windowed live explicit document navigation > notifies start only after deferred reveal, preserving Shift=true anchor
+AssertionError: expected [] to deeply equal [ { edge: 'start', anchor: 24, …(2) } ]
+
+- Expected
++ Received
+
+- [
+-   {
+-     "anchor": 24,
+-     "edge": "start",
+-     "head": 0,
+-     "renderedHead": 0,
+-   },
+- ]
++ []
+
+ ❯ src/__tests__/p7-document-navigation.test.ts:61:28
+     59|         await s.view.flushPendingEdits()
+     60|         const head = edge === 'start' ? 0 : text.length
+     61|         expect(s.notified).toEqual([{ edge, anchor: shift ? before : h…
+       |                            ^
+     62|         expect(s.onEdit).not.toHaveBeenCalled()
+     63|       } finally { s.dispose() }
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/12]⎯
+
+ FAIL  src/__tests__/p7-document-navigation.test.ts > windowed source explicit document navigation > notifies end only after deferred reveal, preserving Shift=false anchor
+ FAIL  src/__tests__/p7-document-navigation.test.ts > windowed live explicit document navigation > notifies end only after deferred reveal, preserving Shift=false anchor
+AssertionError: expected [] to deeply equal [ { edge: 'end', anchor: 26, …(2) } ]
+
+- Expected
++ Received
+
+- [
+-   {
+-     "anchor": 26,
+-     "edge": "end",
+-     "head": 26,
+-     "renderedHead": 26,
+-   },
+- ]
++ []
+
+ ❯ src/__tests__/p7-document-navigation.test.ts:61:28
+     59|         await s.view.flushPendingEdits()
+     60|         const head = edge === 'start' ? 0 : text.length
+     61|         expect(s.notified).toEqual([{ edge, anchor: shift ? before : h…
+       |                            ^
+     62|         expect(s.onEdit).not.toHaveBeenCalled()
+     63|       } finally { s.dispose() }
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/12]⎯
+
+ FAIL  src/__tests__/p7-document-navigation.test.ts > windowed source explicit document navigation > notifies end only after deferred reveal, preserving Shift=true anchor
+ FAIL  src/__tests__/p7-document-navigation.test.ts > windowed live explicit document navigation > notifies end only after deferred reveal, preserving Shift=true anchor
+AssertionError: expected [] to deeply equal [ { edge: 'end', anchor: 2, …(2) } ]
+
+- Expected
++ Received
+
+- [
+-   {
+-     "anchor": 2,
+-     "edge": "end",
+-     "head": 26,
+-     "renderedHead": 26,
+-   },
+- ]
++ []
+
+ ❯ src/__tests__/p7-document-navigation.test.ts:61:28
+     59|         await s.view.flushPendingEdits()
+     60|         const head = edge === 'start' ? 0 : text.length
+     61|         expect(s.notified).toEqual([{ edge, anchor: shift ? before : h…
+       |                            ^
+     62|         expect(s.onEdit).not.toHaveBeenCalled()
+     63|       } finally { s.dispose() }
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/12]⎯
+
+ FAIL  src/__tests__/p7-document-navigation.test.ts > windowed source explicit document navigation > drops a deferred old End after document
+ FAIL  src/__tests__/p7-document-navigation.test.ts > windowed live explicit document navigation > drops a deferred old End after document
+RangeError: Invalid line number: 3
+ ❯ SourceDocumentView.scrollToLine src/source-document-view.ts:820:13
+    818|       lineNumber > this.currentSource.lineCount
+    819|     ) {
+    820|       throw new RangeError(`Invalid line number: ${lineNumber}`)
+       |             ^
+    821|     }
+    822| 
+ ❯ SourceDocumentView.revealSelection src/source-document-view.ts:760:16
+ ❯ src/source-document-view.ts:1751:20
+ ❯ src/source-document-view.ts:2435:76
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/12]⎯
+
+ FAIL  src/__tests__/p7-document-navigation.test.ts > windowed source explicit document navigation > drops a deferred old End after new-key
+ FAIL  src/__tests__/p7-document-navigation.test.ts > windowed live explicit document navigation > drops a deferred old End after new-key
+AssertionError: expected [] to deeply equal [ 'start' ]
+
+- Expected
++ Received
+
+- [
+-   "start",
+- ]
++ []
+
+ ❯ src/__tests__/p7-document-navigation.test.ts:77:45
+     75|         s.source.release()
+     76|         await s.view.flushPendingEdits()
+     77|         expect(s.notified.map(n => n.edge)).toEqual(invalidate === 'ne…
+       |                                             ^
+     78|         expect(s.view.selection.main.head).toBe(invalidate === 'destro…
+     79|         expect(s.onEdit).not.toHaveBeenCalled()
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/12]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  12 failed | 6 passed (18)
+   Start at  11:05:16
+   Duration  5.67s (transform 1.45s, setup 0ms, collect 2.25s, tests 1.86s, environment 1.18s, prepare 104ms)
+

@@ -1,0 +1,26 @@
+import datetime, hashlib, json, os, pathlib, shutil, socket, subprocess, sys
+root=pathlib.Path('/workspace/milkup')
+out=pathlib.Path(sys.argv[1]);out.mkdir(parents=True,exist_ok=True)
+for port in (1420,5174):
+    with socket.socket() as sock:
+        if sock.connect_ex(('127.0.0.1',port))==0:
+            raise SystemExit(f'Refusing to start: existing listener on {port}; no service stopped')
+node=shutil.which('node')
+cmd=[node,'node_modules/@playwright/test/cli.js','test','tests/e2e/desktop-markdown-extensions.spec.ts','--project=desktop-msedge','--workers=1','--retries=0','--reporter=line,json',f'--output={out / "artifacts"}']
+env=os.environ.copy();env['MILKUP_BROWSER_EXECUTABLE']='/usr/bin/chromium';env['PLAYWRIGHT_JSON_OUTPUT_NAME']=str(out/'report.json')
+files=['playwright.config.ts','tests/e2e/desktop-markdown-extensions.spec.ts','tests/helpers/markdown-extension-plugins.ts']
+record={'command':cmd,'cwd':str(root),'started':datetime.datetime.now(datetime.timezone.utc).isoformat(),'browser':env['MILKUP_BROWSER_EXECUTABLE'],'pnpm':shutil.which('pnpm'),'node':node,'sources':[]}
+for name in files:
+    data=(root/name).read_bytes();target=out/'source'/name;target.parent.mkdir(parents=True,exist_ok=True);target.write_bytes(data)
+    record['sources'].append({'path':name,'sha256':hashlib.sha256(data).hexdigest()})
+(out/'execution.json').write_text(json.dumps(record,indent=2)+'\n')
+with (out/'run.log').open('w') as log:
+    proc=subprocess.Popen(cmd,cwd=root,env=env,stdout=log,stderr=subprocess.STDOUT,start_new_session=True)
+    record['pid']=proc.pid;record['processGroup']=proc.pid
+    (out/'execution.json').write_text(json.dumps(record,indent=2)+'\n')
+    result=proc.wait()
+record['exit']=result;record['ended']=datetime.datetime.now(datetime.timezone.utc).isoformat()
+record['remainingListeners']=subprocess.run(['ss','-ltnp','( sport = :1420 or sport = :5174 )'],capture_output=True,text=True).stdout
+(out/'execution.json').write_text(json.dumps(record,indent=2)+'\n')
+print(json.dumps(record,indent=2),flush=True)
+raise SystemExit(result)

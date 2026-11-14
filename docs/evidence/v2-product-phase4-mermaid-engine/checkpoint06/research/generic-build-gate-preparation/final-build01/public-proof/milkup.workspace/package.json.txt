@@ -1,0 +1,18 @@
+{
+  "name": "milkup-workspace",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "tsc --noEmit && node scripts/build.mjs",
+    "check": "tsc --noEmit",
+    "test": "vitest run --config vitest.config.ts",
+    "verify:external": "node scripts/verify-external.mjs"
+  },
+  "devDependencies": {
+    "@milkup/plugin-sdk": "file:/workspace/milkup-mermaid-engine-evidence/research/generic-build-gate-preparation/final-build01/public-proof/sdk/milkup-plugin-sdk-0.3.4.tgz",
+    "esbuild": "0.25.12",
+    "typescript": "5.9.3",
+    "vitest": "3.2.6"
+  }
+}

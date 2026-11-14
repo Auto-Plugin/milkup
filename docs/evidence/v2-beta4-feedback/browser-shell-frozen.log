@@ -1,0 +1,325 @@
+
+Running 59 tests using 1 worker
+
+(node:137677) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓   1 tests/e2e/desktop-shell.spec.ts:40:1 › desktop shell loads editor and tracks dirty session state (25.4s)
+  ✓   2 tests/e2e/desktop-shell.spec.ts:152:1 › plugin manager restores, executes, disables, and reenables a Worker plugin (11.8s)
+  ✓   3 tests/e2e/desktop-shell.spec.ts:213:1 › desktop shell rejects image paste without approved plugin authority (7.6s)
+  ✓   4 tests/e2e/desktop-shell.spec.ts:226:1 › desktop search highlights matches and moves the active result (16.8s)
+  ✓   5 tests/e2e/desktop-shell.spec.ts:249:1 › closing search cancels the active scan and clears highlights (8.2s)
+  ✓   6 tests/e2e/desktop-shell.spec.ts:275:1 › desktop shell routes primary shortcuts through active document actions (10.4s)
+  ✓   7 tests/e2e/desktop-shell.spec.ts:354:1 › desktop shell confirms before closing a dirty window (7.1s)
+  ✓   8 tests/e2e/desktop-shell.spec.ts:418:3 › existing-file success keeps subsequent input and history dirty until their own save (8.6s)
+  ✓   9 tests/e2e/desktop-shell.spec.ts:418:3 › existing-file cancel keeps subsequent input and history dirty until their own save (9.4s)
+  ✓  10 tests/e2e/desktop-shell.spec.ts:418:3 › existing-file error keeps subsequent input and history dirty until their own save (10.4s)
+  ✓  11 tests/e2e/desktop-shell.spec.ts:455:3 › dirty Control+n supports cancel, focus containment and explicit discard (10.0s)
+  ✓  12 tests/e2e/desktop-shell.spec.ts:455:3 › dirty Control+o supports cancel, focus containment and explicit discard (11.2s)
+  ✓  13 tests/e2e/desktop-shell.spec.ts:455:3 › dirty Control+w supports cancel, focus containment and explicit discard (6.3s)
+  ✓  14 tests/e2e/desktop-shell.spec.ts:488:1 › save before new retains the draft after cancellation or failure and supports retry (5.4s)
+  ✓  15 tests/e2e/desktop-shell.spec.ts:512:1 › cancelling a pending save continuation never navigates after the write completes (5.3s)
+  ✓  16 tests/e2e/desktop-shell.spec.ts:540:3 › opening cancel after discard preserves original content and history (5.5s)
+  ✓  17 tests/e2e/desktop-shell.spec.ts:540:3 › opening error after discard preserves original content and history (6.9s)
+  ✓  18 tests/e2e/desktop-shell.spec.ts:565:1 › ordinary save failures are visible without developer diagnostics and recover on retry (6.5s)
+  ✓  19 tests/e2e/desktop-shell.spec.ts:582:1 › browser reload cancellation keeps the unsaved editor alive (11.9s)
+  ✓  20 tests/e2e/desktop-shell.spec.ts:597:3 › synthetic composition cancellation preserves selected text and history in source (6.3s)
+  ✓  21 tests/e2e/desktop-shell.spec.ts:597:3 › synthetic composition cancellation preserves selected text and history in live (5.0s)
+  ✓  22 tests/e2e/desktop-shell.spec.ts:652:1 › multiline code paste and following typing undo independently across mode changes (4.5s)
+  ✓  23 tests/e2e/desktop-shell.spec.ts:680:1 › typing after cursor movement restores only the local edit on undo (5.0s)
+  ✓  24 tests/e2e/desktop-shell.spec.ts:692:1 › cancelled and failed Save As preserve the path and dirty content (4.4s)
+  ✓  25 tests/e2e/desktop-shell.spec.ts:708:1 › windowed memory documents keep finalized composition separate from adjacent typing (5.1s)
+  ✓  26 tests/e2e/desktop-shell.spec.ts:792:1 › rejected synthetic image paste cannot inject references into a newly created document (3.1s)
+  ✓  27 tests/e2e/desktop-shell.spec.ts:810:3 › pending save reconciles modified events before allowing navigation (3.5s)
+  ✓  28 tests/e2e/desktop-shell.spec.ts:810:3 › pending save reconciles deleted events before allowing navigation (5.3s)
+  ✓  29 tests/e2e/desktop-shell.spec.ts:810:3 › pending save reconciles own-save events before allowing navigation (5.4s)
+  ✘  30 tests/e2e/desktop-shell.spec.ts:853:1 › saving after rejected synthetic image paste preserves the exact saved snapshot (7.7s)
+(node:146046) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  31 tests/e2e/desktop-shell.spec.ts:873:1 › browser image chooser failure and retry preserve the document and editable history (4.5s)
+  ✓  32 tests/e2e/desktop-shell.spec.ts:913:3 › Unicode graphemes survive keyboard selection, deletion and undo in source (5.6s)
+  ✓  33 tests/e2e/desktop-shell.spec.ts:913:3 › Unicode graphemes survive keyboard selection, deletion and undo in live (5.7s)
+  ✓  34 tests/e2e/desktop-shell.spec.ts:938:3 › windowed source keyboard edits preserve whole graphemes and undo (10.6s)
+  ✓  35 tests/e2e/desktop-shell.spec.ts:938:3 › windowed live keyboard edits preserve whole graphemes and undo (6.9s)
+  ✓  36 tests/e2e/desktop-shell.spec.ts:970:1 › issue 255 bracket typing keeps its position after delayed rendering (6.7s)
+  ✓  37 tests/e2e/desktop-shell.spec.ts:987:1 › issue 255 single-space headings render immediately after an image line (5.1s)
+  ✓  38 tests/e2e/desktop-shell.spec.ts:1003:3 › source list keyboard nesting, exit and undo survive mode changes (5.2s)
+  ✓  39 tests/e2e/desktop-shell.spec.ts:1025:3 › source code block Enter preserves literal markers and blank lines (5.8s)
+  ✓  40 tests/e2e/desktop-shell.spec.ts:1003:3 › live list keyboard nesting, exit and undo survive mode changes (4.8s)
+  ✓  41 tests/e2e/desktop-shell.spec.ts:1025:3 › live code block Enter preserves literal markers and blank lines (6.6s)
+  ✘  42 tests/e2e/desktop-shell.spec.ts:1072:1 › live table navigation replaces one cell, keeps line breaks and supports undo (7.0s)
+(node:147047) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  43 tests/e2e/desktop-shell.spec.ts:1102:1 › table toolbar preserves row and column content through undo and redo (9.5s)
+(node:147345) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  44 tests/e2e/desktop-shell.spec.ts:1135:1 › rendered table copy offers HTML and exact Markdown; source copy stays plain (4.7s)
+  ✘  45 tests/e2e/desktop-shell.spec.ts:1172:1 › native-style multiline clipboard paste stays within a cell and table exit is undoable (7.9s)
+(node:147675) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  46 tests/e2e/desktop-shell.spec.ts:1197:1 › phase9 search updates queries and keeps keyboard navigation in the search box (4.9s)
+  ✓  47 tests/e2e/desktop-shell.spec.ts:1217:1 › phase9 outline updates renamed headings and highlights the current section (4.1s)
+  ✓  48 tests/e2e/desktop-shell.spec.ts:1241:1 › phase9 literal replacement preserves Unicode offsets and one undo boundary (7.3s)
+  ✓  49 tests/e2e/desktop-shell.spec.ts:1270:1 › phase9 replace all deletes literally and rejects a stale query (5.8s)
+  ✓  50 tests/e2e/desktop-shell.spec.ts:1289:1 › phase9 editing refreshes results without moving the caret and switching documents clears them (4.6s)
+  ✓  51 tests/e2e/desktop-shell.spec.ts:1314:1 › phase9 truncated results are explicit and cannot be replaced as a complete set (3.0s)
+  ✓  52 tests/e2e/desktop-shell.spec.ts:1327:1 › phase9 narrow search and outline stay reachable and source mode removes inline code styling (3.1s)
+  ✘  53 tests/e2e/desktop-shell.spec.ts:1395:1 › phase10 live table arrows skip delimiters and protect shifted cell selections (6.3s)
+(node:148271) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  54 tests/e2e/desktop-shell.spec.ts:1425:1 › phase16 modal menu contains keyboard focus and closes ahead of background search (4.9s)
+  ✓  55 tests/e2e/desktop-shell.spec.ts:1450:1 › phase16 F6 reaches shell without plugins and keeps basic table navigation and document text (3.8s)
+  ✓  56 tests/e2e/desktop-shell.spec.ts:1475:1 › phase16 confirmation remains scrollable at a 380 by 260 effective viewport (3.2s)
+  ✓  57 tests/e2e/desktop-shell.spec.ts:1497:1 › phase18 theme follows system only when selected, persists explicit dark and keeps contrast (4.2s)
+  ✓  58 tests/e2e/desktop-shell.spec.ts:1578:1 › phase18 narrow sidebar overlays without shrinking text and search controls remain reachable (1.9s)
+  ✓  59 tests/e2e/desktop-shell.spec.ts:1628:1 › beta3 menu covers inert titlebar and retains an accessible close button (3.7s)
+
+
+  1) tests/e2e/desktop-shell.spec.ts:853:1 › saving after rejected synthetic image paste preserves the exact saved snapshot 
+
+    Error: route.fetch: read ECONNRESET
+    Call log:
+      - → GET http://127.0.0.1:1424/src/file-service.ts
+        - user-agent: Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/154.0.0.0 Safari/537.36
+        - accept: */*
+        - accept-encoding: gzip,deflate,br
+        - accept-language: en-US
+        - origin: http://127.0.0.1:1424
+        - referer: http://127.0.0.1:1424/src/main.ts?t=1792648350526
+        - sec-ch-ua: "Not A(Brand";v="99", "Chromium";v="154"
+        - sec-ch-ua-mobile: ?0
+        - sec-ch-ua-platform: "Linux"
+
+
+      387 | async function installSaveProbe(page: Page): Promise<void> {
+      388 |   await page.route(/\/src\/file-service\.ts(?:\?|$)/, async (route) => {
+    > 389 |     const response = await route.fetch()
+          |                                  ^
+      390 |     const body = (await response.text()).replace(
+      391 |       'function createDesktopFileService() {',
+      392 |       `function createDesktopFileService() {
+        at /tmp/milkup-windows-manual-candidate/tests/e2e/desktop-shell.spec.ts:389:34
+
+    Error: page.goto: Test ended.
+    Call log:
+      - navigating to "http://127.0.0.1:1424/", waiting until "load"
+
+
+      771 | async function setupImagesWorker(page: Page): Promise<void> {
+      772 |   await installImagesFixture(page, { enabled: true, approved: true })
+    > 773 |   await page.goto('/')
+          |              ^
+      774 |   await expect(page.locator('#app')).toHaveAttribute('data-loading', /^(idle|ready)$/)
+      775 |   await openImagesPanel(page)
+      776 |   await closeImagesPanel(page)
+        at setupImagesWorker (/tmp/milkup-windows-manual-candidate/tests/e2e/desktop-shell.spec.ts:773:14)
+        at /tmp/milkup-windows-manual-candidate/tests/e2e/desktop-shell.spec.ts:859:3
+
+    Error Context: ../milkup-beta4-evidence/browser-shell-final/desktop-shell-saving-after-91cd8-es-the-exact-saved-snapshot/error-context.md
+
+  2) tests/e2e/desktop-shell.spec.ts:1072:1 › live table navigation replaces one cell, keeps line breaks and supports undo 
+
+    Error: expect(locator).toBeVisible() failed
+
+    Locator: getByRole('button', { name: '撤销审批', exact: true })
+    Expected: visible
+    Timeout: 5000ms
+    Error: element(s) not found
+
+    Call log:
+      - Expect "toBeVisible" with timeout 5000ms
+      - waiting for getByRole('button', { name: '撤销审批', exact: true })
+
+
+       at ../helpers/formatting-plugin.ts:84
+
+      82 |     const approve = page.getByRole('button', { name: '批准能力', exact: true })
+      83 |     if (await approve.isVisible()) await approve.click()
+    > 84 |     else await expect(page.getByRole('button', { name: '撤销审批', exact: true })).toBeVisible()
+         |                                                                                ^
+      85 |     phase('approval-step-completed')
+      86 |     await page.getByRole('button', { name: '启用', exact: true }).click()
+      87 |     phase('enable-clicked')
+        at formattingFixture (/tmp/milkup-windows-manual-candidate/tests/helpers/formatting-plugin.ts:84:80)
+        at openEditableTable (/tmp/milkup-windows-manual-candidate/tests/e2e/desktop-shell.spec.ts:1063:3)
+        at /tmp/milkup-windows-manual-candidate/tests/e2e/desktop-shell.spec.ts:1075:3
+
+    attachment #2: formatting-fixture-body (text/plain) ────────────────────────────────────────────
+    - main:
+      - button "菜单" [expanded]
+      - heading "未命名" [level=1]
+      - paragraph: 未保存
+      - dialog "菜单":
+        - heading "菜单" [level=2]
+        - button "关闭菜单"
+        - navigation "菜单分类":
+          - button "文件"
+          - button "插件"
+          - button "关于"
+        - heading "插件" [level=3]
+        - button "返回插件列表"
+        - article "M...
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #3: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ../milkup-beta4-evidence/browser-shell-final/desktop-shell-live-table-n-1f84f-ne-breaks-and-supports-undo/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ../milkup-beta4-evidence/browser-shell-final/desktop-shell-live-table-n-1f84f-ne-breaks-and-supports-undo/error-context.md
+
+  3) tests/e2e/desktop-shell.spec.ts:1102:1 › table toolbar preserves row and column content through undo and redo 
+
+    Error: expect(locator).toBeVisible() failed
+
+    Locator: getByRole('button', { name: '撤销审批', exact: true })
+    Expected: visible
+    Timeout: 5000ms
+    Error: element(s) not found
+
+    Call log:
+      - Expect "toBeVisible" with timeout 5000ms
+      - waiting for getByRole('button', { name: '撤销审批', exact: true })
+
+
+       at ../helpers/formatting-plugin.ts:84
+
+      82 |     const approve = page.getByRole('button', { name: '批准能力', exact: true })
+      83 |     if (await approve.isVisible()) await approve.click()
+    > 84 |     else await expect(page.getByRole('button', { name: '撤销审批', exact: true })).toBeVisible()
+         |                                                                                ^
+      85 |     phase('approval-step-completed')
+      86 |     await page.getByRole('button', { name: '启用', exact: true }).click()
+      87 |     phase('enable-clicked')
+        at formattingFixture (/tmp/milkup-windows-manual-candidate/tests/helpers/formatting-plugin.ts:84:80)
+        at openEditableTable (/tmp/milkup-windows-manual-candidate/tests/e2e/desktop-shell.spec.ts:1063:3)
+        at /tmp/milkup-windows-manual-candidate/tests/e2e/desktop-shell.spec.ts:1103:3
+
+    attachment #2: formatting-fixture-body (text/plain) ────────────────────────────────────────────
+    - main:
+      - button "菜单" [expanded]
+      - heading "未命名" [level=1]
+      - paragraph: 未保存
+      - dialog "菜单":
+        - heading "菜单" [level=2]
+        - button "关闭菜单"
+        - navigation "菜单分类":
+          - button "文件"
+          - button "插件"
+          - button "关于"
+        - heading "插件" [level=3]
+        - button "返回插件列表"
+        - article "M...
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #3: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ../milkup-beta4-evidence/browser-shell-final/desktop-shell-table-toolba-5c7d4-ntent-through-undo-and-redo/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ../milkup-beta4-evidence/browser-shell-final/desktop-shell-table-toolba-5c7d4-ntent-through-undo-and-redo/error-context.md
+
+  4) tests/e2e/desktop-shell.spec.ts:1172:1 › native-style multiline clipboard paste stays within a cell and table exit is undoable 
+
+    Error: expect(locator).toBeVisible() failed
+
+    Locator: getByRole('button', { name: '撤销审批', exact: true })
+    Expected: visible
+    Timeout: 5000ms
+    Error: element(s) not found
+
+    Call log:
+      - Expect "toBeVisible" with timeout 5000ms
+      - waiting for getByRole('button', { name: '撤销审批', exact: true })
+
+
+       at ../helpers/formatting-plugin.ts:84
+
+      82 |     const approve = page.getByRole('button', { name: '批准能力', exact: true })
+      83 |     if (await approve.isVisible()) await approve.click()
+    > 84 |     else await expect(page.getByRole('button', { name: '撤销审批', exact: true })).toBeVisible()
+         |                                                                                ^
+      85 |     phase('approval-step-completed')
+      86 |     await page.getByRole('button', { name: '启用', exact: true }).click()
+      87 |     phase('enable-clicked')
+        at formattingFixture (/tmp/milkup-windows-manual-candidate/tests/helpers/formatting-plugin.ts:84:80)
+        at openEditableTable (/tmp/milkup-windows-manual-candidate/tests/e2e/desktop-shell.spec.ts:1063:3)
+        at /tmp/milkup-windows-manual-candidate/tests/e2e/desktop-shell.spec.ts:1177:3
+
+    attachment #2: formatting-fixture-body (text/plain) ────────────────────────────────────────────
+    - main:
+      - button "菜单" [expanded]
+      - heading "未命名" [level=1]
+      - paragraph: 未保存
+      - dialog "菜单":
+        - heading "菜单" [level=2]
+        - button "关闭菜单"
+        - navigation "菜单分类":
+          - button "文件"
+          - button "插件"
+          - button "关于"
+        - heading "插件" [level=3]
+        - button "返回插件列表"
+        - article "M...
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #3: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ../milkup-beta4-evidence/browser-shell-final/desktop-shell-native-style-b25d4--and-table-exit-is-undoable/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ../milkup-beta4-evidence/browser-shell-final/desktop-shell-native-style-b25d4--and-table-exit-is-undoable/error-context.md
+
+  5) tests/e2e/desktop-shell.spec.ts:1395:1 › phase10 live table arrows skip delimiters and protect shifted cell selections 
+
+    Error: expect(locator).toBeVisible() failed
+
+    Locator: getByRole('button', { name: '撤销审批', exact: true })
+    Expected: visible
+    Timeout: 5000ms
+    Error: element(s) not found
+
+    Call log:
+      - Expect "toBeVisible" with timeout 5000ms
+      - waiting for getByRole('button', { name: '撤销审批', exact: true })
+
+
+       at ../helpers/formatting-plugin.ts:84
+
+      82 |     const approve = page.getByRole('button', { name: '批准能力', exact: true })
+      83 |     if (await approve.isVisible()) await approve.click()
+    > 84 |     else await expect(page.getByRole('button', { name: '撤销审批', exact: true })).toBeVisible()
+         |                                                                                ^
+      85 |     phase('approval-step-completed')
+      86 |     await page.getByRole('button', { name: '启用', exact: true }).click()
+      87 |     phase('enable-clicked')
+        at formattingFixture (/tmp/milkup-windows-manual-candidate/tests/helpers/formatting-plugin.ts:84:80)
+        at openEditableTable (/tmp/milkup-windows-manual-candidate/tests/e2e/desktop-shell.spec.ts:1063:3)
+        at /tmp/milkup-windows-manual-candidate/tests/e2e/desktop-shell.spec.ts:1398:3
+
+    attachment #2: formatting-fixture-body (text/plain) ────────────────────────────────────────────
+    - main:
+      - button "菜单" [expanded]
+      - heading "未命名" [level=1]
+      - paragraph: 未保存
+      - dialog "菜单":
+        - heading "菜单" [level=2]
+        - button "关闭菜单"
+        - navigation "菜单分类":
+          - button "文件"
+          - button "插件"
+          - button "关于"
+        - heading "插件" [level=3]
+        - button "返回插件列表"
+        - article "M...
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #3: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ../milkup-beta4-evidence/browser-shell-final/desktop-shell-phase10-live-668fa-ect-shifted-cell-selections/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ../milkup-beta4-evidence/browser-shell-final/desktop-shell-phase10-live-668fa-ect-shifted-cell-selections/error-context.md
+
+  5 failed
+    tests/e2e/desktop-shell.spec.ts:853:1 › saving after rejected synthetic image paste preserves the exact saved snapshot 
+    tests/e2e/desktop-shell.spec.ts:1072:1 › live table navigation replaces one cell, keeps line breaks and supports undo 
+    tests/e2e/desktop-shell.spec.ts:1102:1 › table toolbar preserves row and column content through undo and redo 
+    tests/e2e/desktop-shell.spec.ts:1172:1 › native-style multiline clipboard paste stays within a cell and table exit is undoable 
+    tests/e2e/desktop-shell.spec.ts:1395:1 › phase10 live table arrows skip delimiters and protect shifted cell selections 
+  54 passed (6.8m)

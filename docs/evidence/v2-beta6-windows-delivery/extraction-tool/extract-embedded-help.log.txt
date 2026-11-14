@@ -1,0 +1,23 @@
+usage: extract-embedded.py [-h] --verification VERIFICATION --expected-commit
+                           EXPECTED_COMMIT --expected-run EXPECTED_RUN
+                           manifest_json new_output_directory
+
+Verify and extract beta.6 embedded frontend bytes without executing Windows
+code. Adapted from /tmp/milkup-beta5-evidence/extract-embedded.py; all
+extraction bounds and image gates retained. Requires Python 3.9+ with lzma and
+the system libbrotlidec.so.1 shared library. No downloads, subprocesses,
+installer execution, or GUI/runtime acceptance.
+
+positional arguments:
+  manifest_json
+  new_output_directory
+
+options:
+  -h, --help            show this help message and exit
+  --verification VERIFICATION
+                        Passed download-verification JSON for this exact
+                        manifest
+  --expected-commit EXPECTED_COMMIT
+                        Expected 40-hex source commit
+  --expected-run EXPECTED_RUN
+                        Expected positive GitHub Actions run ID

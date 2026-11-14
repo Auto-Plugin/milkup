@@ -1,0 +1,62 @@
+[
+  {
+    "name": "02-after",
+    "command": [
+      "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+      "node_modules/vitest/vitest.mjs",
+      "run",
+      "packages/core/src/__tests__/document-svg-image-cost.test.ts",
+      "packages/core/src/__tests__/document-svg-image-elements.test.ts",
+      "packages/core/src/__tests__/document-svg-image-raster.test.ts",
+      "packages/core/src/__tests__/document-svg-image-security.test.ts",
+      "packages/core/src/__tests__/document-svg-image-unresolved.test.ts",
+      "packages/core/src/__tests__/document-svg-image.test.ts"
+    ],
+    "cwd": "/workspace/milkup",
+    "start": "2026-10-16T11:54:33.566Z",
+    "end": "2026-10-16T11:54:35.808Z",
+    "exit": 0
+  },
+  {
+    "name": "03-core-types",
+    "command": [
+      "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+      "node_modules/typescript/bin/tsc",
+      "-p",
+      "packages/core/tsconfig.json",
+      "--noEmit"
+    ],
+    "cwd": "/workspace/milkup",
+    "start": "2026-10-16T11:54:35.809Z",
+    "end": "2026-10-16T11:54:38.040Z",
+    "exit": 0
+  },
+  {
+    "name": "04-sdk-types",
+    "command": [
+      "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+      "node_modules/typescript/bin/tsc",
+      "-p",
+      "packages/plugin-sdk/tsconfig.json",
+      "--noEmit"
+    ],
+    "cwd": "/workspace/milkup",
+    "start": "2026-10-16T11:54:38.040Z",
+    "end": "2026-10-16T11:54:38.757Z",
+    "exit": 0
+  },
+  {
+    "name": "05-sdk-contract",
+    "command": [
+      "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+      "node_modules/typescript/bin/tsc",
+      "-p",
+      "packages/plugin-sdk/tsconfig.contract.json",
+      "--noEmit"
+    ],
+    "cwd": "/workspace/milkup",
+    "start": "2026-10-16T11:54:38.757Z",
+    "end": "2026-10-16T11:54:40.586Z",
+    "exit": 2
+  }
+]

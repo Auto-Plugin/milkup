@@ -1,0 +1,57 @@
+[
+  {
+    "name": "js",
+    "command": ["pnpm", "-r", "--workspace-concurrency=1", "test"],
+    "exitCode": 0,
+    "at": "2026-10-14T00:03:44.257590+00:00"
+  },
+  {
+    "name": "supplemental",
+    "command": [
+      "pnpm",
+      "exec",
+      "vitest",
+      "run",
+      "plugins/outline/src/plugin.test.ts",
+      "tests/helpers/native-startup.test.ts"
+    ],
+    "exitCode": 0,
+    "at": "2026-10-14T00:03:45.499469+00:00"
+  },
+  {
+    "name": "rust",
+    "command": ["cargo", "test", "--manifest-path", "apps/desktop/src-tauri/Cargo.toml", "--lib"],
+    "exitCode": 0,
+    "at": "2026-10-14T00:03:47.445742+00:00"
+  },
+  {
+    "name": "typecheck",
+    "command": ["pnpm", "typecheck"],
+    "exitCode": 0,
+    "at": "2026-10-14T00:03:59.742139+00:00"
+  },
+  {
+    "name": "rust-format",
+    "command": ["cargo", "fmt", "--manifest-path", "apps/desktop/src-tauri/Cargo.toml", "--check"],
+    "exitCode": 0,
+    "at": "2026-10-14T00:03:59.837673+00:00"
+  },
+  {
+    "name": "workspace-build",
+    "command": ["pnpm", "build"],
+    "exitCode": 0,
+    "recordedAt": "2026-10-14T00:22:02.175896+00:00"
+  },
+  {
+    "name": "chromium",
+    "command": ["MILKUP_BROWSER_EXECUTABLE=/usr/bin/chromium", "pnpm", "test:e2e", "--workers=1"],
+    "exitCode": 0,
+    "recordedAt": "2026-10-14T00:22:02.175935+00:00"
+  },
+  {
+    "name": "format",
+    "command": ["pnpm", "lint"],
+    "exitCode": 0,
+    "recordedAt": "2026-10-14T00:23:15.636249+00:00"
+  }
+]

@@ -1,0 +1,46 @@
+{
+  "schema": 1,
+  "scope": "Exact reviewed candidate Git blob to Windows CRLF byte derivation; no arbitrary-content normalization",
+  "candidateSha": "c377f56212353ed26eda82a4fc24a1bcfb4b2e27",
+  "gitPath": "tests/windows/mermaid-product-e2e.mjs",
+  "gitBlobObjectId": "59e0baaa0bd1c122cd7ee2ea9a60116c5826ac06",
+  "gitBlobBytes": 84160,
+  "gitBlobSha256": "0549834ce3339c93b98dbe6014711e5710d2976d29984afc04c8511268798c10",
+  "gitBlobLfCount": 2139,
+  "gitBlobCrCount": 0,
+  "transformation": "Replace each LF byte in this exact CR-free pinned blob with CR LF; preserve all other bytes",
+  "derivedWindowsBytes": 86299,
+  "derivedWindowsSha256": "63ab1e80a5f3fe9806db9ad5f8d5f344f64615d9c9b12406543601be159a2ee7",
+  "observedReports": [
+    {
+      "account": "pure-standard",
+      "reportedHarnessSha256": "63ab1e80a5f3fe9806db9ad5f8d5f344f64615d9c9b12406543601be159a2ee7",
+      "sourceCandidateSha": "c377f56212353ed26eda82a4fc24a1bcfb4b2e27",
+      "coreAutocrlf": {
+        "exitCode": 0,
+        "value": "file:C:/Program Files/Git/etc/gitconfig\ttrue"
+      },
+      "sourceRawStatus": ""
+    },
+    {
+      "account": "filtered-admin",
+      "reportedHarnessSha256": "63ab1e80a5f3fe9806db9ad5f8d5f344f64615d9c9b12406543601be159a2ee7",
+      "sourceCandidateSha": "c377f56212353ed26eda82a4fc24a1bcfb4b2e27",
+      "coreAutocrlf": {
+        "exitCode": 0,
+        "value": "file:C:/Program Files/Git/etc/gitconfig\ttrue"
+      },
+      "sourceRawStatus": ""
+    }
+  ],
+  "localReplayModuleRemainsExactGitBlob": true,
+  "localReplayModuleSha256": "0549834ce3339c93b98dbe6014711e5710d2976d29984afc04c8511268798c10",
+  "actualWindowsHarnessRawFileRetained": false,
+  "observedHashMatchesExactDerivedBytes": true,
+  "originalVerifierSha256": "6dd0a30522ae06df1892b0bc657593b3a8ba288ea4ff23c8b81bd4ad01e2a059",
+  "originalVerificationSha256": "ccc81c6b0c35cac17e00cbcdd350b8d8cf37cfe7ed78ddc3949d07974c425d23",
+  "inputsModified": false,
+  "networkAccessed": false,
+  "frozenReplayModule": "candidate-mermaid-product-e2e.mjs",
+  "replayDoesNotImportCurrentWorktree": true
+}

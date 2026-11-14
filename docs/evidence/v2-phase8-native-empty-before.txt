@@ -1,0 +1,23 @@
+FAIL diagnostics {
+  keys: null,
+  cursor: '47',
+  active: '<textarea class="milkup-input-proxy" aria-hidden="true" autocomplete="off" spellcheck="false" tabindex="0" style="left: 735px; top: 61px; height: 16px;"></textarea>',
+  text: '| Name |  | Value || --- | --- | --- || A |  | 1 || B |  | 2 |'
+}
+node:internal/modules/run_main:107
+    triggerUncaughtException(
+    ^
+
+AssertionError [ERR_ASSERTION]: {"caretLeft":735,"cellRight":725,"cellLeft":376}
+    at file:///workspace/milkup/tests/native/tauri-table-editing.mjs:394:12
+    at async check (file:///workspace/milkup/tests/native/tauri-table-editing.mjs:157:5)
+    at async file:///workspace/milkup/tests/native/tauri-table-editing.mjs:386:3 {
+  generatedMessage: false,
+  code: 'ERR_ASSERTION',
+  actual: false,
+  expected: true,
+  operator: '==',
+  diff: 'simple'
+}
+
+Node.js v24.19.0

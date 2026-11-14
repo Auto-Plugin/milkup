@@ -1,0 +1,19 @@
+{
+  "id": "milkup.updates",
+  "name": "Milkup Updates",
+  "version": "1.0.0",
+  "description": "检查版本、阅读更新说明，并请求安全下载和安装软件更新。",
+  "host": "worker",
+  "main": "./dist/plugin.js",
+  "engines": { "milkup": "^2.0.0-0", "pluginSdk": ">=0.2.0 <0.4.0" },
+  "permissions": ["app:updates"],
+  "contributes": {
+    "commands": [
+      { "id": "updates.check", "title": "检查更新", "action": "updates.check" },
+      { "id": "updates.download", "title": "下载更新", "action": "updates.download" },
+      { "id": "updates.cancel", "title": "取消下载", "action": "updates.cancel" },
+      { "id": "updates.install", "title": "请求安装更新", "action": "updates.install" }
+    ],
+    "ui": [{ "id": "updates-modal", "slot": "modal", "title": "软件更新", "scope": "app" }]
+  }
+}

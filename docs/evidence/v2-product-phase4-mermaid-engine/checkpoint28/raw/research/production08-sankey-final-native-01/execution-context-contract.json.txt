@@ -1,0 +1,21 @@
+{
+  "run": "mermaid-ui-production08-sankey-final-01",
+  "driverCall": {
+    "cmd": "python3 /workspace/milkup-mermaid-engine-evidence/research/production08-sankey-final-native-01/tool-launch.py driver",
+    "workdir": "/workspace/milkup",
+    "sandbox_permissions": "require_escalated"
+  },
+  "harnessCall": {
+    "cmd": "python3 /workspace/milkup-mermaid-engine-evidence/research/production08-sankey-final-native-01/tool-launch.py harness",
+    "workdir": "/workspace/milkup",
+    "sandbox_permissions": "require_escalated"
+  },
+  "stopDriverCall": {
+    "cmd": "python3 /workspace/milkup-mermaid-engine-evidence/research/production08-sankey-final-native-01/stop-driver.py",
+    "workdir": "/workspace/milkup",
+    "sandbox_permissions": "require_escalated"
+  },
+  "scope": "One plain production08 narrow Sankey sequence, source/live history and public disable/enable/remove; same frozen 1.1.1 archive; no research observer",
+  "selfContext": "Actual launcher records self user/pid/mnt/time/time_for_children/uid_map/gid_map before same PID exec; actual permission mode comes from tool call. Missing/error retained.",
+  "outcomes": "First UI outcome then original App.close; exact owned cleanup/freeze. No drain, capture sink or retry. Both actual tool calls require_escalated."
+}

@@ -1,0 +1,176 @@
+# Instructions
+
+- Following Playwright test failed.
+- Explain why, be concise, respect Playwright best practices.
+- Provide a snippet of code with the fix, if possible.
+
+# Test info
+
+- Name: multirow.spec.ts >> public navigation across a 77-line collapsed fence retains target projection while new selection provider waits
+- Location: ../milkup-mermaid-engine-evidence/research/window-navigation-multirow-browser-03/multirow.spec.ts:6:5
+
+# Error details
+
+```
+Error: expect(received).not.toBeNull()
+
+Received: null
+```
+
+# Page snapshot
+
+```yaml
+- generic [ref=e1]:
+  - main [ref=e3]:
+    - generic [ref=e4]:
+      - button "菜单" [ref=e5] [cursor=pointer]:
+        - img [ref=e6]
+      - generic [ref=e7]:
+        - heading "未命名" [level=1] [ref=e8]
+        - paragraph [ref=e9]: 未保存
+      - generic "窗口控制" [ref=e10]:
+        - button "最小化" [ref=e11] [cursor=pointer]
+        - button "最大化" [ref=e13] [cursor=pointer]
+        - button "关闭窗口" [ref=e15] [cursor=pointer]
+    - generic [ref=e19]:
+      - text: 写点什么吧...
+      - generic [ref=e20]:
+        - textbox [ref=e21]
+        - textbox "Markdown 编辑器" [active]
+    - generic [ref=e23]:
+      - generic [ref=e24]:
+        - button "侧栏" [ref=e25] [cursor=pointer]:
+          - img [ref=e26]
+        - button "实时" [ref=e28] [cursor=pointer]:
+          - img [ref=e29]
+      - generic [ref=e32]:
+        - generic [ref=e33]: Markdown
+        - generic [ref=e34]: 0 字符
+        - generic [ref=e37]: 已保存
+  - main [ref=e38]
+```
+
+# Test source
+
+```ts
+  106 |             ) throw Error('Invalid source-gate setup: target must be visible with77mounted/76collapsed')
+  107 |             sourceGated = true
+  108 |             put('events', { type: 'source-gate-enter', at: performance.now(), args, stack: entry.stack, selection: { ...view.selection.main } })
+  109 |             await new Promise<void>(resolve => {
+  110 |               releaseSourceRead = resolve
+  111 |               sourceGateTimer = setTimeout(() => releaseSource('500ms-safety-bound'), 500)
+  112 |               sourceGateRaf = requestAnimationFrame(() => {
+  113 |                 if (sourceGateReleased) return
+  114 |                 sourceGateFrames++
+  115 |                 snapshot('source-gate-frame-1')
+  116 |                 sourceGateRaf = requestAnimationFrame(() => {
+  117 |                   if (sourceGateReleased) return
+  118 |                   sourceGateFrames++
+  119 |                   snapshot('source-gate-frame-2')
+  120 |                   releaseSource('two-real-animation-frames')
+  121 |                 })
+  122 |               })
+  123 |             })
+  124 |             snapshot('source-gate-resumed-before-original-read')
+  125 |           }
+  126 |           const value = await store.readLineWindow(...args)
+  127 |           put('events', { type: 'read-resolved', at: performance.now(), args, fromLine: value.fromLine, toLine: value.toLine })
+  128 |           return value
+  129 |         },
+  130 |       }
+  131 |       const mount = document.createElement('main')
+  132 |       Object.assign(mount.style, { position: 'fixed', inset: '37px 0 30px', zIndex: '10000', background: 'white' })
+  133 |       document.body.append(mount)
+  134 |       const provide = async (input: Record<string, any>, { signal }: { signal: AbortSignal }) => {
+  135 |         const { sourceIdentity: _i, sourceVersion: _v, documentVersion: _dv, visibleFrom: _vf, visibleTo: _vt, ...window } = input
+  136 |         const targetSelection = window.selection.anchor === marker.from && window.selection.head === marker.to
+  137 |         put('events', { type: 'provide-start', at: performance.now(), from: window.from, to: window.to, selection: window.selection, targetSelection })
+  138 |         if (armed && targetSelection && !gateReleased) {
+  139 |           if (!pending) {
+  140 |             pending = true
+  141 |             gateTimer = setTimeout(() => release('750ms-safety-bound'), 750)
+  142 |             snapshot('new-selection-provider-pending')
+  143 |           }
+  144 |           await gate
+  145 |         }
+  146 |         signal.throwIfAborted()
+  147 |         const blocks = first.from >= window.from && last.to <= window.to
+  148 |           ? [{ kind: 'fence', complete: true, info: 'mermaid', from: first.from, to: last.to, contentRanges: [{ from: first.to, to: last.from }] }]
+  149 |           : []
+  150 |         put('events', { type: 'provide-result', at: performance.now(), from: window.from, to: window.to, fragments: blocks.map(block => [block.from, block.to]) })
+  151 |         return {
+  152 |           declarations: [{ id: 'test.multirow-image', contexts: ['fence'], fenceLanguages: ['mermaid'] }],
+  153 |           request: { ...window, documentId: store.documentId, version: store.version, contextKnown: true, protectedRanges: [], blocks, theme: 'light', target: 'screen' },
+  154 |           result: { complete: true, fragments: blocks.map(block => ({
+  155 |             from: block.from, to: block.to, layout: 'block', status: 'ready', accessibleText: 'Controlled rectangle with captured Sankey dimensions; not a Mermaid render',
+  156 |             content: { type: 'svg-image', profile: 'bounded-svg-v1', motion: 'static', width: 600, height: 406.90625,
+  157 |               viewBox: [0, 0, 600, 406.90625], rasterBounds: [0, 0, 600, 406.90625], aspect: { align: 'xMidYMid', fit: 'meet' },
+  158 |               styles: [{ fill: { kind: 'color', rgba: [40, 120, 210, 1] } }], definitions: [],
+  159 |               children: [{ kind: 'rect', style: 0, x: 0, y: 0, width: 600, height: 406.90625 }] },
+  160 |           })) },
+  161 |         }
+  162 |       }
+  163 |       view = new SourceDocumentView({ parent: mount, source, mode: 'live', editable: true,
+  164 |         virtualViewport: { viewportHeight: 693, overscanLines: 12 }, documentPresentation: { provide } })
+  165 |       view.dom.addEventListener('scroll', event => {
+  166 |         put('events', { type: 'natural-scroll', trusted: event.isTrusted, at: performance.now(), top: view.dom.scrollTop, left: view.dom.scrollLeft })
+  167 |         if (armed) snapshot('scroll')
+  168 |       })
+  169 |       Object.assign(window, { multirowStudy: { view, store, reads, events, phases, drops, snapshot, release, cleanup: () => { observer?.disconnect(); releaseSource('cleanup'); release('cleanup'); view.destroy() } } })
+  170 |       const wait = async (predicate: () => boolean, label: string) => {
+  171 |         const deadline = performance.now() + 5000
+  172 |         while (!predicate()) {
+  173 |           if (performance.now() >= deadline) throw Error(`Fixture phase not reached: ${label}`)
+  174 |           await new Promise(resolve => setTimeout(resolve, 10))
+  175 |         }
+  176 |       }
+  177 |       const frame = () => new Promise<void>(resolve => requestAnimationFrame(() => resolve()))
+  178 |       await view.revealSelection(316, Selection.range(initial.from, initial.to))
+  179 |       await wait(() => [...view.contentDOM.querySelectorAll('img')].some(image => image.complete && image.naturalWidth === 600 && image.naturalHeight > 0), 'initial image decoded')
+  180 |       await frame(); await frame()
+  181 |       const initialState = snapshot('initial-navigation-settled-and-decoded')
+  182 |       if (initialState.fence.mounted !== 77 || initialState.fence.collapsed < 76)
+  183 |         throw Error('Invalid fixture: the full 77-row collapsed fence is not mounted')
+  184 |       observer = new MutationObserver(() => { if (armed) snapshot('mutation') })
+  185 |       observer.observe(view.contentDOM, { childList: true, subtree: true, attributes: true, attributeFilter: ['style', 'data-presentation-collapsed'] })
+  186 |       armed = true; navigationState = 'pending'
+  187 |       const navigation = view.revealSelection(398, Selection.range(marker.from, marker.to)).then(() => {
+  188 |         navigationState = 'resolved'; snapshot('navigation-resolved')
+  189 |       }, error => { navigationState = 'rejected'; throw error })
+  190 |       await wait(() => pending, 'new selection provider gate')
+  191 |       if (!sourceGated) throw Error('Fixture phase not reached: qualified target syntax source gate')
+  192 |       for (let i = 0; i < 8; i++) { await frame(); snapshot(`provider-held-frame-${i}`) }
+  193 |       release('eight-observed-frames')
+  194 |       await navigation
+  195 |       for (let i = 0; i < 16; i++) { await frame(); snapshot(`settled-frame-${i}`) }
+  196 |       observer.disconnect()
+  197 |       return { reads, events, phases, drops, initialState, final: snapshot('final'), from: marker.from, to: marker.to,
+  198 |         unchanged: (await store.readLineWindow(1, store.lineCount)).text === text, version: store.version }
+  199 |     }, { text: await readFile(`${directory}/fixture.md`, 'utf8') })
+  200 |     await writeFile(info.outputPath('result.json'), JSON.stringify({ ...result, errors }, null, 2))
+  201 |     await page.screenshot({ path: info.outputPath('result.png') })
+  202 |     expect(errors).toEqual([])
+  203 |     expect(result.unchanged).toBe(true)
+  204 |     expect(result.version).toBe(0)
+  205 |     expect(result.final.selection).toMatchObject({ anchor: result.from, head: result.to })
+> 206 |     expect(result.final.marker).not.toBeNull()
+      |                                     ^ Error: expect(received).not.toBeNull()
+  207 |     const viewport = result.final.editor!
+  208 |     expect(result.final.marker!.rect!.bottom).toBeGreaterThan(viewport.top)
+  209 |     expect(result.final.marker!.rect!.top).toBeLessThan(viewport.bottom)
+  210 |     const projections = result.final.overlays.filter((node: any) => Number(node.from) === result.from && Number(node.to) === result.to)
+  211 |     expect(projections.length).toBeGreaterThan(0)
+  212 |     expect(projections.some((node: any) => node.rect.bottom > viewport.top && node.rect.top < viewport.bottom)).toBe(true)
+  213 |     expect(result.final.cursors.some((node: any) => Number(node.position) === result.to && Number(node.line) === 398 && node.rect.bottom > viewport.top && node.rect.top < viewport.bottom)).toBe(true)
+  214 |   } finally {
+  215 |     const trace = await page.evaluate(() => {
+  216 |       const p = (window as any).multirowStudy
+  217 |       return p ? { reads: p.reads, events: p.events, phases: p.phases, drops: p.drops, final: p.snapshot('finally') } : null
+  218 |     })
+  219 |     await writeFile(info.outputPath('trace.json'), JSON.stringify({ ...trace, errors }, null, 2))
+  220 |     await page.screenshot({ path: info.outputPath('final.png') })
+  221 |     await page.evaluate(() => (window as any).multirowStudy?.cleanup())
+  222 |   }
+  223 | })
+  224 | 
+```

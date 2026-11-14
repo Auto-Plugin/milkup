@@ -1,0 +1,35 @@
+from pathlib import Path
+import json,hashlib,shutil,subprocess,re,datetime
+root=Path('/workspace/milkup');out=Path(__file__).parent;target=root/'apps/desktop/src-tauri/target/release'
+sha=lambda b:hashlib.sha256(b).hexdigest()
+def info(p):
+ raw=p.read_bytes();return {'path':str(p),'bytes':len(raw),'sha256':sha(raw)}
+assert json.loads((out/'build-command.json').read_text())['exitCode']==0
+subprocess.run(['python3',str(out/'capture.py'),'after'],check=True)
+source_deb=target/'bundle/deb/milkup_2.0.0-beta.1_amd64.deb'
+(out/'artifacts').mkdir(exist_ok=True);deb=out/'artifacts'/source_deb.name;shutil.copy2(source_deb,deb)
+subprocess.run(['dpkg-deb','-x',str(deb),str(out/'install')],check=True)
+(out/'deb-contents.txt').write_bytes(subprocess.check_output(['dpkg-deb','-c',str(deb)]))
+binary=out/'install/usr/bin/milkup-desktop';raw=binary.read_bytes()
+target_raw=(target/'milkup-desktop').read_bytes()
+unknown=b'__TAURI_BUNDLE_TYPE_VAR_UNK';packaged=b'__TAURI_BUNDLE_TYPE_VAR_DEB'
+assert target_raw.count(unknown)==1 and raw.count(packaged)==1
+assert target_raw.replace(unknown,packaged)==raw, 'Only the exact Tauri bundle marker may differ'
+dep=(target/'milkup-desktop.d').read_text();(out/'binary-dependencies.d').write_text(dep)
+guards=set(re.findall(r'[^\s:]+/libmilkup_dom_guard\.so',dep));assert len(guards)==1,guards
+guard=Path(guards.pop());gbytes=guard.read_bytes();assert raw.count(gbytes)>=1
+shutil.copy2(guard,out/'artifacts/libmilkup_dom_guard.so')
+for name in ['output','stderr','root-output']:
+ q=guard.parent.parent/name
+ if q.exists():shutil.copy2(q,out/('guard-build-'+name+'.txt'))
+shutil.copytree(root/'apps/desktop/dist',out/'frontend')
+frontend=[info(q) for q in sorted((out/'frontend').rglob('*')) if q.is_file()]
+archiveSrc=root/'apps/desktop/src/bundled-plugins/milkup.diagrams-1.1.0.milkup-plugin'
+assert info(archiveSrc)['sha256']=='27db9bdefb9b241b03da2f3536f7e50d334117f928f963cfe290543f650b6239'
+archive=out/'artifacts'/archiveSrc.name;shutil.copy2(archiveSrc,archive)
+sdk=root/'plugins/diagrams/vendor/plugin-sdk.tgz';shutil.copy2(sdk,out/'artifacts/plugin-sdk-0.3.4.tgz')
+envfiles=['/workspace/.cloud/milkup-v2/env.sh','/workspace/.cloud/milkup-v2/icon.png','/workspace/.cloud/milkup-v2/sysroot/usr/include/webkitgtk-4.1/webkit/WebKitVersion.h','/workspace/.cloud/milkup-v2/sysroot/usr/lib/x86_64-linux-gnu/pkgconfig/webkit2gtk-4.1.pc','/workspace/.cloud/milkup-v2/sysroot/usr/lib/x86_64-linux-gnu/libwebkit2gtk-4.1.so.0.21.10','/workspace/.cloud/milkup-v2/sysroot/usr/bin/WebKitWebDriver','/workspace/.cargo/bin/tauri-driver','/workspace/milkup-markdown-extensions-phase4-evidence/native/environment/loaders-sysroot.cache','/workspace/milkup-mermaid-engine-evidence/editor-lifecycle-preparation-02/run-env.sh','/workspace/milkup-mermaid-engine-evidence/editor-lifecycle-preparation-02/driver.sh']
+env=[info(Path(q)) for q in envfiles]
+manifest={'frozenAtUtc':datetime.datetime.now(datetime.timezone.utc).isoformat(),'scope':'Linux local production build; no Windows/upload/release','build':json.loads((out/'build-command.json').read_text()),'binary':info(binary),'deb':info(deb),'postBundleTarget':info(target/'milkup-desktop'),'targetToPackageMapping':{'exactOnlyDifference':'unique __TAURI_BUNDLE_TYPE_VAR_UNK changed to __TAURI_BUNDLE_TYPE_VAR_DEB','allOtherBytesEqual':True,'firstIncorrectEqualityAssertion':'freeze-first-assertion.json'},'guard':{**info(out/'artifacts/libmilkup_dom_guard.so'),'exactBuildPath':str(guard),'attribution':'single guard in Cargo binary dependency file; complete guard bytes occur in actual extracted executable'},'archive':info(archive),'sdkTarball':info(out/'artifacts/plugin-sdk-0.3.4.tgz'),'frontend':frontend,'environment':env,'sourceBefore':info(out/'source-before.json'),'sourceAfter':json.loads((out/'source-after.json').read_text()),'formatOnlyPreviousFreezeMapping':'/workspace/milkup-mermaid-engine-evidence/research/generic-build-gate-preparation/final-build01/post-freeze-format-only01.json','runtimeStatus':'not yet executed'}
+(out/'provenance.json').write_text(json.dumps(manifest,indent=2)+'\n')
+print(json.dumps({k:manifest[k] for k in ['binary','deb','guard','archive']},indent=2))

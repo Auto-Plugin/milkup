@@ -1,0 +1,222 @@
+
+ RUN  v3.2.6 /workspace/milkup
+
+ ❯ packages/plugin/src/package-validation.test.ts (51 tests | 38 failed) 31ms
+   × plugin package validation before installation > rejects an unsafe package file path: "/outside.js" 9ms
+     → expected [Function] to throw an error
+   × plugin package validation before installation > rejects an unsafe package file path: "\\outside.js" 1ms
+     → expected [Function] to throw an error
+   × plugin package validation before installation > rejects an unsafe package file path: "//server/share/file.js" 1ms
+     → expected [Function] to throw an error
+   × plugin package validation before installation > rejects an unsafe package file path: "\\\\server\\share\\file.js" 0ms
+     → expected [Function] to throw an error
+   ✓ plugin package validation before installation > rejects an unsafe package file path: "C:/outside.js" 0ms
+   ✓ plugin package validation before installation > rejects an unsafe package file path: "C:\\outside.js" 0ms
+   × plugin package validation before installation > rejects an unsafe package file path: "C:outside.js" 1ms
+     → expected [Function] to throw an error
+   × plugin package validation before installation > rejects an unsafe package file path: "./C:outside.js" 0ms
+     → expected [Function] to throw an error
+   × plugin package validation before installation > rejects an unsafe package file path: "dir/file\u0000.js" 1ms
+     → expected [Function] to throw an error
+   × plugin package validation before installation > rejects an unsafe package file path: "dir/line\n.js" 1ms
+     → expected [Function] to throw an error
+   × plugin package validation before installation > rejects an unsafe package file path: "dir/file:stream" 1ms
+     → expected [Function] to throw an error
+   × plugin package validation before installation > rejects an unsafe package file path: "dir/trailing. " 0ms
+     → expected [Function] to throw an error
+   × plugin package validation before installation > rejects an unsafe package file path: "dir/trailing." 0ms
+     → expected [Function] to throw an error
+   × plugin package validation before installation > rejects an unsafe package file path: "dir/CON" 0ms
+     → expected [Function] to throw an error
+   × plugin package validation before installation > rejects an unsafe package file path: "dir/nul.txt" 0ms
+     → expected [Function] to throw an error
+   × plugin package validation before installation > rejects an unsafe package file path: "dir/COM1.exe" 0ms
+     → expected [Function] to throw an error
+   × plugin package validation before installation > reserves the installed manifest path: plugin.json 1ms
+     → expected [Function] to throw an error
+   × plugin package validation before installation > reserves the installed manifest path: ./plugin.json 0ms
+     → expected [Function] to throw an error
+   × plugin package validation before installation > reserves the installed manifest path: PLUGIN.JSON 0ms
+     → expected [Function] to throw an error
+   × plugin package validation before installation > reserves the installed manifest path: plugin.json/child 0ms
+     → expected [Function] to throw an error
+   ✓ plugin package validation before installation > rejects duplicate or file/directory conflicts in "dist/plugin.js" and "./dist//plugin.js" 0ms
+   ✓ plugin package validation before installation > rejects duplicate or file/directory conflicts in "dist/plugin.js" and "dist\\plugin.js" 0ms
+   × plugin package validation before installation > rejects duplicate or file/directory conflicts in "dist/Plugin.js" and "DIST/plugin.js" 0ms
+     → expected [Function] to throw an error
+   × plugin package validation before installation > rejects duplicate or file/directory conflicts in "dist" and "dist/plugin.js" 0ms
+     → expected [Function] to throw an error
+   × plugin package validation before installation > rejects duplicate or file/directory conflicts in "dist/plugin.js" and "dist" 0ms
+     → expected [Function] to throw an error
+   × plugin package validation before installation > rejects duplicate or file/directory conflicts in "Assets" and "assets/icon.png" 0ms
+     → expected [Function] to throw an error
+   × plugin package validation before installation > rejects invalid or noncanonical base64 before any file can be installed: "***" 1ms
+     → expected [Function] to throw an error
+   × plugin package validation before installation > rejects invalid or noncanonical base64 before any file can be installed: "A" 0ms
+     → expected [Function] to throw an error
+   × plugin package validation before installation > rejects invalid or noncanonical base64 before any file can be installed: "A===" 0ms
+     → expected [Function] to throw an error
+   × plugin package validation before installation > rejects invalid or noncanonical base64 before any file can be installed: "AA=" 1ms
+     → expected [Function] to throw an error
+   × plugin package validation before installation > rejects invalid or noncanonical base64 before any file can be installed: "AA===" 0ms
+     → expected [Function] to throw an error
+   × plugin package validation before installation > rejects invalid or noncanonical base64 before any file can be installed: "=AAA" 0ms
+     → expected [Function] to throw an error
+   × plugin package validation before installation > rejects invalid or noncanonical base64 before any file can be installed: "AA==AA==" 0ms
+     → expected [Function] to throw an error
+   × plugin package validation before installation > rejects invalid or noncanonical base64 before any file can be installed: "AA-_" 0ms
+     → expected [Function] to throw an error
+   × plugin package validation before installation > rejects invalid or noncanonical base64 before any file can be installed: "AB==" 0ms
+     → expected [Function] to throw an error
+   × plugin package validation before installation > rejects invalid or noncanonical base64 before any file can be installed: "AAB=" 0ms
+     → expected [Function] to throw an error
+   × plugin package validation before installation > rejects invalid or noncanonical base64 before any file can be installed: "AA" 0ms
+     → expected [Function] to throw an error
+   × plugin package validation before installation > rejects invalid or noncanonical base64 before any file can be installed: "AA==\n" 0ms
+     → expected [Function] to throw an error
+   ✓ plugin package validation before installation > accepts canonical base64 without decoding allocation: "" 0ms
+   ✓ plugin package validation before installation > accepts canonical base64 without decoding allocation: "AA==" 0ms
+   ✓ plugin package validation before installation > accepts canonical base64 without decoding allocation: "AAA=" 0ms
+   ✓ plugin package validation before installation > accepts canonical base64 without decoding allocation: "AAAA" 0ms
+   ✓ plugin package validation before installation > accepts canonical base64 without decoding allocation: "/w==" 0ms
+   ✓ plugin package validation before installation > accepts canonical base64 without decoding allocation: "//8=" 0ms
+   ✓ plugin package validation before installation > accepts canonical base64 without decoding allocation: "////" 0ms
+   × plugin package validation before installation > requires package-local executable content for all archive hosts: /outside.js 1ms
+     → expected [Function] to throw an error
+   × plugin package validation before installation > requires package-local executable content for all archive hosts: C:outside.js 0ms
+     → expected [Function] to throw an error
+   × plugin package validation before installation > requires package-local executable content for all archive hosts: https://example.test/plugin.js 0ms
+     → expected [Function] to throw an error
+   ✓ plugin package validation before installation > requires package-local executable content for all archive hosts: plugin.json 0ms
+   × plugin package validation before installation > rejects resource path aliases that would otherwise match a safe file 1ms
+     → expected [Function] to throw an error
+   ✓ plugin package validation before installation > preserves supported relative paths and accepts an existing Mermaid-sized entry 1ms
+ ✓ packages/plugin/src/package.test.ts (4 tests) 8ms
+ ✓ packages/plugin/src/package-dom.test.ts (4 tests) 8ms
+
+⎯⎯⎯⎯⎯⎯ Failed Tests 38 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  packages/plugin/src/package-validation.test.ts > plugin package validation before installation > rejects an unsafe package file path: "/outside.js"
+ FAIL  packages/plugin/src/package-validation.test.ts > plugin package validation before installation > rejects an unsafe package file path: "\\outside.js"
+ FAIL  packages/plugin/src/package-validation.test.ts > plugin package validation before installation > rejects an unsafe package file path: "//server/share/file.js"
+ FAIL  packages/plugin/src/package-validation.test.ts > plugin package validation before installation > rejects an unsafe package file path: "\\\\server\\share\\file.js"
+ FAIL  packages/plugin/src/package-validation.test.ts > plugin package validation before installation > rejects an unsafe package file path: "C:outside.js"
+ FAIL  packages/plugin/src/package-validation.test.ts > plugin package validation before installation > rejects an unsafe package file path: "./C:outside.js"
+ FAIL  packages/plugin/src/package-validation.test.ts > plugin package validation before installation > rejects an unsafe package file path: "dir/file\u0000.js"
+ FAIL  packages/plugin/src/package-validation.test.ts > plugin package validation before installation > rejects an unsafe package file path: "dir/line\n.js"
+ FAIL  packages/plugin/src/package-validation.test.ts > plugin package validation before installation > rejects an unsafe package file path: "dir/file:stream"
+ FAIL  packages/plugin/src/package-validation.test.ts > plugin package validation before installation > rejects an unsafe package file path: "dir/trailing. "
+ FAIL  packages/plugin/src/package-validation.test.ts > plugin package validation before installation > rejects an unsafe package file path: "dir/trailing."
+ FAIL  packages/plugin/src/package-validation.test.ts > plugin package validation before installation > rejects an unsafe package file path: "dir/CON"
+ FAIL  packages/plugin/src/package-validation.test.ts > plugin package validation before installation > rejects an unsafe package file path: "dir/nul.txt"
+ FAIL  packages/plugin/src/package-validation.test.ts > plugin package validation before installation > rejects an unsafe package file path: "dir/COM1.exe"
+AssertionError: expected [Function] to throw an error
+ ❯ packages/plugin/src/package-validation.test.ts:15:74
+     13|     'dir/trailing.', 'dir/CON', 'dir/nul.txt', 'dir/COM1.exe',
+     14|   ])('rejects an unsafe package file path: %j', (path) => {
+     15|     expect(() => createPluginPackageArchive(manifest, [textFile(path)]…
+       |                                                                          ^
+     16|   })
+     17| 
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/38]⎯
+
+ FAIL  packages/plugin/src/package-validation.test.ts > plugin package validation before installation > reserves the installed manifest path: plugin.json
+ FAIL  packages/plugin/src/package-validation.test.ts > plugin package validation before installation > reserves the installed manifest path: ./plugin.json
+ FAIL  packages/plugin/src/package-validation.test.ts > plugin package validation before installation > reserves the installed manifest path: PLUGIN.JSON
+ FAIL  packages/plugin/src/package-validation.test.ts > plugin package validation before installation > reserves the installed manifest path: plugin.json/child
+AssertionError: expected [Function] to throw an error
+
+- Expected: 
+null
+
++ Received: 
+undefined
+
+ ❯ packages/plugin/src/package-validation.test.ts:20:76
+     18|   it.each(['plugin.json', './plugin.json', 'PLUGIN.JSON', 'plugin.json…
+     19|     'reserves the installed manifest path: %s', (path) => {
+     20|       expect(() => createPluginPackageArchive(manifest, [textFile(path…
+       |                                                                            ^
+     21|     },
+     22|   )
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/38]⎯
+
+ FAIL  packages/plugin/src/package-validation.test.ts > plugin package validation before installation > rejects duplicate or file/directory conflicts in "dist/Plugin.js" and "DIST/plugin.js"
+ FAIL  packages/plugin/src/package-validation.test.ts > plugin package validation before installation > rejects duplicate or file/directory conflicts in "dist" and "dist/plugin.js"
+ FAIL  packages/plugin/src/package-validation.test.ts > plugin package validation before installation > rejects duplicate or file/directory conflicts in "dist/plugin.js" and "dist"
+ FAIL  packages/plugin/src/package-validation.test.ts > plugin package validation before installation > rejects duplicate or file/directory conflicts in "Assets" and "assets/icon.png"
+AssertionError: expected [Function] to throw an error
+ ❯ packages/plugin/src/package-validation.test.ts:32:93
+     30|     ['Assets', 'assets/icon.png'],
+     31|   ])('rejects duplicate or file/directory conflicts in %j and %j', (fi…
+     32|     expect(() => createPluginPackageArchive(manifest, [textFile(first)…
+       |                                                                                             ^
+     33|   })
+     34| 
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/38]⎯
+
+ FAIL  packages/plugin/src/package-validation.test.ts > plugin package validation before installation > rejects invalid or noncanonical base64 before any file can be installed: "***"
+ FAIL  packages/plugin/src/package-validation.test.ts > plugin package validation before installation > rejects invalid or noncanonical base64 before any file can be installed: "A"
+ FAIL  packages/plugin/src/package-validation.test.ts > plugin package validation before installation > rejects invalid or noncanonical base64 before any file can be installed: "A==="
+ FAIL  packages/plugin/src/package-validation.test.ts > plugin package validation before installation > rejects invalid or noncanonical base64 before any file can be installed: "AA="
+ FAIL  packages/plugin/src/package-validation.test.ts > plugin package validation before installation > rejects invalid or noncanonical base64 before any file can be installed: "AA==="
+ FAIL  packages/plugin/src/package-validation.test.ts > plugin package validation before installation > rejects invalid or noncanonical base64 before any file can be installed: "=AAA"
+ FAIL  packages/plugin/src/package-validation.test.ts > plugin package validation before installation > rejects invalid or noncanonical base64 before any file can be installed: "AA==AA=="
+ FAIL  packages/plugin/src/package-validation.test.ts > plugin package validation before installation > rejects invalid or noncanonical base64 before any file can be installed: "AA-_"
+ FAIL  packages/plugin/src/package-validation.test.ts > plugin package validation before installation > rejects invalid or noncanonical base64 before any file can be installed: "AB=="
+ FAIL  packages/plugin/src/package-validation.test.ts > plugin package validation before installation > rejects invalid or noncanonical base64 before any file can be installed: "AAB="
+ FAIL  packages/plugin/src/package-validation.test.ts > plugin package validation before installation > rejects invalid or noncanonical base64 before any file can be installed: "AA"
+ FAIL  packages/plugin/src/package-validation.test.ts > plugin package validation before installation > rejects invalid or noncanonical base64 before any file can be installed: "AA==\n"
+AssertionError: expected [Function] to throw an error
+
+- Expected: 
+null
+
++ Received: 
+undefined
+
+ ❯ packages/plugin/src/package-validation.test.ts:39:11
+     37|       expect(() => createPluginPackageArchive(manifest, [
+     38|         textFile('dist/plugin.js'), { path: 'assets/data.bin', encodin…
+     39|       ])).toThrow(/base64/i)
+       |           ^
+     40|     },
+     41|   )
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/38]⎯
+
+ FAIL  packages/plugin/src/package-validation.test.ts > plugin package validation before installation > requires package-local executable content for all archive hosts: /outside.js
+ FAIL  packages/plugin/src/package-validation.test.ts > plugin package validation before installation > requires package-local executable content for all archive hosts: C:outside.js
+ FAIL  packages/plugin/src/package-validation.test.ts > plugin package validation before installation > requires package-local executable content for all archive hosts: https://example.test/plugin.js
+AssertionError: expected [Function] to throw an error
+ ❯ packages/plugin/src/package-validation.test.ts:54:83
+     52|     'requires package-local executable content for all archive hosts: …
+     53|       for (const host of ['worker', 'sidecar'] as const) {
+     54|         expect(() => createPluginPackageArchive({ ...manifest, host, m…
+       |                                                                                   ^
+     55|       }
+     56|     },
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/38]⎯
+
+ FAIL  packages/plugin/src/package-validation.test.ts > plugin package validation before installation > rejects resource path aliases that would otherwise match a safe file
+AssertionError: expected [Function] to throw an error
+ ❯ packages/plugin/src/package-validation.test.ts:62:9
+     60|     expect(() => createPluginPackageArchive({ ...manifest, resources: …
+     61|       textFile('assets/a.txt'),
+     62|     ])).toThrow()
+       |         ^
+     63|   })
+     64| 
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/38]⎯
+
+
+ Test Files  1 failed | 2 passed (3)
+      Tests  38 failed | 21 passed (59)
+   Start at  07:18:10
+   Duration  1.04s (transform 132ms, setup 0ms, collect 177ms, tests 47ms, environment 1ms, prepare 207ms)
+

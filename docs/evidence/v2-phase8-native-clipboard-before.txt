@@ -1,0 +1,26 @@
+FAIL diagnostics {
+  keys: null,
+  cursor: '51',
+  active: '<textarea class="milkup-input-proxy" aria-hidden="true" autocomplete="off" spellcheck="false" tabindex="0" style="left: 26px; top: 87px; height: 16px;"></textarea>',
+  text: '| 名称 | Value || :--- | ---: || A & <x> | **1** |​'
+}
+node:internal/modules/run_main:107
+    triggerUncaughtException(
+    ^
+
+AssertionError [ERR_ASSERTION]: The input did not match the regular expression /<table[ >]/. Input:
+
+''
+
+    at file:///workspace/milkup/tests/native/tauri-table-editing.mjs:263:10
+    at async check (file:///workspace/milkup/tests/native/tauri-table-editing.mjs:156:5)
+    at async file:///workspace/milkup/tests/native/tauri-table-editing.mjs:256:2 {
+  generatedMessage: true,
+  code: 'ERR_ASSERTION',
+  actual: '',
+  expected: /<table[ >]/,
+  operator: 'match',
+  diff: 'simple'
+}
+
+Node.js v24.19.0

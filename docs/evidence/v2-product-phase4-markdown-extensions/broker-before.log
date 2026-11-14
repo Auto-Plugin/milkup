@@ -1,0 +1,138 @@
+
+ RUN  v3.2.6 /workspace/milkup/packages/plugin
+
+ ❯ src/ui-location.test.ts (4 tests | 4 failed) 12ms
+   × versioned plugin navigation > passes an immutable range and final lifecycle guard to the host 7ms
+     → (0 , createPluginUiHostCapabilities)(...).revealLocation is not a function
+   × versioned plugin navigation > blocks invalid ranges and a revoked command before host navigation 1ms
+     → broker.revealLocation is not a function
+   × versioned plugin navigation > aborts pending navigation with signal and prevents a late host commit 1ms
+     → broker.revealLocation is not a function
+   × versioned plugin navigation > aborts pending navigation with dispose and prevents a late host commit 1ms
+     → broker.revealLocation is not a function
+ ❯ src/document-window.test.ts (7 tests | 7 failed) 12ms
+   × bounded document windows > preserves complete Unicode and CRLF lines and absolute offsets 6ms
+     → broker.readWindow is not a function
+   × bounded document windows > halves oversized batches without truncating a line and rejects an oversized single line 3ms
+     → broker.readWindow is not a function
+   × bounded document windows > checks identity and version both before and after asynchronous reads 1ms
+     → broker.readWindow is not a function
+   × bounded document windows > cancels stalled reads immediately with signal and ignores late text 1ms
+     → broker.readWindow is not a function
+   × bounded document windows > cancels stalled reads immediately with cancelAll and ignores late text 0ms
+     → broker.readWindow is not a function
+   × bounded document windows > cancels stalled reads immediately with dispose and ignores late text 0ms
+     → broker.readWindow is not a function
+   × bounded document windows > rejects invalid ranges before invoking the source 0ms
+     → broker.readWindow is not a function
+
+⎯⎯⎯⎯⎯⎯ Failed Tests 11 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/document-window.test.ts > bounded document windows > preserves complete Unicode and CRLF lines and absolute offsets
+TypeError: broker.readWindow is not a function
+ ❯ src/document-window.test.ts:17:25
+     15|     const doc = source('first\r\n中文😀\r\nlast')
+     16|     const broker = createPluginDocumentBroker({ pluginId: 'reader', so…
+     17|     expect(await broker.readWindow({ ...request, fromLine: 2, lineCoun…
+       |                         ^
+     18|       documentId: 'doc', version: 3, fromLine: 2, toLine: 2, from: 7, …
+     19|       text: '中文😀', totalLines: 3, completeStart: false, completeEnd: …
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/11]⎯
+
+ FAIL  src/document-window.test.ts > bounded document windows > halves oversized batches without truncating a line and rejects an oversized single line
+TypeError: broker.readWindow is not a function
+ ❯ src/document-window.test.ts:27:33
+     25|     const read = vi.spyOn(doc, 'readLineWindow')
+     26|     const broker = createPluginDocumentBroker({ pluginId: 'reader', so…
+     27|     const result = await broker.readWindow(request)
+       |                                 ^
+     28|     expect(result.toLine).toBe(2)
+     29|     expect(result.text).toBe('x'.repeat(50_000) + '\n' + 'x'.repeat(50…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/11]⎯
+
+ FAIL  src/document-window.test.ts > bounded document windows > checks identity and version both before and after asynchronous reads
+TypeError: broker.readWindow is not a function
+ ❯ src/document-window.test.ts:40:25
+     38|     vi.spyOn(doc, 'readLineWindow').mockReturnValue(pending.promise)
+     39|     const broker = createPluginDocumentBroker({ pluginId: 'reader', so…
+     40|     await expect(broker.readWindow({ ...request, version: 2 })).reject…
+       |                         ^
+     41|     const result = broker.readWindow(request)
+     42|     doc = source('new', 4)
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/11]⎯
+
+ FAIL  src/document-window.test.ts > bounded document windows > cancels stalled reads immediately with signal and ignores late text
+ FAIL  src/document-window.test.ts > bounded document windows > cancels stalled reads immediately with cancelAll and ignores late text
+ FAIL  src/document-window.test.ts > bounded document windows > cancels stalled reads immediately with dispose and ignores late text
+TypeError: broker.readWindow is not a function
+ ❯ src/document-window.test.ts:53:27
+     51|     const broker = createPluginDocumentBroker({ pluginId: 'reader', so…
+     52|     const controller = new AbortController()
+     53|     const result = broker.readWindow(request, { signal: controller.sig…
+       |                           ^
+     54|     if (kind === 'signal') controller.abort()
+     55|     else if (kind === 'cancelAll') await broker.cancelAll()
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/11]⎯
+
+ FAIL  src/document-window.test.ts > bounded document windows > rejects invalid ranges before invoking the source
+TypeError: broker.readWindow is not a function
+ ❯ src/document-window.test.ts:66:27
+     64|     const broker = createPluginDocumentBroker({ pluginId: 'reader', so…
+     65|     for (const value of [{ fromLine: 0 }, { lineCount: 4097 }, { lineC…
+     66|       await expect(broker.readWindow({ ...request, ...value })).reject…
+       |                           ^
+     67|     }
+     68|     expect(read).not.toHaveBeenCalled()
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/11]⎯
+
+ FAIL  src/ui-location.test.ts > versioned plugin navigation > passes an immutable range and final lifecycle guard to the host
+TypeError: (0 , createPluginUiHostCapabilities)(...).revealLocation is not a function
+ ❯ src/ui-location.test.ts:9:50
+      7|     const revealLocation = vi.fn((request, context) => { context.asser…
+      8|     const broker = createPluginUiBroker({ pluginId: 'notes', viewIds: …
+      9|     await createPluginUiHostCapabilities(broker).revealLocation(locati…
+       |                                                  ^
+     10|     expect(revealLocation).toHaveBeenCalledWith(location, expect.objec…
+     11|   })
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/11]⎯
+
+ FAIL  src/ui-location.test.ts > versioned plugin navigation > blocks invalid ranges and a revoked command before host navigation
+TypeError: broker.revealLocation is not a function
+ ❯ src/ui-location.test.ts:15:25
+     13|     const revealLocation = vi.fn()
+     14|     const broker = createPluginUiBroker({ pluginId: 'notes', viewIds: …
+     15|     await expect(broker.revealLocation!({ ...location, to: 2 })).rejec…
+       |                         ^
+     16|     await expect(createPluginUiHostCapabilities(broker, () => false).r…
+     17|     expect(revealLocation).not.toHaveBeenCalled()
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[7/11]⎯
+
+ FAIL  src/ui-location.test.ts > versioned plugin navigation > aborts pending navigation with signal and prevents a late host commit
+ FAIL  src/ui-location.test.ts > versioned plugin navigation > aborts pending navigation with dispose and prevents a late host commit
+TypeError: broker.revealLocation is not a function
+ ❯ src/ui-location.test.ts:25:27
+     23|     const broker = createPluginUiBroker({ pluginId: 'notes', viewIds: …
+     24|     const controller = new AbortController()
+     25|     const result = broker.revealLocation!(location, { signal: controll…
+       |                           ^
+     26|     if (kind === 'signal') controller.abort()
+     27|     else broker.dispose!()
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[8/11]⎯
+
+
+ Test Files  2 failed (2)
+      Tests  11 failed (11)
+   Start at  11:27:39
+   Duration  761ms (transform 322ms, setup 0ms, collect 423ms, tests 24ms, environment 0ms, prepare 205ms)
+
+undefined
+/workspace/milkup/packages/plugin:
+[ERR_PNPM_RECURSIVE_EXEC_FIRST_FAIL] Command failed with exit code 1: vitest run src/document-window.test.ts src/ui-location.test.ts

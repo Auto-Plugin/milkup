@@ -1,0 +1,123 @@
+
+ RUN  v3.2.6 /workspace/milkup/plugins/footnotes
+
+ ❯ src/indexer.test.ts (9 tests | 2 failed) 41ms
+   ✓ bounded footnote index > numbers by first reference and keeps first definition with duplicate diagnostics 11ms
+   ✓ bounded footnote index > keeps CRLF Unicode source offsets and normalizes NFC without case folding 3ms
+   ✓ bounded footnote index > collects space and tab continuations across pages without retaining unrelated text 1ms
+   ✓ bounded footnote index > excludes escapes, inline code, fences, HTML and uncertain nested containers 1ms
+   ✓ bounded footnote index > distinguishes absent definitions from incomplete budget-limited search 4ms
+   ✓ bounded footnote index > does not accept malformed or unbounded labels and bounds definition previews 1ms
+   ✓ keeps incomplete image syntax and unfinished code source without claiming missing definitions 0ms
+   × increments output revision only for entries, published body changes and terminal status 10ms
+     → expected undefined to be +0 // Object.is equality
+   × marks truncated-body status changes even when the stored body remains identical 2ms
+     → expected undefined to be 1 // Object.is equality
+ ❯ src/controller.test.ts (7 tests | 4 failed) 199ms
+   ✓ returns immediately then indexes bounded pages and invalidates its own presentation 143ms
+   ✓ cancels delayed old-version scans and disposal without leaving stale output 1ms
+   ✓ ignores a late read after document change and keeps a failed scan partial 24ms
+   × does not notify for slow plain-text pages and flushes completion exactly once 21ms
+     → expected "spy" to be called 1 times, but got 3 times
+   × flushes new references, definitions, cross-page bodies and duplicates, but skips ordinary pages 2ms
+     → expected "spy" to be called 5 times, but got 6 times
+   × coalesces rapid dirty pages and delays the final dirty flush to preserve the 250ms bound 1ms
+     → expected 30 to be greater than or equal to 250
+   × cancels a pending final dirty flush when disposed 1ms
+     → expected "spy" to be called 1 times, but got 2 times
+ ✓ src/presentation.test.ts (4 tests) 22ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 6 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/controller.test.ts > does not notify for slow plain-text pages and flushes completion exactly once
+AssertionError: expected "spy" to be called 1 times, but got 3 times
+ ❯ src/controller.test.ts:153:38
+    151|   await vi.runAllTimersAsync()
+    152|   expect(api.readWindow).toHaveBeenCalledTimes(3)
+    153|   expect(api.invalidatePresentation).toHaveBeenCalledTimes(1)
+       |                                      ^
+    154|   expect(controller.render(request, { signal: new AbortController().si…
+    155|   controller.dispose()
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/6]⎯
+
+ FAIL  src/controller.test.ts > flushes new references, definitions, cross-page bodies and duplicates, but skips ordinary pages
+AssertionError: expected "spy" to be called 5 times, but got 6 times
+ ❯ src/controller.test.ts:164:38
+    162|   controller.render(request, { signal: new AbortController().signal })
+    163|   await vi.runAllTimersAsync()
+    164|   expect(api.invalidatePresentation).toHaveBeenCalledTimes(5)
+       |                                      ^
+    165|   controller.dispose()
+    166| })
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/6]⎯
+
+ FAIL  src/controller.test.ts > coalesces rapid dirty pages and delays the final dirty flush to preserve the 250ms bound
+AssertionError: expected 30 to be greater than or equal to 250
+ ❯ src/controller.test.ts:175:49
+    173|   await vi.runAllTimersAsync()
+    174|   expect(api.invalidatePresentation).toHaveBeenCalledTimes(2)
+    175|   expect(notifications[1]! - notifications[0]!).toBeGreaterThanOrEqual…
+       |                                                 ^
+    176|   controller.dispose()
+    177| })
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/6]⎯
+
+ FAIL  src/controller.test.ts > cancels a pending final dirty flush when disposed
+AssertionError: expected "spy" to be called 1 times, but got 2 times
+ ❯ src/controller.test.ts:185:38
+    183|   controller.render(request, { signal: new AbortController().signal })
+    184|   await vi.advanceTimersByTimeAsync(110)
+    185|   expect(api.invalidatePresentation).toHaveBeenCalledTimes(1)
+       |                                      ^
+    186|   controller.dispose()
+    187|   await vi.runAllTimersAsync()
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/6]⎯
+
+ FAIL  src/indexer.test.ts > increments output revision only for entries, published body changes and terminal status
+AssertionError: expected undefined to be +0 // Object.is equality
+
+- Expected: 
+0
+
++ Received: 
+undefined
+
+ ❯ src/indexer.test.ts:86:26
+     84| it('increments output revision only for entries, published body change…
+     85|   const index = new FootnoteIndex({ maxBody: 8 })
+     86|   expect(index.revision).toBe(0)
+       |                          ^
+     87|   feed(index, 'ordinary\n```\n[^ignored]\n```\n`hidden`')
+     88|   expect(index.revision).toBe(0)
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/6]⎯
+
+ FAIL  src/indexer.test.ts > marks truncated-body status changes even when the stored body remains identical
+AssertionError: expected undefined to be 1 // Object.is equality
+
+- Expected: 
+1
+
++ Received: 
+undefined
+
+ ❯ src/indexer.test.ts:119:26
+    117|   const index = new FootnoteIndex({ maxBody: 3 })
+    118|   feed(index, '[^x]: abc')
+    119|   expect(index.revision).toBe(1)
+       |                          ^
+    120|   expect(index.definitions.get('x')?.truncated).toBe(false)
+    121|   feed(index, '    next')
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/6]⎯
+
+
+ Test Files  2 failed | 1 passed (3)
+      Tests  6 failed | 14 passed (20)
+   Start at  14:22:17
+   Duration  806ms (transform 254ms, setup 0ms, collect 357ms, tests 262ms, environment 1ms, prepare 525ms)
+

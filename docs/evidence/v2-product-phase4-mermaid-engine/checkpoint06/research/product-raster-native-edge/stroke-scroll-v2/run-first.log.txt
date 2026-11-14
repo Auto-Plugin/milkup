@@ -1,0 +1,31 @@
+Traceback (most recent call last):
+  File "/workspace/milkup-mermaid-engine-evidence/research/product-raster-native-edge/stroke-scroll-v2/supervise-paired-integer.py", line 214, in <module>
+    exercise_scroll('controlled-original')
+    ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/milkup-mermaid-engine-evidence/research/product-raster-native-edge/stroke-scroll-v2/supervise-paired-integer.py", line 174, in exercise_scroll
+    windows=x('search','--onlyvisible','--name','^Isolated DOM mechanism probe$').splitlines()
+            ~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/milkup-mermaid-engine-evidence/research/product-raster-native-edge/stroke-scroll-v2/supervise-paired-integer.py", line 173, in x
+    def x(*arguments):return subprocess.check_output(['xdotool',*map(str,arguments)],env=env,text=True,timeout=2).strip()
+                             ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.13/subprocess.py", line 472, in check_output
+    return run(*popenargs, stdout=PIPE, timeout=timeout, check=True,
+           ~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+               **kwargs).stdout
+               ^^^^^^^^^
+  File "/usr/lib/python3.13/subprocess.py", line 554, in run
+    with Popen(*popenargs, **kwargs) as process:
+         ~~~~~^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.13/subprocess.py", line 1039, in __init__
+    self._execute_child(args, executable, preexec_fn, close_fds,
+    ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                        pass_fds, cwd, env,
+                        ^^^^^^^^^^^^^^^^^^^
+    ...<5 lines>...
+                        gid, gids, uid, umask,
+                        ^^^^^^^^^^^^^^^^^^^^^^
+                        start_new_session, process_group)
+                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.13/subprocess.py", line 1972, in _execute_child
+    raise child_exception_type(errno_num, err_msg, err_filename)
+FileNotFoundError: [Errno 2] No such file or directory: 'xdotool'

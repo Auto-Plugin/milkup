@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+set -euo pipefail
+[[ ${MILKUP_SINGLE_COLD_RUNTIME_APPROVED:-} == 1 ]] || { echo "Separate Root runtime GO required" >&2; exit 2; }
+source /workspace/milkup-mermaid-engine-evidence/research/native-cold-cpu-single-03/env.sh "$@"
+# Original byte-identical cold harness, one invocation, no loop/retry/armed wait.
+exec node /workspace/milkup-mermaid-engine-evidence/research/native-cold-cpu-single-03/cold-diagnostic.mjs

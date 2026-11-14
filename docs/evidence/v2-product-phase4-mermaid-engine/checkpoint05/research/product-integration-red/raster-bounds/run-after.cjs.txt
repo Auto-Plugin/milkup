@@ -1,0 +1,7 @@
+const fs=require('node:fs');const {spawnSync}=require('node:child_process');const path=require('node:path');
+const out=__dirname;const commands=[
+ ['02-after',['node_modules/vitest/vitest.mjs','run',...fs.readdirSync('packages/core/src/__tests__').filter(n=>/^document-svg-image.*\.test\.ts$/.test(n)).map(n=>'packages/core/src/__tests__/'+n)]],
+ ['03-core-types',['node_modules/typescript/bin/tsc','-p','packages/core/tsconfig.json','--noEmit']],
+ ['04-sdk-types',['node_modules/typescript/bin/tsc','-p','packages/plugin-sdk/tsconfig.json','--noEmit']],
+ ['05-sdk-contract',['node_modules/typescript/bin/tsc','-p','packages/plugin-sdk/tsconfig.contract.json','--noEmit']],
+];let failed=false;const rows=[];for(const [name,args]of commands){const start=new Date().toISOString();const p=spawnSync(process.execPath,args,{encoding:'utf8'});fs.writeFileSync(path.join(out,name+'.log'),p.stdout+p.stderr);rows.push({name,command:[process.execPath,...args],cwd:process.cwd(),start,end:new Date().toISOString(),exit:p.status,error:p.error?.message});process.stdout.write(name+' exit='+p.status+'\n'+p.stdout+p.stderr);if(p.status!==0)failed=true;}fs.writeFileSync(path.join(out,'after-execution.json'),JSON.stringify(rows,null,2)+'\n');process.exitCode=failed?1:0;

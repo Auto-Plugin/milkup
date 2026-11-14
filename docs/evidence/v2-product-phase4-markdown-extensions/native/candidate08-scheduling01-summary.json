@@ -1,0 +1,1962 @@
+{
+  "diagnosticOnly": true,
+  "exitCode": 0,
+  "formalFailureReproduced": false,
+  "binarySha256": "ffc26d6c38551247a7d8b9164d17eb81c14770260ddb6ea3a12aade35354e97e",
+  "moduleSpecifierOriginal": true,
+  "rootCycles": [
+    "initial-complete",
+    "extra-1-complete",
+    "extra-2-complete",
+    "extra-3-complete",
+    "extra-4-complete",
+    "extra-5-complete",
+    "DIAGNOSTIC-scheduling-complete"
+  ],
+  "sampler": {
+    "started": 1792122242790,
+    "finished": 1792122321592,
+    "reason": "stop-file",
+    "samples": 694,
+    "errors": [
+      {
+        "key": "/sys/fs/cgroup/cpu.pressure:ENOENT",
+        "count": 694
+      },
+      {
+        "key": "/proc/77668/cmdline:ENOENT",
+        "count": 1
+      },
+      {
+        "key": "/proc/77753/cmdline:ENOENT",
+        "count": 1
+      },
+      {
+        "key": "/proc/77760/cmdline:ENOENT",
+        "count": 1
+      },
+      {
+        "key": "/proc/77765/cmdline:ENOENT",
+        "count": 1
+      },
+      {
+        "key": "/proc/77770/cmdline:ENOENT",
+        "count": 1
+      },
+      {
+        "key": "/proc/77567/task/77737/stat:ENOENT",
+        "count": 1
+      },
+      {
+        "key": "/proc/77806/cmdline:ENOENT",
+        "count": 1
+      },
+      {
+        "key": "/proc/77810/cmdline:ENOENT",
+        "count": 1
+      },
+      {
+        "key": "/proc/77814/cmdline:ENOENT",
+        "count": 1
+      },
+      {
+        "key": "/proc/77848/cmdline:ENOENT",
+        "count": 1
+      },
+      {
+        "key": "/proc/77849/cmdline:ENOENT",
+        "count": 1
+      },
+      {
+        "key": "/proc/77881/cmdline:ENOENT",
+        "count": 1
+      },
+      {
+        "key": "/proc/77567/task/77857/stat:ENOENT",
+        "count": 1
+      },
+      {
+        "key": "/proc/77902/cmdline:ENOENT",
+        "count": 1
+      },
+      {
+        "key": "/proc/77923/cmdline:ENOENT",
+        "count": 1
+      },
+      {
+        "key": "/proc/77567/task/77890/stat:ENOENT",
+        "count": 1
+      }
+    ]
+  },
+  "sampleElapsedMs": {
+    "count": 694,
+    "min": 9,
+    "p50": 44,
+    "p95": 218,
+    "max": 395
+  },
+  "sampleIntervalMs": {
+    "count": 693,
+    "min": 100,
+    "p50": 101,
+    "p95": 220,
+    "max": 398
+  },
+  "clockTicksPerSecond": 100,
+  "maxMainSampleIntervalMs": 1217,
+  "supervisorControls": [],
+  "ownedProcesses": [
+    {
+      "kind": "owned-process-discovered",
+      "wall": 1792122242909,
+      "pid": 77567,
+      "argv": ["/usr/lib/x86_64-linux-gnu/webkit2gtk-4.1/WebKitWebProcess", "4", "24", ""],
+      "birth": "984872",
+      "lineage": [
+        {
+          "pid": 77567,
+          "birth": "984872",
+          "ppid": 77498,
+          "state": "R"
+        },
+        {
+          "pid": 77498,
+          "birth": "984754",
+          "ppid": 77470,
+          "state": "S"
+        }
+      ],
+      "cgroup": "0::/\n"
+    }
+  ],
+  "longMainIntervals": [
+    {
+      "mainObservedInterval": {
+        "at": 13820,
+        "wall": 1792122250767,
+        "delta": 699
+      },
+      "sampleCountInside": 3,
+      "startWall": 1792122250068,
+      "endWall": 1792122250767,
+      "sampledSpanMs": 457,
+      "matchedThreadCount": 46,
+      "matchedThreadsCpuTicksDelta": 44,
+      "threadDeltas": [
+        {
+          "tid": 77591,
+          "comm": "llvmpipe-2",
+          "birth": "984907",
+          "cpuTicksDelta": 10,
+          "endState": "S",
+          "schedRuntimeNsDelta": 87535185,
+          "runqueueWaitNsDelta": 9030431
+        },
+        {
+          "tid": 77592,
+          "comm": "llvmpipe-3",
+          "birth": "984907",
+          "cpuTicksDelta": 8,
+          "endState": "t",
+          "schedRuntimeNsDelta": 76148670,
+          "runqueueWaitNsDelta": 29006290
+        },
+        {
+          "tid": 77593,
+          "comm": "llvmpipe-4",
+          "birth": "984907",
+          "cpuTicksDelta": 8,
+          "endState": "S",
+          "schedRuntimeNsDelta": 77217091,
+          "runqueueWaitNsDelta": 28416000
+        },
+        {
+          "tid": 77590,
+          "comm": "llvmpipe-1",
+          "birth": "984907",
+          "cpuTicksDelta": 7,
+          "endState": "R",
+          "schedRuntimeNsDelta": 64079796,
+          "runqueueWaitNsDelta": 34735696
+        },
+        {
+          "tid": 77589,
+          "comm": "llvmpipe-0",
+          "birth": "984907",
+          "cpuTicksDelta": 5,
+          "endState": "R",
+          "schedRuntimeNsDelta": 40062878,
+          "runqueueWaitNsDelta": 56745548
+        },
+        {
+          "tid": 77567,
+          "comm": "WebKitWebProces",
+          "birth": "984872",
+          "cpuTicksDelta": 4,
+          "endState": "t",
+          "schedRuntimeNsDelta": 44127639,
+          "runqueueWaitNsDelta": 39879411
+        },
+        {
+          "tid": 77602,
+          "comm": "eadedCompositor",
+          "birth": "984917",
+          "cpuTicksDelta": 2,
+          "endState": "S",
+          "schedRuntimeNsDelta": 15817625,
+          "runqueueWaitNsDelta": 4981967
+        },
+        {
+          "tid": 77578,
+          "comm": "WebKitWebProces",
+          "birth": "984892",
+          "cpuTicksDelta": 0,
+          "endState": "S",
+          "schedRuntimeNsDelta": 464776,
+          "runqueueWaitNsDelta": 2827376
+        },
+        {
+          "tid": 77579,
+          "comm": "EventDispatcher",
+          "birth": "984894",
+          "cpuTicksDelta": 0,
+          "endState": "S",
+          "schedRuntimeNsDelta": 0,
+          "runqueueWaitNsDelta": 0
+        },
+        {
+          "tid": 77580,
+          "comm": "rruptDispatcher",
+          "birth": "984894",
+          "cpuTicksDelta": 0,
+          "endState": "S",
+          "schedRuntimeNsDelta": 0,
+          "runqueueWaitNsDelta": 0
+        },
+        {
+          "tid": 77581,
+          "comm": "uggerDispatcher",
+          "birth": "984894",
+          "cpuTicksDelta": 0,
+          "endState": "S",
+          "schedRuntimeNsDelta": 0,
+          "runqueueWaitNsDelta": 0
+        },
+        {
+          "tid": 77582,
+          "comm": "ReceiveQueue",
+          "birth": "984895",
+          "cpuTicksDelta": 0,
+          "endState": "S",
+          "schedRuntimeNsDelta": 2837027,
+          "runqueueWaitNsDelta": 7643596
+        },
+        {
+          "tid": 77584,
+          "comm": "ReceiveQueue",
+          "birth": "984896",
+          "cpuTicksDelta": 0,
+          "endState": "S",
+          "schedRuntimeNsDelta": 0,
+          "runqueueWaitNsDelta": 0
+        },
+        {
+          "tid": 77585,
+          "comm": "pool-spawner",
+          "birth": "984896",
+          "cpuTicksDelta": 0,
+          "endState": "S",
+          "schedRuntimeNsDelta": 0,
+          "runqueueWaitNsDelta": 0
+        },
+        {
+          "tid": 77586,
+          "comm": "gmain",
+          "birth": "984897",
+          "cpuTicksDelta": 0,
+          "endState": "S",
+          "schedRuntimeNsDelta": 0,
+          "runqueueWaitNsDelta": 0
+        },
+        {
+          "tid": 77587,
+          "comm": "pool-0",
+          "birth": "984897",
+          "cpuTicksDelta": 0,
+          "endState": "S",
+          "schedRuntimeNsDelta": 0,
+          "runqueueWaitNsDelta": 0
+        },
+        {
+          "tid": 77588,
+          "comm": "gdbus",
+          "birth": "984898",
+          "cpuTicksDelta": 0,
+          "endState": "S",
+          "schedRuntimeNsDelta": 0,
+          "runqueueWaitNsDelta": 0
+        },
+        {
+          "tid": 77594,
+          "comm": "WebKitWebProces",
+          "birth": "984907",
+          "cpuTicksDelta": 0,
+          "endState": "S",
+          "schedRuntimeNsDelta": 0,
+          "runqueueWaitNsDelta": 0
+        },
+        {
+          "tid": 77595,
+          "comm": "WebKitWebProces",
+          "birth": "984907",
+          "cpuTicksDelta": 0,
+          "endState": "S",
+          "schedRuntimeNsDelta": 0,
+          "runqueueWaitNsDelta": 0
+        },
+        {
+          "tid": 77596,
+          "comm": "WebKitWebProces",
+          "birth": "984907",
+          "cpuTicksDelta": 0,
+          "endState": "S",
+          "schedRuntimeNsDelta": 0,
+          "runqueueWaitNsDelta": 0
+        },
+        {
+          "tid": 77597,
+          "comm": "WebKitWebProces",
+          "birth": "984907",
+          "cpuTicksDelta": 0,
+          "endState": "S",
+          "schedRuntimeNsDelta": 0,
+          "runqueueWaitNsDelta": 0
+        },
+        {
+          "tid": 77598,
+          "comm": "WebKitWebProces",
+          "birth": "984907",
+          "cpuTicksDelta": 0,
+          "endState": "S",
+          "schedRuntimeNsDelta": 0,
+          "runqueueWaitNsDelta": 0
+        },
+        {
+          "tid": 77599,
+          "comm": "WebKitW:disk$0",
+          "birth": "984908",
+          "cpuTicksDelta": 0,
+          "endState": "S",
+          "schedRuntimeNsDelta": 0,
+          "runqueueWaitNsDelta": 0
+        },
+        {
+          "tid": 77610,
+          "comm": "dconf worker",
+          "birth": "984944",
+          "cpuTicksDelta": 0,
+          "endState": "S",
+          "schedRuntimeNsDelta": 0,
+          "runqueueWaitNsDelta": 0
+        },
+        {
+          "tid": 77613,
+          "comm": "JITWorker",
+          "birth": "984965",
+          "cpuTicksDelta": 0,
+          "endState": "S",
+          "schedRuntimeNsDelta": 0,
+          "runqueueWaitNsDelta": 0
+        },
+        {
+          "tid": 77614,
+          "comm": "JITWorker",
+          "birth": "984967",
+          "cpuTicksDelta": 0,
+          "endState": "S",
+          "schedRuntimeNsDelta": 0,
+          "runqueueWaitNsDelta": 0
+        },
+        {
+          "tid": 77615,
+          "comm": "JITWorker",
+          "birth": "984967",
+          "cpuTicksDelta": 0,
+          "endState": "S",
+          "schedRuntimeNsDelta": 0,
+          "runqueueWaitNsDelta": 0
+        },
+        {
+          "tid": 77616,
+          "comm": "CryptoQueue",
+          "birth": "984969",
+          "cpuTicksDelta": 0,
+          "endState": "S",
+          "schedRuntimeNsDelta": 0,
+          "runqueueWaitNsDelta": 0
+        },
+        {
+          "tid": 77619,
+          "comm": "Core: Scrolling",
+          "birth": "985006",
+          "cpuTicksDelta": 0,
+          "endState": "S",
+          "schedRuntimeNsDelta": 0,
+          "runqueueWaitNsDelta": 0
+        },
+        {
+          "tid": 77620,
+          "comm": "SkiaGPUWorker",
+          "birth": "985008",
+          "cpuTicksDelta": 0,
+          "endState": "S",
+          "schedRuntimeNsDelta": 0,
+          "runqueueWaitNsDelta": 0
+        },
+        {
+          "tid": 77621,
+          "comm": "SkiaGPUWorker",
+          "birth": "985008",
+          "cpuTicksDelta": 0,
+          "endState": "S",
+          "schedRuntimeNsDelta": 0,
+          "runqueueWaitNsDelta": 0
+        },
+        {
+          "tid": 77627,
+          "comm": "WebCore: Worker",
+          "birth": "985021",
+          "cpuTicksDelta": 0,
+          "endState": "S",
+          "schedRuntimeNsDelta": 0,
+          "runqueueWaitNsDelta": 0
+        },
+        {
+          "tid": 77628,
+          "comm": "HeapHelper",
+          "birth": "985022",
+          "cpuTicksDelta": 0,
+          "endState": "S",
+          "schedRuntimeNsDelta": 0,
+          "runqueueWaitNsDelta": 0
+        },
+        {
+          "tid": 77629,
+          "comm": "HeapHelper",
+          "birth": "985023",
+          "cpuTicksDelta": 0,
+          "endState": "S",
+          "schedRuntimeNsDelta": 0,
+          "runqueueWaitNsDelta": 0
+        },
+        {
+          "tid": 77630,
+          "comm": "HeapHelper",
+          "birth": "985023",
+          "cpuTicksDelta": 0,
+          "endState": "S",
+          "schedRuntimeNsDelta": 0,
+          "runqueueWaitNsDelta": 0
+        },
+        {
+          "tid": 77631,
+          "comm": "HeapHelper",
+          "birth": "985023",
+          "cpuTicksDelta": 0,
+          "endState": "S",
+          "schedRuntimeNsDelta": 0,
+          "runqueueWaitNsDelta": 0
+        },
+        {
+          "tid": 77632,
+          "comm": "ollector Thread",
+          "birth": "985024",
+          "cpuTicksDelta": 0,
+          "endState": "S",
+          "schedRuntimeNsDelta": 0,
+          "runqueueWaitNsDelta": 0
+        },
+        {
+          "tid": 77633,
+          "comm": "WebCore: Worker",
+          "birth": "985027",
+          "cpuTicksDelta": 0,
+          "endState": "S",
+          "schedRuntimeNsDelta": 0,
+          "runqueueWaitNsDelta": 0
+        },
+        {
+          "tid": 77635,
+          "comm": "WebCore: Worker",
+          "birth": "985040",
+          "cpuTicksDelta": 0,
+          "endState": "S",
+          "schedRuntimeNsDelta": 0,
+          "runqueueWaitNsDelta": 0
+        },
+        {
+          "tid": 77636,
+          "comm": "WebCore: Worker",
+          "birth": "985042",
+          "cpuTicksDelta": 0,
+          "endState": "S",
+          "schedRuntimeNsDelta": 0,
+          "runqueueWaitNsDelta": 0
+        },
+        {
+          "tid": 77641,
+          "comm": "WebCore: Worker",
+          "birth": "985151",
+          "cpuTicksDelta": 0,
+          "endState": "S",
+          "schedRuntimeNsDelta": 0,
+          "runqueueWaitNsDelta": 0
+        },
+        {
+          "tid": 77667,
+          "comm": "DataURLDecoder",
+          "birth": "985546",
+          "cpuTicksDelta": 0,
+          "endState": "S",
+          "schedRuntimeNsDelta": 0,
+          "runqueueWaitNsDelta": 0
+        },
+        {
+          "tid": 77676,
+          "comm": "WebKitW:disk$1",
+          "birth": "985743",
+          "cpuTicksDelta": 0,
+          "endState": "S",
+          "schedRuntimeNsDelta": 1570609,
+          "runqueueWaitNsDelta": 6951917
+        },
+        {
+          "tid": 77683,
+          "comm": "s Signal Sender",
+          "birth": "985873",
+          "cpuTicksDelta": 0,
+          "endState": "S",
+          "schedRuntimeNsDelta": 0,
+          "runqueueWaitNsDelta": 0
+        },
+        {
+          "tid": 77684,
+          "comm": "ollector Thread",
+          "birth": "985879",
+          "cpuTicksDelta": 0,
+          "endState": "S",
+          "schedRuntimeNsDelta": 0,
+          "runqueueWaitNsDelta": 0
+        },
+        {
+          "tid": 77685,
+          "comm": "ollector Thread",
+          "birth": "985879",
+          "cpuTicksDelta": 0,
+          "endState": "S",
+          "schedRuntimeNsDelta": 0,
+          "runqueueWaitNsDelta": 0
+        }
+      ],
+      "cgroupCpuStatDelta": {
+        "usage_usec": 511025,
+        "user_usec": 337784,
+        "system_usec": 173241,
+        "nice_usec": 0,
+        "nr_periods": 1,
+        "nr_throttled": 0,
+        "throttled_usec": 0,
+        "nr_bursts": 0,
+        "burst_usec": 0
+      }
+    },
+    {
+      "mainObservedInterval": {
+        "at": 15050,
+        "wall": 1792122251997,
+        "delta": 583
+      },
+      "sampleCountInside": 5,
+      "startWall": 1792122251414,
+      "endWall": 1792122251997,
+      "sampledSpanMs": 408,
+      "matchedThreadCount": 46,
+      "matchedThreadsCpuTicksDelta": 86,
+      "threadDeltas": [
+        {
+          "tid": 77593,
+          "comm": "llvmpipe-4",
+          "birth": "984907",
+          "cpuTicksDelta": 16,
+          "endState": "S",
+          "schedRuntimeNsDelta": 154561239,
+          "runqueueWaitNsDelta": 18913303
+        },
+        {
+          "tid": 77567,
+          "comm": "WebKitWebProces",
+          "birth": "984872",
+          "cpuTicksDelta": 15,
+          "endState": "R",
+          "schedRuntimeNsDelta": 131279613,
+          "runqueueWaitNsDelta": 88144128
+        },
+        {
+          "tid": 77591,
+          "comm": "llvmpipe-2",
+          "birth": "984907",
+          "cpuTicksDelta": 14,
+          "endState": "S",
+          "schedRuntimeNsDelta": 136140727,
+          "runqueueWaitNsDelta": 41553416
+        },
+        {
+          "tid": 77592,
+          "comm": "llvmpipe-3",
+          "birth": "984907",
+          "cpuTicksDelta": 14,
+          "endState": "S",
+          "schedRuntimeNsDelta": 135578782,
+          "runqueueWaitNsDelta": 37931476
+        },
+        {
+          "tid": 77590,
+          "comm": "llvmpipe-1",
+          "birth": "984907",
+          "cpuTicksDelta": 11,
+          "endState": "S",
+          "schedRuntimeNsDelta": 112246461,
+          "runqueueWaitNsDelta": 48904246
+        },
+        {
+          "tid": 77589,
+          "comm": "llvmpipe-0",
+          "birth": "984907",
+          "cpuTicksDelta": 10,
+          "endState": "S",
+          "schedRuntimeNsDelta": 109526484,
+          "runqueueWaitNsDelta": 36673674
+        },
+        {
+          "tid": 77602,
+          "comm": "eadedCompositor",
+          "birth": "984917",
+          "cpuTicksDelta": 4,
+          "endState": "S",
+          "schedRuntimeNsDelta": 37442332,
+          "runqueueWaitNsDelta": 11942496
+        },
+        {
+          "tid": 77578,
+          "comm": "WebKitWebProces",
+          "birth": "984892",
+          "cpuTicksDelta": 1,
+          "endState": "S",
+          "schedRuntimeNsDelta": 6282048,
+          "runqueueWaitNsDelta": 9155098
+        },
+        {
+          "tid": 77582,
+          "comm": "ReceiveQueue",
+          "birth": "984895",
+          "cpuTicksDelta": 1,
+          "endState": "S",
+          "schedRuntimeNsDelta": 4803196,
+          "runqueueWaitNsDelta": 6822920
+        },
+        {
+          "tid": 77579,
+          "comm": "EventDispatcher",
+          "birth": "984894",
+          "cpuTicksDelta": 0,
+          "endState": "S",
+          "schedRuntimeNsDelta": 0,
+          "runqueueWaitNsDelta": 0
+        },
+        {
+          "tid": 77580,
+          "comm": "rruptDispatcher",
+          "birth": "984894",
+          "cpuTicksDelta": 0,
+          "endState": "S",
+          "schedRuntimeNsDelta": 0,
+          "runqueueWaitNsDelta": 0
+        },
+        {
+          "tid": 77581,
+          "comm": "uggerDispatcher",
+          "birth": "984894",
+          "cpuTicksDelta": 0,
+          "endState": "S",
+          "schedRuntimeNsDelta": 0,
+          "runqueueWaitNsDelta": 0
+        },
+        {
+          "tid": 77584,
+          "comm": "ReceiveQueue",
+          "birth": "984896",
+          "cpuTicksDelta": 0,
+          "endState": "S",
+          "schedRuntimeNsDelta": 0,
+          "runqueueWaitNsDelta": 0
+        },
+        {
+          "tid": 77585,
+          "comm": "pool-spawner",
+          "birth": "984896",
+          "cpuTicksDelta": 0,
+          "endState": "S",
+          "schedRuntimeNsDelta": 0,
+          "runqueueWaitNsDelta": 0
+        },
+        {
+          "tid": 77586,
+          "comm": "gmain",
+          "birth": "984897",
+          "cpuTicksDelta": 0,
+          "endState": "S",
+          "schedRuntimeNsDelta": 0,
+          "runqueueWaitNsDelta": 0
+        },
+        {
+          "tid": 77587,
+          "comm": "pool-0",
+          "birth": "984897",
+          "cpuTicksDelta": 0,
+          "endState": "S",
+          "schedRuntimeNsDelta": 0,
+          "runqueueWaitNsDelta": 0
+        },
+        {
+          "tid": 77588,
+          "comm": "gdbus",
+          "birth": "984898",
+          "cpuTicksDelta": 0,
+          "endState": "S",
+          "schedRuntimeNsDelta": 0,
+          "runqueueWaitNsDelta": 0
+        },
+        {
+          "tid": 77594,
+          "comm": "WebKitWebProces",
+          "birth": "984907",
+          "cpuTicksDelta": 0,
+          "endState": "S",
+          "schedRuntimeNsDelta": 0,
+          "runqueueWaitNsDelta": 0
+        },
+        {
+          "tid": 77595,
+          "comm": "WebKitWebProces",
+          "birth": "984907",
+          "cpuTicksDelta": 0,
+          "endState": "S",
+          "schedRuntimeNsDelta": 0,
+          "runqueueWaitNsDelta": 0
+        },
+        {
+          "tid": 77596,
+          "comm": "WebKitWebProces",
+          "birth": "984907",
+          "cpuTicksDelta": 0,
+          "endState": "S",
+          "schedRuntimeNsDelta": 0,
+          "runqueueWaitNsDelta": 0
+        },
+        {
+          "tid": 77597,
+          "comm": "WebKitWebProces",
+          "birth": "984907",
+          "cpuTicksDelta": 0,
+          "endState": "S",
+          "schedRuntimeNsDelta": 0,
+          "runqueueWaitNsDelta": 0
+        },
+        {
+          "tid": 77598,
+          "comm": "WebKitWebProces",
+          "birth": "984907",
+          "cpuTicksDelta": 0,
+          "endState": "S",
+          "schedRuntimeNsDelta": 0,
+          "runqueueWaitNsDelta": 0
+        },
+        {
+          "tid": 77599,
+          "comm": "WebKitW:disk$0",
+          "birth": "984908",
+          "cpuTicksDelta": 0,
+          "endState": "S",
+          "schedRuntimeNsDelta": 0,
+          "runqueueWaitNsDelta": 0
+        },
+        {
+          "tid": 77610,
+          "comm": "dconf worker",
+          "birth": "984944",
+          "cpuTicksDelta": 0,
+          "endState": "S",
+          "schedRuntimeNsDelta": 0,
+          "runqueueWaitNsDelta": 0
+        },
+        {
+          "tid": 77613,
+          "comm": "JITWorker",
+          "birth": "984965",
+          "cpuTicksDelta": 0,
+          "endState": "S",
+          "schedRuntimeNsDelta": 0,
+          "runqueueWaitNsDelta": 0
+        },
+        {
+          "tid": 77614,
+          "comm": "JITWorker",
+          "birth": "984967",
+          "cpuTicksDelta": 0,
+          "endState": "S",
+          "schedRuntimeNsDelta": 0,
+          "runqueueWaitNsDelta": 0
+        },
+        {
+          "tid": 77615,
+          "comm": "JITWorker",
+          "birth": "984967",
+          "cpuTicksDelta": 0,
+          "endState": "S",
+          "schedRuntimeNsDelta": 0,
+          "runqueueWaitNsDelta": 0
+        },
+        {
+          "tid": 77616,
+          "comm": "CryptoQueue",
+          "birth": "984969",
+          "cpuTicksDelta": 0,
+          "endState": "S",
+          "schedRuntimeNsDelta": 0,
+          "runqueueWaitNsDelta": 0
+        },
+        {
+          "tid": 77619,
+          "comm": "Core: Scrolling",
+          "birth": "985006",
+          "cpuTicksDelta": 0,
+          "endState": "S",
+          "schedRuntimeNsDelta": 0,
+          "runqueueWaitNsDelta": 0
+        },
+        {
+          "tid": 77620,
+          "comm": "SkiaGPUWorker",
+          "birth": "985008",
+          "cpuTicksDelta": 0,
+          "endState": "S",
+          "schedRuntimeNsDelta": 0,
+          "runqueueWaitNsDelta": 0
+        },
+        {
+          "tid": 77621,
+          "comm": "SkiaGPUWorker",
+          "birth": "985008",
+          "cpuTicksDelta": 0,
+          "endState": "S",
+          "schedRuntimeNsDelta": 0,
+          "runqueueWaitNsDelta": 0
+        },
+        {
+          "tid": 77627,
+          "comm": "WebCore: Worker",
+          "birth": "985021",
+          "cpuTicksDelta": 0,
+          "endState": "S",
+          "schedRuntimeNsDelta": 0,
+          "runqueueWaitNsDelta": 0
+        },
+        {
+          "tid": 77628,
+          "comm": "HeapHelper",
+          "birth": "985022",
+          "cpuTicksDelta": 0,
+          "endState": "S",
+          "schedRuntimeNsDelta": 0,
+          "runqueueWaitNsDelta": 0
+        },
+        {
+          "tid": 77629,
+          "comm": "HeapHelper",
+          "birth": "985023",
+          "cpuTicksDelta": 0,
+          "endState": "S",
+          "schedRuntimeNsDelta": 0,
+          "runqueueWaitNsDelta": 0
+        },
+        {
+          "tid": 77630,
+          "comm": "HeapHelper",
+          "birth": "985023",
+          "cpuTicksDelta": 0,
+          "endState": "S",
+          "schedRuntimeNsDelta": 0,
+          "runqueueWaitNsDelta": 0
+        },
+        {
+          "tid": 77631,
+          "comm": "HeapHelper",
+          "birth": "985023",
+          "cpuTicksDelta": 0,
+          "endState": "S",
+          "schedRuntimeNsDelta": 0,
+          "runqueueWaitNsDelta": 0
+        },
+        {
+          "tid": 77632,
+          "comm": "ollector Thread",
+          "birth": "985024",
+          "cpuTicksDelta": 0,
+          "endState": "S",
+          "schedRuntimeNsDelta": 0,
+          "runqueueWaitNsDelta": 0
+        },
+        {
+          "tid": 77633,
+          "comm": "WebCore: Worker",
+          "birth": "985027",
+          "cpuTicksDelta": 0,
+          "endState": "S",
+          "schedRuntimeNsDelta": 0,
+          "runqueueWaitNsDelta": 0
+        },
+        {
+          "tid": 77635,
+          "comm": "WebCore: Worker",
+          "birth": "985040",
+          "cpuTicksDelta": 0,
+          "endState": "S",
+          "schedRuntimeNsDelta": 0,
+          "runqueueWaitNsDelta": 0
+        },
+        {
+          "tid": 77636,
+          "comm": "WebCore: Worker",
+          "birth": "985042",
+          "cpuTicksDelta": 0,
+          "endState": "S",
+          "schedRuntimeNsDelta": 0,
+          "runqueueWaitNsDelta": 0
+        },
+        {
+          "tid": 77641,
+          "comm": "WebCore: Worker",
+          "birth": "985151",
+          "cpuTicksDelta": 0,
+          "endState": "S",
+          "schedRuntimeNsDelta": 0,
+          "runqueueWaitNsDelta": 0
+        },
+        {
+          "tid": 77667,
+          "comm": "DataURLDecoder",
+          "birth": "985546",
+          "cpuTicksDelta": 0,
+          "endState": "S",
+          "schedRuntimeNsDelta": 0,
+          "runqueueWaitNsDelta": 0
+        },
+        {
+          "tid": 77676,
+          "comm": "WebKitW:disk$1",
+          "birth": "985743",
+          "cpuTicksDelta": 0,
+          "endState": "S",
+          "schedRuntimeNsDelta": 0,
+          "runqueueWaitNsDelta": 0
+        },
+        {
+          "tid": 77683,
+          "comm": "s Signal Sender",
+          "birth": "985873",
+          "cpuTicksDelta": 0,
+          "endState": "S",
+          "schedRuntimeNsDelta": 0,
+          "runqueueWaitNsDelta": 0
+        },
+        {
+          "tid": 77684,
+          "comm": "ollector Thread",
+          "birth": "985879",
+          "cpuTicksDelta": 0,
+          "endState": "S",
+          "schedRuntimeNsDelta": 0,
+          "runqueueWaitNsDelta": 0
+        },
+        {
+          "tid": 77685,
+          "comm": "ollector Thread",
+          "birth": "985879",
+          "cpuTicksDelta": 0,
+          "endState": "S",
+          "schedRuntimeNsDelta": 0,
+          "runqueueWaitNsDelta": 0
+        }
+      ],
+      "cgroupCpuStatDelta": {
+        "usage_usec": 1122711,
+        "user_usec": 886279,
+        "system_usec": 236431,
+        "nice_usec": 0,
+        "nr_periods": 4,
+        "nr_throttled": 0,
+        "throttled_usec": 0,
+        "nr_bursts": 0,
+        "burst_usec": 0
+      }
+    },
+    {
+      "mainObservedInterval": {
+        "at": 52699,
+        "wall": 1792122289645,
+        "delta": 1217
+      },
+      "sampleCountInside": 12,
+      "startWall": 1792122288428,
+      "endWall": 1792122289645,
+      "sampledSpanMs": 1110,
+      "matchedThreadCount": 47,
+      "matchedThreadsCpuTicksDelta": 23,
+      "threadDeltas": [
+        {
+          "tid": 77567,
+          "comm": "WebKitWebProces",
+          "birth": "984872",
+          "cpuTicksDelta": 9,
+          "endState": "S",
+          "schedRuntimeNsDelta": 82662090,
+          "runqueueWaitNsDelta": 26898926
+        },
+        {
+          "tid": 77620,
+          "comm": "SkiaGPUWorker",
+          "birth": "985008",
+          "cpuTicksDelta": 4,
+          "endState": "S",
+          "schedRuntimeNsDelta": 42695757,
+          "runqueueWaitNsDelta": 5924274
+        },
+        {
+          "tid": 77621,
+          "comm": "SkiaGPUWorker",
+          "birth": "985008",
+          "cpuTicksDelta": 4,
+          "endState": "S",
+          "schedRuntimeNsDelta": 39601368,
+          "runqueueWaitNsDelta": 4790706
+        },
+        {
+          "tid": 77582,
+          "comm": "ReceiveQueue",
+          "birth": "984895",
+          "cpuTicksDelta": 1,
+          "endState": "S",
+          "schedRuntimeNsDelta": 11342138,
+          "runqueueWaitNsDelta": 15428933
+        },
+        {
+          "tid": 77589,
+          "comm": "llvmpipe-0",
+          "birth": "984907",
+          "cpuTicksDelta": 1,
+          "endState": "S",
+          "schedRuntimeNsDelta": 13567073,
+          "runqueueWaitNsDelta": 868529
+        },
+        {
+          "tid": 77590,
+          "comm": "llvmpipe-1",
+          "birth": "984907",
+          "cpuTicksDelta": 1,
+          "endState": "S",
+          "schedRuntimeNsDelta": 6191170,
+          "runqueueWaitNsDelta": 9894620
+        },
+        {
+          "tid": 77591,
+          "comm": "llvmpipe-2",
+          "birth": "984907",
+          "cpuTicksDelta": 1,
+          "endState": "S",
+          "schedRuntimeNsDelta": 11844925,
+          "runqueueWaitNsDelta": 5898128
+        },
+        {
+          "tid": 77593,
+          "comm": "llvmpipe-4",
+          "birth": "984907",
+          "cpuTicksDelta": 1,
+          "endState": "S",
+          "schedRuntimeNsDelta": 15072655,
+          "runqueueWaitNsDelta": 6879322
+        },
+        {
+          "tid": 77676,
+          "comm": "WebKitW:disk$1",
+          "birth": "985743",
+          "cpuTicksDelta": 1,
+          "endState": "S",
+          "schedRuntimeNsDelta": 1714737,
+          "runqueueWaitNsDelta": 4371646
+        },
+        {
+          "tid": 77578,
+          "comm": "WebKitWebProces",
+          "birth": "984892",
+          "cpuTicksDelta": 0,
+          "endState": "S",
+          "schedRuntimeNsDelta": 7167421,
+          "runqueueWaitNsDelta": 3649948
+        },
+        {
+          "tid": 77579,
+          "comm": "EventDispatcher",
+          "birth": "984894",
+          "cpuTicksDelta": 0,
+          "endState": "S",
+          "schedRuntimeNsDelta": 0,
+          "runqueueWaitNsDelta": 0
+        },
+        {
+          "tid": 77580,
+          "comm": "rruptDispatcher",
+          "birth": "984894",
+          "cpuTicksDelta": 0,
+          "endState": "S",
+          "schedRuntimeNsDelta": 0,
+          "runqueueWaitNsDelta": 0
+        },
+        {
+          "tid": 77581,
+          "comm": "uggerDispatcher",
+          "birth": "984894",
+          "cpuTicksDelta": 0,
+          "endState": "S",
+          "schedRuntimeNsDelta": 0,
+          "runqueueWaitNsDelta": 0
+        },
+        {
+          "tid": 77584,
+          "comm": "ReceiveQueue",
+          "birth": "984896",
+          "cpuTicksDelta": 0,
+          "endState": "S",
+          "schedRuntimeNsDelta": 0,
+          "runqueueWaitNsDelta": 0
+        },
+        {
+          "tid": 77585,
+          "comm": "pool-spawner",
+          "birth": "984896",
+          "cpuTicksDelta": 0,
+          "endState": "S",
+          "schedRuntimeNsDelta": 0,
+          "runqueueWaitNsDelta": 0
+        },
+        {
+          "tid": 77586,
+          "comm": "gmain",
+          "birth": "984897",
+          "cpuTicksDelta": 0,
+          "endState": "S",
+          "schedRuntimeNsDelta": 0,
+          "runqueueWaitNsDelta": 0
+        },
+        {
+          "tid": 77588,
+          "comm": "gdbus",
+          "birth": "984898",
+          "cpuTicksDelta": 0,
+          "endState": "S",
+          "schedRuntimeNsDelta": 0,
+          "runqueueWaitNsDelta": 0
+        },
+        {
+          "tid": 77592,
+          "comm": "llvmpipe-3",
+          "birth": "984907",
+          "cpuTicksDelta": 0,
+          "endState": "S",
+          "schedRuntimeNsDelta": 9212107,
+          "runqueueWaitNsDelta": 7304207
+        },
+        {
+          "tid": 77594,
+          "comm": "WebKitWebProces",
+          "birth": "984907",
+          "cpuTicksDelta": 0,
+          "endState": "S",
+          "schedRuntimeNsDelta": 0,
+          "runqueueWaitNsDelta": 0
+        },
+        {
+          "tid": 77595,
+          "comm": "WebKitWebProces",
+          "birth": "984907",
+          "cpuTicksDelta": 0,
+          "endState": "S",
+          "schedRuntimeNsDelta": 0,
+          "runqueueWaitNsDelta": 0
+        },
+        {
+          "tid": 77596,
+          "comm": "WebKitWebProces",
+          "birth": "984907",
+          "cpuTicksDelta": 0,
+          "endState": "S",
+          "schedRuntimeNsDelta": 0,
+          "runqueueWaitNsDelta": 0
+        },
+        {
+          "tid": 77597,
+          "comm": "WebKitWebProces",
+          "birth": "984907",
+          "cpuTicksDelta": 0,
+          "endState": "S",
+          "schedRuntimeNsDelta": 0,
+          "runqueueWaitNsDelta": 0
+        },
+        {
+          "tid": 77598,
+          "comm": "WebKitWebProces",
+          "birth": "984907",
+          "cpuTicksDelta": 0,
+          "endState": "S",
+          "schedRuntimeNsDelta": 0,
+          "runqueueWaitNsDelta": 0
+        },
+        {
+          "tid": 77599,
+          "comm": "WebKitW:disk$0",
+          "birth": "984908",
+          "cpuTicksDelta": 0,
+          "endState": "S",
+          "schedRuntimeNsDelta": 1542847,
+          "runqueueWaitNsDelta": 11323863
+        },
+        {
+          "tid": 77602,
+          "comm": "eadedCompositor",
+          "birth": "984917",
+          "cpuTicksDelta": 0,
+          "endState": "S",
+          "schedRuntimeNsDelta": 4580146,
+          "runqueueWaitNsDelta": 1734941
+        },
+        {
+          "tid": 77610,
+          "comm": "dconf worker",
+          "birth": "984944",
+          "cpuTicksDelta": 0,
+          "endState": "S",
+          "schedRuntimeNsDelta": 0,
+          "runqueueWaitNsDelta": 0
+        },
+        {
+          "tid": 77613,
+          "comm": "JITWorker",
+          "birth": "984965",
+          "cpuTicksDelta": 0,
+          "endState": "S",
+          "schedRuntimeNsDelta": 0,
+          "runqueueWaitNsDelta": 0
+        },
+        {
+          "tid": 77614,
+          "comm": "JITWorker",
+          "birth": "984967",
+          "cpuTicksDelta": 0,
+          "endState": "S",
+          "schedRuntimeNsDelta": 0,
+          "runqueueWaitNsDelta": 0
+        },
+        {
+          "tid": 77615,
+          "comm": "JITWorker",
+          "birth": "984967",
+          "cpuTicksDelta": 0,
+          "endState": "S",
+          "schedRuntimeNsDelta": 0,
+          "runqueueWaitNsDelta": 0
+        },
+        {
+          "tid": 77616,
+          "comm": "CryptoQueue",
+          "birth": "984969",
+          "cpuTicksDelta": 0,
+          "endState": "S",
+          "schedRuntimeNsDelta": 0,
+          "runqueueWaitNsDelta": 0
+        },
+        {
+          "tid": 77619,
+          "comm": "Core: Scrolling",
+          "birth": "985006",
+          "cpuTicksDelta": 0,
+          "endState": "S",
+          "schedRuntimeNsDelta": 0,
+          "runqueueWaitNsDelta": 0
+        },
+        {
+          "tid": 77628,
+          "comm": "HeapHelper",
+          "birth": "985022",
+          "cpuTicksDelta": 0,
+          "endState": "S",
+          "schedRuntimeNsDelta": 0,
+          "runqueueWaitNsDelta": 0
+        },
+        {
+          "tid": 77629,
+          "comm": "HeapHelper",
+          "birth": "985023",
+          "cpuTicksDelta": 0,
+          "endState": "S",
+          "schedRuntimeNsDelta": 0,
+          "runqueueWaitNsDelta": 0
+        },
+        {
+          "tid": 77630,
+          "comm": "HeapHelper",
+          "birth": "985023",
+          "cpuTicksDelta": 0,
+          "endState": "S",
+          "schedRuntimeNsDelta": 0,
+          "runqueueWaitNsDelta": 0
+        },
+        {
+          "tid": 77631,
+          "comm": "HeapHelper",
+          "birth": "985023",
+          "cpuTicksDelta": 0,
+          "endState": "S",
+          "schedRuntimeNsDelta": 0,
+          "runqueueWaitNsDelta": 0
+        },
+        {
+          "tid": 77641,
+          "comm": "WebCore: Worker",
+          "birth": "985151",
+          "cpuTicksDelta": 0,
+          "endState": "S",
+          "schedRuntimeNsDelta": 0,
+          "runqueueWaitNsDelta": 0
+        },
+        {
+          "tid": 77667,
+          "comm": "DataURLDecoder",
+          "birth": "985546",
+          "cpuTicksDelta": 0,
+          "endState": "S",
+          "schedRuntimeNsDelta": 0,
+          "runqueueWaitNsDelta": 0
+        },
+        {
+          "tid": 77683,
+          "comm": "s Signal Sender",
+          "birth": "985873",
+          "cpuTicksDelta": 0,
+          "endState": "S",
+          "schedRuntimeNsDelta": 0,
+          "runqueueWaitNsDelta": 0
+        },
+        {
+          "tid": 77751,
+          "comm": "WebCore: Worker",
+          "birth": "986770",
+          "cpuTicksDelta": 0,
+          "endState": "S",
+          "schedRuntimeNsDelta": 0,
+          "runqueueWaitNsDelta": 0
+        },
+        {
+          "tid": 77752,
+          "comm": "WebCore: Worker",
+          "birth": "986779",
+          "cpuTicksDelta": 0,
+          "endState": "S",
+          "schedRuntimeNsDelta": 0,
+          "runqueueWaitNsDelta": 0
+        },
+        {
+          "tid": 77798,
+          "comm": "WebCore: Worker",
+          "birth": "987976",
+          "cpuTicksDelta": 0,
+          "endState": "S",
+          "schedRuntimeNsDelta": 0,
+          "runqueueWaitNsDelta": 0
+        },
+        {
+          "tid": 77799,
+          "comm": "WebCore: Worker",
+          "birth": "987982",
+          "cpuTicksDelta": 0,
+          "endState": "S",
+          "schedRuntimeNsDelta": 0,
+          "runqueueWaitNsDelta": 0
+        },
+        {
+          "tid": 77855,
+          "comm": "WebCore: Worker",
+          "birth": "989165",
+          "cpuTicksDelta": 0,
+          "endState": "S",
+          "schedRuntimeNsDelta": 0,
+          "runqueueWaitNsDelta": 0
+        },
+        {
+          "tid": 77856,
+          "comm": "WebCore: Worker",
+          "birth": "989170",
+          "cpuTicksDelta": 0,
+          "endState": "S",
+          "schedRuntimeNsDelta": 0,
+          "runqueueWaitNsDelta": 0
+        },
+        {
+          "tid": 77858,
+          "comm": "ollector Thread",
+          "birth": "989230",
+          "cpuTicksDelta": 0,
+          "endState": "S",
+          "schedRuntimeNsDelta": 0,
+          "runqueueWaitNsDelta": 0
+        },
+        {
+          "tid": 77873,
+          "comm": "WebCore: Worker",
+          "birth": "989571",
+          "cpuTicksDelta": 0,
+          "endState": "S",
+          "schedRuntimeNsDelta": 0,
+          "runqueueWaitNsDelta": 0
+        },
+        {
+          "tid": 77890,
+          "comm": "ollector Thread",
+          "birth": "989985",
+          "cpuTicksDelta": 0,
+          "endState": "S",
+          "schedRuntimeNsDelta": 0,
+          "runqueueWaitNsDelta": 0
+        }
+      ],
+      "cgroupCpuStatDelta": {
+        "usage_usec": 1556147,
+        "user_usec": 449041,
+        "system_usec": 1107106,
+        "nice_usec": 0,
+        "nr_periods": 11,
+        "nr_throttled": 0,
+        "throttled_usec": 0,
+        "nr_bursts": 0,
+        "burst_usec": 0
+      }
+    },
+    {
+      "mainObservedInterval": {
+        "at": 62153,
+        "wall": 1792122299099,
+        "delta": 662
+      },
+      "sampleCountInside": 7,
+      "startWall": 1792122298437,
+      "endWall": 1792122299099,
+      "sampledSpanMs": 602,
+      "matchedThreadCount": 48,
+      "matchedThreadsCpuTicksDelta": 60,
+      "threadDeltas": [
+        {
+          "tid": 77856,
+          "comm": "WebCore: Worker",
+          "birth": "989170",
+          "cpuTicksDelta": 17,
+          "endState": "t",
+          "schedRuntimeNsDelta": 158989552,
+          "runqueueWaitNsDelta": 39555471
+        },
+        {
+          "tid": 77752,
+          "comm": "WebCore: Worker",
+          "birth": "986779",
+          "cpuTicksDelta": 13,
+          "endState": "t",
+          "schedRuntimeNsDelta": 126756907,
+          "runqueueWaitNsDelta": 64891117
+        },
+        {
+          "tid": 77799,
+          "comm": "WebCore: Worker",
+          "birth": "987982",
+          "cpuTicksDelta": 13,
+          "endState": "R",
+          "schedRuntimeNsDelta": 134762949,
+          "runqueueWaitNsDelta": 17157461
+        },
+        {
+          "tid": 77615,
+          "comm": "JITWorker",
+          "birth": "984967",
+          "cpuTicksDelta": 4,
+          "endState": "t",
+          "schedRuntimeNsDelta": 41067592,
+          "runqueueWaitNsDelta": 57413099
+        },
+        {
+          "tid": 77613,
+          "comm": "JITWorker",
+          "birth": "984965",
+          "cpuTicksDelta": 3,
+          "endState": "R",
+          "schedRuntimeNsDelta": 16536380,
+          "runqueueWaitNsDelta": 19188350
+        },
+        {
+          "tid": 77614,
+          "comm": "JITWorker",
+          "birth": "984967",
+          "cpuTicksDelta": 3,
+          "endState": "t",
+          "schedRuntimeNsDelta": 35564064,
+          "runqueueWaitNsDelta": 23831906
+        },
+        {
+          "tid": 77589,
+          "comm": "llvmpipe-0",
+          "birth": "984907",
+          "cpuTicksDelta": 2,
+          "endState": "S",
+          "schedRuntimeNsDelta": 10869259,
+          "runqueueWaitNsDelta": 4642436
+        },
+        {
+          "tid": 77590,
+          "comm": "llvmpipe-1",
+          "birth": "984907",
+          "cpuTicksDelta": 1,
+          "endState": "t",
+          "schedRuntimeNsDelta": 9976555,
+          "runqueueWaitNsDelta": 2901616
+        },
+        {
+          "tid": 77591,
+          "comm": "llvmpipe-2",
+          "birth": "984907",
+          "cpuTicksDelta": 1,
+          "endState": "S",
+          "schedRuntimeNsDelta": 9436023,
+          "runqueueWaitNsDelta": 8364633
+        },
+        {
+          "tid": 77592,
+          "comm": "llvmpipe-3",
+          "birth": "984907",
+          "cpuTicksDelta": 1,
+          "endState": "S",
+          "schedRuntimeNsDelta": 10175842,
+          "runqueueWaitNsDelta": 5113295
+        },
+        {
+          "tid": 77593,
+          "comm": "llvmpipe-4",
+          "birth": "984907",
+          "cpuTicksDelta": 1,
+          "endState": "S",
+          "schedRuntimeNsDelta": 12986773,
+          "runqueueWaitNsDelta": 2872328
+        },
+        {
+          "tid": 77620,
+          "comm": "SkiaGPUWorker",
+          "birth": "985008",
+          "cpuTicksDelta": 1,
+          "endState": "S",
+          "schedRuntimeNsDelta": 2358772,
+          "runqueueWaitNsDelta": 4327984
+        },
+        {
+          "tid": 77567,
+          "comm": "WebKitWebProces",
+          "birth": "984872",
+          "cpuTicksDelta": 0,
+          "endState": "t",
+          "schedRuntimeNsDelta": 7634951,
+          "runqueueWaitNsDelta": 9435707
+        },
+        {
+          "tid": 77578,
+          "comm": "WebKitWebProces",
+          "birth": "984892",
+          "cpuTicksDelta": 0,
+          "endState": "t",
+          "schedRuntimeNsDelta": 4858320,
+          "runqueueWaitNsDelta": 7713662
+        },
+        {
+          "tid": 77579,
+          "comm": "EventDispatcher",
+          "birth": "984894",
+          "cpuTicksDelta": 0,
+          "endState": "S",
+          "schedRuntimeNsDelta": 0,
+          "runqueueWaitNsDelta": 0
+        },
+        {
+          "tid": 77580,
+          "comm": "rruptDispatcher",
+          "birth": "984894",
+          "cpuTicksDelta": 0,
+          "endState": "S",
+          "schedRuntimeNsDelta": 0,
+          "runqueueWaitNsDelta": 0
+        },
+        {
+          "tid": 77581,
+          "comm": "uggerDispatcher",
+          "birth": "984894",
+          "cpuTicksDelta": 0,
+          "endState": "S",
+          "schedRuntimeNsDelta": 0,
+          "runqueueWaitNsDelta": 0
+        },
+        {
+          "tid": 77582,
+          "comm": "ReceiveQueue",
+          "birth": "984895",
+          "cpuTicksDelta": 0,
+          "endState": "t",
+          "schedRuntimeNsDelta": 3226330,
+          "runqueueWaitNsDelta": 9950672
+        },
+        {
+          "tid": 77584,
+          "comm": "ReceiveQueue",
+          "birth": "984896",
+          "cpuTicksDelta": 0,
+          "endState": "S",
+          "schedRuntimeNsDelta": 0,
+          "runqueueWaitNsDelta": 0
+        },
+        {
+          "tid": 77585,
+          "comm": "pool-spawner",
+          "birth": "984896",
+          "cpuTicksDelta": 0,
+          "endState": "S",
+          "schedRuntimeNsDelta": 0,
+          "runqueueWaitNsDelta": 0
+        },
+        {
+          "tid": 77586,
+          "comm": "gmain",
+          "birth": "984897",
+          "cpuTicksDelta": 0,
+          "endState": "S",
+          "schedRuntimeNsDelta": 0,
+          "runqueueWaitNsDelta": 0
+        },
+        {
+          "tid": 77588,
+          "comm": "gdbus",
+          "birth": "984898",
+          "cpuTicksDelta": 0,
+          "endState": "S",
+          "schedRuntimeNsDelta": 0,
+          "runqueueWaitNsDelta": 0
+        },
+        {
+          "tid": 77594,
+          "comm": "WebKitWebProces",
+          "birth": "984907",
+          "cpuTicksDelta": 0,
+          "endState": "S",
+          "schedRuntimeNsDelta": 0,
+          "runqueueWaitNsDelta": 0
+        },
+        {
+          "tid": 77595,
+          "comm": "WebKitWebProces",
+          "birth": "984907",
+          "cpuTicksDelta": 0,
+          "endState": "S",
+          "schedRuntimeNsDelta": 0,
+          "runqueueWaitNsDelta": 0
+        },
+        {
+          "tid": 77596,
+          "comm": "WebKitWebProces",
+          "birth": "984907",
+          "cpuTicksDelta": 0,
+          "endState": "S",
+          "schedRuntimeNsDelta": 0,
+          "runqueueWaitNsDelta": 0
+        },
+        {
+          "tid": 77597,
+          "comm": "WebKitWebProces",
+          "birth": "984907",
+          "cpuTicksDelta": 0,
+          "endState": "S",
+          "schedRuntimeNsDelta": 0,
+          "runqueueWaitNsDelta": 0
+        },
+        {
+          "tid": 77598,
+          "comm": "WebKitWebProces",
+          "birth": "984907",
+          "cpuTicksDelta": 0,
+          "endState": "S",
+          "schedRuntimeNsDelta": 0,
+          "runqueueWaitNsDelta": 0
+        },
+        {
+          "tid": 77599,
+          "comm": "WebKitW:disk$0",
+          "birth": "984908",
+          "cpuTicksDelta": 0,
+          "endState": "S",
+          "schedRuntimeNsDelta": 0,
+          "runqueueWaitNsDelta": 0
+        },
+        {
+          "tid": 77602,
+          "comm": "eadedCompositor",
+          "birth": "984917",
+          "cpuTicksDelta": 0,
+          "endState": "S",
+          "schedRuntimeNsDelta": 1317420,
+          "runqueueWaitNsDelta": 2023059
+        },
+        {
+          "tid": 77610,
+          "comm": "dconf worker",
+          "birth": "984944",
+          "cpuTicksDelta": 0,
+          "endState": "S",
+          "schedRuntimeNsDelta": 0,
+          "runqueueWaitNsDelta": 0
+        },
+        {
+          "tid": 77616,
+          "comm": "CryptoQueue",
+          "birth": "984969",
+          "cpuTicksDelta": 0,
+          "endState": "S",
+          "schedRuntimeNsDelta": 0,
+          "runqueueWaitNsDelta": 0
+        },
+        {
+          "tid": 77619,
+          "comm": "Core: Scrolling",
+          "birth": "985006",
+          "cpuTicksDelta": 0,
+          "endState": "S",
+          "schedRuntimeNsDelta": 1064152,
+          "runqueueWaitNsDelta": 4293195
+        },
+        {
+          "tid": 77621,
+          "comm": "SkiaGPUWorker",
+          "birth": "985008",
+          "cpuTicksDelta": 0,
+          "endState": "S",
+          "schedRuntimeNsDelta": 1112101,
+          "runqueueWaitNsDelta": 2136
+        },
+        {
+          "tid": 77628,
+          "comm": "HeapHelper",
+          "birth": "985022",
+          "cpuTicksDelta": 0,
+          "endState": "S",
+          "schedRuntimeNsDelta": 0,
+          "runqueueWaitNsDelta": 0
+        },
+        {
+          "tid": 77629,
+          "comm": "HeapHelper",
+          "birth": "985023",
+          "cpuTicksDelta": 0,
+          "endState": "S",
+          "schedRuntimeNsDelta": 0,
+          "runqueueWaitNsDelta": 0
+        },
+        {
+          "tid": 77630,
+          "comm": "HeapHelper",
+          "birth": "985023",
+          "cpuTicksDelta": 0,
+          "endState": "S",
+          "schedRuntimeNsDelta": 0,
+          "runqueueWaitNsDelta": 0
+        },
+        {
+          "tid": 77631,
+          "comm": "HeapHelper",
+          "birth": "985023",
+          "cpuTicksDelta": 0,
+          "endState": "S",
+          "schedRuntimeNsDelta": 0,
+          "runqueueWaitNsDelta": 0
+        },
+        {
+          "tid": 77641,
+          "comm": "WebCore: Worker",
+          "birth": "985151",
+          "cpuTicksDelta": 0,
+          "endState": "S",
+          "schedRuntimeNsDelta": 0,
+          "runqueueWaitNsDelta": 0
+        },
+        {
+          "tid": 77667,
+          "comm": "DataURLDecoder",
+          "birth": "985546",
+          "cpuTicksDelta": 0,
+          "endState": "S",
+          "schedRuntimeNsDelta": 0,
+          "runqueueWaitNsDelta": 0
+        },
+        {
+          "tid": 77676,
+          "comm": "WebKitW:disk$1",
+          "birth": "985743",
+          "cpuTicksDelta": 0,
+          "endState": "S",
+          "schedRuntimeNsDelta": 0,
+          "runqueueWaitNsDelta": 0
+        },
+        {
+          "tid": 77683,
+          "comm": "s Signal Sender",
+          "birth": "985873",
+          "cpuTicksDelta": 0,
+          "endState": "S",
+          "schedRuntimeNsDelta": 0,
+          "runqueueWaitNsDelta": 0
+        },
+        {
+          "tid": 77751,
+          "comm": "WebCore: Worker",
+          "birth": "986770",
+          "cpuTicksDelta": 0,
+          "endState": "S",
+          "schedRuntimeNsDelta": 0,
+          "runqueueWaitNsDelta": 0
+        },
+        {
+          "tid": 77798,
+          "comm": "WebCore: Worker",
+          "birth": "987976",
+          "cpuTicksDelta": 0,
+          "endState": "S",
+          "schedRuntimeNsDelta": 0,
+          "runqueueWaitNsDelta": 0
+        },
+        {
+          "tid": 77855,
+          "comm": "WebCore: Worker",
+          "birth": "989165",
+          "cpuTicksDelta": 0,
+          "endState": "S",
+          "schedRuntimeNsDelta": 0,
+          "runqueueWaitNsDelta": 0
+        },
+        {
+          "tid": 77873,
+          "comm": "WebCore: Worker",
+          "birth": "989571",
+          "cpuTicksDelta": 0,
+          "endState": "S",
+          "schedRuntimeNsDelta": 0,
+          "runqueueWaitNsDelta": 0
+        },
+        {
+          "tid": 77900,
+          "comm": "ollector Thread",
+          "birth": "990218",
+          "cpuTicksDelta": 0,
+          "endState": "S",
+          "schedRuntimeNsDelta": 0,
+          "runqueueWaitNsDelta": 0
+        },
+        {
+          "tid": 77903,
+          "comm": "ollector Thread",
+          "birth": "990288",
+          "cpuTicksDelta": 0,
+          "endState": "S",
+          "schedRuntimeNsDelta": 0,
+          "runqueueWaitNsDelta": 0
+        },
+        {
+          "tid": 77907,
+          "comm": "ollector Thread",
+          "birth": "990368",
+          "cpuTicksDelta": 0,
+          "endState": "S",
+          "schedRuntimeNsDelta": 0,
+          "runqueueWaitNsDelta": 0
+        }
+      ],
+      "cgroupCpuStatDelta": {
+        "usage_usec": 1255027,
+        "user_usec": 0,
+        "system_usec": 1255027,
+        "nice_usec": 0,
+        "nr_periods": 5,
+        "nr_throttled": 0,
+        "throttled_usec": 0,
+        "nr_bursts": 0,
+        "burst_usec": 0
+      }
+    }
+  ],
+  "overallCgroupCpuStatDelta": {
+    "usage_usec": 191433342,
+    "user_usec": 123731489,
+    "system_usec": 67701853,
+    "nice_usec": 4000,
+    "nr_periods": 786,
+    "nr_throttled": 0,
+    "throttled_usec": 0,
+    "nr_bursts": 0,
+    "burst_usec": 0
+  },
+  "limits": [
+    "No original timeout reproduced in six bounded root cycles; no cause attribution for original run02.",
+    "100ms sampler adds observable filesystem/CPU work; interval and cost recorded.",
+    "Only matched live PID/TID/birth deltas count; zombies excluded. Endpoints can omit threads born/exited inside an interval.",
+    "Cgroup root is shared container scope, not exclusively this WebKit process. cpu.pressure ENOENT recorded.",
+    "Main drift is event-dispatch delay, not by itself proof of main JS execution."
+  ],
+  "cleanup": [
+    {
+      "pid": 77469,
+      "argv": [
+        "/workspace/.cargo/bin/tauri-driver",
+        "--port",
+        "4618",
+        "--native-port",
+        "4619",
+        "--native-driver",
+        "/workspace/.cloud/milkup-v2/sysroot/usr/bin/WebKitWebDriver"
+      ]
+    },
+    {
+      "pid": 77470,
+      "argv": [
+        "/workspace/.cloud/milkup-v2/sysroot/usr/bin/WebKitWebDriver",
+        "--port=4619",
+        "--host=127.0.0.1"
+      ]
+    }
+  ]
+}

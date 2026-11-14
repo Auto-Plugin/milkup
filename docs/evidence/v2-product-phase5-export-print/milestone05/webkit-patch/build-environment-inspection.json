@@ -1,0 +1,136 @@
+{
+  "capturedUtc": "2026-10-19T05:52:45.547951+00:00",
+  "library": {
+    "path": "/workspace/.cloud/milkup-v2/sysroot/usr/lib/x86_64-linux-gnu/libwebkit2gtk-4.1.so.0.21.10",
+    "bytes": 96302176,
+    "sha256": "e5145df62121ee186c4a9bdaebe2ebebb706d8ce400675b131449ecf8bd94889"
+  },
+  "commands": [
+    {
+      "name": "disk_bytes",
+      "argv": [
+        "df",
+        "-B1",
+        "/workspace",
+        "/tmp"
+      ],
+      "exit": 0,
+      "stdout": "Filesystem       1B-blocks        Used  Available Use% Mounted on\noverlay        33770192896 31677865984  357564416  99% /workspace\nnone            9441337344    17661952 9423675392   1% /tmp\n",
+      "stderr": ""
+    },
+    {
+      "name": "inodes",
+      "argv": [
+        "df",
+        "-i",
+        "/workspace"
+      ],
+      "exit": 0,
+      "stdout": "Filesystem      Inodes  IUsed   IFree IUse% Mounted on\noverlay        2097152 364909 1732243   18% /workspace\n",
+      "stderr": ""
+    },
+    {
+      "name": "memory",
+      "argv": [
+        "free",
+        "-b"
+      ],
+      "exit": 0,
+      "stdout": "               total        used        free      shared  buff/cache   available\nMem:     18882674688  2227331072 10124402688    26910720  6948888576 16655343616\nSwap:              0           0           0\n",
+      "stderr": ""
+    },
+    {
+      "name": "cgroup",
+      "argv": [
+        "bash",
+        "-c",
+        "for f in memory.max memory.current memory.swap.max cpu.max; do printf \"%s \" \"$f\"; cat /sys/fs/cgroup/$f; done"
+      ],
+      "exit": 0,
+      "stdout": "memory.max 17179869184\nmemory.current 7848857600\nmemory.swap.max max\ncpu.max 400000 100000\n",
+      "stderr": ""
+    },
+    {
+      "name": "elf_build_id",
+      "argv": [
+        "readelf",
+        "-n",
+        "/workspace/.cloud/milkup-v2/sysroot/usr/lib/x86_64-linux-gnu/libwebkit2gtk-4.1.so.0.21.10"
+      ],
+      "exit": 0,
+      "stdout": "\nDisplaying notes found in: .note.gnu.build-id\n  Owner                Data size \tDescription\n  GNU                  0x00000014\tNT_GNU_BUILD_ID (unique build ID bitstring)\n    Build ID: 07d5042a452660c650c0e3e1a710d47faa24ff46\n",
+      "stderr": ""
+    },
+    {
+      "name": "elf_sections",
+      "argv": [
+        "bash",
+        "-c",
+        "readelf -SW /workspace/.cloud/milkup-v2/sysroot/usr/lib/x86_64-linux-gnu/libwebkit2gtk-4.1.so.0.21.10 | rg \"symtab|dynsym|debuglink\""
+      ],
+      "exit": 0,
+      "stdout": "  [ 3] .dynsym           DYNSYM          0000000000004e08 004e08 029f10 18   A  4   1  8\n  [30] .gnu_debuglink    PROGBITS        0000000000000000 5bd6a78 000034 00      0   0  4\n",
+      "stderr": ""
+    },
+    {
+      "name": "internal_dynamic_symbols",
+      "argv": [
+        "bash",
+        "-c",
+        "readelf --dyn-syms -W /workspace/.cloud/milkup-v2/sysroot/usr/lib/x86_64-linux-gnu/libwebkit2gtk-4.1.so.0.21.10 | rg \"buildTextBlob|FontCascade|SkPDF|SkTextBlob\""
+      ],
+      "exit": 1,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "name": "pkg_metadata",
+      "argv": [
+        "cat",
+        "/workspace/.cloud/milkup-v2/sysroot/usr/lib/x86_64-linux-gnu/pkgconfig/webkit2gtk-4.1.pc"
+      ],
+      "exit": 0,
+      "stdout": "prefix=/usr\nexec_prefix=${prefix}\nlibdir=/usr/lib/x86_64-linux-gnu\nincludedir=${prefix}/include\nrevision=tarball\n\nName: WebKitGTK\nDescription: Web content engine for GTK\nURL: https://webkitgtk.org\nVersion: 2.52.6\nRequires: glib-2.0 gtk+-3.0 libsoup-3.0 javascriptcoregtk-4.1\nLibs: -L${libdir} -lwebkit2gtk-4.1\nCflags: -I${includedir}/webkitgtk-4.1\n",
+      "stderr": ""
+    },
+    {
+      "name": "package",
+      "argv": [
+        "dpkg-deb",
+        "-f",
+        "/workspace/.cloud/milkup-v2/apt/archives/libwebkit2gtk-4.1-0_2.52.6-1~deb13u1_amd64.deb",
+        "Package",
+        "Source",
+        "Version",
+        "Architecture",
+        "Installed-Size",
+        "Depends"
+      ],
+      "exit": 0,
+      "stdout": "Package: libwebkit2gtk-4.1-0\nSource: webkit2gtk\nVersion: 2.52.6-1~deb13u1\nArchitecture: amd64\nInstalled-Size: 96656\nDepends: libjavascriptcoregtk-4.1-0 (= 2.52.6-1~deb13u1), gstreamer1.0-plugins-base, gstreamer1.0-plugins-good, libgles2, bubblewrap (>= 0.3.1), xdg-dbus-proxy, libatk1.0-0t64 (>= 1.32.0), libatomic1 (>= 4.8), libavif16 (>= 1.2.1), libc6 (>= 2.38), libcairo-gobject2 (>= 1.10.0), libcairo2 (>= 1.14.0), libdrm2 (>= 2.4.107), libenchant-2-2 (>= 2.2.3), libepoxy0 (>= 1.3), libexpat1 (>= 2.1~beta3), libflite1 (>= 2.0.0-release), libfontconfig1 (>= 2.12.6), libfreetype6 (>= 2.11.1), libgbm1 (>= 21.3.0~rc1), libgcc-s1 (>= 4.0), libgcrypt20 (>= 1.11.0), libgdk-pixbuf-2.0-0 (>= 2.22.0), libglib2.0-0t64 (>= 2.80.0), libgpg-error0 (>= 1.14), libgstreamer-gl1.0-0 (>= 1.14.0), libgstreamer-plugins-base1.0-0 (>= 1.23.1), libgstreamer1.0-0 (>= 1.25.1), libgtk-3-0t64 (>= 3.23.0), libharfbuzz-icu0 (>= 0.9.9), libharfbuzz0b (>= 1.8.6), libhyphen0 (>= 2.7.1), libicu76 (>= 76.1-1~), libjpeg62-turbo (>= 1:1.5.0), libjxl0.11 (>= 0.6.1), liblcms2-2 (>= 2.2+git20110628), libmanette-0.2-0 (>= 0.1.2), libpango-1.0-0 (>= 1.14.0), libpangocairo-1.0-0 (>= 1.14.0), libpng16-16t64 (>= 1.6.46), libseccomp2 (>= 0.0.0~20120605), libsecret-1-0 (>= 0.7), libsoup-3.0-0 (>= 3.0.3), libsqlite3-0 (>= 3.8.7), libstdc++6 (>= 12), libsystemd0, libtasn1-6 (>= 4.14), libwayland-client0 (>= 1.20.0), libwayland-egl1 (>= 1.15.0), libwayland-server0 (>= 1.0.2), libwebp7 (>= 1.5.0), libwebpdemux2 (>= 1.5.0), libwebpmux3 (>= 1.5.0), libx11-6, libxml2 (>= 2.7.4), libxslt1.1 (>= 1.1.25), zlib1g (>= 1:1.2.2)\n",
+      "stderr": ""
+    },
+    {
+      "name": "build_tools",
+      "argv": [
+        "bash",
+        "-c",
+        "source /workspace/.cloud/milkup-v2/env.sh; for t in cmake ninja clang++ ld.lld bison flex gperf ruby unifdef g++ perl; do command -v \"$t\" || true; done; g++ --version | head -1"
+      ],
+      "exit": 0,
+      "stdout": "/usr/bin/g++\n/usr/bin/perl\ng++ (Debian 14.2.0-19) 14.2.0\n",
+      "stderr": ""
+    },
+    {
+      "name": "build_pc",
+      "argv": [
+        "bash",
+        "-c",
+        "source /workspace/.cloud/milkup-v2/env.sh; for p in gtk+-3.0 libsoup-3.0 glib-2.0 harfbuzz icu-uc gstreamer-1.0 gstreamer-app-1.0 gstreamer-gl-1.0 gstreamer-plugins-base-1.0 libavif libjxl libseccomp libdrm gbm libmanette-0.2 lcms2 libsecret-1 enchant-2 libgcrypt; do printf \"%s \" \"$p\"; pkg-config --modversion \"$p\" 2>/dev/null || printf \"MISSING DEV METADATA\\n\"; done"
+      ],
+      "exit": 0,
+      "stdout": "gtk+-3.0 3.24.49\nlibsoup-3.0 3.6.5\nglib-2.0 2.84.4\nharfbuzz 10.2.0\nicu-uc 76.1\ngstreamer-1.0 MISSING DEV METADATA\ngstreamer-app-1.0 MISSING DEV METADATA\ngstreamer-gl-1.0 MISSING DEV METADATA\ngstreamer-plugins-base-1.0 MISSING DEV METADATA\nlibavif MISSING DEV METADATA\nlibjxl MISSING DEV METADATA\nlibseccomp MISSING DEV METADATA\nlibdrm MISSING DEV METADATA\ngbm MISSING DEV METADATA\nlibmanette-0.2 MISSING DEV METADATA\nlcms2 MISSING DEV METADATA\nlibsecret-1 MISSING DEV METADATA\nenchant-2 MISSING DEV METADATA\nlibgcrypt MISSING DEV METADATA\n",
+      "stderr": ""
+    }
+  ]
+}

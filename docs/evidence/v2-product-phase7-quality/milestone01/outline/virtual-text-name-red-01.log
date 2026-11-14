@@ -1,0 +1,67 @@
+
+ RUN  v3.2.6 /workspace/milkup
+
+ ❯ apps/desktop/src/desktop-plugin-ui.test.ts (37 tests | 1 failed | 36 skipped) 1083ms
+   × DesktopPluginUiController > restores a virtual keyboard target named by text without requiring aria-label 1082ms
+     → expected 'TreeHeading 17840Heading 17841Heading…' to be 'Heading 17999' // Object.is equality
+   ↓ DesktopPluginUiController > requests bounded virtual tree ranges for End, Home and arrow boundary focus
+   ↓ DesktopPluginUiController > does not let late virtual keyboard ranges steal focus after Tab or document change
+   ↓ DesktopPluginUiController > keeps the latest virtual keyboard intent and discards ranges after teardown
+   ↓ DesktopPluginUiController > uses visible ranks rather than source ordinals after folding a virtual tree
+   ↓ DesktopPluginUiController > holds modal focus while a controlled save action is temporarily disabled
+   ↓ DesktopPluginUiController > combines embedding slot visibility with panel collapse without affecting other slots
+   ↓ DesktopPluginUiController > traps modal Tab using only the current tree tab stop
+   ↓ DesktopPluginUiController > does not treat scripted clicks or forged action details as trusted user gestures
+   ↓ DesktopPluginUiController > keeps a pressed controlled button until click and coalesces progress renders
+   ↓ DesktopPluginUiController > mounts controlled slots and recreates document-scoped views on document changes
+   ↓ DesktopPluginUiController > opens and closes modal views repeatedly and bridges declared commands
+   ↓ DesktopPluginUiController > takes modal focus before pending mount output, so immediate Escape closes and restores the opener
+   ↓ DesktopPluginUiController > does not take focus back from a host confirmation when asynchronous opening completes
+   ↓ DesktopPluginUiController > restores an available card when unloading removes the opener and ignores late output
+   ↓ DesktopPluginUiController > resumes focus after a pending output removes controls, with final Action A
+   ↓ DesktopPluginUiController > resumes focus after a pending output removes controls, with final Action B
+   ↓ DesktopPluginUiController > does not resume a removed action after the user focuses close
+   ↓ DesktopPluginUiController > does not resume a removed action after the user focuses confirmation
+   ↓ DesktopPluginUiController > traps native WebKit Shift+Tab with Unidentified key and Tab code at the close button
+   ↓ DesktopPluginUiController > rerenders only the requested plugin view when invalidated
+   ↓ DesktopPluginUiController > passes fresh viewport state when an editor scroll update rerenders mounted UI
+   ↓ DesktopPluginUiController > skips editor viewport updates for views that opt out
+   ↓ DesktopPluginUiController > collapses sidebar panels to the bottom and exposes resizers only between expanded panels
+   ↓ DesktopPluginUiController > reports actual visibility on collapse and expand, independent of focus lifecycle
+   ↓ DesktopPluginUiController > resizes adjacent expanded sidebar panels as a bounded pair
+   ↓ DesktopPluginUiController > keeps identical controlled output mounted and preserves internal scroll on changes
+   ↓ DesktopPluginUiController > decorates a controlled host icon without relying on plugin-specific classes
+   ↓ DesktopPluginUiController > projects a virtual outline slice into the full scroll height and follows its active item
+   ↓ DesktopPluginUiController > requests a new buffered range when the outline is scrolled outside its rendered slice
+   ↓ DesktopPluginUiController > does not rerender while outline scrolling remains inside the current overscan buffer
+   ↓ DesktopPluginUiController > keeps the virtual outline viewport stable while background scanning extends the total
+   ↓ DesktopPluginUiController > requests one adjacent buffer only after a real user wheel gesture reaches an edge
+   ↓ DesktopPluginUiController > requests the previous buffer only when the list reaches the exact top edge
+   ↓ DesktopPluginUiController > does not request an adjacent buffer for a small scroll far from the cache edge
+   ↓ DesktopPluginUiController > compensates scroll position once when headings are prepended
+   ↓ DesktopPluginUiController > coalesces viewport updates without running concurrent plugin renders
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  apps/desktop/src/desktop-plugin-ui.test.ts > DesktopPluginUiController > restores a virtual keyboard target named by text without requiring aria-label
+AssertionError: expected 'TreeHeading 17840Heading 17841Heading…' to be 'Heading 17999' // Object.is equality
+
+Expected: "Heading 17999"
+Received: "TreeHeading 17840Heading 17841Heading 17842Heading 17843Heading 17844Heading 17845Heading 17846Heading 17847Heading 17848Heading 17849Heading 17850Heading 17851Heading 17852Heading 17853Heading 17854Heading 17855Heading 17856Heading 17857Heading 17858Heading 17859Heading 17860Heading 17861Heading 17862Heading 17863Heading 17864Heading 17865Heading 17866Heading 17867Heading 17868Heading 17869Heading 17870Heading 17871Heading 17872Heading 17873Heading 17874Heading 17875Heading 17876Heading 17877Heading 17878Heading 17879Heading 17880Heading 17881Heading 17882Heading 17883Heading 17884Heading 17885Heading 17886Heading 17887Heading 17888Heading 17889Heading 17890Heading 17891Heading 17892Heading 17893Heading 17894Heading 17895Heading 17896Heading 17897Heading 17898Heading 17899Heading 17900Heading 17901Heading 17902Heading 17903Heading 17904Heading 17905Heading 17906Heading 17907Heading 17908Heading 17909Heading 17910Heading 17911Heading 17912Heading 17913Heading 17914Heading 17915Heading 17916Heading 17917Heading 17918Heading 17919Heading 17920Heading 17921Heading 17922Heading 17923Heading 17924Heading 17925Heading 17926Heading 17927Heading 17928Heading 17929Heading 17930Heading 17931Heading 17932Heading 17933Heading 17934Heading 17935Heading 17936Heading 17937Heading 17938Heading 17939Heading 17940Heading 17941Heading 17942Heading 17943Heading 17944Heading 17945Heading 17946Heading 17947Heading 17948Heading 17949Heading 17950Heading 17951Heading 17952Heading 17953Heading 17954Heading 17955Heading 17956Heading 17957Heading 17958Heading 17959Heading 17960Heading 17961Heading 17962Heading 17963Heading 17964Heading 17965Heading 17966Heading 17967Heading 17968Heading 17969Heading 17970Heading 17971Heading 17972Heading 17973Heading 17974Heading 17975Heading 17976Heading 17977Heading 17978Heading 17979Heading 17980Heading 17981Heading 17982Heading 17983Heading 17984Heading 17985Heading 17986Heading 17987Heading 17988Heading 17989Heading 17990Heading 17991Heading 17992Heading 17993Heading 17994Heading 17995Heading 17996Heading 17997Heading 17998Heading 17999"
+
+ ❯ apps/desktop/src/desktop-plugin-ui.test.ts:26:72
+     24|     document.querySelector<HTMLButtonElement>('[role="treeitem"]')!.fo…
+     25|     document.activeElement!.dispatchEvent(new KeyboardEvent('keydown',…
+     26|     await vi.waitFor(() => expect(document.activeElement?.textContent)…
+       |                                                                        ^
+     27|     await controller.dispose()
+     28|   })
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 36 skipped (37)
+   Start at  10:49:03
+   Duration  3.62s (transform 987ms, setup 0ms, collect 1.32s, tests 1.08s, environment 606ms, prepare 128ms)
+

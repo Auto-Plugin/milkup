@@ -1,0 +1,10 @@
+from pathlib import Path
+import json,hashlib,shutil,sys
+p=Path(__file__).parent;n=p.parent/'svg-converter-prototype/native-runner';zoom=float(sys.argv[1]);assert zoom in [1.25,2.0];label='125' if zoom==1.25 else '200';q=p/('revision-identity'+label);q.mkdir()
+base=(p/'revision-identity01/paired-main.rs').read_text();w=int(1100*zoom);h=int(800*zoom)
+s=base.replace('LogicalSize::new(1100.,800.)',f'LogicalSize::new({w}.,{h}.)').replace('native.set_size_request(1100,800);native.set_zoom_level(1.0)',f'native.set_size_request({w},{h});native.set_zoom_level({zoom})').replace('"zoom":1.0',f'"zoom":{zoom}')
+assert s!=base
+(n/'paired-helper/src/main.rs').write_text(s);(q/'paired-main.rs').write_text(s)
+entry=(p/'entry-identity.mjs').read_text().replace('geometry:geometry(root),requestId:request.id','geometry:geometry(root),viewport:{width:innerWidth,height:innerHeight,dpr:devicePixelRatio},requestId:request.id')
+(p/('entry-identity'+label+'.mjs')).write_text(entry);(q/'entry.mjs').write_text(entry);shutil.copyfile(p/'normalize-identity.mjs',q/'normalize-identity.mjs')
+(p/('preparation-identity'+label+'.json')).write_text(json.dumps({'status':'prepared-not-run','nativeZoom':zoom,'requestedPhysicalViewport':[w,h],'expectedCssViewport':[1100,800],'changes':'Fixed external helper zoom and widget/window dimensions only; policy, budgets and original input unchanged. Added passive viewport fields. Native WebView snapshots, not entire X11 desktop.'},indent=2)+'\n')

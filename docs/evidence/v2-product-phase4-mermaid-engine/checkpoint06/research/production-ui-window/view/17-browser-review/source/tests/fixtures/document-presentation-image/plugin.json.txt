@@ -1,0 +1,15 @@
+{
+  "id": "test.document-image",
+  "name": "Controlled Document Image Fixture",
+  "version": "1.0.0",
+  "description": "Browser-only closed AST fixture; not the official Mermaid engine.",
+  "host": "worker",
+  "main": "./plugin.ts",
+  "engines": { "milkup": "^2.0.0-0", "pluginSdk": ">=0.3.4 <0.4.0" },
+  "permissions": ["document:read"],
+  "contributes": {
+    "documentRenderers": [
+      { "id": "fixture.image", "contexts": ["fence"], "fenceLanguages": ["mermaid"] }
+    ]
+  }
+}

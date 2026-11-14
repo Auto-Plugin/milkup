@@ -1,0 +1,157 @@
+﻿2026-10-21T10:27:24.6160806Z ##[group]Run $ErrorActionPreference = 'Stop'
+2026-10-21T10:27:24.6161279Z [36;1m$ErrorActionPreference = 'Stop'[0m
+2026-10-21T10:27:24.6162050Z [36;1mforeach ($file in @('check-windows-desktop-source.ps1','build-windows-manual-candidate.ps1','verify-windows-app-manifest.ps1','test-windows-rust-library.ps1')) {[0m
+2026-10-21T10:27:24.6162799Z [36;1m  $tokens = $null[0m
+2026-10-21T10:27:24.6163024Z [36;1m  $parseErrors = $null[0m
+2026-10-21T10:27:24.6163630Z [36;1m  $null = [System.Management.Automation.Language.Parser]::ParseFile((Join-Path $PWD "scripts/ci/$file"), [ref]$tokens, [ref]$parseErrors)[0m
+2026-10-21T10:27:24.6164382Z [36;1m  if ($parseErrors.Count) { throw ($parseErrors | Out-String) }[0m
+2026-10-21T10:27:24.6164729Z [36;1m}[0m
+2026-10-21T10:27:24.6165034Z [36;1m$command = Get-Command ./scripts/ci/verify-windows-app-manifest.ps1[0m
+2026-10-21T10:27:24.6165790Z [36;1m$allowed = @($command.Parameters['EvidenceName'].Attributes | Where-Object { $_ -is [System.Management.Automation.ValidateSetAttribute] })[0m
+2026-10-21T10:27:24.6167266Z [36;1mif ($allowed.Count -ne 1 -or $allowed[0].ValidValues -cnotcontains 'packaged-production-binary') { throw 'Packaged manifest evidence name rejected' }[0m
+2026-10-21T10:27:24.6167981Z [36;1m$sevenZip = Get-Command 7z -ErrorAction Stop[0m
+2026-10-21T10:27:24.6168361Z [36;1mWrite-Host "Archive inspection tool: $($sevenZip.Source)"[0m
+2026-10-21T10:27:24.6168716Z [36;1m& $sevenZip.Source i[0m
+2026-10-21T10:27:24.6169090Z [36;1mif ($LASTEXITCODE -ne 0) { throw 'Existing archive inspection tool unavailable' }[0m
+2026-10-21T10:27:24.6169676Z [36;1m$mt = @(Get-ChildItem "${env:ProgramFiles(x86)}/Windows Kits/10/bin/*/x64/mt.exe" -File)[0m
+2026-10-21T10:27:24.6170198Z [36;1mif ($mt.Count -eq 0) { throw 'Windows SDK manifest tool unavailable' }[0m
+2026-10-21T10:27:24.6170563Z [36;1m$mt.FullName | Write-Host[0m
+2026-10-21T10:27:24.6170894Z [36;1mnode --check scripts/ci/prepare-manual-trial-payload.mjs[0m
+2026-10-21T10:27:24.6171374Z [36;1mif ($LASTEXITCODE -ne 0) { throw 'Delivery payload script syntax invalid' }[0m
+2026-10-21T10:27:24.6171833Z [36;1mnode --test tests/windows/verify-build-tree.test.mjs[0m
+2026-10-21T10:27:24.6172271Z [36;1mif ($LASTEXITCODE -ne 0) { throw 'Source-state gate regressions failed' }[0m
+2026-10-21T10:27:24.6243745Z shell: C:\Program Files\PowerShell\7\pwsh.EXE -command ". '{0}'"
+2026-10-21T10:27:24.6244092Z env:
+2026-10-21T10:27:24.6244263Z   CARGO_BUILD_JOBS: 2
+2026-10-21T10:27:24.6244463Z   CARGO_INCREMENTAL: 0
+2026-10-21T10:27:24.6244664Z   CARGO_PROFILE_DEV_DEBUG: 0
+2026-10-21T10:27:24.6244911Z   CARGO_PROFILE_RELEASE_DEBUG: 0
+2026-10-21T10:27:24.6245354Z   CARGO_TERM_COLOR: never
+2026-10-21T10:27:24.6245664Z   PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: 1
+2026-10-21T10:27:24.6245905Z   GIT_CONFIG_COUNT: 1
+2026-10-21T10:27:24.6246109Z   GIT_CONFIG_KEY_0: core.longpaths
+2026-10-21T10:27:24.6246340Z   GIT_CONFIG_VALUE_0: true
+2026-10-21T10:27:24.6246554Z   RUSTUP_TOOLCHAIN: 1.99.0
+2026-10-21T10:27:24.6246774Z ##[endgroup]
+2026-10-21T10:27:25.2997229Z Archive inspection tool: C:\ProgramData\Chocolatey\bin\7z.exe
+2026-10-21T10:27:26.2818659Z 
+2026-10-21T10:27:26.2819856Z 7-Zip 26.04 (x64) : Copyright (c) 1999-2026 Igor Pavlov : 2026-10-05
+2026-10-21T10:27:26.2820390Z 
+2026-10-21T10:27:26.2820402Z 
+2026-10-21T10:27:26.2820550Z Libs:
+2026-10-21T10:27:26.2820947Z  0 : 26.04 : c:\program files\7-zip\7z.dll
+2026-10-21T10:27:26.2821287Z 
+2026-10-21T10:27:26.2821421Z Formats:
+2026-10-21T10:27:26.2821989Z  0 C...F..........c.a.m+.. w...0  7z       7z            7 z BC AF ' 1C
+2026-10-21T10:27:26.2824469Z  0  ......................  APFS     apfs img      offset=32 N X S B 00
+2026-10-21T10:27:26.2825205Z  0  ......................  APM      apm           E R
+2026-10-21T10:27:26.2826700Z  0  ......................  Ar       ar a deb udeb lib ! < a r c h > 0A
+2026-10-21T10:27:26.2827416Z  0  ......................  Arj      arj           ` EA
+2026-10-21T10:27:26.2828030Z  0  K.....O.....X.........  Base64   b64           
+2026-10-21T10:27:26.2831396Z  0  ......O...............  COFF     obj           
+2026-10-21T10:27:26.2839115Z  0  ...F..................  Cab      cab           M S C F 00 00 00 00
+2026-10-21T10:27:26.2840413Z  0  ......................  Chm      chm chi chq chw I T S F 03 00 00 00 ` 00 00 00
+2026-10-21T10:27:26.2841662Z  0  ......................  Compound msi msp msm doc xls ppt aaf D0 CF 11 E0 A1 B1 1A E1
+2026-10-21T10:27:26.2842918Z  0  ....M.................  Cpio     cpio          0 7 0 7 0  ||  C7 q  ||  q C7
+2026-10-21T10:27:26.2844220Z  0  ......................  CramFS   cramfs        offset=16 C o m p r e s s e d 20 R O M F S
+2026-10-21T10:27:26.2845528Z  0  .....G..B.............  Dmg      dmg           k o l y 00 00 00 04 00 00 02 00
+2026-10-21T10:27:26.2846907Z  0  .........E............  ELF      elf            E L F
+2026-10-21T10:27:26.2848167Z  0  ......................  Ext      ext ext2 ext3 ext4 img offset=1080 S EF
+2026-10-21T10:27:26.2849209Z  0  ......................  FAT      fat img       offset=510 U AA
+2026-10-21T10:27:26.2851116Z  0  ......................  FLV      flv           F L V 01
+2026-10-21T10:27:26.2854544Z  0  ......................  GPT      gpt mbr       offset=512 E F I 20 P A R T 00 00 01 00
+2026-10-21T10:27:26.2855797Z  0  ....M.................  HFS      hfs hfsx      offset=1024 B D  ||  H + 00 04  ||  H X 00 05
+2026-10-21T10:27:26.2857079Z  0  ...F..................  Hxs      hxs hxi hxr hxq hxw lit I T O L I T L S 01 00 00 00 ( 00 00 00
+2026-10-21T10:27:26.2858144Z  0  ......O...............  IHex     ihex          
+2026-10-21T10:27:26.2859056Z  0  ......................  Iso      iso img       offset=32769 C D 0 0 1
+2026-10-21T10:27:26.2860085Z  0  ......................  LP       lpimg img     offset=4096 g D l a 4 00 00 00
+2026-10-21T10:27:26.2861095Z  0  ......................  Lzh      lzh lha       offset=2 - l h
+2026-10-21T10:27:26.2862001Z  0  .......P..............  MBR      mbr           
+2026-10-21T10:27:26.2863355Z  0  ....M....E............  MachO    macho         CE FA ED FE  ||  CF FA ED FE  ||  FE ED FA CE  ||  FE ED FA CF
+2026-10-21T10:27:26.2864431Z  0  ......................  MsLZ     mslz          S Z D D 88 F0 ' 3 A
+2026-10-21T10:27:26.2865950Z  0  ....M.................  Mub      mub           CA FE BA BE 00 00 00  ||  B9 FA F1 0E
+2026-10-21T10:27:26.2867793Z  0  ......................  NTFS     ntfs img      offset=3 N T F S 20 20 20 20 00
+2026-10-21T10:27:26.2868854Z  0  ...F.G................  Nsis     nsis          offset=4 EF BE AD DE N u l l s o f t I n s t
+2026-10-21T10:27:26.2869666Z  0  .........E............  PE       exe dll sys   M Z
+2026-10-21T10:27:26.2870290Z  0  ......................  Ppmd     pmd           8F AF AC 84
+2026-10-21T10:27:26.2870985Z  0  ......................  QCOW     qcow qcow2 qcow2c Q F I FB 00 00 00
+2026-10-21T10:27:26.2871704Z  0  ...F..................  Rar      rar r00       R a r ! 1A 07 00
+2026-10-21T10:27:26.2872686Z  0  ...F..................  Rar5     rar r00       R a r ! 1A 07 01 00
+2026-10-21T10:27:26.2873633Z  0  ......................  Rpm      rpm           ED AB EE DB
+2026-10-21T10:27:26.2874278Z  0  K.....................  SWF      swf           F W S
+2026-10-21T10:27:26.2874910Z  0  ....M.................  SWFc     swf (~.swf)   C W S  ||  Z W S
+2026-10-21T10:27:26.2875618Z  0  ......................  Sparse   simg img      : FF & ED 01 00
+2026-10-21T10:27:26.2876311Z  0  ......................  Split    001           
+2026-10-21T10:27:26.2877144Z  0  ....M.................  SquashFS squashfs      h s q s  ||  s q s h  ||  s h s q  ||  q s h s
+2026-10-21T10:27:26.2878277Z  0  .........E............  TE       te            V Z
+2026-10-21T10:27:26.2879497Z  0  ...FM.................  UEFIc    scap          BD 86 f ; v 0D 0 @ B7 0E B5 Q 9E / C5 A0  ||  8B A6 < J # w FB H 80 = W 8C C1 FE C4 M  ||  B9 82 91 S B5 AB 91 C B6 9A E3 A9 C F7 / CC
+2026-10-21T10:27:26.2881126Z  0  ...FM.................  UEFIf    uefif         offset=16 D9 T 93 z h 04 J D 81 CE 0B F6 17 D8 90 DF  ||  x E5 8C 8C = 8A 1C O 99 5 89 a 85 C3 - D3
+2026-10-21T10:27:26.2883453Z  0  ....M.O...............  Udf      udf iso img   offset=32768 00 B E A 0 1 01 00  ||  01 C D 0 0 1
+2026-10-21T10:27:26.2884624Z  0  ......................  VDI      vdi           offset=64  10 DA BE
+2026-10-21T10:27:26.2885386Z  0  .....G................  VHD      vhd           c o n e c t i x 00 00 00
+2026-10-21T10:27:26.2886114Z  0  ......................  VHDX     vhdx avhdx    v h d x f i l e
+2026-10-21T10:27:26.2887132Z  0  ......................  VMDK     vmdk          K D M V
+2026-10-21T10:27:26.2887809Z  0  ......................  Xar      xar pkg xip   x a r ! 00
+2026-10-21T10:27:26.2888469Z  0  ......................  Z        z taz (.tar)  1F 9D
+2026-10-21T10:27:26.2889184Z  0 CK.....................  bzip2    bz2 bzip2 tbz2 (.tar) tbz (.tar) B Z h
+2026-10-21T10:27:26.2890060Z  0 CK.................m+.. .u..1  gzip     gz gzip tgz (.tar) tpz (.tar) apk (.tar) 1F 8B 08
+2026-10-21T10:27:26.2890845Z  0  K.....O...............  lzma     lzma          
+2026-10-21T10:27:26.2891411Z  0  K.....................  lzma86   lzma86        
+2026-10-21T10:27:26.2892104Z  0 C......O...LH......m+.. wu.n1  tar      tar ova       offset=257 u s t a r
+2026-10-21T10:27:26.2893356Z  0 C.SN.......LH..c.a.m+.. w...0  wim      wim swm esd ppkg M S W I M 00 00 00
+2026-10-21T10:27:26.2894019Z  0 CK.....................  xz       xz txz (.tar) FD 7 z X Z 00
+2026-10-21T10:27:26.2895043Z  0 C...FMG........c.a.m+.. wud.0  zip      zip z01 zipx jar xpi odt ods docx xlsx epub ipa apk appx P K 03 04  ||  P K 05 06  ||  P K 06 06  ||  P K 07 08 P K  ||  P K 0 0 P K
+2026-10-21T10:27:26.2896581Z  0  K.....................  zstd     zst tzst (.tar) ( B5 / FD
+2026-10-21T10:27:26.2898235Z    CK.....O.....XC........  Hash     sha256 sha512 sha384 sha224 sha512-224 sha512-256 sha3-224 sha3-256 sha3-384 sha3-512 sha1 sha2 sha3 sha md5 blake2s blake2b blake2sp xxh64 crc32 crc64 cksum asc 
+2026-10-21T10:27:26.2899543Z 
+2026-10-21T10:27:26.2899681Z Codecs:
+2026-10-21T10:27:26.2899988Z  0 4ED   303011B BCJ2
+2026-10-21T10:27:26.2900348Z  0  EDF  3030103 BCJ
+2026-10-21T10:27:26.2900685Z  0  EDF  3030205 PPC
+2026-10-21T10:27:26.2901008Z  0  EDF  3030401 IA64
+2026-10-21T10:27:26.2901338Z  0  EDF  3030501 ARM
+2026-10-21T10:27:26.2901664Z  0  EDF  3030701 ARMT
+2026-10-21T10:27:26.2901994Z  0  EDF  3030805 SPARC
+2026-10-21T10:27:26.2902334Z  0  EDF        A ARM64
+2026-10-21T10:27:26.2902676Z  0  EDF        B RISCV
+2026-10-21T10:27:26.2903012Z  0  EDF    20302 Swap2
+2026-10-21T10:27:26.2903355Z  0  EDF    20304 Swap4
+2026-10-21T10:27:26.2903694Z  0  ED     40202 BZip2
+2026-10-21T10:27:26.2904031Z  0  ED         0 Copy
+2026-10-21T10:27:26.2904382Z  0  ED     40109 Deflate64
+2026-10-21T10:27:26.2904759Z  0  ED     40108 Deflate
+2026-10-21T10:27:26.2905109Z  0  EDF        3 Delta
+2026-10-21T10:27:26.2905436Z  0  ED        21 LZMA2
+2026-10-21T10:27:26.2905768Z  0  ED     30101 LZMA
+2026-10-21T10:27:26.2906086Z  0  ED     30401 PPMD
+2026-10-21T10:27:26.2906398Z  0   D     40301 Rar1
+2026-10-21T10:27:26.2906711Z  0   D     40302 Rar2
+2026-10-21T10:27:26.2907018Z  0   D     40303 Rar3
+2026-10-21T10:27:26.2907327Z  0   D     40305 Rar5
+2026-10-21T10:27:26.2907645Z  0  EDF  6F10701 7zAES
+2026-10-21T10:27:26.2907990Z  0  EDF  6F00181 AES256CBC
+2026-10-21T10:27:26.2908233Z 
+2026-10-21T10:27:26.2908357Z Hashers:
+2026-10-21T10:27:26.2908640Z  0    4        1 CRC32
+2026-10-21T10:27:26.2908955Z  0   16      208 MD5
+2026-10-21T10:27:26.2909266Z  0   20      201 SHA1
+2026-10-21T10:27:26.2909852Z  0   32        A SHA256
+2026-10-21T10:27:26.2910184Z  0   32      231 SHA3-256
+2026-10-21T10:27:26.2910533Z  0   48      222 SHA384
+2026-10-21T10:27:26.2910885Z  0   64      223 SHA512
+2026-10-21T10:27:26.2911254Z  0    8      211 XXH64
+2026-10-21T10:27:26.2911573Z  0    8        4 CRC64
+2026-10-21T10:27:26.2911890Z  0   32      202 BLAKE2sp
+2026-10-21T10:27:26.6290051Z C:\Program Files (x86)\Windows Kits\10\bin\10.0.26100.0\x64\mt.exe
+2026-10-21T10:27:27.3600518Z ✔ accepts clean checkout and records known generated JSON without restoring it (553.1943ms)
+2026-10-21T10:27:27.7806491Z ✔ rejects tracked source edits (421.6234ms)
+2026-10-21T10:27:28.1320844Z ✔ rejects unexpected untracked files even in the schema directory (351.3851ms)
+2026-10-21T10:27:28.5036193Z ✔ rejects malformed generated JSON (371.8267ms)
+2026-10-21T10:27:28.5154373Z ℹ tests 4
+2026-10-21T10:27:28.5154804Z ℹ suites 0
+2026-10-21T10:27:28.5155145Z ℹ pass 4
+2026-10-21T10:27:28.5155693Z ℹ fail 0
+2026-10-21T10:27:28.5156249Z ℹ cancelled 0
+2026-10-21T10:27:28.5156648Z ℹ skipped 0
+2026-10-21T10:27:28.5157024Z ℹ todo 0
+2026-10-21T10:27:28.5157414Z ℹ duration_ms 1783.9266

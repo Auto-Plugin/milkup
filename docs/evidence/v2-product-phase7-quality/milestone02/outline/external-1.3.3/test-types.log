@@ -1,0 +1,10 @@
+../milkup-p7-outline-1.3.3-external/src/plugin.test.ts(113,7): error TS2739: Type '{ scan: Mock<(request: SdkDocumentScanRequest) => SdkDocumentScanner>; }' is missing the following properties from type 'SdkPluginDocumentHost': readWindow, invalidatePresentation
+../milkup-p7-outline-1.3.3-external/src/plugin.test.ts(120,7): error TS2739: Type '{ revealLine: Mock<(_line: number) => Promise<void>>; requestUpdate: Mock<() => Promise<void>>; }' is missing the following properties from type 'SdkPluginUiHost': revealLocation, open, notify
+../milkup-p7-outline-1.3.3-external/src/plugin.test.ts(133,5): error TS2375: Type '{ virtualViewport?: { id: string; fromIndex: number; toIndex: number; userInitiated: true; }; viewport?: { activeLine: number; }; phase: "update"; documentId: string; documentVersion: number; viewMode: "source" | "live"; }' is not assignable to type 'SdkPluginUiNode' with 'exactOptionalPropertyTypes: true'. Consider adding 'undefined' to the types of the target's properties.
+  Types of property 'viewport' are incompatible.
+    Type '{ activeLine: number; }' is missing the following properties from type 'SdkPluginViewport': fromLine, toLine
+../milkup-p7-outline-1.3.3-external/src/plugin.test.ts(394,53): error TS2345: Argument of type '{ fromLine: number; toLine: number; }' is not assignable to parameter of type 'SdkDocumentScanRequest'.
+  Property 'query' is missing in type '{ fromLine: number; toLine: number; }' but required in type 'SdkDocumentScanRequest'.
+../milkup-p7-outline-1.3.3-external/src/plugin.test.ts(484,15): error TS2739: Type '{ scan: () => SdkDocumentScanner; }' is missing the following properties from type 'SdkPluginDocumentHost': readWindow, invalidatePresentation
+../milkup-p7-outline-1.3.3-external/src/plugin.test.ts(484,57): error TS2345: Argument of type '{}' is not assignable to parameter of type 'SdkDocumentScanRequest'.
+  Property 'query' is missing in type '{}' but required in type 'SdkDocumentScanRequest'.

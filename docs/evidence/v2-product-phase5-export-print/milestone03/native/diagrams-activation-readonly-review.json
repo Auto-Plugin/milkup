@@ -1,0 +1,87 @@
+{
+  "scope": "Read-only diagnosis; product frozen; no UI operations or privileged IPC invoked",
+  "timeUtc": "2026-10-19T02:42:50.813340+00:00",
+  "evidenceRun": "p5-html-03",
+  "archiveSha256": "2351692438a2083a72bcb8cddce28c7a530a8557734926992a3a2e3120c68a19",
+  "manifest": {
+    "id": "milkup.diagrams",
+    "name": "Milkup Diagrams",
+    "version": "1.1.1",
+    "description": "使用完整官方 Mermaid 引擎离线呈现图表；无法安全呈现的内容保留完整源码。",
+    "host": "dom",
+    "main": "./dist/plugin.js",
+    "engines": {
+      "milkup": "^2.0.0-0",
+      "pluginSdk": ">=0.3.4 <0.4.0"
+    },
+    "permissions": [
+      "document:read"
+    ],
+    "contributes": {
+      "documentRenderers": [
+        {
+          "id": "diagrams.mermaid",
+          "contexts": [
+            "fence"
+          ],
+          "fenceLanguages": [
+            "mermaid"
+          ]
+        }
+      ]
+    },
+    "resources": [
+      "THIRD-PARTY-NOTICES.txt",
+      "dependency-provenance.json"
+    ]
+  },
+  "findings": [
+    "runtime.enablePlugin catches activation/registration exceptions and throws plain PluginRuntimeErrorRecord; manager then passes this to registry.markFailed, whose String(non-Error) produces [object Object].",
+    "DOM transport hides send rejection details and native event error strings. Native process further replaces activation RPC ok:false underlying error with DOM plugin activation failed.",
+    "Existing MILKUP_DOM_DIAGNOSTICS emits phase/instance/request/PID/monotonic timestamps, but no error cause.",
+    "Archive SDK range >=0.3.4 <0.4.0 includes host 0.3.5. Current plugin activate clears memo and awaits document.fonts.ready. DOM context host is {} and document:output broker resolution is permission-gated.",
+    "Existing driver log contains inspector address-in-use warning but no sufficient error detail; no causal attribution is established."
+  ],
+  "nextStep": [
+    "Next fresh rich-stage run enables MILKUP_DOM_DIAGNOSTICS=1.",
+    "Before activation, read-only wrappers observe original Tauri invoke rejections and transformCallback DOM event payloads while forwarding original arguments, values and errors unchanged.",
+    "Classify exact native failure first; if activation RPC failed, underlying bootstrap error remains hidden and needs a separately approved minimal diagnostic rather than assuming native permission or deadline cause."
+  ],
+  "open": [
+    "Underlying diagrams1.1.1 activation failure unresolved.",
+    "No assertion about the prior P4 render1037 issue; this is activation diagnosis only."
+  ],
+  "sourceSha256": {
+    "packages/plugin/src/runtime.ts": "ee5618913e532abef2dcd99dddf9af6530001de3153c771ef8380bae0bd5a028",
+    "packages/plugin/src/registry.ts": "9e1ac9d598822f0bd35bcfb1e70eb4f8268c078646f1c9f84d8174254f09490d",
+    "apps/desktop/src/desktop-plugin-manager.ts": "22378cf7ba8ba4fa9a3a713f52f7945693b46a4b92c9466e14f69e2f00b95479",
+    "apps/desktop/src/plugin-dom.ts": "0f46f362aa14ef4c79bd46412ede7dac4d557be2ef12eadb6370e6756771f663",
+    "apps/desktop/src-tauri/src/plugin_dom_process.rs": "c6540ffc4d11e61050379d68bad0342c0cfaf8ec4a6fe60075b18ddecd851702",
+    "apps/desktop/src-tauri/src/plugin_dom_bootstrap.js": "9442fd1802dd24a358cbbe8636de34851eb5d198b5c97f3a95c13aa5daf6a8b4",
+    "plugins/diagrams/src/plugin.ts": "613c8b5702e4cbcdce4c2a75d09b1b010d330d83344d2ac2ca3dc3ed99d942f1",
+    "plugins/diagrams/src/renderer.ts": "515ef0542b105de4c083d648c59f8c89e98001a4e7368f52afe053c868ce307a"
+  },
+  "followup": {
+    "run": "p5-html-04",
+    "completion": {
+      "stage": "html",
+      "passed": true,
+      "checked": [
+        "rich-renderers-approved-enabled",
+        "installed-unapproved",
+        "approved-enabled-sidebar",
+        "fixture-opened",
+        "complete.html",
+        "without-images.html"
+      ],
+      "visualReview": "pending",
+      "sourceSha256": "d42c908b9be785ed0a9e9ae9c22e91740b12b4cddb7ee48dac088f8415500957"
+    },
+    "confirmed": "results registry shows independent diagrams1.1.1 enabled; two HTML exports completed. The same remote inspector port warning occurs on this successful run. Initial p5-html-03 activation error remains unclassified and was not reproduced.",
+    "evidenceSha256": {
+      "/workspace/milkup-export-print-evidence/milestone01/native-ui/runs/p5-html-04/completion.json": "7d9f8bd1c00f6e69738925664963ef10a6691f873d7eb4235fea37dfb78ad7a8",
+      "/workspace/milkup-export-print-evidence/milestone01/native-ui/runs/p5-html-04/results.json": "0f55a8b1b4db66feb9cbe6723eae4ca623e961e4b83db92ce975f2a0ffc93c37",
+      "/workspace/milkup-export-print-evidence/milestone01/native-ui/logs/p5-html-04-driver.log": "3083d19bdd09c014c9800d239e8c27d3e30058dca903057a4c51f77a32a04825"
+    }
+  }
+}

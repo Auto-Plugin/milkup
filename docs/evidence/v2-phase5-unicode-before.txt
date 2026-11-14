@@ -1,0 +1,251 @@
+$ vitest run src/__tests__/source-unicode.test.ts
+
+ RUN  v3.2.6 /workspace/milkup/packages/view-dom
+
+ ❯ src/__tests__/source-unicode.test.ts (30 tests | 28 failed) 1978ms
+   × windowed source Unicode keys > moves and extends selection over the whole 😀 471ms
+     → expected 2 to be 3 // Object.is equality
+   ✓ windowed source Unicode keys > deletes the whole 😀 forward 50ms
+   × windowed source Unicode keys > deletes the whole 😀 backward 84ms
+     → Visible edit range is outside the rendered document window
+   × windowed source Unicode keys > moves and extends selection over the whole é 37ms
+     → expected 2 to be 3 // Object.is equality
+   × windowed source Unicode keys > deletes the whole é forward 45ms
+     → expected 'ÁB' to be 'AB' // Object.is equality
+   × windowed source Unicode keys > deletes the whole é backward 55ms
+     → Visible edit range is outside the rendered document window
+   × windowed source Unicode keys > moves and extends selection over the whole 👩🏽‍💻 34ms
+     → expected 2 to be 8 // Object.is equality
+   × windowed source Unicode keys > deletes the whole 👩🏽‍💻 forward 33ms
+     → expected 'A🏽\u200d💻B' to be 'AB' // Object.is equality
+   × windowed source Unicode keys > deletes the whole 👩🏽‍💻 backward 55ms
+     → Visible edit range is outside the rendered document window
+   × windowed source Unicode keys > moves and extends selection over the whole 🇨🇳 37ms
+     → expected 2 to be 5 // Object.is equality
+   × windowed source Unicode keys > deletes the whole 🇨🇳 forward 62ms
+     → expected 'A🇳B' to be 'AB' // Object.is equality
+   × windowed source Unicode keys > deletes the whole 🇨🇳 backward 58ms
+     → Visible edit range is outside the rendered document window
+   × windowed source Unicode keys > snaps vertical movement to the beginning of a grapheme 36ms
+     → expected 6 to be 5 // Object.is equality
+   × windowed source Unicode keys > deletes an entire offscreen CRLF backward with the correct undo payload 54ms
+     → Visible edit range is outside the rendered document window
+   × windowed source Unicode keys > crosses and deletes an offscreen CRLF forward using bounded reads 37ms
+     → expected NaN to be 3 // Object.is equality
+   × windowed live Unicode keys > moves and extends selection over the whole 😀 49ms
+     → expected 2 to be 3 // Object.is equality
+   ✓ windowed live Unicode keys > deletes the whole 😀 forward 49ms
+   × windowed live Unicode keys > deletes the whole 😀 backward 63ms
+     → Visible edit range is outside the rendered document window
+   × windowed live Unicode keys > moves and extends selection over the whole é 52ms
+     → expected 2 to be 3 // Object.is equality
+   × windowed live Unicode keys > deletes the whole é forward 63ms
+     → expected 'ÁB' to be 'AB' // Object.is equality
+   × windowed live Unicode keys > deletes the whole é backward 71ms
+     → Visible edit range is outside the rendered document window
+   × windowed live Unicode keys > moves and extends selection over the whole 👩🏽‍💻 58ms
+     → expected 2 to be 8 // Object.is equality
+   × windowed live Unicode keys > deletes the whole 👩🏽‍💻 forward 57ms
+     → expected 'A🏽\u200d💻B' to be 'AB' // Object.is equality
+   × windowed live Unicode keys > deletes the whole 👩🏽‍💻 backward 100ms
+     → Visible edit range is outside the rendered document window
+   × windowed live Unicode keys > moves and extends selection over the whole 🇨🇳 51ms
+     → expected 2 to be 5 // Object.is equality
+   × windowed live Unicode keys > deletes the whole 🇨🇳 forward 35ms
+     → expected 'A🇳B' to be 'AB' // Object.is equality
+   × windowed live Unicode keys > deletes the whole 🇨🇳 backward 53ms
+     → Visible edit range is outside the rendered document window
+   × windowed live Unicode keys > snaps vertical movement to the beginning of a grapheme 36ms
+     → expected 6 to be 5 // Object.is equality
+   × windowed live Unicode keys > deletes an entire offscreen CRLF backward with the correct undo payload 55ms
+     → Visible edit range is outside the rendered document window
+   × windowed live Unicode keys > crosses and deletes an offscreen CRLF forward using bounded reads 32ms
+     → expected NaN to be 3 // Object.is equality
+
+⎯⎯⎯⎯⎯⎯ Failed Tests 28 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/__tests__/source-unicode.test.ts > windowed source Unicode keys > moves and extends selection over the whole 😀
+ FAIL  src/__tests__/source-unicode.test.ts > windowed source Unicode keys > moves and extends selection over the whole é
+ FAIL  src/__tests__/source-unicode.test.ts > windowed live Unicode keys > moves and extends selection over the whole 😀
+ FAIL  src/__tests__/source-unicode.test.ts > windowed live Unicode keys > moves and extends selection over the whole é
+AssertionError: expected 2 to be 3 // Object.is equality
+
+- Expected
++ Received
+
+- 3
++ 2
+
+ ❯ src/__tests__/source-unicode.test.ts:53:28
+     51|         s.key('ArrowRight'); s.key('ArrowRight')
+     52|         await new Promise(resolve => setTimeout(resolve, 20)); await s…
+     53|         expect(s.cursor()).toBe(1 + grapheme.length)
+       |                            ^
+     54|         s.key('ArrowLeft', true); s.key('Delete')
+     55|         await new Promise(resolve => setTimeout(resolve, 20)); await s…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/28]⎯
+
+ FAIL  src/__tests__/source-unicode.test.ts > windowed source Unicode keys > deletes the whole 😀 backward
+ FAIL  src/__tests__/source-unicode.test.ts > windowed source Unicode keys > deletes the whole é backward
+ FAIL  src/__tests__/source-unicode.test.ts > windowed source Unicode keys > deletes the whole 👩🏽‍💻 backward
+ FAIL  src/__tests__/source-unicode.test.ts > windowed source Unicode keys > deletes the whole 🇨🇳 backward
+ FAIL  src/__tests__/source-unicode.test.ts > windowed source Unicode keys > deletes an entire offscreen CRLF backward with the correct undo payload
+ FAIL  src/__tests__/source-unicode.test.ts > windowed live Unicode keys > deletes the whole 😀 backward
+ FAIL  src/__tests__/source-unicode.test.ts > windowed live Unicode keys > deletes the whole é backward
+ FAIL  src/__tests__/source-unicode.test.ts > windowed live Unicode keys > deletes the whole 👩🏽‍💻 backward
+ FAIL  src/__tests__/source-unicode.test.ts > windowed live Unicode keys > deletes the whole 🇨🇳 backward
+ FAIL  src/__tests__/source-unicode.test.ts > windowed live Unicode keys > deletes an entire offscreen CRLF backward with the correct undo payload
+RangeError: Visible edit range is outside the rendered document window
+ ❯ SourceDocumentView.readVisibleRangeText src/source-document-view.ts:1221:13
+    1219| 
+    1220|     if (from < window.from || to > window.to) {
+    1221|       throw new RangeError('Visible edit range is outside the rendered…
+       |             ^
+    1222|     }
+    1223| 
+ ❯ SourceDocumentView.applyVisibleEdit src/source-document-view.ts:930:25
+ ❯ SourceDocumentView.deleteAroundCursor src/source-document-view.ts:910:5
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/28]⎯
+
+ FAIL  src/__tests__/source-unicode.test.ts > windowed source Unicode keys > deletes the whole é forward
+ FAIL  src/__tests__/source-unicode.test.ts > windowed live Unicode keys > deletes the whole é forward
+AssertionError: expected 'ÁB' to be 'AB' // Object.is equality
+
+Expected: "AB"
+Received: "ÁB"
+
+ ❯ src/__tests__/source-unicode.test.ts:63:26
+     61|         s.key('ArrowRight'); s.key('Delete')
+     62|         await new Promise(resolve => setTimeout(resolve, 20)); await s…
+     63|         expect(s.text()).toBe('AB')
+       |                          ^
+     64|         expect(s.edits[0]?.deletedText).toBe(grapheme)
+     65|       })
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/28]⎯
+
+ FAIL  src/__tests__/source-unicode.test.ts > windowed source Unicode keys > moves and extends selection over the whole 👩🏽‍💻
+ FAIL  src/__tests__/source-unicode.test.ts > windowed live Unicode keys > moves and extends selection over the whole 👩🏽‍💻
+AssertionError: expected 2 to be 8 // Object.is equality
+
+- Expected
++ Received
+
+- 8
++ 2
+
+ ❯ src/__tests__/source-unicode.test.ts:53:28
+     51|         s.key('ArrowRight'); s.key('ArrowRight')
+     52|         await new Promise(resolve => setTimeout(resolve, 20)); await s…
+     53|         expect(s.cursor()).toBe(1 + grapheme.length)
+       |                            ^
+     54|         s.key('ArrowLeft', true); s.key('Delete')
+     55|         await new Promise(resolve => setTimeout(resolve, 20)); await s…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/28]⎯
+
+ FAIL  src/__tests__/source-unicode.test.ts > windowed source Unicode keys > deletes the whole 👩🏽‍💻 forward
+ FAIL  src/__tests__/source-unicode.test.ts > windowed live Unicode keys > deletes the whole 👩🏽‍💻 forward
+AssertionError: expected 'A🏽\u200d💻B' to be 'AB' // Object.is equality
+
+Expected: "AB"
+Received: "A🏽‍💻B"
+
+ ❯ src/__tests__/source-unicode.test.ts:63:26
+     61|         s.key('ArrowRight'); s.key('Delete')
+     62|         await new Promise(resolve => setTimeout(resolve, 20)); await s…
+     63|         expect(s.text()).toBe('AB')
+       |                          ^
+     64|         expect(s.edits[0]?.deletedText).toBe(grapheme)
+     65|       })
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/28]⎯
+
+ FAIL  src/__tests__/source-unicode.test.ts > windowed source Unicode keys > moves and extends selection over the whole 🇨🇳
+ FAIL  src/__tests__/source-unicode.test.ts > windowed live Unicode keys > moves and extends selection over the whole 🇨🇳
+AssertionError: expected 2 to be 5 // Object.is equality
+
+- Expected
++ Received
+
+- 5
++ 2
+
+ ❯ src/__tests__/source-unicode.test.ts:53:28
+     51|         s.key('ArrowRight'); s.key('ArrowRight')
+     52|         await new Promise(resolve => setTimeout(resolve, 20)); await s…
+     53|         expect(s.cursor()).toBe(1 + grapheme.length)
+       |                            ^
+     54|         s.key('ArrowLeft', true); s.key('Delete')
+     55|         await new Promise(resolve => setTimeout(resolve, 20)); await s…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/28]⎯
+
+ FAIL  src/__tests__/source-unicode.test.ts > windowed source Unicode keys > deletes the whole 🇨🇳 forward
+ FAIL  src/__tests__/source-unicode.test.ts > windowed live Unicode keys > deletes the whole 🇨🇳 forward
+AssertionError: expected 'A🇳B' to be 'AB' // Object.is equality
+
+Expected: "AB"
+Received: "A🇳B"
+
+ ❯ src/__tests__/source-unicode.test.ts:63:26
+     61|         s.key('ArrowRight'); s.key('Delete')
+     62|         await new Promise(resolve => setTimeout(resolve, 20)); await s…
+     63|         expect(s.text()).toBe('AB')
+       |                          ^
+     64|         expect(s.edits[0]?.deletedText).toBe(grapheme)
+     65|       })
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[7/28]⎯
+
+ FAIL  src/__tests__/source-unicode.test.ts > windowed source Unicode keys > snaps vertical movement to the beginning of a grapheme
+ FAIL  src/__tests__/source-unicode.test.ts > windowed live Unicode keys > snaps vertical movement to the beginning of a grapheme
+AssertionError: expected 6 to be 5 // Object.is equality
+
+- Expected
++ Received
+
+- 5
++ 6
+
+ ❯ src/__tests__/source-unicode.test.ts:79:26
+     77|       s.key('ArrowRight'); s.key('ArrowRight'); s.key('ArrowDown')
+     78|       await new Promise(resolve => setTimeout(resolve, 20)); await s.v…
+     79|       expect(s.cursor()).toBe(5)
+       |                          ^
+     80|       s.key('Delete'); await new Promise(resolve => setTimeout(resolve…
+     81|       expect(s.text()).toBe('abc\nAB')
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[8/28]⎯
+
+ FAIL  src/__tests__/source-unicode.test.ts > windowed source Unicode keys > crosses and deletes an offscreen CRLF forward using bounded reads
+ FAIL  src/__tests__/source-unicode.test.ts > windowed live Unicode keys > crosses and deletes an offscreen CRLF forward using bounded reads
+AssertionError: expected NaN to be 3 // Object.is equality
+
+- Expected
++ Received
+
+- 3
++ NaN
+
+ ❯ src/__tests__/source-unicode.test.ts:95:26
+     93|       s.key('ArrowRight'); s.key('ArrowRight')
+     94|       await new Promise(resolve => setTimeout(resolve, 20)); await s.v…
+     95|       expect(s.cursor()).toBe(3)
+       |                          ^
+     96|       expect(s.view.contentDOM.dataset.fromLine).toBe('2')
+     97|       s.key('ArrowLeft'); s.key('Delete')
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[9/28]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  28 failed | 2 passed (30)
+   Start at  08:32:21
+   Duration  5.90s (transform 1.20s, setup 0ms, collect 1.51s, tests 1.98s, environment 1.58s, prepare 287ms)
+
+/workspace/milkup/packages/view-dom:
+[ERR_PNPM_RECURSIVE_RUN_FIRST_FAIL] @milkup/view-dom@0.0.0 test: `vitest run src/__tests__/source-unicode.test.ts`
+Exit status 1

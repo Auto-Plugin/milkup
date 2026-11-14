@@ -1,0 +1,180 @@
+{
+  "reviewedAt": "2026-10-16T20:50:43.969773+00:00",
+  "reviewer": "root",
+  "status": "FIRST_FAILURE_PRESERVED_NOT_FULL_ACCEPTANCE",
+  "inputs": [
+    {
+      "path": "/workspace/milkup-mermaid-engine-evidence/product-ui-runs/runs/mermaid-ui-08/results.json",
+      "bytes": 773260,
+      "sha256": "168423665b36c57fc3c2bba3612c91ddc7168f8e7a425c26e1d6321593e71d69"
+    },
+    {
+      "path": "/workspace/milkup-mermaid-engine-evidence/product-ui-runs/runs/mermaid-ui-08/positioning.jsonl",
+      "bytes": 104627,
+      "sha256": "6cd94d060467d15fed60500bc9d077dbc21feb6d3a8d7094042cf4724a1f5ebc"
+    },
+    {
+      "path": "/workspace/milkup-mermaid-engine-evidence/product-ui-runs/runs/mermaid-ui-08/FAIL-x11.png",
+      "bytes": 79910,
+      "sha256": "ce1ff8e149da1c1b23d845e582c7e235bb3987e657daeec7135a779f11036111"
+    },
+    {
+      "path": "/workspace/milkup-mermaid-engine-evidence/research/ui08-independent-pixel-review.json",
+      "bytes": 8485,
+      "sha256": "6341a9e502326dc0d55e15530622db7ec3040d44455c1112012c8edbaa816e83"
+    },
+    {
+      "path": "/workspace/milkup-mermaid-engine-evidence/research/ui08-selection-static-review.json",
+      "bytes": 6749,
+      "sha256": "ff6b74a0db7ddce6aeed736b3350c4c7c59909c58bf5e49b3285a46908d96829"
+    }
+  ],
+  "resultCounts": {
+    "total": 70,
+    "ordinaryCoverage": 31,
+    "windowedCoverage": 19,
+    "ordinaryHistory": 6,
+    "completedMatrix": 0
+  },
+  "firstFailure": "AssertionError [ERR_ASSERTION]: Positioning must preserve selection\n+ actual - expected\n\n+ [\n+   {\n+     from: 8103,\n+     line: 398,\n+     to: 8160\n+   }\n+ ]\n- []\n",
+  "positioning": {
+    "sample": "sequenceDiagram-000-first-official-example",
+    "from": 8162,
+    "to": 8293,
+    "mode": "live",
+    "path": "/workspace/milkup-mermaid-engine-evidence/product-ui-runs/runs/mermaid-ui-08/windowed.md",
+    "elapsedMs": 744,
+    "ticks": 2,
+    "reversals": 1,
+    "completed": true,
+    "completionReason": "first-visible-eligible-fence",
+    "before": {
+      "version": 0,
+      "selection": [],
+      "dirty": false
+    },
+    "after": {
+      "version": 0,
+      "selection": [
+        {
+          "from": 8103,
+          "to": 8160,
+          "line": 398
+        }
+      ],
+      "dirty": false
+    },
+    "fileUnchanged": true,
+    "observations": [
+      {
+        "elapsedMs": 136,
+        "ticks": 0,
+        "reversals": 0,
+        "scrollTop": 8377,
+        "gutter": {
+          "x": 4,
+          "y": 77
+        },
+        "width": 1100,
+        "scrollHeight": 3372289,
+        "preceding": [],
+        "target": {
+          "to": 8293,
+          "top": null,
+          "from": 8162,
+          "visible": false,
+          "bottom": null,
+          "mounted": false
+        },
+        "viewport": {
+          "left": 0,
+          "bottom": 730,
+          "right": 1100,
+          "top": 37
+        },
+        "clientHeight": 693,
+        "mountedTo": 10384,
+        "mountedFrom": 8832,
+        "firstVisible": null
+      },
+      {
+        "elapsedMs": 441,
+        "ticks": 1,
+        "reversals": 0,
+        "scrollTop": 8294,
+        "gutter": {
+          "x": 4,
+          "y": 77
+        },
+        "width": 1100,
+        "scrollHeight": 3372289,
+        "preceding": [
+          5742
+        ],
+        "target": {
+          "to": 8293,
+          "top": 162,
+          "from": 8162,
+          "visible": true,
+          "bottom": 309,
+          "mounted": true
+        },
+        "viewport": {
+          "left": 0,
+          "bottom": 730,
+          "right": 1100,
+          "top": 37
+        },
+        "clientHeight": 693,
+        "mountedTo": 9220,
+        "mountedFrom": 5742,
+        "firstVisible": 5742
+      },
+      {
+        "elapsedMs": 714,
+        "ticks": 2,
+        "reversals": 1,
+        "scrollTop": 8377,
+        "gutter": {
+          "x": 4,
+          "y": 77
+        },
+        "width": 1100,
+        "scrollHeight": 3372289,
+        "preceding": [],
+        "target": {
+          "to": 8293,
+          "top": 79,
+          "from": 8162,
+          "visible": true,
+          "bottom": 226,
+          "mounted": true
+        },
+        "viewport": {
+          "left": 0,
+          "bottom": 730,
+          "right": 1100,
+          "top": 37
+        },
+        "clientHeight": 693,
+        "mountedTo": 9395,
+        "mountedFrom": 5742,
+        "firstVisible": 8162
+      }
+    ]
+  },
+  "pageErrorsAndCsp": [],
+  "actualPixelReview": {
+    "path": "/workspace/milkup-mermaid-engine-evidence/product-ui-runs/runs/mermaid-ui-08/FAIL-x11.png",
+    "method": "view_image actual pixels",
+    "visible": "1100x760 application within 1600x1100 X11: selected unique sequence marker, complete short sequence source and following autonumber source, saved indicator, no blank application",
+    "limits": "Source view pixels do not prove the logical selection before positioning or the cause of the failure."
+  },
+  "interpretation": "The probe observes mounted DOM selection overlays. First position sample has target unmounted and mountedFrom8832 beyond marker8103..8160. Static source review shows search count published before awaited reveal and overlays depend on mounted rows. This supports investigation of readiness/projection mismatch, not a proof of the exact runtime cause or of logical selection preservation. Original failure is not discarded.",
+  "pending": [
+    "Independent real native selection/clipboard round trip",
+    "Strengthen public navigation readiness without relaxing existing invariant",
+    "Full native matrix"
+  ],
+  "platform": "Linux only; Windows/macOS unverified"
+}

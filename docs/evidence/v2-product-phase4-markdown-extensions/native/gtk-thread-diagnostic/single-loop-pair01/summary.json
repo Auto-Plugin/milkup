@@ -1,0 +1,89 @@
+{
+  "diagnosticOnly": true,
+  "acceptance": false,
+  "runs": {
+    "proot-on": {
+      "exitCode": 0,
+      "cyclesCompleted": 3,
+      "statfsGioSvgChecks": "before_gtk statfs result=0 errno=0 message=Success\nbefore_gtk gio_filesystem success=1 error=none\nbefore_gtk svg_decode success=1 error=none\nsingle_main_thread pid=141246 mono=18346290897\nlifecycle_show index=1 mono=18346517603\nSpiRegistry daemon is running with well-known name - org.a11y.atspi.Registry\nlifecycle_hide mono=18349565757\nafter_1 statfs result=0 errno=0 message=Success\nafter_1 gio_filesystem success=1 error=none\nafter_1 svg_decode success=1 error=none\nlifecycle_show index=2 mono=18349625824\nlifecycle_hide mono=18352642943\nafter_2 statfs result=0 errno=0 message=Success\nafter_2 gio_filesystem success=1 error=none\nafter_2 svg_decode success=1 error=none\nlifecycle_show index=3 mono=18352696551\nlifecycle_hide mono=18355712897\nafter_3 statfs result=0 errno=0 message=Success\nafter_3 gio_filesystem success=1 error=none\nafter_3 svg_decode success=1 error=none\nDONE 3 bounded C-show/C-hide cycles; no acceptance claim\n",
+      "stderrCounts": {
+        "BadAddress": 1,
+        "treeModel": 0,
+        "widgetRealized": 0,
+        "gtkFatal": 0
+      },
+      "actualStandaloneSelfMapsCount": 4,
+      "relevantMappedLibraries": [
+        "/usr/lib/x86_64-linux-gnu/gdk-pixbuf-2.0/2.10.0/loaders/libpixbufloader_svg.so",
+        "/usr/lib/x86_64-linux-gnu/libc.so.6",
+        "/usr/lib/x86_64-linux-gnu/libgdk-3.so.0.2417.32",
+        "/usr/lib/x86_64-linux-gnu/libgdk_pixbuf-2.0.so.0.4200.12",
+        "/usr/lib/x86_64-linux-gnu/libgio-2.0.so.0.8400.4",
+        "/usr/lib/x86_64-linux-gnu/libglib-2.0.so.0.8400.4",
+        "/usr/lib/x86_64-linux-gnu/libgtk-3.so.0.2417.32",
+        "/usr/lib/x86_64-linux-gnu/librsvg-2.so.2.60.0"
+      ]
+    },
+    "proot-off": {
+      "exitCode": 0,
+      "cyclesCompleted": 3,
+      "statfsGioSvgChecks": "before_gtk statfs result=0 errno=0 message=Success\nbefore_gtk gio_filesystem success=1 error=none\nbefore_gtk svg_decode success=1 error=none\nsingle_main_thread pid=141280 mono=18355935946\nlifecycle_show index=1 mono=18355996595\nSpiRegistry daemon is running with well-known name - org.a11y.atspi.Registry\nlifecycle_hide mono=18359017680\nafter_1 statfs result=0 errno=0 message=Success\nafter_1 gio_filesystem success=1 error=none\nafter_1 svg_decode success=1 error=none\nlifecycle_show index=2 mono=18359041185\nlifecycle_hide mono=18362051275\nafter_2 statfs result=0 errno=0 message=Success\nafter_2 gio_filesystem success=1 error=none\nafter_2 svg_decode success=1 error=none\nlifecycle_show index=3 mono=18362079743\nlifecycle_hide mono=18365092147\nafter_3 statfs result=0 errno=0 message=Success\nafter_3 gio_filesystem success=1 error=none\nafter_3 svg_decode success=1 error=none\nDONE 3 bounded C-show/C-hide cycles; no acceptance claim\n",
+      "stderrCounts": {
+        "BadAddress": 0,
+        "treeModel": 0,
+        "widgetRealized": 0,
+        "gtkFatal": 0
+      },
+      "actualStandaloneSelfMapsCount": 4,
+      "relevantMappedLibraries": [
+        "/usr/lib/x86_64-linux-gnu/gdk-pixbuf-2.0/2.10.0/loaders/libpixbufloader_svg.so",
+        "/usr/lib/x86_64-linux-gnu/libc.so.6",
+        "/usr/lib/x86_64-linux-gnu/libgdk-3.so.0.2417.32",
+        "/usr/lib/x86_64-linux-gnu/libgdk_pixbuf-2.0.so.0.4200.12",
+        "/usr/lib/x86_64-linux-gnu/libgio-2.0.so.0.8400.4",
+        "/usr/lib/x86_64-linux-gnu/libglib-2.0.so.0.8400.4",
+        "/usr/lib/x86_64-linux-gnu/libgtk-3.so.0.2417.32",
+        "/usr/lib/x86_64-linux-gnu/librsvg-2.so.2.60.0"
+      ]
+    }
+  },
+  "artifacts": {
+    "single-loop-chooser.c": "39a50dd536c838e046ce5333ad7bdce6c4d9003c555886dcae499c01e422afdf",
+    "single-loop-chooser": "83560af22df94edda97ff39f63e98bf0d068d564eaf707e46cc27da629563643",
+    "run-single-loop-pair.sh": "e821e46a4fe766a5ad6157a67d31f166eb8105b6e6c5ff1034aa13d6cd04a19f"
+  },
+  "limits": [
+    "One on/off pair only; three programmatic C-show/C-hide cycles each, not native user authorization acceptance.",
+    "Synchronous direct statfs/GFile checks and SVG decode all pass. Only proot-on GTK asynchronous available-space query emits Bad address once; does not prove appfatalcause.",
+    "No invalid GTK tree model or fatal reproduced in either single-loop process.",
+    "Maps belong only to standalone C probes, not original app (EACCES)."
+  ],
+  "sysrootResolution": {
+    "libgtk-3.so.0": {
+      "resolvedPath": "/usr/lib/x86_64-linux-gnu/libgtk-3.so.0.2417.32",
+      "directSymlink": "/usr/lib/x86_64-linux-gnu/libgtk-3.so.0",
+      "sha256": "a56aed9f46dc47d054555880c6dc543f41846b0732520c7d2e5ef45c5c7f2ddf"
+    },
+    "libgdk_pixbuf-2.0.so.0": {
+      "resolvedPath": "/usr/lib/x86_64-linux-gnu/libgdk_pixbuf-2.0.so.0.4200.12",
+      "directSymlink": "/usr/lib/x86_64-linux-gnu/libgdk_pixbuf-2.0.so.0",
+      "sha256": "e92815ef102d064b64eedf79b5ada7413197cad48432d2b13772724cd2204d30"
+    },
+    "libgio-2.0.so.0": {
+      "resolvedPath": "/usr/lib/x86_64-linux-gnu/libgio-2.0.so.0.8400.4",
+      "directSymlink": "/usr/lib/x86_64-linux-gnu/libgio-2.0.so.0",
+      "sha256": "ada55aa768da50c23a114736ac39dd8d8c62f77a5519747f99e8836e86a1fd35"
+    },
+    "librsvg-2.so.2": {
+      "resolvedPath": "/usr/lib/x86_64-linux-gnu/librsvg-2.so.2.60.0",
+      "directSymlink": "/usr/lib/x86_64-linux-gnu/librsvg-2.so.2",
+      "sha256": "64a3d6a9b3178d9a747a9c8f7691176f43c282f01177c6802627adb5fd779554"
+    },
+    "gdk-pixbuf-2.0/2.10.0/loaders/libpixbufloader_svg.so": {
+      "resolvedPath": "/usr/lib/x86_64-linux-gnu/gdk-pixbuf-2.0/2.10.0/loaders/libpixbufloader_svg.so",
+      "directSymlink": null,
+      "sha256": "aa38987a21cc86f1f75da10b22e1d32a7dc45544dda24adf7b06ef7c853f8c79"
+    }
+  },
+  "relevantProcessesRemaining": []
+}

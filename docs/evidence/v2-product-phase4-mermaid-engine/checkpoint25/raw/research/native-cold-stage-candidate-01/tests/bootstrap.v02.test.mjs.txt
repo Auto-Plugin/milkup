@@ -1,0 +1,196 @@
+import test from 'node:test'
+import assert from 'node:assert/strict'
+import vm from 'node:vm'
+import fs from 'node:fs'
+const root = new URL('../', import.meta.url)
+const candidate = fs.readFileSync(
+  new URL('candidate/apps/desktop/src-tauri/src/plugin_dom_bootstrap.js', root),
+  'utf8',
+)
+const baseline = fs.readFileSync(new URL('baseline/plugin_dom_bootstrap.js', root), 'utf8')
+const RPC = 'milkup.plugin.isolation.rpc.v1',
+  RENDER = 'milkup.plugin.document-render.v1'
+const flush = async () => {
+  for (let i = 0; i < 20; i++) await Promise.resolve()
+}
+async function harness(
+  source = candidate,
+  enabled = true,
+  renderer = () => ({ complete: true, fragments: [] }),
+) {
+  let ticks = 0,
+    throwClock = false
+  const c = vm.createContext({
+    TextEncoder,
+    AbortController,
+    performance: {
+      now() {
+        if (throwClock) throw Error('clock')
+        return ++ticks
+      },
+    },
+    __testImport: () =>
+      Promise.resolve({ default: { activate: () => ({ documentRenderers: { r: renderer } }) } }),
+  })
+  assert.equal(source.split("import('milkup-dom://job/module.js')").length, 2)
+  vm.runInContext(
+    source.replace("import('milkup-dom://job/module.js')", 'globalThis.__testImport()'),
+    c,
+  )
+  c.__milkupDomInit(
+    'private-token',
+    { id: 'p', contributes: { documentRenderers: [{ id: 'r' }] } },
+    enabled,
+  )
+  const send = (m) => c.__milkupDom('private-token', m),
+    drain = () => send(null),
+    raw = (v) => (typeof v === 'object' && v !== null ? v.output : v)
+  send({
+    protocol: RPC,
+    type: 'request',
+    id: 'activate',
+    method: 'activate',
+    payload: { pluginId: 'p' },
+  })
+  await flush()
+  const activation = drain()
+  return {
+    c,
+    send,
+    drain,
+    raw,
+    activation,
+    clockThrows() {
+      throwClock = true
+    },
+    async render(id = 'render_1') {
+      send({
+        protocol: RENDER,
+        type: 'render',
+        id,
+        payload: {
+          pluginId: 'p',
+          rendererId: 'r',
+          request: { source: '中文 👩🏽‍💻', selection: { anchor: 0, head: 0 } },
+        },
+      })
+      await flush()
+      return drain()
+    },
+  }
+}
+test('gate off returns byte-identical original activation and render envelopes', async () => {
+  const a = await harness(baseline, false),
+    b = await harness(candidate, false)
+  assert.equal(b.activation, a.activation)
+  assert.equal(await b.render(), await a.render())
+  assert.equal(b.drain(), null)
+})
+test('enabled private drain forwards exact output bytes and stages never enter envelope', async () => {
+  const a = await harness(baseline, false),
+    b = await harness()
+  assert.equal(b.raw(b.activation), a.activation)
+  const x = await b.render()
+  assert.equal(x.output, await a.render())
+  assert.equal(x.stageSchema, 1)
+  assert(Array.prototype.some.call(x.stages, (r) => r[0] === 'render_1' && r[1] === 'invoke-start'))
+  assert(!Object.hasOwn(JSON.parse(x.output), 'stages'))
+})
+test('wrong token neither dispatches nor drains private stage/output', async () => {
+  const h = await harness()
+  h.send({
+    protocol: RENDER,
+    type: 'render',
+    id: 'render_1',
+    payload: { pluginId: 'p', rendererId: 'r', request: {} },
+  })
+  await flush()
+  assert.equal(h.c.__milkupDom('wrong', null), null)
+  assert.equal(h.c.__milkupDom('wrong', { protocol: RENDER, type: 'cancel', id: 'render_1' }), null)
+  assert.equal(JSON.parse(h.drain().output).id, 'render_1')
+})
+test('renderer rejection remains original error envelope', async () => {
+  const fn = () => {
+    throw Error('unavailable')
+  }
+  const a = await harness(baseline, false, fn),
+    b = await harness(candidate, true, fn)
+  const x = await b.render()
+  assert.equal(x.output, await a.render())
+  assert(Array.prototype.some.call(x.stages, (r) => r[1] === 'invoke-reject'))
+})
+test('oversize typed result keeps original invalid-output enforcement', async () => {
+  const fn = () => ({ x: 'x'.repeat(262145) })
+  const a = await harness(baseline, false, fn),
+    b = await harness(candidate, true, fn)
+  const x = await b.render()
+  assert.equal(x.output, await a.render())
+  assert.equal(JSON.parse(x.output).error, 'invalid-output')
+})
+test('cancellation remains original aborted result without reclassifying stage as settlement', async () => {
+  let finish
+  const h = await harness(candidate, true, () => new Promise((r) => (finish = r)))
+  h.send({
+    protocol: RENDER,
+    type: 'render',
+    id: 'render_1',
+    payload: { pluginId: 'p', rendererId: 'r', request: {} },
+  })
+  await flush()
+  h.send({ protocol: RENDER, type: 'cancel', id: 'render_1' })
+  finish({ complete: true, fragments: [] })
+  await flush()
+  assert.equal(JSON.parse(h.drain().output).error, 'aborted')
+})
+test('request cap does not affect rendering or mislabel excess renders as init', async () => {
+  const h = await harness()
+  let latest
+  for (let i = 1; i <= 12; i++) {
+    latest = await h.render('render_' + i)
+    assert.equal(JSON.parse(latest.output).ok, true)
+    if (i > 8) assert.equal(latest.stages.length, 0)
+  }
+  assert(latest.stageState.dropped >= 4)
+  assert(latest.stageState.bytes <= 65536)
+})
+test('clock failures are diagnostic drops, not product exceptions', async () => {
+  const h = await harness()
+  h.clockThrows()
+  const x = await h.render()
+  assert.equal(JSON.parse(x.output).ok, true)
+  assert(x.stageState.dropped > 0)
+})
+test('captured Map methods survive later plugin prototype changes', async () => {
+  const h = await harness()
+  vm.runInContext(
+    "Map.prototype.get=Map.prototype.set=Map.prototype.has=function(){throw Error('poisoned')}",
+    h.c,
+  )
+  assert.equal(JSON.parse((await h.render()).output).ok, true)
+})
+test('pending invocation can expose start but absence of completion is not fabricated', async () => {
+  let finish
+  const h = await harness(candidate, true, () => new Promise((r) => (finish = r)))
+  h.send({
+    protocol: RENDER,
+    type: 'render',
+    id: 'render_1',
+    payload: { pluginId: 'p', rendererId: 'r', request: {} },
+  })
+  await flush()
+  const x = h.drain()
+  assert.equal(x.output, null)
+  assert(Array.prototype.some.call(x.stages, (r) => r[1] === 'invoke-start'))
+  assert(!Array.prototype.some.call(x.stages, (r) => r[1] === 'invoke-resolve'))
+  finish({})
+  await flush()
+  assert.equal(JSON.parse(h.drain().output).ok, true)
+})
+test('unknown protocol and old cancel neither create a request nor disturb next result', async () => {
+  const h = await harness()
+  h.send({ protocol: 'forged', type: 'render', id: 'forged' })
+  h.send({ protocol: RENDER, type: 'cancel', id: 'old' })
+  await flush()
+  assert.equal(h.drain().stages.length, 0)
+  assert.equal(JSON.parse((await h.render()).output).ok, true)
+})

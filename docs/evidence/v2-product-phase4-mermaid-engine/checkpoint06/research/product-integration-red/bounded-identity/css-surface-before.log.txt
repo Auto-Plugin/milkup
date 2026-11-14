@@ -1,0 +1,49 @@
+
+ RUN  v3.2.6 /workspace/milkup
+
+ ❯ packages/core/src/__tests__/document-svg-image-bounded-identity.test.ts (23 tests | 1 failed) 56ms
+   ✓ explicit identity filter bounds paint without claiming text geometry > accepts original group opacity after an explicit identity filter bounds unknown glyph ink 9ms
+   ✓ explicit identity filter bounds paint without claiming text geometry > propagates bounded paint through group and symbol/use into ancestor compositing 2ms
+   ✓ explicit identity filter bounds paint without claiming text geometry > preserves uncertainty from an unbounded sibling in the ancestor paint union 1ms
+   ✓ explicit identity filter bounds paint without claiming text geometry > does not infer text geometry for units objectBoundingBox 1ms
+   ✓ explicit identity filter bounds paint without claiming text geometry > does not infer text geometry for primitiveUnits objectBoundingBox 1ms
+   ✓ explicit identity filter bounds paint without claiming text geometry > does not let a bounded child supply an ancestor objectBoundingBox filter geometry 2ms
+   ✓ explicit identity filter bounds paint without claiming text geometry > keeps ancestor fill-box transform origin geometry unknown 1ms
+   ✓ explicit identity filter bounds paint without claiming text geometry > keeps ancestor stroke-box transform origin geometry unknown 1ms
+   ✓ explicit identity filter bounds paint without claiming text geometry > validates child compositing before the enclosing filter can bound its output 1ms
+   ✓ explicit identity filter bounds paint without claiming text geometry > does not exempt a tspan effect or a marker text geometry requirement 3ms
+   ✓ explicit identity filter bounds paint without claiming text geometry > does not extend the unknown-text exception to a nonidentity filter {"dx":1} 1ms
+   ✓ explicit identity filter bounds paint without claiming text geometry > does not extend the unknown-text exception to a nonidentity filter {"dy":1} 1ms
+   ✓ explicit identity filter bounds paint without claiming text geometry > does not extend the unknown-text exception to a nonidentity filter {"stdDeviation":[1,0]} 1ms
+   ✓ explicit identity filter bounds paint without claiming text geometry > does not extend the unknown-text exception to a nonidentity filter {"color":[0,0,0,1]} 1ms
+   ✓ explicit identity filter bounds paint without claiming text geometry > does not extend the unknown-text exception to a nonidentity filter {"colorInterpolation":"linearRGB"} 1ms
+   ✓ explicit identity filter bounds paint without claiming text geometry > uses the filter definition explicit color space rather than referencing shape inheritance 2ms
+   ✓ explicit identity filter bounds paint without claiming text geometry > charges every pixel intersecting a fractional explicit filter region at the surface limit 2ms
+   × explicit identity filter bounds paint without claiming text geometry > keeps the same integer surface limit for the existing css-shadow path 12ms
+     → expected [Function] to throw an error
+   ✓ explicit identity filter bounds paint without claiming text geometry > keeps the same integer surface limit for the existing svg-shadow path 2ms
+   ✓ explicit identity filter bounds paint without claiming text geometry > keeps the same integer surface limit for the existing opacity path 2ms
+   ✓ explicit identity filter bounds paint without claiming text geometry > bounds the transformed region in output pixels, including reflection and shear 1ms
+   ✓ explicit identity filter bounds paint without claiming text geometry > shares bounded filter and opacity work across images rather than resetting it 5ms
+   ✓ explicit identity filter bounds paint without claiming text geometry > still rejects oversized glyph rasterization inside a small enclosing identity region 1ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  packages/core/src/__tests__/document-svg-image-bounded-identity.test.ts > explicit identity filter bounds paint without claiming text geometry > keeps the same integer surface limit for the existing css-shadow path
+AssertionError: expected [Function] to throw an error
+ ❯ packages/core/src/__tests__/document-svg-image-bounded-identity.test.ts:219:68
+    217|       })
+    218|       expect(() => copyDocumentPresentationNode(withOffset(0))).not.to…
+    219|       expect(() => copyDocumentPresentationNode(withOffset(0.25))).toT…
+       |                                                                    ^
+    220|     },
+    221|   )
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 22 passed (23)
+   Start at  12:35:56
+   Duration  637ms (transform 158ms, setup 0ms, collect 186ms, tests 56ms, environment 0ms, prepare 68ms)
+

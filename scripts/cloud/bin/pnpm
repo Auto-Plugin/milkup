@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+set -euo pipefail
+export COREPACK_ENABLE_DOWNLOAD_PROMPT=0
+export COREPACK_HOME="${COREPACK_HOME:-/workspace/.cache/corepack}"
+exec corepack pnpm "$@"

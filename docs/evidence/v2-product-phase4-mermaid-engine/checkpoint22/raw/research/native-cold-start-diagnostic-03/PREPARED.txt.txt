@@ -1,0 +1,24 @@
+Run03 preparation: execution context correction only, separate runtime GO required.
+
+Run01 and02 are frozen setup failures. Run02 original exact App profile verification
+failed reading /proc/<App>/environ before the cold gate because the driver was launched
+with require_escalated while harness/CPU were launched with use_default. Current
+self-only comparisons confirm these tool modes have distinct user namespaces/uid maps;
+exited historical process namespaces were not reconstructed.
+
+All product and diagnostic binary bytes, original cold harness and relative helpers,
+CPUv02 implementation, startup/assertions/profile checks and 2s10s budgets are unchanged.
+The03 wrappers reference02 original files; no binary rebuild or source-tree copy.
+Only run name/output/profile paths and the tool invocation execution context change.
+
+The exact two command calls and mandatory sandbox_permissions=require_escalated are
+recorded in execution-context-contract.json. Node and CPU inherit the harness's outer
+context. The actual app still uses the exact existing bwrap private user namespace and
+WebKit sandbox. Do not change permissions, product profile assertions, or process guards.
+If auto-review rejects the requested execution context, preserve the rejection and stop.
+
+After independent root GO, verify preflight and invoke driver then run-harness using
+those two elevated tool calls. Observe one first result, do not retry automatically.
+After original session close, use exact stop-driver.py and wait for the wait-only
+subreaper. Freeze all evidence, including incomplete capture/CPU qualifications.
+A cold prefix PASS remains diagnostic non-reproduction, never full UI/P4 acceptance.

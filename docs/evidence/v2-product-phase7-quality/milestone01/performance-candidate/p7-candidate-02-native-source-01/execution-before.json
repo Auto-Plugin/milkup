@@ -1,0 +1,17 @@
+{
+  "run": "p7-candidate-02-native-source-01",
+  "binary": "/workspace/milkup-p7-quality-evidence/milestone01/candidate-production-02/milkup-desktop",
+  "binarySha256": "8deacbf470f699ad9b0a6c2c2937adbfc7ef6194c38e8f61e707a70bdfc5f9b2",
+  "command": [
+    "bash",
+    "-c",
+    "source /workspace/milkup-p7-quality-evidence/milestone01/native-ui/candidate-runtime/run-env.sh p7-candidate-02-native-source-01 /workspace/milkup-p7-quality-evidence/milestone01/candidate-production-02/milkup-desktop 8deacbf470f699ad9b0a6c2c2937adbfc7ef6194c38e8f61e707a70bdfc5f9b2 || exit; export MILKUP_LATENCY_BYTES=10485760 MILKUP_LATENCY_LINE_BYTES=64 MILKUP_LATENCY_MODE=source MILKUP_LATENCY_CYCLES=20; exec node tests/native/tauri-production-latency.mjs"
+  ],
+  "sourceBefore": {
+    "tests/native/tauri-production-latency.mjs": "e2d51ac3e39a8a161a9918484d6b0046a0989623f7e54d58972e25b19db55886",
+    "tests/helpers/native-production.mjs": "293a00db10632383346fa739d8717ddf2d42928e0f2e3f9672043d0dd9452eb0",
+    "tests/helpers/native-process-memory.mjs": "5a686a8727933f0a03a31c264f43f1005a6f67733bf4ebba8dc8a17e340d5d80",
+    "tests/helpers/native-startup.mjs": "d698104c7838e7d51a1ff64709c29f1660da8e3b9d1ca72fbf28c8370cc4d1f1"
+  },
+  "startedUtc": "2026-10-19T11:43:25.925464+00:00"
+}

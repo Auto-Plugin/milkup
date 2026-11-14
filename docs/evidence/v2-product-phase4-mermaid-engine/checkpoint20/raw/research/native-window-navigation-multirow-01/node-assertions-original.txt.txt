@@ -1,0 +1,12 @@
+    expect(errors).toEqual([])
+    expect(result.unchanged).toBe(true)
+    expect(result.version).toBe(0)
+    expect(result.final.selection).toMatchObject({ anchor: result.from, head: result.to })
+    expect(result.final.marker).not.toBeNull()
+    const viewport = result.final.editor!
+    expect(result.final.marker!.rect!.bottom).toBeGreaterThan(viewport.top)
+    expect(result.final.marker!.rect!.top).toBeLessThan(viewport.bottom)
+    const projections = result.final.overlays.filter((node: any) => Number(node.from) === result.from && Number(node.to) === result.to)
+    expect(projections.length).toBeGreaterThan(0)
+    expect(projections.some((node: any) => node.rect.bottom > viewport.top && node.rect.top < viewport.bottom)).toBe(true)
+    expect(result.final.cursors.some((node: any) => Number(node.position) === result.to && Number(node.line) === 398 && node.rect.bottom > viewport.top && node.rect.top < viewport.bottom)).toBe(true)

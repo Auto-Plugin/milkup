@@ -1,0 +1,43 @@
+[WebServer] (node:333013) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] (node:333025) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 2 tests using 1 worker
+
+(node:333060) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  1 [desktop-msedge] › tests/e2e/desktop-preferences.spec.ts:366:1 › responsive breakpoint preserves preferences select and input focus without editing the document (4.9s)
+  ✘  2 [desktop-msedge] › tests/e2e/desktop-preferences.spec.ts:434:1 › responsive breakpoint moves focus only when sidebar controls or the editor become unavailable (7.4s)
+
+
+  1) [desktop-msedge] › tests/e2e/desktop-preferences.spec.ts:434:1 › responsive breakpoint moves focus only when sidebar controls or the editor become unavailable 
+
+    Error: expect(locator).toBeFocused() failed
+
+    Locator:  locator('.milkup-input-proxy')
+    Expected: focused
+    Received: inactive
+    Timeout:  5000ms
+
+    Call log:
+      - Expect "toBeFocused" with timeout 5000ms
+      - waiting for locator('.milkup-input-proxy')
+        14 × locator resolved to <textarea tabindex="0" autocomplete="off" spellcheck="false" aria-label="Markdown 编辑器" class="milkup-input-proxy"></textarea>
+           - unexpected value "inactive"
+
+
+      445 |   await page.setViewportSize({ width: 1100, height: 760 })
+      446 |   await expect(page.locator('[data-sidebar-close]')).toBeHidden()
+    > 447 |   await expect(page.locator('.milkup-input-proxy')).toBeFocused()
+          |                                                     ^
+      448 |   await page.locator('[data-sidebar-resize]').focus()
+      449 |   await page.setViewportSize({ width: 700, height: 760 })
+      450 |   await expect(page.locator('[data-sidebar-resize]')).toBeHidden()
+        at /workspace/milkup/tests/e2e/desktop-preferences.spec.ts:447:53
+
+    Error Context: test-results/desktop-preferences-respon-2b9e8-e-editor-become-unavailable-desktop-msedge/error-context.md
+
+  1 failed
+    [desktop-msedge] › tests/e2e/desktop-preferences.spec.ts:434:1 › responsive breakpoint moves focus only when sidebar controls or the editor become unavailable 
+  1 passed (17.9s)

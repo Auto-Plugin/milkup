@@ -1,0 +1,113 @@
+.theme-modes {
+  border: 0;
+  padding: 0;
+  margin: 20px 0 26px;
+  min-width: 0;
+}
+.theme-modes legend,
+.theme-label {
+  font-size: 13px;
+  color: var(--text-muted);
+  margin-bottom: 12px;
+}
+.theme-mode-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+.theme-mode {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  align-items: center;
+  padding: 5px;
+  border: 2px solid transparent;
+  border-radius: 10px;
+  min-width: 0;
+}
+.theme-mode[aria-pressed='true'] {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+.theme-mode:focus-visible {
+  outline: 2px solid var(--link);
+  outline-offset: 3px;
+}
+.theme-preview {
+  position: relative;
+  display: block;
+  width: 210px;
+  height: 119px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  pointer-events: none;
+  background: var(--panel-bg);
+}
+.theme-preview iframe {
+  position: absolute;
+  inset: 0;
+  width: 210px;
+  height: 119px;
+  border: 0;
+  pointer-events: none;
+  background: transparent;
+}
+.theme-preview-system iframe:last-child {
+  mask-image: linear-gradient(to right, transparent 43%, #000 57%);
+}
+.theme-style-row {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  justify-content: space-between;
+  padding-top: 4px;
+  flex-wrap: wrap;
+}
+.theme-style-row > div {
+  display: flex;
+  gap: 12px;
+  align-items: baseline;
+}
+.theme-style-row strong {
+  font-size: 14px;
+  overflow-wrap: anywhere;
+}
+.theme-file-actions {
+  display: flex;
+  gap: 18px;
+  flex-wrap: wrap;
+  margin: 12px 0;
+}
+.theme-file-actions button {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  font-size: 12px;
+  color: var(--text-muted);
+  padding: 4px 0;
+}
+.theme-file-actions button:hover {
+  color: var(--link);
+  text-decoration: underline;
+}
+.theme-file-actions button:focus-visible {
+  outline: 2px solid var(--link);
+  outline-offset: 3px;
+}
+.theme-support {
+  font-size: 12px;
+  line-height: 1.65;
+  color: var(--text-muted);
+  max-width: 650px;
+}
+.theme-feedback {
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--text-muted);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.theme-feedback[data-error='true'] {
+  color: var(--danger);
+}
