@@ -1,0 +1,212 @@
+   Compiling tauri v2.11.5
+warning: use of deprecated method `webkit2gtk::WebViewExt::run_javascript`: Since 2.40
+  --> /home/runner/work/milkup/milkup/vendor/wry/src/webkitgtk/synthetic_mouse_events.rs:22:17
+   |
+22 |         webview.run_javascript(
+   |                 ^^^^^^^^^^^^^^
+   |
+   = note: `#[warn(deprecated)]` on by default
+
+warning: use of deprecated method `webkit2gtk::WebViewExt::run_javascript`: Since 2.40
+  --> /home/runner/work/milkup/milkup/vendor/wry/src/webkitgtk/synthetic_mouse_events.rs:32:17
+   |
+32 |         webview.run_javascript(
+   |                 ^^^^^^^^^^^^^^
+
+warning: use of deprecated method `webkit2gtk::WebViewExt::run_javascript`: Since 2.40
+  --> /home/runner/work/milkup/milkup/vendor/wry/src/webkitgtk/synthetic_mouse_events.rs:56:17
+   |
+56 |         webview.run_javascript(
+   |                 ^^^^^^^^^^^^^^
+
+warning: use of deprecated method `webkit2gtk::WebViewExt::run_javascript`: Since 2.40
+  --> /home/runner/work/milkup/milkup/vendor/wry/src/webkitgtk/synthetic_mouse_events.rs:66:17
+   |
+66 |         webview.run_javascript(
+   |                 ^^^^^^^^^^^^^^
+
+warning: use of deprecated method `webkit2gtk::WebViewExt::run_javascript`: Since 2.40
+   --> /home/runner/work/milkup/milkup/vendor/wry/src/webkitgtk/mod.rs:359:21
+    |
+359 |             webview.run_javascript(&script, cancellable, |_| ());
+    |                     ^^^^^^^^^^^^^^
+
+warning: use of deprecated method `webkit2gtk::WebViewExt::run_javascript`: Since 2.40
+   --> /home/runner/work/milkup/milkup/vendor/wry/src/webkitgtk/mod.rs:702:20
+    |
+702 |       self.webview.run_javascript(js, cancellable, |result| {
+    |                    ^^^^^^^^^^^^^^
+
+warning: `wry` (lib) generated 6 warnings
+   Compiling tauri-macros v2.6.3
+   Compiling tauri-plugin-fs v2.5.1
+   Compiling tauri-plugin-updater v2.10.1 (/home/runner/work/milkup/milkup/vendor/tauri-plugin-updater)
+   Compiling tauri-plugin-dialog v2.7.1
+   Compiling milkup-desktop v2.0.0-beta.9 (/home/runner/work/milkup/milkup/apps/desktop/src-tauri)
+warning: unused import: `io::Cursor`
+ --> /home/runner/work/milkup/milkup/vendor/tauri-plugin-updater/src/updater.rs:8:5
+  |
+8 |     io::Cursor,
+  |     ^^^^^^^^^^
+  |
+  = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused import: `std::ffi::OsStr`
+  --> /home/runner/work/milkup/milkup/vendor/tauri-plugin-updater/src/updater.rs:16:5
+   |
+16 | use std::ffi::OsStr;
+   |     ^^^^^^^^^^^^^^^
+
+warning: `tauri-plugin-updater` (lib) generated 2 warnings (run `cargo fix --lib -p tauri-plugin-updater` to apply 2 suggestions)
+warning: unused import: `std::sync::Arc`
+    --> src/piece_tree.rs:1029:9
+     |
+1029 |     use std::sync::Arc;
+     |         ^^^^^^^^^^^^^^
+     |
+     = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: constant `REQUEST_LIMIT` is never used
+  --> src/../../../../vendor/wry/src/webview2/startup_timing.rs:13:7
+   |
+13 | const REQUEST_LIMIT: u64 = 16;
+   |       ^^^^^^^^^^^^^
+   |
+   = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: static `ENABLED` is never used
+  --> src/../../../../vendor/wry/src/webview2/startup_timing.rs:15:8
+   |
+15 | static ENABLED: OnceLock<bool> = OnceLock::new();
+   |        ^^^^^^^
+
+warning: static `NEXT` is never used
+  --> src/../../../../vendor/wry/src/webview2/startup_timing.rs:16:8
+   |
+16 | static NEXT: AtomicU64 = AtomicU64::new(0);
+   |        ^^^^
+
+warning: multiple variants are never constructed
+  --> src/../../../../vendor/wry/src/webview2/startup_timing.rs:23:3
+   |
+19 | pub(super) enum Stage {
+   |                 ----- variants in this enum
+...
+23 |   RequestPrepared,
+   |   ^^^^^^^^^^^^^^^
+24 |   PrepareFailed,
+   |   ^^^^^^^^^^^^^
+25 |   DeferralAcquired,
+   |   ^^^^^^^^^^^^^^^^
+26 |   DeferralUnavailable,
+   |   ^^^^^^^^^^^^^^^^^^^
+27 |   HandlerCalled,
+   |   ^^^^^^^^^^^^^
+28 |   HandlerReturned,
+   |   ^^^^^^^^^^^^^^^
+29 |   ResponderReceived,
+30 |   DispatchQueued,
+   |   ^^^^^^^^^^^^^^
+31 |   ResponseHandlerEntered,
+32 |   ResponseBuilt,
+   |   ^^^^^^^^^^^^^
+33 |   ResponseBuildFailed,
+   |   ^^^^^^^^^^^^^^^^^^^
+34 |   ResponseSet,
+35 |   ResponseSetFailed,
+   |   ^^^^^^^^^^^^^^^^^
+36 |   ErrorResponseSet,
+   |   ^^^^^^^^^^^^^^^^
+37 |   ErrorResponseSetFailed,
+   |   ^^^^^^^^^^^^^^^^^^^^^^
+38 |   DeferralCompleted,
+   |   ^^^^^^^^^^^^^^^^^
+39 |   DeferralFailed,
+   |   ^^^^^^^^^^^^^^
+   |
+   = note: `Stage` has a derived impl for the trait `Clone`, but this is intentionally ignored during dead code analysis
+
+warning: associated items `capture`, `request_acquired`, and `classify` are never used
+  --> src/../../../../vendor/wry/src/webview2/startup_timing.rs:74:17
+   |
+73 | impl RequestStart {
+   | ----------------- associated items in this implementation
+74 |   pub(super) fn capture() -> Option<Self> {
+   |                 ^^^^^^^
+...
+89 |   pub(super) fn request_acquired(&mut self) {
+   |                 ^^^^^^^^^^^^^^^^
+...
+92 |   pub(super) fn classify(self, uri: &str) -> Option<Arc<Trace>> {
+   |                 ^^^^^^^^
+
+warning: function `mark` is never used
+   --> src/../../../../vendor/wry/src/webview2/startup_timing.rs:181:15
+    |
+181 | pub(super) fn mark(trace: &Option<Arc<Trace>>, stage: Stage) {
+    |               ^^^^
+
+warning: fields `frame_serial`, `lifecycle_records`, and `console_records` are never read
+  --> src/frontend_mermaid_guard.rs:21:5
+   |
+ 9 | struct Status {
+   |        ------ fields in this struct
+...
+21 |     frame_serial: u64,
+   |     ^^^^^^^^^^^^
+22 |     lifecycle_records: usize,
+   |     ^^^^^^^^^^^^^^^^^
+23 |     console_records: usize,
+   |     ^^^^^^^^^^^^^^^
+
+warning: function `caller` is never used
+ --> src/private_mermaid.rs:8:4
+  |
+8 | fn caller(window: &WebviewWindow) -> Result<String, String> {
+  |    ^^^^^^
+
+warning: function `private_mermaid_render` is never used
+  --> src/private_mermaid.rs:15:14
+   |
+15 | pub async fn private_mermaid_render(
+   |              ^^^^^^^^^^^^^^^^^^^^^^
+
+warning: function `private_mermaid_cancel` is never used
+  --> src/private_mermaid.rs:51:8
+   |
+51 | pub fn private_mermaid_cancel(
+   |        ^^^^^^^^^^^^^^^^^^^^^^
+
+warning: function `private_mermaid_release` is never used
+  --> src/private_mermaid.rs:61:8
+   |
+61 | pub fn private_mermaid_release(
+   |        ^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: function `private_mermaid_retire_owner` is never used
+  --> src/private_mermaid.rs:71:8
+   |
+71 | pub fn private_mermaid_retire_owner(
+   |        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: function `private_mermaid_shutdown` is never used
+  --> src/private_mermaid.rs:81:14
+   |
+81 | pub async fn private_mermaid_shutdown(app: AppHandle, window: WebviewWindow) -> Result<(), String> {
+   |              ^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: function `private_mermaid_trace` is never used
+  --> src/private_mermaid.rs:90:8
+   |
+90 | pub fn private_mermaid_trace(window: WebviewWindow, trace: milkup_mermaid_engine::FrontendTrace) -> Result<(), String> {
+   |        ^^^^^^^^^^^^^^^^^^^^^
+
+warning: `milkup-desktop` (lib test) generated 15 warnings (run `cargo fix --lib -p milkup-desktop --tests` to apply 1 suggestion)
+    Finished `release` profile [optimized] target(s) in 1m 37s
+     Running unittests src/lib.rs (apps/desktop/src-tauri/target/release/deps/milkup_desktop_lib-f399cfcf8c1072b9)
+
+running 1 test
+test updates::ci_fixture::tests::download_is_exact_loopback_origin_and_path ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 280 filtered out; finished in 0.00s
+
