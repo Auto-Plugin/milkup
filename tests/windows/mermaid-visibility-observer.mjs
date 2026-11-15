@@ -1,12 +1,27 @@
 // Read-only rAF evidence. This is layout visibility, not compositor/physical paint.
 // Self-contained so the exact function runs in both WebDriver and the local probe.
-export function observeMermaidVisibility({ from, to, scenario, maxMs = 60000, maxFrames = 3600 }) {
+export function observeMermaidVisibility({
+  from,
+  to,
+  scenario,
+  expectedDocument,
+  maxMs = 60000,
+  maxFrames = 3600,
+}) {
   if (!Number.isSafeInteger(from) || !Number.isSafeInteger(to) || from < 0 || to <= from)
     throw Error('Exact fence range required')
   if (!['document-open', 'cold-entry', 'prefetch-ready'].includes(scenario))
     throw Error('Explicit scenario required')
   if (!(maxMs > 0 && maxMs <= 60000 && maxFrames > 0 && maxFrames <= 3600))
     throw Error('Bounded observation required')
+  if (
+    expectedDocument !== undefined &&
+    (typeof expectedDocument !== 'string' ||
+      !expectedDocument.length ||
+      expectedDocument.length > 32768)
+  )
+    throw Error('Bounded expected document path required')
+  const normalizePath = (value) => value?.replaceAll('\\', '/').toLowerCase()
   const begun = performance.now()
   const report = {
     version: 1,
@@ -15,6 +30,9 @@ export function observeMermaidVisibility({ from, to, scenario, maxMs = 60000, ma
     to,
     timeOrigin: performance.timeOrigin,
     begun,
+    expectedDocument: expectedDocument ?? null,
+    documentMatchedAt: null,
+    waitingDocumentFrames: 0,
     firstVisible: null,
     decoded: null,
     decodedAtFirstSample: false,
@@ -100,6 +118,24 @@ export function observeMermaidVisibility({ from, to, scenario, maxMs = 60000, ma
   const sample = () => {
     if (report.stopReason) return
     const now = performance.now()
+    if (expectedDocument !== undefined) {
+      const text = (selector) => document.querySelector(selector)?.textContent ?? null
+      const currentPath =
+        text('[data-stat="path"]') ?? text('[data-title-path]') + '/' + text('[data-title]') + '.md'
+      if (
+        document.querySelector('#app')?.dataset.loading !== 'ready' ||
+        normalizePath(currentPath) !== normalizePath(expectedDocument)
+      ) {
+        report.waitingDocumentFrames++
+        if (report.documentMatchedAt !== null) return stop('document-changed')
+        if (report.waitingDocumentFrames >= maxFrames) return stop('frame-budget')
+        if (now - begun >= maxMs) return stop('deadline')
+        previousAt = now
+        frame = requestAnimationFrame(sample)
+        return
+      }
+    }
+    report.documentMatchedAt ??= now
     report.maxSampleGapMs = Math.max(report.maxSampleGapMs, now - previousAt)
     previousAt = now
     report.samples++
@@ -141,7 +177,7 @@ export function observeMermaidVisibility({ from, to, scenario, maxMs = 60000, ma
       report.decodedAtFirstSample = report.samples === 1
       report.decoded = now
       stop('decoded')
-    } else if (report.samples >= maxFrames) stop('frame-budget')
+    } else if (report.samples + report.waitingDocumentFrames >= maxFrames) stop('frame-budget')
     else if (now - begun >= maxMs) stop('deadline')
     else frame = requestAnimationFrame(sample)
   }

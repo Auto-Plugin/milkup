@@ -13,6 +13,7 @@ import {
   collectStage,
   assertStartupRetained,
   warmApproachFrom,
+  selectMermaidEntryPolicy,
 } from './mermaid-visible-contract.mjs'
 
 test('independent documents retain distinct sources and cold/warm prefetch distances', () => {
@@ -26,6 +27,40 @@ test('independent documents retain distinct sources and cold/warm prefetch dista
   documents.forEach((d, i) =>
     assert.equal(sha(d.text.slice(fences[i].from + 11, fences[i].to - 3)), fences[i].sourceSha256),
   )
+})
+
+test('entry policy uses plugin UI and keyboard, preserves global mode and fails on rejected persistence', async () => {
+  for (const initial of ['source', 'live', 'preview']) {
+    const s = {
+      menu: false,
+      details: false,
+      editorMode: 'live',
+      selectedPolicy: initial,
+      storedPluginPolicy: initial,
+    }
+    const calls = []
+    const adapters = {
+      observe: async () => ({ ...s }),
+      pointer: async (selector) => {
+        calls.push(selector)
+        if (selector === '[data-menu-toggle]') s.menu = true
+        if (selector === '[data-menu-close]') s.menu = false
+      },
+      keys: async (value) => {
+        assert.equal(value, '\uE011\uE015\uE007')
+        s.selectedPolicy = s.storedPluginPolicy = 'preview'
+      },
+      until: async (predicate) => assert(await predicate()),
+    }
+    const result = await selectMermaidEntryPolicy(adapters)
+    assert.equal(result.after.editorMode, 'live')
+    assert.equal(result.policy, 'preview')
+    assert(calls.includes('[data-mermaid-render-mode]'))
+    assert(calls.some((v) => v.includes('milkup.diagrams')))
+    assert(!calls.some((v) => v.includes('view-mode')))
+    s.storedPluginPolicy = 'source'
+    await assert.rejects(selectMermaidEntryPolicy({ ...adapters, keys: async () => {} }))
+  }
 })
 test('cursor causal gate requires settled catalog, actual render counts and image identity', () => {
   const before = {
@@ -83,13 +118,18 @@ test('failed cursor stage persists and permits independent stages and close hand
 const row = () => ({
   scenario: 'cold-entry',
   sourceSha256: fences[1].sourceSha256,
+  document: 'C:\\isolated\\target.md',
   firstInputUnix: 1010,
+  readyAtArm: [],
+  requestsAtArm: { admitted: [], started: [], finished: [] },
   readyAtInstall: [],
   started: { timestampUnixMs: 1002 },
   observation: {
     complete: true,
     timeOrigin: 1000,
     begun: 0,
+    expectedDocument: 'C:\\isolated\\target.md',
+    documentMatchedAt: 1,
     firstVisible: 20,
     decoded: 80,
     sourceVisibleFrames: 3,
@@ -168,6 +208,35 @@ test('already visible warm fixture cannot prove offscreen prefetch or zero entry
   r.ready.timestampUnixMs = 1060
   r.observation.decodedAtFirstSample = false
   assert.equal(classifyEntry(r).coldComparisonEstablished, false)
+})
+
+test('prearmed warm control accepts picker acknowledgement after readiness only with prior offscreen evidence', () => {
+  const r = row()
+  r.scenario = 'prefetch-ready'
+  r.ready.timestampUnixMs = 1005
+  r.documentReadyUnix = 1008
+  r.readyAtInstall = [r.ready]
+  assert.equal(classifyEntry(r).prefetchComparisonEstablished, true)
+  for (const mutate of [
+    (x) => x.readyAtArm.push(x.ready),
+    (x) => delete x.readyAtArm,
+    (x) => x.requestsAtArm.admitted.push('prior-pending'),
+    (x) => (x.observation.expectedDocument = 'C:\\isolated\\previous.md'),
+    (x) => (x.observation.documentMatchedAt = null),
+    (x) => (x.observation.transitions[0].at = 6),
+    (x) => (x.started.timestampUnixMs = 999),
+    (x) => (x.firstInputUnix = 1021),
+  ]) {
+    const invalid = structuredClone(r)
+    mutate(invalid)
+    assert.equal(classifyEntry(invalid).prefetchComparisonEstablished, false)
+  }
+  r.readyAtArm = [r.ready]
+  assert.equal(
+    classifyEntry(r).readyBeforeFirstInput,
+    true,
+    'Timestamp fact is separate from a valid control',
+  )
 })
 
 test('catalog finalization must not admit or execute the same source twice', () => {

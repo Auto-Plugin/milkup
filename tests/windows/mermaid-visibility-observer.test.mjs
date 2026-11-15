@@ -57,7 +57,13 @@ function fixture(options = {}) {
   editor.querySelectorAll = () => [line, preceding]
   const doc = {
     visibilityState: 'visible',
-    querySelector: () => editor,
+    path: 'C:\\isolated\\old.md',
+    loading: 'ready',
+    querySelector(selector) {
+      if (selector === '[data-stat="path"]') return { textContent: this.path }
+      if (selector === '#app') return { dataset: { loading: this.loading } }
+      return editor
+    },
     createRange: () => ({
       selectNodeContents(node) {
         this.node = node
@@ -119,6 +125,38 @@ function fixture(options = {}) {
     },
   }
 }
+
+test('prearmed probe ignores old document offsets and requires target ready, then rejects navigation', () => {
+  const f = fixture({ expectedDocument: 'C:\\isolated\\target.md' })
+  f.reveal()
+  f.frame(16)
+  assert.equal(f.report.samples, 0)
+  assert.equal(f.report.decoded, null, 'Old decoded graph is not target evidence')
+  f.doc.path = 'c:/ISOLATED/target.md'
+  f.doc.loading = 'loading'
+  f.frame(32)
+  assert.equal(f.report.samples, 0)
+  f.doc.loading = 'ready'
+  f.image.complete = false
+  f.frame(48)
+  assert.equal(f.report.documentMatchedAt, 48)
+  assert.equal(f.report.waitingDocumentFrames, 2)
+  assert.equal(f.report.samples, 1)
+  f.doc.path = 'C:\\isolated\\another.md'
+  f.frame(64)
+  assert.equal(f.report.stopReason, 'document-changed')
+  assert.equal(f.report.complete, false)
+  assert.equal(f.pending, 0)
+})
+
+test('prearmed wait remains bounded and cannot finish using a late unrelated image', () => {
+  const f = fixture({ expectedDocument: 'C:\\isolated\\target.md', maxFrames: 2 })
+  f.frame(16)
+  f.frame(32)
+  assert.equal(f.report.stopReason, 'frame-budget')
+  assert.equal(f.report.complete, false)
+  assert.equal(f.pending, 0)
+})
 
 test('decoded but clipped below editor is not visible even inside the desktop viewport', () => {
   const f = fixture()

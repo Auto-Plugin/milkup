@@ -14,6 +14,7 @@ import {
   cursorResult,
   collectStage,
   assertStartupRetained,
+  selectMermaidEntryPolicy,
   warmApproachFrom,
 } from './mermaid-visible-contract.mjs'
 import {
@@ -57,6 +58,8 @@ if (mode === 'fixture') {
         record.cursor.result,
       )
       assert.equal(record.cursor.result.passed, true)
+      assert.equal(record.entryPolicy?.policy, 'preview')
+      assert.equal(record.entryPolicy.after.editorMode, record.initialContext.editorMode)
       assert(
         record.stages.every((s) => s.status === 'passed'),
         'All observation stages must pass',
@@ -152,6 +155,41 @@ if (mode === 'fixture') {
       execute(`return {diagnostics:window.__milkupDesktopTest.getMermaidPresentationDiagnostics(),
       editorMode:document.querySelector('.milkup-editor')?.dataset.mode,
       storedPluginPolicy:localStorage.getItem('milkup.desktop.plugins.milkup.diagrams.render-mode.v1')}`)
+    const policyState = () =>
+      execute(`const menu=document.querySelector('[data-app-menu]');
+      return {editorMode:document.querySelector('.milkup-editor')?.dataset.mode,
+      menu:!!menu&&getComputedStyle(menu).display!=='none'&&menu.getBoundingClientRect().height>0,
+      details:!!document.querySelector('[data-plugin-action="back"]'),
+      selectedPolicy:document.querySelector('[data-mermaid-render-mode]')?.value,
+      storedPluginPolicy:localStorage.getItem('milkup.desktop.plugins.milkup.diagrams.render-mode.v1')}`)
+    const pointer = async (selector) => {
+      for (let i = 0; i < 16; i++) {
+        const t = await execute(
+          `const e=document.querySelector(arguments[0]);if(!e)return null;
+          const r=e.getBoundingClientRect(),x=(r.left+r.right)/2,y=(r.top+r.bottom)/2;
+          let p=e.parentElement;while(p&&!(p.scrollHeight>p.clientHeight+1&&/(auto|scroll)/.test(getComputedStyle(p).overflowY)))p=p.parentElement;
+          const b=p?.getBoundingClientRect(),h=document.elementFromPoint(x,y);
+          return {x:Math.round(x),y:Math.round(y),disabled:!!e.disabled,hit:!!h&&(e===h||e.contains(h))&&r.width>0&&r.height>0,
+          scroll:b?{x:Math.round((b.left+b.right)/2),y:Math.round((b.top+b.bottom)/2),deltaY:y<b.top?-180:180}:null}`,
+          selector,
+        )
+        assert(t && !t.disabled, 'Existing enabled UI control: ' + selector)
+        if (t.hit) {
+          await input('pointer', [
+            { type: 'pointerMove', origin: 'viewport', duration: 50, x: t.x, y: t.y },
+            { type: 'pointerDown', button: 0 },
+            { type: 'pointerUp', button: 0 },
+          ])
+          return
+        }
+        assert(t.scroll, 'UI control must have a real scroll path')
+        await input('wheel', [
+          { type: 'scroll', origin: 'viewport', duration: 100, deltaX: 0, ...t.scroll },
+        ])
+        await delay(100)
+      }
+      throw Error('Could not reveal plugin UI control: ' + selector)
+    }
     const checkpoint = async () => {
       const state = await execute(
         `const from=arguments[0];
@@ -372,6 +410,26 @@ if (mode === 'fixture') {
         },
         persist,
       )
+      await collectStage(
+        record,
+        'entry-plugin-render-policy',
+        async () => {
+          record.entryPolicy = await selectMermaidEntryPolicy({
+            pointer,
+            observe: policyState,
+            until,
+            keys: (value) =>
+              input(
+                'key',
+                [...value].flatMap((v) => [
+                  { type: 'keyDown', value: v },
+                  { type: 'keyUp', value: v },
+                ]),
+              ),
+          })
+        },
+        persist,
+      )
       for (let index = 1; index < 3; index++) {
         const fence = fences[index],
           scenario = index === 1 ? 'cold-entry' : 'prefetch-ready'
@@ -379,6 +437,11 @@ if (mode === 'fixture') {
           record,
           scenario,
           async () => {
+            assert.equal(
+              record.entryPolicy?.policy,
+              'preview',
+              'Confirmed plugin render policy required',
+            )
             assert(
               deadline - Date.now() > 65000,
               'Insufficient bounded time for independent document',
@@ -391,6 +454,29 @@ if (mode === 'fixture') {
               documentSha256: sha(documents[index].text),
             }
             record.entries.push(row)
+            // Arm while the previous document is still open. The observer is
+            // path/loading gated, so old matching offsets cannot count as entry.
+            // Native file-picker acknowledgement can arrive after prefetch.
+            const armedLedger = await readLedger()
+            row.requestsAtArm = requestSnapshot(armedLedger, fence.sourceSha256)
+            assert.equal(
+              row.requestsAtArm.admitted.length,
+              0,
+              'No pending or completed prior source at arm',
+            )
+            row.readyAtArm = [...armedLedger.jobs.values()]
+              .filter(
+                (j) => j.admitted.sourceSha256 === fence.sourceSha256 && j.finished?.successful,
+              )
+              .map((j) => j.finished)
+            assert.equal(row.readyAtArm.length, 0, 'Independent source must be unused when armed')
+            row.observerAtInstall = await execute(mermaidVisibilityScript, {
+              ...fence,
+              scenario,
+              expectedDocument: target,
+            })
+            row.policyAtArm = await snapshot()
+            await persist()
             row.openStartedUnix = Date.now()
             const proof = await openLatencyDocument({
               target,
@@ -424,7 +510,6 @@ if (mode === 'fixture') {
                 (j) => j.admitted.sourceSha256 === fence.sourceSha256 && j.finished?.successful,
               )
               .map((j) => j.finished)
-            row.observerAtInstall = await execute(mermaidVisibilityScript, { ...fence, scenario })
             if (index === 2) {
               // Do not wait on a target already visible after file switching.
               await until(async () => {
@@ -437,13 +522,12 @@ if (mode === 'fixture') {
                 null,
                 'Warm target must start offscreen',
               )
-              assert.equal(
-                row.readyAtInstall.length,
-                0,
-                'Independent warm source must not already be prepared',
-              )
-              row.preparationInputUnix = Date.now()
-              await wheel({ from: warmApproachFrom })
+              // Preparation may complete during picker acknowledgement, but
+              // only the pre-armed offscreen timeline can authorize that case.
+              if (!row.readyAtInstall.length) {
+                row.preparationInputUnix = Date.now()
+                await wheel({ from: warmApproachFrom })
+              }
               await until(async () => {
                 const ledger = await readLedger()
                 row.prefetchReady = [...ledger.jobs.values()].find(

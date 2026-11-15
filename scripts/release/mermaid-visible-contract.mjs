@@ -6,6 +6,29 @@ import {
   FRONTEND_AUDIT_PREFIX,
 } from '../../tests/windows/mermaid-frontend-contract.mjs'
 export const sha = (bytes) => createHash('sha256').update(bytes).digest('hex')
+// Drive the existing plugin settings UI; never write storage or change the
+// editor's global mode to manufacture a render-only sample.
+export async function selectMermaidEntryPolicy({ pointer, keys, observe, until }) {
+  const before = await observe()
+  if (!before.menu) await pointer('[data-menu-toggle]')
+  await pointer('[data-menu-section="plugins"]')
+  if ((await observe()).details) await pointer('[data-plugin-action="back"]')
+  await pointer(
+    '.plugin-summary-card[data-plugin-id="milkup.diagrams"] [data-plugin-action="details"]',
+  )
+  await pointer('[data-mermaid-render-mode]')
+  await keys('\uE011\uE015\uE007')
+  await until(async () => {
+    const s = await observe()
+    return s.selectedPolicy === 'preview' && s.storedPluginPolicy === 'preview'
+  }, 'Plugin-only render strategy persisted')
+  await pointer('[data-menu-close]')
+  await until(async () => !(await observe()).menu, 'Plugin settings closed')
+  const after = await observe()
+  assert.equal(after.editorMode, before.editorMode, 'Plugin policy must not change document mode')
+  assert.equal(after.storedPluginPolicy, 'preview')
+  return { before, after, input: 'real-pointer-and-keyboard', policy: 'preview' }
+}
 const graph = (label) => '```mermaid\nflowchart LR\n A[' + label + '] --> B[visible]\n```\n'
 export const documents = [
   { scenario: 'document-open', text: '# Visible latency\n\n' + graph('OPEN_569f') + '\nTail\n' },
@@ -133,15 +156,15 @@ export function classifyEntry(row) {
       observedOffscreenBeforeEntry &&
       readyBeforeEntry &&
       row.ready.timestampUnixMs <= row.firstInputUnix &&
-      row.readyAtInstall?.length === 0 &&
+      row.readyAtArm?.length === 0 &&
+      row.requestsAtArm?.admitted.length === 0 &&
       row.started?.timestampUnixMs >= observation.timeOrigin + observation.begun &&
+      observation.expectedDocument === row.document &&
+      observation.documentMatchedAt !== null &&
+      observation.timeOrigin + first.at <= row.ready.timestampUnixMs &&
       entryUnix >= row.firstInputUnix,
     readyBeforeEntry,
-    readyBeforeFirstInput:
-      row.ready.timestampUnixMs <= row.firstInputUnix &&
-      row.readyAtInstall?.length === 0 &&
-      row.started?.timestampUnixMs >= observation.timeOrigin + observation.begun &&
-      entryUnix >= row.firstInputUnix,
+    readyBeforeFirstInput: row.ready.timestampUnixMs <= row.firstInputUnix,
     coldComparisonEstablished:
       row.scenario === 'cold-entry' &&
       observedOffscreenBeforeEntry &&

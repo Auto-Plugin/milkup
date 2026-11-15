@@ -65,8 +65,53 @@ test(
       assert.equal(warm.decodedAtFirstSample, true)
       assert.equal(warm.sourceVisibleFrames, 0)
       assert.equal(warm.decoded - warm.firstVisible, 0)
+      // Arm before switching documents. A previous visible decoded image at
+      // identical offsets must not satisfy the new document's observation.
+      await page.evaluate(() => {
+        const app = document.createElement('div')
+        app.id = 'app'
+        app.dataset.loading = 'ready'
+        const path = document.createElement('span')
+        path.dataset.stat = 'path'
+        path.textContent = 'C:\\isolated\\old.md'
+        document.body.append(app, path)
+        window.probe = window.installVisibility({
+          from: 10,
+          to: 30,
+          scenario: 'prefetch-ready',
+          expectedDocument: 'C:\\isolated\\new.md',
+        })
+      })
+      await page.waitForFunction(() => window.probe.report.waitingDocumentFrames >= 2)
+      assert.equal(await page.evaluate(() => window.probe.report.samples), 0)
+      await page.evaluate(() => {
+        document.querySelector('.milkup-editor').scrollTop = 0
+        document.querySelector('img').removeAttribute('src')
+        document.querySelector('[data-stat="path"]').textContent = 'C:\\isolated\\new.md'
+      })
+      await page.waitForFunction(() => window.probe.report.samples >= 2)
+      assert.equal(await page.evaluate(() => window.probe.report.firstVisible), null)
+      const readyAt = await page.evaluate(async () => {
+        const canvas = document.createElement('canvas')
+        canvas.width = 100
+        canvas.height = 20
+        const context = canvas.getContext('2d')
+        context.fillStyle = 'blue'
+        context.fillRect(0, 0, 100, 20)
+        const image = document.querySelector('img')
+        image.src = canvas.toDataURL()
+        await image.decode()
+        return performance.now()
+      })
+      await page.mouse.move(100, 50)
+      await page.mouse.wheel(0, 190)
+      await page.waitForFunction(() => window.probe.report.complete)
+      const armed = await page.evaluate(() => window.probe.report)
+      assert.equal(armed.transitions[0].inView, false)
+      assert(armed.documentMatchedAt <= readyAt && readyAt < armed.firstVisible)
+      assert.equal(armed.sourceVisibleFrames, 0)
       console.log(
-        JSON.stringify({ kind: 'measurement-only', browser: browser.version(), cold, warm }),
+        JSON.stringify({ kind: 'measurement-only', browser: browser.version(), cold, warm, armed }),
       )
     } finally {
       await browser.close()
