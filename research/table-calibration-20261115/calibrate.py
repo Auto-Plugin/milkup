@@ -100,8 +100,12 @@ def sample_owned(parent,out,seen):
             (out/f'process-{pid}-{s["birth"]}.maps').write_text(maps)
             row={**s,'libraries':libs}
             try:
-                windows=subprocess.check_output(['xdotool','search','--pid',str(pid),'--name','^Document output$'],text=True,stderr=subprocess.DEVNULL,timeout=1).split()
-                row['windows']=[{'id':w,'geometry':subprocess.check_output(['xwininfo','-id',w],text=True,timeout=1)} for w in windows]
+                windows=subprocess.check_output(['xdotool','search','--all','--pid',str(pid),'--name','^Document output$'],text=True,stderr=subprocess.DEVNULL,timeout=1).split()
+                row['windows']=[]
+                for w in windows:
+                    window_pid=int(subprocess.check_output(['xdotool','getwindowpid',w],text=True,timeout=1))
+                    assert window_pid==pid and proc(pid)['birth']==s['birth'],'exact window ownership required'
+                    row['windows'].append({'id':w,'pid':window_pid,'birth':s['birth'],'geometry':subprocess.check_output(['xwininfo','-id',w],text=True,timeout=1)})
             except (subprocess.CalledProcessError,subprocess.TimeoutExpired):row['windows']=[]
             seen[(pid,s['birth'])]=row
         except (FileNotFoundError,ProcessLookupError):pass
@@ -167,6 +171,8 @@ def expectations(reference,markdown):
     has=lambda s:re.search(r'(?<!\w)'+re.escape(s)+r'(?!\w)',markdown) is not None
     e['singles']=[s for s in e['singles'] if has(s)]
     for group in e['groups'].values():group['rows']=[r for r in group['rows'] if all(has(x) for x in r)]
+    assert len(e['groups']['T']['rows']) in (3,72),'frozen short/long controls only'
+    e['groups']['T']['requirePageBoundary']=len(e['groups']['T']['rows'])==72
     e['guardCount']=sum(len(e['groups'][k]['rows']) for k in ['T','C'])
     return e
 

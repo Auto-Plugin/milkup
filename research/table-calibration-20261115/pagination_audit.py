@@ -87,7 +87,7 @@ def inspect(pages, expected, paper):
         check([(p, y) for p, y, _ in ordered] == sorted((p, y) for p, y, _ in ordered), f'{key}: row order')
         if ordered and len(occurrences[group['heading']]) == 1:
             check(occurrences[group['heading']][0]['page'] == ordered[0][0], f'{key}: orphan heading')
-        if key in ('T', 'C'):
+        if key in ('T', 'C') and group.get('requirePageBoundary', True):
             check(len({p for p, _, _ in ordered}) >= 2, f'{key}: did not exercise a page boundary')
         group_report[key] = {'rows': len(ordered), 'pages': sorted({p for p, _, _ in ordered}),
                              'boundaryRows': [{'page': p, 'first': rows[0][2], 'last': rows[-1][2]} for p in sorted({p for p, _, _ in ordered}) if (rows := [r for r in ordered if r[0] == p])]}

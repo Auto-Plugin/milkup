@@ -41,6 +41,20 @@ class Contracts(unittest.TestCase):
         p=json.loads((c.HERE/'fixture-provenance.json').read_text())
         for name,digest in p['fixtures'].items():self.assertEqual(c.sha((c.HERE/'fixtures'/name).read_bytes()),digest)
 
+    def test_short_table_does_not_require_fragmentation_but_long_still_does(self):
+        import pagination_audit as audit
+        def w(text,x,y):return {'text':text,'box':[x,y,x+10,y+5]}
+        def page(words):return {'width':595.276,'height':841.89,'words':words}
+        pages=[page([w('TITLE',10,10),w('TAA',10,20),w('ENDTAA',30,20)]),page([w('CODE',10,10),w('CAA',10,20),w('ENDCAA',30,20)]),page([w('CAB',10,20),w('ENDCAB',30,20)])]
+        expected={'singles':['TITLE','TAA','ENDTAA','CODE','CAA','ENDCAA','CAB','ENDCAB'],'guard':'GUARD','guardCount':0,'groups':{'T':{'heading':'TITLE','rows':[['TAA','ENDTAA']],'requirePageBoundary':False},'C':{'heading':'CODE','rows':[['CAA','ENDCAA'],['CAB','ENDCAB']]}}}
+        paper={'width':595.276,'height':841.89}
+        self.assertEqual(audit.inspect(pages,expected,paper)[0],[])
+        expected['groups']['T']['requirePageBoundary']=True
+        self.assertEqual(audit.inspect(pages,expected,paper)[0],['T: did not exercise a page boundary'])
+        expected['groups']['T']['requirePageBoundary']=False
+        pages[0]['words']=[v for v in pages[0]['words'] if v['text']!='TAA']
+        self.assertTrue(any('TAA: expected once' in e for e in audit.inspect(pages,expected,paper)[0]))
+
     def test_fd_transfer_and_stop_eof(self):
         with tempfile.TemporaryDirectory(prefix='mkcal-contract-') as tmp:
             helper=Path(tmp)/'fake'
