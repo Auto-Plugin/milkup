@@ -11,6 +11,35 @@ import calibrate as c
 
 
 class Contracts(unittest.TestCase):
+    def test_lineage_requires_stable_birth_image_uid_and_guardian(self):
+        uid=os.getuid();binary='/owned/milkup-desktop'
+        rows={100:{'pid':100,'parent':90,'birth':'a','image':binary,'uid':uid},101:{'pid':101,'parent':100,'birth':'b','image':binary,'uid':uid},102:{'pid':102,'parent':101,'birth':'c','image':'/usr/lib/WebKitWebProcess','uid':uid}}
+        reader=lambda pid:dict(rows[pid])
+        root={'pid':100,'birth':'a'}
+        self.assertEqual([r['pid'] for r in c.prove_chain(102,root,binary,reader)],[102,101,100])
+        with self.assertRaises(AssertionError):c.prove_chain(102,{'pid':100,'birth':'old'},binary,reader)
+        rows[101]['uid']=uid+1
+        with self.assertRaises(AssertionError):c.prove_chain(102,root,binary,reader)
+        rows[101]['uid']=uid
+        rows[100]['image']='/different-image'
+        with self.assertRaises(AssertionError):c.prove_chain(102,root,binary,reader)
+        rows[100]['image']=binary
+        calls={}
+        def reused(pid):
+            calls[pid]=calls.get(pid,0)+1;r=reader(pid)
+            if pid==101 and calls[pid]>1:r['birth']='reused'
+            return r
+        with self.assertRaises(AssertionError):c.prove_chain(102,root,binary,reused)
+
+    def test_repeated_headers_required_on_each_data_page(self):
+        def w(text,x,y):return {'text':text,'box':[x,y,x+10,y+5]}
+        p={'pages':[{'words':[w('TABLELEFT',10,10),w('TABLERIGHT',30,10),w('TAA',10,20)]},{'words':[w('TABLELEFT',10,10),w('TABLERIGHT',30,10),w('TAB',10,20)]}], 'groups':{'T':{'pages':[1,2],'boundaryRows':[{'page':1,'first':'TAA'},{'page':2,'first':'TAB'}]}}}
+        self.assertEqual(c.header_contract(p)['errors'],[])
+        p['pages'][1]['words']=p['pages'][1]['words'][2:]
+        self.assertTrue(c.header_contract(p)['errors'])
+        p['pages'][1]['words']=[w('TABLELEFT',10,25),w('TABLERIGHT',30,25),w('TAB',10,20)]
+        self.assertIn('page 2: header alignment/order',c.header_contract(p)['errors'])
+
     def test_frames_are_bounded_and_partial_retained(self):
         raw=b'{"type":"rendering"}'
         wire=struct.pack('<I',len(raw))+raw

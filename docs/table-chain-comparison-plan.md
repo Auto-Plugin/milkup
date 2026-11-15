@@ -1,0 +1,13 @@
+# One final bounded CSS-chain comparison
+
+Parent authorization follows the exact 693-word/coordinate baseline reproduced in 43692316332. Product integration remains 8d93519b / product 0e4e8c58. Reuse the identical 58c78973 deb and embedded guard, default system WebKit and frozen HTML inputs; no application build or new installation matrix.
+
+Before native execution, the already-generated short-edge PDF is rechecked locally with the corrected explicit short-table contract: all three rows and heading on page 2 are a positive result, 248 unique markers and 103 rendered guards pass. Long tables still must span pages; missing/clipped data and orphaned headings still fail. Do not rewrite the previous failure report.
+
+Independent ownership capture now holds a pidfd for the exact guardian generation, rereads the owned parent chain (PID/birth/image/UID), and requires the packaged binary image for the output window. Window search uses conjunction; `xdotool getwindowpid` and `xprop _NET_WM_PID` must agree before geometry, followed by another owner/lineage check. Native 1024×768 output-window geometry remains distinct from direct GTK child allocation. Local positive and PID-reuse/unrelated-identity negatives cover the lineage contract. No signal is sent through this observation path; the existing product guardian owns cleanup.
+
+One manual job only, with unchanged 660-second native budget. Match the original full baseline again in this exact environment; then run the short-edge, long-room and short-room controls. Baseline failure stops comparison. If those controls hold, compare only the minimal print CSS chain on all four cases, keeping heading/table/thead/tbody/th/td byte-for-byte structure and text. No caption, split table, copied title/data row, title cell or forced/absolute page positioning.
+
+The existing default-runtime reference does **not** actually repeat TABLELEFT/TABLERIGHT on continuation pages 3–5 despite native thead/display:table-header-group. This limitation is recorded separately from the already-known baseline orphan, not silently counted as successful behavior. Candidate acceptance additionally requires one header pair on every page containing table data, before that page's first row, with independent glyph ordering. Heading count, complete content, page bounds and original two-pixel raster guard checks remain strict. A DOM-only header promise is insufficient.
+
+If no candidate meets every boundary, stop and report the mechanism limits; no further dispatch, product patch or rebuild. If a candidate genuinely meets every boundary, only prepare the minimal product diff for review next. No main merge, release, notification, security or production configuration changes.
