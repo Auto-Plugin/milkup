@@ -1,4 +1,4 @@
-name: Owned abrupt-exit recovery with exact installed Linux package (no release)
+name: Installed Linux complex PDF pagination (no release)
 on:
   workflow_dispatch:
     inputs:
@@ -10,10 +10,10 @@ permissions:
   contents: read
   actions: read
 concurrency:
-  group: linux-owned-recovery-${{ github.ref }}
+  group: linux-complex-pagination-${{ github.ref }}
   cancel-in-progress: false
 jobs:
-  recovery:
+  pagination:
     if: github.repository == 'Auto-Plugin/milkup'
     runs-on: ubuntu-26.04
     timeout-minutes: 25
@@ -24,7 +24,7 @@ jobs:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
           persist-credentials: false
-          fetch-depth: 3
+          fetch-depth: 5
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
         with:
           node-version: 24.19.0
@@ -37,21 +37,23 @@ jobs:
           python3 - <<'PYVERIFY'
           import subprocess
           changed=subprocess.check_output(['git','diff','--name-only','58c78973101acb0a22ca0cb5d24ef24bd9edc199','HEAD'],text=True).splitlines()
-          assert set(changed)<= {'.github/workflows/linux-native-acceptance.yml','scripts/ci/linux-file-conflict-gui.mjs','scripts/ci/linux-recovery-owned-stop.mjs','scripts/ci/run-linux-recovery-owned-stop.sh','scripts/ci/owned-pidfd-signal.py','tests/native/owned-pidfd-signal.test.py','tests/helpers/native-production.mjs','docs/recovery-owned-stop-plan-20261115.md'},changed
+          assert set(changed)<= {'.github/workflows/linux-native-acceptance.yml','scripts/ci/linux-file-conflict-gui.mjs','scripts/ci/linux-recovery-owned-stop.mjs','scripts/ci/run-linux-recovery-owned-stop.sh','scripts/ci/owned-pidfd-signal.py','tests/native/owned-pidfd-signal.test.py','tests/helpers/native-production.mjs','docs/recovery-owned-stop-plan-20261115.md','scripts/ci/linux-complex-pagination.mjs','scripts/ci/run-linux-complex-pagination.sh','scripts/ci/complex-pagination-audit.py','tests/native/complex-pagination-audit.test.py','docs/complex-pagination-plan-20261115.md'},changed
           PYVERIFY
       - name: Existing official GUI dependencies and default sandbox gate
         run: |
           mkdir -p "$RUNNER_TEMP/linux-native-evidence"
           sudo apt-get update
-          sudo apt-get install -y --no-install-recommends libwebkit2gtk-4.1-dev libgtk-3-dev libx11-dev librsvg2-dev libssl-dev pkg-config webkitgtk-webdriver xdotool x11-utils xvfb xauth python3-gi fonts-noto-cjk
+          sudo apt-get install -y --no-install-recommends libwebkit2gtk-4.1-dev libgtk-3-dev libx11-dev librsvg2-dev libssl-dev pkg-config webkitgtk-webdriver xdotool x11-utils xvfb xauth python3-gi fonts-noto-cjk poppler-utils python3-pil
+          dpkg-query -W libwebkit2gtk-4.1-0 libjavascriptcoregtk-4.1-0 poppler-utils fonts-noto-cjk > "$RUNNER_TEMP/linux-native-evidence/runtime-versions.txt"
           test "$(id -u)" != 0
           test -z "${WEBKIT_DISABLE_SANDBOX_THIS_IS_DANGEROUS:-}"
           cc scripts/ci/linux-webkit-preflight.c -o "$RUNNER_TEMP/milkup-webkit-preflight" $(pkg-config --cflags --libs webkit2gtk-4.1 gtk+-3.0)
           timeout --signal=TERM --kill-after=5s 40s xvfb-run -a dbus-run-session -- "$RUNNER_TEMP/milkup-webkit-preflight" 2>&1 | tee "$RUNNER_TEMP/linux-native-evidence/webkit-preflight.txt"
           cc -Wall -Wextra -Werror scripts/ci/linux-window-close.c -o "$RUNNER_TEMP/milkup-window-close" -lX11
-          node --check scripts/ci/linux-recovery-owned-stop.mjs
+          node --check scripts/ci/linux-complex-pagination.mjs
+          python3 tests/native/complex-pagination-audit.test.py
           python3 tests/native/owned-pidfd-signal.test.py
-          bash -n scripts/ci/run-linux-recovery-owned-stop.sh
+          bash -n scripts/ci/run-linux-complex-pagination.sh
       - name: Reuse exact repaired 58c78973 deb, do not rebuild
         env:
           GH_TOKEN: ${{ github.token }}
@@ -84,12 +86,12 @@ jobs:
           sha256sum /usr/bin/milkup-desktop > "$RUNNER_TEMP/linux-native-evidence/installed-binary.sha256"
           rustup toolchain install 1.99.0 --profile minimal
           cargo +1.99.0 install tauri-driver --version 2.1.0 --locked
-      - name: Owned pidfd interruption, deferred recovery, copy restoration and restart
+      - name: Native PDF export of complex synthetic Markdown and independent geometry audit
         env:
-          MILKUP_RECOVERY_SOURCE_SHA: 58c78973101acb0a22ca0cb5d24ef24bd9edc199
+          MILKUP_PAGINATION_SOURCE_SHA: 58c78973101acb0a22ca0cb5d24ef24bd9edc199
         timeout-minutes: 7
         run: |
-          timeout --signal=TERM --kill-after=10s 340s xvfb-run -a -s '-screen 0 1400x1000x24' dbus-run-session -- bash scripts/ci/run-linux-recovery-owned-stop.sh 2>&1 | tee "$RUNNER_TEMP/linux-native-evidence/harness.txt"
+          timeout --signal=TERM --kill-after=10s 340s xvfb-run -a -s '-screen 0 1400x1000x24' dbus-run-session -- bash scripts/ci/run-linux-complex-pagination.sh 2>&1 | tee "$RUNNER_TEMP/linux-native-evidence/harness.txt"
       - name: Remove only this run's installed application
         if: always()
         run: |
@@ -101,7 +103,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
-          name: milkup-linux-owned-recovery-${{ github.run_id }}
+          name: milkup-linux-complex-pagination-${{ github.run_id }}
           path: ${{ runner.temp }}/linux-native-evidence/
           retention-days: 7
           if-no-files-found: error
