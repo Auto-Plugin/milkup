@@ -1,0 +1,79 @@
+{
+  "scope": "offline source methods + exact existing package inspection; no native UI or signed download",
+  "status": "passed-offline-boundary-only",
+  "cases": [
+    {
+      "name": "pkexec-success-fixture",
+      "result": "Ok(())",
+      "calls": [
+        "pkexec|dpkg|-i|/tmp/milkup-inert-update-0ih_oao6/pkexec-success-fixture/inert-package.deb"
+      ],
+      "packageUnchanged": true
+    },
+    {
+      "name": "pkexec-126-all-refused",
+      "result": "Err(PackageInstallFailed)",
+      "calls": [
+        "pkexec|dpkg|-i|/tmp/milkup-inert-update-0ih_oao6/pkexec-126-all-refused/inert-package.deb",
+        "zenity|--password|--title=Authentication Required|--text=Enter your password to install the update:",
+        "kdialog|--password|Enter your password to install the update:",
+        "sudo|dpkg|-i|/tmp/milkup-inert-update-0ih_oao6/pkexec-126-all-refused/inert-package.deb"
+      ],
+      "packageUnchanged": true
+    },
+    {
+      "name": "pkexec-127-all-refused",
+      "result": "Err(PackageInstallFailed)",
+      "calls": [
+        "pkexec|dpkg|-i|/tmp/milkup-inert-update-0ih_oao6/pkexec-127-all-refused/inert-package.deb",
+        "zenity|--password|--title=Authentication Required|--text=Enter your password to install the update:",
+        "kdialog|--password|Enter your password to install the update:",
+        "sudo|dpkg|-i|/tmp/milkup-inert-update-0ih_oao6/pkexec-127-all-refused/inert-package.deb"
+      ],
+      "packageUnchanged": true
+    },
+    {
+      "name": "graphic-password-rejected",
+      "result": "Err(PackageInstallFailed)",
+      "calls": [
+        "pkexec|dpkg|-i|/tmp/milkup-inert-update-0ih_oao6/graphic-password-rejected/inert-package.deb",
+        "zenity|--password|--title=Authentication Required|--text=Enter your password to install the update:",
+        "sudo|-S|dpkg|-i|/tmp/milkup-inert-update-0ih_oao6/graphic-password-rejected/inert-package.deb",
+        "sudo|dpkg|-i|/tmp/milkup-inert-update-0ih_oao6/graphic-password-rejected/inert-package.deb"
+      ],
+      "packageUnchanged": true
+    }
+  ],
+  "ciDispatched": false,
+  "package": {
+    "source": "58c78973101acb0a22ca0cb5d24ef24bd9edc199",
+    "sha256": "9e71e2b6f6c5cd030f7307d35679ded1d4f5605127d77320db1d455d90c1ddde",
+    "binarySha256": "42394c4bdcaeea078c7d553acbe6edc7a75f13b16ce5b70cba2d0a3a02176ed6",
+    "metadata": "Package: milkup\nVersion: 2.0.0-beta.10\nArchitecture: amd64\n",
+    "embeddedChannel": {
+      "channel": "beta",
+      "endpoints": [],
+      "publicKey": null
+    },
+    "channelOccurrences": 2
+  },
+  "source": {
+    "vendorSha256": "8eacd2c2131837aa49a3ec562133dd6457f776a3f4b99003f574a5ae1227f6b0",
+    "methodsSha256": "19deb4062ebad728ab28e7ba7798e1b79159986a74fdc5f8283c28ac04413c58",
+    "methodsStartLine": 1231,
+    "hostSha256": "cf1603a652e8197fe01fcbf0b226bc77ba759e9269080d7aabd32b6e87e45909",
+    "channelSha256": "08ecf30805b7ad4b32831a6cd4e74a7e8076f60a4e073a182160d8ad53d893f3"
+  },
+  "unchangedFromPackageSource": {
+    "vendor/tauri-plugin-updater/src/updater.rs": "8eacd2c2131837aa49a3ec562133dd6457f776a3f4b99003f574a5ae1227f6b0",
+    "apps/desktop/src-tauri/src/updates.rs": "cf1603a652e8197fe01fcbf0b226bc77ba759e9269080d7aabd32b6e87e45909",
+    "release/update-channel.json": "08ecf30805b7ad4b32831a6cd4e74a7e8076f60a4e073a182160d8ad53d893f3"
+  },
+  "nativeReadiness": {
+    "status": "blocked-existing-package",
+    "checkDownloadVerify": "compiled empty endpoints/public key; no runtime test-authority injection in this package",
+    "install": "real path invokes privilege helpers; not executed under no-automatic-elevation scope",
+    "windowsFixtureReusableAsLinuxBinary": false,
+    "packageMutationPerformed": false
+  }
+}
