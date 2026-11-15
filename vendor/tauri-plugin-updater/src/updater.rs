@@ -1081,6 +1081,8 @@ impl Update {
 }
 
 /// Linux (AppImage, Deb, RPM)
+// QA feature has no compiled package-manager/privilege implementation.
+#[cfg(not(feature = "milkup-ci-download-only"))]
 #[cfg(any(
     target_os = "linux",
     target_os = "dragonfly",

@@ -17,8 +17,16 @@ test('normal channel remains empty and both QA install entry points reject',asyn
  const host=await readFile('apps/desktop/src-tauri/src/updates.rs','utf8'),vendor=await readFile('vendor/tauri-plugin-updater/src/updater.rs','utf8')
  assert.match(host,/#\[cfg\(feature = "ci-update-fixture"\)\][\s\S]*?pub async fn install_application_update\([\s\S]*?QA_DOWNLOAD_ONLY_INSTALL_BLOCKED[\s\S]*?#\[cfg\(not\(feature = "ci-update-fixture"\)\)\]/)
  assert.match(vendor,/#\[cfg\(feature = "milkup-ci-download-only"\)\][\s\S]*?pub fn install\([\s\S]*?QA_DOWNLOAD_ONLY_INSTALL_BLOCKED[\s\S]*?#\[cfg\(not\(feature = "milkup-ci-download-only"\)\)\]/)
+ assert.match(vendor,/\/\/\/ Linux \(AppImage, Deb, RPM\)[\s\S]*?#\[cfg\(not\(feature = "milkup-ci-download-only"\)\)\][\s\S]*?impl Update \{/)
  assert.match(await readFile('apps/desktop/src-tauri/Cargo.toml','utf8'),/ci-update-fixture = \["dep:reqwest", "tauri-plugin-updater\/milkup-ci-download-only"\]/)
  assert.match(host,/validate_download\(&update.download_url\)/)
+})
+test('native negative observations bind current request mode/path, and never request installation',async()=>{
+ const ui=await readFile('scripts/ci/linux-update-download-gui.mjs','utf8')
+ assert.match(ui,/requests\.slice\(requestStart\)\.some\(r=>r.mode===expectedMode&&r.path===expectedPath\)/)
+ assert.match(ui,/s.error&&pattern.test\(s.error\)/)
+ assert(!ui.includes("clickAction('install')"))
+ assert.match(ui,/clickAction\('cancel'\)/)
 })
 test('loopback HTTPS uses fresh signatures and detects wrong authority/corruption',async()=>{
  const directory=await mkdtemp(path.join(tmpdir(),'milkup-qa-update-contract-'));let server

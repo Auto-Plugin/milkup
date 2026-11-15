@@ -46,13 +46,21 @@ jobs:
           rustup toolchain install 1.99.0 --profile minimal
           echo 'RUSTUP_TOOLCHAIN=1.99.0' >> "$GITHUB_ENV"
           sudo apt-get update
-          sudo apt-get install -y --no-install-recommends libwebkit2gtk-4.1-dev libgtk-3-dev libx11-dev librsvg2-dev libssl-dev pkg-config webkitgtk-webdriver xdotool x11-utils xvfb xauth python3-gi patchelf openssl
+          sudo apt-get install -y --no-install-recommends libwebkit2gtk-4.1-dev libgtk-3-dev libx11-dev librsvg2-dev libssl-dev pkg-config webkitgtk-webdriver xdotool x11-utils xvfb xauth python3-gi patchelf openssl curl coreutils dbus-x11 build-essential
           cc scripts/ci/linux-webkit-preflight.c -o "$RUNNER_TEMP/milkup-webkit-preflight" $(pkg-config --cflags --libs webkit2gtk-4.1 gtk+-3.0)
           timeout --signal=TERM --kill-after=5s 40s xvfb-run -a dbus-run-session -- "$RUNNER_TEMP/milkup-webkit-preflight" 2>&1 | tee "$RUNNER_TEMP/linux-native-evidence/preflight.txt"
           cc -Wall -Wextra -Werror scripts/ci/linux-window-close.c -o "$RUNNER_TEMP/milkup-window-close" -lX11
           node --test scripts/ci/linux-update-download-contract.test.mjs
+          python3 -B scripts/ci/linux-update-environment.test.py
           node --check scripts/ci/linux-update-download-gui.mjs
           bash -n scripts/ci/run-linux-update-download.sh
+      - name: All native post-build dependencies and owned input-close preflight
+        timeout-minutes: 15
+        run: |
+          set -euo pipefail
+          cargo install tauri-driver --version 2.1.0 --locked
+          PYTHONPYCACHEPREFIX="$RUNNER_TEMP/qa-pycache" python3 -m py_compile scripts/ci/linux-update-environment.py
+          timeout --signal=TERM --kill-after=5s 60s xvfb-run -a -s '-screen 0 1400x1000x24' dbus-run-session -- python3 scripts/ci/linux-update-environment.py "$RUNNER_TEMP/linux-native-evidence/plumbing" "$RUNNER_TEMP/milkup-window-close"
       - name: Reuse exact target deb bytes, never install it
         env:
           GH_TOKEN: ${{ github.token }}
@@ -88,7 +96,6 @@ jobs:
           sha256sum apps/desktop/src-tauri/target/release/milkup-desktop > "$RUNNER_TEMP/linux-native-evidence/fixture-binary.sha256"
           cargo tree --manifest-path apps/desktop/src-tauri/Cargo.toml --locked --features ci-update-fixture -e features > "$RUNNER_TEMP/linux-native-evidence/build-features.txt"
           test -z "$(git status --porcelain)"
-          cargo install tauri-driver --version 2.1.0 --locked
       - name: Real About check, rejected signatures, valid download, clear and close
         timeout-minutes: 7
         run: |

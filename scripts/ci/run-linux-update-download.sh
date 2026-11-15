@@ -29,4 +29,5 @@ for attempt in $(seq 1 50); do
   if curl --fail --silent "$TAURI_DRIVER_URL/status" > /dev/null; then break; fi
   sleep 0.1
 done
+curl --fail --silent --max-time 3 "$TAURI_DRIVER_URL/status" > /dev/null
 node scripts/ci/linux-update-download-gui.mjs
