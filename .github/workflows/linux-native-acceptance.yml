@@ -1,0 +1,108 @@
+name: Repaired Linux file conflict native acceptance (no release)
+on:
+  workflow_dispatch:
+    inputs:
+      expected_sha:
+        description: Exact repair candidate commit
+        required: true
+        type: string
+permissions:
+  contents: read
+  actions: read
+concurrency:
+  group: linux-file-conflict-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  conflict:
+    if: github.repository == 'Auto-Plugin/milkup'
+    runs-on: ubuntu-26.04
+    timeout-minutes: 100
+    env:
+      CARGO_BUILD_JOBS: '2'
+      CARGO_INCREMENTAL: '0'
+      CARGO_PROFILE_RELEASE_DEBUG: '0'
+      PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: '1'
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: 24.19.0
+      - name: Exact repair source and locked tools
+        env:
+          EXPECTED_SHA: ${{ inputs.expected_sha }}
+        run: |
+          test "$EXPECTED_SHA" = "$GITHUB_SHA"
+          test "$(git rev-parse HEAD)" = "$EXPECTED_SHA"
+          test -z "$(git status --porcelain)"
+          npm install --global pnpm@11.7.0 --ignore-scripts
+          rustup toolchain install 1.99.0 --profile minimal
+          echo 'RUSTUP_TOOLCHAIN=1.99.0' >> "$GITHUB_ENV"
+      - name: Existing official GUI dependencies and default sandbox gate
+        run: |
+          mkdir -p "$RUNNER_TEMP/linux-native-evidence"
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends libwebkit2gtk-4.1-dev libgtk-3-dev libx11-dev librsvg2-dev libssl-dev pkg-config webkitgtk-webdriver xdotool x11-utils xvfb xauth python3-gi patchelf
+          test "$(id -u)" != 0
+          test -z "${WEBKIT_DISABLE_SANDBOX_THIS_IS_DANGEROUS:-}"
+          cc scripts/ci/linux-webkit-preflight.c -o "$RUNNER_TEMP/milkup-webkit-preflight" $(pkg-config --cflags --libs webkit2gtk-4.1 gtk+-3.0)
+          timeout --signal=TERM --kill-after=5s 40s xvfb-run -a dbus-run-session -- "$RUNNER_TEMP/milkup-webkit-preflight" 2>&1 | tee "$RUNNER_TEMP/linux-native-evidence/webkit-preflight.txt"
+          cc -Wall -Wextra -Werror scripts/ci/linux-window-close.c -o "$RUNNER_TEMP/milkup-window-close" -lX11
+          node --check scripts/ci/linux-file-conflict-gui.mjs
+          bash -n scripts/ci/run-linux-file-conflict.sh
+      - name: Locked dependencies and narrow local contracts
+        run: |
+          pnpm install --frozen-lockfile --config.manage-package-manager-versions=false
+          npm install --prefix "$RUNNER_TEMP/milkup-math-input" --ignore-scripts --no-audit --no-fund katex@0.19.0
+          node --input-type=module -e "import fs from 'node:fs'; import path from 'node:path'; fs.mkdirSync('plugins/math/node_modules',{recursive:true}); fs.symlinkSync(path.join(process.env.RUNNER_TEMP,'milkup-math-input/node_modules/katex'), 'plugins/math/node_modules/katex');"
+          node scripts/check-versions.mjs
+          node scripts/release/update-readiness.mjs --candidate
+          pnpm exec vitest run apps/desktop/src/external-file-notice.test.ts apps/desktop/src/save-as-safety.test.ts apps/desktop/src/file-service.test.ts apps/desktop/src/recovery.test.ts apps/desktop/src/large-document-conflict.test.ts packages/tauri-bridge/src/session/save-safety.test.ts packages/tauri-bridge/src/file/file-watcher.test.ts packages/tauri-bridge/src/session/v1-file-workflow-regressions.test.ts
+          pnpm --filter @milkup/desktop typecheck
+          python3 tests/native/file-save-core.py "$RUNNER_TEMP/linux-native-evidence/file-save-core"
+      - name: Build only the necessary repaired Linux deb
+        timeout-minutes: 75
+        run: node scripts/release/build-candidate.mjs linux-deb "$RUNNER_TEMP/milkup-candidate" "$GITHUB_SHA"
+      - name: Retain exact candidate bytes without publication
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: milkup-conflict-repair-deb-${{ github.sha }}
+          path: ${{ runner.temp }}/milkup-candidate/deliverable/
+          retention-days: 7
+          if-no-files-found: error
+      - name: Install and verify this exact repaired package
+        run: |
+          node scripts/release/verify-candidate.mjs "$RUNNER_TEMP/milkup-candidate/deliverable" "$GITHUB_SHA" linux-deb > "$RUNNER_TEMP/linux-native-evidence/verified-receipt.json"
+          if dpkg-query --status milkup >/dev/null 2>&1; then echo 'Refusing to replace an existing installation' >&2; exit 1; fi
+          package=("$RUNNER_TEMP"/milkup-candidate/deliverable/*.deb)
+          test "${#package[@]}" = 1
+          dpkg-deb --extract "${package[0]}" "$RUNNER_TEMP/exact-package-extracted"
+          sudo dpkg --install "${package[0]}" 2>&1 | tee "$RUNNER_TEMP/linux-native-evidence/install.txt"
+          touch "$RUNNER_TEMP/linux-native-evidence/installed-by-this-run"
+          cmp "$RUNNER_TEMP/exact-package-extracted/usr/bin/milkup-desktop" /usr/bin/milkup-desktop
+          cp "$RUNNER_TEMP/milkup-candidate/deliverable/manifest.json" "$RUNNER_TEMP/linux-native-evidence/package-manifest.json"
+          sha256sum /usr/bin/milkup-desktop > "$RUNNER_TEMP/linux-native-evidence/installed-binary.sha256"
+          cargo install tauri-driver --version 2.1.0 --locked
+      - name: Real watcher conflict, cancel, rescue save, clean reload and restart
+        timeout-minutes: 7
+        run: |
+          timeout --signal=TERM --kill-after=10s 340s xvfb-run -a -s '-screen 0 1400x1000x24' dbus-run-session -- bash scripts/ci/run-linux-file-conflict.sh 2>&1 | tee "$RUNNER_TEMP/linux-native-evidence/harness.txt"
+      - name: Remove only this run's installed application
+        if: always()
+        run: |
+          if test -f "$RUNNER_TEMP/linux-native-evidence/installed-by-this-run"; then
+            sudo dpkg --remove milkup 2>&1 | tee "$RUNNER_TEMP/linux-native-evidence/uninstall.txt"
+            test ! -e /usr/bin/milkup-desktop
+          fi
+      - name: Preserve file versions and native evidence including failures
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: milkup-linux-file-conflict-${{ github.run_id }}
+          path: ${{ runner.temp }}/linux-native-evidence/
+          retention-days: 7
+          if-no-files-found: error
