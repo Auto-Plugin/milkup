@@ -1,51 +1,64 @@
-name: Table break mechanism probe (no application build)
+name: Packaged output baseline calibration (no build)
 on:
   workflow_dispatch:
     inputs:
       expected_sha:
-        description: Exact mechanism probe SHA
+        description: Exact bounded calibration SHA
         required: true
         type: string
 permissions:
   contents: read
+  actions: read
 concurrency:
-  group: table-break-mechanism
+  group: table-baseline-calibration
   cancel-in-progress: false
 jobs:
-  mechanism:
+  calibrate:
     if: github.repository == 'Auto-Plugin/milkup'
     runs-on: ubuntu-26.04
     timeout-minutes: 20
+    defaults:
+      run:
+        shell: bash
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
           persist-credentials: false
-      - name: Exact source and official default runtime
+      - name: Exact source and official runtime only
         env:
           EXPECTED_SHA: ${{ inputs.expected_sha }}
         run: |
+          set -euo pipefail
           test "$EXPECTED_SHA" = "$GITHUB_SHA"
           test -z "$(git status --porcelain)"
           test "$(id -u)" != 0
           test -z "${WEBKIT_DISABLE_SANDBOX_THIS_IS_DANGEROUS:-}"
-          mkdir -p "$RUNNER_TEMP/table-break-evidence"
+          mkdir -p "$RUNNER_TEMP/table-calibration-evidence"
           sudo apt-get update
-          sudo apt-get install -y --no-install-recommends libwebkit2gtk-4.1-dev libgtk-3-dev pkg-config xvfb xauth fonts-noto-cjk poppler-utils python3-lxml python3-pil python3-fitz
-          dpkg-query -W libwebkit2gtk-4.1-0 libjavascriptcoregtk-4.1-0 fonts-noto-cjk poppler-utils python3-fitz > "$RUNNER_TEMP/table-break-evidence/runtime-versions.txt"
-      - name: Structural and negative measurement contracts
+          sudo apt-get install -y --no-install-recommends libwebkit2gtk-4.1-0 libgtk-3-0t64 xvfb xauth xdotool x11-utils fonts-noto-cjk poppler-utils python3-lxml python3-pil python3-fitz
+          dpkg-query -W libwebkit2gtk-4.1-0 libjavascriptcoregtk-4.1-0 fonts-noto-cjk poppler-utils python3-fitz > "$RUNNER_TEMP/table-calibration-evidence/runtime-versions.txt"
+      - name: Reuse exact accepted package and original negative PDF
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
-          python3 research/table-break-mechanism-20261115/test_probe.py
-          python3 research/table-break-mechanism-20261115/probe.py preflight "$RUNNER_TEMP/table-break-evidence"
-      - name: One bounded system engine experiment
+          set -euo pipefail
+          gh api repos/Auto-Plugin/milkup/actions/artifacts/14149947936/zip > "$RUNNER_TEMP/original-package.zip"
+          gh api repos/Auto-Plugin/milkup/actions/artifacts/14151117902/zip > "$RUNNER_TEMP/original-pagination.zip"
+          python3 research/table-calibration-20261115/test_calibrate.py
+      - name: One fail-fast calibration then conditional minimal comparison
         timeout-minutes: 12
         run: |
           set -euo pipefail
-          timeout --signal=TERM --kill-after=10s 660s python3 research/table-break-mechanism-20261115/probe.py native "$RUNNER_TEMP/table-break-evidence" 2>&1 | tee "$RUNNER_TEMP/table-break-evidence/native.log"
-      - name: Preserve all outcomes
+          timeout --signal=TERM --kill-after=10s 660s xvfb-run -a -s '-screen 0 1400x1000x24' dbus-run-session -- python3 research/table-calibration-20261115/calibrate.py "$RUNNER_TEMP/original-package.zip" "$RUNNER_TEMP/original-pagination.zip" "$RUNNER_TEMP/table-calibration-evidence" 2>&1 | tee "$RUNNER_TEMP/table-calibration-evidence/harness.log"
+      - name: Preserve original failure and calibration decisions
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
-          name: milkup-table-break-${{ github.run_id }}
-          path: ${{ runner.temp }}/table-break-evidence/
+          name: milkup-table-calibration-${{ github.run_id }}
+          path: |
+            ${{ runner.temp }}/table-calibration-evidence/
+            !${{ runner.temp }}/table-calibration-evidence/package/
+            !${{ runner.temp }}/table-calibration-evidence/extracted/
+            !${{ runner.temp }}/table-calibration-evidence/xdg-*/
           retention-days: 7
           if-no-files-found: error
