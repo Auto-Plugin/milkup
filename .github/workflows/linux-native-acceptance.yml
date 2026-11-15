@@ -84,7 +84,7 @@ jobs:
           node scripts/ci/prepare-bundled-plugins.mjs
           pnpm --filter @milkup/desktop tauri build --ci --no-bundle --features ci-update-fixture -- --locked
           cargo test --manifest-path apps/desktop/src-tauri/Cargo.toml --release --locked --lib --features ci-update-fixture updates::ci_fixture::tests::download_is_exact_loopback_origin_and_path -- --exact 2>&1 | tee "$RUNNER_TEMP/linux-native-evidence/loopback-unit.txt"
-          rg "1 passed; 0 failed" "$RUNNER_TEMP/linux-native-evidence/loopback-unit.txt"
+          node scripts/ci/check-linux-update-unit.mjs "$RUNNER_TEMP/linux-native-evidence/loopback-unit.txt"
           sha256sum apps/desktop/src-tauri/target/release/milkup-desktop > "$RUNNER_TEMP/linux-native-evidence/fixture-binary.sha256"
           cargo tree --manifest-path apps/desktop/src-tauri/Cargo.toml --locked --features ci-update-fixture -e features > "$RUNNER_TEMP/linux-native-evidence/build-features.txt"
           test -z "$(git status --porcelain)"

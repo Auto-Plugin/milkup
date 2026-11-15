@@ -6,6 +6,12 @@ import path from 'node:path'
 import https from 'node:https'
 import {startFixture} from '../release/test-support/in-app-update-server.mjs'
 import {verifyMinisign} from '../release/update-readiness.mjs'
+import {requireLoopbackTest} from './check-linux-update-unit.mjs'
+test('test-log gate rejects missing, zero, ignored, failed and repeated results',()=>{
+ const good='test updates::ci_fixture::tests::download_is_exact_loopback_origin_and_path ... ok\n\ntest result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 280 filtered out; finished in 0.00s\n'
+ requireLoopbackTest(good)
+ for(const bad of ['',good.replace('1 passed','0 passed'),good.replace('0 ignored','1 ignored'),good.replace('0 failed','1 failed'),good+good,good.replace(' ... ok',' ... ignored')])assert.throws(()=>requireLoopbackTest(bad))
+})
 test('normal channel remains empty and both QA install entry points reject',async()=>{
  assert.deepEqual(JSON.parse(await readFile('release/update-channel.json','utf8')),{channel:'beta',endpoints:[],publicKey:null})
  const host=await readFile('apps/desktop/src-tauri/src/updates.rs','utf8'),vendor=await readFile('vendor/tauri-plugin-updater/src/updater.rs','utf8')
