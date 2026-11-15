@@ -16,6 +16,10 @@ on:
         description: Independent print-layout capture and fragment/clip counterexamples; engine only
         type: boolean
         default: false
+      paint_research:
+        description: One bounded paint-phase A/B delta inheriting the accepted 43660565818 TU gate
+        type: boolean
+        default: false
       preflight_run:
         description: Exact successful same-SHA preflight run required for resume
         type: string
@@ -34,6 +38,7 @@ jobs:
     env:
       CCACHE_COMPILERCHECK: content
       MILKUP_WEBKIT_GEOMETRY: ${{ inputs.geometry_research }}
+      MILKUP_WEBKIT_PAINT: ${{ inputs.paint_research }}
       MILKUP_WEBKIT_LINKS: ${{ inputs.links_research }}
       MILKUP_WEBKIT_OPERATION: ${{ inputs.operation }}
       BASELINE_SHA: b877746f5dfd236dfc13f718ed23d837b8e4f89d
@@ -61,7 +66,8 @@ jobs:
           python3 - <<'PY'
           import json,os,pathlib
           r=json.loads((pathlib.Path(os.environ['RUNNER_TEMP'])/'prior-preflight-run.json').read_text())
-          assert r['head_sha']==os.environ['GITHUB_SHA'] and r['event']=='workflow_dispatch' and r['conclusion']=='success' and r['status']=='completed'
+          expected='835fece0c1ebeb02d50de8f0fc23a7a4b1f3b862' if os.environ['MILKUP_WEBKIT_PAINT']=='true' else os.environ['GITHUB_SHA']
+          assert r['head_sha']==expected and r['event']=='workflow_dispatch' and r['conclusion']=='success' and r['status']=='completed'
           assert r['path']=='.github/workflows/linux-webkit-build-research.yml'
           PY
           gh run download "$PREFLIGHT_RUN" --repo Auto-Plugin/milkup --name "milkup-webkit-build-capability-$PREFLIGHT_RUN" --dir "$RUNNER_TEMP/prior-preflight"
@@ -69,7 +75,8 @@ jobs:
           import json,os,pathlib
           p=pathlib.Path(os.environ['RUNNER_TEMP'])/'prior-preflight'
           r=json.loads((p/'build-result.json').read_text())
-          assert r['harnessSha']==os.environ['GITHUB_SHA'] and r['status']=='preflight-passed-not-engine-built'
+          expected='835fece0c1ebeb02d50de8f0fc23a7a4b1f3b862' if os.environ['MILKUP_WEBKIT_PAINT']=='true' else os.environ['GITHUB_SHA']
+          assert r['harnessSha']==expected and r['status']=='preflight-passed-not-engine-built'
           assert r.get('linksResearch',False)==(os.environ['MILKUP_WEBKIT_LINKS']=='true')
           assert r.get('geometryResearch',False)==(os.environ['MILKUP_WEBKIT_GEOMETRY']=='true')
           if os.environ['MILKUP_WEBKIT_GEOMETRY']=='true':
@@ -82,6 +89,17 @@ jobs:
             assert json.loads((p/'links-preflight/result.json').read_text())['status']=='passed'
             assert json.loads((p/'links-baseline/result.json').read_text())['status']=='passed'
           PY
+      - name: Bind paint-only delta to exact inherited gate without repeating old TU tests
+        if: inputs.paint_research
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          test "$MILKUP_WEBKIT_OPERATION" = resume
+          test "$MILKUP_WEBKIT_GEOMETRY" = true
+          test "$MILKUP_WEBKIT_LINKS" = true
+          python3 scripts/ci/webkit-paint-inheritance-test.py
+          gh api "repos/Auto-Plugin/milkup/compare/835fece0c1ebeb02d50de8f0fc23a7a4b1f3b862...$GITHUB_SHA" > "$RUNNER_TEMP/paint-compare.json"
+          python3 scripts/ci/webkit-paint-inheritance.py "$RUNNER_TEMP" "$GITHUB_SHA"
       - name: Restore matching bounded compiler-object cache only
         uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830
         with:
@@ -89,6 +107,7 @@ jobs:
           key: webkit-u2604-2526-${{ hashFiles('scripts/ci/build-webkit-private.py', 'research/linux-pdf-unicode-20261114/*.patch', 'research/linux-pdf-links-20261114/*.patch') }}-${{ github.run_id }}
           restore-keys: |
             webkit-u2604-2526-${{ hashFiles('scripts/ci/build-webkit-private.py', 'research/linux-pdf-unicode-20261114/*.patch', 'research/linux-pdf-links-20261114/*.patch') }}-
+            webkit-u2604-2526-3487c8a25edc98bb6feb8e45687e4f57ebfc601f1a346513a80dfffe53683086-43661203007
             webkit-u2604-2526-bcb6fcc0b8643e5da329995cdb243c9a8741ca1923b961729f101add7aefb9e3-43640203869
             webkit-u2604-2526-c5b4b302f5be52b15bb31806a17fdc4582a5f54940772934cb71e6c95ba714a0-43624922086
             webkit-u2604-2526-f49aafb7686f22659a2e83f28dfab7be0058bcf1e750789dab9a24de2ecf8e13-43614932570
@@ -164,6 +183,7 @@ jobs:
         run: |
           geometry_args=()
           if [[ "$MILKUP_WEBKIT_GEOMETRY" == true ]]; then geometry_args+=(--geometry); fi
+          if [[ "$MILKUP_WEBKIT_PAINT" == true ]]; then geometry_args+=(--paint); fi
           python3 scripts/ci/run-webkit-link-probe.py verify "$RUNNER_TEMP/milkup-webkit-research/evidence/links-patched" --prefix "$RUNNER_TEMP/milkup-webkit-research/prefix" --manifest "$RUNNER_TEMP/milkup-webkit-research/evidence/build-result.json" "${geometry_args[@]}"
       - name: Remove only this run's package
         if: always()

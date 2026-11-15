@@ -6,7 +6,9 @@ operation_started=float(os.environ["MILKUP_RESEARCH_START_EPOCH"])
 operation=os.environ['MILKUP_WEBKIT_OPERATION'];assert operation in ['preflight','resume']
 links=os.environ.get('MILKUP_WEBKIT_LINKS')=='true'
 geometry=os.environ.get('MILKUP_WEBKIT_GEOMETRY')=='true'
+paint=os.environ.get('MILKUP_WEBKIT_PAINT')=='true'
 assert not geometry or links
+assert not paint or (geometry and operation=='resume')
 root=pathlib.Path(os.environ['RUNNER_TEMP'])/'milkup-webkit-research';evidence=root/'evidence';source=root/'source';build=root/'build';prefix=root/'prefix';conf=root/'apt.conf'
 probe=json.loads((evidence/'result.json').read_text());assert probe['status']=='probe-complete'
 assert os.getuid()!=0 and not probe['simulatedRemovals'] and not probe['wouldChangeWebKitPackages'] and probe['buildDependencySimulationSucceeded']
@@ -21,6 +23,11 @@ def run(name,args,timeout=900,env=None):
 def system_libraries():
  return {str(p):hashlib.sha256(p.read_bytes()).hexdigest()for pattern in ['libwebkit2gtk-4.1.so.*','libjavascriptcoregtk-4.1.so.*']for p in pathlib.Path('/usr/lib/x86_64-linux-gnu').glob(pattern)if p.is_file()and not p.is_symlink()}
 try:
+ if paint:
+  inherited=json.loads((pathlib.Path(os.environ['RUNNER_TEMP'])/'paint-inherited-gate.json').read_text())
+  assert inherited['status']=='passed'and inherited['candidateSha']==os.environ['GITHUB_SHA']
+  report['paintResearch']=True;report['inheritedActualTUGate']=inherited
+  shutil.copyfile(pathlib.Path(os.environ['RUNNER_TEMP'])/'paint-inherited-gate.json',evidence/'paint-inherited-gate.json')
  run('install-official-build-deps',['sudo','apt-get','-c',str(conf),'-y','--no-install-recommends','--no-remove','build-dep',f'webkit2gtk={version}'],timeout=1200)
  run('install-official-gui-baseline',['sudo','apt-get','-c',str(conf),'-y','--no-install-recommends','--no-remove','install',f'libwebkit2gtk-4.1-dev={version}',f'webkitgtk-webdriver={version}','ccache','xdotool','x11-utils','poppler-utils','fonts-noto-cjk','fonts-noto-color-emoji','fonts-dejavu-core','xvfb','xauth','python3-pypdf'],timeout=900)
  run('configure-bounded-compiler-cache',['ccache','--max-size','2G'])
@@ -45,6 +52,13 @@ try:
    run('check-print-layout-probe',['git','-C',str(source),'apply','--check',str(generated)],timeout=30)
    run('apply-print-layout-probe',['git','-C',str(source),'apply',str(generated)],timeout=30)
    run('apply-fragment-uri-regions',['git','-C',str(source),'apply',str(research/'0002-research-fragment-uri-regions.patch')],timeout=30)
+   if paint:
+    paint_patch=evidence/'paint-phase-probe.patch'
+    run('prepare-paint-phase-probe',['python3',str(research/'prepare_paint_probe.py'),str(source),str(paint_patch)],timeout=30)
+    run('check-paint-phase-probe',['git','-C',str(source),'apply','--check',str(paint_patch)],timeout=30)
+    run('apply-paint-phase-probe',['git','-C',str(source),'apply',str(paint_patch)],timeout=30)
+    report['paintPatchSha256']=hashlib.sha256(paint_patch.read_bytes()).hexdigest()
+    assert '    page/MilkupPrintResearch.h\n'in (source/'Source/WebCore/Headers.cmake').read_text()
   if operation=='preflight':
    run('links-system-baseline',['python3',str(pathlib.Path(os.environ['GITHUB_WORKSPACE'])/'scripts/ci/run-webkit-link-probe.py'),'baseline',str(evidence/'links-baseline')],timeout=180)
  run('header-forwarding-preflight',['python3',str(pathlib.Path(os.environ['GITHUB_WORKSPACE'])/'scripts/ci/webkit-header-preflight.py'),'--source',str(source),'--output',str(evidence/'header-preflight')],timeout=300)

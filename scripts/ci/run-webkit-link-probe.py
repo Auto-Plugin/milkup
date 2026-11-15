@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 """Bounded sandboxed engine-only print proof, no application install or system mutation."""
 import argparse, hashlib, json, os, pathlib, shlex, subprocess, time, tempfile, socket
-p=argparse.ArgumentParser();p.add_argument('mode',choices=['baseline','verify']);p.add_argument('out',type=pathlib.Path);p.add_argument('--prefix',type=pathlib.Path);p.add_argument('--manifest',type=pathlib.Path);p.add_argument('--geometry',action='store_true');a=p.parse_args()
+p=argparse.ArgumentParser();p.add_argument('mode',choices=['baseline','verify']);p.add_argument('out',type=pathlib.Path);p.add_argument('--prefix',type=pathlib.Path);p.add_argument('--manifest',type=pathlib.Path);p.add_argument('--geometry',action='store_true');p.add_argument('--paint',action='store_true');a=p.parse_args()
 assert not a.geometry or a.mode=='verify'
+assert not a.paint or a.geometry
 assert os.getuid()!=0 and not os.environ.get('WEBKIT_DISABLE_SANDBOX_THIS_IS_DANGEROUS')
 repo=pathlib.Path(__file__).resolve().parents[2];research=repo/'research/linux-pdf-links-20261114'
 a.out=a.out.resolve();a.out.mkdir(parents=True,exist_ok=False)
@@ -36,6 +37,10 @@ subprocess.run(['python3',str(research/'pdf_links.py'),'fixtures',str(a.out)],ch
 if a.geometry:
     subprocess.run(['python3',str(research/'layout_contract.py'),str(a.out)],check=True)
     env['MILKUP_PRINT_LAYOUT_PROBE']='1'
+if a.paint:
+    import sys
+    sys.path.insert(0,str(research));from paint_contract import fixtures
+    fixtures(a.out);env['MILKUP_PAINT_PROBE']='1'
 report={'geometryResearch':a.geometry,'status':'running','mode':a.mode,'uid':os.getuid(),'harnessSha':os.environ.get('GITHUB_SHA'),'runtimeDirectory':runtime.name,'runtimeSocketBindPreflight':True,'expectedPrivateLibraries':expected,'runs':[],'scope':'GTK WebKit print engine, not installed Milkup or physical printer'}
 def persist():(a.out/'native-result.json').write_text(json.dumps(report,indent=2))
 def final_runtime_check(expected):
@@ -49,7 +54,11 @@ def final_runtime_check(expected):
         rows.append(row)
     return {'status':('passed' if all(r['status']=='passed' for r in rows) else 'failed') if rows else 'not-applicable-system-baseline','files':rows}
 try:
-    for name in (['geometry-links','geometry-no-links','links','no-links'] if a.geometry else ['links','no-links']):
+    names=['paint-baseline-links','paint-baseline-no-links','paint-candidate-links','paint-candidate-no-links','links','no-links']if a.paint else (['geometry-links','geometry-no-links','links','no-links']if a.geometry else ['links','no-links'])
+    report['paintResearch']=a.paint
+    for name in names:
+        env.pop('MILKUP_PAINT_DEDUP',None)
+        if a.paint and name.startswith('paint-candidate-'):env['MILKUP_PAINT_DEDUP']='1'
         maps=a.out/(name+'-main.maps');cmd=['timeout','--signal=TERM','--kill-after=5s','55s','xvfb-run','-a','dbus-run-session','--',str(binary),str(a.out/(name+'.html')),str(a.out/(name+'.pdf')),str(maps)]
         at=time.monotonic()
         with (a.out/(name+'.log')).open('w') as log:
@@ -97,7 +106,9 @@ try:
         # Persist both controls and all source-token diagnostics before the
         # fail-closed acceptance assertion; the diagnostic is never a pass gate.
         subprocess.run(['python3',str(research/'audit_existing.py'),str(a.out),'--out',str(a.out/'independent-checks.json')],check=True,timeout=60)
-    if a.geometry:
+    if a.paint:
+        subprocess.run(['python3',str(research/'paint_contract.py'),str(a.out)],check=True,timeout=60)
+    elif a.geometry:
         subprocess.run(['python3',str(research/'verify_geometry_files.py'),str(a.out)],check=True,timeout=60)
     else:
         subprocess.run(['python3',str(research/'pdf_links.py'),a.mode,str(a.out)],check=True,timeout=60)
