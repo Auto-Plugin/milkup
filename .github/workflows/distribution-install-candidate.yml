@@ -2,6 +2,10 @@ name: Exact distribution installation smoke (no release)
 on:
   workflow_dispatch:
     inputs:
+      mermaid_latency:
+        description: Single installed-session visible latency diagnostic; original composite bytes only
+        type: boolean
+        default: false
       reuse_composite:
         description: Reuse the pinned 383c0712 standard package after the isolated Node-path fix
         type: boolean
@@ -162,7 +166,7 @@ jobs:
           if-no-files-found: warn
 
   reuse-composite:
-    if: inputs.reuse_composite && github.repository == 'Auto-Plugin/milkup' && github.ref == 'refs/heads/dot/release-quality-integration-20261112'
+    if: inputs.reuse_composite && github.repository == 'Auto-Plugin/milkup' && (github.ref == 'refs/heads/dot/release-quality-integration-20261112' || (inputs.mermaid_latency && github.ref == 'refs/heads/dot/mermaid-visible-latency-20261115'))
     runs-on: windows-2025
     timeout-minutes: 20
     env:
@@ -180,6 +184,23 @@ jobs:
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
         with:
           node-version: 24.19.0
+      - name: Validate read-only visibility observer in existing sandboxed Edge
+        if: inputs.mermaid_latency
+        env:
+          PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: '1'
+        run: |
+          $ErrorActionPreference='Stop'
+          node --test tests/windows/mermaid-visibility-observer.test.mjs scripts/release/mermaid-visible-contract.test.mjs
+          if ($LASTEXITCODE -ne 0) {throw 'Visibility contracts failed'}
+          $probe=Join-Path $env:RUNNER_TEMP 'visibility-browser'
+          $null=New-Item -ItemType Directory "$probe/tests/browser" -Force
+          $null=New-Item -ItemType Directory "$probe/tests/windows" -Force
+          Copy-Item tests/browser/mermaid-visibility.browser.mjs "$probe/tests/browser/"
+          Copy-Item tests/windows/mermaid-visibility-observer.mjs "$probe/tests/windows/"
+          npm install --prefix $probe --no-audit --no-fund --ignore-scripts @playwright/test@1.61.1
+          if ($LASTEXITCODE -ne 0) {throw 'Pinned observer dependency unavailable'}
+          node --test "$probe/tests/browser/mermaid-visibility.browser.mjs" *> "$env:RUNNER_TEMP/visibility-browser.log"
+          if ($LASTEXITCODE -ne 0) {Get-Content "$env:RUNNER_TEMP/visibility-browser.log";throw 'Real sandboxed layout gate failed; application not launched'}
       - name: Verify and reuse the unchanged original Windows artifact
         env:
           GH_TOKEN: ${{ github.token }}
@@ -211,6 +232,7 @@ jobs:
         run: |
           ./tests/windows/install-only-contract.test.ps1
           ./tests/windows/install-node-path.test.ps1
+          ./tests/windows/mermaid-visible-wiring.test.ps1
       - name: Ordinary-user install, normal close and uninstall only
         run: |
           $ErrorActionPreference='Stop'
@@ -225,12 +247,18 @@ jobs:
             }
           }
           if (!$found) {throw 'Existing Runtime required; no Runtime provisioning experiment'}
+          if ('${{ inputs.mermaid_latency }}' -ceq 'true') {
+            ./scripts/release/run-repair-health-standard.ps1 -Directory "$env:RUNNER_TEMP/candidate-input" -SourceSha $env:SOURCE_SHA -Variant windows-standard -EvidenceDirectory "$env:RUNNER_TEMP/composite-install-evidence/standard" -MermaidLatency
+          } else {
           ./scripts/release/run-repair-health-standard.ps1 -Directory "$env:RUNNER_TEMP/candidate-input" -SourceSha $env:SOURCE_SHA -Variant windows-standard -EvidenceDirectory "$env:RUNNER_TEMP/composite-install-evidence/standard" -InstallOnly
+          }
       - name: Retain original native result including failures
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: milkup-composite-windows-install-${{ github.run_id }}
-          path: ${{ runner.temp }}/composite-install-evidence/
+          path: |
+            ${{ runner.temp }}/composite-install-evidence/
+            ${{ runner.temp }}/visibility-browser.log
           retention-days: 7
           if-no-files-found: error

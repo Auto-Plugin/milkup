@@ -1,0 +1,323 @@
+import assert from 'node:assert/strict'
+import { readFile, writeFile } from 'node:fs/promises'
+import path from 'node:path'
+import { setTimeout as delay } from 'node:timers/promises'
+import { source, fences, sha, ledgerFromLog, classifyEntry } from './mermaid-visible-contract.mjs'
+import {
+  observe,
+  decodeScript,
+  startupPerformanceScript,
+  validatePng,
+} from '../../tests/windows/mermaid-product-e2e.mjs'
+import { mermaidVisibilityScript } from '../../tests/windows/mermaid-visibility-observer.mjs'
+const [mode, file] = process.argv.slice(2)
+assert(['fixture', 'observe', 'verify'].includes(mode))
+if (mode === 'fixture') {
+  await writeFile(file, source)
+  console.log(JSON.stringify({ documentSha256: sha(source), fences }))
+} else {
+  const raw = await readFile(file)
+  assert(raw.length < 16384)
+  const spec = JSON.parse(raw.toString('utf8').replace(/^\uFEFF/, ''))
+  assert.equal(sha(await readFile(spec.document)), sha(source))
+  assert.equal(spec.documentSha256, sha(source))
+  const readLedger = async (final = false) =>
+    ledgerFromLog(await readFile(spec.stderr), spec, final)
+  if (mode === 'verify') {
+    const ledger = await readLedger(true)
+    ledger.verifyAll(spec.pid, spec.creationFileTime)
+    ledger.verifyReleased(spec.pid, spec.creationFileTime)
+    const record = JSON.parse(await readFile(spec.report, 'utf8'))
+    assert.equal(record.status, 'observed-await-normal-close')
+    assert.equal(record.spec.creationFileTime, spec.creationFileTime)
+    assert.equal(record.cursor.admittedBefore, record.cursor.admittedAfter)
+    for (const image of record.images) ledger.matchPng(spec.pid, image.png)
+    assert.equal(record.entries.length, 2)
+    for (const entry of record.entries) assert.deepEqual(classifyEntry(entry), entry.classification)
+    console.log(
+      JSON.stringify({
+        status: 'passed',
+        records: ledger.events.length,
+        requests: ledger.jobs.size,
+        releasedOwners: ledger.released.size,
+        productPid: spec.pid,
+        creationFileTime: spec.creationFileTime,
+        stderrSha256: sha(await readFile(spec.stderr)),
+        stdoutSha256: sha(await readFile(spec.stdout)),
+      }),
+    )
+  } else {
+    const record = {
+      status: 'running',
+      spec,
+      phases: [],
+      inputs: [],
+      images: [],
+      entries: [],
+      boundary:
+        'Single installed session; rAF layout evidence after attachment, not exact first paint or cold OS-cache benchmark',
+    }
+    const persist = () => writeFile(spec.report, JSON.stringify(record, null, 2))
+    const mark = (name) =>
+      record.phases.push({ name, unixMs: Date.now(), monotonicMs: performance.now() })
+    const deadline = Date.now() + 225000
+    let session
+    const request = async (method, route, body) => {
+      assert(Date.now() < deadline, 'Bounded installed session deadline')
+      const r = await fetch(`http://127.0.0.1:${spec.driverPort}${route}`, {
+        method,
+        headers: { 'content-type': 'application/json' },
+        body: body === undefined ? undefined : JSON.stringify(body),
+        signal: AbortSignal.timeout(Math.max(1, Math.min(15000, deadline - Date.now()))),
+      })
+      const text = await r.text()
+      assert(text.length <= 8 * 1024 * 1024, 'Bounded driver response')
+      const value = JSON.parse(text)
+      assert(r.ok && !value.value?.error, text.slice(0, 1500))
+      return value.value ?? value
+    }
+    const execute = (script, ...args) =>
+      request('POST', `/session/${session}/execute/sync`, { script, args })
+    const until = async (fn, label, ms = 30000) => {
+      const end = Math.min(Date.now() + ms, deadline)
+      while (Date.now() < end) {
+        const v = await fn()
+        if (v) return v
+        await delay(50)
+      }
+      throw Error('Timed out: ' + label)
+    }
+    const input = async (type, actions) => {
+      assert(record.inputs.length < 100, 'Bounded real inputs')
+      record.inputs.push({ type, actions, unixMs: Date.now() })
+      await request('POST', `/session/${session}/actions`, {
+        actions: [
+          {
+            type,
+            id: type,
+            ...(type === 'pointer' ? { parameters: { pointerType: 'mouse' } } : {}),
+            actions,
+          },
+        ],
+      })
+    }
+    const snapshot = () =>
+      execute(`return {diagnostics:window.__milkupDesktopTest.getMermaidPresentationDiagnostics(),
+      editorMode:document.querySelector('.milkup-editor')?.dataset.mode,
+      storedPluginPolicy:localStorage.getItem('milkup.desktop.plugins.milkup.diagrams.render-mode.v1')}`)
+    const readImage = async (fence, label) => {
+      const script = decodeScript.replace(
+        "const images=[...document.querySelectorAll('[data-document-presentation] img')];",
+        "const images=[...document.querySelectorAll('[data-document-presentation] img')].filter(e=>Number(e.closest('[data-document-presentation]').dataset.presentationFrom)===" +
+          fence.from +
+          ');',
+      )
+      const result = await request('POST', `/session/${session}/execute/async`, {
+        script,
+        args: [null],
+      })
+      assert.equal(result.ok, true, result.error)
+      const bytes = Buffer.from(result.value.base64, 'base64'),
+        png = validatePng(bytes, 16 * 1024 * 1024)
+      assert(result.value.fullyDecoded && result.value.nonuniform)
+      const { match, job } = await until(
+        async () => {
+          const ledger = await readLedger()
+          try {
+            const match = ledger.matchPng(spec.pid, png)
+            return {
+              match,
+              job: ledger.jobs.get(`${spec.pid}:${spec.creationFileTime}:${match.requestId}`),
+            }
+          } catch {
+            return false
+          }
+        },
+        'Matching exact PNG audit',
+        5000,
+      )
+      assert.equal(job.admitted.sourceSha256, fence.sourceSha256)
+      await writeFile(path.join(path.dirname(spec.report), `mermaid-visible-${label}.png`), bytes, {
+        flag: 'wx',
+      })
+      const row = { label, png, native: match, ready: job.finished }
+      record.images.push(row)
+      return row
+    }
+    const wheel = async (fence) => {
+      const point = await execute(
+        `const editor=document.querySelector('.milkup-editor'),r=editor.getBoundingClientRect();
+        const e=editor.querySelector('[data-presentation-from="'+arguments[0]+'"]')||editor.querySelector('.milkup-line[data-from="'+arguments[0]+'"]');
+        return {x:Math.round((r.left+r.right)/2),y:Math.round((r.top+r.bottom)/2),deltaY:e?Math.round(e.getBoundingClientRect().top-r.top-25):1800}`,
+        fence.from,
+      )
+      if (Math.abs(point.deltaY) < 2) point.deltaY = 2
+      await input('wheel', [
+        { type: 'scroll', origin: 'viewport', duration: 80, deltaX: 0, ...point },
+      ])
+    }
+    try {
+      await persist()
+      mark('observer-started')
+      await until(
+        async () => {
+          try {
+            const r = await fetch(`http://127.0.0.1:${spec.debugPort}/json/version`, {
+              signal: AbortSignal.timeout(1000),
+            })
+            if (!r.ok) return false
+            record.devtools = await r.json()
+            return true
+          } catch {
+            return false
+          }
+        },
+        'owned WebView endpoint',
+        45000,
+      )
+      mark('attach-started')
+      const attached = await request('POST', '/session', {
+        capabilities: {
+          alwaysMatch: {
+            browserName: 'webview2',
+            'ms:edgeChromium': true,
+            'ms:edgeOptions': { debuggerAddress: `127.0.0.1:${spec.debugPort}` },
+          },
+        },
+      })
+      session = record.sessionId = attached.sessionId
+      assert(session)
+      assert.equal(attached.capabilities.browserVersion, spec.runtimeVersion)
+      mark('attached')
+      await persist()
+      await request('POST', `/session/${session}/timeouts`, {
+        script: 15000,
+        pageLoad: 15000,
+        implicit: 0,
+      })
+      await until(async () => {
+        const s = await execute(observe)
+        return (
+          s.loading === 'ready' &&
+          path.resolve(s.path).toLowerCase() === path.resolve(spec.document).toLowerCase()
+        )
+      }, 'exact document open')
+      mark('document-ready')
+      record.initialAtInstall = await execute(mermaidVisibilityScript, {
+        ...fences[0],
+        scenario: 'document-open',
+      })
+      record.initialContext = await snapshot()
+      await until(async () => {
+        record.initial = await execute('return window.__mermaidInitialVisibilityProbe.report')
+        return record.initial.complete
+      }, 'initial visible PNG')
+      record.startupPerformance = await execute(startupPerformanceScript)
+      await readImage(fences[0], 'open')
+      await persist()
+      await until(async () => {
+        const d = (await snapshot()).diagnostics
+        return d.pending === 0 && !d.prefetchActive
+      }, 'initial work settled')
+      const before = await readLedger()
+      record.cursor = { admittedBefore: before.jobs.size, inputCountBefore: record.inputs.length }
+      const point = await execute(
+        `const e=document.querySelector('.milkup-line[data-from="0"]'),r=e.getBoundingClientRect();
+        window.__latencyInitialImage=document.querySelector('[data-presentation-from="'+arguments[0]+'"] img');
+        return {x:Math.round(r.left+12),y:Math.round(r.top+r.height/2)}`,
+        fences[0].from,
+      )
+      await input('pointer', [
+        { type: 'pointerMove', origin: 'viewport', duration: 0, ...point },
+        { type: 'pointerDown', button: 0 },
+        { type: 'pointerUp', button: 0 },
+      ])
+      await input(
+        'key',
+        Array.from({ length: 20 }, () => ['\uE014', '\uE012'])
+          .flat()
+          .flatMap((value) => [
+            { type: 'keyDown', value },
+            { type: 'keyUp', value },
+          ]),
+      )
+      await delay(400)
+      record.cursor.admittedAfter = (await readLedger()).jobs.size
+      record.cursor.sameImage = await execute(
+        'return document.querySelector(\'[data-presentation-from="' +
+          fences[0].from +
+          '"] img\') === window.__latencyInitialImage',
+      )
+      assert.equal(
+        record.cursor.admittedAfter,
+        record.cursor.admittedBefore,
+        'Cursor did not rerender',
+      )
+      assert.equal(record.cursor.sameImage, true, 'Decoded owner retained')
+      for (let index = 1; index < 3; index++) {
+        const fence = fences[index],
+          scenario = index === 1 ? 'cold-entry' : 'prefetch-ready'
+        const row = { scenario, ...fence, before: await snapshot() }
+        record.entries.push(row)
+        if (index === 2) {
+          await until(async () => {
+            const ledger = await readLedger()
+            row.prefetchReady = [...ledger.jobs.values()].find(
+              (j) => j.admitted.sourceSha256 === fence.sourceSha256 && j.finished?.successful,
+            )?.finished
+            return row.prefetchReady
+          }, 'independent offscreen source ready')
+          row.before = await snapshot()
+        }
+        const ledger = await readLedger()
+        row.readyAtInstall = [...ledger.jobs.values()]
+          .filter((j) => j.admitted.sourceSha256 === fence.sourceSha256 && j.finished?.successful)
+          .map((j) => j.finished)
+        await execute(mermaidVisibilityScript, { ...fence, scenario })
+        row.firstInputUnix = Date.now()
+        // No readiness wait in cold-entry. If prior preparation wins the race,
+        // classify it as already warm rather than manufacturing a cold sample.
+        for (let i = 0; i < 12; i++) {
+          await wheel(fence)
+          await delay(30)
+          row.observation = await execute('return window.__mermaidVisibilityProbe.report')
+          if (row.observation.firstVisible !== null) break
+        }
+        await until(async () => {
+          row.observation = await execute('return window.__mermaidVisibilityProbe.report')
+          return row.observation.complete
+        }, 'visible target diagram')
+        const image = await readImage(fence, scenario)
+        row.ready = image.ready
+        row.classification = classifyEntry(row)
+        row.after = await snapshot()
+        if (index === 2)
+          assert(row.classification.readyBeforeFirstInput, 'Warmed control completed before wheel')
+        await persist()
+      }
+      assert.equal(sha(await readFile(spec.document)), spec.documentSha256)
+      assert.equal((await execute(observe)).dirty, false)
+      record.finalContext = await snapshot()
+      assert.equal(
+        record.finalContext.editorMode,
+        record.initialContext.editorMode,
+        'No global mode change',
+      )
+      record.status = 'observed-await-normal-close'
+    } catch (error) {
+      record.status = 'failed'
+      record.error = String(error)
+      process.exitCode = 1
+    } finally {
+      if (session) {
+        record.finalObservation =
+          await execute(`return {initial:window.__mermaidInitialVisibilityProbe?.report,
+          entry:window.__mermaidVisibilityProbe?.report}`).catch((error) => ({
+            captureError: String(error),
+          }))
+      }
+      mark('observer-finished')
+      await persist()
+    }
+  }
+}

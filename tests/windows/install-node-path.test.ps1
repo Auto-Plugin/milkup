@@ -27,7 +27,7 @@ $RepairHealth=$false;$NodeExecutable='absolute-tested-node'
 if (!(& ([scriptblock]::Create($branches[0].Clauses[0].Item1.Extent.Text)))) {throw 'Install-only must select exact Node path'}
 $parent=Parse 'run-repair-health-standard.ps1'
 $calls=@($parent.FindAll({param($n) $n -is [Management.Automation.Language.CommandAst] -and $n.Extent.Text.StartsWith('& (Join-Path') -and $n.Extent.Text.Contains("'scripts/release/install-candidate.ps1'")},$true))
-if ($calls.Count -ne 2) {throw 'Expected install-only and repair paths'}
+if ($calls.Count -ne 3) {throw 'Expected install-only, repair and latency paths'}
 foreach($call in $calls) {
  if (!$call.Extent.Text.Contains('-NodeExecutable $spec.node.path')) {throw 'Every isolated child path must pass parent-verified Node'}
 }

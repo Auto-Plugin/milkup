@@ -1,12 +1,14 @@
 # Run only on an ephemeral hosted Windows runner. This is a single runner-account
 # install/window/close/uninstall smoke test, not dual-account or missing-Runtime acceptance.
-param([Parameter(Mandatory=$true)][string]$Directory,[Parameter(Mandatory=$true)][string]$SourceSha,[Parameter(Mandatory=$true)][string]$Variant,[Parameter(Mandatory=$true)][string]$EvidenceDirectory,[switch]$RepairSameVersion,[switch]$RepairHealth,[switch]$DocumentHealth,[switch]$StartupComparison,[string]$NodeExecutable)
+param([Parameter(Mandatory=$true)][string]$Directory,[Parameter(Mandatory=$true)][string]$SourceSha,[Parameter(Mandatory=$true)][string]$Variant,[Parameter(Mandatory=$true)][string]$EvidenceDirectory,[switch]$RepairSameVersion,[switch]$RepairHealth,[switch]$DocumentHealth,[switch]$StartupComparison,[switch]$MermaidLatency,[string]$NodeExecutable)
 $ErrorActionPreference='Stop'
+if ($MermaidLatency -and ($RepairHealth -or $RepairSameVersion -or $DocumentHealth -or $StartupComparison -or $Variant -cne 'windows-standard')) {throw 'Latency is a separate single-launch standard-package diagnostic'}
+$BrowserHealth=$RepairHealth -or $MermaidLatency
 if ($env:GITHUB_ACTIONS -cne 'true' -or $env:RUNNER_OS -cne 'Windows') { throw 'Requires ephemeral Windows Actions runner' }
 if ($RepairHealth -and !$RepairSameVersion) { throw 'Repair health requires same-version repair' }
 if ($StartupComparison -and (!$RepairHealth -or $DocumentHealth -or $Variant -cne 'windows-standard')) { throw 'Startup comparison requires standard isolated repair health without document mutations' }
 if ($DocumentHealth -and !$RepairHealth) { throw 'Document health requires isolated repair health' }
-if (($RepairHealth -or $NodeExecutable) -and (![IO.Path]::IsPathFullyQualified($NodeExecutable) -or !(Test-Path -LiteralPath $NodeExecutable -PathType Leaf))) { throw 'Repair health requires the exact coordinator-verified Node executable' }
+if (($BrowserHealth -or $NodeExecutable) -and (![IO.Path]::IsPathFullyQualified($NodeExecutable) -or !(Test-Path -LiteralPath $NodeExecutable -PathType Leaf))) { throw 'Repair health requires the exact coordinator-verified Node executable' }
 Add-Type -Path (Join-Path $PSScriptRoot 'WindowsInstallWindow.cs')
 if (Test-Path -LiteralPath $EvidenceDirectory) { throw 'Evidence directory must be new' }
 New-Item -ItemType Directory $EvidenceDirectory | Out-Null
@@ -112,7 +114,7 @@ try {
     $environment.inputLanguages=@(Get-WinUserLanguageList | Select-Object -First 16 | ForEach-Object { @{languageTag=$_.LanguageTag;inputMethodTips=@($_.InputMethodTips)} })
   } catch { $environment.errors+=('input-language-probe: ' + $_.Exception.Message) }
   Phase 'available-input-and-office-environment' $environment
-  if ($RepairHealth) {
+  if ($BrowserHealth) {
     if (-not ('WindowsMermaidStandardUser' -as [type])) { Add-Type -Path (Join-Path $PSScriptRoot '../ci/WindowsMermaidStandardUser.cs') }
     $healthHost=[WindowsMermaidStandardUser]::ObserveProcesses([uint32[]]@($PID))[0]
     Phase 'health-host-token' $healthHost
@@ -210,7 +212,12 @@ try {
     [IO.File]::WriteAllText($document,$healthText,[Text.UTF8Encoding]::new($false))
   }
   $documentHash=(Get-FileHash -LiteralPath $document -Algorithm SHA256).Hash
-  VerifyOwnedStartupAndClose '' 'startupWindows'
+  if ($MermaidLatency) {
+    & (Join-Path $PSScriptRoot 'mermaid-visible-session.ps1') -Binary $binary -Document $document -EvidenceDirectory $EvidenceDirectory -NodeExecutable $NodeExecutable -DriverPort $driverPort -DebugPort $debugPort -Profile $healthProfile -RuntimeVersion $runtime.Name -SourceSha $SourceSha
+    $documentHash=(Get-FileHash -LiteralPath $document -Algorithm SHA256).Hash
+    Phase 'installed-mermaid-visible-latency' @{report='mermaid-visible-native.json';completed=$true;singleLaunch=$true}
+    $record['mermaidLatency']='measured-not-a-performance-threshold-pass'
+  } else { VerifyOwnedStartupAndClose '' 'startupWindows' }
   if ($RepairSameVersion) {
     # This intentionally damages only our fresh ephemeral installation, after
     # normal process exit, retaining the original bytes as failure evidence.

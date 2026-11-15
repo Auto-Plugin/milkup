@@ -15,7 +15,7 @@ function Fixture {
  return '{"status":"passed","accountSid":"test-owned-sid","sourceSha":"test-sha","forcedCleanup":false,"sameVersionRepair":"not-run","recoveryHealth":"not-run","phases":[{"name":"normal-close","detail":{"exitCode":0}},{"name":"uninstall-and-document-preservation","detail":{"applicationRemoved":true}}]}' | ConvertFrom-Json
 }
 $user=[pscustomobject]@{SID=[pscustomobject]@{Value='test-owned-sid'}}
-$SourceSha='test-sha'; $InstallOnly=$true
+$SourceSha='test-sha'; $InstallOnly=$true; $MermaidLatency=$false
 $result=Fixture; & $verify
 $mutations=@(
  { $result.accountSid='other' },

@@ -7,14 +7,16 @@ param(
  [Parameter(Mandatory,ParameterSetName='Parent')][ValidateSet('windows-standard','windows-offline')][string]$Variant,
  [Parameter(Mandatory,ParameterSetName='Parent')][string]$EvidenceDirectory,
  [Parameter(ParameterSetName='Parent')][switch]$InstallOnly,
+ [Parameter(ParameterSetName='Parent')][switch]$MermaidLatency,
  [Parameter(ParameterSetName='Parent')][switch]$DocumentHealth,
  [Parameter(ParameterSetName='Parent')][switch]$StartupComparison,
  [Parameter(Mandatory,ParameterSetName='Child')][string]$ChildSpec
 )
 $ErrorActionPreference='Stop'
 Set-StrictMode -Version Latest
+if ($MermaidLatency -and ($InstallOnly -or $DocumentHealth -or $StartupComparison)) {throw 'Latency cannot run other health matrices'}
 if ($InstallOnly -and ($DocumentHealth -or $StartupComparison)) { throw 'Install-only cannot request repair/document/startup health' }
-if ($env:GITHUB_ACTIONS -cne 'true' -or $env:RUNNER_OS -cne 'Windows' -or $env:RUNNER_ENVIRONMENT -cne 'github-hosted' -or $env:GITHUB_REPOSITORY -cne 'Auto-Plugin/milkup' -or $env:GITHUB_REF -cne 'refs/heads/dot/release-quality-integration-20261112') { throw 'Exact ephemeral candidate runner required' }
+if ($env:GITHUB_ACTIONS -cne 'true' -or $env:RUNNER_OS -cne 'Windows' -or $env:RUNNER_ENVIRONMENT -cne 'github-hosted' -or $env:GITHUB_REPOSITORY -cne 'Auto-Plugin/milkup' -or $env:GITHUB_REF -cnotin @('refs/heads/dot/release-quality-integration-20261112','refs/heads/dot/mermaid-visible-latency-20261115')) { throw 'Exact ephemeral candidate runner required' }
 function Plain([string]$Path) {
  $item=Get-Item -LiteralPath $Path -Force
  do { if ($item.Attributes -band [IO.FileAttributes]::ReparsePoint) { throw 'Reparse input/ancestor rejected' }; $item=if ($item -is [IO.DirectoryInfo]) {$item.Parent} else {$item.Directory} } while ($null -ne $item)
@@ -28,6 +30,7 @@ if ($PSCmdlet.ParameterSetName -ceq 'Child') {
  if ((Get-Item -LiteralPath $ChildSpec).Length -gt 16384) { throw 'Bounded immutable spec required' }
  $spec=Get-Content -LiteralPath $ChildSpec -Raw | ConvertFrom-Json
  if ($spec.harnessSha -cne $env:GITHUB_SHA -or $spec.id -cnotmatch '^[a-f0-9]{32}$') { throw 'Child spec candidate mismatch' }
+ if ($env:GITHUB_REF -ceq 'refs/heads/dot/mermaid-visible-latency-20261115' -and !$spec.mermaidLatency) {throw 'Diagnostic branch cannot run repair matrices'}
  Plain $spec.node.path
  if (![IO.Path]::IsPathFullyQualified($spec.node.path) -or (Get-FileHash -LiteralPath $spec.node.path -Algorithm SHA256).Hash.ToLowerInvariant() -cne $spec.node.sha256) { throw 'Exact parent-verified Node image required' }
  $identity=[WindowsMermaidStandardUser]::ObserveProcesses([uint32[]]@($PID))[0]
@@ -45,7 +48,9 @@ if ($PSCmdlet.ParameterSetName -ceq 'Child') {
  Json (Join-Path $scratch 'child-identity.json') @{identity=$identity;desktop=$desktop;knownFolders=@{profile=$profile;roaming=$roaming;local=$local};sourceSha=$spec.sourceSha;harnessSha=$spec.harnessSha}
  Set-Location $repo
  try {
-  if ([bool]$spec.installOnly) {
+  if ([bool]$spec.mermaidLatency) {
+   & (Join-Path $repo 'scripts/release/install-candidate.ps1') -Directory $spec.input -SourceSha $spec.sourceSha -Variant $spec.variant -EvidenceDirectory (Join-Path $scratch 'evidence') -MermaidLatency -NodeExecutable $spec.node.path
+  } elseif ([bool]$spec.installOnly) {
    & (Join-Path $repo 'scripts/release/install-candidate.ps1') -Directory $spec.input -SourceSha $spec.sourceSha -Variant $spec.variant -EvidenceDirectory (Join-Path $scratch 'evidence') -NodeExecutable $spec.node.path
   } else {
   & (Join-Path $repo 'scripts/release/install-candidate.ps1') -Directory $spec.input -SourceSha $spec.sourceSha -Variant $spec.variant -EvidenceDirectory (Join-Path $scratch 'evidence') -RepairSameVersion -RepairHealth -DocumentHealth:([bool]$spec.documentHealth) -StartupComparison:([bool]$spec.startupComparison) -NodeExecutable $spec.node.path
@@ -53,6 +58,7 @@ if ($PSCmdlet.ParameterSetName -ceq 'Child') {
   exit 0
  } catch { Json (Join-Path $scratch 'child-error.json') @{error=($_ | Out-String)};exit 1 }
 }
+if ($env:GITHUB_REF -ceq 'refs/heads/dot/mermaid-visible-latency-20261115' -and !$MermaidLatency) {throw 'Diagnostic branch requires explicit latency mode'}
 Plain $Directory
 if ((git rev-parse HEAD).Trim() -cne $env:GITHUB_SHA) { throw 'Harness must be exact workflow checkout' }
 NewDir $EvidenceDirectory
@@ -83,7 +89,7 @@ try {
  $acl.AddAccessRule([Security.AccessControl.FileSystemAccessRule]::new($user.SID,'ReadAndExecute','ContainerInherit,ObjectInherit','None','Allow'))
  Set-Acl -LiteralPath $stage -AclObject $acl
  $code=Join-Path $stage 'code';NewDir $code
- $files=@('scripts/release/run-repair-health-standard.ps1','scripts/release/install-candidate.ps1','scripts/release/WindowsInstallWindow.cs','scripts/release/repair-health.mjs','scripts/release/startup-comparison.ps1','scripts/release/InstalledStartupProcess.cs','scripts/release/startup-comparison-observe.mjs','scripts/release/startup-comparison-contract.mjs','scripts/release/startup-comparison-verify.mjs','scripts/release/installed-document-health.mjs','scripts/release/installed-dialog-input.ps1','scripts/release/InstalledDialogInput.cs','scripts/release/verify-candidate.mjs','scripts/ci/WindowsMermaidStandardUser.cs','tests/windows/mermaid-product-e2e.mjs','tests/windows/mermaid-frontend-contract.mjs')
+ $files=@('scripts/release/run-repair-health-standard.ps1','scripts/release/install-candidate.ps1','scripts/release/WindowsInstallWindow.cs','scripts/release/repair-health.mjs','scripts/release/startup-comparison.ps1','scripts/release/InstalledStartupProcess.cs','scripts/release/startup-comparison-observe.mjs','scripts/release/startup-comparison-contract.mjs','scripts/release/startup-comparison-verify.mjs','scripts/release/installed-document-health.mjs','scripts/release/installed-dialog-input.ps1','scripts/release/InstalledDialogInput.cs','scripts/release/verify-candidate.mjs','scripts/ci/WindowsMermaidStandardUser.cs','tests/windows/mermaid-product-e2e.mjs','tests/windows/mermaid-frontend-contract.mjs','tests/windows/mermaid-visibility-observer.mjs','scripts/release/mermaid-visible-contract.mjs','scripts/release/mermaid-visible-session.mjs','scripts/release/mermaid-visible-session.ps1')
  $audit['stagedCode']=@()
  foreach($leaf in $files) {
   $source=Join-Path $repo $leaf;Plain $source
@@ -103,7 +109,7 @@ try {
  Plain $node
  $nodeProof=@{path=$node;sha256=(Get-FileHash -LiteralPath $node -Algorithm SHA256).Hash.ToLowerInvariant()}
  $audit['node']=$nodeProof
- Json $specFile @{id=$id;sid=$user.SID.Value;session=$desktop.sessionId;sourceSha=$SourceSha;harnessSha=$env:GITHUB_SHA;input=$inputRoot;variant=$Variant;node=$nodeProof;installOnly=[bool]$InstallOnly;documentHealth=[bool]$DocumentHealth;startupComparison=[bool]$StartupComparison}
+ Json $specFile @{id=$id;sid=$user.SID.Value;session=$desktop.sessionId;sourceSha=$SourceSha;harnessSha=$env:GITHUB_SHA;input=$inputRoot;variant=$Variant;node=$nodeProof;installOnly=[bool]$InstallOnly;mermaidLatency=[bool]$MermaidLatency;documentHealth=[bool]$DocumentHealth;startupComparison=[bool]$StartupComparison}
  $environment=@("SystemRoot=$env:SystemRoot","WINDIR=$env:SystemRoot","SystemDrive=$env:SystemDrive","PATH=$env:SystemRoot\System32;$(Split-Path -Parent $pwsh);$(Split-Path -Parent $node)",'GITHUB_ACTIONS=true','RUNNER_OS=Windows','RUNNER_ENVIRONMENT=github-hosted','GITHUB_REPOSITORY=Auto-Plugin/milkup',"GITHUB_REF=$env:GITHUB_REF","GITHUB_SHA=$env:GITHUB_SHA")
  if ($env:ProgramFiles) {$environment+="ProgramFiles=$env:ProgramFiles"};if (${env:ProgramFiles(x86)}) {$environment+="ProgramFiles(x86)=${env:ProgramFiles(x86)}"}
  $arguments='-NoLogo -NoProfile -File "'+(Join-Path $code 'scripts/release/run-repair-health-standard.ps1')+'" -ChildSpec "'+$specFile+'"'
@@ -119,6 +125,7 @@ try {
    foreach($i in 0..5){$evidenceNames+=@("evidence/native-dialog-$i.json","evidence/native-dialog-$i.json.log")}
    $evidenceNames+=@('evidence/document-alpha.png','evidence/document-bravo.png','evidence/document-unsaved-close.png')
    $evidenceNames+='evidence/startup-comparison.json'
+   foreach($suffix in @('native.json','spec.json','observation.json','product.stdout.log','product.stderr.log','node.stdout.log','node.stderr.log','fixture.stdout.log','fixture.stderr.log','verify.json','verify.stderr.log','open.png','cold-entry.png','prefetch-ready.png')) {$evidenceNames+="evidence/mermaid-visible-$suffix"}
    foreach($i in 0..5) {foreach($suffix in @('spec.json','observation.json','product.stdout.log','product.stderr.log','node.stdout.log','node.stderr.log','verify.json','verify.stderr.log','catalog-before.json','catalog-after.json')) {$evidenceNames+="evidence/startup-$i.$suffix"}}
    foreach($leaf in $evidenceNames) {
     $file=Join-Path $scratch $leaf
@@ -136,6 +143,10 @@ try {
   $closes=@($result.phases | Where-Object {$_.name -ceq 'normal-close'})
   $uninstalls=@($result.phases | Where-Object {$_.name -ceq 'uninstall-and-document-preservation'})
   if ($closes.Count -ne 1 -or $null -eq $closes[0].detail.exitCode -or $closes[0].detail.exitCode -ne 0 -or $uninstalls.Count -ne 1 -or $uninstalls[0].detail.applicationRemoved -ne $true) { throw 'Complete normal-close/uninstall proof required' }
+ } elseif ($MermaidLatency) {
+  $latency=Get-Content -LiteralPath (Join-Path $EvidenceDirectory 'mermaid-visible-native.json') -Raw | ConvertFrom-Json
+  if ($latency.status -cne 'passed' -or $latency.forcedCleanup -ne $false -or $latency.normalClose -ne $true -or $latency.exitCode -ne 0 -or !$latency.capture.stdoutEof -or !$latency.capture.stderrEof -or $latency.capture.overflow -or $latency.verifier.status -cne 'passed') {throw 'Complete normal-close/EOF/frontend proof required'}
+  if ($result.sameVersionRepair -cne 'not-run' -or $result.recoveryHealth -cne 'not-run' -or $result.mermaidLatency -cne 'measured-not-a-performance-threshold-pass') {throw 'Wrong latency scope'}
  } elseif ($result.recoveryHealth -cne 'real-edit-save-and-persisted-diagrams-switch-passed; not all configuration or migration health') { throw 'Complete repair health proof required' }
  if ($StartupComparison) {
   $comparison=Get-Content -LiteralPath (Join-Path $EvidenceDirectory 'startup-comparison.json') -Raw | ConvertFrom-Json
