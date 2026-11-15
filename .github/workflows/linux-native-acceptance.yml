@@ -1,4 +1,4 @@
-name: Repaired same-package Linux file conflict safety (no release)
+name: Owned abrupt-exit recovery with exact installed Linux package (no release)
 on:
   workflow_dispatch:
     inputs:
@@ -10,10 +10,10 @@ permissions:
   contents: read
   actions: read
 concurrency:
-  group: linux-file-conflict-${{ github.ref }}
+  group: linux-owned-recovery-${{ github.ref }}
   cancel-in-progress: false
 jobs:
-  conflict:
+  recovery:
     if: github.repository == 'Auto-Plugin/milkup'
     runs-on: ubuntu-26.04
     timeout-minutes: 25
@@ -24,7 +24,7 @@ jobs:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
           persist-credentials: false
-          fetch-depth: 2
+          fetch-depth: 3
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
         with:
           node-version: 24.19.0
@@ -37,7 +37,7 @@ jobs:
           python3 - <<'PYVERIFY'
           import subprocess
           changed=subprocess.check_output(['git','diff','--name-only','58c78973101acb0a22ca0cb5d24ef24bd9edc199','HEAD'],text=True).splitlines()
-          assert set(changed)<= {'.github/workflows/linux-native-acceptance.yml','scripts/ci/linux-file-conflict-gui.mjs'},changed
+          assert set(changed)<= {'.github/workflows/linux-native-acceptance.yml','scripts/ci/linux-file-conflict-gui.mjs','scripts/ci/linux-recovery-owned-stop.mjs','scripts/ci/run-linux-recovery-owned-stop.sh','scripts/ci/owned-pidfd-signal.py','tests/native/owned-pidfd-signal.test.py','tests/helpers/native-production.mjs','docs/recovery-owned-stop-plan-20261115.md'},changed
           PYVERIFY
       - name: Existing official GUI dependencies and default sandbox gate
         run: |
@@ -49,8 +49,9 @@ jobs:
           cc scripts/ci/linux-webkit-preflight.c -o "$RUNNER_TEMP/milkup-webkit-preflight" $(pkg-config --cflags --libs webkit2gtk-4.1 gtk+-3.0)
           timeout --signal=TERM --kill-after=5s 40s xvfb-run -a dbus-run-session -- "$RUNNER_TEMP/milkup-webkit-preflight" 2>&1 | tee "$RUNNER_TEMP/linux-native-evidence/webkit-preflight.txt"
           cc -Wall -Wextra -Werror scripts/ci/linux-window-close.c -o "$RUNNER_TEMP/milkup-window-close" -lX11
-          node --check scripts/ci/linux-file-conflict-gui.mjs
-          bash -n scripts/ci/run-linux-file-conflict.sh
+          node --check scripts/ci/linux-recovery-owned-stop.mjs
+          python3 tests/native/owned-pidfd-signal.test.py
+          bash -n scripts/ci/run-linux-recovery-owned-stop.sh
       - name: Reuse exact repaired 58c78973 deb, do not rebuild
         env:
           GH_TOKEN: ${{ github.token }}
@@ -83,12 +84,12 @@ jobs:
           sha256sum /usr/bin/milkup-desktop > "$RUNNER_TEMP/linux-native-evidence/installed-binary.sha256"
           rustup toolchain install 1.99.0 --profile minimal
           cargo +1.99.0 install tauri-driver --version 2.1.0 --locked
-      - name: Real watcher conflict, cancel, rescue save, clean reload and restart
+      - name: Owned pidfd interruption, deferred recovery, copy restoration and restart
         env:
-          MILKUP_FILE_CONFLICT_SOURCE_SHA: 58c78973101acb0a22ca0cb5d24ef24bd9edc199
+          MILKUP_RECOVERY_SOURCE_SHA: 58c78973101acb0a22ca0cb5d24ef24bd9edc199
         timeout-minutes: 7
         run: |
-          timeout --signal=TERM --kill-after=10s 340s xvfb-run -a -s '-screen 0 1400x1000x24' dbus-run-session -- bash scripts/ci/run-linux-file-conflict.sh 2>&1 | tee "$RUNNER_TEMP/linux-native-evidence/harness.txt"
+          timeout --signal=TERM --kill-after=10s 340s xvfb-run -a -s '-screen 0 1400x1000x24' dbus-run-session -- bash scripts/ci/run-linux-recovery-owned-stop.sh 2>&1 | tee "$RUNNER_TEMP/linux-native-evidence/harness.txt"
       - name: Remove only this run's installed application
         if: always()
         run: |
@@ -100,7 +101,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
-          name: milkup-linux-file-conflict-${{ github.run_id }}
+          name: milkup-linux-owned-recovery-${{ github.run_id }}
           path: ${{ runner.temp }}/linux-native-evidence/
           retention-days: 7
           if-no-files-found: error
