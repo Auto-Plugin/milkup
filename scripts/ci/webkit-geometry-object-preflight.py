@@ -18,6 +18,25 @@ def generated_webcore_headers(targets,build):
     assert set(selected)<=targets,'Actual unified TU name-header outputs missing'
     return selected
 
+NAME_INPUTS={'XLink':'svg/xlinkattrs.in','XMLNS':'xml/xmlnsattrs.in','XML':'xml/xmlattrs.in'}
+def name_generator_command(graph,name,source,build):
+    # CMake attaches unrelated target library ordering to these output nodes.
+    # Run only the exact official Perl generator command after binding its full
+    # arguments and source prerequisites; never run the umbrella graph.
+    script=source/'Source/WebCore/dom/make_names.pl'
+    expected_tail=[str(script),'--outputDir',str(build/'WebCore/DerivedSources'),'--attrs',str(source/'Source/WebCore'/NAME_INPUTS[name])]
+    matches=[]
+    for line in graph.splitlines():
+        args=shlex.split(line)
+        if str(script)in args and '--enum'not in args and args[-1]==expected_tail[-1]:matches.append(args)
+    assert len(matches)==1,'Unique configured name generator required'
+    args=matches[0]
+    assert args[:3]==['cd',str(build/'Source/WebCore'),'&&']
+    assert pathlib.Path(args[3]).is_absolute()and pathlib.Path(args[3]).name=='perl'
+    assert args[4:]==expected_tail,'Name generator differs from configured source contract'
+    validate_header_plan(shlex.join(args))
+    return build/'Source/WebCore',args[3:]
+
 def validate_header_plan(plan):
     assert len(plan.encode())<8*1024*1024,'Header plan exceeds budget'
     lines=plan.splitlines();assert 0<len(lines)<=10000,'Header generation exceeds bounded scope'
@@ -97,11 +116,12 @@ def run(source,build,out):
     out.mkdir(parents=True,exist_ok=False)
     report={'status':'running','scope':'Generated headers and actual selected translation units; not runtime or PDF acceptance','samples':[]}
     def persist():(out/'result.json').write_text(json.dumps(report,indent=2)+'\n')
-    def execute(name,cmd,timeout,env=None):
-        (out/(name+'-command.json')).write_text(json.dumps({'cwd':str(build),'arguments':cmd,'ccacheDisabled':bool(env and env.get('CCACHE_DISABLE'))},indent=2))
+    def execute(name,cmd,timeout,env=None,cwd=None):
+        cwd=cwd or build
+        (out/(name+'-command.json')).write_text(json.dumps({'cwd':str(cwd),'arguments':cmd,'ccacheDisabled':bool(env and env.get('CCACHE_DISABLE'))},indent=2))
         at=time.monotonic()
         with (out/(name+'.log')).open('w')as log:
-            proc=subprocess.Popen(cmd,cwd=build,env=env,stdout=log,stderr=subprocess.STDOUT,start_new_session=True)
+            proc=subprocess.Popen(cmd,cwd=cwd,env=env,stdout=log,stderr=subprocess.STDOUT,start_new_session=True)
             try:code=proc.wait(timeout=timeout)
             except subprocess.TimeoutExpired:
                 os.killpg(proc.pid,signal.SIGTERM)
@@ -134,7 +154,7 @@ def run(source,build,out):
         # Bindings do not depend on all name headers used by this unified TU.
         # Select their explicit output nodes, still reviewing every prerequisite
         # command before running anything (never the WebCore object umbrella).
-        header_targets+=generated_webcore_headers(targets,build)
+        name_targets=generated_webcore_headers(targets,build)
         # No library/object-order umbrella target: those drag in library builds.
         plan=subprocess.check_output(['ninja','-C',str(build),'-t','commands',*header_targets],text=True,timeout=45)
         (out/'header-plan.log').write_text(plan)
@@ -144,6 +164,15 @@ def run(source,build,out):
         generated_log=(out/'generate-headers.log').read_text()
         assert not re.search(r'Building (?:CXX|C|ASM) object|Linking (?:CXX|C|ASM)',generated_log),'Unexpected build in header generation'
         report['headerExecution']=validate_header_execution(generated_log,plan,build);persist()
+        name_inputs=['dom/make_names.pl','bindings/scripts/Hasher.pm','bindings/scripts/StaticString.pm','bindings/scripts/CodeGenerator.pm','bindings/scripts/CodeGeneratorJS.pm','bindings/scripts/IDLParser.pm','bindings/scripts/InFilesParser.pm','bindings/scripts/preprocessor.pm','CMakeLists.txt','WebCoreMacros.cmake',*NAME_INPUTS.values()]
+        report['nameGeneratorSourceHashes']={p:digest(source/'Source/WebCore'/p)for p in name_inputs}
+        for name,target in zip(NAME_INPUTS,name_targets):
+            graph=subprocess.check_output(['ninja','-C',str(build),'-t','commands',target],text=True,timeout=30)
+            assert len(graph.encode())<32*1024*1024
+            (out/(name+'-header-graph.log')).write_text(graph)
+            cwd,cmd=name_generator_command(graph,name,source,build)
+            row=execute('generate-'+name,cmd,30,cwd=cwd);report['samples'].append(row);persist()
+            assert row['exitCode']==0 and (build/target).is_file(),'Official name header generator failed'
         generated={}
         for directory in build.glob('*/DerivedSources'):
             for header in directory.rglob('*.h'):

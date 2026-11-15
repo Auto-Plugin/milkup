@@ -1,6 +1,13 @@
 import importlib.util,pathlib,unittest,tempfile
 p=pathlib.Path(__file__).with_name('webkit-geometry-object-preflight.py');s=importlib.util.spec_from_file_location('gate',p);m=importlib.util.module_from_spec(s);s.loader.exec_module(m)
 class Gate(unittest.TestCase):
+ def test_exact_official_name_generator(self):
+  source=pathlib.Path('/tmp/source');build=pathlib.Path('/tmp/build')
+  line='cd /tmp/build/Source/WebCore && /usr/bin/perl /tmp/source/Source/WebCore/dom/make_names.pl --outputDir /tmp/build/WebCore/DerivedSources --attrs /tmp/source/Source/WebCore/svg/xlinkattrs.in'
+  cwd,args=m.name_generator_command('clang++ unrelated.cpp\n'+line,'XLink',source,build)
+  self.assertEqual(cwd,build/'Source/WebCore');self.assertEqual(args[0],'/usr/bin/perl')
+  for graph in [line+'\n'+line,line.replace('--outputDir /tmp/build','--outputDir /outside'),line.replace('/usr/bin/perl','/usr/bin/sh'),line.replace(' && ',' ; ')]:
+   with self.subTest(graph=graph),self.assertRaises(AssertionError):m.name_generator_command(graph,'XLink',source,build)
  def test_generated_header_output_selection(self):
   build=pathlib.Path('/tmp/native-gate')
   required=['WebCore/DerivedSources/'+name+'Names.h'for name in ['XLink','XMLNS','XML']]
