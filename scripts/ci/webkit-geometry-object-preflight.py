@@ -10,10 +10,14 @@ SOURCES=['Source/WebCore/page/PrintContext.cpp','Source/WebCore/rendering/Outlin
 INCLUDE='#include "RenderObjectInlines.h"\n'
 
 def digest(p):return hashlib.sha256(p.read_bytes()).hexdigest()
+HEADER_TARGETS=['WebCoreBindings','WebCore_CopyPrivateHeaders','JavaScriptCore_CopyHeaders','JavaScriptCore_CopyPrivateHeaders','WTF_CopyHeaders','bmalloc_CopyHeaders','PAL_CopyHeaders']
 def validate_header_plan(plan):
-    assert len(plan.encode())<4*1024*1024,'Header plan exceeds budget'
-    lines=plan.splitlines();assert len(lines)<=4000,'Header generation exceeds bounded scope'
-    assert not re.search(r'(?:^|[\s/])(?:clang\+\+|clang(?:-\d+)?|g\+\+|gcc|c\+\+|cc|ccache)(?:\s|$)',plan), 'Header prerequisites include compiler work outside selected translation units'
+    assert len(plan.encode())<8*1024*1024,'Header plan exceeds budget'
+    lines=plan.splitlines();assert 0<len(lines)<=10000,'Header generation exceeds bounded scope'
+    assert '--regenerate-during-build'not in plan and 'VerifyGlobs.cmake'not in plan,'Manifest regeneration is not a complete header command graph'
+    for line in lines:
+        for token in shlex.split(line):
+            assert not re.fullmatch(r'(?:clang(?:\+\+)?|gcc|g\+\+)(?:-\d+)?|cc|c\+\+|ccache|ld(?:\.lld)?|(?:llvm-)?ar',pathlib.PurePosixPath(token).name),'Header prerequisites include compiler/linker work outside selected translation units'
     return len(lines)
 
 def unit_contains(entry,actual):
@@ -84,6 +88,10 @@ def run(source,build,out):
     original=None;print_source=source/SOURCES[0]
     try:
         assert os.getuid()!=0
+        # Resolve CMake's pending glob/manifest regeneration separately. A -n
+        # plan which only lists regeneration cannot prove the subsequent graph.
+        row=execute('refresh-build-manifest',['ninja','build.ninja'],120)
+        report['samples'].append(row);persist();assert row['exitCode']==0,'Manifest regeneration failed'
         commands=json.loads((build/'compile_commands.json').read_text())
         selected={}
         for relative in SOURCES:
@@ -95,11 +103,20 @@ def run(source,build,out):
         report['compileDatabaseSha256']=digest(build/'compile_commands.json')
         report['sourceHashes']={s:digest(source/s)for s in SOURCES}
         report['selectedUnits']=selected;persist()
-        header_target='cmake_object_order_depends_target_WebCore'
-        plan=subprocess.check_output(['ninja','-C',str(build),'-n','-v',header_target],text=True,timeout=45)
+        available=subprocess.check_output(['ninja','-C',str(build),'-t','targets','all'],text=True,timeout=30)
+        targets=set(line.rsplit(': ',1)[0]for line in available.splitlines())
+        assert set(HEADER_TARGETS)<=targets,'Required explicit header target missing'
+        header_targets=HEADER_TARGETS+(['ANGLE-webgl-headers']if 'ANGLE-webgl-headers'in targets else[])
+        # No library/object-order umbrella target: those drag in library builds.
+        plan=subprocess.check_output(['ninja','-C',str(build),'-t','commands',*header_targets],text=True,timeout=45)
         (out/'header-plan.log').write_text(plan)
+        report['headerTargets']=header_targets
         report['headerPlanLines']=validate_header_plan(plan);persist()
-        row=execute('generate-headers',['ninja','-j','4',header_target],240);report['samples'].append(row);persist();assert row['exitCode']==0,'Actual header generation failed'
+        row=execute('generate-headers',['ninja','-v','-j','4',*header_targets],240);report['samples'].append(row);persist();assert row['exitCode']==0,'Actual header generation failed'
+        generated_log=(out/'generate-headers.log').read_text()
+        assert not re.search(r'Building (?:CXX|C|ASM) object|Linking (?:CXX|C|ASM)',generated_log),'Unexpected build in header generation'
+        for line in generated_log.splitlines():
+            if re.match(r'^\[\d+/\d+\] ',line):validate_header_plan(line.split('] ',1)[1])
         generated={}
         for directory in build.glob('*/DerivedSources'):
             for header in directory.rglob('*.h'):

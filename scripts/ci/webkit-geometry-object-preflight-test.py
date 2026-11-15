@@ -10,9 +10,11 @@ class Gate(unittest.TestCase):
    entry['arguments']=['clang++'];self.assertFalse(m.unit_contains(entry,actual.resolve()))
    unit.write_text('#include "'+str(actual)+'"\n');self.assertTrue(m.unit_contains(entry,actual.resolve()))
  def test_header_only_plan(self):
-  self.assertEqual(m.validate_header_plan('[1/2] /usr/bin/python3 make-headers.py\n[2/2] /usr/bin/cmake -E copy file.h target.h'),2)
-  for compiler in ['clang++','clang','g++','gcc','ccache']:
-   with self.subTest(compiler=compiler),self.assertRaises(AssertionError):m.validate_header_plan('[1/1] /usr/bin/'+compiler+' -c unrelated.cpp -o x.o')
+  self.assertEqual(m.validate_header_plan('/usr/bin/python3 make-headers.py\n/usr/bin/cmake -E copy file.h target.h'),2)
+  for compiler in ['clang++','clang','g++','gcc','ccache','clang++-22','ld.lld','ar']:
+   with self.subTest(compiler=compiler),self.assertRaises(AssertionError):m.validate_header_plan('"/usr/bin/'+compiler+'" -c unrelated.cpp -o x.o')
+ def test_incomplete_regeneration_plan_rejected(self):
+  with self.assertRaises(AssertionError):m.validate_header_plan('[0/2] cmake -P VerifyGlobs.cmake\n[1/2] cmake --regenerate-during-build')
  def test_exact_old_error_required(self):
   error="x.h:824:22: error: inline function 'WebCore::RenderObject::localToAbsoluteQuad' is not defined [-Werror,-Wundefined-inline]"
   self.assertTrue(m.expected_old_failure(1,error))
