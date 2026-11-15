@@ -13,7 +13,7 @@ import {
 export function unwrapWebDriverValue(data) {
   return Object.prototype.hasOwnProperty.call(data, 'value') ? data.value : data
 }
-export async function startProduction(file, output, { diagnostics = true } = {}) {
+export async function startProduction(file, output, { diagnostics = true, cleanupOwnedOnClose = true } = {}) {
   const application = path.resolve(
     process.env.TAURI_APP_PATH ?? 'apps/desktop/src-tauri/target/release/milkup-desktop',
   )
@@ -85,7 +85,7 @@ export async function startProduction(file, output, { diagnostics = true } = {})
   }
   const close = async () => {
     if (sid) await request('DELETE', `/session/${sid}`).catch(() => {})
-    cleanupNativeApplication(application)
+    if (cleanupOwnedOnClose) cleanupNativeApplication(application)
   }
   try {
     const started = beginNativeStartup(),
@@ -144,6 +144,12 @@ export async function startProduction(file, output, { diagnostics = true } = {})
       probe,
       shot,
       close,
+      // Recovery QA releases WebDriver only after proving the owned process exited.
+      // This deliberately does not invoke cleanupNativeApplication or signal PIDs.
+      endSession: async () => {
+        if (sid) await request('DELETE', `/session/${sid}`)
+        sid = undefined
+      },
     }
   } catch (error) {
     if (sid) {
