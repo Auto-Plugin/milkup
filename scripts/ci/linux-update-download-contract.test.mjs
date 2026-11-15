@@ -9,6 +9,25 @@ import {promisify} from 'node:util'
 import {startFixture} from '../release/test-support/in-app-update-server.mjs'
 import {verifyMinisign} from '../release/update-readiness.mjs'
 import {requireLoopbackTest} from './check-linux-update-unit.mjs'
+import {unwrapWebDriverValue} from '../../tests/helpers/native-production.mjs'
+test('actual transport rejects the old error-key observation; scoped UI field preserves native errors',async()=>{
+ const source=await readFile('tests/helpers/native-production.mjs','utf8')
+ const body=source.split('  const request = async (method, route, body) => {')[1]?.split('  const execute =')[0]
+ assert(body?.endsWith('\n'))
+ const requestFor=fetch=>Function('fetch','nativeRequestTimeout','unwrapWebDriverValue','process',`const request = async (method, route, body) => {${body};return request`)(fetch,()=>1000,unwrapWebDriverValue,{env:{TAURI_DRIVER_URL:'http://127.0.0.1:1'}})
+ const ui=await readFile('scripts/ci/linux-update-download-gui.mjs','utf8')
+ const script=/const state=\(\)=>app.execute\(`([^`]+)`\)/.exec(ui)?.[1]
+ assert(script)
+ const document={querySelector:selector=>selector==='[data-app-version]'?{textContent:'2.0.0-beta.9'}:{innerText:'observed update error',querySelector:()=>({textContent:'The signature verification failed'}),querySelectorAll:()=>[{dataset:{applicationUpdateAction:'check'}}]}}
+ const observation=Function('document',script)(document)
+ assert.equal(observation.updateError,'The signature verification failed')
+ const transport=(value,status=200)=>requestFor(async()=>new Response(JSON.stringify({value}),{status}))('POST','/session/owned/execute/sync',{})
+ assert.deepEqual(await transport(observation),observation)
+ const legacy=Function('document',script.replace('updateError:','error:'))(document)
+ await assert.rejects(transport(legacy),/signature verification failed/)
+ await assert.rejects(transport({error:'no such element',message:'real protocol failure'},404),/no such element/)
+ await assert.rejects(transport({error:'invalid session id',message:'driver failure'},200),/invalid session id/)
+})
 test('actual wrapper exports fixture before driver spawn; original late export is rejected',async()=>{
  const directory=await mkdtemp(path.join(tmpdir(),'milkup-driver-env-'))
  const run=promisify(execFile),wrapper=await readFile('scripts/ci/run-linux-update-download.sh','utf8')
@@ -48,7 +67,7 @@ test('normal channel remains empty and both QA install entry points reject',asyn
 test('native negative observations bind current request mode/path, and never request installation',async()=>{
  const ui=await readFile('scripts/ci/linux-update-download-gui.mjs','utf8')
  assert.match(ui,/requests\.slice\(requestStart\)\.some\(r=>r.mode===expectedMode&&r.path===expectedPath\)/)
- assert.match(ui,/s.error&&pattern.test\(s.error\)/)
+ assert.match(ui,/s.updateError&&pattern.test\(s.updateError\)/)
  assert(!ui.includes("clickAction('install')"))
  assert.match(ui,/clickAction\('cancel'\)/)
 })
