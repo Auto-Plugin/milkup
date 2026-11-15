@@ -404,14 +404,13 @@ describe('print heading leads', () => {
     },
   )
   it.each([
-    ['table', '| 项目 | 值 |\n| --- | --- |\n| 中文 | 1 |'],
     ['fenced code', '```ts\nconst 中文 = "<&>";\n```'],
     ['indented code', '    first()\n    second()'],
     ['unordered list', '- 中文 👩🏽‍💻\n- 第二项'],
     ['ordered list', '7. 中文 é\n8. 第二项'],
   ])('groups only one complete %s unit and preserves its original rendering', (_name, tail) => {
     const result = render('# 标题\n\n' + tail + '\n\n后段', options)
-    const original = render(tail, options).html.match(/<body>([\s\S]*?)<\/body>/)![1]
+    const original = render(tail, options).html.match(/<body>([\s\S]*?)<\/body>/)![1]!
     expect(result.html).toContain(
       `<div class="heading-lead"><h1>标题</h1>${original}</div><p>后段</p>`,
     )
@@ -440,10 +439,14 @@ describe('print heading leads', () => {
           ),
         ],
       })
-      expect(result.html).toContain('<div class="heading-lead"><h1>标题</h1>')
+      expect(result.html).toContain(
+        tail.startsWith('|')
+          ? '<table><caption class="table-heading"><h1>标题</h1></caption>'
+          : '<div class="heading-lead"><h1>标题</h1>',
+      )
       expect(result.html).toContain(`href="#source-${defFrom}"`)
       expect(result.html).toContain(`href="#source-${refFrom}"`)
-      expect(result.html).toContain('</div><p>')
+      expect(result.html).toContain(tail.startsWith('|') ? '</table><p>' : '</div><p>')
       expect(result.html.match(/<math /g)).toHaveLength(1)
       for (const offset of [mathFrom, refFrom, defFrom])
         expect(result.html.split(`id="source-${offset}"`)).toHaveLength(2)
@@ -455,17 +458,19 @@ describe('print heading leads', () => {
       Array.from({ length: 60 }, (_, i) => `| 项${i} | 值${i} |`).join('\n'),
     '```ts\n' + Array.from({ length: 80 }, (_, i) => `line${i}();`).join('\n') + '\n```',
     Array.from({ length: 80 }, (_, i) => `${i + 7}. 项${i}`).join('\n'),
-  ])(
-    'does not split or duplicate long units while applying the same soft grouping policy',
-    (tail) => {
-      const original = render(tail, options).html.match(/<body>([\s\S]*?)<\/body>/)![1]
-      const result = render('# 标题\n\n' + tail + '\n\n尾段', options)
-      expect(result.html).toContain(
-        `<div class="heading-lead"><h1>标题</h1>${original}</div><p>尾段</p>`,
-      )
-      expect(result.warnings).toEqual([])
-    },
-  )
+  ])('does not split or duplicate long units while attaching their titles', (tail) => {
+    const original = render(tail, options).html.match(/<body>([\s\S]*?)<\/body>/)![1]!
+    const result = render('# 标题\n\n' + tail + '\n\n尾段', options)
+    expect(result.html).toContain(
+      tail.startsWith('|')
+        ? original.replace(
+            '<table>',
+            '<table><caption class="table-heading"><h1>标题</h1></caption>',
+          ) + '<p>尾段</p>'
+        : `<div class="heading-lead"><h1>标题</h1>${original}</div><p>尾段</p>`,
+    )
+    expect(result.warnings).toEqual([])
+  })
   it('keeps nested list continuation fallback consumption and absolute offsets unchanged after a heading', () => {
     const nested = '- outer 👩🏽‍💻\n    - inner <tag>\n\n    continuation é'
     const source = '# 标题\n\n' + nested + '\n\n尾段 $x$'
@@ -568,5 +573,34 @@ describe('print heading leads', () => {
     expect(result.html).toContain(
       'aside.export-warning{break-inside:avoid;page-break-inside:avoid}',
     )
+  })
+})
+
+describe('table titles in pagination layout', () => {
+  it('keeps a long table structurally whole with its heading as a single caption', () => {
+    const rows = Array.from({ length: 120 }, (_, i) => `| ROW_${i}_START | ROW_${i}_END |`)
+    const table = '| Left | Right |\n| --- | --- |\n' + rows.join('\n')
+    const result = render('## Table title\n\n' + table + '\n\nAfter table.', options)
+    const body = result.html.match(/<body>([\s\S]*?)<\/body>/)![1]!
+    const original = render(table, options).html.match(/<body>([\s\S]*?)<\/body>/)![1]!
+    expect(body).toBe(
+      original.replace(
+        '<table>',
+        '<table><caption class="table-heading"><h2>Table title</h2></caption>',
+      ) + '<p>After table.</p>',
+    )
+    expect(body.match(/<table>/g)).toHaveLength(1)
+    expect(body.match(/<thead>/g)).toHaveLength(1)
+    expect(body.match(/<caption/g)).toHaveLength(1)
+    expect(body).not.toContain('heading-lead')
+    expect(result.warnings).toEqual([])
+  })
+  it('does not synthesize a title or consume neighboring unsupported blocks', () => {
+    const table = '| Left | Right |\n| --- | --- |\n| A | B |'
+    expect(render(table, options).html).not.toContain('<caption')
+    const result = render('## Title\n\n> Quote\n\n' + table, options)
+    expect(result.html).not.toContain('<caption')
+    expect(result.html).toContain('<h2>Title</h2>')
+    expect(result.html).toContain('<blockquote>')
   })
 })
