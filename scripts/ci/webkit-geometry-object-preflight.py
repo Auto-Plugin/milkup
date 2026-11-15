@@ -4,7 +4,7 @@
 Only header generation plus selected object commands are allowed. Any unrelated
 compiler invocation in the header plan stops this gate before execution.
 """
-import argparse,hashlib,json,os,pathlib,re,shlex,signal,subprocess,time
+import argparse,collections,hashlib,json,os,pathlib,re,shlex,signal,subprocess,time
 
 SOURCES=['Source/WebCore/page/PrintContext.cpp','Source/WebCore/rendering/OutlinePainter.cpp','Source/WebCore/platform/graphics/skia/GraphicsContextSkia.cpp']
 INCLUDE='#include "RenderObjectInlines.h"\n'
@@ -19,6 +19,23 @@ def validate_header_plan(plan):
         for token in shlex.split(line):
             assert not re.fullmatch(r'(?:clang(?:\+\+)?|gcc|g\+\+)(?:-\d+)?|cc|c\+\+|ccache|ld(?:\.lld)?|(?:llvm-)?ar',pathlib.PurePosixPath(token).name),'Header prerequisites include compiler/linker work outside selected translation units'
     return len(lines)
+
+def validate_header_execution(log,plan,build):
+    validate_header_plan(plan)
+    approved=collections.Counter(tuple(shlex.split(line))for line in plan.splitlines())
+    observed=collections.Counter();glob_checks=0
+    for line in log.splitlines():
+        if not re.match(r'^\[\d+/\d+\] ',line):continue
+        command=line.split('] ',1)[1];args=shlex.split(command)
+        # Ninja runs this check even with an already-current manifest. It is
+        # not regeneration, and never substitutes for the complete plan.
+        if len(args)==3 and pathlib.Path(args[0]).name=='cmake' and args[1]=='-P' and args[2]==str(build/'CMakeFiles/VerifyGlobs.cmake'):
+            glob_checks+=1;assert glob_checks<=1;continue
+        validate_header_plan(command)
+        observed[tuple(args)]+=1
+        assert observed[tuple(args)]<=approved[tuple(args)],'Executed command absent from reviewed header graph'
+    assert observed,'No header work observed'
+    return {'commands':sum(observed.values()),'globChecks':glob_checks}
 
 def unit_contains(entry,actual):
     unit=pathlib.Path(entry['file']).resolve()
@@ -115,8 +132,7 @@ def run(source,build,out):
         row=execute('generate-headers',['ninja','-v','-j','4',*header_targets],240);report['samples'].append(row);persist();assert row['exitCode']==0,'Actual header generation failed'
         generated_log=(out/'generate-headers.log').read_text()
         assert not re.search(r'Building (?:CXX|C|ASM) object|Linking (?:CXX|C|ASM)',generated_log),'Unexpected build in header generation'
-        for line in generated_log.splitlines():
-            if re.match(r'^\[\d+/\d+\] ',line):validate_header_plan(line.split('] ',1)[1])
+        report['headerExecution']=validate_header_execution(generated_log,plan,build);persist()
         generated={}
         for directory in build.glob('*/DerivedSources'):
             for header in directory.rglob('*.h'):

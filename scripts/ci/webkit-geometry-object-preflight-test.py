@@ -15,6 +15,12 @@ class Gate(unittest.TestCase):
    with self.subTest(compiler=compiler),self.assertRaises(AssertionError):m.validate_header_plan('"/usr/bin/'+compiler+'" -c unrelated.cpp -o x.o')
  def test_incomplete_regeneration_plan_rejected(self):
   with self.assertRaises(AssertionError):m.validate_header_plan('[0/2] cmake -P VerifyGlobs.cmake\n[1/2] cmake --regenerate-during-build')
+ def test_execution_matches_reviewed_graph(self):
+  build=pathlib.Path('/tmp/native-gate');plan='/usr/bin/python3 make-headers.py'
+  log='[0/2] /usr/bin/cmake -P /tmp/native-gate/CMakeFiles/VerifyGlobs.cmake\n[1/1] '+plan
+  self.assertEqual(m.validate_header_execution(log,plan,build),{'commands':1,'globChecks':1})
+  for extra in ['cmake --regenerate-during-build','clang++ -c unrelated.cpp','python3 unexpected.py','/usr/bin/cmake -P /other/VerifyGlobs.cmake',plan]:
+   with self.subTest(extra=extra),self.assertRaises(AssertionError):m.validate_header_execution(log+'\n[2/2] '+extra,plan,build)
  def test_exact_old_error_required(self):
   error="x.h:824:22: error: inline function 'WebCore::RenderObject::localToAbsoluteQuad' is not defined [-Werror,-Wundefined-inline]"
   self.assertTrue(m.expected_old_failure(1,error))
