@@ -63,6 +63,13 @@ if (mode === 'fixture') {
       assert.equal(record.entries.length, 2)
       for (const entry of record.entries) {
         assert.deepEqual(classifyEntry(entry), entry.classification)
+        assert.equal(
+          entry.observation.sourceVisibleFrames,
+          0,
+          'Explicit render strategy must not sample visible source',
+        )
+        assert.equal(entry.observation.complete, true)
+        assert(entry.observation.decoded !== null, 'Loading presentation is not a decoded image')
         if (entry.scenario === 'cold-entry')
           assert(entry.classification.coldComparisonEstablished, 'Genuine cold entry required')
         if (entry.scenario === 'prefetch-ready')
@@ -444,6 +451,11 @@ if (mode === 'fixture') {
             row.started = image.started
             row.classification = classifyEntry(row)
             row.after = await snapshot()
+            assert.equal(
+              row.observation.sourceVisibleFrames,
+              0,
+              'Explicit render strategy must not sample visible source',
+            )
             if (index === 1)
               assert(row.classification.coldComparisonEstablished, 'Genuine cold entry required')
             if (index === 2)

@@ -285,3 +285,23 @@ test('a source-line host containing only the diagram must not count as visible M
   assert.equal(f.report.complete, true)
   assert.equal(f.report.sourceVisibleFrames, 0)
 })
+
+test('visible loading is measured separately and cannot count as a decoded image', () => {
+  const f = fixture()
+  f.block.dataset = { presentationPending: 'true' }
+  f.image.complete = false
+  f.reveal()
+  f.frame(16)
+  f.frame(32)
+  assert.equal(f.report.sourceVisibleFrames, 0)
+  assert.equal(f.report.pendingVisibleFrames, 2)
+  assert.equal(f.report.pendingFirstVisible, 16)
+  assert.equal(f.report.decoded, null)
+  assert.equal(f.report.complete, false)
+  f.block.dataset.presentationPending = 'false'
+  f.image.complete = true
+  f.frame(48)
+  assert.equal(f.report.decoded, 48)
+  assert.equal(f.report.pendingLastVisible, 32)
+  assert.equal(f.report.complete, true)
+})

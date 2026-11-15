@@ -39,6 +39,9 @@ export function observeMermaidVisibility({
     sourceFirstVisible: null,
     sourceLastVisible: null,
     sourceVisibleFrames: 0,
+    pendingVisibleFrames: 0,
+    pendingFirstVisible: null,
+    pendingLastVisible: null,
     samples: 0,
     maxSampleGapMs: 0,
     transitions: [],
@@ -150,6 +153,12 @@ export function observeMermaidVisibility({
         !line.classList.contains('milkup-marker-hidden') &&
         sourceTextVisible(line),
     )
+    const pending = block?.dataset?.presentationPending === 'true' && visible(block)
+    if (pending) {
+      report.pendingVisibleFrames++
+      report.pendingFirstVisible ??= now
+      report.pendingLastVisible = now
+    }
     const imageVisible = visible(image)
     const decoded =
       imageVisible && image.complete && image.naturalWidth > 0 && image.naturalHeight > 0
@@ -160,7 +169,7 @@ export function observeMermaidVisibility({
       report.sourceLastVisible = now
       report.sourceVisibleFrames++
     }
-    const state = [source, inView, decoded, document.visibilityState].join(':')
+    const state = [source, pending, inView, decoded, document.visibilityState].join(':')
     if (state !== previousState) {
       previousState = state
       if (report.transitions.length === 64) report.overflow = true
@@ -168,6 +177,7 @@ export function observeMermaidVisibility({
         report.transitions.push({
           at: now,
           source,
+          pending,
           inView,
           decoded,
           documentVisibility: document.visibilityState,

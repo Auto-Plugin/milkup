@@ -98,9 +98,10 @@ jobs:
       - name: Catalog-ready refresh and observation contracts
         if: inputs.mermaid_refresh
         run: |
-          pnpm --filter @milkup/desktop exec vitest run src/editor-view-refresh.test.ts src/document-presentation-service.test.ts src/desktop-plugin-manager.test.ts src/desktop-plugin-manager-catalog.test.ts src/mermaid-render-settings.test.ts --maxWorkers=2
+          pnpm --filter @milkup/desktop exec vitest run src/editor-view-refresh.test.ts src/document-presentation-service.test.ts src/desktop-plugin-manager.test.ts src/desktop-plugin-manager-catalog.test.ts src/mermaid-render-settings.test.ts src/mermaid-pending-fence.test.ts --maxWorkers=2
+          pnpm --filter @milkup/view-dom exec vitest run src/__tests__/document-png-image.test.ts src/__tests__/document-pending-image.test.ts --maxWorkers=2
           node --test scripts/release/mermaid-visible-contract.test.mjs tests/windows/mermaid-visibility-observer.test.mjs tests/windows/mermaid-frontend-contract.test.mjs
-          node --test tests/browser/mermaid-visibility.browser.mjs
+          node --test tests/browser/mermaid-visibility.browser.mjs tests/browser/document-pending-image.browser.mjs
       - name: Pinned Windows packaging tools
         if: runner.os == 'Windows'
         shell: pwsh
