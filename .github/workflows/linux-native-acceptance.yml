@@ -1,0 +1,104 @@
+name: Isolated Linux app check download signature only
+on:
+  workflow_dispatch:
+    inputs:
+      expected_sha:
+        description: Exact non-distributable QA SHA
+        required: true
+        type: string
+permissions:
+  contents: read
+  actions: read
+concurrency:
+  group: linux-update-download-only
+  cancel-in-progress: false
+jobs:
+  download-only:
+    if: github.repository == 'Auto-Plugin/milkup'
+    runs-on: ubuntu-26.04
+    timeout-minutes: 100
+    env:
+      CARGO_BUILD_JOBS: '2'
+      CARGO_INCREMENTAL: '0'
+      CARGO_PROFILE_RELEASE_DEBUG: '0'
+      PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: '1'
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: 24.19.0
+      - name: Exact QA source and runtime preflight
+        env:
+          EXPECTED_SHA: ${{ inputs.expected_sha }}
+        run: |
+          set -euo pipefail
+          test "$EXPECTED_SHA" = "$GITHUB_SHA"
+          test -z "$(git status --porcelain)"
+          test "$(id -u)" != 0
+          test -z "${WEBKIT_DISABLE_SANDBOX_THIS_IS_DANGEROUS:-}"
+          mkdir -p "$RUNNER_TEMP/linux-native-evidence"
+          npm install --global pnpm@11.7.0 --ignore-scripts
+          rustup toolchain install 1.99.0 --profile minimal
+          echo 'RUSTUP_TOOLCHAIN=1.99.0' >> "$GITHUB_ENV"
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends libwebkit2gtk-4.1-dev libgtk-3-dev libx11-dev librsvg2-dev libssl-dev pkg-config webkitgtk-webdriver xdotool x11-utils xvfb xauth python3-gi patchelf openssl
+          cc scripts/ci/linux-webkit-preflight.c -o "$RUNNER_TEMP/milkup-webkit-preflight" $(pkg-config --cflags --libs webkit2gtk-4.1 gtk+-3.0)
+          timeout --signal=TERM --kill-after=5s 40s xvfb-run -a dbus-run-session -- "$RUNNER_TEMP/milkup-webkit-preflight" 2>&1 | tee "$RUNNER_TEMP/linux-native-evidence/preflight.txt"
+          cc -Wall -Wextra -Werror scripts/ci/linux-window-close.c -o "$RUNNER_TEMP/milkup-window-close" -lX11
+          node --test scripts/ci/linux-update-download-contract.test.mjs
+          node --check scripts/ci/linux-update-download-gui.mjs
+          bash -n scripts/ci/run-linux-update-download.sh
+      - name: Reuse exact target deb bytes, never install it
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          gh api repos/Auto-Plugin/milkup/actions/artifacts/14149947936/zip > "$RUNNER_TEMP/target.zip"
+          python3 - <<'PY'
+          import os,pathlib,zipfile,hashlib,json,subprocess
+          root=pathlib.Path(os.environ['RUNNER_TEMP']);b=(root/'target.zip').read_bytes()
+          assert len(b)==9812731 and hashlib.sha256(b).hexdigest()=='b22943b501b9bfb0202dfb2507b7e7c5fe5aeda7c8fea8b2f0d0534182d5c89a'
+          with zipfile.ZipFile(root/'target.zip') as z:
+              assert z.testzip() is None
+              names=[i for i in z.infolist() if i.filename.endswith('.deb')]
+              assert len(names)==1 and names[0].file_size==9854742
+              data=z.read(names[0]);assert hashlib.sha256(data).hexdigest()=='9e71e2b6f6c5cd030f7307d35679ded1d4f5605127d77320db1d455d90c1ddde'
+          d=root/'exact-target';d.mkdir();p=d/'target.deb';p.write_bytes(data)
+          metadata=subprocess.check_output(['dpkg-deb','--field',str(p),'Package','Version','Architecture'],text=True)
+          assert metadata=='Package: milkup\nVersion: 2.0.0-beta.10\nArchitecture: amd64\n'
+          (root/'linux-native-evidence/target-identity.json').write_text(json.dumps({'source':'58c78973101acb0a22ca0cb5d24ef24bd9edc199','sha256':hashlib.sha256(data).hexdigest(),'bytes':len(data),'metadata':metadata},indent=2))
+          PY
+      - name: Build one test old version, no installer and no production authority
+        timeout-minutes: 75
+        run: |
+          set -euo pipefail
+          pnpm install --frozen-lockfile --config.manage-package-manager-versions=false
+          npm install --prefix "$RUNNER_TEMP/milkup-math-input" --ignore-scripts --no-audit --no-fund katex@0.19.0
+          node --input-type=module -e "import fs from 'node:fs';import path from 'node:path';fs.mkdirSync('plugins/math/node_modules',{recursive:true});fs.symlinkSync(path.join(process.env.RUNNER_TEMP,'milkup-math-input/node_modules/katex'),'plugins/math/node_modules/katex');"
+          node scripts/check-versions.mjs
+          node scripts/ci/prepare-bundled-plugins.mjs
+          pnpm --filter @milkup/desktop tauri build --ci --no-bundle --features ci-update-fixture -- --locked
+          cargo test --manifest-path apps/desktop/src-tauri/Cargo.toml --release --locked --lib --features ci-update-fixture updates::ci_fixture::tests::download_is_exact_loopback_origin_and_path -- --exact 2>&1 | tee "$RUNNER_TEMP/linux-native-evidence/loopback-unit.txt"
+          rg "1 passed; 0 failed" "$RUNNER_TEMP/linux-native-evidence/loopback-unit.txt"
+          sha256sum apps/desktop/src-tauri/target/release/milkup-desktop > "$RUNNER_TEMP/linux-native-evidence/fixture-binary.sha256"
+          cargo tree --manifest-path apps/desktop/src-tauri/Cargo.toml --locked --features ci-update-fixture -e features > "$RUNNER_TEMP/linux-native-evidence/build-features.txt"
+          test -z "$(git status --porcelain)"
+          cargo install tauri-driver --version 2.1.0 --locked
+      - name: Real About check, rejected signatures, valid download, clear and close
+        timeout-minutes: 7
+        run: |
+          set -euo pipefail
+          timeout --signal=TERM --kill-after=10s 340s xvfb-run -a -s '-screen 0 1400x1000x24' dbus-run-session -- bash scripts/ci/run-linux-update-download.sh 2>&1 | tee "$RUNNER_TEMP/linux-native-evidence/harness.txt"
+      - name: Preserve bounded evidence, never keys or fixture executable
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: milkup-linux-update-download-only-${{ github.run_id }}
+          path: ${{ runner.temp }}/linux-native-evidence/
+          retention-days: 7
+          if-no-files-found: error

@@ -7,6 +7,7 @@ use tauri_plugin_updater::{Update, UpdaterExt};
 use tokio::sync::{watch, Mutex as AsyncMutex};
 
 const MAX_DOWNLOAD_BYTES: u64 = 256 * 1024 * 1024;
+#[cfg(any(not(feature = "ci-update-fixture"), test))]
 const CHANNEL_CONFIG: &str = include_str!("../../../../release/update-channel.json");
 
 #[path = "update_pe.rs"]
@@ -18,7 +19,7 @@ mod policy;
 #[path = "updates_tests.rs"]
 mod tests;
 
-#[derive(Deserialize)]
+#[derive(Clone, Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 struct ReleaseChannel {
     channel: String,
@@ -280,8 +281,7 @@ async fn check_release(
     app: &AppHandle,
     token: u64,
 ) -> Result<(UpdateCheck, Option<Update>, Option<policy::Observation>), String> {
-    let config: ReleaseChannel =
-        serde_json::from_str(CHANNEL_CONFIG).map_err(|_| "更新配置无法读取")?;
+    let config = release_channel()?;
     if !config.configured()? {
         return Ok((
             UpdateCheck {
@@ -293,6 +293,8 @@ async fn check_release(
             None,
         ));
     }
+    #[cfg(feature = "ci-update-fixture")]
+    let fixture_certificate = ci_fixture::get()?.certificate()?;
     let updater = app
         .updater_builder()
         .pubkey(config.public_key.expect("validated public key"))
@@ -306,7 +308,14 @@ async fn check_release(
         )
         .map_err(|error| error.to_string())?
         .timeout(Duration::from_secs(20))
-        .configure_client(|client| client.https_only(true))
+        .configure_client(move |client| {
+            let client = client.https_only(true);
+            #[cfg(feature = "ci-update-fixture")]
+            let client = client
+                .no_proxy()
+                .add_root_certificate(fixture_certificate.clone());
+            client
+        })
         // Same/older signed statements must pass freshness and replay policy
         // before a "no update" answer can be trusted.
         .version_comparator(|_, _| true)
@@ -317,6 +326,8 @@ async fn check_release(
         .await
         .map_err(|error| format!("检查更新失败：{error}"))?;
     let mut update = update.ok_or("更新服务未提供签名版本清单，无法确认是否为最新版本")?;
+    #[cfg(feature = "ci-update-fixture")]
+    ci_fixture::get()?.validate_download(&update.download_url)?;
     let observation = policy::Observation::from_update(&update)?;
     let offered = newer_version(
         &app.package_info().version,
@@ -382,8 +393,7 @@ fn trust_store(app: &AppHandle, channel: &str) -> Result<policy::Store, String> 
 }
 
 fn authorize_candidate(app: &AppHandle, update: &Update) -> Result<(), String> {
-    let config: ReleaseChannel =
-        serde_json::from_str(CHANNEL_CONFIG).map_err(|_| "更新配置无法读取")?;
+    let config = release_channel()?;
     if !config.configured()? {
         return Err("更新渠道未配置".into());
     }
@@ -507,6 +517,18 @@ pub fn cancel_application_update(
     Ok(())
 }
 
+#[cfg(feature = "ci-update-fixture")]
+#[tauri::command]
+pub async fn install_application_update(
+    app: AppHandle,
+    token: u64,
+    service: State<'_, UpdateService>,
+) -> Result<(), String> {
+    let _ = (app, token, service);
+    Err("QA_DOWNLOAD_ONLY_INSTALL_BLOCKED".into())
+}
+
+#[cfg(not(feature = "ci-update-fixture"))]
 #[tauri::command]
 pub async fn install_application_update(
     app: AppHandle,
@@ -555,5 +577,20 @@ pub async fn install_application_update(
     {
         let _ = app;
         Ok(())
+    }
+}
+
+#[cfg(feature = "ci-update-fixture")]
+#[path = "updates_ci_fixture.rs"]
+mod ci_fixture;
+
+fn release_channel() -> Result<ReleaseChannel, String> {
+    #[cfg(feature = "ci-update-fixture")]
+    {
+        Ok(ci_fixture::get()?.channel.clone())
+    }
+    #[cfg(not(feature = "ci-update-fixture"))]
+    {
+        serde_json::from_str(CHANNEL_CONFIG).map_err(|_| "更新配置无法读取".into())
     }
 }

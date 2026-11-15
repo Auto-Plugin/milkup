@@ -843,6 +843,12 @@ impl Update {
     }
 
     /// Installs the updater package downloaded by [`Update::download`]
+    #[cfg(feature = "milkup-ci-download-only")]
+    pub fn install(&self, _bytes: impl AsRef<[u8]>) -> Result<()> {
+        Err(Error::Network("QA_DOWNLOAD_ONLY_INSTALL_BLOCKED".into()))
+    }
+
+    #[cfg(not(feature = "milkup-ci-download-only"))]
     pub fn install(&self, bytes: impl AsRef<[u8]>) -> Result<()> {
         if self.verified_binding.is_some() && !self.has_verified_manifest() {
             return Err(Error::Network(
