@@ -18,7 +18,7 @@ await writeFile(fixture,original,{flag:'wx'})
 await writeFile(path.join(out,'expected-local.md'),local,{flag:'wx'})
 await writeFile(path.join(out,'expected-external.md'),external,{flag:'wx'})
 await writeFile(path.join(out,'expected-reloaded.md'),externalLater,{flag:'wx'})
-const record={status:'running',sourceSha:process.env.GITHUB_SHA,harnessSha:process.env.GITHUB_SHA,uid:process.getuid(),steps:[],snapshots:[],closes:[],errors:[],crashInjected:false}
+const record={status:'running',sourceSha:process.env.MILKUP_FILE_CONFLICT_SOURCE_SHA,harnessSha:process.env.GITHUB_SHA,uid:process.getuid(),steps:[],snapshots:[],closes:[],errors:[],crashInjected:false}
 const persist=()=>writeFile(path.join(out,'conflict-result.json'),JSON.stringify(record,null,2))
 let app,owned
 const ui=nativeFixture(()=>app)
@@ -54,7 +54,7 @@ async function snapshot(name){
  record.snapshots.push(row);await persist();return row
 }
 async function preserveBoth(name){const r=await snapshot(name);assert.equal(r.disk,external);assert(r.dom.editor.includes(`LOCAL_UNSAVED_${token}`));assert(r.dom.editor.includes(`BASE_${token}`));assert(!r.dom.editor.includes(`EXTERNAL_DISK_${token}`));assert(r.probe.dirty);return r}
-async function menuCommand(command){if(!await app.execute('return !!document.querySelector("[data-app-menu]")?.getClientRects().length'))await ui.click('[data-menu-toggle]');await ui.click('[data-menu-section="file"]');await ui.click(`[data-command="${command}"]`);await ui.closeMenu()}
+async function menuCommand(command){if(!await app.execute('return !!document.querySelector("[data-app-menu]")?.getClientRects().length'))await ui.click('[data-menu-toggle]');await ui.click('[data-menu-section="file"]');await ui.click(`[data-command="${command}"]`);await app.until(()=>app.execute('const m=document.querySelector("[data-app-menu]");return !!m&&m.hidden&&m.dataset.phase==="closed"&&m.getAttribute("aria-hidden")==="true"'),'command menu finished closing')}
 function saveDialog(){try{return x('search','--onlyvisible','--name','^(Save File|Save As|Save)$').split('\n').at(-1)}catch{return null}}
 async function picker(destination){
  const win=await app.until(saveDialog,'real GTK Save As dialog',30000)
