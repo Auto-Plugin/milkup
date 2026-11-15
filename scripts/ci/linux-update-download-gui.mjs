@@ -56,20 +56,24 @@ async function rejected(label,pattern,expectedMode,expectedPath){
  await app.until(()=>server.record.requests.slice(requestStart).some(r=>r.mode===expectedMode&&r.path===expectedPath),'matching current endpoint request '+label,30000)
  const value=await app.until(async()=>{const s=await state();return s.error&&pattern.test(s.error)?s:false},label,30000)
  assert.match(value.error,pattern);assert.match(value.version,/2\.0\.0-beta\.9/);assert(!value.actions.includes('install'))
+ const receipts=server.record.requests.slice(requestStart).filter(r=>r.mode===expectedMode&&r.path===expectedPath)
+ assert.equal(receipts.length,1,'One exact current rejection request')
+ assert.equal(receipts[0].status,expectedMode==='download-error'?503:200)
+ if(expectedMode==='bad-artifact'){const corrupt=Buffer.from(artifact);corrupt[corrupt.length-1]^=1;assert.equal(receipts[0].bytes,corrupt.length);assert.equal(receipts[0].sha256,sha(corrupt))}
  record.cases??=[];record.cases.push({label,state:value,requests:[...server.record.requests]});await persist()
 }
 try{
  await step('start-download-only-beta9',start)
  record.binarySha256=sha(await readFile(process.env.TAURI_APP_PATH));assert.equal(record.binarySha256,process.env.MILKUP_NATIVE_EXPECTED_BINARY_SHA256)
- await step('about-rejects-wrong-manifest-signature',async()=>{await about();await rejected('bad-manifest',/signature|签名/i,'bad-manifest','/manifest.json');assert.equal(server.record.requests.filter(r=>r.path==='/candidate.deb').length,0)})
- await step('signed-manifest-and-download-http-rejection',async()=>{await mode('download-error');await clickAction('check');await app.until(async()=>(await state()).actions.includes('download'),'signed beta10 offered');await clickAction('download');await rejected('http-503',/503|下载|status/i,'download-error','/candidate.deb')})
- await step('corrupted-deb-rejected-before-install',async()=>{await mode('bad-artifact');await clickAction('download');await rejected('corrupt-deb',/signature|签名/i,'bad-artifact','/candidate.deb')})
+ await step('about-rejects-wrong-manifest-signature',async()=>{await about();await rejected('bad-manifest',/signature verification failed/i,'bad-manifest','/manifest.json');assert.equal(server.record.requests.filter(r=>r.path==='/candidate.deb').length,0)})
+ await step('signed-manifest-and-download-http-rejection',async()=>{await mode('download-error');await clickAction('check');await app.until(async()=>(await state()).actions.includes('download'),'signed beta10 offered');await clickAction('download');await rejected('http-503',/503/,'download-error','/candidate.deb')})
+ await step('corrupted-deb-rejected-before-install',async()=>{await mode('bad-artifact');await clickAction('download');await rejected('corrupt-deb',/signature verification failed/i,'bad-artifact','/candidate.deb')})
  await step('exact-deb-download-and-signature-ready',async()=>{await mode('valid');await clickAction('download');record.ready=await app.until(async()=>{const s=await state();return s.actions.includes('install')?s:false},'verified exact beta10 deb',30000);assert(!record.ready.error);assert.match(record.ready.text,/2\.0\.0-beta\.10/);const transferred=server.record.requests.filter(r=>r.path==='/candidate.deb'&&r.mode==='valid');assert.equal(transferred.length,1);assert.equal(transferred[0].sha256,sha(artifact));assert.equal(transferred[0].bytes,artifact.length)})
  await step('clear-verified-download-without-install',async()=>{await clickAction('cancel');await app.until(async()=>{const s=await state();return s.actions.includes('download')&&!s.actions.includes('install')},'download cleared');record.cleared=await state()})
  await step('ordinary-edit-save-remains-usable',async()=>{await ui.click('[data-menu-close]');await app.focus('.milkup-input-proxy');await app.key('ctrl+End');await app.text('UPDATE_CHECK_ONLY_SAVED');await app.until(async()=>(await app.probe()).dirty,'dirty');await app.key('ctrl+s');await app.until(async()=>!(await app.probe()).dirty&&(await readFile(fixture,'utf8')).endsWith('UPDATE_CHECK_ONLY_SAVED'),'saved');record.documentSha256=sha(await readFile(fixture));assert.equal(sha(await readFile(process.env.TAURI_APP_PATH)),record.binarySha256);assert.equal(sha(await readFile(process.env.MILKUP_UPDATE_TARGET_DEB)),sha(artifact))})
 }catch(e){record.errors.push(String(e));if(app)record.failureDom=await app.execute('return document.body.innerText.slice(0,12000)').catch(()=>null)}
 finally{
  if(app){try{await step('normal-close',normalClose)}catch(e){record.errors.push('close: '+String(e));record.forcedFailureCleanup=true;await app.close().catch(()=>{});app=null}}
- await server.stop();record.endpoint=server.record;record.installRequested=false;record.credentialsEntered=false;record.status=record.errors.length?'failed':'passed-download-only';await persist();console.log(JSON.stringify({status:record.status,steps:record.steps,errors:record.errors}));if(record.errors.length)process.exitCode=1
+ try{await server.stop()}catch(e){record.errors.push('endpoint-close: '+String(e))};record.endpoint=server.record;record.installRequested=false;record.credentialsEntered=false;record.status=record.errors.length?'failed':'passed-download-only';await persist();console.log(JSON.stringify({status:record.status,steps:record.steps,errors:record.errors}));if(record.errors.length)process.exitCode=1
 }
 

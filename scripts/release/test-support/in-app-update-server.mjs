@@ -66,7 +66,11 @@ public static class EphemeralLoopbackCertificate {
         '-addext',
         'subjectAltName=IP:127.0.0.1',
         '-addext',
-        'basicConstraints=critical,CA:TRUE',
+        // Rustls rejects CA certificates used as TLS server end entities.
+        // This self-signed leaf is trusted only by this test process.
+        'basicConstraints=critical,CA:FALSE',
+        '-addext',
+        'extendedKeyUsage=serverAuth',
       ]
   // Node uses a Unix socket for piped stdin; a shell pipe lets OpenSSL open
   // /dev/stdin without persisting the key. Command text is fixed, tool is argv.

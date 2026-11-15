@@ -59,6 +59,9 @@ jobs:
         run: |
           set -euo pipefail
           cargo install tauri-driver --version 2.1.0 --locked
+          python3 -B scripts/ci/linux-update-process-boundary.py --driver "$(command -v tauri-driver)" --output "$RUNNER_TEMP/linux-native-evidence/process-boundary.json"
+          node scripts/ci/linux-update-tls-fixtures.mjs "$RUNNER_TEMP/linux-native-evidence/tls-preflight"
+          CARGO_TARGET_DIR="$RUNNER_TEMP/tls-contract-target" cargo run --locked --manifest-path scripts/ci/linux-update-tls-contract/Cargo.toml -- "$RUNNER_TEMP/linux-native-evidence/tls-preflight/legacy-ca.pem" "$RUNNER_TEMP/linux-native-evidence/tls-preflight/actual-fixture.pem" 2>&1 | tee "$RUNNER_TEMP/linux-native-evidence/tls-preflight/result.txt"
           PYTHONPYCACHEPREFIX="$RUNNER_TEMP/qa-pycache" python3 -m py_compile scripts/ci/linux-update-environment.py
           timeout --signal=TERM --kill-after=5s 60s xvfb-run -a -s '-screen 0 1400x1000x24' dbus-run-session -- python3 scripts/ci/linux-update-environment.py "$RUNNER_TEMP/linux-native-evidence/plumbing" "$RUNNER_TEMP/milkup-window-close"
       - name: Reuse exact target deb bytes, never install it
