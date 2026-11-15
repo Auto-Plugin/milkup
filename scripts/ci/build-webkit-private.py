@@ -7,6 +7,8 @@ operation=os.environ['MILKUP_WEBKIT_OPERATION'];assert operation in ['preflight'
 links=os.environ.get('MILKUP_WEBKIT_LINKS')=='true'
 geometry=os.environ.get('MILKUP_WEBKIT_GEOMETRY')=='true'
 paint=os.environ.get('MILKUP_WEBKIT_PAINT')=='true'
+digits=os.environ.get('MILKUP_WEBKIT_DIGITS')=='true'
+assert not digits or paint
 assert not geometry or links
 assert not paint or (geometry and operation=='resume')
 root=pathlib.Path(os.environ['RUNNER_TEMP'])/'milkup-webkit-research';evidence=root/'evidence';source=root/'source';build=root/'build';prefix=root/'prefix';conf=root/'apt.conf'
@@ -30,6 +32,8 @@ try:
   shutil.copyfile(pathlib.Path(os.environ['RUNNER_TEMP'])/'paint-inherited-gate.json',evidence/'paint-inherited-gate.json')
  run('install-official-build-deps',['sudo','apt-get','-c',str(conf),'-y','--no-install-recommends','--no-remove','build-dep',f'webkit2gtk={version}'],timeout=1200)
  run('install-official-gui-baseline',['sudo','apt-get','-c',str(conf),'-y','--no-install-recommends','--no-remove','install',f'libwebkit2gtk-4.1-dev={version}',f'webkitgtk-webdriver={version}','ccache','xdotool','x11-utils','poppler-utils','fonts-noto-cjk','fonts-noto-color-emoji','fonts-dejavu-core','xvfb','xauth','python3-pypdf'],timeout=900)
+ if digits:
+  run('install-official-digit-test-deps',['sudo','apt-get','-c',str(conf),'-y','--no-install-recommends','--no-remove','install','python3-fonttools','fonts-noto-core'],timeout=300)
  run('configure-bounded-compiler-cache',['ccache','--max-size','2G'])
  report['compilerCacheDirectory']=os.environ['CCACHE_DIR'];report['cacheScope']='Compiler objects only, not private runtime or application data'
  report['systemLibrariesBefore']=system_libraries();assert len(report['systemLibrariesBefore'])==2;persist()
@@ -61,6 +65,14 @@ try:
     assert '    page/MilkupPrintResearch.h\n'in (source/'Source/WebCore/Headers.cmake').read_text()
   if operation=='preflight':
    run('links-system-baseline',['python3',str(pathlib.Path(os.environ['GITHUB_WORKSPACE'])/'scripts/ci/run-webkit-link-probe.py'),'baseline',str(evidence/'links-baseline')],timeout=180)
+ if digits:
+  digit_research=pathlib.Path(os.environ['GITHUB_WORKSPACE'])/'research/linux-pdf-unicode-20261114'
+  run('digit-local-contract',['python3',str(digit_research/'test_digit_probe.py'),str(evidence/'digit-local-contract')],timeout=60)
+  digit_patch=evidence/'independent-digit.patch'
+  run('prepare-digit-delta',['python3',str(digit_research/'prepare_digit_probe.py'),str(source),str(digit_patch)],timeout=30)
+  run('check-digit-delta',['git','-C',str(source),'apply','--check',str(digit_patch)],timeout=30)
+  run('apply-digit-delta',['git','-C',str(source),'apply',str(digit_patch)],timeout=30)
+  report['digitResearch']=True;report['digitPatchSha256']=hashlib.sha256(digit_patch.read_bytes()).hexdigest();persist()
  run('header-forwarding-preflight',['python3',str(pathlib.Path(os.environ['GITHUB_WORKSPACE'])/'scripts/ci/webkit-header-preflight.py'),'--source',str(source),'--output',str(evidence/'header-preflight')],timeout=300)
  report['patchedSourceHashes']={str(p.relative_to(source)):hashlib.sha256(p.read_bytes()).hexdigest()for p in source.glob('Source/WebCore/platform/graphics/**/*')if p.is_file()and p.name in ['ScalarGlyphText.h','FontCascade.cpp','FontSkia.cpp','GraphicsContextSkia.cpp','DisplayListRecorderImpl.cpp']};persist()
  # Match distro hardening and GTK3 choices; debug symbols are limited to -g1 as
@@ -84,6 +96,9 @@ try:
    run('geometry-actual-object-gate',['python3',str(pathlib.Path(os.environ['GITHUB_WORKSPACE'])/'scripts/ci/webkit-geometry-object-preflight.py'),'--source',str(source),'--build',str(build),'--output',str(evidence/'geometry-object-gate')],timeout=850)
    report['preflight']['geometryActualObjects']='passed'
   report['status']='preflight-passed-not-engine-built';persist();raise SystemExit(0)
+ if digits:
+  run('digit-actual-object-gate',['python3',str(pathlib.Path(os.environ['GITHUB_WORKSPACE'])/'scripts/ci/webkit-digit-object-preflight.py'),'--source',str(source),'--build',str(build),'--output',str(evidence/'digit-object-gate')],timeout=850)
+  report['preflight']['digitActualObject']='passed';persist()
  report['fullEngineBuildAttempted']=True;report['stage']='compile-engine';persist()
  # Three jobs completed 2582/3263 objects in 150 minutes, with 6.84 GiB
  # minimum MemAvailable. Last-half-hour throughput predicts ~122 more minutes
