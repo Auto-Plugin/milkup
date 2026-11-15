@@ -16,6 +16,28 @@ def validate_header_plan(plan):
     assert not re.search(r'(?:^|[\s/])(?:clang\+\+|clang(?:-\d+)?|g\+\+|gcc|c\+\+|cc|ccache)(?:\s|$)',plan), 'Header prerequisites include compiler work outside selected translation units'
     return len(lines)
 
+def unit_contains(entry,actual):
+    unit=pathlib.Path(entry['file']).resolve()
+    if unit==actual:return True
+    if not unit.is_file()or not unit.name.startswith('UnifiedSource-'):return False
+    args=entry.get('arguments')or shlex.split(entry['command'])
+    roots=[unit.parent];i=0
+    while i<len(args):
+        arg=args[i]
+        if arg in ['-I','-iquote','-isystem']:
+            i+=1;roots.append(pathlib.Path(args[i]))
+        elif arg.startswith('-I')and len(arg)>2:roots.append(pathlib.Path(arg[2:]))
+        i+=1
+    cwd=pathlib.Path(entry['directory'])
+    roots=[(cwd/r).resolve()if not r.is_absolute()else r.resolve()for r in roots]
+    for name in re.findall(r'^#include "([^\"]+)"',unit.read_text(),re.M):
+        include=pathlib.Path(name)
+        candidates=[include]if include.is_absolute()else[root/include for root in roots]
+        # Match actual quoted-include search order, not the harness cwd.
+        found=next((p.resolve()for p in candidates if p.is_file()),None)
+        if found==actual:return True
+    return False
+
 def original_command(entry,graph,build):
     args=entry.get('arguments')or shlex.split(entry['command'])
     assert args.count('-o')==args.count('-c')==1
@@ -67,9 +89,7 @@ def run(source,build,out):
         for relative in SOURCES:
             actual=(source/relative).resolve();matches=[]
             for entry in commands:
-                unit=pathlib.Path(entry['file'])
-                if not unit.is_file():continue
-                if unit.resolve()==actual or (unit.name.startswith('UnifiedSource-')and any(pathlib.Path(p).resolve()==actual for p in re.findall(r'^#include "([^"]+)"',unit.read_text(),re.M))):matches.append(entry)
+                if unit_contains(entry,actual):matches.append(entry)
             assert len(matches)==1,'Exactly one actual configured TU required for '+relative
             selected[relative]=matches[0]
         report['compileDatabaseSha256']=digest(build/'compile_commands.json')

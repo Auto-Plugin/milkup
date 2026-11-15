@@ -1,6 +1,14 @@
-import importlib.util,pathlib,unittest
+import importlib.util,pathlib,unittest,tempfile
 p=pathlib.Path(__file__).with_name('webkit-geometry-object-preflight.py');s=importlib.util.spec_from_file_location('gate',p);m=importlib.util.module_from_spec(s);s.loader.exec_module(m)
 class Gate(unittest.TestCase):
+ def test_real_unified_relative_include_resolution(self):
+  with tempfile.TemporaryDirectory()as d:
+   root=pathlib.Path(d);source=root/'source';source.mkdir();(source/'page').mkdir();actual=source/'page/PrintContext.cpp';actual.write_text('// exact source')
+   unit=root/'UnifiedSource-12.cpp';unit.write_text('#include "page/PrintContext.cpp"\n')
+   entry={'file':str(unit),'directory':str(root),'arguments':['clang++','-I'+str(source)]}
+   self.assertTrue(m.unit_contains(entry,actual.resolve()))
+   entry['arguments']=['clang++'];self.assertFalse(m.unit_contains(entry,actual.resolve()))
+   unit.write_text('#include "'+str(actual)+'"\n');self.assertTrue(m.unit_contains(entry,actual.resolve()))
  def test_header_only_plan(self):
   self.assertEqual(m.validate_header_plan('[1/2] /usr/bin/python3 make-headers.py\n[2/2] /usr/bin/cmake -E copy file.h target.h'),2)
   for compiler in ['clang++','clang','g++','gcc','ccache']:
