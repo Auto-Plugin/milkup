@@ -35,7 +35,7 @@ export function observeMermaidVisibility({ from, to, scenario, maxMs = 60000, ma
     timer
   // Clip against every scrolling/hidden ancestor, not only the desktop viewport.
   // Hidden source lines keep geometry in some browser layouts; inspect styles too.
-  const visible = (element) => {
+  const visible = (element, rects = element?.getClientRects()) => {
     if (!element?.isConnected || document.visibilityState !== 'visible') return false
     let clip = { left: 0, top: 0, right: innerWidth, bottom: innerHeight }
     for (let ancestor = element; ancestor; ancestor = ancestor.parentElement) {
@@ -61,7 +61,7 @@ export function observeMermaidVisibility({ from, to, scenario, maxMs = 60000, ma
         clip.bottom = Math.min(clip.bottom, top + ancestor.clientHeight)
       }
     }
-    return [...element.getClientRects()].some(
+    return [...rects].some(
       (box) =>
         Math.min(box.right, clip.right) > Math.max(box.left, clip.left) &&
         Math.min(box.bottom, clip.bottom) > Math.max(box.top, clip.top),
@@ -75,6 +75,27 @@ export function observeMermaidVisibility({ from, to, scenario, maxMs = 60000, ma
     cancelAnimationFrame(frame)
     clearTimeout(timer)
     return report
+  }
+  // Milkup mounts a preview INSIDE the first source-line host. The host's
+  // rectangle cannot distinguish actual source from its replacement diagram.
+  const sourceTextVisible = (line) => {
+    let visited = 0
+    const walk = (node) => {
+      if (++visited > 4096) {
+        report.overflow = true
+        return false
+      }
+      if (node.nodeType === 3) {
+        if (!node.textContent.trim()) return false
+        const range = document.createRange()
+        range.selectNodeContents(node)
+        return visible(node.parentElement, range.getClientRects())
+      }
+      if (node.nodeType !== 1 || node.matches('[data-document-presentation],.milkup-marker-hidden'))
+        return false
+      return [...node.childNodes].some(walk)
+    }
+    return walk(line)
   }
   const sample = () => {
     if (report.stopReason) return
@@ -91,7 +112,7 @@ export function observeMermaidVisibility({ from, to, scenario, maxMs = 60000, ma
         Number(line.dataset.from) < to &&
         Number(line.dataset.to) > from &&
         !line.classList.contains('milkup-marker-hidden') &&
-        visible(line),
+        sourceTextVisible(line),
     )
     const imageVisible = visible(image)
     const decoded =

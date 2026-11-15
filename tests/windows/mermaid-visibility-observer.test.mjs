@@ -12,6 +12,9 @@ function fixture(options = {}) {
     timers = new Map()
   const box = (x, y, w = 100, h = 20) => ({ left: x, top: y, right: x + w, bottom: y + h })
   const element = (rect, parentElement = null) => ({
+    nodeType: 1,
+    childNodes: [],
+    matches: () => false,
     rect,
     parentElement,
     isConnected: true,
@@ -44,6 +47,7 @@ function fixture(options = {}) {
   const line = element(box(10, 200), editor)
   line.dataset = { from: '10', to: '30' }
   line.classList = { contains: () => false }
+  line.childNodes = [{ nodeType: 3, textContent: 'source', parentElement: line }]
   line.style.display = 'none'
   const preceding = element(box(10, 15), editor)
   preceding.dataset = { from: '0', to: '10' }
@@ -51,7 +55,18 @@ function fixture(options = {}) {
   block.querySelector = () => image
   editor.querySelector = () => block
   editor.querySelectorAll = () => [line, preceding]
-  const doc = { visibilityState: 'visible', querySelector: () => editor }
+  const doc = {
+    visibilityState: 'visible',
+    querySelector: () => editor,
+    createRange: () => ({
+      selectNodeContents(node) {
+        this.node = node
+      },
+      getClientRects() {
+        return this.node.parentElement.getClientRects()
+      },
+    }),
+  }
   const context = vm.createContext({
     window: {},
     document: doc,
@@ -219,4 +234,16 @@ test('an already decoded first sample is explicitly left-censored, not an exact 
   f.context.arguments[0].scenario = 'prefetch-ready'
   vm.runInContext('(function(){' + mermaidVisibilityScript + '}).apply(null, arguments)', f.context)
   assert.equal(f.context.window.__mermaidInitialVisibilityProbe.report, initial)
+})
+
+test('a source-line host containing only the diagram must not count as visible Markdown', () => {
+  const f = fixture()
+  f.reveal()
+  f.line.style.display = 'block'
+  f.block.matches = (selector) => selector.includes('[data-document-presentation]')
+  f.line.childNodes = [f.block]
+  f.block.parentElement = f.line
+  f.frame(16)
+  assert.equal(f.report.complete, true)
+  assert.equal(f.report.sourceVisibleFrames, 0)
 })

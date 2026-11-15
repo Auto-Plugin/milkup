@@ -47,7 +47,10 @@ test(
         const image = document.querySelector('img')
         image.src = canvas.toDataURL()
         await image.decode()
-        document.querySelector('.milkup-line').style.display = 'none'
+        // Match Milkup: source-line host remains visible and contains the preview.
+        document
+          .querySelector('.milkup-line')
+          .replaceChildren(document.querySelector('[data-presentation-from]'))
       })
       await page.waitForFunction(() => window.probe.report.complete)
       const cold = await page.evaluate(() => window.probe.report)

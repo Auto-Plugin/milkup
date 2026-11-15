@@ -37,7 +37,22 @@ try {
  if ((Get-FileHash $Document -Algorithm SHA256).Hash.ToLowerInvariant() -cne $documentHash) {throw 'Diagnostic changed source bytes'}
  try {$null=Invoke-RestMethod -Uri "http://127.0.0.1:$DriverPort/session/$($observation.sessionId)" -Method Delete -TimeoutSec 5} catch {$summary.detachDiagnostic=$_.Exception.Message}
  $summary.status='passed'
-} catch {$summary.status='failed';$summary.error=$_ | Out-String;throw}
+} catch {
+ $summary.status='failed';$summary.error=$_ | Out-String
+ # Try the real close even after a measurement failure; never relabel failure as
+ # acceptance or use Job cleanup as its proof. Identity uncertainty stays closed.
+ if ($null -ne $process -and !$process.HasExited) {
+  try {
+   $roots=@([MilkupInstallWindow]::Observe($process.Id,$birth,$Binary) | Where-Object {$_.productRoot})
+   if ($roots.Count -ne 1) {throw 'No unique owned root for failure close'}
+   $summary.failureUiCloseAttempted=$true
+   [MilkupInstallWindow]::Close($roots[0].hwnd,$process.Id,$birth,$Binary)
+   $summary.failureUiCloseExited=$process.WaitForExit(15000)
+   if ($summary.failureUiCloseExited) {$summary.failureUiCloseExitCode=$process.ExitCode}
+  } catch {$summary.failureUiCloseError=$_.Exception.Message}
+ }
+ throw
+}
 finally {
  if ($null -ne $process -and !$process.HasExited) {
   $summary.forcedCleanup=$true

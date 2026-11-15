@@ -31,6 +31,8 @@ if (mode === 'fixture') {
     assert.equal(record.status, 'observed-await-normal-close')
     assert.equal(record.spec.creationFileTime, spec.creationFileTime)
     assert.equal(record.cursor.admittedBefore, record.cursor.admittedAfter)
+    assert.equal(record.cursor.sameImage, true)
+    assert.equal(record.cursor.passed, true)
     for (const image of record.images) ledger.matchPng(spec.pid, image.png)
     assert.equal(record.entries.length, 2)
     for (const entry of record.entries) assert.deepEqual(classifyEntry(entry), entry.classification)
@@ -219,6 +221,7 @@ if (mode === 'fixture') {
         const d = (await snapshot()).diagnostics
         return d.pending === 0 && !d.prefetchActive
       }, 'initial work settled')
+      record.preCursorStartup = await execute(startupPerformanceScript)
       const before = await readLedger()
       record.cursor = { admittedBefore: before.jobs.size, inputCountBefore: record.inputs.length }
       const point = await execute(
@@ -242,18 +245,28 @@ if (mode === 'fixture') {
           ]),
       )
       await delay(400)
+      record.postCursorStartup = await execute(startupPerformanceScript)
       record.cursor.admittedAfter = (await readLedger()).jobs.size
       record.cursor.sameImage = await execute(
         'return document.querySelector(\'[data-presentation-from="' +
           fences[0].from +
           '"] img\') === window.__latencyInitialImage',
       )
-      assert.equal(
-        record.cursor.admittedAfter,
-        record.cursor.admittedBefore,
-        'Cursor did not rerender',
+      record.cursor.noAdditionalAdmissions =
+        record.cursor.admittedAfter === record.cursor.admittedBefore
+      record.cursor.catalogReadyBefore = record.preCursorStartup.marks.some(
+        (m) => m.name === 'milkup:startup:plugin-catalog-ready',
       )
-      assert.equal(record.cursor.sameImage, true, 'Decoded owner retained')
+      record.cursor.catalogReadyAfter = record.postCursorStartup.marks.some(
+        (m) => m.name === 'milkup:startup:plugin-catalog-ready',
+      )
+      record.cursor.causality = record.cursor.catalogReadyBefore
+        ? 'post-catalog-input-interval'
+        : 'startup-overlap-not-cursor-causality-proof'
+      // Keep this functional failure, but collect independent entry observations
+      // and attempt normal close. Final verification still rejects changed counts.
+      record.cursor.passed = record.cursor.noAdditionalAdmissions && record.cursor.sameImage
+      await persist()
       for (let index = 1; index < 3; index++) {
         const fence = fences[index],
           scenario = index === 1 ? 'cold-entry' : 'prefetch-ready'
