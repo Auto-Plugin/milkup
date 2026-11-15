@@ -1,11 +1,14 @@
 #!/usr/bin/env python3
 """Bounded sandboxed engine-only print proof, no application install or system mutation."""
 import argparse, hashlib, json, os, pathlib, shlex, subprocess, time, tempfile, socket
-p=argparse.ArgumentParser();p.add_argument('mode',choices=['baseline','verify']);p.add_argument('out',type=pathlib.Path);p.add_argument('--prefix',type=pathlib.Path);p.add_argument('--manifest',type=pathlib.Path);p.add_argument('--geometry',action='store_true');p.add_argument('--paint',action='store_true');p.add_argument('--digits',action='store_true');p.add_argument('--digits-only',action='store_true');a=p.parse_args()
+p=argparse.ArgumentParser();p.add_argument('mode',choices=['baseline','verify']);p.add_argument('out',type=pathlib.Path);p.add_argument('--prefix',type=pathlib.Path);p.add_argument('--manifest',type=pathlib.Path);p.add_argument('--geometry',action='store_true');p.add_argument('--paint',action='store_true');p.add_argument('--digits',action='store_true');p.add_argument('--digits-only',action='store_true');p.add_argument('--system-acceptance',action='store_true');a=p.parse_args()
 assert not a.geometry or a.mode=='verify'
 assert not a.paint or a.geometry
 assert not a.digits or a.paint
 assert not a.digits_only or a.digits
+if a.system_acceptance:
+    assert a.mode=='baseline' and not any([a.prefix,a.manifest,a.geometry,a.paint,a.digits,a.digits_only])
+    assert not os.environ.get('LD_PRELOAD'), 'Preloaded libraries forbidden for system acceptance'
 assert os.getuid()!=0 and not os.environ.get('WEBKIT_DISABLE_SANDBOX_THIS_IS_DANGEROUS')
 repo=pathlib.Path(__file__).resolve().parents[2];research=repo/'research/linux-pdf-links-20261114'
 a.out=a.out.resolve();a.out.mkdir(parents=True,exist_ok=False)
@@ -33,9 +36,9 @@ if a.mode=='verify':
     assert len(expected)==2
     env['LD_LIBRARY_PATH']=str(a.prefix/'lib/x86_64-linux-gnu')
 else:assert not a.prefix and not a.manifest
-flags=shlex.split(subprocess.check_output(['pkg-config','--cflags','--libs','webkit2gtk-4.1','gtk+-3.0'],text=True))
+flags=shlex.split(subprocess.check_output(['pkg-config','--cflags','--libs','webkit2gtk-4.1','gtk+-3.0'],text=True,env=env if a.system_acceptance else None))
 binary=a.out/'print-probe'
-subprocess.run(['cc','-Wall','-Wextra','-Werror','-Wno-deprecated-declarations',str(research/'print-probe.c'),'-o',str(binary),*flags],check=True,timeout=60)
+subprocess.run(['cc','-Wall','-Wextra','-Werror','-Wno-deprecated-declarations',str(research/'print-probe.c'),'-o',str(binary),*flags],check=True,timeout=60,env=env if a.system_acceptance else None)
 subprocess.run(['python3',str(research/'pdf_links.py'),'fixtures',str(a.out)],check=True)
 if a.geometry:
     subprocess.run(['python3',str(research/'layout_contract.py'),str(a.out)],check=True)
@@ -44,10 +47,12 @@ if a.paint:
     import sys
     sys.path.insert(0,str(research));from paint_contract import fixtures
     fixtures(a.out);env['MILKUP_PAINT_PROBE']='1'
-if a.digits:
+if a.digits or a.system_acceptance:
     subprocess.run(['python3',str(repo/'research/linux-pdf-unicode-20261114/digit_pdf_contract.py'),'fixtures',str(a.out)],check=True,timeout=30)
-    env['MILKUP_DIGIT_PROBE']='1'
-report={'digitResearch':a.digits,'geometryResearch':a.geometry,'status':'running','mode':a.mode,'uid':os.getuid(),'harnessSha':os.environ.get('GITHUB_SHA'),'runtimeDirectory':runtime.name,'runtimeSocketBindPreflight':True,'expectedPrivateLibraries':expected,'runs':[],'scope':'GTK WebKit print engine, not installed Milkup or physical printer'}
+    if a.digits:env['MILKUP_DIGIT_PROBE']='1'
+if a.system_acceptance:
+    for key in ['MILKUP_DIGIT_PROBE','MILKUP_DIGIT_NOMINAL_ONLY','MILKUP_PAINT_PROBE','MILKUP_PRINT_LAYOUT_PROBE']:env.pop(key,None)
+report={'systemAcceptance':a.system_acceptance,'digitResearch':a.digits,'geometryResearch':a.geometry,'status':'running','mode':a.mode,'uid':os.getuid(),'harnessSha':os.environ.get('GITHUB_SHA'),'runtimeDirectory':runtime.name,'runtimeSocketBindPreflight':True,'expectedPrivateLibraries':expected,'runs':[],'scope':'GTK WebKit print engine, not installed Milkup or physical printer'}
 def persist():(a.out/'native-result.json').write_text(json.dumps(report,indent=2))
 def final_runtime_check(expected):
     rows=[]
@@ -63,6 +68,7 @@ try:
     names=['paint-baseline-links','paint-baseline-no-links','paint-candidate-links','paint-candidate-no-links','links','no-links']if a.paint else (['geometry-links','geometry-no-links','links','no-links']if a.geometry else ['links','no-links'])
     if a.digits:names=['digit-baseline','digit-candidate','paint-candidate-links','paint-candidate-no-links','links','no-links']
     if a.digits_only:names=['digit-baseline','digit-candidate']
+    if a.system_acceptance:names=['links','no-links','digit-candidate']
     report['digitsOnly']=a.digits_only
     report['paintResearch']=a.paint
     for name in names:
@@ -117,7 +123,9 @@ try:
         # Persist both controls and all source-token diagnostics before the
         # fail-closed acceptance assertion; the diagnostic is never a pass gate.
         subprocess.run(['python3',str(research/'audit_existing.py'),str(a.out),'--out',str(a.out/'independent-checks.json')],check=True,timeout=60)
-    if a.digits:
+    if a.system_acceptance:
+        subprocess.run(['python3',str(repo/'research/linux-pdf-unicode-20261114/system_runtime_contract.py'),str(a.out)],check=True,timeout=90)
+    elif a.digits:
         subprocess.run(['python3',str(repo/'research/linux-pdf-unicode-20261114/digit_pdf_contract.py'),'verify',str(a.out),*(['--digits-only']if a.digits_only else[])],check=True,timeout=90)
     elif a.paint:
         subprocess.run(['python3',str(research/'paint_contract.py'),str(a.out)],check=True,timeout=60)
