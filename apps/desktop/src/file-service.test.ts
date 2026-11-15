@@ -1,4 +1,8 @@
-import { createDocumentSession } from '@milkup/tauri-bridge'
+import {
+  applyFileWatchEvent,
+  createDocumentSession,
+  recordNativeDocumentMutation,
+} from '@milkup/tauri-bridge'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { createDesktopFileService } from './file-service'
@@ -94,11 +98,18 @@ describe('desktop file service', () => {
   })
 
   it('passes the opened disk snapshot to native saves including Save As aliases', async () => {
-    const session = createDocumentSession({
+    const opened = createDocumentSession({
       documentId: 'doc-guard',
       file: { path: '/notes/source.md' },
       diskSnapshotHash: 'opened-version',
     })
+    const session = applyFileWatchEvent(recordNativeDocumentMutation(opened), {
+      kind: 'modified',
+      documentId: opened.documentId,
+      file: opened.file!,
+      diskSnapshotHash: 'outside',
+    })
+    expect(session.externalChangeState).toBe('conflict')
     const service = createDesktopFileService()
     await service.saveFile(session, 'local')
     expect(tauriMocks.invoke).toHaveBeenLastCalledWith('save_markdown_file', {
@@ -117,6 +128,36 @@ describe('desktop file service', () => {
       expectedDiskSnapshotHash: 'opened-version',
       expectedFilePath: '/notes/source.md',
     })
+    await service.saveToSelectedPath(session, 'local', '/notes/rescue.md')
+    expect(tauriMocks.invoke).toHaveBeenLastCalledWith('save_markdown_file', {
+      documentId: 'doc-guard',
+      path: '/notes/rescue.md',
+      text: 'local',
+      expectedDiskSnapshotHash: 'opened-version',
+      expectedFilePath: '/notes/source.md',
+    })
+    expect(session.diskSnapshotHash).toBe('opened-version')
+    expect(session.externalChangeState).toBe('conflict')
+  })
+
+  it('does not write or clear the conflict when the rescue chooser is cancelled', async () => {
+    const opened = createDocumentSession({
+      documentId: 'cancel-rescue',
+      file: { path: '/notes/source.md' },
+      diskSnapshotHash: 'opened',
+    })
+    const session = applyFileWatchEvent(recordNativeDocumentMutation(opened), {
+      kind: 'modified',
+      documentId: opened.documentId,
+      file: opened.file!,
+      diskSnapshotHash: 'outside',
+    })
+    tauriMocks.save.mockResolvedValue(null)
+    await expect(createDesktopFileService().saveFileAs(session, 'local')).resolves.toBeUndefined()
+    expect(tauriMocks.invoke).not.toHaveBeenCalled()
+    expect(session.dirty).toBe(true)
+    expect(session.externalChangeState).toBe('conflict')
+    expect(session.diskSnapshotHash).toBe('opened')
   })
 
   it('reports open progress around native reads', async () => {

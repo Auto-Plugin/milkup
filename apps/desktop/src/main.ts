@@ -3,6 +3,8 @@ import { isCompleteMermaidPendingFence } from './mermaid-pending-fence'
 import { createFrontendMermaidOwner } from './frontend-mermaid-service'
 import { formatDisplayPath } from './display-path'
 import { recoveryStatusText } from './recovery-status-presentation'
+import { externalFileNotice } from './external-file-notice'
+import { getSaveAsDialogSafety } from './save-as-safety'
 import { LargeDocumentSource } from './large-document-source'
 import { moveDesktopFocus, restoreDesktopFocus } from './desktop-focus'
 import { TitlebarMenu, isTitlebarDragGesture } from './titlebar-menu'
@@ -1404,10 +1406,11 @@ void fileService
     try {
       session = applyFileWatchEvent(session, event)
       if (saveState.phase === 'saving') saveState.watchEvents.push(event)
-      notice =
-        event.kind === 'deleted'
-          ? messages.notices.externalDeleted
-          : messages.notices.externalModified
+      const externalNotice = externalFileNotice(session.externalChangeState, event.kind)
+      if (externalNotice) {
+        importantNotice = true
+        notice = externalNotice
+      }
     } catch (error) {
       notice = `已忽略外部文件事件：${getErrorMessage(error)}`
     }
@@ -4124,7 +4127,7 @@ async function saveDocumentAsOnce(): Promise<boolean> {
     documentId: session.documentId,
     path: session.file?.path ?? 'untitled.md',
   }
-  const safety = getSaveSafety(session)
+  const safety = getSaveAsDialogSafety(session)
 
   if (!safety.canSave) {
     importantNotice = true
@@ -4162,7 +4165,7 @@ async function saveMemorySourceDocumentAs(): Promise<boolean> {
     documentId: session.documentId,
     path: session.file?.path ?? 'untitled.md',
   }
-  const safety = getSaveSafety(session)
+  const safety = getSaveAsDialogSafety(session)
 
   if (!safety.canSave) {
     importantNotice = true
@@ -5894,7 +5897,7 @@ function getRequiredDocumentId(action: FileAction): string {
 
 function translateSaveSafetyMessage(message: string): string {
   if (message.includes('changed outside the editor')) {
-    return '文件已在编辑器外发生变化。请先“另存为”保留本地编辑，或重新载入并丢弃本地编辑后再保存。'
+    return '文件已在编辑器外发生变化，未覆盖磁盘文件。若有未保存编辑，请先另存为新文件保留；无未保存编辑时可从文件菜单重新载入。'
   }
 
   if (message.includes('deleted outside the editor')) {
