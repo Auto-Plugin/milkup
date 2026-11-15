@@ -14,6 +14,7 @@ import { fileURLToPath } from 'node:url'
 import { setTimeout as delay } from 'node:timers/promises'
 import { StringDecoder } from 'node:string_decoder'
 import { frontendLedgerClass, FRONTEND_AUDIT_PREFIX } from './mermaid-frontend-contract.mjs'
+import { mermaidVisibilityScript } from './mermaid-visibility-observer.mjs'
 
 // Observations only: these clocks never change product deadlines or authorize IPC.
 export function createStartupTimeline(now = () => performance.now(), wall = () => Date.now()) {
@@ -2366,6 +2367,10 @@ const p=parent?.getBoundingClientRect(),hit=document.elementFromPoint(x,y);retur
     if (!screenshot && !launch.firstDecodedObservation) {
       launch.firstDecodedObservation = await execute(startupPerformanceScript)
       launch.firstDecodedObservation.observedAt = Date.now()
+      launch.firstDecodedObservation.layoutVisibility = await execute(
+        'return window.__mermaidInitialVisibilityProbe?.report ?? null',
+      )
+      launch.firstDecodedObservation.inputsAtRead = report.inputs.length
     }
     return { file, ...structure, ...decoded, native, visuallyReviewed: false }
   }
@@ -2393,6 +2398,12 @@ const p=parent?.getBoundingClientRect(),hit=document.elementFromPoint(x,y);retur
       throw error
     } finally {
       row.finishedAt = new Date().toISOString()
+      if (session && launch?.initialLayoutObservation) {
+        launch.initialLayoutResult = await execute(
+          'return window.__mermaidInitialVisibilityProbe?.report ?? null',
+        ).catch((error) => ({ captureError: String(error), complete: false }))
+        launch.initialLayoutInputsAtRead = report.inputs.length
+      }
       await persist()
     }
   }
@@ -2563,6 +2574,26 @@ const p=parent?.getBoundingClientRect(),hit=document.elementFromPoint(x,y);retur
       return current.path && samePath(current.path, files[name].path) && current.loading === 'ready'
     }, 'Literal production file-argument open')
     startupTimeline.mark('initial-document-ready')
+    const initialFenceFrom = fixtures[name]?.indexOf('```mermaid') ?? -1
+    const initialFenceEnd =
+      initialFenceFrom >= 0 ? fixtures[name].indexOf('```', initialFenceFrom + 3) : -1
+    if (initialFenceEnd > initialFenceFrom) {
+      current.initialLayoutObservation = await execute(mermaidVisibilityScript, {
+        from: initialFenceFrom,
+        to: initialFenceEnd + 3,
+        scenario: 'document-open',
+      })
+      current.initialLayoutObservation.inputsAtInstall = report.inputs.length
+      current.initialLayoutObservation.context = await execute(`return {
+        editorMode:document.querySelector('.milkup-editor')?.dataset.mode ?? null,
+        storedPluginPolicy:localStorage.getItem('milkup.desktop.plugins.milkup.diagrams.render-mode.v1'),
+        caret:Number(document.querySelector('.milkup-cursor')?.dataset.position),
+        sourceFocused:!!document.activeElement?.matches('.milkup-input-proxy')
+      }`)
+
+      // Installation happens after WebDriver attaches. decodedAtFirstSample and
+      // begun make this left-censored; it must not be called exact first paint.
+    }
     // Query native window geometry after the shipped startup/file-open path has
     // completed. On WebView2, querying it immediately after attach can block
     // while the initial app navigation is still being initialized. Keep the
@@ -3533,18 +3564,13 @@ const p=parent?.getBoundingClientRect(),hit=document.elementFromPoint(x,y);retur
               .map((event) => event.requestId)
             prefetchEvidence.readyIds = readyIds
             assert(readyIds.length > 0, 'Offscreen readiness has actual renderer audit')
-            await execute(
-              `window.__mermaidScrollObservation={firstVisible:null,decoded:null,samples:0};
-              const from=arguments[0],observation=window.__mermaidScrollObservation;
-              const visible=e=>{if(!e)return false;const r=e.getBoundingClientRect();return r.height>0&&r.bottom>0&&r.top<innerHeight};
-              function sample(){observation.samples++;const line=document.querySelector('.milkup-line[data-from="'+from+'"]');
-                const block=document.querySelector('[data-presentation-from="'+from+'"]');const image=block?.querySelector('img');
-                if(observation.firstVisible===null&&(visible(line)||visible(block)))observation.firstVisible=performance.now();
-                if(visible(image)&&image.complete&&image.naturalWidth>0){observation.decoded=performance.now();return;}
-                if(observation.samples<3600)requestAnimationFrame(sample);}
-              requestAnimationFrame(sample);return true`,
-              firstFrom,
-            )
+            // This is explicitly a warmed-entry probe, not cold first visibility.
+            // Track source exposure separately; <=100ms does not mean no source flash.
+            await execute(mermaidVisibilityScript, {
+              from: firstFrom,
+              to: fixtures.syntax.indexOf('```', firstFrom + 3) + 3,
+              scenario: 'prefetch-ready',
+            })
             let observed
             for (let attempt = 0; attempt < 30; attempt++) {
               const box = (await state()).editor
@@ -3566,12 +3592,14 @@ const p=parent?.getBoundingClientRect(),hit=document.elementFromPoint(x,y);retur
                   },
                 ],
               })
-              observed = await execute('return window.__mermaidScrollObservation')
+              observed = await execute('return window.__mermaidVisibilityProbe.report')
               prefetchEvidence.observed = observed
               if (observed.decoded !== null) break
             }
             assert(
-              observed?.firstVisible !== null && observed?.decoded !== null,
+              observed?.complete === true &&
+                observed.firstVisible !== null &&
+                observed.decoded !== null,
               'Wheel reached the decoded prefetched fence',
             )
             assert(

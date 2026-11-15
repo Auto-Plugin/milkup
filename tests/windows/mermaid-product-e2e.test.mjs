@@ -63,21 +63,17 @@ test('frontend workflow refs reach the same exact hosted-wrapper allowlist', asy
     new URL('../../scripts/ci/run-windows-mermaid-product-e2e.ps1', import.meta.url),
     'utf8',
   )
-  const pushBlock = workflow.match(/push:\s+branches:\s+\[([^\]]+)\]/)?.[1]
-  assert(pushBlock, 'Explicit push branch list required')
-  const pushRefs = pushBlock
-    .split(',')
-    .map((s) => s.trim())
-    .filter(Boolean)
-    .map((s) => `refs/heads/${s}`)
-    .sort()
+  // Diagnostic acceptance is explicitly dispatched. Do not restore push triggers
+  // to satisfy the obsolete pre-notification-cleanup fixture.
+  const triggers = workflow.match(/^on:\n([\s\S]*?)\npermissions:/m)?.[1].trim()
+  assert.equal(triggers, 'workflow_dispatch:', 'Only explicit diagnostic dispatch is allowed')
   const jobRefs = [...workflow.matchAll(/github\.ref == '(refs\/heads\/[^']+)'/g)]
     .map((m) => m[1])
     .sort()
   const wrapperList = wrapper.match(/\$env:GITHUB_REF -cnotin @\(([^)]+)\)/)?.[1]
   assert(wrapperList, 'Case-sensitive exact-ref wrapper gate required')
   const wrapperRefs = [...wrapperList.matchAll(/'(refs\/heads\/[^']+)'/g)].map((m) => m[1]).sort()
-  assert.deepEqual(jobRefs, pushRefs, 'Push and job gates disagree')
+  assert(jobRefs.length > 0, 'Explicit job branch list required')
   assert.deepEqual(
     wrapperRefs,
     jobRefs,
