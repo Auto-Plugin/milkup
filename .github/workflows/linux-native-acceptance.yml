@@ -1,0 +1,87 @@
+name: Installed Linux external file conflict safety (no release)
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+concurrency:
+  group: linux-file-conflict-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  conflict:
+    if: github.repository == 'Auto-Plugin/milkup'
+    runs-on: ubuntu-26.04
+    timeout-minutes: 25
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: 24.19.0
+      - name: Existing official GUI dependencies and default sandbox gate
+        run: |
+          mkdir -p "$RUNNER_TEMP/linux-native-evidence"
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends libwebkit2gtk-4.1-dev libgtk-3-dev libx11-dev librsvg2-dev libssl-dev pkg-config webkitgtk-webdriver xdotool x11-utils xvfb xauth python3-gi
+          test "$(id -u)" != 0
+          test -z "${WEBKIT_DISABLE_SANDBOX_THIS_IS_DANGEROUS:-}"
+          cc scripts/ci/linux-webkit-preflight.c -o "$RUNNER_TEMP/milkup-webkit-preflight" $(pkg-config --cflags --libs webkit2gtk-4.1 gtk+-3.0)
+          timeout --signal=TERM --kill-after=5s 40s xvfb-run -a dbus-run-session -- "$RUNNER_TEMP/milkup-webkit-preflight" 2>&1 | tee "$RUNNER_TEMP/linux-native-evidence/webkit-preflight.txt"
+          cc -Wall -Wextra -Werror scripts/ci/linux-window-close.c -o "$RUNNER_TEMP/milkup-window-close" -lX11
+          node --check scripts/ci/linux-file-conflict-gui.mjs
+          bash -n scripts/ci/run-linux-file-conflict.sh
+      - name: Reuse exact accepted 383c0712 deb, do not rebuild
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh api repos/Auto-Plugin/milkup/actions/artifacts/14121749762/zip > "$RUNNER_TEMP/exact-package.zip"
+          python3 - <<'PY'
+          import hashlib,json,os,pathlib,zipfile
+          root=pathlib.Path(os.environ['RUNNER_TEMP']);archive=root/'exact-package.zip'
+          assert archive.stat().st_size==9855305
+          assert hashlib.sha256(archive.read_bytes()).hexdigest()=='5fd56130cfd069b8eec83d0bfaf0969c2f9e92355ba7543f36e212e5dfa174ee'
+          target=root/'exact-package';target.mkdir()
+          with zipfile.ZipFile(archive) as z:
+              assert z.testzip() is None and sum(i.file_size for i in z.infolist())<11000000
+              for i in z.infolist():
+                  assert not pathlib.PurePosixPath(i.filename).is_absolute() and '..' not in pathlib.PurePosixPath(i.filename).parts
+              z.extractall(target)
+          m=json.loads((target/'manifest.json').read_text())
+          assert m['sourceSha']=='383c0712f21071467f2549d73a022b03db4b69aa'
+          p=target/m['installer']['name'];assert p.stat().st_size==9853866
+          assert hashlib.sha256(p.read_bytes()).hexdigest()==m['installer']['sha256']=='8cd091ac83ffea06e2bac6c34ce3a9353047722fc0dbf7d64b1491341acfc860'
+          (root/'linux-native-evidence/package-manifest.json').write_text(json.dumps(m,indent=2))
+          PY
+          if dpkg-query --status milkup >/dev/null 2>&1; then echo 'Refusing to replace an existing installation' >&2; exit 1; fi
+          package=("$RUNNER_TEMP"/exact-package/*.deb)
+          test "${#package[@]}" = 1
+          dpkg-deb --extract "${package[0]}" "$RUNNER_TEMP/exact-package-extracted"
+          sudo dpkg --install "${package[0]}" 2>&1 | tee "$RUNNER_TEMP/linux-native-evidence/install.txt"
+          touch "$RUNNER_TEMP/linux-native-evidence/installed-by-this-run"
+          cmp "$RUNNER_TEMP/exact-package-extracted/usr/bin/milkup-desktop" /usr/bin/milkup-desktop
+          sha256sum /usr/bin/milkup-desktop > "$RUNNER_TEMP/linux-native-evidence/installed-binary.sha256"
+          rustup toolchain install 1.99.0 --profile minimal
+          cargo +1.99.0 install tauri-driver --version 2.1.0 --locked
+      - name: Real watcher conflict, cancel, rescue save, clean reload and restart
+        timeout-minutes: 7
+        run: |
+          timeout --signal=TERM --kill-after=10s 340s xvfb-run -a -s '-screen 0 1400x1000x24' dbus-run-session -- bash scripts/ci/run-linux-file-conflict.sh 2>&1 | tee "$RUNNER_TEMP/linux-native-evidence/harness.txt"
+      - name: Remove only this run's installed application
+        if: always()
+        run: |
+          if test -f "$RUNNER_TEMP/linux-native-evidence/installed-by-this-run"; then
+            sudo dpkg --remove milkup 2>&1 | tee "$RUNNER_TEMP/linux-native-evidence/uninstall.txt"
+            test ! -e /usr/bin/milkup-desktop
+          fi
+      - name: Preserve file versions and native evidence including failures
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: milkup-linux-file-conflict-${{ github.run_id }}
+          path: ${{ runner.temp }}/linux-native-evidence/
+          retention-days: 7
+          if-no-files-found: error
