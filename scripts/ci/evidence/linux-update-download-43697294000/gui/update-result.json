@@ -1,0 +1,128 @@
+{
+  "status": "failed",
+  "targetSourceSha": "58c78973101acb0a22ca0cb5d24ef24bd9edc199",
+  "harnessSha": "b294c056549e6ceb33d3655a2470f6410efacf34",
+  "uid": 1001,
+  "steps": [
+    {
+      "name": "start-download-only-beta9",
+      "status": "passed",
+      "durationMs": 2835
+    },
+    {
+      "name": "about-rejects-wrong-manifest-signature",
+      "status": "failed",
+      "error": "Error: {\"value\":{\"version\":\"2.0.0-beta.9\",\"error\":\"检查更新失败：The signature verification failed\",\"text\":\"更新未完成，请重试。\\n\\n当前版本 2.0.0-beta.9\\n\\n检查更新失败：The signature verification failed\\n\\n安装失败或重启后无法打开怎么办？\\n\\n重试检查\\n\",\"actions\":[\"check\"]}}",
+      "durationMs": 482
+    },
+    {
+      "name": "normal-close",
+      "status": "passed",
+      "durationMs": 155
+    }
+  ],
+  "snapshots": [],
+  "closes": [
+    {
+      "pid": 13817,
+      "birth": "53323",
+      "window": "2097168",
+      "method": "X11-WM_PROTOCOLS-WM_DELETE_WINDOW",
+      "forced": false,
+      "processGone": true,
+      "before": {
+        "message": "字面匹配 · 忽略大小写 · 忽略查询首尾空白",
+        "query": "",
+        "mode": "live",
+        "count": "0/0",
+        "searching": false,
+        "selection": [],
+        "path": "/home/runner/work/_temp/linux-native-evidence/gui/update-document.md",
+        "saving": false,
+        "notice": "",
+        "dirty": false,
+        "cursor": 0,
+        "url": "tauri://localhost",
+        "replaceDisabled": true,
+        "savedVersion": 0,
+        "replacing": false,
+        "loading": "ready",
+        "version": 0
+      },
+      "request": {
+        "window": 2097168,
+        "pid": 13817,
+        "protocolSupported": true,
+        "requestSent": true
+      }
+    }
+  ],
+  "errors": [
+    "Error: {\"value\":{\"version\":\"2.0.0-beta.9\",\"error\":\"检查更新失败：The signature verification failed\",\"text\":\"更新未完成，请重试。\\n\\n当前版本 2.0.0-beta.9\\n\\n检查更新失败：The signature verification failed\\n\\n安装失败或重启后无法打开怎么办？\\n\\n重试检查\\n\",\"actions\":[\"check\"]}}"
+  ],
+  "crashInjected": false,
+  "currentStep": "normal-close",
+  "fixturePathInherited": true,
+  "launches": [
+    {
+      "pid": 13817,
+      "birth": "53323",
+      "window": "2097168",
+      "at": "2026-11-15T09:11:16.356Z"
+    }
+  ],
+  "binarySha256": "02d7fb99e85e9dd09c8f8ce944e2c632c3eedd86428ed7681470324ed1e85014",
+  "inputs": [
+    {
+      "kind": "native-pointer",
+      "selector": "[data-menu-toggle]",
+      "window": "2097168",
+      "x": 27,
+      "width": 34,
+      "hit": true,
+      "height": 36,
+      "w": 1100,
+      "y": 18,
+      "h": 760,
+      "disabled": false
+    },
+    {
+      "kind": "native-pointer",
+      "selector": "[data-menu-section=\"about\"]",
+      "window": "2097168",
+      "x": 109.5,
+      "width": 187,
+      "hit": true,
+      "height": 38,
+      "w": 1100,
+      "y": 246,
+      "h": 760,
+      "disabled": false
+    }
+  ],
+  "failureDom": "\nupdate-document\n/home/runner/work/_temp/linux-native-evidence/gui\n菜单\n\n\n文件\n\n插件\n\n外观\n\n关于\n关于\n软件名\nmilkup\n当前版本\n2.0.0-beta.9\n\n检查更新\n版权信息\nCopyright (c) 2026 milkup. All rights reserved.\n更新未完成，请重试。\n\n当前版本 2.0.0-beta.9\n\n检查更新失败：The signature verification failed\n\n安装失败或重启后无法打开怎么办？\n\n重试检查\nUPDATE_DOCUMENT_43697294000\n​\n\n\n\nMarkdown\n28 字符\n已保存",
+  "endpoint": {
+    "schema": 1,
+    "status": "closed",
+    "artifactBytes": 9854742,
+    "artifactSha256": "9e71e2b6f6c5cd030f7307d35679ded1d4f5605127d77320db1d455d90c1ddde",
+    "certificateSha256": "5dac8362902c0ce8ec8330645285e1b9d76e415e350f7374f454edfbc7982f5b",
+    "requests": [
+      {
+        "at": "2026-11-15T09:11:14.693Z",
+        "method": "GET",
+        "path": "/manifest.json",
+        "mode": "bad-manifest",
+        "status": 200,
+        "bytes": 1249,
+        "sha256": "8d38d74ae8766cf57d331c0abc348373a0ec10a88bc70b5bcae8ecd235e16259"
+      }
+    ],
+    "transferredBytes": 1249,
+    "scope": "Loopback HTTPS; ephemeral in-memory test authority; no system trust or production channel changes",
+    "endpoint": "https://127.0.0.1:38091",
+    "stopReason": "requested"
+  },
+  "installRequested": false,
+  "credentialsEntered": false
+}
