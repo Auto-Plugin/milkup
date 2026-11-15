@@ -3,9 +3,10 @@ p=pathlib.Path(__file__).with_name('webkit-geometry-object-preflight.py');s=impo
 class Gate(unittest.TestCase):
  def test_generated_header_output_selection(self):
   build=pathlib.Path('/tmp/native-gate')
-  targets={'WebCore/DerivedSources/XLinkNames.h','/tmp/native-gate/WebCore/DerivedSources/XLinkNames.h','WebCore/DerivedSources/XLinkNames.cpp','WebCore/DerivedSources/x.o','JavaScriptCore/DerivedSources/LLIntAssembly.h','../outside.h'}
-  self.assertEqual(m.generated_webcore_headers(targets,build),['WebCore/DerivedSources/XLinkNames.h'])
-  with self.assertRaises(AssertionError):m.generated_webcore_headers({'WebCore/DerivedSources/A.h'},build)
+  required=['WebCore/DerivedSources/'+name+'Names.h'for name in ['XLink','XMLNS','XML']]
+  targets=set(required+['WebCore/DerivedSources/DOMJITAbstractHeapRepository.h','WebCore/DerivedSources/x.o','JavaScriptCore/DerivedSources/LLIntAssembly.h'])
+  self.assertEqual(m.generated_webcore_headers(targets,build),required)
+  with self.assertRaises(AssertionError):m.generated_webcore_headers(set(required[1:]),build)
  def test_real_unified_relative_include_resolution(self):
   with tempfile.TemporaryDirectory()as d:
    root=pathlib.Path(d);source=root/'source';source.mkdir();(source/'page').mkdir();actual=source/'page/PrintContext.cpp';actual.write_text('// exact source')
