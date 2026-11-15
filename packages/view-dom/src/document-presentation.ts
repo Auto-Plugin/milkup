@@ -17,6 +17,7 @@ import {
   type DocumentPngImage,
 } from '@milkup/core/internal/document-png-image'
 import { createOwnedDocumentPngImage } from './document-png-image'
+import { DocumentPendingImage } from './document-pending-image'
 import {
   createOwnedDocumentSvgImage,
   imageDecodeDeadlineMs,
@@ -62,6 +63,9 @@ export interface DocumentPresentationConfig {
   readonly retainHostPng?: () => boolean
   /** Host-only strategy for authenticated inert PNG output, not a document mode. */
   readonly hostPngMode?: () => 'source' | 'preview' | 'live'
+  /** Host-only synchronous attestation for a complete local loading range.
+   * Never derive this authority from third-party renderer declarations. */
+  readonly hostPendingFence?: (source: string) => boolean
   readonly provide: (
     window: DocumentPresentationWindow,
     options: {
@@ -303,6 +307,7 @@ export class DocumentPresentation {
   private blocksIdentity: object | undefined
   private blocksVersion: number | undefined
   private readonly saved = new Map<HTMLElement, SavedLine>()
+  private readonly pendingImage = new DocumentPendingImage()
   // Only the current response is retained, bounded by its validated fragment/node budgets.
   private readonly fragmentImages = new Map<DocumentPresentationFragment, FragmentImages>()
   // One previously decoded fragment per range, never a substitute for validating
@@ -329,6 +334,8 @@ export class DocumentPresentation {
     this.schedule()
   }
   private readonly scroll = () => {
+    // Presentation is synchronous; only admission of renderer work is delayed.
+    this.refreshPendingImage()
     // Revoke only the obsolete consumer immediately. The native owner drains
     // any started frame; the quiet timer only delays admitting replacement work.
     if (this.job) {
@@ -858,6 +865,7 @@ export class DocumentPresentation {
     ])
   }
   private sync(): void {
+    this.refreshPendingImage()
     if (this.scrollQuietTimer !== undefined) return
     this.hasReferencePointer()
     const current = this.snapshot()
@@ -938,6 +946,7 @@ export class DocumentPresentation {
       documentVersion: current.documentVersion,
     }
     this.job = job
+    this.refreshPendingImage()
     const deadline = performance.now() + hostPreparationDeadlineMs
     const expirePreparation = () => {
       if (this.valid(job)) {
@@ -1327,6 +1336,7 @@ export class DocumentPresentation {
       for (const image of owner.images) image.captureViewState?.()
   }
   private restore(preserveImages = false, forceLayout = false): void {
+    this.pendingImage.clear()
     const painting = this.painting
     if (preserveImages) this.captureImageViewState()
     if (!preserveImages) {
@@ -1661,7 +1671,99 @@ export class DocumentPresentation {
       for (const owner of this.fragmentImages.values())
         for (const image of owner.images) image.syncVisibility?.()
       this.painting = false
+      this.refreshPendingImage()
       this.observe()
+    }
+  }
+
+  private refreshPendingImage(): void {
+    const config = this.config
+    const current = this.snapshot()
+    this.observer.disconnect()
+    try {
+      if (
+        this.stopped ||
+        current.mode === 'source' ||
+        config?.hostPngMode?.() !== 'preview' ||
+        config.retainHostPng?.() !== true ||
+        !config.hostPendingFence ||
+        (this.failedKey !== undefined && Date.now() < this.retryAfter)
+      ) {
+        this.pendingImage.clear()
+        return
+      }
+      const window = this.window(current)
+      if (!window) {
+        this.pendingImage.clear()
+        return
+      }
+      const lines = Array.from(this.content.querySelectorAll<HTMLElement>('.milkup-line')).filter(
+        (line) => Number(line.dataset.from) >= window.from && Number(line.dataset.from) < window.to,
+      )
+      const checked = new Set<number>()
+      const groups: { from: number; lines: HTMLElement[] }[] = []
+      const cached =
+        this.cache?.identity === current.sourceIdentity &&
+        this.cache.documentVersion === current.documentVersion &&
+        this.cache.key.startsWith(`${current.sourceVersion}:`)
+          ? this.cache.response
+          : undefined
+      for (const line of lines) {
+        const from = Number(line.dataset.presentationBlockFrom),
+          to = Number(line.dataset.presentationBlockTo)
+        if (
+          !Number.isSafeInteger(from) ||
+          !Number.isSafeInteger(to) ||
+          checked.has(from) ||
+          from < window.from ||
+          to > window.to ||
+          to <= from ||
+          to - from > DOCUMENT_PRESENTATION_LIMITS.inputUtf16
+        )
+          continue
+        checked.add(from)
+        const source = current.read(from, to)
+        if (source === undefined || source.length !== to - from || !config.hostPendingFence(source))
+          continue
+        const block = lines.filter(
+          (candidate) =>
+            Number(candidate.dataset.from) < to && Number(candidate.dataset.to) >= from,
+        )
+        if (
+          !block.length ||
+          block.length > DOCUMENT_PRESENTATION_LIMITS.inputLines ||
+          Number(block[0]!.dataset.from) !== from ||
+          Number(block.at(-1)!.dataset.to) < to ||
+          block.some(
+            (candidate, index) =>
+              Number(candidate.dataset.line) !== Number(block[0]!.dataset.line) + index,
+          )
+        )
+          continue
+        // A decoded mounted image (including a valid retained image) wins.
+        if (
+          block.some((candidate) =>
+            Array.from(
+              candidate.querySelectorAll<HTMLElement>('[data-document-presentation]'),
+            ).some((node) => node.dataset.presentationPending !== 'true'),
+          )
+        )
+          continue
+        if (cached && from >= cached.request.from && to <= cached.request.to) {
+          const fragment = cached.result.fragments.find((f) => f.from === from && f.to >= to)
+          if (
+            (!fragment && !cached.continueAfterPaint) ||
+            fragment?.status === 'error' ||
+            (fragment && fragment.content.type !== 'host-png-image') ||
+            (fragment && this.fragmentImages.get(fragment)?.failed)
+          )
+            continue
+        }
+        groups.push({ from, lines: block })
+      }
+      this.pendingImage.update(groups)
+    } finally {
+      if (!this.stopped && !this.painting) this.observe()
     }
   }
 

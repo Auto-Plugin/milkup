@@ -1,6 +1,12 @@
 import { deflateSync } from 'node:zlib'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
-import { EditorState, MemoryDocumentSource, MemoryTextDocument, Selection } from '@milkup/core'
+import {
+  ChangeSet,
+  EditorState,
+  MemoryDocumentSource,
+  MemoryTextDocument,
+  Selection,
+} from '@milkup/core'
 import {
   createDocumentPngImage,
   disposeDocumentPngImages,
@@ -198,10 +204,10 @@ function provider(width = 160, height = 96): DocumentPresentationConfig {
     },
   }
 }
-async function make(windowed: boolean, config = provider()) {
+async function make(windowed: boolean, config = provider(), text = sourceText) {
   const parent = document.createElement('main')
   document.body.append(parent)
-  const doc = new MemoryTextDocument(sourceText)
+  const doc = new MemoryTextDocument(text)
   const view = windowed
     ? new SourceDocumentView({
         parent,
@@ -737,3 +743,182 @@ for (const windowed of [false, true]) {
     await unchanged(view)
   })
 }
+
+const pendingFence = '```mermaid\ngraph LR; A-->B\n```'
+const pendingDocument = `${pendingFence}\nuntouched tail`
+function pendingProvider(): DocumentPresentationConfig {
+  const base = provider()
+  return {
+    ...base,
+    retainHostPng: () => true,
+    selectionIndependent: () => true,
+    hostPngMode: () => 'preview',
+    hostPendingFence: (source) => source === pendingFence,
+    provide: async (window, options) => {
+      const response = await base.provide(window, options)
+      return {
+        ...response,
+        result: {
+          ...response.result,
+          fragments: response.result.fragments.map((f) => ({ ...f, to: pendingFence.length })),
+        },
+      }
+    },
+  }
+}
+const pendingSelector = '[data-presentation-pending=true]'
+const maskSelector = '[data-presentation-pending-source=true]'
+for (const windowed of [false, true]) {
+  it(`keeps source layout masked until actual PNG decode, then prioritizes the same image (${windowed})`, async () => {
+    let finish!: () => void
+    const gate = new Promise<void>((resolve) => {
+      finish = resolve
+    })
+    const base = pendingProvider()
+    const view = await make(
+      windowed,
+      {
+        ...base,
+        provide: async (...args) => {
+          await gate
+          return base.provide(...args)
+        },
+      },
+      pendingDocument,
+    )
+    expect(view.contentDOM.querySelector(pendingSelector)?.getAttribute('role')).toBe('status')
+    expect(view.contentDOM.querySelectorAll(maskSelector)).toHaveLength(3)
+    expect(view.contentDOM.querySelector('img')).toBeNull()
+    expect(view.contentDOM.textContent).toContain('untouched tail')
+    finish()
+    await settle()
+    expect(decodes).toHaveLength(1)
+    expect(view.contentDOM.querySelector(pendingSelector)).not.toBeNull()
+    decodes[0]!.resolve()
+    await settle()
+    const image = view.contentDOM.querySelector('img')
+    expect(image).not.toBeNull()
+    expect(view.contentDOM.querySelector(pendingSelector)).toBeNull()
+    expect(view.contentDOM.querySelector(maskSelector)).toBeNull()
+    view.dom.dispatchEvent(new Event('scroll'))
+    await settle()
+    expect(view.contentDOM.querySelector('img')).toBe(image)
+    expect(decodes).toHaveLength(1)
+  })
+  for (const mode of ['source', 'live'] as const) {
+    it(`never masks intentional ${mode} strategy (${windowed})`, async () => {
+      const view = await make(
+        windowed,
+        { ...pendingProvider(), hostPngMode: () => mode },
+        pendingDocument,
+      )
+      expect(view.contentDOM.querySelector(maskSelector)).toBeNull()
+    })
+  }
+  it(`does not mask an untrusted or ordinary fence (${windowed})`, async () => {
+    for (const config of [
+      { ...pendingProvider(), retainHostPng: () => false },
+      { ...pendingProvider(), hostPendingFence: () => false },
+    ]) {
+      const view = await make(windowed, config, pendingDocument)
+      expect(view.contentDOM.querySelector(maskSelector)).toBeNull()
+    }
+  })
+  it(`restores recoverable source after real provider rejection and decode failure (${windowed})`, async () => {
+    const rejected = await make(
+      windowed,
+      {
+        ...pendingProvider(),
+        provide: async () => {
+          throw new Error('controlled renderer failure')
+        },
+      },
+      pendingDocument,
+    )
+    expect(rejected.contentDOM.querySelector(maskSelector)).toBeNull()
+    expect(rejected.contentDOM.textContent).toContain('graph LR; A-->B')
+    const view = await make(windowed, pendingProvider(), pendingDocument)
+    expect(view.contentDOM.querySelector(pendingSelector)).not.toBeNull()
+    decodes.at(-1)!.reject(new Error('controlled decode failure'))
+    await settle()
+    expect(view.contentDOM.querySelector(maskSelector)).toBeNull()
+    expect(view.contentDOM.textContent).toContain('graph LR; A-->B')
+  })
+  it(`restores source on disable and ignores late decode after concurrent close (${windowed})`, async () => {
+    const view = await make(windowed, pendingProvider(), pendingDocument)
+    const pending = decodes.at(-1)!
+    expect(view.contentDOM.querySelector(pendingSelector)).not.toBeNull()
+    view.setDocumentPresentation(undefined)
+    await settle()
+    expect(view.contentDOM.querySelector(maskSelector)).toBeNull()
+    expect(view.contentDOM.textContent).toContain('graph LR; A-->B')
+    destroy(view)
+    pending.resolve()
+    await settle()
+    expect(view.contentDOM.querySelector(pendingSelector)).toBeNull()
+  })
+  it(`decode timeout restores source rather than an indefinite loading mask (${windowed})`, async () => {
+    vi.useFakeTimers()
+    try {
+      const view = await make(windowed, pendingProvider(), pendingDocument)
+      expect(view.contentDOM.querySelector(pendingSelector)).not.toBeNull()
+      await vi.advanceTimersByTimeAsync(10_000)
+      await settle()
+      expect(view.contentDOM.querySelector(maskSelector)).toBeNull()
+      expect(view.contentDOM.textContent).toContain('graph LR; A-->B')
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+}
+
+for (const windowed of [false, true]) {
+  it(`clears and reinstates pending presentation for explicit strategy and theme invalidation (${windowed})`, async () => {
+    let mode: 'preview' | 'source' | 'live' = 'preview'
+    const config = { ...pendingProvider(), hostPngMode: () => mode }
+    const view = await make(windowed, config, pendingDocument)
+    const late = decodes.at(-1)!
+    expect(view.contentDOM.querySelector(pendingSelector)).not.toBeNull()
+    mode = 'source'
+    view.setDocumentPresentation(config)
+    await settle()
+    expect(view.contentDOM.querySelector(maskSelector)).toBeNull()
+    late.resolve()
+    await settle()
+    expect(view.contentDOM.querySelector('img')).toBeNull()
+    mode = 'preview'
+    view.setDocumentPresentation(config)
+    await settle()
+    expect(view.contentDOM.querySelector(pendingSelector)).not.toBeNull()
+    const active = decodes.at(-1)!
+    // A new config represents changed renderer/theme identity; obsolete decode
+    // cannot replace the new generation's loading state.
+    view.setDocumentPresentation({ ...config })
+    await settle()
+    active.resolve()
+    await settle()
+    expect(view.contentDOM.querySelector('img')).toBeNull()
+    expect(view.contentDOM.querySelector(pendingSelector)).not.toBeNull()
+    decodes.at(-1)!.resolve()
+    await settle()
+    expect(view.contentDOM.querySelector('img')).not.toBeNull()
+    expect(view.contentDOM.querySelector(maskSelector)).toBeNull()
+  })
+}
+it('source edits invalidate a pending fence without resurrecting obsolete source on late decode', async () => {
+  const view = (await make(false, pendingProvider(), pendingDocument)) as EditorView
+  const late = decodes[0]!
+  view.updateState(
+    view.state.applyTransaction({
+      changes: ChangeSet.of([
+        { from: 0, to: pendingDocument.length, insert: 'ordinary new document' },
+      ]),
+    }),
+  )
+  await settle()
+  expect(view.contentDOM.querySelector(maskSelector)).toBeNull()
+  late.resolve()
+  await settle()
+  expect(view.contentDOM.textContent).not.toContain('graph LR')
+  expect(view.state.doc.text).toBe('ordinary new document')
+})
