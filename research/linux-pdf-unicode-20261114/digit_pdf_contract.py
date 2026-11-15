@@ -50,7 +50,7 @@ def verify_trace(rows, accepted):
     assert all(len({g[1] for g in row['glyphs']}) == 1 and len({g[2] for g in row['glyphs']}) == 2 for row in found['1212'])
     return found
 
-def run(root):
+def run(root, digits_only=False):
     report = {'status': 'failed', 'errors': [], 'scope': 'Private research WebKit engine, Poppler extraction/search; not viewer clipboard, installed product or physical print'}
     try:
         with tempfile.TemporaryDirectory() as d:
@@ -86,30 +86,33 @@ def run(root):
         assert len(pixels['digit-baseline']) == 2 and pixels['digit-baseline'] == pixels['digit-candidate'], 'Metadata patch changed rendered pixels'
         report['pixels'] = pixels
     except Exception as error: report['errors'].append('digits: ' + str(error))
-    # Preserve geometry and Chinese/radical/multipage gates independently,
-    # without repeating the already-proven old duplicate A/B experiment.
-    try:
-        report['geometry'] = {}
-        for suffix, linked in [('links', True), ('no-links', False)]:
-            name = 'paint-candidate-' + suffix; pdf = inspect(root / (name + '.pdf')); log = (root / (name + '.log')).read_text()
-            pages = layout.parse(log, pdf['pages'], linked); layout.discrimination(pages)
-            native = paint.parse(log, pages, True, linked); corrected, proof = paint.actual_clip_pages(pages, native)
-            layout.verify(pdf, corrected, linked)
-            report['geometry'][name] = {'status': 'passed', 'clipProof': proof, 'annotations': len(pdf['links'])}
-    except Exception as error: report['errors'].append('retained geometry: ' + str(error))
-    try:
-        source = audit(root); report['sourceText'] = source
-        for name, checks in source['checks'].items():
-            for key in ['pages', 'pageMarkers', 'chineseTwice', 'intentionalRadicalsTwice', 'uriPageSet', 'allLinkTokensExactlyOnce']:
-                assert checks[key], name + ': ' + key
-            assert not null_maps(PdfReader(root / (name + '.pdf'))), name + ': U+0000 persists'
-    except Exception as error: report['errors'].append('retained source: ' + str(error))
+    if digits_only:
+        report['retainedContracts']='Not rerun; bound prior evidence in build manifest'
+    else:
+        # Preserve geometry and Chinese/radical/multipage gates independently,
+        # without repeating the already-proven old duplicate A/B experiment.
+        try:
+            report['geometry'] = {}
+            for suffix, linked in [('links', True), ('no-links', False)]:
+                name = 'paint-candidate-' + suffix; pdf = inspect(root / (name + '.pdf')); log = (root / (name + '.log')).read_text()
+                pages = layout.parse(log, pdf['pages'], linked); layout.discrimination(pages)
+                native = paint.parse(log, pages, True, linked); corrected, proof = paint.actual_clip_pages(pages, native)
+                layout.verify(pdf, corrected, linked)
+                report['geometry'][name] = {'status': 'passed', 'clipProof': proof, 'annotations': len(pdf['links'])}
+        except Exception as error: report['errors'].append('retained geometry: ' + str(error))
+        try:
+            source = audit(root); report['sourceText'] = source
+            for name, checks in source['checks'].items():
+                for key in ['pages', 'pageMarkers', 'chineseTwice', 'intentionalRadicalsTwice', 'uriPageSet', 'allLinkTokensExactlyOnce']:
+                    assert checks[key], name + ': ' + key
+                assert not null_maps(PdfReader(root / (name + '.pdf'))), name + ': U+0000 persists'
+        except Exception as error: report['errors'].append('retained source: ' + str(error))
     if not report['errors']: report['status'] = 'passed'
     (root / 'digit-result.json').write_text(json.dumps(report, ensure_ascii=False, indent=2) + '\n')
     return report
 
 if __name__ == '__main__':
-    p = argparse.ArgumentParser(); p.add_argument('mode', choices=['fixtures', 'verify']); p.add_argument('root', type=pathlib.Path); a = p.parse_args()
+    p = argparse.ArgumentParser(); p.add_argument('mode', choices=['fixtures', 'verify']); p.add_argument('root', type=pathlib.Path); p.add_argument('--digits-only', action='store_true'); a = p.parse_args()
     if a.mode == 'fixtures': print(json.dumps(fixtures(a.root)))
     else:
-        r = run(a.root); print(json.dumps({'status': r['status'], 'errors': r['errors']})); raise SystemExit(0 if r['status'] == 'passed' else 1)
+        r = run(a.root, a.digits_only); print(json.dumps({'status': r['status'], 'errors': r['errors']})); raise SystemExit(0 if r['status'] == 'passed' else 1)

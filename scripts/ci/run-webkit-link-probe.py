@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
 """Bounded sandboxed engine-only print proof, no application install or system mutation."""
 import argparse, hashlib, json, os, pathlib, shlex, subprocess, time, tempfile, socket
-p=argparse.ArgumentParser();p.add_argument('mode',choices=['baseline','verify']);p.add_argument('out',type=pathlib.Path);p.add_argument('--prefix',type=pathlib.Path);p.add_argument('--manifest',type=pathlib.Path);p.add_argument('--geometry',action='store_true');p.add_argument('--paint',action='store_true');p.add_argument('--digits',action='store_true');a=p.parse_args()
+p=argparse.ArgumentParser();p.add_argument('mode',choices=['baseline','verify']);p.add_argument('out',type=pathlib.Path);p.add_argument('--prefix',type=pathlib.Path);p.add_argument('--manifest',type=pathlib.Path);p.add_argument('--geometry',action='store_true');p.add_argument('--paint',action='store_true');p.add_argument('--digits',action='store_true');p.add_argument('--digits-only',action='store_true');a=p.parse_args()
 assert not a.geometry or a.mode=='verify'
 assert not a.paint or a.geometry
 assert not a.digits or a.paint
+assert not a.digits_only or a.digits
 assert os.getuid()!=0 and not os.environ.get('WEBKIT_DISABLE_SANDBOX_THIS_IS_DANGEROUS')
 repo=pathlib.Path(__file__).resolve().parents[2];research=repo/'research/linux-pdf-links-20261114'
 a.out=a.out.resolve();a.out.mkdir(parents=True,exist_ok=False)
@@ -24,6 +25,7 @@ expected={}
 if a.mode=='verify':
     assert a.prefix and a.manifest
     m=json.loads(a.manifest.read_text());assert m['status']=='private-runtime-built-not-accepted'
+    if a.digits_only:assert m['digitFollowupInheritedInputs']['status']=='passed' and m['digitFollowupInheritedInputs']['run']==43670757867
     assert pathlib.Path(m['prefix']).resolve()==a.prefix.resolve()
     for row in m['runtimeFiles']:
         if pathlib.Path(row['path']).name.startswith(('libwebkit2gtk-4.1.so.','libjavascriptcoregtk-4.1.so.')):
@@ -60,6 +62,8 @@ def final_runtime_check(expected):
 try:
     names=['paint-baseline-links','paint-baseline-no-links','paint-candidate-links','paint-candidate-no-links','links','no-links']if a.paint else (['geometry-links','geometry-no-links','links','no-links']if a.geometry else ['links','no-links'])
     if a.digits:names=['digit-baseline','digit-candidate','paint-candidate-links','paint-candidate-no-links','links','no-links']
+    if a.digits_only:names=['digit-baseline','digit-candidate']
+    report['digitsOnly']=a.digits_only
     report['paintResearch']=a.paint
     for name in names:
         env.pop('MILKUP_PAINT_DEDUP',None)
@@ -109,12 +113,12 @@ try:
             for file in expected:assert file in actual, 'Private print host library mapping missing'
             for line in actual.splitlines():
                 if 'libwebkit2gtk-4.1.so.' in line or 'libjavascriptcoregtk-4.1.so.' in line:assert any(line.endswith(file) for file in expected), 'Mixed runtime mapping'
-    if a.mode=='verify':
+    if a.mode=='verify' and not a.digits_only:
         # Persist both controls and all source-token diagnostics before the
         # fail-closed acceptance assertion; the diagnostic is never a pass gate.
         subprocess.run(['python3',str(research/'audit_existing.py'),str(a.out),'--out',str(a.out/'independent-checks.json')],check=True,timeout=60)
     if a.digits:
-        subprocess.run(['python3',str(repo/'research/linux-pdf-unicode-20261114/digit_pdf_contract.py'),'verify',str(a.out)],check=True,timeout=90)
+        subprocess.run(['python3',str(repo/'research/linux-pdf-unicode-20261114/digit_pdf_contract.py'),'verify',str(a.out),*(['--digits-only']if a.digits_only else[])],check=True,timeout=90)
     elif a.paint:
         subprocess.run(['python3',str(research/'paint_contract.py'),str(a.out)],check=True,timeout=60)
     elif a.geometry:

@@ -8,6 +8,8 @@ links=os.environ.get('MILKUP_WEBKIT_LINKS')=='true'
 geometry=os.environ.get('MILKUP_WEBKIT_GEOMETRY')=='true'
 paint=os.environ.get('MILKUP_WEBKIT_PAINT')=='true'
 digits=os.environ.get('MILKUP_WEBKIT_DIGITS')=='true'
+followup=os.environ.get('MILKUP_WEBKIT_DIGIT_FOLLOWUP')=='true'
+assert not followup or (digits and operation=='resume')
 assert not digits or paint
 assert not geometry or links
 assert not paint or (geometry and operation=='resume')
@@ -68,6 +70,8 @@ try:
  if digits:
   digit_research=pathlib.Path(os.environ['GITHUB_WORKSPACE'])/'research/linux-pdf-unicode-20261114'
   run('digit-local-contract',['python3',str(digit_research/'test_digit_probe.py'),str(evidence/'digit-local-contract')],timeout=60)
+  if followup:
+   run('corrected-digit-fixture-preflight',['python3',str(digit_research/'digit_fixture_preflight.py'),str(evidence/'digit-fixture-preflight.json')],timeout=60)
   digit_patch=evidence/'independent-digit.patch'
   run('prepare-digit-delta',['python3',str(digit_research/'prepare_digit_probe.py'),str(source),str(digit_patch)],timeout=30)
   run('check-digit-delta',['git','-C',str(source),'apply','--check',str(digit_patch)],timeout=30)
@@ -96,7 +100,14 @@ try:
    run('geometry-actual-object-gate',['python3',str(pathlib.Path(os.environ['GITHUB_WORKSPACE'])/'scripts/ci/webkit-geometry-object-preflight.py'),'--source',str(source),'--build',str(build),'--output',str(evidence/'geometry-object-gate')],timeout=850)
    report['preflight']['geometryActualObjects']='passed'
   report['status']='preflight-passed-not-engine-built';persist();raise SystemExit(0)
- if digits:
+ if followup:
+  prior=json.loads((pathlib.Path(os.environ['RUNNER_TEMP'])/'prior-digit/build-result.json').read_text())
+  for key in ['sourceVersion','patchSha256','headerRegistrationPatchSha256','linkPatchSha256','paintPatchSha256','digitPatchSha256','patchedSourceHashes','configureArgs']:
+   assert report[key]==prior[key], 'Inherited engine input changed: '+key
+  assert inherited['inheritedRun']==43670757867 and inherited['requiresNewDigitTUGate'] is False
+  report['digitFollowupInheritedInputs']={'status':'passed','run':43670757867,'sourceSha':prior['harnessSha'],'sourceHashes':report['patchedSourceHashes']}
+  report['preflight']['digitActualObject']='inherited-exact-inputs';persist()
+ elif digits:
   run('digit-actual-object-gate',['python3',str(pathlib.Path(os.environ['GITHUB_WORKSPACE'])/'scripts/ci/webkit-digit-object-preflight.py'),'--source',str(source),'--build',str(build),'--output',str(evidence/'digit-object-gate')],timeout=850)
   report['preflight']['digitActualObject']='passed';persist()
  report['fullEngineBuildAttempted']=True;report['stage']='compile-engine';persist()

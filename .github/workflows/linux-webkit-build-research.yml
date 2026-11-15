@@ -24,6 +24,10 @@ on:
         description: One new FontCascade TU gate then a bounded digit/retained-contract private probe
         type: boolean
         default: false
+      digit_followup:
+        description: Reuse exact successful 43670757867 build/TU evidence; only corrected Noto A/B
+        type: boolean
+        default: false
       preflight_run:
         description: Exact successful same-SHA preflight run required for resume
         type: string
@@ -42,6 +46,7 @@ jobs:
     env:
       CCACHE_COMPILERCHECK: content
       MILKUP_WEBKIT_GEOMETRY: ${{ inputs.geometry_research }}
+      MILKUP_WEBKIT_DIGIT_FOLLOWUP: ${{ inputs.digit_followup }}
       MILKUP_WEBKIT_DIGITS: ${{ inputs.digit_research }}
       MILKUP_WEBKIT_PAINT: ${{ inputs.paint_research }}
       MILKUP_WEBKIT_LINKS: ${{ inputs.links_research }}
@@ -61,7 +66,7 @@ jobs:
       - name: Verify resource and acceptance-reserve policy
         run: python3 scripts/ci/webkit_build_limits_test.py
       - name: Require exact successful preflight before expensive continuation
-        if: inputs.operation == 'resume'
+        if: inputs.operation == 'resume' && !inputs.digit_followup
         env:
           GH_TOKEN: ${{ github.token }}
           PREFLIGHT_RUN: ${{ inputs.preflight_run }}
@@ -95,7 +100,7 @@ jobs:
             assert json.loads((p/'links-baseline/result.json').read_text())['status']=='passed'
           PY
       - name: Bind paint-only delta to exact inherited gate without repeating old TU tests
-        if: inputs.paint_research
+        if: inputs.paint_research && !inputs.digit_followup
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
@@ -108,6 +113,31 @@ jobs:
           python3 scripts/ci/webkit-paint-inheritance-test.py
           gh api "repos/Auto-Plugin/milkup/compare/835fece0c1ebeb02d50de8f0fc23a7a4b1f3b862...$GITHUB_SHA" > "$RUNNER_TEMP/paint-compare.json"
           python3 scripts/ci/webkit-paint-inheritance.py "$RUNNER_TEMP" "$GITHUB_SHA"
+      - name: Bind exact successful digit sub-gates while retaining original failed status
+        if: inputs.digit_followup
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          test "$MILKUP_WEBKIT_OPERATION" = resume
+          test "$MILKUP_WEBKIT_DIGITS" = true
+          test "$MILKUP_WEBKIT_PAINT" = true
+          test "$MILKUP_WEBKIT_GEOMETRY" = true
+          test "$MILKUP_WEBKIT_LINKS" = true
+          gh api repos/Auto-Plugin/milkup/actions/runs/43670757867 > "$RUNNER_TEMP/prior-digit-run.json"
+          gh api repos/Auto-Plugin/milkup/actions/artifacts/14144710984/zip > "$RUNNER_TEMP/prior-digit.zip"
+          python3 - <<'PYZIP'
+          import hashlib,os,pathlib,zipfile
+          root=pathlib.Path(os.environ['RUNNER_TEMP']);p=root/'prior-digit.zip'
+          assert p.stat().st_size==2678143
+          assert hashlib.sha256(p.read_bytes()).hexdigest()=='5937391c96771c74f5a8b167eecf953405032e319dd04b6070f2997546ee564c'
+          with zipfile.ZipFile(p) as z:
+            assert z.testzip() is None and sum(i.file_size for i in z.infolist())<100*1024*1024
+            for i in z.infolist():assert not pathlib.PurePosixPath(i.filename).is_absolute() and '..' not in pathlib.PurePosixPath(i.filename).parts
+            z.extractall(root/'prior-digit')
+          PYZIP
+          python3 scripts/ci/webkit-digit-followup-test.py
+          gh api "repos/Auto-Plugin/milkup/compare/7b589d0d1d3127bd11bf8c20dae3d0a7bb3f9f2d...$GITHUB_SHA" > "$RUNNER_TEMP/digit-compare.json"
+          python3 scripts/ci/webkit-digit-followup.py "$RUNNER_TEMP" "$GITHUB_SHA"
       - name: Restore matching bounded compiler-object cache only
         uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830
         with:
@@ -115,6 +145,7 @@ jobs:
           key: webkit-u2604-2526-${{ hashFiles('scripts/ci/build-webkit-private.py', 'research/linux-pdf-unicode-20261114/*.patch', 'research/linux-pdf-links-20261114/*.patch') }}-${{ github.run_id }}
           restore-keys: |
             webkit-u2604-2526-${{ hashFiles('scripts/ci/build-webkit-private.py', 'research/linux-pdf-unicode-20261114/*.patch', 'research/linux-pdf-links-20261114/*.patch') }}-
+            webkit-u2604-2526-70a401930d637c6401ae81b8684e4dee1819b59b3ffca6618c2d8ef04b3c1714-43670757867
             webkit-u2604-2526-8957d10423c6f6139c1b9133d5b18f730ae99865c0c632b8e4e95d98902ef191-43668937059
             webkit-u2604-2526-3487c8a25edc98bb6feb8e45687e4f57ebfc601f1a346513a80dfffe53683086-43661203007
             webkit-u2604-2526-bcb6fcc0b8643e5da329995cdb243c9a8741ca1923b961729f101add7aefb9e3-43640203869
@@ -194,6 +225,7 @@ jobs:
           if [[ "$MILKUP_WEBKIT_GEOMETRY" == true ]]; then geometry_args+=(--geometry); fi
           if [[ "$MILKUP_WEBKIT_PAINT" == true ]]; then geometry_args+=(--paint); fi
           if [[ "$MILKUP_WEBKIT_DIGITS" == true ]]; then geometry_args+=(--digits); fi
+          if [[ "$MILKUP_WEBKIT_DIGIT_FOLLOWUP" == true ]]; then geometry_args+=(--digits-only); fi
           python3 scripts/ci/run-webkit-link-probe.py verify "$RUNNER_TEMP/milkup-webkit-research/evidence/links-patched" --prefix "$RUNNER_TEMP/milkup-webkit-research/prefix" --manifest "$RUNNER_TEMP/milkup-webkit-research/evidence/build-result.json" "${geometry_args[@]}"
       - name: Remove only this run's package
         if: always()
