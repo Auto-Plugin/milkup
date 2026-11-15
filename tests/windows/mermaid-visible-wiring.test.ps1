@@ -25,3 +25,21 @@ foreach($change in @({$script:fixture.forcedCleanup=$true},{$script:fixture.norm
  $script:fixture=$saved | ConvertFrom-Json
 }
 'Latency wiring: parsed; positive and 5 negative native-result fixtures passed'
+
+# Invoke the exact production harness orchestration with bounded fixture actions.
+# Exercise observation and final-contract failures while close and EOF succeed.
+$ast=[Management.Automation.Language.Parser]::ParseFile((Join-Path $root 'scripts/release/mermaid-visible-session.ps1'),[ref]$tokens,[ref]$errors)
+$fn=@($ast.FindAll({param($n) $n -is [Management.Automation.Language.FunctionDefinitionAst] -and $n.Name -ceq 'Complete-LatencySession'},$true))
+if($fn.Count -ne 1){throw 'Exact finalization function required'}
+. ([scriptblock]::Create($fn[0].Extent.Text))
+foreach($failStage in @('none','observe','audit','close','drain')) {
+ $script:order=[Collections.Generic.List[string]]::new();$summary=[ordered]@{normalClose=$false;forcedCleanup=$false}
+ $thrown=$false
+ try {
+  Complete-LatencySession -Summary $summary -Persist {} -Observe { $script:order.Add('observe');if($failStage -ceq 'observe'){throw 'cursor evidence failed'} } -Close { $script:order.Add('close');if($failStage -ceq 'close'){throw 'UI close failed'};$summary.normalClose=$true } -Drain {$script:order.Add('drain');if($failStage -ceq 'drain'){throw 'EOF failed'}} -Audit {$script:order.Add('audit');if($failStage -ceq 'audit'){throw 'cursor contract failed'}}
+ } catch {$thrown=$true}
+ if(($script:order -join ',') -cne 'observe,close,drain,audit'){throw 'A failed stage skipped close or evidence'}
+ if($thrown -ne ($failStage -cne 'none')){throw 'Failure was lost or invented'}
+ if($failStage -cin @('observe','audit') -and (!$summary.normalClose -or $summary.forcedCleanup -or $summary.stageFailures.Count -ne 1)){throw 'Observation failure lost independent normal close proof'}
+}
+'Latency finalization: stage failure retained; close, EOF and audit always attempted; 5 cases passed'

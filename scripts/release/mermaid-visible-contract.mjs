@@ -7,21 +7,76 @@ import {
 } from '../../tests/windows/mermaid-frontend-contract.mjs'
 export const sha = (bytes) => createHash('sha256').update(bytes).digest('hex')
 const graph = (label) => '```mermaid\nflowchart LR\n A[' + label + '] --> B[visible]\n```\n'
-export const source =
-  '# Visible latency\n\n' +
-  graph('OPEN_569f') +
-  '\n' +
-  Array.from({ length: 350 }, (_, i) => `Entry lead ${i}\n`).join('') +
-  graph('ENTRY_569f') +
-  '\n' +
-  Array.from({ length: 200 }, (_, i) => `Warm lead ${i}\n`).join('') +
-  graph('WARM_569f') +
-  '\nTail\n'
-export const fences = [...source.matchAll(/```mermaid\n([\s\S]*?)```/g)].map((m) => ({
-  from: m.index,
-  to: m.index + m[0].length,
-  sourceSha256: sha(m[1]),
-}))
+export const documents = [
+  { scenario: 'document-open', text: '# Visible latency\n\n' + graph('OPEN_569f') + '\nTail\n' },
+  {
+    scenario: 'cold-entry',
+    text:
+      '# Immediate entry\n\n' +
+      Array.from({ length: 350 }, (_, i) => `Entry lead ${i}\n`).join('') +
+      graph('ENTRY_569f') +
+      '\nTail\n',
+  },
+  {
+    scenario: 'prefetch-ready',
+    text:
+      '# Independent warm control\n\n' +
+      Array.from({ length: 150 }, (_, i) => `Warm lead ${i}\n`).join('') +
+      graph('WARM_569f') +
+      '\nTail\n',
+  },
+]
+export const source = documents[0].text
+export const fences = documents.map(({ text }) => {
+  const m = [...text.matchAll(/```mermaid\n([\s\S]*?)```/g)]
+  assert.equal(m.length, 1)
+  return { from: m[0].index, to: m[0].index + m[0][0].length, sourceSha256: sha(m[0][1]) }
+})
+export const documentPath = (initial, index) =>
+  index === 0 ? initial : initial + '.' + documents[index].scenario + '.md'
+export const catalogReady = (startup) =>
+  startup.marks.some((m) => m.name === 'milkup:startup:plugin-catalog-ready')
+export function requestSnapshot(ledger, sourceSha256) {
+  const rows = [...ledger.jobs.values()].filter(
+    (j) => !sourceSha256 || j.admitted.sourceSha256 === sourceSha256,
+  )
+  return {
+    admitted: rows.map((j) => j.requestId),
+    started: rows.filter((j) => j.started).map((j) => j.requestId),
+    finished: rows.filter((j) => j.finished).map((j) => j.requestId),
+  }
+}
+export function cursorResult(before, after) {
+  const same = (a, b) => JSON.stringify(a) === JSON.stringify(b)
+  const isolated = before.catalogReady && after.catalogReady && before.quietMs >= 1500
+  const noAdditionalAdmissions = same(before.requests.admitted, after.requests.admitted)
+  const noAdditionalRenders = same(before.requests.started, after.requests.started)
+  const sameImage = before.imageId !== null && before.imageId === after.imageId
+  return {
+    isolated,
+    noAdditionalAdmissions,
+    noAdditionalRenders,
+    sameImage,
+    passed: isolated && noAdditionalAdmissions && noAdditionalRenders && sameImage,
+  }
+}
+// Functional errors remain failures, but must not prevent later independent
+// observations or the native wrapper's close/EOF/release verification.
+export async function collectStage(record, name, action, persist) {
+  const stage = { name, status: 'running', startedUnixMs: Date.now() }
+  record.stages.push(stage)
+  try {
+    await action()
+    stage.status = 'passed'
+  } catch (error) {
+    stage.status = 'failed'
+    stage.error = String(error)
+  } finally {
+    stage.finishedUnixMs = Date.now()
+    await persist()
+  }
+  return stage
+}
 export function ledgerFromLog(bytes, spec, final = false) {
   assert(bytes.length <= 1024 * 1024, 'Complete bounded stderr required')
   const text = bytes.toString('utf8'),

@@ -1,14 +1,80 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { fences, source, sha, classifyEntry, ledgerFromLog } from './mermaid-visible-contract.mjs'
+import {
+  fences,
+  source,
+  sha,
+  classifyEntry,
+  ledgerFromLog,
+  documents,
+  catalogReady,
+  requestSnapshot,
+  cursorResult,
+  collectStage,
+} from './mermaid-visible-contract.mjs'
 
-test('distinct sources keep immediate entry outside initial bounded prefetch and control nearby', () => {
+test('independent documents retain distinct sources and cold/warm prefetch distances', () => {
   assert.equal(fences.length, 3)
   assert.equal(new Set(fences.map((f) => f.sourceSha256)).size, 3)
-  const line = (f) => source.slice(0, f.from).split('\n').length
-  assert(line(fences[1]) - line(fences[0]) > 256)
-  assert(line(fences[2]) - line(fences[1]) < 256)
-  for (const f of fences) assert.equal(sha(source.slice(f.from + 11, f.to - 3)), f.sourceSha256)
+  const line = (i) => documents[i].text.slice(0, fences[i].from).split('\n').length
+  assert(line(1) > 256)
+  assert(line(2) < 256 && line(2) > 100)
+  documents.forEach((d, i) =>
+    assert.equal(sha(d.text.slice(fences[i].from + 11, fences[i].to - 3)), fences[i].sourceSha256),
+  )
+})
+test('cursor causal gate requires settled catalog, actual render counts and image identity', () => {
+  const before = {
+    catalogReady: true,
+    quietMs: 1500,
+    imageId: 1,
+    requests: { admitted: ['a'], started: ['a'] },
+  }
+  const after = structuredClone(before)
+  assert(cursorResult(before, after).passed)
+  for (const mutate of [
+    (a) => (a.catalogReady = false),
+    (a) => (a.imageId = 2),
+    (a) => a.requests.admitted.push('b'),
+    (a) => a.requests.started.push('b'),
+  ]) {
+    const changed = structuredClone(after)
+    mutate(changed)
+    assert.equal(cursorResult(before, changed).passed, false)
+  }
+  assert.equal(cursorResult({ ...before, quietMs: 1499 }, after).isolated, false)
+  assert.equal(catalogReady({ marks: [] }), false)
+  assert(catalogReady({ marks: [{ name: 'milkup:startup:plugin-catalog-ready' }] }))
+  const ledger = {
+    jobs: new Map([
+      ['a', { requestId: 'a', admitted: { sourceSha256: 'x' }, started: {}, finished: {} }],
+      ['b', { requestId: 'b', admitted: { sourceSha256: 'y' } }],
+    ]),
+  }
+  assert.deepEqual(requestSnapshot(ledger, 'x'), {
+    admitted: ['a'],
+    started: ['a'],
+    finished: ['a'],
+  })
+})
+test('failed cursor stage persists and permits independent stages and close handoff, never passes', async () => {
+  const record = { stages: [] },
+    calls = []
+  const persist = async () => calls.push('persist')
+  await collectStage(
+    record,
+    'cursor',
+    async () => {
+      throw Error('re-rendered')
+    },
+    persist,
+  )
+  await collectStage(record, 'entry', async () => calls.push('entry'), persist)
+  calls.push('handoff-to-native-close')
+  assert.deepEqual(calls, ['persist', 'entry', 'persist', 'handoff-to-native-close'])
+  assert.equal(record.stages[0].status, 'failed')
+  assert.match(record.stages[0].error, /re-rendered/)
+  assert.equal(record.stages[1].status, 'passed')
 })
 const row = () => ({
   scenario: 'cold-entry',
