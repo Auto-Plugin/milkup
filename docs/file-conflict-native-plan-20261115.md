@@ -12,8 +12,10 @@ Contract reviewed:
 - External writes do not replace dirty in-memory edits. Ordinary save is blocked
   for every non-none external state, and native write checks also protect disk
   identity/content independently of watcher notification.
-- Small dirty conflicts cannot directly reload (`conflict`); rescue Save As to
-  a fresh path is available. Clean `modified-clean` changes may explicitly reload.
+- Small dirty conflicts cannot directly reload (`conflict`). The native Save As
+  contract supports rescue to a fresh path, but run 43684875848 subsequently
+  proved the UI wrongly blocks the chooser; see the result report. Clean
+  `modified-clean` changes may explicitly reload.
 - Window close has save/discard/cancel protection. This test chooses cancel
   while dirty, then saves a rescue copy and closes cleanly.
 - Watcher notice currently sets its text without `importantNotice`; default UI
