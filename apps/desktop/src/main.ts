@@ -1,4 +1,5 @@
 import { createMermaidRenderSettings, isMermaidRenderMode } from './mermaid-render-settings'
+import { isCompleteMermaidPendingFence } from './mermaid-pending-fence'
 import { createFrontendMermaidOwner } from './frontend-mermaid-service'
 import { formatDisplayPath } from './display-path'
 import { recoveryStatusText } from './recovery-status-presentation'
@@ -1749,6 +1750,12 @@ function createDesktopDocumentPresentation(
 ): DocumentPresentationConfig | undefined {
   return {
     hostPngMode: mermaidRenderSettings.get,
+    hostPendingFence: (source) =>
+      mermaidRenderSettings.get() === 'preview' &&
+      (desktopPluginManager.state().contributions.documentRenderers ?? []).some((renderer) =>
+        desktopPluginManager.canReusePrivateMermaidFence(renderer.pluginId, renderer.id),
+      ) &&
+      isCompleteMermaidPendingFence(source),
     retainHostPng: () =>
       (desktopPluginManager.state().contributions.documentRenderers ?? []).some((renderer) =>
         desktopPluginManager.canReusePrivateMermaidFence(renderer.pluginId, renderer.id),
