@@ -1,0 +1,49 @@
+name: Read-only Windows display and isolated guest prerequisites
+on:
+  workflow_dispatch:
+    inputs:
+      expected_sha:
+        description: Exact reviewed preflight SHA
+        required: true
+        type: string
+permissions:
+  contents: read
+concurrency:
+  group: windows-display-prerequisites
+  cancel-in-progress: false
+jobs:
+  probe:
+    if: github.repository == 'Auto-Plugin/milkup' && github.ref == 'refs/heads/dot/windows-display-preflight-20261115'
+    runs-on: windows-2025
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+          sparse-checkout-cone-mode: false
+          sparse-checkout: |
+            /scripts/ci/WindowsDisplayPrerequisites.cs
+            /scripts/ci/probe-windows-display-prerequisites.ps1
+            /scripts/ci/windows-display-prerequisites.mjs
+            /scripts/ci/windows-display-prerequisites.test.mjs
+      - name: Verify exact preflight and capture native prerequisites
+        shell: pwsh
+        env:
+          EXPECTED_SHA: ${{ inputs.expected_sha }}
+        run: |
+          if ($env:GITHUB_SHA -cne $env:EXPECTED_SHA) { throw 'Exact source mismatch' }
+          ./scripts/ci/probe-windows-display-prerequisites.ps1 -EvidenceDirectory "$env:RUNNER_TEMP/display-prerequisites"
+      - name: Classify native evidence without claiming product acceptance
+        shell: pwsh
+        run: |
+          node --test scripts/ci/windows-display-prerequisites.test.mjs
+          if ($LASTEXITCODE -ne 0) { throw 'Classifier contract failed' }
+          node scripts/ci/windows-display-prerequisites.mjs "$env:RUNNER_TEMP/display-prerequisites/display-prerequisites.json" "$env:RUNNER_TEMP/display-prerequisites/classification.json"
+          if ($LASTEXITCODE -ne 0) { throw 'Native evidence incomplete' }
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: windows-display-prerequisites-${{ github.run_id }}
+          path: ${{ runner.temp }}/display-prerequisites/
+          retention-days: 7
+          if-no-files-found: error
