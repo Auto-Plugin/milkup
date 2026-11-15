@@ -14,6 +14,10 @@ on:
         required: true
         default: false
         type: boolean
+      mermaid_refresh:
+        description: One standard Windows candidate and bounded catalog-ready refresh comparison
+        type: boolean
+        default: false
       integration_smoke:
         description: Only standard Windows and Linux packages, with PE and one-scale installed IME smoke
         type: boolean
@@ -37,7 +41,7 @@ jobs:
       fail-fast: false
       max-parallel: 1
       matrix:
-        include: ${{ fromJSON(inputs.integration_smoke && '[{"os":"windows-2025","variant":"windows-standard"},{"os":"ubuntu-26.04","variant":"linux-deb"}]' || '[{"os":"windows-2025","variant":"windows-standard"},{"os":"windows-2025","variant":"windows-offline"},{"os":"ubuntu-24.04","variant":"linux-deb"}]') }}
+        include: ${{ fromJSON(inputs.mermaid_refresh && '[{"os":"windows-2025","variant":"windows-standard"}]' || inputs.integration_smoke && '[{"os":"windows-2025","variant":"windows-standard"},{"os":"ubuntu-26.04","variant":"linux-deb"}]' || '[{"os":"windows-2025","variant":"windows-standard"},{"os":"windows-2025","variant":"windows-offline"},{"os":"ubuntu-24.04","variant":"linux-deb"}]') }}
     runs-on: ${{ matrix.os }}
     timeout-minutes: 120
     env:
@@ -62,6 +66,11 @@ jobs:
           test "$EXPECTED_SHA" = "$GITHUB_SHA"
           test "$(git rev-parse HEAD)" = "$EXPECTED_SHA"
           test -z "$(git status --porcelain)"
+          if [ '${{ inputs.mermaid_refresh }}' = true ]; then
+            test "$GITHUB_EVENT_NAME" = workflow_dispatch
+            test "$GITHUB_REF" = refs/heads/dot/mermaid-visible-latency-20261115
+            test '${{ inputs.integration_smoke }}' != true
+          fi
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
         with:
           node-version: 24.19.0
@@ -86,6 +95,12 @@ jobs:
           node --test scripts/release/distribution.test.mjs scripts/release/recovery.test.mjs scripts/check-updater-vendor.test.mjs
           node scripts/release/update-readiness.mjs --candidate
           pnpm --filter @milkup/desktop typecheck
+      - name: Catalog-ready refresh and observation contracts
+        if: inputs.mermaid_refresh
+        run: |
+          pnpm --filter @milkup/desktop exec vitest run src/editor-view-refresh.test.ts src/document-presentation-service.test.ts src/desktop-plugin-manager.test.ts src/desktop-plugin-manager-catalog.test.ts src/mermaid-render-settings.test.ts --maxWorkers=2
+          node --test scripts/release/mermaid-visible-contract.test.mjs tests/windows/mermaid-visibility-observer.test.mjs tests/windows/mermaid-frontend-contract.test.mjs
+          node --test tests/browser/mermaid-visibility.browser.mjs
       - name: Pinned Windows packaging tools
         if: runner.os == 'Windows'
         shell: pwsh
@@ -99,8 +114,26 @@ jobs:
         env:
           VARIANT: ${{ matrix.variant }}
         run: node scripts/release/build-candidate.mjs "$VARIANT" "$RUNNER_TEMP/milkup-candidate" "$GITHUB_SHA"
+      - name: Ordinary-user catalog-ready and cursor comparison in this exact package
+        if: inputs.mermaid_refresh
+        timeout-minutes: 12
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          ./tests/windows/install-node-path.test.ps1
+          ./tests/windows/mermaid-visible-wiring.test.ps1
+          $inputDir=Join-Path $env:RUNNER_TEMP 'milkup-candidate/deliverable'
+          ./scripts/release/run-repair-health-standard.ps1 -Directory $inputDir -SourceSha $env:GITHUB_SHA -Variant windows-standard -EvidenceDirectory (Join-Path $env:RUNNER_TEMP 'mermaid-refresh-evidence') -MermaidLatency
+      - name: Preserve bounded catalog-ready evidence including failures
+        if: always() && inputs.mermaid_refresh
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: milkup-mermaid-refresh-${{ github.run_id }}
+          path: ${{ runner.temp }}/mermaid-refresh-evidence/
+          retention-days: 7
+          if-no-files-found: warn
       - name: Actual Windows PDF contracts and installed WebView2 output
-        if: matrix.variant == 'windows-standard' && !inputs.integration_smoke
+        if: matrix.variant == 'windows-standard' && !inputs.integration_smoke && !inputs.mermaid_refresh
         shell: pwsh
         run: ./tests/native/windows-pdf-backend.ps1 -EvidenceDirectory (Join-Path $env:RUNNER_TEMP 'windows-pdf-evidence')
       - name: Preserve Windows PDF evidence including failures

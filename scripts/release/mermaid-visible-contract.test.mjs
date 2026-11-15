@@ -11,6 +11,8 @@ import {
   requestSnapshot,
   cursorResult,
   collectStage,
+  assertStartupRetained,
+  warmApproachFrom,
 } from './mermaid-visible-contract.mjs'
 
 test('independent documents retain distinct sources and cold/warm prefetch distances', () => {
@@ -18,7 +20,9 @@ test('independent documents retain distinct sources and cold/warm prefetch dista
   assert.equal(new Set(fences.map((f) => f.sourceSha256)).size, 3)
   const line = (i) => documents[i].text.slice(0, fences[i].from).split('\n').length
   assert(line(1) > 256)
-  assert(line(2) < 256 && line(2) > 100)
+  assert(line(2) > 450)
+  assert(documents[2].text.slice(0, warmApproachFrom).split('\n').length > 250)
+  assert(documents[2].text.slice(warmApproachFrom, fences[2].from).split('\n').length < 256)
   documents.forEach((d, i) =>
     assert.equal(sha(d.text.slice(fences[i].from + 11, fences[i].to - 3)), fences[i].sourceSha256),
   )
@@ -80,9 +84,12 @@ const row = () => ({
   scenario: 'cold-entry',
   sourceSha256: fences[1].sourceSha256,
   firstInputUnix: 1010,
+  readyAtInstall: [],
+  started: { timestampUnixMs: 1002 },
   observation: {
     complete: true,
     timeOrigin: 1000,
+    begun: 0,
     firstVisible: 20,
     decoded: 80,
     sourceVisibleFrames: 3,
@@ -161,4 +168,23 @@ test('already visible warm fixture cannot prove offscreen prefetch or zero entry
   r.ready.timestampUnixMs = 1060
   r.observation.decodedAtFirstSample = false
   assert.equal(classifyEntry(r).coldComparisonEstablished, false)
+})
+
+test('catalog finalization must not admit or execute the same source twice', () => {
+  const b = {
+    inputCountAfter: 0,
+    last: { requests: { admitted: ['a'], started: ['a'], finished: ['a'] } },
+    transitions: [{ imageId: null }, { imageId: 1 }],
+  }
+  assert.doesNotThrow(() => assertStartupRetained(b))
+  for (const mutate of [
+    (x) => x.last.requests.started.push('b'),
+    (x) => x.last.requests.admitted.push('b'),
+    (x) => x.transitions.push({ imageId: 2 }),
+    (x) => (x.inputCountAfter = 1),
+  ]) {
+    const x = structuredClone(b)
+    mutate(x)
+    assert.throws(() => assertStartupRetained(x))
+  }
 })

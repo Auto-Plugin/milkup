@@ -21,11 +21,22 @@ export const documents = [
     scenario: 'prefetch-ready',
     text:
       '# Independent warm control\n\n' +
-      Array.from({ length: 150 }, (_, i) => `Warm lead ${i}\n`).join('') +
+      Array.from({ length: 500 }, (_, i) => `Warm lead ${i}\n`).join('') +
       graph('WARM_569f') +
       '\nTail\n',
   },
 ]
+// Approach a still-offscreen target by a real wheel input, staying within the
+// product's bounded prefetch distance. Separate source, no stale warm-cache match.
+export const warmApproachFrom = documents[2].text.split('\n').slice(0, 300).join('\n').length + 1
+export function assertStartupRetained(baseline) {
+  assert.equal(baseline.inputCountAfter, 0)
+  assert.equal(baseline.last.requests.admitted.length, 1, 'One cold-start source admission')
+  assert.equal(baseline.last.requests.started.length, 1, 'No redundant startup render')
+  assert.equal(baseline.last.requests.finished.length, 1)
+  const images = new Set(baseline.transitions.map((t) => t.imageId).filter((id) => id !== null))
+  assert.equal(images.size, 1, 'No startup image replacement')
+}
 export const source = documents[0].text
 export const fences = documents.map(({ text }) => {
   const m = [...text.matchAll(/```mermaid\n([\s\S]*?)```/g)]
@@ -121,9 +132,16 @@ export function classifyEntry(row) {
       row.scenario === 'prefetch-ready' &&
       observedOffscreenBeforeEntry &&
       readyBeforeEntry &&
-      row.ready.timestampUnixMs <= row.firstInputUnix,
+      row.ready.timestampUnixMs <= row.firstInputUnix &&
+      row.readyAtInstall?.length === 0 &&
+      row.started?.timestampUnixMs >= observation.timeOrigin + observation.begun &&
+      entryUnix >= row.firstInputUnix,
     readyBeforeEntry,
-    readyBeforeFirstInput: row.ready.timestampUnixMs <= row.firstInputUnix,
+    readyBeforeFirstInput:
+      row.ready.timestampUnixMs <= row.firstInputUnix &&
+      row.readyAtInstall?.length === 0 &&
+      row.started?.timestampUnixMs >= observation.timeOrigin + observation.begun &&
+      entryUnix >= row.firstInputUnix,
     coldComparisonEstablished:
       row.scenario === 'cold-entry' &&
       observedOffscreenBeforeEntry &&

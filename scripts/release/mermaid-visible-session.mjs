@@ -13,6 +13,8 @@ import {
   requestSnapshot,
   cursorResult,
   collectStage,
+  assertStartupRetained,
+  warmApproachFrom,
 } from './mermaid-visible-contract.mjs'
 import {
   observe,
@@ -49,6 +51,7 @@ if (mode === 'fixture') {
       assert.equal(record.baseline.inputCountBefore, record.baseline.inputCountAfter)
       assert.equal(record.baseline.inputCountAfter, 0, 'Initialization baseline has no input')
       assert.equal(record.baseline.last.catalogReady, true)
+      assertStartupRetained(record.baseline)
       assert.deepEqual(
         cursorResult(record.cursor.before, record.cursor.after),
         record.cursor.result,
@@ -238,7 +241,7 @@ if (mode === 'fixture') {
       await writeFile(path.join(path.dirname(spec.report), `mermaid-visible-${label}.png`), bytes, {
         flag: 'wx',
       })
-      const row = { label, png, native: match, ready: job.finished }
+      const row = { label, png, native: match, ready: job.finished, started: job.started }
       record.images.push(row)
       return row
     }
@@ -328,6 +331,7 @@ if (mode === 'fixture') {
           record.startupPerformance = await execute(startupPerformanceScript)
           await readImage(fences[0], 'open')
           assert.equal(record.baseline.inputCountAfter, 0)
+          assertStartupRetained(record.baseline)
         },
         persist,
       )
@@ -422,6 +426,24 @@ if (mode === 'fixture') {
               .map((j) => j.finished)
             row.observerAtInstall = await execute(mermaidVisibilityScript, { ...fence, scenario })
             if (index === 2) {
+              // Do not wait on a target already visible after file switching.
+              await until(async () => {
+                const o = await execute('return window.__mermaidVisibilityProbe.report')
+                return o.samples > 0
+              }, 'first offscreen sample')
+              row.beforePreparation = await execute('return window.__mermaidVisibilityProbe.report')
+              assert.equal(
+                row.beforePreparation.firstVisible,
+                null,
+                'Warm target must start offscreen',
+              )
+              assert.equal(
+                row.readyAtInstall.length,
+                0,
+                'Independent warm source must not already be prepared',
+              )
+              row.preparationInputUnix = Date.now()
+              await wheel({ from: warmApproachFrom })
               await until(async () => {
                 const ledger = await readLedger()
                 row.prefetchReady = [...ledger.jobs.values()].find(
@@ -449,6 +471,7 @@ if (mode === 'fixture') {
             }, 'visible target diagram')
             const image = await readImage(fence, scenario)
             row.ready = image.ready
+            row.started = image.started
             row.classification = classifyEntry(row)
             row.after = await snapshot()
             if (index === 2)
