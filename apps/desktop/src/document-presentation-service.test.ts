@@ -7,6 +7,7 @@ import {
   type DocumentPresentationResult,
 } from '@milkup/core'
 import { createDesktopDocumentPresentationService } from './document-presentation-service'
+import { createCatalogReadyRefreshGate } from './editor-view-refresh'
 import { parseMarkdownWindow } from '@milkup/markdown'
 import {
   createDocumentPngImage,
@@ -1312,6 +1313,58 @@ describe('authenticated pending fences with selection-dependent providers', () =
       release,
     }
   }
+  it('retains an in-flight authenticated PNG through redundant catalog completion and releases once on repeated close', async () => {
+    const x = pendingFixture(),
+      gate = createCatalogReadyRefreshGate()
+    const receipt = {
+      scope: {},
+      document: x.f.doc,
+      rendering: 'same-active-epochs-and-settings',
+      installedBindings: 'same',
+      currentBindings: 'same',
+    }
+    gate.requested(receipt.scope, receipt.document, receipt.rendering)
+    const pending = x.service.provide(x.f.window, { signal: new AbortController().signal })
+    await vi.waitFor(() => expect(x.renders()).toBe(1))
+    for (let i = 0; i < 3; i++) if (!gate.canRetain(receipt)) x.service.clear()
+    expect(x.signal().aborted).toBe(false)
+    x.finish()
+    const response = await pending
+    const again = await x.service.provide(x.f.window, { signal: new AbortController().signal })
+    expect(x.renders()).toBe(1)
+    expect(x.release).not.toHaveBeenCalled()
+    disposeDocumentPngImages(response.result)
+    disposeDocumentPngImages(again.result)
+    x.service.clear()
+    x.service.clear()
+    expect(x.release).toHaveBeenCalledTimes(1)
+    expect(documentPngResourceStats()).toEqual({ bytes: 0, images: 0, decodedOwners: 0 })
+  })
+  it('revokes pending work when final catalog rendering identity actually changed', async () => {
+    const x = pendingFixture(),
+      gate = createCatalogReadyRefreshGate(),
+      scope = {}
+    gate.requested(scope, x.f.doc, 'old-approved-epoch')
+    const pending = Promise.resolve(
+      x.service.provide(x.f.window, { signal: new AbortController().signal }),
+    ).catch((error) => error)
+    await vi.waitFor(() => expect(x.renders()).toBe(1))
+    const retain = gate.canRetain({
+      scope,
+      document: x.f.doc,
+      rendering: 'new-package-epoch',
+      installedBindings: 'same',
+      currentBindings: 'same',
+    })
+    expect(retain).toBe(false)
+    if (!retain) x.service.clear()
+    expect(x.signal().aborted).toBe(true)
+    x.finish()
+    expect((await pending).code).toBe('revoked')
+    x.service.clear()
+    expect(x.release).toHaveBeenCalledTimes(1)
+    expect(documentPngResourceStats()).toEqual({ bytes: 0, images: 0, decodedOwners: 0 })
+  })
   it('keeps one bounded pending render while Math refreshes and an old selection consumer aborts', async () => {
     const x = pendingFixture(),
       first = new AbortController(),

@@ -182,7 +182,10 @@ import {
 } from './document-open-flow'
 import { createDocumentLoadingVisibilityController } from './document-loading-visibility'
 import { createDesktopFileService } from './file-service'
-import { resolvePluginContributionViewRefreshAction } from './editor-view-refresh'
+import {
+  createCatalogReadyRefreshGate,
+  resolvePluginContributionViewRefreshAction,
+} from './editor-view-refresh'
 import { iconSvg } from './icons'
 import { createDesktopLargeTextFileService } from './large-file-service'
 import {
@@ -1621,6 +1624,7 @@ const desktopPluginManager: DesktopPluginManager = new DesktopPluginManager({
   revealLine: (line) => revealPluginLine(line),
   revealLocation: revealPluginLocation,
   invalidatePresentation: () => {
+    presentationInvalidation++
     desktopDocumentPresentation.invalidate()
     view?.refreshDocumentPresentation()
     sourceView?.refreshDocumentPresentation()
@@ -1673,6 +1677,10 @@ const applicationUpdates = createApplicationUpdatesController({
   currentVersion: appVersion,
   changed: renderApplicationUpdateStatus,
 })
+const catalogReadyRefresh = createCatalogReadyRefreshGate()
+let presentationInvalidation = 0
+let catalogRefreshPending = true
+const installedEditorBindings = new WeakMap<EditorView, { scope: object; bindings: string }>()
 let presentationMemorySource: MemoryDocumentSource | undefined
 let presentationMemoryDocument: object | undefined
 function currentPresentationDocument() {
@@ -1702,7 +1710,43 @@ const desktopDocumentPresentation = createDesktopDocumentPresentationService({
   render: (pluginId, rendererId, request, options) =>
     desktopPluginManager.renderDocument(pluginId, rendererId, request, options),
 })
-function createDesktopDocumentPresentation(): DocumentPresentationConfig | undefined {
+function currentEditorPluginBindings(): string {
+  const contributions = desktopPluginManager.state().contributions
+  return JSON.stringify({
+    renderers: contributions.renderers.map((renderer) => ({
+      ...renderer,
+      epoch: desktopPluginManager.documentRendererGeneration(renderer.pluginId),
+    })),
+    syntax: contributions.markdownSyntax.map((syntax) => ({
+      ...syntax,
+      epoch: desktopPluginManager.documentRendererGeneration(syntax.pluginId),
+    })),
+  })
+}
+function currentPresentationRendering(): string {
+  return JSON.stringify({
+    renderers: (desktopPluginManager.state().contributions.documentRenderers ?? []).map(
+      (renderer) => ({
+        ...renderer,
+        epoch: desktopPluginManager.documentRendererGeneration(renderer.pluginId),
+        authenticatedFence: desktopPluginManager.canReusePrivateMermaidFence(
+          renderer.pluginId,
+          renderer.id,
+        ),
+      }),
+    ),
+    invalidation: presentationInvalidation,
+    theme: document.documentElement.dataset.theme,
+    mermaidMode: mermaidRenderSettings.get(),
+    documentId: session.documentId,
+    documentVersion: session.documentVersion,
+    viewMode: session.viewMode,
+    presentation: editorPresentation,
+  })
+}
+function createDesktopDocumentPresentation(
+  refreshScope?: object,
+): DocumentPresentationConfig | undefined {
   return {
     hostPngMode: mermaidRenderSettings.get,
     retainHostPng: () =>
@@ -1721,6 +1765,15 @@ function createDesktopDocumentPresentation(): DocumentPresentationConfig | undef
       )
     },
     provide: async (window, options) => {
+      if (refreshScope && catalogRefreshPending) {
+        const current = currentPresentationDocument()
+        if (current)
+          catalogReadyRefresh.requested(
+            refreshScope,
+            current.identity,
+            currentPresentationRendering(),
+          )
+      }
       // A previous request may have run before plugin activation completed.
       // Clear its availability notice before awaiting the current renderer:
       // a timeout/error must not leave a stale "plugin disabled" explanation.
@@ -1763,10 +1816,10 @@ function createDesktopDocumentPresentation(): DocumentPresentationConfig | undef
       }),
   }
 }
-function desktopDocumentPresentationOptions(): {
+function desktopDocumentPresentationOptions(refreshScope?: object): {
   documentPresentation?: DocumentPresentationConfig
 } {
-  const config = createDesktopDocumentPresentation()
+  const config = createDesktopDocumentPresentation(refreshScope)
   return config ? { documentPresentation: config } : {}
 }
 let pluginUiReady = false
@@ -1986,7 +2039,7 @@ void desktopPluginManager.ready.then(
       await initialDocumentOpenPromise
       pluginUiReady = true
       renderPluginManager()
-      refreshPluginContributionsInViews()
+      refreshPluginContributionsInViews('catalog-ready')
       await desktopPluginUi.sync(session.documentId)
     } catch (error) {
       importantNotice = true
@@ -2717,12 +2770,14 @@ function createEditorView(): EditorView {
   sourceView?.destroy()
   sourceView = undefined
 
+  const refreshScope = {}
+  const bindings = currentEditorPluginBindings()
   const nextView = new EditorView({
     parent: editorRoot,
     onImagePaste: desktopImagePaste,
     onEmptyPaste: desktopEmptyPaste,
     imageResolver: desktopImageResolver,
-    ...desktopDocumentPresentationOptions(),
+    ...desktopDocumentPresentationOptions(refreshScope),
     presentation: editorPresentation,
     state,
     mode: session.viewMode,
@@ -2765,6 +2820,7 @@ function createEditorView(): EditorView {
         refreshPluginUiAfterDocumentNavigation()
     },
   })
+  installedEditorBindings.set(nextView, { scope: refreshScope, bindings })
   nextView.dom.addEventListener('milkup-plugin-renderer-action', (event) => {
     const detail = (event as CustomEvent<ControlledRendererActionDetail>).detail
     const command = desktopPluginManager.resolveRendererCommand(detail.rendererId, detail.command)
@@ -2801,7 +2857,31 @@ function recreateEditorView(): void {
   view = createEditorView()
 }
 
-function refreshPluginContributionsInViews(): void {
+function refreshPluginContributionsInViews(reason: 'changed' | 'catalog-ready' = 'changed'): void {
+  if (reason === 'catalog-ready') catalogRefreshPending = false
+  const installed = view && installedEditorBindings.get(view)
+  const current = currentPresentationDocument()
+  if (
+    reason === 'catalog-ready' &&
+    view &&
+    installed !== undefined &&
+    !sourceView &&
+    !largeDocumentPreview &&
+    current &&
+    catalogReadyRefresh.canRetain({
+      scope: installed.scope,
+      document: current.identity,
+      rendering: currentPresentationRendering(),
+      installedBindings: installed.bindings,
+      currentBindings: currentEditorPluginBindings(),
+    })
+  ) {
+    // The provider already observed the exact active declarations/epoch/settings.
+    // Keep the view, image owners and in-flight requests; UI contributions still sync.
+    void desktopPluginUi.sync(session.documentId)
+    return
+  }
+  catalogReadyRefresh.reset()
   desktopDocumentPresentation.clear()
   sourceView?.setDocumentPresentation(createDesktopDocumentPresentation())
   view?.setDocumentPresentation(createDesktopDocumentPresentation())

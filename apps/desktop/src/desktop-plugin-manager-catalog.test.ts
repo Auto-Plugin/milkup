@@ -419,7 +419,7 @@ describe('private fixed Mermaid package authorization', () => {
       await s.manager.disable('test.lifecycle')
     }
   })
-  it('stops admission before close-triggered focus work and waits for the owned request', async () => {
+  it('stops admission before close-triggered focus work and concurrent closes wait for the owned request', async () => {
     vi.stubGlobal('crypto', webcrypto)
     const s = await renderer()
     let rejectRender!: (error: Error) => void
@@ -437,7 +437,10 @@ describe('private fixed Mermaid package authorization', () => {
       const rejected = expect(pending).rejects.toThrow('cancelled during close')
       await vi.waitFor(() => expect(rejectRender).toBeTypeOf('function'))
       let closed = false
-      const closing = s.manager.shutdownDocumentRenderers().then(() => {
+      const closing = Promise.all([
+        s.manager.shutdownDocumentRenderers(),
+        s.manager.shutdownDocumentRenderers(),
+      ]).then(() => {
         closed = true
       })
       await expect(
