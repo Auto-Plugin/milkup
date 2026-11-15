@@ -111,11 +111,24 @@ export function classifyEntry(row) {
   assert(row.ready && row.ready.sourceSha256 === row.sourceSha256, 'Exact source success required')
   const entryUnix = observation.timeOrigin + observation.firstVisible
   const readyBeforeEntry = row.ready.timestampUnixMs <= entryUnix
+  const first = observation.transitions?.[0]
+  const observedOffscreenBeforeEntry =
+    first?.inView === false && first.at < observation.firstVisible
   return {
+    observedOffscreenBeforeEntry,
+    visibleAtFirstSample: first?.inView === true,
+    prefetchComparisonEstablished:
+      row.scenario === 'prefetch-ready' &&
+      observedOffscreenBeforeEntry &&
+      readyBeforeEntry &&
+      row.ready.timestampUnixMs <= row.firstInputUnix,
     readyBeforeEntry,
     readyBeforeFirstInput: row.ready.timestampUnixMs <= row.firstInputUnix,
     coldComparisonEstablished:
-      row.scenario === 'cold-entry' && !readyBeforeEntry && !observation.decodedAtFirstSample,
+      row.scenario === 'cold-entry' &&
+      observedOffscreenBeforeEntry &&
+      !readyBeforeEntry &&
+      !observation.decodedAtFirstSample,
     sourceVisibleFrames: observation.sourceVisibleFrames,
     layoutWaitMs: observation.decoded - observation.firstVisible,
     samplingGapMs: observation.maxSampleGapMs,

@@ -61,8 +61,14 @@ if (mode === 'fixture') {
       assert.equal(record.images.length, 3)
       for (const image of record.images) ledger.matchPng(spec.pid, image.png)
       assert.equal(record.entries.length, 2)
-      for (const entry of record.entries)
+      for (const entry of record.entries) {
         assert.deepEqual(classifyEntry(entry), entry.classification)
+        if (entry.scenario === 'prefetch-ready')
+          assert(
+            entry.classification.prefetchComparisonEstablished,
+            'Offscreen prefetch comparison required',
+          )
+      }
     } catch (error) {
       contractError = String(error)
     }
@@ -408,6 +414,13 @@ if (mode === 'fixture') {
             }, 'independent exact document')
             row.documentReadyUnix = Date.now()
             row.before = await snapshot()
+            const ledger = await readLedger()
+            row.readyAtInstall = [...ledger.jobs.values()]
+              .filter(
+                (j) => j.admitted.sourceSha256 === fence.sourceSha256 && j.finished?.successful,
+              )
+              .map((j) => j.finished)
+            row.observerAtInstall = await execute(mermaidVisibilityScript, { ...fence, scenario })
             if (index === 2) {
               await until(async () => {
                 const ledger = await readLedger()
@@ -418,13 +431,9 @@ if (mode === 'fixture') {
               }, 'independent offscreen source ready')
               row.before = await snapshot()
             }
-            const ledger = await readLedger()
-            row.readyAtInstall = [...ledger.jobs.values()]
-              .filter(
-                (j) => j.admitted.sourceSha256 === fence.sourceSha256 && j.finished?.successful,
-              )
-              .map((j) => j.finished)
-            await execute(mermaidVisibilityScript, { ...fence, scenario })
+            row.beforeWheelObservation = await execute(
+              'return window.__mermaidVisibilityProbe.report',
+            )
             row.firstInputUnix = Date.now()
             // No readiness wait in cold-entry. If prior preparation wins the race,
             // classify it as already warm rather than manufacturing a cold sample.
@@ -444,8 +453,8 @@ if (mode === 'fixture') {
             row.after = await snapshot()
             if (index === 2)
               assert(
-                row.classification.readyBeforeFirstInput,
-                'Warmed control completed before wheel',
+                row.classification.prefetchComparisonEstablished,
+                'Warm control requires observed offscreen entry, not a left-censored visible image',
               )
             await persist()
           },

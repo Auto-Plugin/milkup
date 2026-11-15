@@ -88,6 +88,10 @@ const row = () => ({
     sourceVisibleFrames: 3,
     maxSampleGapMs: 16,
     decodedAtFirstSample: false,
+    transitions: [
+      { at: 1, inView: false },
+      { at: 20, inView: true },
+    ],
   },
   ready: { sourceSha256: fences[1].sourceSha256, timestampUnixMs: 1060 },
 })
@@ -142,4 +146,19 @@ test('final log rejects truncation, external renderer and wrong process identity
       spec,
     ),
   )
+})
+
+test('already visible warm fixture cannot prove offscreen prefetch or zero entry wait', () => {
+  const r = row()
+  r.scenario = 'prefetch-ready'
+  r.ready.timestampUnixMs = 1005
+  assert.equal(classifyEntry(r).prefetchComparisonEstablished, true)
+  r.observation.transitions = [{ at: 20, inView: true }]
+  r.observation.decodedAtFirstSample = true
+  assert.equal(classifyEntry(r).prefetchComparisonEstablished, false)
+  assert.equal(classifyEntry(r).visibleAtFirstSample, true)
+  r.scenario = 'cold-entry'
+  r.ready.timestampUnixMs = 1060
+  r.observation.decodedAtFirstSample = false
+  assert.equal(classifyEntry(r).coldComparisonEstablished, false)
 })
