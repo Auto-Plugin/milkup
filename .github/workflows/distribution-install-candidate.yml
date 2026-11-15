@@ -3,7 +3,7 @@ on:
   workflow_dispatch:
     inputs:
       mermaid_latency:
-        description: Single installed-session visible latency diagnostic; original composite bytes only
+        description: Bounded render-policy entry diagnostic; pinned 42277c9a package, no rebuild
         type: boolean
         default: false
       reuse_composite:
@@ -173,7 +173,9 @@ jobs:
       GIT_CONFIG_COUNT: '1'
       GIT_CONFIG_KEY_0: core.longpaths
       GIT_CONFIG_VALUE_0: 'true'
-      SOURCE_SHA: 383c0712f21071467f2549d73a022b03db4b69aa
+      SOURCE_SHA: ${{ inputs.mermaid_latency && '42277c9a7d9eecaf056296ef7497a300ba6ba541' || '383c0712f21071467f2549d73a022b03db4b69aa' }}
+      PINNED_BUILD_RUN: ${{ inputs.mermaid_latency && '43676925544' || '43616134287' }}
+      PINNED_ARTIFACT: ${{ inputs.mermaid_latency && '14147610326' || '14122777302' }}
     defaults:
       run:
         shell: pwsh
@@ -207,27 +209,34 @@ jobs:
         run: |
           $ErrorActionPreference='Stop'
           if ((git rev-parse HEAD).Trim() -cne $env:GITHUB_SHA -or (git status --porcelain)) {throw 'Exact clean harness required'}
-          $run=gh api repos/Auto-Plugin/milkup/actions/runs/43616134287 | ConvertFrom-Json
-          if ($LASTEXITCODE -ne 0 -or $run.head_sha -cne $env:SOURCE_SHA -or $run.status -cne 'completed' -or $run.conclusion -cne 'failure' -or $run.path -cne '.github/workflows/distribution-candidate.yml') {throw 'Exact known build/evidence failure required'}
-          $jobs=gh api repos/Auto-Plugin/milkup/actions/runs/43616134287/jobs | ConvertFrom-Json
+          $entry='${{ inputs.mermaid_latency }}' -ceq 'true'
+          if ($entry -and ('${{ inputs.build_run }}' -cne $env:PINNED_BUILD_RUN -or '${{ inputs.source_sha }}' -cne $env:SOURCE_SHA -or '${{ inputs.variant }}' -cne 'windows-standard')) {throw 'Exact entry-only package inputs required'}
+          $expectedBranch=if($entry){'dot/mermaid-visible-latency-20261115'}else{'dot/release-quality-integration-20261112'}
+          $expectedBytes=if($entry){7257546}else{7258017}
+          $expectedDigest=if($entry){'sha256:47edded6271e418f53c9669511774cf8d00edaee08c782397d799bfa11b612cb'}else{'sha256:2c1735fa89258b81012a008820f7b1f10224aa559a7d3a5708e8d2ec419fd50d'}
+          $run=gh api "repos/Auto-Plugin/milkup/actions/runs/$env:PINNED_BUILD_RUN" | ConvertFrom-Json
+          if ($LASTEXITCODE -ne 0 -or $run.head_sha -cne $env:SOURCE_SHA -or $run.head_branch -cne $expectedBranch -or $run.status -cne 'completed' -or $run.conclusion -cne 'failure' -or $run.path -cne '.github/workflows/distribution-candidate.yml') {throw 'Exact known build/evidence failure required'}
+          $jobs=gh api "repos/Auto-Plugin/milkup/actions/runs/$env:PINNED_BUILD_RUN/jobs" | ConvertFrom-Json
           if ($LASTEXITCODE -ne 0) {throw 'Jobs unavailable'}
           $windows=@($jobs.jobs | Where-Object {$_.name -ceq 'package (windows-2025, windows-standard)'})
           if ($windows.Count -ne 1) {throw 'Exact Windows job required'}
           $build=@($windows[0].steps | Where-Object {$_.name -ceq 'Build selected native candidate' -and $_.conclusion -ceq 'success'})
           if ($build.Count -ne 1) {throw 'Actual native package build did not pass'}
-          $artifact=gh api repos/Auto-Plugin/milkup/actions/artifacts/14122777302 | ConvertFrom-Json
-          if ($LASTEXITCODE -ne 0 -or $artifact.expired -or $artifact.workflow_run.id -ne 43616134287 -or $artifact.workflow_run.head_sha -cne $env:SOURCE_SHA -or $artifact.size_in_bytes -ne 7258017 -or $artifact.digest -cne 'sha256:2c1735fa89258b81012a008820f7b1f10224aa559a7d3a5708e8d2ec419fd50d') {throw 'Original artifact identity changed'}
+          $artifact=gh api "repos/Auto-Plugin/milkup/actions/artifacts/$env:PINNED_ARTIFACT" | ConvertFrom-Json
+          if ($LASTEXITCODE -ne 0 -or $artifact.expired -or $artifact.workflow_run.id -ne [long]$env:PINNED_BUILD_RUN -or $artifact.workflow_run.head_sha -cne $env:SOURCE_SHA -or $artifact.size_in_bytes -ne $expectedBytes -or $artifact.digest -cne $expectedDigest) {throw 'Original artifact identity changed'}
           $evidence=Join-Path $env:RUNNER_TEMP 'composite-install-evidence'
           $null=New-Item -ItemType Directory $evidence
           $run | ConvertTo-Json -Depth 20 | Set-Content (Join-Path $evidence 'build-run.json')
           $artifact | ConvertTo-Json -Depth 10 | Set-Content (Join-Path $evidence 'artifact.json')
-          gh run download 43616134287 --repo Auto-Plugin/milkup --name "milkup-windows-standard-$env:SOURCE_SHA" --dir "$env:RUNNER_TEMP/candidate-input"
+          gh run download $env:PINNED_BUILD_RUN --repo Auto-Plugin/milkup --name "milkup-windows-standard-$env:SOURCE_SHA" --dir "$env:RUNNER_TEMP/candidate-input"
           if ($LASTEXITCODE -ne 0) {throw 'Original package download failed'}
           $receipt=& node scripts/release/verify-candidate.mjs "$env:RUNNER_TEMP/candidate-input" $env:SOURCE_SHA windows-standard
           if ($LASTEXITCODE -ne 0) {throw 'Package verification failed'}
           $receipt | Set-Content (Join-Path $evidence 'verified-receipt.json')
           $r=$receipt | ConvertFrom-Json
-          if ($r.installer.bytes -ne 7256557 -or $r.installer.sha256 -cne '6fe28bcd235dc04993b1889f3c4bb5086e4e86cc2ad06da0172098ba1f974902') {throw 'Original installer bytes required'}
+          $installerBytes=if($entry){7256086}else{7256557}
+          $installerHash=if($entry){'7e37d954b1ba47bd4775ca45d24b0f6fd08cf4f3fa711a2eb0902c0212f72b48'}else{'6fe28bcd235dc04993b1889f3c4bb5086e4e86cc2ad06da0172098ba1f974902'}
+          if ($r.installer.bytes -ne $installerBytes -or $r.installer.sha256 -cne $installerHash) {throw 'Original installer bytes required'}
       - name: Verify bounded receipt invocation and installed evidence gates
         run: |
           ./tests/windows/install-only-contract.test.ps1

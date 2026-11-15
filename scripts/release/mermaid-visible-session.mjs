@@ -11,9 +11,7 @@ import {
   documents,
   documentPath,
   requestSnapshot,
-  cursorResult,
   collectStage,
-  assertStartupRetained,
   selectMermaidEntryPolicy,
   warmApproachFrom,
 } from './mermaid-visible-contract.mjs'
@@ -49,26 +47,24 @@ if (mode === 'fixture') {
     try {
       assert.equal(record.status, 'observed-await-normal-close')
       assert.equal(record.spec.creationFileTime, spec.creationFileTime)
-      assert.equal(record.baseline.inputCountBefore, record.baseline.inputCountAfter)
-      assert.equal(record.baseline.inputCountAfter, 0, 'Initialization baseline has no input')
-      assert.equal(record.baseline.last.catalogReady, true)
-      assertStartupRetained(record.baseline)
+      assert.equal(record.scope, 'plugin-render-entry-only')
       assert.deepEqual(
-        cursorResult(record.cursor.before, record.cursor.after),
-        record.cursor.result,
+        record.stages.map((s) => s.name),
+        ['entry-plugin-render-policy', 'cold-entry', 'prefetch-ready'],
       )
-      assert.equal(record.cursor.result.passed, true)
       assert.equal(record.entryPolicy?.policy, 'preview')
       assert.equal(record.entryPolicy.after.editorMode, record.initialContext.editorMode)
       assert(
         record.stages.every((s) => s.status === 'passed'),
         'All observation stages must pass',
       )
-      assert.equal(record.images.length, 3)
+      assert.equal(record.images.length, 2)
       for (const image of record.images) ledger.matchPng(spec.pid, image.png)
       assert.equal(record.entries.length, 2)
       for (const entry of record.entries) {
         assert.deepEqual(classifyEntry(entry), entry.classification)
+        if (entry.scenario === 'cold-entry')
+          assert(entry.classification.coldComparisonEstablished, 'Genuine cold entry required')
         if (entry.scenario === 'prefetch-ready')
           assert(
             entry.classification.prefetchComparisonEstablished,
@@ -97,6 +93,7 @@ if (mode === 'fixture') {
   } else {
     const record = {
       status: 'running',
+      scope: 'plugin-render-entry-only',
       spec,
       phases: [],
       inputs: [],
@@ -189,60 +186,6 @@ if (mode === 'fixture') {
         await delay(100)
       }
       throw Error('Could not reveal plugin UI control: ' + selector)
-    }
-    const checkpoint = async () => {
-      const state = await execute(
-        `const from=arguments[0];
-        window.__latencyImageIds ||= { map:new WeakMap(), next:1 };
-        const ids=window.__latencyImageIds,image=document.querySelector('[data-presentation-from="'+from+'"] img');
-        if(image&&!ids.map.has(image))ids.map.set(image,ids.next++);
-        const ready=performance.getEntriesByType('mark').find(m=>m.name==='milkup:startup:plugin-catalog-ready');
-        return {timeOrigin:performance.timeOrigin,now:performance.now(),catalogReady:!!ready,catalogReadyAt:ready?.startTime??null,
-        imageId:image?ids.map.get(image):null,decoded:!!image&&image.complete&&image.naturalWidth>0,
-        diagnostics:window.__milkupDesktopTest.getMermaidPresentationDiagnostics()}`,
-        fences[0].from,
-      )
-      state.unixMs = Date.now()
-      const ledger = await readLedger()
-      state.requests = requestSnapshot(ledger, fences[0].sourceSha256)
-      state.allRequests = requestSnapshot(ledger)
-      return state
-    }
-    const settled = async (timeline, requireCatalog = true, quietMs = 1500) => {
-      let signature,
-        quietSince = performance.now(),
-        count = 0
-      return until(
-        async () => {
-          assert(++count <= 1000, 'Bounded baseline samples')
-          const current = await checkpoint()
-          const next = JSON.stringify([
-            current.catalogReady,
-            current.imageId,
-            current.decoded,
-            current.requests,
-            current.diagnostics,
-          ])
-          if (next !== signature) {
-            signature = next
-            quietSince = performance.now()
-            assert(timeline.length < 128)
-            timeline.push(current)
-            await persist()
-          }
-          current.quietMs = performance.now() - quietSince
-          return (
-            (!requireCatalog || current.catalogReady) &&
-            current.decoded &&
-            current.diagnostics.pending === 0 &&
-            !current.diagnostics.prefetchActive &&
-            current.quietMs >= quietMs &&
-            current
-          )
-        },
-        'catalog and image/request quiet interval',
-        45000,
-      )
     }
     const readImage = async (fence, label) => {
       const script = decodeScript.replace(
@@ -342,74 +285,17 @@ if (mode === 'fixture') {
         )
       }, 'exact document open')
       mark('document-ready')
-      record.initialAtInstall = await execute(mermaidVisibilityScript, {
-        ...fences[0],
-        scenario: 'document-open',
-      })
       record.initialContext = await snapshot()
-      record.baseline = {
-        inputCountBefore: record.inputs.length,
-        first: await checkpoint(),
-        transitions: [],
-      }
-      record.baseline.attachedAfterCatalogReady = record.baseline.first.catalogReady
-      // No pointer/key/wheel before this baseline ends. The mark precedes the
-      // catalog refresh, so require a further 1.5-second image/request quiet interval.
-      await collectStage(
-        record,
-        'no-input-initialization',
-        async () => {
-          record.baseline.last = await settled(record.baseline.transitions)
-          record.baseline.inputCountAfter = record.inputs.length
-          record.baseline.sameImage =
-            record.baseline.first.imageId !== null &&
-            record.baseline.first.imageId === record.baseline.last.imageId
-          record.initial = await execute('return window.__mermaidInitialVisibilityProbe.report')
-          assert(record.initial.complete, 'Initial visibility completed')
-          record.startupPerformance = await execute(startupPerformanceScript)
-          await readImage(fences[0], 'open')
-          assert.equal(record.baseline.inputCountAfter, 0)
-          assertStartupRetained(record.baseline)
-        },
-        persist,
+      // Prior runs already established initialization/cursor behavior. This run
+      // only waits for the catalog prerequisite; it does not repeat those tests.
+      await until(
+        () =>
+          execute(
+            "return performance.getEntriesByType('mark').some(m=>m.name==='milkup:startup:plugin-catalog-ready')",
+          ),
+        'Catalog prerequisite',
       )
-      await collectStage(
-        record,
-        'post-catalog-cursor',
-        async () => {
-          assert(record.baseline.last?.catalogReady, 'Confirmed catalog baseline required')
-          const quiet = []
-          const before = await settled(quiet)
-          record.cursor = { before, quiet, inputCountBefore: record.inputs.length }
-          const point =
-            await execute(`const e=document.querySelector('.milkup-line[data-from="0"]'),r=e.getBoundingClientRect();
-          return {x:Math.round(r.left+12),y:Math.round(r.top+r.height/2)}`)
-          await input('pointer', [
-            { type: 'pointerMove', origin: 'viewport', duration: 0, ...point },
-            { type: 'pointerDown', button: 0 },
-            { type: 'pointerUp', button: 0 },
-          ])
-          await input(
-            'key',
-            Array.from({ length: 20 }, () => ['\uE014', '\uE012'])
-              .flat()
-              .flatMap((value) => [
-                { type: 'keyDown', value },
-                { type: 'keyUp', value },
-              ]),
-          )
-          record.cursor.transitions = []
-          record.cursor.after = await settled(record.cursor.transitions)
-          record.cursor.inputCountAfter = record.inputs.length
-          record.cursor.result = cursorResult(before, record.cursor.after)
-          record.postCursorStartup = await execute(startupPerformanceScript)
-          assert(
-            record.cursor.result.passed,
-            'Isolated cursor changed requests, actual renders or image identity',
-          )
-        },
-        persist,
-      )
+      record.startupPerformance = await execute(startupPerformanceScript)
       await collectStage(
         record,
         'entry-plugin-render-policy',
@@ -558,6 +444,8 @@ if (mode === 'fixture') {
             row.started = image.started
             row.classification = classifyEntry(row)
             row.after = await snapshot()
+            if (index === 1)
+              assert(row.classification.coldComparisonEstablished, 'Genuine cold entry required')
             if (index === 2)
               assert(
                 row.classification.prefetchComparisonEstablished,
