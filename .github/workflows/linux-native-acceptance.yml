@@ -39,6 +39,7 @@ jobs:
       - name: One bounded system engine experiment
         timeout-minutes: 12
         run: |
+          set -euo pipefail
           timeout --signal=TERM --kill-after=10s 660s python3 research/table-break-mechanism-20261115/probe.py native "$RUNNER_TEMP/table-break-evidence" 2>&1 | tee "$RUNNER_TEMP/table-break-evidence/native.log"
       - name: Preserve all outcomes
         if: always()
