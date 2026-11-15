@@ -1,6 +1,11 @@
 import importlib.util,pathlib,unittest,tempfile
 p=pathlib.Path(__file__).with_name('webkit-geometry-object-preflight.py');s=importlib.util.spec_from_file_location('gate',p);m=importlib.util.module_from_spec(s);s.loader.exec_module(m)
 class Gate(unittest.TestCase):
+ def test_generated_header_output_selection(self):
+  build=pathlib.Path('/tmp/native-gate')
+  targets={'WebCore/DerivedSources/XLinkNames.h','/tmp/native-gate/WebCore/DerivedSources/XLinkNames.h','WebCore/DerivedSources/XLinkNames.cpp','WebCore/DerivedSources/x.o','JavaScriptCore/DerivedSources/LLIntAssembly.h','../outside.h'}
+  self.assertEqual(m.generated_webcore_headers(targets,build),['WebCore/DerivedSources/XLinkNames.h'])
+  with self.assertRaises(AssertionError):m.generated_webcore_headers({'WebCore/DerivedSources/A.h'},build)
  def test_real_unified_relative_include_resolution(self):
   with tempfile.TemporaryDirectory()as d:
    root=pathlib.Path(d);source=root/'source';source.mkdir();(source/'page').mkdir();actual=source/'page/PrintContext.cpp';actual.write_text('// exact source')

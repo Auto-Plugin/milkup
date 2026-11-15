@@ -11,6 +11,17 @@ INCLUDE='#include "RenderObjectInlines.h"\n'
 
 def digest(p):return hashlib.sha256(p.read_bytes()).hexdigest()
 HEADER_TARGETS=['WebCoreBindings','WebCore_CopyPrivateHeaders','JavaScriptCore_CopyHeaders','JavaScriptCore_CopyPrivateHeaders','WTF_CopyHeaders','bmalloc_CopyHeaders','PAL_CopyHeaders']
+def generated_webcore_headers(targets,build):
+    selected={}
+    for target in targets:
+        path=pathlib.Path(target)
+        absolute=(build/path).resolve()
+        if not absolute.is_relative_to(build/'WebCore/DerivedSources') or absolute.suffix!='.h':continue
+        key=str(absolute.relative_to(build))
+        if key not in selected or not path.is_absolute():selected[key]=target
+    assert 0<len(selected)<3000,'Bounded generated WebCore header target set required'
+    assert 'WebCore/DerivedSources/XLinkNames.h'in selected,'Name headers missing from configured graph'
+    return [selected[k]for k in sorted(selected)]
 def validate_header_plan(plan):
     assert len(plan.encode())<8*1024*1024,'Header plan exceeds budget'
     lines=plan.splitlines();assert 0<len(lines)<=10000,'Header generation exceeds bounded scope'
@@ -124,6 +135,10 @@ def run(source,build,out):
         targets=set(line.rsplit(': ',1)[0]for line in available.splitlines())
         assert set(HEADER_TARGETS)<=targets,'Required explicit header target missing'
         header_targets=HEADER_TARGETS+(['ANGLE-webgl-headers']if 'ANGLE-webgl-headers'in targets else[])
+        # Bindings do not depend on all generated name/DOMJIT/AT-SPI headers.
+        # Select their explicit output nodes, still reviewing every prerequisite
+        # command before running anything (never the WebCore object umbrella).
+        header_targets+=generated_webcore_headers(targets,build)
         # No library/object-order umbrella target: those drag in library builds.
         plan=subprocess.check_output(['ninja','-C',str(build),'-t','commands',*header_targets],text=True,timeout=45)
         (out/'header-plan.log').write_text(plan)
