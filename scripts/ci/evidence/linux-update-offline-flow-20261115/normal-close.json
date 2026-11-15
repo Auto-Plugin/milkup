@@ -1,0 +1,303 @@
+{
+  "fault": "normal-close",
+  "status": "passed-offline-contract",
+  "domSamples": 28,
+  "delayedPaintMs": 12,
+  "persistCount": 20,
+  "closed": true,
+  "forced": true,
+  "inputs": [
+    {
+      "kind": "click",
+      "selector": "[data-menu-toggle]"
+    },
+    {
+      "kind": "click",
+      "selector": "[data-menu-section=\"about\"]"
+    },
+    {
+      "kind": "click",
+      "selector": "[data-application-updates] [data-application-update-action=\"check\"]"
+    },
+    {
+      "kind": "click",
+      "selector": "[data-application-updates] [data-application-update-action=\"download\"]"
+    },
+    {
+      "kind": "click",
+      "selector": "[data-application-updates] [data-application-update-action=\"download\"]"
+    },
+    {
+      "kind": "click",
+      "selector": "[data-application-updates] [data-application-update-action=\"download\"]"
+    },
+    {
+      "kind": "click",
+      "selector": "[data-application-updates] [data-application-update-action=\"cancel\"]"
+    },
+    {
+      "kind": "click",
+      "selector": "[data-menu-close]"
+    },
+    {
+      "kind": "key",
+      "value": "ctrl+End"
+    },
+    {
+      "kind": "text",
+      "value": "UPDATE_CHECK_ONLY_SAVED"
+    },
+    {
+      "kind": "key",
+      "value": "ctrl+s"
+    }
+  ],
+  "record": {
+    "status": "failed",
+    "steps": [
+      {
+        "name": "start-download-only-beta9",
+        "status": "passed",
+        "durationMs": 3
+      },
+      {
+        "name": "about-rejects-wrong-manifest-signature",
+        "status": "passed",
+        "durationMs": 20
+      },
+      {
+        "name": "signed-manifest-and-download-http-rejection",
+        "status": "passed",
+        "durationMs": 50
+      },
+      {
+        "name": "corrupted-deb-rejected-before-install",
+        "status": "passed",
+        "durationMs": 24
+      },
+      {
+        "name": "exact-deb-download-and-signature-ready",
+        "status": "passed",
+        "durationMs": 27
+      },
+      {
+        "name": "clear-verified-download-without-install",
+        "status": "passed",
+        "durationMs": 25
+      },
+      {
+        "name": "ordinary-edit-save-remains-usable",
+        "status": "passed",
+        "durationMs": 21
+      },
+      {
+        "name": "normal-close",
+        "status": "failed",
+        "error": "Error: {\"value\":{\"error\":\"unknown error\",\"message\":\"owned injected failure: normal-close\"}}",
+        "durationMs": 1
+      }
+    ],
+    "errors": [
+      "close: Error: {\"value\":{\"error\":\"unknown error\",\"message\":\"owned injected failure: normal-close\"}}"
+    ],
+    "closes": [],
+    "snapshots": [],
+    "currentStep": "normal-close",
+    "binarySha256": "9b33d4b931fdb4615559924fd8abb2e7b58c4decd33153e064acd75ace4ee179",
+    "cases": [
+      {
+        "label": "bad-manifest",
+        "state": {
+          "text": "更新未完成，请重试。当前版本 2.0.0-beta.9检查更新失败：The signature verification failed安装失败或重启后无法打开怎么办？本版本不支持自动应用回滚。不要反复启动安装器；请先等待现有安装器结束。备份用户文档和应用数据（含未保存恢复副本），不要删除配置或更新信任记录。优先使用发布者提供的已验签同版本安装包修复；旧版本恢复需发布者确认数据兼容性。恢复后请在“关于”核对版本，打开原文档与恢复副本并另存新副本。安装器启动或退出不等于恢复成功。重试检查",
+          "updateError": "检查更新失败：The signature verification failed",
+          "actions": [
+            "check"
+          ],
+          "version": "2.0.0-beta.9"
+        },
+        "requests": [
+          {
+            "at": "2026-11-15T09:19:43.317Z",
+            "method": "GET",
+            "path": "/manifest.json",
+            "mode": "bad-manifest",
+            "status": 200,
+            "bytes": 1249,
+            "sha256": "65e239b75d880b6c26b87871800e49b9b5a98733638977546a9a4a57f5c8ffe9"
+          }
+        ]
+      },
+      {
+        "label": "http-503",
+        "state": {
+          "text": "更新未完成，请重试。当前版本 2.0.0-beta.9 · beta更新版本 2.0.0-beta.10Isolated native updater acceptance; not a production release已接收 0.0 MB / 总大小未知下载或签名校验失败：Download request failed with status: 503安装失败或重启后无法打开怎么办？本版本不支持自动应用回滚。不要反复启动安装器；请先等待现有安装器结束。备份用户文档和应用数据（含未保存恢复副本），不要删除配置或更新信任记录。优先使用发布者提供的已验签同版本安装包修复；旧版本恢复需发布者确认数据兼容性。恢复后请在“关于”核对版本，打开原文档与恢复副本并另存新副本。安装器启动或退出不等于恢复成功。下载更新",
+          "updateError": "下载或签名校验失败：Download request failed with status: 503",
+          "actions": [
+            "download"
+          ],
+          "version": "2.0.0-beta.9"
+        },
+        "requests": [
+          {
+            "at": "2026-11-15T09:19:43.317Z",
+            "method": "GET",
+            "path": "/manifest.json",
+            "mode": "bad-manifest",
+            "status": 200,
+            "bytes": 1249,
+            "sha256": "65e239b75d880b6c26b87871800e49b9b5a98733638977546a9a4a57f5c8ffe9"
+          },
+          {
+            "at": "2026-11-15T09:19:43.343Z",
+            "method": "GET",
+            "path": "/manifest.json",
+            "mode": "download-error",
+            "status": 200,
+            "bytes": 1249,
+            "sha256": "f77e823e087983b2e063df35b33c10a7db4607cbbd7183f7cbc2d411a8fefdd2"
+          },
+          {
+            "at": "2026-11-15T09:19:43.369Z",
+            "method": "GET",
+            "path": "/candidate.deb",
+            "mode": "download-error",
+            "status": 503,
+            "bytes": 31,
+            "sha256": "744369aa59b1b34b674e739de8782824e78ee0baefe8e43ba60dcc8366115313"
+          }
+        ]
+      },
+      {
+        "label": "corrupt-deb",
+        "state": {
+          "text": "更新未完成，请重试。当前版本 2.0.0-beta.9 · beta更新版本 2.0.0-beta.10Isolated native updater acceptance; not a production release已接收 0.0 MB / 总大小未知下载或签名校验失败：The signature verification failed安装失败或重启后无法打开怎么办？本版本不支持自动应用回滚。不要反复启动安装器；请先等待现有安装器结束。备份用户文档和应用数据（含未保存恢复副本），不要删除配置或更新信任记录。优先使用发布者提供的已验签同版本安装包修复；旧版本恢复需发布者确认数据兼容性。恢复后请在“关于”核对版本，打开原文档与恢复副本并另存新副本。安装器启动或退出不等于恢复成功。下载更新",
+          "updateError": "下载或签名校验失败：The signature verification failed",
+          "actions": [
+            "download"
+          ],
+          "version": "2.0.0-beta.9"
+        },
+        "requests": [
+          {
+            "at": "2026-11-15T09:19:43.317Z",
+            "method": "GET",
+            "path": "/manifest.json",
+            "mode": "bad-manifest",
+            "status": 200,
+            "bytes": 1249,
+            "sha256": "65e239b75d880b6c26b87871800e49b9b5a98733638977546a9a4a57f5c8ffe9"
+          },
+          {
+            "at": "2026-11-15T09:19:43.343Z",
+            "method": "GET",
+            "path": "/manifest.json",
+            "mode": "download-error",
+            "status": 200,
+            "bytes": 1249,
+            "sha256": "f77e823e087983b2e063df35b33c10a7db4607cbbd7183f7cbc2d411a8fefdd2"
+          },
+          {
+            "at": "2026-11-15T09:19:43.369Z",
+            "method": "GET",
+            "path": "/candidate.deb",
+            "mode": "download-error",
+            "status": 503,
+            "bytes": 31,
+            "sha256": "744369aa59b1b34b674e739de8782824e78ee0baefe8e43ba60dcc8366115313"
+          },
+          {
+            "at": "2026-11-15T09:19:43.394Z",
+            "method": "GET",
+            "path": "/candidate.deb",
+            "mode": "bad-artifact",
+            "status": 200,
+            "bytes": 40,
+            "sha256": "b692c4243f80e5594e6709fa78ebff5a0b29a1ae0fa4b7c0b38e8a2d8bd53bda"
+          }
+        ]
+      }
+    ],
+    "ready": {
+      "text": "更新包已通过签名校验，可以请求安装。当前版本 2.0.0-beta.9 · beta更新版本 2.0.0-beta.10Isolated native updater acceptance; not a production release已接收 0.0 MB / 0.0 MB安装失败或重启后无法打开怎么办？本版本不支持自动应用回滚。不要反复启动安装器；请先等待现有安装器结束。备份用户文档和应用数据（含未保存恢复副本），不要删除配置或更新信任记录。优先使用发布者提供的已验签同版本安装包修复；旧版本恢复需发布者确认数据兼容性。恢复后请在“关于”核对版本，打开原文档与恢复副本并另存新副本。安装器启动或退出不等于恢复成功。清除已下载更新请求安装更新",
+      "updateError": null,
+      "actions": [
+        "cancel",
+        "install"
+      ],
+      "version": "2.0.0-beta.9"
+    },
+    "cleared": {
+      "text": "发现新版本。请阅读版本说明后下载。当前版本 2.0.0-beta.9 · beta更新版本 2.0.0-beta.10Isolated native updater acceptance; not a production release已接收 0.0 MB / 总大小未知下载更新",
+      "updateError": null,
+      "actions": [
+        "download"
+      ],
+      "version": "2.0.0-beta.9"
+    },
+    "documentSha256": "deb262874a3c8791031190f1b9ee71a96fa0e45277b4d5df28fb0ff776ca5e50",
+    "forcedFailureCleanup": true,
+    "endpoint": {
+      "schema": 1,
+      "status": "closed",
+      "artifactBytes": 40,
+      "artifactSha256": "47a3e21b5402f17ed5866f31f6d8b87d3b668f4212c29c46d74a419f3096d003",
+      "certificateSha256": "c036d593de154c5852b402216d10d0a0c904b7b9b1a6e0fb05f4e7a528fd35ed",
+      "requests": [
+        {
+          "at": "2026-11-15T09:19:43.317Z",
+          "method": "GET",
+          "path": "/manifest.json",
+          "mode": "bad-manifest",
+          "status": 200,
+          "bytes": 1249,
+          "sha256": "65e239b75d880b6c26b87871800e49b9b5a98733638977546a9a4a57f5c8ffe9"
+        },
+        {
+          "at": "2026-11-15T09:19:43.343Z",
+          "method": "GET",
+          "path": "/manifest.json",
+          "mode": "download-error",
+          "status": 200,
+          "bytes": 1249,
+          "sha256": "f77e823e087983b2e063df35b33c10a7db4607cbbd7183f7cbc2d411a8fefdd2"
+        },
+        {
+          "at": "2026-11-15T09:19:43.369Z",
+          "method": "GET",
+          "path": "/candidate.deb",
+          "mode": "download-error",
+          "status": 503,
+          "bytes": 31,
+          "sha256": "744369aa59b1b34b674e739de8782824e78ee0baefe8e43ba60dcc8366115313"
+        },
+        {
+          "at": "2026-11-15T09:19:43.394Z",
+          "method": "GET",
+          "path": "/candidate.deb",
+          "mode": "bad-artifact",
+          "status": 200,
+          "bytes": 40,
+          "sha256": "b692c4243f80e5594e6709fa78ebff5a0b29a1ae0fa4b7c0b38e8a2d8bd53bda"
+        },
+        {
+          "at": "2026-11-15T09:19:43.418Z",
+          "method": "GET",
+          "path": "/candidate.deb",
+          "mode": "valid",
+          "status": 200,
+          "bytes": 40,
+          "sha256": "47a3e21b5402f17ed5866f31f6d8b87d3b668f4212c29c46d74a419f3096d003"
+        }
+      ],
+      "transferredBytes": 2609,
+      "scope": "Loopback HTTPS; ephemeral in-memory test authority; no system trust or production channel changes",
+      "endpoint": "https://127.0.0.1:32917",
+      "stopReason": "requested"
+    },
+    "installRequested": false,
+    "credentialsEntered": false
+  },
+  "orchestrationConsole": [
+    "{\"status\":\"failed\",\"steps\":[{\"name\":\"start-download-only-beta9\",\"status\":\"passed\",\"durationMs\":3},{\"name\":\"about-rejects-wrong-manifest-signature\",\"status\":\"passed\",\"durationMs\":20},{\"name\":\"signed-manifest-and-download-http-rejection\",\"status\":\"passed\",\"durationMs\":50},{\"name\":\"corrupted-deb-rejected-before-install\",\"status\":\"passed\",\"durationMs\":24},{\"name\":\"exact-deb-download-and-signature-ready\",\"status\":\"passed\",\"durationMs\":27},{\"name\":\"clear-verified-download-without-install\",\"status\":\"passed\",\"durationMs\":25},{\"name\":\"ordinary-edit-save-remains-usable\",\"status\":\"passed\",\"durationMs\":21},{\"name\":\"normal-close\",\"status\":\"failed\",\"error\":\"Error: {\\\"value\\\":{\\\"error\\\":\\\"unknown error\\\",\\\"message\\\":\\\"owned injected failure: normal-close\\\"}}\",\"durationMs\":1}],\"errors\":[\"close: Error: {\\\"value\\\":{\\\"error\\\":\\\"unknown error\\\",\\\"message\\\":\\\"owned injected failure: normal-close\\\"}}\"]}"
+  ]
+}
