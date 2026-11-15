@@ -72,6 +72,9 @@ jobs:
           assert r['harnessSha']==os.environ['GITHUB_SHA'] and r['status']=='preflight-passed-not-engine-built'
           assert r.get('linksResearch',False)==(os.environ['MILKUP_WEBKIT_LINKS']=='true')
           assert r.get('geometryResearch',False)==(os.environ['MILKUP_WEBKIT_GEOMETRY']=='true')
+          if os.environ['MILKUP_WEBKIT_GEOMETRY']=='true':
+            assert r['preflight']['geometryActualObjects']=='passed'
+            assert json.loads((p/'geometry-object-gate/result.json').read_text())['status']=='passed'
           assert r['fullEngineBuildAttempted'] is False and r['objectCacheProbeAttempted'] is True
           assert json.loads((p/'header-preflight/result.json').read_text())['status']=='passed'
           assert json.loads((p/'cache-preflight/result.json').read_text())['status']=='passed'
@@ -86,6 +89,7 @@ jobs:
           key: webkit-u2604-2526-${{ hashFiles('scripts/ci/build-webkit-private.py', 'research/linux-pdf-unicode-20261114/*.patch', 'research/linux-pdf-links-20261114/*.patch') }}-${{ github.run_id }}
           restore-keys: |
             webkit-u2604-2526-${{ hashFiles('scripts/ci/build-webkit-private.py', 'research/linux-pdf-unicode-20261114/*.patch', 'research/linux-pdf-links-20261114/*.patch') }}-
+            webkit-u2604-2526-bcb6fcc0b8643e5da329995cdb243c9a8741ca1923b961729f101add7aefb9e3-43640203869
             webkit-u2604-2526-c5b4b302f5be52b15bb31806a17fdc4582a5f54940772934cb71e6c95ba714a0-43624922086
             webkit-u2604-2526-f49aafb7686f22659a2e83f28dfab7be0058bcf1e750789dab9a24de2ecf8e13-43614932570
             webkit-u2604-2526-a7910481056bef2fbcf3ec8b2ab12691665d22560f7b11debcfb04d4fc749b33-43590136844

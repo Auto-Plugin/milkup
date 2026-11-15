@@ -65,6 +65,10 @@ try:
  run('cache-reuse-preflight',['python3',str(pathlib.Path(os.environ['GITHUB_WORKSPACE'])/'scripts/ci/webkit-cache-preflight.py'),'--build',str(build),'--output',str(evidence/'cache-preflight')],timeout=450)
  report['preflight']={'headers':'passed','restoredObjectCache':'passed'};persist()
  if operation=='preflight':
+  if geometry:
+   run('geometry-object-gate-unit-tests',['python3',str(pathlib.Path(os.environ['GITHUB_WORKSPACE'])/'scripts/ci/webkit-geometry-object-preflight-test.py')],timeout=30)
+   run('geometry-actual-object-gate',['python3',str(pathlib.Path(os.environ['GITHUB_WORKSPACE'])/'scripts/ci/webkit-geometry-object-preflight.py'),'--source',str(source),'--build',str(build),'--output',str(evidence/'geometry-object-gate')],timeout=850)
+   report['preflight']['geometryActualObjects']='passed'
   report['status']='preflight-passed-not-engine-built';persist();raise SystemExit(0)
  report['fullEngineBuildAttempted']=True;report['stage']='compile-engine';persist()
  # Three jobs completed 2582/3263 objects in 150 minutes, with 6.84 GiB
