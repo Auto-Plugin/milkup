@@ -23,3 +23,11 @@ Before the expensive application build, install the pinned official tauri-driver
 The QA feature now excludes the whole Linux installer impl, including pkexec, graphical password and sudo/dpkg methods. This is compile-time prevention plus recorded UI actions, not a sampled-process claim of observing every exec. Production-feature-off code remains available in normal builds; this branch must not be integrated wholesale. Native rejection waits also require a new endpoint request with the matching case/path and the matching terminal UI error, preventing a previous error label from satisfying the next phase.
 
 No automatic continuation follows this separately authorized corrected run. A preflight failure means application update steps remain untested; a compile failure means no new native result; a native failure is retained as such.
+
+## Follow-up prepared while the corrected run is immutable
+
+Run `43695861204` uses `e5b6bb8a`. Further local review found that the wrapper starts the native driver before Node sets `MILKUP_CI_UPDATE_FIXTURE`. A Node environment mutation cannot reach that pre-existing process tree; the session capabilities supply only application and document arguments. This is a harness defect, not evidence of a product update rejection. Its predicted failure must still be checked against the run's native evidence.
+
+The local correction exports the predetermined public fixture path before driver startup; the public file is still created and restricted to 0600 before the application session. Node now requires the inherited path and checks just that named value in the exact owned application's `/proc/PID/environ`, persisting only a Boolean. No unrelated process environment or secret is recorded. A local test executes the actual shell wrapper with inert driver/curl/Node stand-ins: removing the early export fails, retaining it passes and the driver's captured value matches. These stand-ins never run an application or an authorization command and do not count as native update evidence.
+
+This follow-up does not alter the running SHA or authorize a second dispatch. It is prepared only; no new native claim follows from its local checks.

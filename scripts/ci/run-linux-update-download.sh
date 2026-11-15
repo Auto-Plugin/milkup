@@ -21,6 +21,9 @@ export MILKUP_NATIVE_EXPECTED_BINARY_SHA256
 MILKUP_NATIVE_EXPECTED_BINARY_SHA256=$(sha256sum "$TAURI_APP_PATH" | cut -d' ' -f1)
 export MILKUP_NATIVE_EVIDENCE_DIR="$RUNNER_TEMP/linux-native-evidence/gui"
 mkdir -p "$MILKUP_NATIVE_EVIDENCE_DIR"
+# The application is launched by the already-running native driver, not by Node.
+# Export the public fixture path before that process tree is created.
+export MILKUP_CI_UPDATE_FIXTURE="$MILKUP_NATIVE_EVIDENCE_DIR/public-fixture.json"
 # This wrapper owns only this driver; the UI harness separately verifies normal application close.
 trap 'if test -n "${driver_pid:-}"; then kill "$driver_pid" 2>/dev/null || true; wait "$driver_pid" 2>/dev/null || true; fi' EXIT
 tauri-driver --native-driver /usr/bin/WebKitWebDriver > "$MILKUP_NATIVE_EVIDENCE_DIR/driver.log" 2>&1 &

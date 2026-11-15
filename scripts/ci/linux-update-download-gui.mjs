@@ -7,6 +7,7 @@ import path from 'node:path'
 import { startProduction } from '../../tests/helpers/native-production.mjs'
 import { nativeFixture, x } from '../../tests/helpers/native-updates-fixture.mjs'
 const out=path.resolve(process.env.MILKUP_NATIVE_EVIDENCE_DIR)
+assert.equal(process.env.MILKUP_CI_UPDATE_FIXTURE,path.join(out,'public-fixture.json'),'Public fixture path must be inherited before driver startup')
 assert(process.env.MILKUP_NATIVE_EXCLUSIVE_DISPLAY==='1' && process.getuid()!==0)
 assert(!process.env.WEBKIT_DISABLE_SANDBOX_THIS_IS_DANGEROUS)
 await mkdir(out,{recursive:true})
@@ -18,7 +19,6 @@ const artifact=await readFile(process.env.MILKUP_UPDATE_TARGET_DEB)
 assert.equal(sha(artifact),'9e71e2b6f6c5cd030f7307d35679ded1d4f5605127d77320db1d455d90c1ddde')
 const server=await startFixture({artifact,openssl:'/usr/bin/openssl',directory:out,maxMs:240000})
 const {chmod}=await import('node:fs/promises')
-process.env.MILKUP_CI_UPDATE_FIXTURE=path.join(out,'public-fixture.json')
 await chmod(process.env.MILKUP_CI_UPDATE_FIXTURE,0o600)
 const record={status:'running',targetSourceSha:"58c78973101acb0a22ca0cb5d24ef24bd9edc199",harnessSha:process.env.GITHUB_SHA,uid:process.getuid(),steps:[],snapshots:[],closes:[],errors:[],crashInjected:false}
 const persist=()=>writeFile(path.join(out,'update-result.json'),JSON.stringify(record,null,2))
@@ -26,7 +26,7 @@ let app,owned
 const ui=nativeFixture(()=>app)
 async function step(name,fn){record.currentStep=name;await persist();const at=Date.now();try{await fn();record.steps.push({name,status:'passed',durationMs:Date.now()-at})}catch(e){record.steps.push({name,status:'failed',error:String(e),durationMs:Date.now()-at});throw e}finally{await persist()}}
 const birth=async pid=>(await readFile(`/proc/${pid}/stat`,'utf8')).split(') ').at(-1).split(' ')[19]
-async function start(file=fixture){app=await startProduction(file,out,{diagnostics:false});app.click=pointerClick;const window=ui.windowId(),pid=Number(x('getwindowpid',window));assert.equal(await readlink(`/proc/${pid}/exe`),process.env.TAURI_APP_PATH);owned={pid,birth:await birth(pid)};record.launches??=[];record.launches.push({...owned,window,at:new Date().toISOString()});await persist()}
+async function start(file=fixture){app=await startProduction(file,out,{diagnostics:false});app.click=pointerClick;const window=ui.windowId(),pid=Number(x('getwindowpid',window));assert.equal(await readlink(`/proc/${pid}/exe`),process.env.TAURI_APP_PATH);owned={pid,birth:await birth(pid)};const inherited=(await readFile(`/proc/${pid}/environ`,'utf8')).split('\0').find(v=>v.startsWith('MILKUP_CI_UPDATE_FIXTURE='));record.fixturePathInherited=inherited===`MILKUP_CI_UPDATE_FIXTURE=${process.env.MILKUP_CI_UPDATE_FIXTURE}`;await persist();assert.equal(record.fixturePathInherited,true,'Owned application inherited exact public fixture path');record.launches??=[];record.launches.push({...owned,window,at:new Date().toISOString()});await persist()}
 // A real pointer is required: Linux hides the Windows-only titlebar controls.
 async function pointerClick(selector){
  const sample=()=>app.execute('const e=document.querySelector(arguments[0]);if(!e)return null;const r=e.getBoundingClientRect();return {x:r.left+r.width/2,y:r.top+r.height/2,width:r.width,height:r.height,w:innerWidth,h:innerHeight,hit:e.contains(document.elementFromPoint(r.left+r.width/2,r.top+r.height/2)),disabled:e.disabled===true}',selector)

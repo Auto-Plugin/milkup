@@ -4,9 +4,33 @@ import {readFile,mkdtemp,writeFile,rm} from 'node:fs/promises'
 import {tmpdir} from 'node:os'
 import path from 'node:path'
 import https from 'node:https'
+import {execFile} from 'node:child_process'
+import {promisify} from 'node:util'
 import {startFixture} from '../release/test-support/in-app-update-server.mjs'
 import {verifyMinisign} from '../release/update-readiness.mjs'
 import {requireLoopbackTest} from './check-linux-update-unit.mjs'
+test('actual wrapper exports fixture before driver spawn; original late export is rejected',async()=>{
+ const directory=await mkdtemp(path.join(tmpdir(),'milkup-driver-env-'))
+ const run=promisify(execFile),wrapper=await readFile('scripts/ci/run-linux-update-download.sh','utf8')
+ try{
+  for(const fixed of [false,true]){
+   const root=path.join(directory,String(fixed)),bin=path.join(root,'bin')
+   const {mkdir}=await import('node:fs/promises')
+   await mkdir(bin,{recursive:true});await mkdir(path.join(root,'apps/desktop/src-tauri/target/release'),{recursive:true})
+   await writeFile(path.join(root,'apps/desktop/src-tauri/target/release/milkup-desktop'),'inert test bytes')
+   const script=path.join(root,'wrapper.sh')
+   await writeFile(script,fixed?wrapper:wrapper.replace(/^export MILKUP_CI_UPDATE_FIXTURE=.*\n/m,''))
+   const shim=async(name,code)=>writeFile(path.join(bin,name),`#!${process.execPath}\n${code}`,{mode:0o700})
+   await shim('tauri-driver',`require('node:fs').writeFileSync(process.env.RUNNER_TEMP+'/driver-env.json',JSON.stringify({fixture:process.env.MILKUP_CI_UPDATE_FIXTURE}));setInterval(()=>{},1000)`)
+   await shim('curl','process.exit(0)')
+   await shim('node',`const fs=require('node:fs'),assert=require('node:assert/strict');const expected=process.env.MILKUP_NATIVE_EVIDENCE_DIR+'/public-fixture.json';assert.equal(process.env.MILKUP_CI_UPDATE_FIXTURE,expected);const until=Date.now()+3000;(function poll(){try{assert.equal(JSON.parse(fs.readFileSync(process.env.RUNNER_TEMP+'/driver-env.json')).fixture,expected)}catch(e){if(e.code==='ENOENT'&&Date.now()<until)return setTimeout(poll,10);throw e}})()`)
+   const env={...process.env,PATH:bin+':'+process.env.PATH,GITHUB_ACTIONS:'true',GITHUB_WORKSPACE:root,RUNNER_TEMP:root,GITHUB_RUN_ID:'owned-inert-contract'}
+   delete env.MILKUP_CI_UPDATE_FIXTURE
+   const operation=run('bash',[script],{env,timeout:10000})
+   if(fixed)await operation;else await assert.rejects(operation,/AssertionError/)
+  }
+ }finally{await rm(directory,{recursive:true,force:true})}
+})
 test('test-log gate rejects missing, zero, ignored, failed and repeated results',()=>{
  const good='test updates::ci_fixture::tests::download_is_exact_loopback_origin_and_path ... ok\n\ntest result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 280 filtered out; finished in 0.00s\n'
  requireLoopbackTest(good)
