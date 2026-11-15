@@ -19,7 +19,7 @@ def fixtures(root):
 <style>@page {size:A4;margin:0} body {font-family:'Noto Sans CJK SC';font-size:24px;padding:20px}
 @font-face {font-family:DigitCollision;src:url(data:font/ttf;base64,''' + data + ''')}
 .collision {font-family:DigitCollision} .negative {break-before:page}
-</style><body><p>DIGITS</p><p>0123456789</p><p>COLLISION</p><p class="collision">1212</p>
+</style><body><p>DIGITS</p><p>WRAP0123456789</p><p>COLLISION</p><p class="collision">1212</p>
 <p>文⽂风⻛又⼜月⽉</p>
 <section class="negative"><p>NEGATIVE</p><p class="collision">fi</p><p class="collision">a&#x301;</p>
 <p style="font-family:'DejaVu Sans'">x&#x301;</p>
@@ -36,13 +36,16 @@ def traces(path):
 
 def verify_trace(rows, accepted):
     found = {}
-    for token in ['0123456789', '1212']:
+    for token in ['WRAP0123456789', '1212']:
         selected = [r for r in rows if r['source'] == list(map(ord, token))]
         assert selected, 'Actual WebKit source/glyph trace missing: ' + token
         for row in selected:
             assert row['accepted'] is accepted
             assert [g[0] for g in row['glyphs']] == list(range(len(token)))
-            assert all(0 < g[1] < 65535 and 0 < g[2] < 65535 and g[1] != g[2] for g in row['glyphs'])
+            assert len(row['glyphs']) == len(token)
+            for char, g in zip(token, row['glyphs']):
+                assert 0 < g[1] < 65535 and 0 < g[2] < 65535
+                assert (g[1] != g[2]) if char.isascii() and char.isdigit() else (g[1] == g[2])
         found[token] = selected
     assert all(len({g[1] for g in row['glyphs']}) == 1 and len({g[2] for g in row['glyphs']}) == 2 for row in found['1212'])
     return found
@@ -61,8 +64,8 @@ def run(root):
             raw = subprocess.check_output(['pdftotext', '-layout', str(root / (name + '.pdf')), '-'], timeout=15).decode()
             texts[name] = raw.split('\f'); (root / (name + '-extracted.txt')).write_text(raw)
         compact = lambda s: ''.join(s.split())
-        assert '0123456789' not in compact(texts['digit-baseline'][0]), 'Baseline digit defect was not reproduced'
-        for token in ['0123456789', '1212', '文⽂风⻛又⼜月⽉']:
+        assert 'WRAP0123456789' not in compact(texts['digit-baseline'][0]), 'Baseline digit defect was not reproduced'
+        for token in ['WRAP0123456789', '1212', '文⽂风⻛又⼜月⽉']:
             assert compact(texts['digit-candidate'][0]).count(token) == 1, 'Candidate source text lost/duplicated: ' + token
         assert texts['digit-baseline'][1] == texts['digit-candidate'][1], 'Protected negative text behavior changed'
         report['negativeExtractedTextUnchanged'] = True

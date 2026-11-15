@@ -4,14 +4,14 @@ from prepare_digit_probe import prepare
 
 class DigitContract(unittest.TestCase):
     def samples(self):
-        return [dict(source=list(map(ord, '0123456789')), accepted=True, glyphs=[[i, 63153+i, 17+i] for i in range(10)]),
+        return [dict(source=list(map(ord, 'WRAP0123456789')), accepted=True, glyphs=[[i,g,g] for i,g in enumerate([56,51,34,49])]+[[i+4, 63153+i, 17+i] for i in range(10)]),
                 dict(source=list(map(ord, '1212')), accepted=True, glyphs=[[i, 3, 1+i%2] for i in range(4)])]
     def test_real_trace_contract_and_adversarial_changes(self):
         verify_trace(self.samples(), True)
         mutations = [lambda r:r.pop(), lambda r:r[0].update(accepted=False),
                      lambda r:r[0]['glyphs'][1].__setitem__(0,0),
                      lambda r:r[0]['glyphs'][0].__setitem__(1,0),
-                     lambda r:r[0]['glyphs'][0].__setitem__(1,17),
+                     lambda r:r[0]['glyphs'][4].__setitem__(1,17),
                      lambda r:r[1]['glyphs'][1].__setitem__(1,4)]
         for mutation in mutations:
             rows = self.samples(); mutation(rows)
@@ -30,6 +30,7 @@ class DigitContract(unittest.TestCase):
             text=(pa/'digit-candidate.html').read_text()
             self.assertIn('data:font/ttf;base64,',text)
             self.assertIn('dir="rtl"',text)
+            self.assertIn('<p>WRAP0123456789</p>',text)
             self.assertIn('break-before:page',text)
     def test_exact_source_delta_if_available(self):
         source=pathlib.Path('/tmp/milkup-webkit-header-preflight/source')
