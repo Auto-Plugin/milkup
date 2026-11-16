@@ -5,7 +5,7 @@ on:
       operation:
         description: Cheap header/cache preflight or one explicitly approved continuation
         type: choice
-        options: [preflight, resume, pagination-preflight, pagination-diagnostic, pagination-segment, stock-paper-control, current-source-preflight]
+        options: [preflight, resume, pagination-preflight, pagination-diagnostic, pagination-segment, stock-paper-control, current-source-preflight, current-source-restore]
         default: preflight
         required: true
       links_research:
@@ -53,7 +53,7 @@ concurrency:
   cancel-in-progress: false
 jobs:
   capability:
-    if: github.repository == 'Auto-Plugin/milkup' && inputs.operation != 'pagination-preflight' && inputs.operation != 'pagination-diagnostic' && inputs.operation != 'pagination-segment' && inputs.operation != 'stock-paper-control' && inputs.operation != 'current-source-preflight'
+    if: github.repository == 'Auto-Plugin/milkup' && inputs.operation != 'pagination-preflight' && inputs.operation != 'pagination-diagnostic' && inputs.operation != 'pagination-segment' && inputs.operation != 'stock-paper-control' && inputs.operation != 'current-source-preflight' && inputs.operation != 'current-source-restore'
     runs-on: ubuntu-26.04
     timeout-minutes: ${{ inputs.operation == 'preflight' && 30 || inputs.geometry_research && 55 || 355 }}
     env:
@@ -531,6 +531,30 @@ jobs:
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: milkup-current-source-tu-${{ github.run_id }}
+          path: ${{ runner.temp }}/milkup-current-source-gate/evidence/
+          if-no-files-found: error
+          retention-days: 7
+
+  current-source-restore:
+    if: github.repository == 'Auto-Plugin/milkup' && inputs.operation == 'current-source-restore'
+    runs-on: ubuntu-26.04
+    timeout-minutes: 30
+    steps:
+      - name: Start shared work deadline with evidence reserve
+        run: echo "CURRENT_GATE_STARTED=$(date +%s)" >> "$GITHUB_ENV"
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - name: Validate all non-engine and restored-object contracts
+        run: PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s research/pdf-delivery-20261116 -p 'test_current*.py' -v
+      - name: Clean current-source identity, original PCH, restored objects and partial link only
+        timeout-minutes: 27
+        run: python3 research/pdf-delivery-20261116/current_object_restore.py --root "$RUNNER_TEMP/milkup-current-source-gate" --started "$CURRENT_GATE_STARTED"
+      - name: Retain exact restoration evidence and bounded selected objects
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: milkup-current-source-restore-${{ github.run_id }}
           path: ${{ runner.temp }}/milkup-current-source-gate/evidence/
           if-no-files-found: error
           retention-days: 7

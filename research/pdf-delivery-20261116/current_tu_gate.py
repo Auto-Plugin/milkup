@@ -119,6 +119,8 @@ def retain_configuration_stream(stream,destination,expected_bytes,part_limit=32*
  destination.with_name(destination.name+'.parts.json').write_text(json.dumps(receipt,indent=2)+'\n')
  return receipt
 class Gate:
+ def before_compilation(self):pass
+ def after_compilation(self):pass
  def __init__(self,root,start):
   assert 0<=time.time()-start<=180,'Workflow start clock must be recent'
   self.root=root;root.mkdir(parents=True,exist_ok=False);self.out=root/'evidence';self.out.mkdir();self.source=root/'source';self.build=root/'build';self.deadline=start+1560;self.start=start
@@ -238,7 +240,7 @@ class Gate:
   for name in PCH_GENERATED_HEADERS:
    p=self.build/'WebCore/DerivedSources'/name;assert p.is_file(),('PCH generated input missing',name)
    self.report['pchGeneratedInputs'][name]=digest(p)
-  self.persist();failed_pch=set()
+  self.persist();self.before_compilation();failed_pch=set()
   for index,entry in enumerate(pch_entries):
    args=entry.get('arguments')or shlex.split(entry['command']);target=args[args.index('-o')+1]
    graph=self.run(f'pch-{index}-graph',['ninja','-t','commands',target],30,self.build)
@@ -267,6 +269,7 @@ class Gate:
    assert output.is_file()and output.stat().st_size>0
    self.report['objects'].append({'target':target,'source':rel,'unit':entry['file'],'unitSha256':digest(pathlib.Path(entry['file'])),'bytes':output.stat().st_size,'sha256':digest(output),'command':cmd});self.persist();self.resource('object-complete')
   assert not self.report.get('compileFailures')and not self.report.get('skippedUnits')and len(invoked)==len(self.report['objects']),'Selected compilations failed; independent results retained'
+  self.after_compilation()
   self.report['status']='passed-actual-selected-TUs-not-engine-or-package';self.persist()
  def retain(self):
   # Only our successfully compiled objects and depfiles. No runtime, cache,
