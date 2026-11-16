@@ -3948,6 +3948,8 @@ async function applyLargeEditHistoryBatch(
   }
 }
 
+let externalReloadSequence = 0
+
 async function reloadExternalDocument(): Promise<void> {
   if (!view) {
     if (largeDocumentPreview) {
@@ -3963,7 +3965,39 @@ async function reloadExternalDocument(): Promise<void> {
     return
   }
 
+  const request = ++externalReloadSequence
+  const admitted = {
+    view,
+    document: state.doc,
+    documentId: session.documentId,
+    documentVersion: session.documentVersion,
+    path: session.file?.path,
+    diskSnapshotHash: session.diskSnapshotHash,
+  }
   const result = await fileService.reloadFile(session)
+
+  // Only the newest request may replace the same still-clean document.
+  // Reading is asynchronous: editing and navigation remain available meanwhile.
+  if (request !== externalReloadSequence) return
+  if (
+    view !== admitted.view ||
+    state.doc !== admitted.document ||
+    session.documentId !== admitted.documentId ||
+    session.documentVersion !== admitted.documentVersion ||
+    session.file?.path !== admitted.path ||
+    session.diskSnapshotHash !== admitted.diskSnapshotHash ||
+    session.dirty ||
+    session.externalChangeState !== 'modified-clean' ||
+    isDocumentBusy() ||
+    isDocumentSaving() ||
+    closeConfirmOpen
+  ) {
+    if (view === admitted.view && session.documentId === admitted.documentId) {
+      notice = '重新载入已取消：文档或编辑状态已改变，当前内容已保留。'
+      renderSession()
+    }
+    return
+  }
 
   if (!result) {
     notice = messages.notices.reloadCancelled
@@ -3972,12 +4006,14 @@ async function reloadExternalDocument(): Promise<void> {
     return
   }
 
+  // Validate the native response before mutating the editor document.
+  const reloadedSession = recordFileReloadResult(session, result)
   state = new EditorState({
     doc: new MemoryTextDocument(result.text),
   })
   scheduleLargeDocumentPreviewClose()
   currentOpenPolicy = resolveDesktopOpenPolicy(metadataFromOpenFileResult(result))
-  session = recordFileReloadResult(session, result)
+  session = reloadedSession
   recentFiles = recordRecentFile(recentFiles, result.file, Date.now())
   watchCurrentFile()
   applyEditorViewState()

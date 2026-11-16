@@ -1,0 +1,374 @@
+✔ normal clean reload validates and commits native response (62.915382ms)
+✖ edits after admission survive; original bridge must never run on stale session (1.699928ms)
+✖ late read cannot overwrite another document or steal its focus/notice (1.358673ms)
+✖ admission invalidated during native read: version (4.613542ms)
+✖ admission invalidated during native read: document (2.201436ms)
+✖ admission invalidated during native read: path (1.709102ms)
+✖ admission invalidated during native read: snapshot (1.865109ms)
+✖ admission invalidated during native read: dirty (1.727981ms)
+✖ admission invalidated during native read: external (1.587429ms)
+✖ admission invalidated during native read: view (2.478346ms)
+✖ admission invalidated during native read: busy (1.670685ms)
+✖ admission invalidated during native read: saving (1.549262ms)
+✖ admission invalidated during native read: close (1.638787ms)
+✔ selection-only state replacement does not cancel a valid reload (1.747641ms)
+✖ only newest admitted read commits; completion order false (1.798207ms)
+✖ only newest admitted read commits; completion order true (1.19114ms)
+✖ latest cancellation cannot resurrect an older read (1.441729ms)
+✔ read rejection preserves editor and session (1.49554ms)
+✖ native identity rejection happens before any editor mutation: {"documentId":"WRONG"} (1.539095ms)
+✖ native identity rejection happens before any editor mutation: {"file":{"path":"/synthetic/wrong.md"}} (1.655442ms)
+✔ already dirty/conflicting document never admits a native reload (1.249588ms)
+(node:136920) ExperimentalWarning: stripTypeScriptTypes is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+ℹ tests 21
+ℹ suites 0
+ℹ pass 4
+ℹ fail 17
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 109.679133
+
+✖ failing tests:
+
+test at [eval1]:70:1
+✖ edits after admission survive; original bridge must never run on stale session (1.699928ms)
+  Error: Cannot reload session A from external state conflict
+      at recordFileReloadResult (evalmachine.<anonymous>:46:11)
+      at Object.reloadExternalDocument (evalmachine.<anonymous>:31:13)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async TestContext.<anonymous> (file:///workspace/milkup-linux-webkit-build-probe-20261114/[eval1]:75:37)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7)
+
+test at [eval1]:79:1
+✖ late read cannot overwrite another document or steal its focus/notice (1.358673ms)
+  Error: Reload result documentId A does not match session B
+      at assertReloadResultMatchesSession (evalmachine.<anonymous>:66:11)
+      at recordFileReloadResult (evalmachine.<anonymous>:43:3)
+      at Object.reloadExternalDocument (evalmachine.<anonymous>:31:13)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async TestContext.<anonymous> (file:///workspace/milkup-linux-webkit-build-probe-20261114/[eval1]:85:37)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7)
+
+test at [eval1]:90:3
+✖ admission invalidated during native read: version (4.613542ms)
+  AssertionError [ERR_ASSERTION]: Expected "actual" to be reference-equal to "expected":
+  + actual - expected
+  
+  + EditorState {
+  +   doc: MemoryTextDocument {
+  +     text: 'EXTERNAL'
+  - {
+  -   doc: {
+  -     text: 'ORIGINAL'
+      }
+    }
+  
+      at TestContext.<anonymous> (file:///workspace/milkup-linux-webkit-build-probe-20261114/[eval1]:104:12)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: [EditorState],
+    expected: [Object],
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at [eval1]:90:3
+✖ admission invalidated during native read: document (2.201436ms)
+  AssertionError [ERR_ASSERTION]: Expected "actual" to be reference-equal to "expected":
+  + actual - expected
+  
+  + EditorState {
+  +   doc: MemoryTextDocument {
+  +     text: 'EXTERNAL'
+  - {
+  -   doc: {
+  -     text: 'NEW-DOCUMENT-OBJECT'
+      }
+    }
+  
+      at TestContext.<anonymous> (file:///workspace/milkup-linux-webkit-build-probe-20261114/[eval1]:104:12)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: [EditorState],
+    expected: [Object],
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at [eval1]:90:3
+✖ admission invalidated during native read: path (1.709102ms)
+  Error: Reload result path /synthetic/a.md does not match session path /synthetic/renamed.md
+      at assertReloadResultMatchesSession (evalmachine.<anonymous>:76:11)
+      at recordFileReloadResult (evalmachine.<anonymous>:43:3)
+      at Object.reloadExternalDocument (evalmachine.<anonymous>:31:13)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async TestContext.<anonymous> (file:///workspace/milkup-linux-webkit-build-probe-20261114/[eval1]:103:39)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7)
+
+test at [eval1]:90:3
+✖ admission invalidated during native read: snapshot (1.865109ms)
+  AssertionError [ERR_ASSERTION]: Expected "actual" to be reference-equal to "expected":
+  + actual - expected
+  
+  + EditorState {
+  +   doc: MemoryTextDocument {
+  +     text: 'EXTERNAL'
+  - {
+  -   doc: {
+  -     text: 'ORIGINAL'
+      }
+    }
+  
+      at TestContext.<anonymous> (file:///workspace/milkup-linux-webkit-build-probe-20261114/[eval1]:104:12)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: [EditorState],
+    expected: [Object],
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at [eval1]:90:3
+✖ admission invalidated during native read: dirty (1.727981ms)
+  AssertionError [ERR_ASSERTION]: Expected "actual" to be reference-equal to "expected":
+  + actual - expected
+  
+  + EditorState {
+  +   doc: MemoryTextDocument {
+  +     text: 'EXTERNAL'
+  - {
+  -   doc: {
+  -     text: 'ORIGINAL'
+      }
+    }
+  
+      at TestContext.<anonymous> (file:///workspace/milkup-linux-webkit-build-probe-20261114/[eval1]:104:12)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: [EditorState],
+    expected: [Object],
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at [eval1]:90:3
+✖ admission invalidated during native read: external (1.587429ms)
+  Error: Cannot reload session A from external state deleted-clean
+      at recordFileReloadResult (evalmachine.<anonymous>:46:11)
+      at Object.reloadExternalDocument (evalmachine.<anonymous>:31:13)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async TestContext.<anonymous> (file:///workspace/milkup-linux-webkit-build-probe-20261114/[eval1]:103:39)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7)
+
+test at [eval1]:90:3
+✖ admission invalidated during native read: view (2.478346ms)
+  TypeError: Cannot read properties of undefined (reading 'inputDOM')
+      at Object.reloadExternalDocument (evalmachine.<anonymous>:37:8)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async TestContext.<anonymous> (file:///workspace/milkup-linux-webkit-build-probe-20261114/[eval1]:103:39)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7)
+
+test at [eval1]:90:3
+✖ admission invalidated during native read: busy (1.670685ms)
+  AssertionError [ERR_ASSERTION]: Expected "actual" to be reference-equal to "expected":
+  + actual - expected
+  
+  + EditorState {
+  +   doc: MemoryTextDocument {
+  +     text: 'EXTERNAL'
+  - {
+  -   doc: {
+  -     text: 'ORIGINAL'
+      }
+    }
+  
+      at TestContext.<anonymous> (file:///workspace/milkup-linux-webkit-build-probe-20261114/[eval1]:104:12)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: [EditorState],
+    expected: [Object],
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at [eval1]:90:3
+✖ admission invalidated during native read: saving (1.549262ms)
+  AssertionError [ERR_ASSERTION]: Expected "actual" to be reference-equal to "expected":
+  + actual - expected
+  
+  + EditorState {
+  +   doc: MemoryTextDocument {
+  +     text: 'EXTERNAL'
+  - {
+  -   doc: {
+  -     text: 'ORIGINAL'
+      }
+    }
+  
+      at TestContext.<anonymous> (file:///workspace/milkup-linux-webkit-build-probe-20261114/[eval1]:104:12)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: [EditorState],
+    expected: [Object],
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at [eval1]:90:3
+✖ admission invalidated during native read: close (1.638787ms)
+  AssertionError [ERR_ASSERTION]: Expected "actual" to be reference-equal to "expected":
+  + actual - expected
+  
+  + EditorState {
+  +   doc: MemoryTextDocument {
+  +     text: 'EXTERNAL'
+  - {
+  -   doc: {
+  -     text: 'ORIGINAL'
+      }
+    }
+  
+      at TestContext.<anonymous> (file:///workspace/milkup-linux-webkit-build-probe-20261114/[eval1]:104:12)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: [EditorState],
+    expected: [Object],
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at [eval1]:114:38
+✖ only newest admitted read commits; completion order false (1.798207ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  + actual - expected
+  
+  + 'STALE'
+  - 'ORIGINAL'
+  
+      at TestContext.<anonymous> (file:///workspace/milkup-linux-webkit-build-probe-20261114/[eval1]:117:71)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 'STALE',
+    expected: 'ORIGINAL',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at [eval1]:114:38
+✖ only newest admitted read commits; completion order true (1.19114ms)
+  Error: Cannot reload session A from external state none
+      at recordFileReloadResult (evalmachine.<anonymous>:46:11)
+      at Object.reloadExternalDocument (evalmachine.<anonymous>:31:13)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async TestContext.<anonymous> (file:///workspace/milkup-linux-webkit-build-probe-20261114/[eval1]:116:115)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7)
+
+test at [eval1]:121:1
+✖ latest cancellation cannot resurrect an older read (1.441729ms)
+  AssertionError [ERR_ASSERTION]: Expected "actual" to be reference-equal to "expected":
+  + actual - expected
+  
+  + EditorState {
+  +   doc: MemoryTextDocument {
+  +     text: 'EXTERNAL'
+  - {
+  -   doc: {
+  -     text: 'ORIGINAL'
+      }
+    }
+  
+      at TestContext.<anonymous> (file:///workspace/milkup-linux-webkit-build-probe-20261114/[eval1]:125:10)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: [EditorState],
+    expected: [Object],
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at [eval1]:133:94
+✖ native identity rejection happens before any editor mutation: {"documentId":"WRONG"} (1.539095ms)
+  AssertionError [ERR_ASSERTION]: Expected "actual" to be reference-equal to "expected":
+  + actual - expected
+  
+  + EditorState {
+  +   doc: MemoryTextDocument {
+  +     text: 'WRONG'
+  - {
+  -   doc: {
+  -     text: 'ORIGINAL'
+      }
+    }
+  
+      at TestContext.<anonymous> (file:///workspace/milkup-linux-webkit-build-probe-20261114/[eval1]:136:10)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: [EditorState],
+    expected: [Object],
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at [eval1]:133:94
+✖ native identity rejection happens before any editor mutation: {"file":{"path":"/synthetic/wrong.md"}} (1.655442ms)
+  AssertionError [ERR_ASSERTION]: Expected "actual" to be reference-equal to "expected":
+  + actual - expected
+  
+  + EditorState {
+  +   doc: MemoryTextDocument {
+  +     text: 'WRONG'
+  - {
+  -   doc: {
+  -     text: 'ORIGINAL'
+      }
+    }
+  
+      at TestContext.<anonymous> (file:///workspace/milkup-linux-webkit-build-probe-20261114/[eval1]:136:10)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: [EditorState],
+    expected: [Object],
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
