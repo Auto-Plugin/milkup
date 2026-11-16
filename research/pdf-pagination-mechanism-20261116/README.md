@@ -101,3 +101,19 @@ python3 research/pdf-pagination-mechanism-20261116/contract.py owned-process.log
 支持代码冻结自9f4af4d1，唯一适配是把旧系统库路径断言替换为严格私有manifest校验。使用原4份HTML只加ID/title，核对原长/短临界/宽松各自PDF；基线693词及原坐标0.5点门槛、内容/裁剪/顺序/表头错误完全保留。最终布局标题、thead/header row及首行的可见页集合必须与独立PDF唯一标签页相等，拒绝整页/多页框宽泛匹配。不会跑chain/caption方案，不更改标记结构。
 
 此次本地额外10项原生接线合同（包括实际自有FD子进程正常退出）及原12+8合同通过。精确包/参考ZIP解压、CRC、长度/hash和四夹具对照已在本机验证，但这仍不是原生输出通过。全局诊断status只能是`diagnostic-complete-original-product-failure-retained`或failed，`productAcceptancePassed`始终false。出现失败即终止本批，不自动再派发。
+
+## 43789957637 终态：四TU通过，缓存增量门禁停止
+
+[唯一修正后运行](https://github.com/Auto-Plugin/milkup/actions/runs/43789957637)测试`992d70091a497067cede46227deb27653fff29b3`。观察patch保持15f9字节，SHA256 `3a84a75ae9aad83e8f93940c4d55b886c6cf2cba069ca087893fa2efe2e443c8`。新原始证据位于`evidence/43789957637/`，保留旧43788232168失败。
+
+真实四TU全部通过：PrintContext 38.371秒、RenderBlockFlow 48.546秒、RenderBlock 34.199秒、RenderTable 24.721秒。严格undefined-inline未禁用；官方头生成44.839秒，5835条获审执行命令。前置总349.364秒，源码包及完整configure参数/FLAGS与固定receipt相符。两个首次缓存调用各hitDelta=1、missDelta=0。
+
+随后增量构建717.278秒后主动终止进程组（exit=-15）：`cache delta exceeds 64 misses; refuse full rebuild`。最终新增hits=2309（direct2302、preprocessed7）、misses=65；日志没有编译error或FAILED条目。Ninja最后2608/3616是混合构建步骤，不等于对象数或可直接估算的剩余时间。不是20分钟deadline、内存或磁盘停止：当时磁盘88,466,731,008字节，可用内存11,541,487,616字节。Ninja的通用`interrupted by user`文本来自预算代码发送SIGTERM，不是人工取消Actions。
+
+历史缓存**部分可复用**，但不满足本轮新增miss上限；没有证明剩余工作能在预算内完成。旧缓存包含scalar/URI研究补丁，当前观察基线未混入它们；静态逆向应用固定scalar补丁的三份scratch头文件显示Font.h、FontCascade.h、GraphicsContext.h输入不同（记录在static-header-delta.json）。这支持缓存不完全匹配的风险，但不能仅靠静态差异归因每一次miss，未记录逐对象miss原因。scratch来源本身已含旧scalar补丁，逆应用仅在临时副本；没有改本地原源码或远端输入。
+
+四TU门禁已收口；完整运行时构建/私有前缀安装未完成，原包安装、进程映射与原生PDF诊断均skipped。cleanup步骤只是没有本轮安装标记的空操作，不能记为正常卸载通过。未产生新分页机制结论，不做行为修复，不追加派发或提高门槛。
+
+工件14192332293，1,658,486字节，SHA256 `246c49eeb79e581f8dc10242f8305b15f2306182348f1526e3e6a173cc242b84`，CRC/路径/56,610,964字节解压预算检查通过；Actions到期2026-11-23T02:22:59Z。原ZIP及关键报告已随本研究分支保留，工作区副本在`/workspace/milkup-pagination-tu-43789957637/original.zip`。ZIP含源码/生成头及命令图/日志证据，不含产品包、runtime二进制或密钥。完整生成头、命令和通过对象hash可用于后续精确继承判断；本工作流没有保存变化后的ccache，**不能声称这65份新增对象可在下个runner恢复**。
+
+后续前提应是与观察基线公共头一致的可恢复缓存，或另行审定能够完成该基线构建并留存缓存的明确预算；不能通过混入旧文字/URI行为补丁、改变原PDF对照或扩大本轮miss阈值取得绿灯。现有4CPU/约16GiB/充足磁盘runner已证明能完成四TU，本轮没有证据要求更换机器或降低沙箱。尚未执行的原包诊断接线已备好，但不构成发布验收。

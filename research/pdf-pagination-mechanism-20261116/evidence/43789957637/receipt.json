@@ -1,0 +1,101 @@
+{
+  "run": 43789957637,
+  "testedSha": "992d70091a497067cede46227deb27653fff29b3",
+  "observationPatchSha256": "3a84a75ae9aad83e8f93940c4d55b886c6cf2cba069ca087893fa2efe2e443c8",
+  "status": "failed-cache-budget-not-pdf",
+  "artifact": {
+    "id": 14192332293,
+    "bytes": 1658486,
+    "sha256": "246c49eeb79e581f8dc10242f8305b15f2306182348f1526e3e6a173cc242b84",
+    "expiresAt": "2026-11-23T02:22:59Z",
+    "repositoryCopy": "original-artifact.zip"
+  },
+  "actualTuGate": "passed",
+  "objects": [
+    {
+      "name": "fixed-PrintContext",
+      "exitCode": 0,
+      "seconds": 38.371,
+      "objectSha256": "1760d5bc68ebe0398b3f6b6b617f7b0268877d5ebab3d137e937afcfedff1212",
+      "sourceHashAfter": "fa397a626a715109ad85f63d3cf526776bb5678371ad6ca68c1a2cf9828f45cb"
+    },
+    {
+      "name": "fixed-RenderBlockFlow",
+      "exitCode": 0,
+      "seconds": 48.546,
+      "objectSha256": "0dda442da253b1cc33e406ac4fc3e0ca0e3529890f9bc9e53986e558879665c0",
+      "sourceHashAfter": "da97c09703886b8dcec047a1006e5b8845848d63a5175a879476fddf49d151cc"
+    },
+    {
+      "name": "fixed-RenderBlock",
+      "exitCode": 0,
+      "seconds": 34.199,
+      "objectSha256": "749421858c77b4dc6941fc14bd9af063ea26ccbcfbbfb54cfc59b1562948c4ea",
+      "sourceHashAfter": "4eabcfd313b1519dcc26b0d3da5629f18a7e17778826dff9166be6acaad917c1"
+    },
+    {
+      "name": "fixed-RenderTable",
+      "exitCode": 0,
+      "seconds": 24.721,
+      "objectSha256": "8042925a0401a4ef4df64f2feb0fc12814a11c02f5e54e1e280e62d44a1da663",
+      "sourceHashAfter": "84e45e56ee88fcdb472da245feeeb3e340424887d27822bc6bb9125b9a1b4374"
+    }
+  ],
+  "firstCacheInvocations": {
+    "status": "passed",
+    "scope": "Two first-invocation cached objects, not all objects or runtime acceptance",
+    "samples": [
+      {
+        "target": "Source/bmalloc/CMakeFiles/bmalloc.dir/bmalloc/Allocator.cpp.o",
+        "plannedCompiles": 1,
+        "seconds": 0.069,
+        "exitCode": 0,
+        "hitsBefore": 21863,
+        "hitsAfter": 21864,
+        "hitDelta": 1,
+        "missDelta": 0
+      },
+      {
+        "target": "Source/bmalloc/CMakeFiles/bmalloc.dir/bmalloc/Cache.cpp.o",
+        "plannedCompiles": 1,
+        "seconds": 0.021,
+        "exitCode": 0,
+        "hitsBefore": 21864,
+        "hitsAfter": 21865,
+        "hitDelta": 1,
+        "missDelta": 0
+      }
+    ]
+  },
+  "continuation": {
+    "compileExitCode": -15,
+    "stopReason": "cache delta exceeds 64 misses; refuse full rebuild",
+    "compileSeconds": 717.278,
+    "maxSeconds": 1200,
+    "maxNewCacheMisses": 64
+  },
+  "lastSample": {
+    "seconds": 717.272,
+    "newMisses": 65,
+    "newHits": 2309,
+    "freeBytes": 88466731008,
+    "availableMemoryBytes": 11541487616
+  },
+  "preflightSeconds": 349.364,
+  "lastNinjaProgress": "2608/3616",
+  "ninjaProgressScope": "Ninja steps including generation/linking, not remaining compiler-object count",
+  "compilerErrorsInRetainedBuildLog": 0,
+  "runtimeInstallExecuted": false,
+  "packageInstallExecuted": false,
+  "nativePdfExecuted": false,
+  "cleanupStepScope": "No installation-owned marker; successful cleanup step is a no-op, not product uninstall proof",
+  "nativeMechanismConfirmed": false,
+  "rerunDispatched": false,
+  "runner": {
+    "image": "20261111.196.1",
+    "cpuCount": 4,
+    "memTotal": "16366640 kB"
+  },
+  "newCacheObjectsPersisted": false,
+  "cachePersistenceBoundary": "This bounded workflow did not save its modified cache; do not claim its 65 newly compiled misses are available in a later runner."
+}
