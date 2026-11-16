@@ -1,5 +1,5 @@
 """Offline positive/negative contracts for the complete new non-engine path."""
-import ast,copy,hashlib,json,os,pathlib,shlex,subprocess,tarfile,tempfile,time,unittest,zipfile
+import ast,copy,gzip,io,hashlib,json,os,pathlib,shlex,subprocess,tarfile,tempfile,time,unittest,zipfile
 from unittest import mock
 import current_tu_gate as gate
 import current_source_archive as archive
@@ -12,7 +12,7 @@ class CurrentGate(unittest.TestCase):
   with zipfile.ZipFile(base/'official-cmake-inputs.zip')as z:
    for name in z.namelist():self.assertEqual(hashlib.sha256(z.read(name)).hexdigest(),lock['scannedFiles'][name])
    skia=z.read('Source/ThirdParty/skia/CMakeLists.txt').decode()
-   for requirement in ['Fontconfig 2.13.0 REQUIRED','WebP REQUIRED COMPONENTS mux','EXPAT REQUIRED']:self.assertIn(requirement,skia)
+   for requirement in ['Fontconfig 2.13.0 REQUIRED','WebP REQUIRED COMPONENTS mux','Expat is required by USE_SKIA_OPENTYPE_SVG']:self.assertIn(requirement,skia)
   with tempfile.TemporaryDirectory()as t:
    env={**os.environ,'PKG_CONFIG_PATH':'','PKG_CONFIG_LIBDIR':t,'PKG_CONFIG_SYSROOT_DIR':''}
    command=['pkg-config','--print-errors','--exists',*gate.REQUIRED_POST_GTK_MODULES]
@@ -22,6 +22,38 @@ class CurrentGate(unittest.TestCase):
    self.assertEqual(subprocess.run(command,env=env,capture_output=True).returncode,0)
    (pathlib.Path(t)/'libwebpmux.pc').unlink()
    self.assertNotEqual(subprocess.run(command,env=env,capture_output=True).returncode,0)
+ def test_real_receipt_selects_only_two_required_pch_producers(self):
+  with zipfile.ZipFile(HERE/'evidence/43849878532/original.zip')as z:
+   commands=json.loads(z.read('graph/compile_commands.json'));report=json.loads(z.read('result.json'))
+   build=pathlib.Path(next(iter(report['selectedUnits'].values()))['directory'])
+   pch=gate.selected_pch_entries(commands,report['selectedUnits'],build)
+   self.assertEqual(len(pch),2)
+   self.assertEqual({pathlib.Path(e['file']).parent.name for e in pch},{'WebCore.dir','WebCoreStyle.dir'})
+   webcore=next(e for e in pch if '/WebCore.dir/'in e['file'])
+   target,args=gate.contract.original_command(webcore,z.read('FontCascade-graph.log').decode(),build)
+   self.assertTrue(target.endswith('WebCore.dir/cmake_pch.hxx.pch'));self.assertIn('-emit-pch',args)
+   with self.assertRaises(AssertionError):gate.selected_pch_entries([e for e in commands if e!=webcore],report['selectedUnits'],build)
+   with self.assertRaises(AssertionError):gate.selected_pch_entries(commands+[webcore],report['selectedUnits'],build)
+   wrong=copy.deepcopy(report['selectedUnits']);e=next(iter(wrong.values()));e['command']=e['command'].replace(str(build)+'/Source/WebCore/CMakeFiles/WebCore.dir/cmake_pch.hxx.pch','/tmp/foreign/cmake_pch.hxx.pch')
+   with self.assertRaises(AssertionError):gate.selected_pch_entries(commands,wrong,build)
+   changed=copy.deepcopy(webcore);changed['command']=changed['command'].replace('-Werror=undefined-inline','-Wno-error=undefined-inline')
+   with self.assertRaises(AssertionError):gate.contract.original_command(changed,z.read('FontCascade-graph.log').decode(),build)
+ def test_configuration_parts_are_lossless_bounded_and_do_not_mask_failed_state(self):
+  with tempfile.TemporaryDirectory()as t:
+   root=pathlib.Path(t);data=b'first line\nsecond line\nthird line\n';target=root/'build.ninja'
+   receipt=gate.retain_configuration_stream(io.BytesIO(data),target,len(data),part_limit=12,total_limit=100)
+   self.assertEqual(len(receipt['parts']),3)
+   restored=b''
+   for row in receipt['parts']:
+    p=root/row['file'];self.assertEqual(gate.digest(p),row['storedSha256'])
+    raw=gzip.decompress(p.read_bytes());self.assertEqual(len(raw),row['rawBytes']);self.assertEqual(hashlib.sha256(raw).hexdigest(),row['rawSha256']);restored+=raw
+   self.assertEqual(restored,data);self.assertEqual(hashlib.sha256(restored).hexdigest(),receipt['rawSha256'])
+   self.assertEqual(json.loads((root/'build.ninja.parts.json').read_text()),receipt)
+   for wrong,expected,budget in [(data[:-1],len(data),100),(data,len(data)-1,100),(data,len(data),10)]:
+    with self.assertRaises(AssertionError):gate.retain_configuration_stream(io.BytesIO(wrong),root/'bad',expected,part_limit=12,total_limit=budget)
+   g=gate.Gate(root/'gate',time.time());g.build.mkdir();(g.build/'CMakeCache.txt').write_text('partial')
+   g.report.update(status='failed',error='original compiler error');g.retain()
+   self.assertEqual(g.report['status'],'failed');self.assertEqual(g.report['error'],'original compiler error');self.assertEqual(g.report['objectRetention']['files'],[])
  def test_official_sources_and_wrong_origin(self):
   text='Types: deb\nURIs: mirror+file:/etc/apt/apt-mirrors.txt\nSuites: resolute resolute-updates\nComponents: main universe\nSigned-By: /usr/share/keyrings/ubuntu-archive-keyring.gpg\n'
   good=gate.official_sources(text,lambda p:'https://untrusted.invalid/ubuntu\nhttp://archive.ubuntu.com/ubuntu/\n')

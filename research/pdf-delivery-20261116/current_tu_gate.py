@@ -1,7 +1,7 @@
 """One bounded official-current-source/configure/actual-TU gate, never an engine build.
 No old cache restore, runtime install, application launch, or native acceptance.
 """
-import argparse,hashlib,importlib.util,json,os,pathlib,re,shlex,shutil,signal,subprocess,tarfile,time,traceback,urllib.request
+import argparse,gzip,hashlib,importlib.util,json,os,pathlib,re,shlex,shutil,signal,subprocess,tarfile,time,traceback,urllib.request
 import package_boundary as boundary
 HERE=pathlib.Path(__file__).resolve().parent;REPO=HERE.parents[1]
 SOURCE_SHA=boundary.SOURCE_SHA;PATCH_SHA='855e58cc8ad531cc32e893b8274983a6264e6fdfc248c13e80c5ef0e01d7a4e5'
@@ -59,6 +59,51 @@ def selected_entries(commands,sources,source):
  targets={ (e.get('arguments')or shlex.split(e['command']))[(e.get('arguments')or shlex.split(e['command'])).index('-o')+1]for e in selected.values()}
  assert 1<=len(targets)<=len(sources)==10,'Changed-source/TU budget'
  return selected
+def selected_pch_entries(commands,selected,build):
+ # Keep the actual Release PCH flags. Compile only explicitly referenced PCHs,
+ # not a Ninja umbrella target or every PCH in the full engine database.
+ required=set()
+ for entry in selected.values():
+  args=entry.get('arguments')or shlex.split(entry['command'])
+  for i,value in enumerate(args):
+   if value!='-include-pch':continue
+   assert i>0 and args[i-1]=='-Xclang' and args[i+1]=='-Xclang','Exact Clang PCH argument form required'
+   path=pathlib.Path(args[i+2]);assert path.is_absolute()and path.is_relative_to(build)and '..'not in path.parts
+   assert path.name=='cmake_pch.hxx.pch';required.add(path)
+ assert len(required)<=len(selected)<=10
+ result=[]
+ for path in sorted(required):
+  found=[]
+  for e in commands:
+   if not e['file'].endswith('/cmake_pch.hxx.cxx'):continue
+   a=e.get('arguments')or shlex.split(e['command'])
+   if a.count('-o')==1 and (build/a[a.index('-o')+1])==path:found.append(e)
+  assert len(found)==1,('Unique configured PCH producer required',str(path),len(found))
+  entry=found[0];a=entry.get('arguments')or shlex.split(entry['command'])
+  assert pathlib.Path(entry['directory'])==build and pathlib.Path(entry['file'])==path.with_suffix('.cxx')
+  assert '-emit-pch'in a and a[a.index('-x')+1]=='c++-header'and '-include-pch'not in a,'PCH must be a leaf header compilation'
+  result.append(entry)
+ return result
+def retain_configuration_stream(stream,destination,expected_bytes,part_limit=32*1024**2,total_limit=128*1024**2):
+ # Same 32 MiB per-part bound, lossless split for real larger Ninja/compile DB.
+ # The manifest is reconstructible with exact order, sizes and SHA-256, not a
+ # truncated proxy. All files together remain bounded by the caller as well.
+ assert 0<=expected_bytes<=total_limit,'Configuration evidence total budget exceeded'
+ assert 0<part_limit<=32*1024**2
+ destination.parent.mkdir(parents=True,exist_ok=True)
+ whole=hashlib.sha256();rows=[];count=0
+ while True:
+  data=stream.read(part_limit)
+  if not data:break
+  count+=len(data);assert count<=expected_bytes,'Configuration changed while retaining'
+  whole.update(data);name=destination.name+f'.part-{len(rows):03d}.gz';path=destination.with_name(name)
+  with path.open('wb')as raw:
+   with gzip.GzipFile(fileobj=raw,mode='wb',mtime=0,filename='')as out:out.write(data)
+  rows.append({'file':name,'rawBytes':len(data),'rawSha256':hashlib.sha256(data).hexdigest(),'storedBytes':path.stat().st_size,'storedSha256':digest(path)})
+ assert count==expected_bytes,'Configuration truncated while retaining'
+ receipt={'encoding':'ordered-gzip-parts','rawBytes':count,'rawSha256':whole.hexdigest(),'parts':rows}
+ destination.with_name(destination.name+'.parts.json').write_text(json.dumps(receipt,indent=2)+'\n')
+ return receipt
 class Gate:
  def __init__(self,root,start):
   assert 0<=time.time()-start<=180,'Workflow start clock must be recent'
@@ -142,14 +187,10 @@ class Gate:
   log=self.run('configure',['cmake','-S',str(self.source),'-B',str(self.build),'-GNinja',*[f'-D{k}={v}'for k,v in options.items()]],300)
   cache=self.build/'CMakeCache.txt';config=self.build/'cmakeconfig.h'
   self.report['configuration']=validate_config(cache,config,log,recipe,options)
-  for file in ['CMakeCache.txt','cmakeconfig.h','compile_commands.json','build.ninja','CMakeFiles/rules.ninja']:
-   p=self.build/file;dest=self.out/'graph'/file;dest.parent.mkdir(parents=True,exist_ok=True);shutil.copyfile(p,dest)
   self.run('compiler-version',['/usr/bin/clang++','--version'],15)
   self.run('pkgconfig-dependencies',['pkg-config','--modversion','gtk+-3.0','gtk+-unix-print-3.0','libsoup-3.0','glib-2.0','harfbuzz','icu-uc'],15)
   self.report['compilerSha256']=digest(pathlib.Path('/usr/bin/clang++').resolve())
   self.run('manifest-refresh',['ninja','build.ninja'],60,self.build)
-  for file in ['compile_commands.json','build.ninja','CMakeFiles/rules.ninja']:
-   shutil.copyfile(self.build/file,self.out/'graph'/file)
   commands=json.loads((self.build/'compile_commands.json').read_text());sources=[r for r in lock['outputs']if r.endswith('.cpp')]
   selected=selected_entries(commands,sources,self.source);self.report['selectedUnits']=selected;self.report['compileDatabaseSha256']=digest(self.build/'compile_commands.json');self.persist()
   available=self.run('ninja-targets',['ninja','-t','targets','all'],30,self.build);targets=set(l.rsplit(': ',1)[0]for l in available.splitlines())
@@ -166,6 +207,19 @@ class Gate:
   (self.out/'generated-header-sha256.json').write_text(json.dumps(generated,indent=2)+'\n')
   self.resource('headers-ready')
   invoked=set();fresh_cache=self.root/'unused-fresh-ccache';assert not fresh_cache.exists();fresh_cache.mkdir()
+  pch_entries=selected_pch_entries(commands,selected,self.build);self.report['selectedPchEntries']=pch_entries;self.report['precompiledHeaders']=[];self.persist()
+  for index,entry in enumerate(pch_entries):
+   args=entry.get('arguments')or shlex.split(entry['command']);target=args[args.index('-o')+1]
+   graph=self.run(f'pch-{index}-graph',['ninja','-t','commands',target],30,self.build)
+   exact,cmd=contract.original_command(entry,graph,self.build);assert exact==target
+   output=self.build/target;assert not output.exists();output.parent.mkdir(parents=True,exist_ok=True)
+   inputs={}
+   for input_path in [pathlib.Path(entry['file']),output.with_suffix('')]:
+    assert input_path.is_file()and input_path.stat().st_size<1024**2
+    rel=input_path.relative_to(self.build);saved=self.out/'pch-inputs'/rel;saved.parent.mkdir(parents=True,exist_ok=True);shutil.copyfile(input_path,saved);inputs[str(rel)]=digest(input_path)
+   self.run(f'compile-pch-{index}',cmd,180,self.build,{**os.environ,'CCACHE_DISABLE':'1','CCACHE_DIR':str(fresh_cache)})
+   assert output.is_file()and output.stat().st_size>0
+   self.report['precompiledHeaders'].append({'target':target,'bytes':output.stat().st_size,'sha256':digest(output),'command':cmd,'inputHashes':inputs,'binaryRetained':False});self.persist();self.resource('pch-complete')
   for rel,entry in selected.items():
    args=entry.get('arguments')or shlex.split(entry['command']);target=args[args.index('-o')+1]
    if target in invoked:continue
@@ -184,12 +238,16 @@ class Gate:
   # credentials, source tree or arbitrary filesystem paths enter this archive.
   # Retain incomplete configuration on failure too, rather than losing the
   # cache/tool diagnostics before generated ABI checks can run.
-  configuration_files={}
+  configuration_files={};configuration_bytes=0
   for rel in ['CMakeCache.txt','cmakeconfig.h','compile_commands.json','build.ninja','CMakeFiles/rules.ninja','CMakeFiles/CMakeConfigureLog.yaml']:
    p=self.build/rel
    if not p.is_file():continue
-   assert p.stat().st_size<=32*1024**2,'Configuration evidence budget exceeded'
-   q=self.out/'graph'/rel;q.parent.mkdir(parents=True,exist_ok=True);shutil.copyfile(p,q);configuration_files[rel]=digest(p)
+   size=p.stat().st_size;configuration_bytes+=size
+   assert configuration_bytes<=128*1024**2,'Configuration evidence total budget exceeded'
+   q=self.out/'graph'/rel;q.parent.mkdir(parents=True,exist_ok=True)
+   if size<=32*1024**2:shutil.copyfile(p,q);configuration_files[rel]={'encoding':'raw','rawBytes':size,'rawSha256':digest(p)}
+   else:
+    with p.open('rb')as stream:configuration_files[rel]=retain_configuration_stream(stream,q,size)
   self.report['retainedConfigurationFiles']=configuration_files
   rows=[];total=0
   for obj in self.report['objects']:
