@@ -89,3 +89,15 @@ python3 research/pdf-pagination-mechanism-20261116/contract.py owned-process.log
 原工件14191153889（1,626,235字节，SHA256 `d4fd51743a08a398e76c2a639b2896ae35cdc7c4dfcf976c33e0322c01588d63`）CRC及每条路径检查通过；保留在Actions至2026-11-23T01:52:24Z，本地完整副本`/workspace/milkup-pagination-tu-43788232168/original.zip`是工作区副本，不冒充长期存储。本目录43788232168子目录保留原始报告、精确失败编译输出、测试时patch及receipt，不依赖绿色状态推断结果。Artifact直链一次403后通过已授权GitHub连接器取得同一ZIP，未改变权限。
 
 遵守本轮失败即停条件；未来若重新授权接续，先对显式include修正重验受影响TU，才可评估20分钟受限链接及完整原生机制门禁，不自动继续，不更换出口、不跳过原失败控制。
+
+## 授权后的单次修正前置与条件原生诊断
+
+继续授权后新增显式`pagination-diagnostic`操作。固定15f9观察patch SHA256 `3a84a75ae9aad83e8f93940c4d55b886c6cf2cba069ca087893fa2efe2e443c8`；没有改变产品或诊断返回行为。共享观察头改变，四个受影响真实TU必须都重新编译，不能沿用前三个对象冒称新头已通过。旧源hash、原配置参数/FLAGS及缓存来源继续固定。
+
+同一作业75分钟：先原有有界前置；四TU全过、初次cache命中及资源成立后，独立continuation最多20分钟compile/link、最多64个新增cache miss、最少8GiB磁盘及2GiB可用内存，否则停止。启动continuation时作业前段不得已耗30分钟，保留安装/原生/收尾时间。不把前置命令变成全引擎调用，也不把两个cache hit当完整链接成功。这里的完整引擎恢复仅在明确条件分支内执行。
+
+原生阶段复用58c78973原deb（9e71…ddde）、原输出binary（42394…76ed6）和嵌入guard（296131…52fa），在全新CI实际安装到`/usr/bin/milkup-desktop`。原命令/FD/guard/载入打印/12mm页面设置及1024×768原生窗口分配均复用；独立采集PID+birth/UID/窗口归属、实际私有WebKit/JSC映射及文件hash、WebProcess沙箱状态。只通过进程环境指定本轮受控prefix，不替换系统库、不更改系统安全或沙箱配置。安装包不是重建包；私有观察runtime不是可交付产品依赖。
+
+支持代码冻结自9f4af4d1，唯一适配是把旧系统库路径断言替换为严格私有manifest校验。使用原4份HTML只加ID/title，核对原长/短临界/宽松各自PDF；基线693词及原坐标0.5点门槛、内容/裁剪/顺序/表头错误完全保留。最终布局标题、thead/header row及首行的可见页集合必须与独立PDF唯一标签页相等，拒绝整页/多页框宽泛匹配。不会跑chain/caption方案，不更改标记结构。
+
+此次本地额外10项原生接线合同（包括实际自有FD子进程正常退出）及原12+8合同通过。精确包/参考ZIP解压、CRC、长度/hash和四夹具对照已在本机验证，但这仍不是原生输出通过。全局诊断status只能是`diagnostic-complete-original-product-failure-retained`或failed，`productAcceptancePassed`始终false。出现失败即终止本批，不自动再派发。
