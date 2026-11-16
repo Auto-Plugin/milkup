@@ -112,7 +112,8 @@ def expected_old_failure(code,log):
     errors=[line for line in clean.splitlines()if 'error:'in line]
     return code!=0 and len(errors)==1 and "inline function 'WebCore::RenderObject::localToAbsoluteQuad' is not defined"in errors[0] and 'undefined-inline'in errors[0]
 
-def run(source,build,out,inherit=None):
+def run(source,build,out,inherit=None,max_objects=4):
+    assert 1<=max_objects<=13 and (inherit is None or max_objects==4)
     out.mkdir(parents=True,exist_ok=False)
     report={'status':'running','scope':'Generated headers and actual selected translation units; not runtime or PDF acceptance','samples':[]}
     def persist():(out/'result.json').write_text(json.dumps(report,indent=2)+'\n')
@@ -146,7 +147,10 @@ def run(source,build,out,inherit=None):
             selected[relative]=matches[0]
         report['compileDatabaseSha256']=digest(build/'compile_commands.json')
         report['sourceHashes']={s:digest(source/s)for s in SOURCES}
-        report['selectedUnits']=selected;persist()
+        report['selectedUnits']=selected
+        selected_targets={shlex.split(v['command'])[shlex.split(v['command']).index('-o')+1] if 'command'in v else v['arguments'][v['arguments'].index('-o')+1] for v in selected.values()}
+        assert len(selected_targets)<=max_objects,'Selected real TU budget before execution'
+        report['maxObjectCommands']=max_objects;persist()
         available=subprocess.check_output(['ninja','-C',str(build),'-t','targets','all'],text=True,timeout=30)
         targets=set(line.rsplit(': ',1)[0]for line in available.splitlines())
         assert set(HEADER_TARGETS)<=targets,'Required explicit header target missing'
@@ -214,7 +218,7 @@ def run(source,build,out,inherit=None):
             assert row['exitCode']==0 and output.is_file()and output.stat().st_size>0,'Actual fixed translation unit failed'
             row['objectSha256']=digest(output);row['sourceHashAfter']=digest(source/relative);persist()
         assert digest(print_source)==report['sourceHashes'][SOURCES[0]],'Candidate source not restored'
-        report['uniqueObjectCommands']=len(invoked);assert 1<=len(invoked)<=4
+        report['uniqueObjectCommands']=len(invoked);assert 1<=len(invoked)<=max_objects
         report['status']='passed'
     except Exception as e:report['status']='failed';report['error']=str(e)
     finally:

@@ -39,7 +39,7 @@ on:
       pagination_tail:
         description: Tail observation or explicit root-margin correction with negative controls
         type: choice
-        options: ['false', 'true', root-margin]
+        options: ['false', 'true', root-margin, combined]
         default: 'false'
       pagination_restore_run:
         description: Optional exact prior pagination-segment object artifact run; mismatches stop
@@ -281,7 +281,8 @@ jobs:
       PAGINATION_RESTORE_RUN: ${{ inputs.pagination_restore_run }}
       PAGINATION_BEHAVIOR: ${{ inputs.pagination_behavior }}
       PAGINATION_TAIL: ${{ inputs.pagination_tail != 'false' }}
-      PAGINATION_ROOT_MARGIN: ${{ inputs.pagination_tail == 'root-margin' }}
+      PAGINATION_ROOT_MARGIN: ${{ inputs.pagination_tail == 'root-margin' || inputs.pagination_tail == 'combined' }}
+      PAGINATION_COMBINED: ${{ inputs.pagination_tail == 'combined' }}
     defaults:
       run:
         shell: bash
@@ -341,7 +342,15 @@ jobs:
       - name: Optional behavior candidate exact-source and actual-TU gate
         if: inputs.pagination_behavior && inputs.operation == 'pagination-segment'
         timeout-minutes: 25
-        run: python3 research/pdf-pagination-behavior-20261116/compile_candidate.py
+        run: |
+          if [ "$PAGINATION_COMBINED" = true ]; then
+            sudo apt-get -c "$RUNNER_TEMP/milkup-webkit-research/apt.conf" -y --no-install-recommends --no-remove install fontconfig python3-pypdf python3-fonttools fonts-noto-core fonts-noto-cjk fonts-dejavu-core
+            python3 -m unittest discover -s research/pdf-combined-20261116 -p 'test*.py'
+            python3 -m unittest discover -s research/linux-pdf-links-20261114 -p 'test*.py'
+            python3 research/linux-pdf-unicode-20261114/test_digit_probe.py "$RUNNER_TEMP/milkup-webkit-research/evidence/combined-digit-contract"
+            python3 research/linux-pdf-unicode-20261114/digit_fixture_preflight.py "$RUNNER_TEMP/milkup-webkit-research/evidence/combined-digit-fixture.json"
+          fi
+          python3 research/pdf-pagination-behavior-20261116/compile_candidate.py
       - name: Only after four TUs pass, bounded cached observation runtime
         id: pagination-engine
         if: (inputs.operation == 'pagination-diagnostic' || inputs.operation == 'pagination-segment')

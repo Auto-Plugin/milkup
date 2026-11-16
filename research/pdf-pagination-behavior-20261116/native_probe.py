@@ -65,6 +65,11 @@ def validate_native(native,dest,verify,expected,prefix):
   assert sha(image)==expected[str(image)]['sha256']
   st=image.stat();assert process['imageFile']=={'device':st.st_dev,'inode':st.st_ino,'bytes':st.st_size,'mtimeNs':st.st_mtime_ns,'ctimeNs':st.st_ctime_ns}
   assert process['noNewPrivs']==1 and process['seccomp']==2,'Actual sandbox status required'
+ if os.environ.get('PAGINATION_COMBINED')=='true':
+  import importlib.util,fitz
+  spec=importlib.util.spec_from_file_location('combined_contract',HERE.parent/'pdf-combined-20261116/contract.py');cc=importlib.util.module_from_spec(spec);spec.loader.exec_module(cc)
+  pdfs=list(dest.glob('*.pdf'));assert len(pdfs)==1
+  with fitz.open(pdfs[0])as pdf:cc.pages((dest/'native.log').read_text(),len(pdf))
 
 
 def run(out,prefix,manifest_path):
@@ -81,6 +86,8 @@ def run(out,prefix,manifest_path):
   manifest=json.loads(manifest_path.read_text());assert manifest['harnessSha']==os.environ['GITHUB_SHA']
   if os.environ.get('PAGINATION_TAIL')=='true':assert manifest['tailObservation']['patchSha256']==sha(HERE/'tail-observation.patch')
   if os.environ.get('PAGINATION_ROOT_MARGIN')=='true':assert manifest['rootMarginPatchSha256']==sha(HERE/'root-margin.patch')
+  combined=os.environ.get('PAGINATION_COMBINED')=='true'
+  if combined:assert manifest['combinedPatchSha256']==sha(HERE.parent/'pdf-combined-20261116/combined.patch')
   verify,expected=runtime_verifier(prefix,manifest);calibrate.verify_private_libraries=verify
   original_proc=calibrate.proc
   def observed_proc(pid):
@@ -97,6 +104,7 @@ def run(out,prefix,manifest_path):
   from behavior_contract import CASES, adapted_html, assess_pdf, batch_passed
   env=os.environ.copy();env['LD_LIBRARY_PATH']=str(prefix/'lib/x86_64-linux-gnu');env['MILKUP_PAGINATION_PROBE']='1'
   if os.environ.get('PAGINATION_TAIL')=='true':env['MILKUP_PAGINATION_TAIL']='1'
+  if combined:env['MILKUP_COMBINED_PROBE']='1'
   with tempfile.TemporaryDirectory(prefix='mkpagination-runtime-',dir='/tmp')as runtime:
    env['XDG_RUNTIME_DIR']=runtime
    for key in ['CONFIG','CACHE','DATA','STATE']:
@@ -133,13 +141,22 @@ def run(out,prefix,manifest_path):
     import root_margin_controls
     def save_controls(rows):report['rootMarginControls']=rows;persist()
     root_margin_controls.run(out,labelled,binary,guard,env,lambda n,d:validate_native(n,d,verify,expected,prefix),save_controls)
+   if combined:
+    import importlib.util
+    spec=importlib.util.spec_from_file_location('combined_native',HERE.parent/'pdf-combined-20261116/native.py');cn=importlib.util.module_from_spec(spec);spec.loader.exec_module(cn)
+    def save_combined(value):report['combined']=value;persist()
+    cn.run(out,binary,guard,env,lambda n,d:validate_native(n,d,verify,expected,prefix),save_combined)
+    # Original documents must acquire exact source characters and actual URIs
+    # in this same runtime, even when separate fidelity fixtures have passed.
+    cn.original_controls(out,report);persist();cn.contract.original_fidelity(report)
   controls=report.get('rootMarginControls',[])
   controls_ok=os.environ.get('PAGINATION_ROOT_MARGIN')!='true' or (len(controls)==2 and all(r['passed']for r in controls))
-  report['status']='targeted-pagination-passed-not-product-acceptance' if batch_passed(report['results'],CASES) and controls_ok else 'failed-original-pagination-contract'
+  combined_ok=not combined or report.get('combined',{}).get('status')=='passed'
+  report['status']=('targeted-combined-passed-not-product-acceptance'if combined else'targeted-pagination-passed-not-product-acceptance') if batch_passed(report['results'],CASES) and controls_ok and combined_ok else 'failed-original-pagination-contract'
  except Exception as error:report.update(status='failed',error=repr(error))
  finally:report['seconds']=round(time.monotonic()-started,3);persist()
- print(json.dumps({k:v for k,v in report.items()if k not in ['results','rootMarginControls']},indent=2))
- return report['status']=='targeted-pagination-passed-not-product-acceptance'
+ print(json.dumps({k:v for k,v in report.items()if k not in ['results','rootMarginControls','combined']},indent=2))
+ return report['status'] in ['targeted-pagination-passed-not-product-acceptance','targeted-combined-passed-not-product-acceptance']
 
 if __name__=='__main__':
  p=argparse.ArgumentParser();p.add_argument('mode',choices=['assets','run']);p.add_argument('--output',type=pathlib.Path,required=True);p.add_argument('--package',type=pathlib.Path);p.add_argument('--reference',type=pathlib.Path);p.add_argument('--prefix',type=pathlib.Path);p.add_argument('--manifest',type=pathlib.Path);a=p.parse_args()

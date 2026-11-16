@@ -1,0 +1,916 @@
+--- a/Source/WebCore/Headers.cmake
++++ b/Source/WebCore/Headers.cmake
+@@ -2148,6 +2148,7 @@
+     page/PopupOpeningObserver.h
+     page/PrewarmInformation.h
+     page/PrintContext.h
++    page/MilkupPrintResearch.h
+     page/ProcessWarming.h
+     page/Quirks.h
+     page/QuirksData.h
+@@ -2744,6 +2745,7 @@
+     platform/graphics/RenderingResource.h
+     platform/graphics/RenderingResourceIdentifier.h
+     platform/graphics/RotationDirection.h
++    platform/graphics/ScalarGlyphText.h
+     platform/graphics/ScreenDataOverrides.h
+     platform/graphics/ShareableBitmap.h
+     platform/graphics/ShareableBitmapHandle.h
+--- /dev/null
++++ b/Source/WebCore/page/MilkupPrintResearch.h
+@@ -0,0 +1,121 @@
++// RESEARCH ONLY: synthetic fixture, finite record/rectangle budgets, no product use.
++#pragma once
++#include "AffineTransform.h"
++#include "Document.h"
++#include "ElementInlines.h"
++#include "GraphicsContext.h"
++#include "LayoutRect.h"
++#include "RenderElement.h"
++#include "RenderElementInlines.h"
++#include "RenderObjectDocument.h"
++#include <wtf/text/CString.h>
++#include <algorithm>
++#include <cstdio>
++#include <cstdlib>
++#include <string>
++
++namespace WebCore::MilkupPrintResearch {
++inline unsigned activePage = 0;
++inline unsigned records = 0;
++inline unsigned focusCalls = 0;
++inline bool dedup = false;
++
++// Research-only A/B candidate. No state survives this one collection.
++template<typename Rectangles> Rectangles uniquePerCall(const Rectangles& input)
++{
++    Rectangles result;
++    for (const auto& rect : input) {
++        if (std::find(result.begin(), result.end(), rect) == result.end())
++            result.append(rect);
++    }
++    return result;
++}
++
++
++inline bool eligible(Document& document)
++{
++    return std::getenv("MILKUP_PAINT_PROBE") && document.printing() && document.title() == "MILKUP_PRINT_LAYOUT_V1"_s;
++}
++inline bool allowRecord()
++{
++    if (++records <= 512)
++        return true;
++    if (records == 513)
++        std::fprintf(stderr, "MILKUP_PAINT {\"kind\":\"error\",\"reason\":\"budget\"}\n");
++    return false;
++}
++inline std::string hex(const String& value)
++{
++    auto bytes = value.utf8();
++    std::string result;
++    if (bytes.length() > 128)
++        return result;
++    constexpr char digits[] = "0123456789abcdef";
++    for (unsigned char byte : bytes.span()) {
++        result.push_back(digits[byte >> 4]);
++        result.push_back(digits[byte & 15]);
++    }
++    return result;
++}
++inline void matrix(const AffineTransform& m)
++{
++    std::fprintf(stderr, "[%.17g,%.17g,%.17g,%.17g,%.17g,%.17g]", m.a(), m.b(), m.c(), m.d(), m.e(), m.f());
++}
++inline void rectangle(const FloatRect& r)
++{
++    std::fprintf(stderr, "[%.17g,%.17g,%.17g,%.17g]", static_cast<double>(r.x()), static_cast<double>(r.y()), static_cast<double>(r.maxX()), static_cast<double>(r.maxY()));
++}
++inline void begin(Document& document, int page)
++{
++    if (!eligible(document))
++        return;
++    activePage = page + 1;
++    dedup = std::getenv("MILKUP_PAINT_DEDUP") != nullptr;
++    if (allowRecord())
++        std::fprintf(stderr, "MILKUP_PAINT {\"kind\":\"begin\",\"page\":%u,\"dedup\":%s}\n", activePage, dedup ? "true" : "false");
++}
++inline void end()
++{
++    if (activePage && allowRecord())
++        std::fprintf(stderr, "MILKUP_PAINT {\"kind\":\"end\",\"page\":%u}\n", activePage);
++    activePage = 0;
++    std::fflush(stderr);
++}
++inline Vector<LayoutRect> focus(const RenderElement& renderer, GraphicsContext& context, unsigned phase, const Vector<LayoutRect>& raw)
++{
++    if (!activePage || !eligible(renderer.document()) || !renderer.element())
++        return raw;
++    auto id = renderer.element()->getIdAttribute().string();
++    if (!id.startsWith("probe-"_s))
++        return raw;
++    if (raw.size() > 64) {
++        std::fprintf(stderr, "MILKUP_PAINT {\"kind\":\"error\",\"reason\":\"rectangles\"}\n");
++        return raw;
++    }
++    auto emitted = dedup ? uniquePerCall(raw) : raw;
++    if (!allowRecord())
++        return raw;
++    auto identity = hex(id);
++    std::fprintf(stderr, "MILKUP_PAINT {\"kind\":\"focus\",\"page\":%u,\"call\":%u,\"phase\":%u,\"idHex\":\"%s\",\"block\":%s,\"inline\":%s,\"emitted\":%zu,\"ctm\":", activePage, ++focusCalls, phase, identity.c_str(), renderer.isRenderBlock() ? "true" : "false", renderer.isRenderInline() ? "true" : "false", emitted.size());
++    matrix(context.getCTM());
++    std::fprintf(stderr, ",\"raw\":[");
++    bool comma = false;
++    for (const auto& r : raw) {
++        if (comma) std::fprintf(stderr, ",");
++        rectangle(FloatRect(r));
++        comma = true;
++    }
++    std::fprintf(stderr, "]}\n");
++    return emitted;
++}
++inline void clip(const char* path, const RenderElement& renderer, GraphicsContext& context, unsigned phase, const LayoutRect& raw, const FloatRect& actual, float scale)
++{
++    if (!activePage || !eligible(renderer.document()) || !renderer.element() || renderer.element()->getIdAttribute() != "clip-parent"_s || !allowRecord())
++        return;
++    std::fprintf(stderr, "MILKUP_PAINT {\"kind\":\"clip\",\"page\":%u,\"path\":\"%s\",\"phase\":%u,\"scale\":%.17g,\"ctm\":", activePage, path, phase, static_cast<double>(scale));
++    matrix(context.getCTM());
++    std::fprintf(stderr, ",\"raw\":"); rectangle(FloatRect(raw));
++    std::fprintf(stderr, ",\"actual\":"); rectangle(actual);
++    std::fprintf(stderr, "}\n");
++}
++}
+--- a/Source/WebCore/page/PrintContext.cpp
++++ b/Source/WebCore/page/PrintContext.cpp
+@@ -21,6 +21,7 @@
+ #include "config.h"
+ #include "../rendering/MilkupPaginationResearch.h"
+ #include "../rendering/MilkupTailResearch.h"
++#include "MilkupPrintResearch.h"
+ #include "PrintContext.h"
+ 
+ #include "AXIsolatedTree.h"
+@@ -38,6 +39,14 @@
+ #include "NodeDocument.h"
+ #include "RenderStyle+GettersInlines.h"
+ #include "RenderView.h"
++#include "RenderBox.h"
++#include "RenderObjectInlines.h"
++#include "ElementInlines.h"
++#include <wtf/text/CString.h>
++#include "HTMLNames.h"
++#include <cstdio>
++#include <cstdlib>
++#include <string>
+ #include "Settings.h"
+ #include "StyleResolver.h"
+ #include "StyleScope.h"
+@@ -256,6 +265,101 @@
+     return std::max(maxShrinkToFitScaleFactor, shrinkToFitScaleFactor);
+ }
+ 
++// RESEARCH ONLY. Insert into PrintContext.cpp, never into a production runtime.
++// Reads layout, not OutlinePainter, GraphicsContext::setURLForRect or PDF output.
++static void milkupPrintLayoutProbe(Document& document, GraphicsContext& context, const IntRect& pageRect, int pageNumber, bool layoutReady)
++{
++    if (!std::getenv("MILKUP_PRINT_LAYOUT_PROBE"))
++        return;
++    // Only our synthetic local fixture is eligible; never log arbitrary documents.
++    if (document.title() != "MILKUP_PRINT_LAYOUT_V1"_s)
++        return;
++    static unsigned pages = 0;
++    if (++pages > 8) {
++        std::fprintf(stderr, "MILKUP_LAYOUT {\"kind\":\"error\",\"reason\":\"page-budget\"}\n");
++        return;
++    }
++    auto ctm = context.getCTM();
++    bool complete = document.printing() && layoutReady && !ctm.b() && !ctm.c() && ctm.a() > 0 && ctm.d() > 0;
++    std::fprintf(stderr, "MILKUP_LAYOUT {\"kind\":\"page\",\"page\":%d,\"printing\":%s,\"layoutReady\":%s,\"ctm\":[%.17g,%.17g,%.17g,%.17g,%.17g,%.17g],\"pageRect\":[%d,%d,%d,%d]}\n",
++        pageNumber + 1, document.printing() ? "true" : "false", layoutReady ? "true" : "false", ctm.a(), ctm.b(), ctm.c(), ctm.d(), ctm.e(), ctm.f(), pageRect.x(), pageRect.y(), pageRect.maxX(), pageRect.maxY());
++    auto hex = [](const String& value) {
++        auto bytes = value.utf8();
++        std::string result;
++        if (bytes.length() > 2048)
++            return result;
++        constexpr char digits[] = "0123456789abcdef";
++        for (unsigned char byte : bytes.span()) {
++            result.push_back(digits[byte >> 4]);
++            result.push_back(digits[byte & 15]);
++        }
++        return result;
++    };
++    unsigned elements = 0;
++    for (RefPtr child = document.documentElement(); child; child = ElementTraversal::next(*child)) {
++        // Fixture IDs cover anchors AND their exact no-link span controls.
++        auto id = child->getIdAttribute().string();
++        if (!id.startsWith("probe-"_s))
++            continue;
++        if (++elements > 32) { complete = false; break; }
++        auto* renderer = child->renderer();
++        if (!renderer) { complete = false; continue; }
++        Vector<FloatQuad> quads;
++        renderer->absoluteQuads(quads);
++        if (quads.isEmpty() || quads.size() > 64) { complete = false; continue; }
++        auto uri = child->getAttribute(HTMLNames::hrefAttr);
++        auto idHex = hex(id);
++        auto uriHex = hex(uri);
++        if (idHex.empty() || (!uri.isEmpty() && uriHex.empty())) { complete = false; continue; }
++        // The selected fixtures use only axis-aligned, rectangular overflow clips.
++        // Record each ancestor clip independently; no annotation clip API is read.
++        std::fprintf(stderr, "MILKUP_LAYOUT {\"kind\":\"element\",\"page\":%d,\"idHex\":\"%s\",\"uriHex\":\"%s\",\"fragments\":[", pageNumber + 1, idHex.c_str(), uriHex.c_str());
++        bool comma = false;
++        for (auto& quad : quads) {
++            if (!quad.isRectilinear()) complete = false;
++            auto rect = quad.boundingBox();
++            std::fprintf(stderr, "%s[%.17g,%.17g,%.17g,%.17g]", comma ? "," : "", static_cast<double>(rect.x()), static_cast<double>(rect.y()), static_cast<double>(rect.maxX()), static_cast<double>(rect.maxY()));
++            comma = true;
++        }
++        std::fprintf(stderr, "],\"clips\":[");
++        comma = false;
++        unsigned depth = 0;
++        for (auto* ancestor = renderer->parent(); ancestor; ancestor = ancestor->parent()) {
++            if (++depth > 32) { complete = false; break; }
++            auto* box = dynamicDowncast<RenderBox>(*ancestor);
++            if (!box || !box->hasNonVisibleOverflow()) continue;
++            auto localClip = box->overflowClipRect(LayoutPoint());
++            auto quad = box->localToAbsoluteQuad(FloatQuad(FloatRect(localClip)));
++            if (!quad.isRectilinear()) complete = false;
++            auto rect = quad.boundingBox();
++            std::fprintf(stderr, "%s[%.17g,%.17g,%.17g,%.17g]", comma ? "," : "", static_cast<double>(rect.x()), static_cast<double>(rect.y()), static_cast<double>(rect.maxX()), static_cast<double>(rect.maxY()));
++            comma = true;
++        }
++        std::fprintf(stderr, "]}\n");
++    }
++    std::fprintf(stderr, "MILKUP_LAYOUT {\"kind\":\"end\",\"page\":%d,\"elements\":%u,\"complete\":%s}\n", pageNumber + 1, elements, complete ? "true" : "false");
++    std::fflush(stderr);
++}
++
++// RESEARCH ONLY: same-process page boundaries for all controlled fixture kinds.
++static void milkupCombinedPage(Document& document, int page, const char* phase, bool ready)
++{
++    if (!std::getenv("MILKUP_COMBINED_PROBE"))
++        return;
++    auto title = document.title();
++    if (title != "MILKUP_PAGINATION_LAYOUT_V1"_s && title != "MILKUP_PRINT_LAYOUT_V1"_s
++        && title != "MILKUP_DIGIT_RESEARCH"_s && title != "MILKUP_COMBINED_TEXT"_s)
++        return;
++    static unsigned records = 0;
++    if (++records > 128 || page < 0 || page >= 64) {
++        std::fprintf(stderr, "MILKUP_COMBINED {\"kind\":\"error\"}\n");
++        return;
++    }
++    std::fprintf(stderr, "MILKUP_COMBINED {\"kind\":\"page\",\"phase\":\"%s\",\"page\":%d,\"printing\":%s,\"layoutReady\":%s}\n",
++        phase, page + 1, document.printing() ? "true" : "false", ready ? "true" : "false");
++    std::fflush(stderr);
++}
++
+ void PrintContext::spoolPage(GraphicsContext& ctx, int pageNumber, float width)
+ {
+     if (!frame())
+@@ -277,9 +381,14 @@
+     ctx.scale(scale);
+     ctx.translate(-pageRect.x(), -pageRect.y());
+     ctx.clip(pageRect);
++    milkupCombinedPage(*frame.document(), pageNumber, "begin", !frame.view()->needsLayout());
+     MilkupPaginationResearch::finalPage(*frame.document(), ctx, pageRect, pageNumber, !frame.view()->needsLayout());
+     MilkupTailResearch::finalPage(*frame.document(), pageRect, pageNumber);
++    milkupPrintLayoutProbe(*frame.document(), ctx, pageRect, pageNumber, !frame.view()->needsLayout());
++    MilkupPrintResearch::begin(*frame.document(), pageNumber);
+     frame.view()->paintContents(ctx, pageRect);
++    MilkupPrintResearch::end();
++    milkupCombinedPage(*frame.document(), pageNumber, "end", !frame.view()->needsLayout());
+     outputLinkedDestinations(ctx, *frame.protectedDocument(), pageRect);
+     ctx.restore();
+ }
+--- a/Source/WebCore/platform/graphics/Font.h
++++ b/Source/WebCore/platform/graphics/Font.h
+@@ -20,6 +20,7 @@
+  */
+ 
+ #pragma once
++#include "ScalarGlyphText.h"
+ 
+ #include <WebCore/FloatRect.h>
+ #include <WebCore/FontMetrics.h>
+@@ -251,7 +252,7 @@
+ #endif
+ 
+ #if USE(SKIA)
+-    sk_sp<SkTextBlob> buildTextBlob(std::span<const GlyphBufferGlyph>, std::span<const GlyphBufferAdvance>, FontSmoothingMode) const;
++    sk_sp<SkTextBlob> buildTextBlob(std::span<const GlyphBufferGlyph>, std::span<const GlyphBufferAdvance>, FontSmoothingMode, const ScalarGlyphText* = nullptr) const;
+     bool enableAntialiasing(FontSmoothingMode) const;
+ #endif
+ 
+--- a/Source/WebCore/platform/graphics/FontCascade.cpp
++++ b/Source/WebCore/platform/graphics/FontCascade.cpp
+@@ -22,6 +22,8 @@
+  */
+ 
+ #include "config.h"
++#include <cstdio>
++#include <cstdlib>
+ #include "FontCascade.h"
+ 
+ #include "ComplexTextController.h"
+@@ -32,6 +34,10 @@
+ #include "FontCascadeInlines.h"
+ #include "GlyphBuffer.h"
+ #include "GraphicsContext.h"
++#if USE(SKIA)
++#include "ScalarGlyphText.h"
++#include <skia/core/SkFont.h>
++#endif
+ #include "LayoutRect.h"
+ #include "TextRun.h"
+ #include "WidthIterator.h"
+@@ -183,7 +189,7 @@
+         return FloatSize();
+ 
+     FloatPoint startPoint = point + WebCore::size(glyphBuffer.initialAdvance());
+-    drawGlyphBuffer(context, glyphBuffer, startPoint, customFontNotReadyAction);
++    drawGlyphBuffer(context, glyphBuffer, startPoint, customFontNotReadyAction, &run, from, destination);
+     return startPoint - point;
+ }
+ 
+@@ -230,7 +236,7 @@
+         context.getCTM(GraphicsContext::DefinitelyIncludeDeviceScale), context.colorSpace(), drawGlyphsMode);
+ 
+     FloatPoint startPoint = toFloatPoint(WebCore::size(glyphBuffer.initialAdvance()));
+-    drawGlyphBuffer(recordingContext, glyphBuffer, startPoint, customFontNotReadyAction);
++    drawGlyphBuffer(recordingContext, glyphBuffer, startPoint, customFontNotReadyAction, &run, from, destination);
+ 
+     return recordingContext.takeDisplayList();
+ }
+@@ -1537,10 +1543,119 @@
+     return !font.isInterstitial() || font.visibility() == Font::Visibility::Visible || customFontNotReadyAction == FontCascade::CustomFontNotReadyAction::UseFallbackIfFontNotReady;
+ }
+ 
++#if USE(SKIA)
++// Research only. Caller must retain LTR/horizontal TextRun and actual offset
++// provenance guards. This does not infer source characters from glyph IDs.
++static std::optional<ScalarGlyphText> makeIndependentAsciiDigitText(
++    std::u16string_view source, std::span<const uint32_t> offsets,
++    std::span<const uint32_t> drawnGlyphs, std::span<const uint32_t> nominalGlyphs)
++{
++    if (source.empty() || source.size() > ScalarGlyphText::maxBytes / 4
++        || offsets.size() != drawnGlyphs.size() || offsets.size() != nominalGlyphs.size())
++        return std::nullopt;
++    // acceptedGlyphs is deliberately NOT described as a font cmap. Unchanged
++    // glyphs retain the nominal requirement; only a valid ASCII digit source
++    // may supply a different actual shaped glyph. No output glyph is changed.
++    std::vector<uint32_t> acceptedGlyphs(nominalGlyphs.begin(), nominalGlyphs.end());
++    for (size_t i = 0; i < offsets.size(); ++i) {
++        if (drawnGlyphs[i] == nominalGlyphs[i])
++            continue;
++        if (offsets[i] >= source.size() || source[offsets[i]] < u'0' || source[offsets[i]] > u'9'
++            || !nominalGlyphs[i] || nominalGlyphs[i] >= 0xFFFF
++            || !drawnGlyphs[i] || drawnGlyphs[i] >= 0xFFFF)
++            return std::nullopt;
++        acceptedGlyphs[i] = drawnGlyphs[i];
++    }
++    // The unchanged helper proves complete one-scalar/one-glyph coverage of
++    // the WHOLE span: exact increasing UTF-16 offsets, no repeated/missing
++    // clusters, extra glyphs, ligatures or malformed surrogate pairs. Preserve
++    // original text for Skia's existing extended-map/ActualText conflict path.
++    return makeScalarGlyphText(source, offsets, drawnGlyphs, acceptedGlyphs);
++}
++// Synthetic engine probe only: never enabled by the application.
++static void milkupDigitTrace(std::u16string_view source, std::span<const uint32_t> offsets,
++    std::span<const uint32_t> glyphs, std::span<const uint32_t> nominal, bool accepted)
++{
++    if (!std::getenv("MILKUP_DIGIT_PROBE"))
++        return;
++    bool changed = false;
++    for (size_t i = 0; i < offsets.size(); ++i) {
++        if (offsets[i] < source.size() && source[offsets[i]] >= u'0' && source[offsets[i]] <= u'9'
++            && glyphs[i] != nominal[i])
++            changed = true;
++    }
++    if (!changed)
++        return;
++    static unsigned records = 0;
++    if (++records > 512 || source.size() > 256 || glyphs.size() > 256) {
++        std::fprintf(stderr, "MILKUP_DIGIT_OVERFLOW\n");
++        return;
++    }
++    std::fprintf(stderr, "MILKUP_DIGIT_V1 {\"accepted\":%s,\"source\":[", accepted ? "true" : "false");
++    for (size_t i = 0; i < source.size(); ++i)
++        std::fprintf(stderr, "%s%u", i ? "," : "", static_cast<unsigned>(source[i]));
++    std::fprintf(stderr, "],\"glyphs\":[");
++    for (size_t i = 0; i < glyphs.size(); ++i)
++        std::fprintf(stderr, "%s[%u,%u,%u]", i ? "," : "", offsets[i], glyphs[i], nominal[i]);
++    std::fprintf(stderr, "]}\n");
++}
++#endif
++
+ // This function assumes the GlyphBuffer's initial advance has already been incorporated into the start point.
+-void FontCascade::drawGlyphBuffer(GraphicsContext& context, const GlyphBuffer& glyphBuffer, FloatPoint& point, CustomFontNotReadyAction customFontNotReadyAction) const
++void FontCascade::drawGlyphBuffer(GraphicsContext& context, const GlyphBuffer& glyphBuffer, FloatPoint& point, CustomFontNotReadyAction customFontNotReadyAction, const TextRun* sourceRun, unsigned sourceFrom, unsigned sourceTo) const
+ {
+     ASSERT(glyphBuffer.isFlattened());
++    std::optional<ScalarGlyphText> sourceText;
++#if USE(SKIA)
++    // Research subset: prove complete scalar coverage before font splitting.
++    // No cmap reversal, text normalization, changed glyphs or changed advances.
++    if (sourceRun && sourceRun->ltr() && sourceFrom < sourceTo && sourceTo <= sourceRun->length()
++        && sourceTo - sourceFrom <= ScalarGlyphText::maxBytes / 4 && glyphBuffer.size() <= ScalarGlyphText::maxBytes / 4) {
++        std::u16string source;
++        for (unsigned i = sourceFrom; i < sourceTo; ++i)
++            source.push_back((*sourceRun)[i]);
++        std::vector<uint32_t> offsets, glyphs, nominal;
++        bool complete = true;
++        for (size_t i = 0; i < glyphBuffer.size(); ++i) {
++            auto offset = glyphBuffer.checkedStringOffsetAt(i, sourceRun->length());
++            const auto& font = glyphBuffer.fontAt(i);
++            if (!offset || *offset < sourceFrom || *offset >= sourceTo || font.platformData().orientation() != FontOrientation::Horizontal) {
++                complete = false;
++                break;
++            }
++            uint32_t scalar = (*sourceRun)[*offset];
++            if (scalar >= 0xD800 && scalar <= 0xDBFF) {
++                if (*offset + 1 >= sourceTo || (*sourceRun)[*offset + 1] < 0xDC00 || (*sourceRun)[*offset + 1] > 0xDFFF) {
++                    complete = false;
++                    break;
++                }
++                scalar = 0x10000 + ((scalar - 0xD800) << 10) + (*sourceRun)[*offset + 1] - 0xDC00;
++            }
++            offsets.push_back(*offset - sourceFrom);
++            glyphs.push_back(glyphBuffer.glyphAt(i));
++            nominal.push_back(font.platformData().skFont().unicharToGlyph(scalar));
++        }
++        if (complete) {
++            // Never infer a cluster end from a partial draw/selection span:
++            // a clipped digit ligature could masquerade as a single scalar.
++            sourceText = std::getenv("MILKUP_DIGIT_NOMINAL_ONLY") || sourceFrom || sourceTo != sourceRun->length()
++                ? makeScalarGlyphText(source, offsets, glyphs, nominal)
++                : makeIndependentAsciiDigitText(source, offsets, glyphs, nominal);
++            milkupDigitTrace(source, offsets, glyphs, nominal, sourceText.has_value());
++        }
++    }
++#else
++    UNUSED_PARAM(sourceRun);
++    UNUSED_PARAM(sourceFrom);
++    UNUSED_PARAM(sourceTo);
++#endif
++    const auto drawSpan = [&](const Font& font, size_t first, size_t count, const FloatPoint& origin) {
++        auto part = sourceText ? sourceText->slice(first, count) : std::nullopt;
++        if (part)
++            context.drawGlyphsWithSourceText(font, glyphBuffer.glyphs(first, count), glyphBuffer.advances(first, count), origin, m_fontDescription.usedFontSmoothing(), *part);
++        else
++            context.drawGlyphs(font, glyphBuffer.glyphs(first, count), glyphBuffer.advances(first, count), origin, m_fontDescription.usedFontSmoothing());
++    };
+     RefPtr fontData = glyphBuffer.fontAt(0);
+     FloatPoint startPoint = point;
+     float nextX = startPoint.x() + WebCore::width(glyphBuffer.advanceAt(0));
+@@ -1553,7 +1668,7 @@
+         if (nextFontData != fontData) {
+             if (shouldDrawIfLoading(*fontData, customFontNotReadyAction)) {
+                 size_t glyphCount = nextGlyph - lastFrom;
+-                context.drawGlyphs(*fontData, glyphBuffer.glyphs(lastFrom, glyphCount), glyphBuffer.advances(lastFrom, glyphCount), startPoint, m_fontDescription.usedFontSmoothing());
++                drawSpan(*fontData, lastFrom, glyphCount, startPoint);
+             }
+             lastFrom = nextGlyph;
+             fontData = WTF::move(nextFontData);
+@@ -1567,7 +1682,7 @@
+ 
+     if (shouldDrawIfLoading(*fontData, customFontNotReadyAction)) {
+         size_t glyphCount = nextGlyph - lastFrom;
+-        context.drawGlyphs(*fontData, glyphBuffer.glyphs(lastFrom, glyphCount), glyphBuffer.advances(lastFrom, glyphCount), startPoint, m_fontDescription.usedFontSmoothing());
++        drawSpan(*fontData, lastFrom, glyphCount, startPoint);
+     }
+     point.setX(nextX);
+ }
+--- a/Source/WebCore/platform/graphics/FontCascade.h
++++ b/Source/WebCore/platform/graphics/FontCascade.h
+@@ -248,7 +248,7 @@
+ 
+     GlyphBuffer layoutText(CodePath, const TextRun&, unsigned from, unsigned to, ForTextEmphasisOrNot = ForTextEmphasisOrNot::NotForTextEmphasis) const;
+     GlyphBuffer layoutSimpleText(const TextRun&, unsigned from, unsigned to, ForTextEmphasisOrNot = ForTextEmphasisOrNot::NotForTextEmphasis) const;
+-    void drawGlyphBuffer(GraphicsContext&, const GlyphBuffer&, FloatPoint&, CustomFontNotReadyAction) const;
++    void drawGlyphBuffer(GraphicsContext&, const GlyphBuffer&, FloatPoint&, CustomFontNotReadyAction, const TextRun* = nullptr, unsigned sourceFrom = 0, unsigned sourceTo = 0) const;
+     void drawEmphasisMarks(GraphicsContext&, const GlyphBuffer&, const AtomString&, const FloatPoint&) const;
+     int offsetForPositionForSimpleText(const TextRun&, float position, bool includePartialGlyphs) const;
+     void adjustSelectionRectForSimpleText(const TextRun&, LayoutRect& selectionRect, unsigned from, unsigned to) const;
+--- a/Source/WebCore/platform/graphics/GraphicsContext.cpp
++++ b/Source/WebCore/platform/graphics/GraphicsContext.cpp
+@@ -178,6 +178,12 @@
+     FontCascade::drawGlyphs(*this, font, glyphs, advances, point, fontSmoothingMode);
+ }
+ 
++void GraphicsContext::drawGlyphsWithSourceText(const Font& font, std::span<const GlyphBufferGlyph> glyphs, std::span<const GlyphBufferAdvance> advances, const FloatPoint& point, FontSmoothingMode mode, const ScalarGlyphText&)
++{
++    // Unsupported contexts retain old behavior. This is NOT complete IPC coverage.
++    drawGlyphs(font, glyphs, advances, point, mode);
++}
++
+ void GraphicsContext::drawGlyphsImmediate(const Font& font, std::span<const GlyphBufferGlyph> glyphs, std::span<const GlyphBufferAdvance> advances, const FloatPoint& point, FontSmoothingMode fontSmoothingMode)
+ {
+     // Called by implementations that transform drawGlyphs into drawGlyphsImmediate, drawImageBuffer, etc calls.
+--- a/Source/WebCore/platform/graphics/GraphicsContext.h
++++ b/Source/WebCore/platform/graphics/GraphicsContext.h
+@@ -25,6 +25,7 @@
+  */
+ 
+ #pragma once
++#include "ScalarGlyphText.h"
+ 
+ #include <WebCore/ControlPart.h>
+ #include <WebCore/DashArray.h>
+@@ -312,6 +313,7 @@
+     WEBCORE_EXPORT virtual void drawBidiText(const FontCascade&, const TextRun&, const FloatPoint&, FontCascade::CustomFontNotReadyAction = FontCascade::CustomFontNotReadyAction::DoNotPaintIfFontNotReady);
+ 
+     WEBCORE_EXPORT virtual void drawGlyphs(const Font&, std::span<const GlyphBufferGlyph>, std::span<const GlyphBufferAdvance>, const FloatPoint&, FontSmoothingMode);
++    WEBCORE_EXPORT virtual void drawGlyphsWithSourceText(const Font&, std::span<const GlyphBufferGlyph>, std::span<const GlyphBufferAdvance>, const FloatPoint&, FontSmoothingMode, const ScalarGlyphText&);
+     WEBCORE_EXPORT void drawDisplayList(const DisplayList::DisplayList&);
+     WEBCORE_EXPORT virtual void drawDisplayList(const DisplayList::DisplayList&, ControlFactory&);
+     WEBCORE_EXPORT FloatRect computeUnderlineBoundsForText(const FloatRect&, bool printing);
+--- /dev/null
++++ b/Source/WebCore/platform/graphics/ScalarGlyphText.h
+@@ -0,0 +1,105 @@
++// Research-only source metadata bridge; not an installed WebKit patch.
++// Copyright (C) 2026 LarryZhu-dev. SPDX-License-Identifier: BSD-2-Clause
++#pragma once
++#include <cstdint>
++#include <limits>
++#include <optional>
++#include <span>
++#include <string>
++#include <string_view>
++#include <vector>
++
++namespace WebCore {
++// Deliberately narrow: one LTR source scalar per unchanged nominal glyph.
++// Ligatures, reordered/repeated offsets, synthetic/missing glyphs and partial
++// surrogate pairs are rejected, never reverse-mapped or normalized.
++struct ScalarGlyphText {
++    static constexpr size_t maxBytes = 1024 * 1024;
++    std::string utf8;
++    std::vector<uint32_t> clusters;
++
++    bool validFor(size_t glyphCount) const
++    {
++        if (utf8.empty() || utf8.size() > maxBytes || clusters.size() != glyphCount || !glyphCount)
++            return false;
++        size_t byte = 0, glyph = 0;
++        while (byte < utf8.size()) {
++            if (glyph == glyphCount || clusters[glyph++] != byte)
++                return false;
++            uint8_t first = static_cast<uint8_t>(utf8[byte++]);
++            uint32_t scalar = first;
++            unsigned continuation = 0;
++            uint32_t minimum = 0;
++            if (first >= 0xC2 && first <= 0xDF) { scalar = first & 0x1F; continuation = 1; minimum = 0x80; }
++            else if (first >= 0xE0 && first <= 0xEF) { scalar = first & 0x0F; continuation = 2; minimum = 0x800; }
++            else if (first >= 0xF0 && first <= 0xF4) { scalar = first & 7; continuation = 3; minimum = 0x10000; }
++            else if (first >= 0x80) return false;
++            for (unsigned i = 0; i < continuation; ++i) {
++                if (byte >= utf8.size()) return false;
++                uint8_t next = static_cast<uint8_t>(utf8[byte++]);
++                if ((next & 0xC0) != 0x80) return false;
++                scalar = (scalar << 6) | (next & 0x3F);
++            }
++            if (scalar < minimum || scalar > 0x10FFFF || (scalar >= 0xD800 && scalar <= 0xDFFF))
++                return false;
++        }
++        return glyph == glyphCount;
++    }
++
++    std::optional<ScalarGlyphText> slice(size_t first, size_t count) const
++    {
++        if (!validFor(clusters.size()) || !count || first >= clusters.size() || count > clusters.size() - first)
++            return std::nullopt;
++        const size_t start = clusters[first];
++        const size_t end = first + count == clusters.size() ? utf8.size() : clusters[first + count];
++        ScalarGlyphText result;
++        result.utf8 = utf8.substr(start, end - start);
++        for (size_t i = first; i < first + count; ++i)
++            result.clusters.push_back(clusters[i] - start);
++        return result;
++    }
++};
++
++inline std::optional<ScalarGlyphText> makeScalarGlyphText(
++    std::u16string_view source, std::span<const uint32_t> offsets,
++    std::span<const uint32_t> drawnGlyphs, std::span<const uint32_t> nominalGlyphs)
++{
++    if (source.empty() || source.size() > ScalarGlyphText::maxBytes / 4
++        || offsets.size() != drawnGlyphs.size() || offsets.size() != nominalGlyphs.size())
++        return std::nullopt;
++    ScalarGlyphText result;
++    size_t index = 0;
++    for (size_t offset = 0; offset < source.size(); ++index) {
++        if (index >= offsets.size() || offsets[index] != offset
++            || !drawnGlyphs[index] || drawnGlyphs[index] == 0xFFFF
++            || drawnGlyphs[index] != nominalGlyphs[index])
++            return std::nullopt;
++        uint32_t scalar = source[offset++];
++        if (scalar >= 0xD800 && scalar <= 0xDBFF) {
++            if (offset == source.size()) return std::nullopt;
++            uint32_t low = source[offset++];
++            if (low < 0xDC00 || low > 0xDFFF) return std::nullopt;
++            scalar = 0x10000 + ((scalar - 0xD800) << 10) + low - 0xDC00;
++        } else if (scalar >= 0xDC00 && scalar <= 0xDFFF)
++            return std::nullopt;
++        result.clusters.push_back(static_cast<uint32_t>(result.utf8.size()));
++        if (scalar < 0x80) result.utf8.push_back(static_cast<char>(scalar));
++        else if (scalar < 0x800) {
++            result.utf8.push_back(static_cast<char>(0xC0 | (scalar >> 6)));
++            result.utf8.push_back(static_cast<char>(0x80 | (scalar & 0x3F)));
++        } else if (scalar < 0x10000) {
++            result.utf8.push_back(static_cast<char>(0xE0 | (scalar >> 12)));
++            result.utf8.push_back(static_cast<char>(0x80 | ((scalar >> 6) & 0x3F)));
++            result.utf8.push_back(static_cast<char>(0x80 | (scalar & 0x3F)));
++        } else {
++            result.utf8.push_back(static_cast<char>(0xF0 | (scalar >> 18)));
++            result.utf8.push_back(static_cast<char>(0x80 | ((scalar >> 12) & 0x3F)));
++            result.utf8.push_back(static_cast<char>(0x80 | ((scalar >> 6) & 0x3F)));
++            result.utf8.push_back(static_cast<char>(0x80 | (scalar & 0x3F)));
++        }
++    }
++    if (index != offsets.size() || !result.validFor(drawnGlyphs.size()))
++        return std::nullopt;
++    return result;
++}
++}
+--- a/Source/WebCore/platform/graphics/displaylists/DisplayListItems.cpp
++++ b/Source/WebCore/platform/graphics/displaylists/DisplayListItems.cpp
+@@ -280,7 +280,10 @@
+ 
+ void DrawGlyphs::apply(GraphicsContext& context) const
+ {
+-    context.drawGlyphs(m_font, m_glyphs.span(), m_advances.span(), m_localAnchor, m_fontSmoothingMode);
++    if (m_sourceText)
++        context.drawGlyphsWithSourceText(m_font, m_glyphs.span(), m_advances.span(), m_localAnchor, m_fontSmoothingMode, *m_sourceText);
++    else
++        context.drawGlyphs(m_font, m_glyphs.span(), m_advances.span(), m_localAnchor, m_fontSmoothingMode);
+ }
+ 
+ void DrawGlyphs::dump(TextStream& ts, OptionSet<AsTextFlag>) const
+--- a/Source/WebCore/platform/graphics/displaylists/DisplayListItems.h
++++ b/Source/WebCore/platform/graphics/displaylists/DisplayListItems.h
+@@ -24,6 +24,7 @@
+  */
+ 
+ #pragma once
++#include "ScalarGlyphText.h"
+ 
+ #include <WebCore/AlphaPremultiplication.h>
+ #include <WebCore/ControlPart.h>
+@@ -495,12 +496,13 @@
+ public:
+     static constexpr char name[] = "draw-glyphs";
+ 
+-    DrawGlyphs(Ref<const Font>&& font, Vector<GlyphBufferGlyph>&& glyphs, Vector<GlyphBufferAdvance>&& advances, const FloatPoint& localAnchor, FontSmoothingMode smoothingMode)
++    DrawGlyphs(Ref<const Font>&& font, Vector<GlyphBufferGlyph>&& glyphs, Vector<GlyphBufferAdvance>&& advances, const FloatPoint& localAnchor, FontSmoothingMode smoothingMode, const ScalarGlyphText* sourceText = nullptr)
+         : m_font(WTF::move(font))
+         , m_glyphs(WTF::move(glyphs))
+         , m_advances(WTF::move(advances))
+         , m_localAnchor(localAnchor)
+         , m_fontSmoothingMode(smoothingMode)
++        , m_sourceText(sourceText ? std::optional<ScalarGlyphText>(*sourceText) : std::nullopt)
+     {
+     }
+ 
+@@ -521,6 +523,7 @@
+     Vector<GlyphBufferAdvance> m_advances;
+     FloatPoint m_localAnchor;
+     FontSmoothingMode m_fontSmoothingMode;
++    std::optional<ScalarGlyphText> m_sourceText;
+ };
+ 
+ #if USE(SKIA)
+@@ -528,8 +531,8 @@
+ public:
+     static constexpr char name[] = "draw-text-blob";
+ 
+-    DrawTextBlob(Ref<const Font>&& font, Vector<GlyphBufferGlyph>&& glyphs, Vector<GlyphBufferAdvance>&& advances, const FloatPoint& localAnchor, FontSmoothingMode smoothingMode)
+-        : m_textBlob(font->buildTextBlob(glyphs, advances, smoothingMode))
++    DrawTextBlob(Ref<const Font>&& font, Vector<GlyphBufferGlyph>&& glyphs, Vector<GlyphBufferAdvance>&& advances, const FloatPoint& localAnchor, FontSmoothingMode smoothingMode, const ScalarGlyphText* sourceText = nullptr)
++        : m_textBlob(font->buildTextBlob(glyphs, advances, smoothingMode, sourceText))
+         , m_enableAntialiasing(font->enableAntialiasing(smoothingMode))
+         , m_isVertical(font->platformData().orientation() == FontOrientation::Vertical)
+         , m_localAnchor(localAnchor)
+--- a/Source/WebCore/platform/graphics/displaylists/DisplayListRecorderImpl.cpp
++++ b/Source/WebCore/platform/graphics/displaylists/DisplayListRecorderImpl.cpp
+@@ -210,6 +210,24 @@
+     drawGlyphsImmediate(font, glyphs, advances, localAnchor, smoothingMode);
+ }
+ 
++void RecorderImpl::drawGlyphsWithSourceText(const Font& font, std::span<const GlyphBufferGlyph> glyphs, std::span<const GlyphBufferAdvance> advances, const FloatPoint& localAnchor, FontSmoothingMode smoothingMode, const ScalarGlyphText& sourceText)
++{
++    if (!sourceText.validFor(glyphs.size())) {
++        drawGlyphs(font, glyphs, advances, localAnchor, smoothingMode);
++        return;
++    }
++    if (decomposeDrawGlyphsIfNeeded(font, glyphs, advances, localAnchor, smoothingMode))
++        return; // Decomposed effects are not covered by this research subset.
++    appendStateChangeItemIfNecessary();
++#if USE(SKIA)
++    if (drawGlyphsMode() == Recorder::DrawGlyphsMode::TextBlob) {
++        m_items.append(DrawTextBlob(Ref { font }, Vector(glyphs), Vector(advances), localAnchor, smoothingMode, &sourceText));
++        return;
++    }
++#endif
++    m_items.append(DrawGlyphs(Ref { font }, Vector(glyphs), Vector(advances), localAnchor, smoothingMode, &sourceText));
++}
++
+ void RecorderImpl::drawGlyphsImmediate(const Font& font, std::span<const GlyphBufferGlyph> glyphs, std::span<const GlyphBufferAdvance> advances, const FloatPoint& localAnchor, FontSmoothingMode smoothingMode)
+ {
+     appendStateChangeItemIfNecessary();
+--- a/Source/WebCore/platform/graphics/displaylists/DisplayListRecorderImpl.h
++++ b/Source/WebCore/platform/graphics/displaylists/DisplayListRecorderImpl.h
+@@ -94,6 +94,7 @@
+     void fillRoundedRect(const FloatRoundedRect&, const Color&, BlendMode) final;
+     void fillRectWithRoundedHole(const FloatRect&, const FloatRoundedRect&, const Color&) final;
+     void drawGlyphs(const Font&, std::span<const GlyphBufferGlyph>, std::span<const GlyphBufferAdvance>, const FloatPoint& localAnchor, FontSmoothingMode) final;
++    void drawGlyphsWithSourceText(const Font&, std::span<const GlyphBufferGlyph>, std::span<const GlyphBufferAdvance>, const FloatPoint&, FontSmoothingMode, const ScalarGlyphText&) final;
+     void drawGlyphsImmediate(const Font&, std::span<const GlyphBufferGlyph>, std::span<const GlyphBufferAdvance>, const FloatPoint& localAnchor, FontSmoothingMode) final;
+     void drawDisplayList(const DisplayList&, ControlFactory&) final;
+ #if ENABLE(VIDEO)
+--- a/Source/WebCore/platform/graphics/skia/FontSkia.cpp
++++ b/Source/WebCore/platform/graphics/skia/FontSkia.cpp
+@@ -25,6 +25,7 @@
+ 
+ #include "config.h"
+ #include "Font.h"
++#include <algorithm>
+ 
+ #include "GlyphBuffer.h"
+ #include "NotImplemented.h"
+@@ -221,7 +222,7 @@
+     RELEASE_ASSERT_NOT_REACHED();
+ }
+ 
+-sk_sp<SkTextBlob> Font::buildTextBlob(std::span<const GlyphBufferGlyph> glyphs, std::span<const GlyphBufferAdvance> advances, FontSmoothingMode smoothingMode) const
++sk_sp<SkTextBlob> Font::buildTextBlob(std::span<const GlyphBufferGlyph> glyphs, std::span<const GlyphBufferAdvance> advances, FontSmoothingMode smoothingMode, const ScalarGlyphText* sourceText) const
+ {
+     if (!m_platformData.size() || !glyphs.size())
+         return nullptr;
+@@ -230,16 +231,29 @@
+     auto edging = allowsAntialiasing() ? edgingForFontSmoothingMode(font, smoothingMode) : SkFont::Edging::kAlias;
+     bool isVertical = m_platformData.orientation() == FontOrientation::Vertical;
+ 
++    if (sourceText && !sourceText->validFor(glyphs.size()))
++        sourceText = nullptr;
+     SkTextBlobBuilder builder;
++    const auto allocate = [&](const SkFont& runFont) -> const SkTextBlobBuilder::RunBuffer& {
++        if (sourceText) {
++            return isVertical ? builder.allocRunTextPos(runFont, glyphs.size(), sourceText->utf8.size())
++                : builder.allocRunTextPosH(runFont, glyphs.size(), 0, sourceText->utf8.size());
++        }
++        return isVertical ? builder.allocRunPos(runFont, glyphs.size()) : builder.allocRunPosH(runFont, glyphs.size(), 0);
++    };
+     const auto& buffer = [&]() {
+         if (font.getEdging() == edging)
+-            return isVertical ? builder.allocRunPos(font, glyphs.size()) : builder.allocRunPosH(font, glyphs.size(), 0);
++            return allocate(font);
+ 
+         SkFont copiedFont = font;
+         copiedFont.setEdging(edging);
+-        return isVertical ? builder.allocRunPos(copiedFont, glyphs.size()) : builder.allocRunPosH(copiedFont, glyphs.size(), 0);
++        return allocate(copiedFont);
+     }();
+ 
++    if (sourceText) {
++        std::copy(sourceText->utf8.begin(), sourceText->utf8.end(), buffer.utf8text);
++        std::copy(sourceText->clusters.begin(), sourceText->clusters.end(), buffer.clusters);
++    }
+     auto bufferGlyphs = unsafeMakeSpan<SkGlyphID>(buffer.glyphs, glyphs.size());
+     auto bufferPositions = unsafeMakeSpan<SkScalar>(buffer.pos, glyphs.size() * (isVertical ? 2 : 1));
+ 
+--- a/Source/WebCore/platform/graphics/skia/GraphicsContextSkia.cpp
++++ b/Source/WebCore/platform/graphics/skia/GraphicsContextSkia.cpp
+@@ -44,6 +44,8 @@
+ #include <cmath>
+ #include <ranges>
+ WTF_IGNORE_WARNINGS_IN_THIRD_PARTY_CODE_BEGIN
++#include <skia/core/SkAnnotation.h>
++#include <skia/core/SkData.h>
+ #include <skia/core/SkColorFilter.h>
+ #include <skia/core/SkImage.h>
+ #include <skia/core/SkPathBuilder.h>
+@@ -61,6 +63,8 @@
+ #include <skia/gpu/ganesh/SkSurfaceGanesh.h>
+ WTF_IGNORE_WARNINGS_IN_THIRD_PARTY_CODE_END
+ #include <wtf/MathExtras.h>
++#include <wtf/URL.h>
++#include <wtf/text/CString.h>
+ 
+ #if USE(THEME_ADWAITA)
+ #include "Adwaita.h"
+@@ -97,6 +101,15 @@
+ SkCanvas* GraphicsContextSkia::platformContext() const
+ {
+     return &m_canvas;
++}
++
++void GraphicsContextSkia::setURLForRect(const URL& url, const FloatRect& rect)
++{
++    if (paintingDisabled() || !url.isValid() || rect.isEmpty())
++        return;
++
++    auto data = SkData::MakeWithCString(url.string().utf8().data());
++    SkAnnotateRectWithURL(&m_canvas, rect, data.get());
+ }
+ 
+ const DestinationColorSpace& GraphicsContextSkia::colorSpace() const
+@@ -1336,6 +1349,13 @@
+     trackAcceleratedRenderingFenceIfNeeded(nativeImage->platformImage(), nativeImage->grContext());
+ }
+ 
++void GraphicsContextSkia::drawGlyphsWithSourceText(const Font& font, std::span<const GlyphBufferGlyph> glyphs, std::span<const GlyphBufferAdvance> advances, const FloatPoint& point, FontSmoothingMode mode, const ScalarGlyphText& sourceText)
++{
++    auto blob = font.buildTextBlob(glyphs, advances, mode, &sourceText);
++    if (blob)
++        drawSkiaText(blob, point.x(), point.y(), font.enableAntialiasing(mode), font.platformData().orientation() == FontOrientation::Vertical);
++}
++
+ void GraphicsContextSkia::drawSkiaText(const sk_sp<SkTextBlob>& blob, SkScalar x, SkScalar y, bool enableAntialias, bool isVertical)
+ {
+     if (isVertical) {
+--- a/Source/WebCore/platform/graphics/skia/GraphicsContextSkia.h
++++ b/Source/WebCore/platform/graphics/skia/GraphicsContextSkia.h
+@@ -54,6 +54,7 @@
+ 
+     bool hasPlatformContext() const final;
+     SkCanvas* platformContext() const final;
++    void setURLForRect(const URL&, const FloatRect&) final;
+ 
+     const DestinationColorSpace& colorSpace() const final;
+ 
+@@ -121,6 +122,7 @@
+     SkPaint createFillPaint() const;
+     SkPaint createStrokePaint() const;
+ 
++    void drawGlyphsWithSourceText(const Font&, std::span<const GlyphBufferGlyph>, std::span<const GlyphBufferAdvance>, const FloatPoint&, FontSmoothingMode, const ScalarGlyphText&) final;
+     void drawSkiaText(const sk_sp<SkTextBlob>&, SkScalar, SkScalar, bool, bool);
+ 
+     static std::unique_ptr<GLFence> createAcceleratedRenderingFence(SkSurface*);
+--- a/Source/WebCore/rendering/OutlinePainter.cpp
++++ b/Source/WebCore/rendering/OutlinePainter.cpp
+@@ -24,6 +24,7 @@
+  */
+ 
+ #include "config.h"
++#include "MilkupPrintResearch.h"
+ #include "OutlinePainter.h"
+ 
+ #include "BorderEdge.h"
+@@ -702,7 +703,18 @@
+             return;
+         }
+     }
++#if USE(SKIA)
++    // Research candidate: keep each clickable inline fragment separate. A union
++    // across wrapped lines can cover unrelated links in the last-line gap.
++    auto url = element->protectedDocument()->completeURL(href);
++    auto emittedRects = MilkupPrintResearch::focus(renderer, m_paintInfo.context(), static_cast<unsigned>(m_paintInfo.phase), focusRingRects);
++    for (auto& rect : emittedRects) {
++        if (!rect.isEmpty())
++            m_paintInfo.context().setURLForRect(url, rect);
++    }
++#else
+     m_paintInfo.context().setURLForRect(element->protectedDocument()->completeURL(href), urlRect);
++#endif
+ }
+ 
+ } // namespace WebCore
+--- a/Source/WebCore/rendering/RenderBox.cpp
++++ b/Source/WebCore/rendering/RenderBox.cpp
+@@ -24,6 +24,7 @@
+  */
+ 
+ #include "config.h"
++#include "MilkupPrintResearch.h"
+ #include "RenderBox.h"
+ 
+ #include "AnchorPositionEvaluator.h"
+@@ -2239,7 +2240,9 @@
+         paintInfo.phase = PaintPhase::ChildBlockBackgrounds;
+     }
+     float deviceScaleFactor = document().deviceScaleFactor();
+-    FloatRect clipRect = snapRectToDevicePixels((isControlClip ? controlClipRect(accumulatedOffset) : overflowClipRect(accumulatedOffset, OverlayScrollbarSizeRelevancy::IgnoreOverlayScrollbarSize, paintInfo.phase)), deviceScaleFactor);
++    auto rawPrintClip = isControlClip ? controlClipRect(accumulatedOffset) : overflowClipRect(accumulatedOffset, OverlayScrollbarSizeRelevancy::IgnoreOverlayScrollbarSize, paintInfo.phase);
++    FloatRect clipRect = snapRectToDevicePixels(rawPrintClip, deviceScaleFactor);
++    MilkupPrintResearch::clip("box", *this, paintInfo.context(), static_cast<unsigned>(paintInfo.phase), rawPrintClip, clipRect, deviceScaleFactor);
+     paintInfo.context().save();
+     if (style().hasBorderRadius())
+         clipToPaddingBoxShape(paintInfo.context(), accumulatedOffset, deviceScaleFactor);
+--- a/Source/WebCore/rendering/RenderLayer.cpp
++++ b/Source/WebCore/rendering/RenderLayer.cpp
+@@ -45,6 +45,7 @@
+  */
+ 
+ #include "config.h"
++#include "MilkupPrintResearch.h"
+ #include "RenderLayer.h"
+ 
+ #include "AccessibilityRegionContext.h"
+@@ -3234,6 +3235,7 @@
+         LayoutRect adjustedClipRect = clipRect.rect();
+         adjustedClipRect.move(paintingInfo.subpixelOffset);
+         auto snappedClipRect = snapRectToDevicePixelsIfNeeded(adjustedClipRect, renderer());
++        MilkupPrintResearch::clip("layer", renderer(), context, 0, adjustedClipRect, snappedClipRect, renderer().document().deviceScaleFactor());
+         context.clip(snappedClipRect);
+         regionContextStateSaver.pushClip(enclosingIntRect(snappedClipRect));
+     }

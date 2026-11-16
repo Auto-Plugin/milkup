@@ -43,8 +43,22 @@ try:
   correction=prepare_root_margin.build(source,e/'pagination-root-margin.patch',write=True)
   assert correction['patchSha256']==hashlib.sha256((HERE/'root-margin.patch').read_bytes()).hexdigest()
   report['rootMarginCorrection']=correction;tail_sources.update(correction['sources']);persist()
- gate=m.run(source,build,e/'pagination-behavior-object-gate')
+ combined=os.environ.get('PAGINATION_COMBINED')=='true'
+ if combined:
+  assert os.environ.get('PAGINATION_ROOT_MARGIN')=='true'
+  combined_dir=HERE.parent/'pdf-combined-20261116'
+  spec=importlib.util.spec_from_file_location('combined_prepare',combined_dir/'prepare.py');composer=importlib.util.module_from_spec(spec);spec.loader.exec_module(composer)
+  receipt_combined=composer.build(source,e/'pagination-combined.patch',write=True)
+  assert receipt_combined['patchSha256']==hashlib.sha256((combined_dir/'combined.patch').read_bytes()).hexdigest()
+  report['combined']=receipt_combined
+  tail_sources.update({rel.removeprefix('Source/WebCore/'):h for rel,h in receipt_combined['outputs'].items()})
+  m.SOURCES.extend(['Source/WebCore/'+rel for rel in ['platform/graphics/FontCascade.cpp','platform/graphics/GraphicsContext.cpp','platform/graphics/skia/FontSkia.cpp','platform/graphics/skia/GraphicsContextSkia.cpp','platform/graphics/displaylists/DisplayListItems.cpp','platform/graphics/displaylists/DisplayListRecorderImpl.cpp','rendering/OutlinePainter.cpp','rendering/RenderBox.cpp','rendering/RenderLayer.cpp']])
+  persist()
+ gate=m.run(source,build,e/'pagination-behavior-object-gate',max_objects=13 if combined else 4)
  assert gate['status']=='passed',gate
+ if combined:
+  cache=composer.module('combined_cache',combined_dir/'cache_gate.py')
+  report['combinedCache']=cache.run(m,source,build,e/'combined-graphics-cache',gate)
  report.update(status='passed',gate=gate,modifiedSourceHashes={rel:hashlib.sha256((source/'Source/WebCore'/rel).read_bytes()).hexdigest() for rel in set(receipt['modified'])|set(tail_sources)})
 except Exception as error:report.update(status='failed',error=repr(error))
 finally:persist()

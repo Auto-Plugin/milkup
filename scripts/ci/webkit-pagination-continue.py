@@ -52,6 +52,11 @@ try:
   if os.environ.get('PAGINATION_ROOT_MARGIN')=='true':
    assert candidate['rootMarginCorrection']['patchSha256']==digest(pathlib.Path(os.environ['GITHUB_WORKSPACE'])/'research/pdf-pagination-behavior-20261116/root-margin.patch')
    report['rootMarginPatchSha256']=candidate['rootMarginCorrection']['patchSha256']
+  if os.environ.get('PAGINATION_COMBINED')=='true':
+   assert candidate['combined']['patchSha256']==digest(pathlib.Path(os.environ['GITHUB_WORKSPACE'])/'research/pdf-combined-20261116/combined.patch')
+   assert candidate['combinedCache']['status']=='passed' and len(candidate['combinedCache']['samples'])==2
+   assert all(r['hitDelta']==1 and r['missDelta']==0 for r in candidate['combinedCache']['samples'])
+   report['combinedPatchSha256']=candidate['combined']['patchSha256']
  assert (os.cpu_count()or 0)>=4
  mem=lambda:{k:v.strip()for k,v in (line.split(':',1)for line in pathlib.Path('/proc/meminfo').read_text().splitlines())}
  assert int(mem()['MemTotal'].split()[0])*1024>=14*1024**3
