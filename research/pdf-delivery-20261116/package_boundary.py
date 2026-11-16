@@ -5,6 +5,9 @@ sets loader variables. A passing staging audit is not runtime/native acceptance.
 import argparse,hashlib,json,os,pathlib,re,stat,subprocess
 HERE=pathlib.Path(__file__).resolve().parent
 VERSION='2.54.2';SOURCE_SHA='a76345b391bef6211fb5ab6cfab2e86b285d18cda17cbb9ade595f1252b86065'
+EXECUTABLE_ROLES={'application','web-process','network-process','gpu-process','qa-driver'}
+def role_mode(role):
+ return 0o755 if role in EXECUTABLE_ROLES else 0o644
 def sha(p):return hashlib.sha256(p.read_bytes()).hexdigest()
 def profile(patch_sha):
  assert re.fullmatch('[0-9a-f]{64}',patch_sha)
@@ -64,9 +67,8 @@ def audit(stage,recipe,manifest,cache,compile_commands,generated_config):
   assert st.st_nlink==1 and st.st_size==row['bytes'] and sha(p)==row['sha256'],'Payload identity/alias mismatch'
   role=row['role'];roles.setdefault(role,[]).append(row['path'])
   assert role in {'application','webkit','javascriptcore','web-process','network-process','gpu-process','injected-bundle','qa-driver','resource','license','sbom'},role
-  if role in {'resource','license','sbom'}:
-   assert not(st.st_mode&0o111);continue
-  assert st.st_mode&0o100
+  assert stat.S_IMODE(st.st_mode)==role_mode(role),'Exact component role mode required'
+  if role in {'resource','license','sbom'}:continue
   e=elf(p);assert e['searchPath']==recipe['lib'],'No build/temp/origin/global loader override'
   if e['soname']:
    assert e['soname']not in sonames;sonames[e['soname']]=row['path']

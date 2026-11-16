@@ -20,7 +20,7 @@ class Boundary(unittest.TestCase):
    if soname:args+=['-shared','-Wl,-soname,'+soname]
    else:args+=['-pie']
    if dependency:args+=['-Wl,--no-as-needed','-Wl,-rpath-link,'+str(dependency.parent),str(dependency)]
-   subprocess.run(args,check=True,capture_output=True);p.chmod(0o755)
+   subprocess.run(args,check=True,capture_output=True);p.chmod(b.role_mode(role))
    cls.rows.append({'path':rel,'role':role,'bytes':p.stat().st_size,'sha256':b.sha(p)});return p
   jsc=elf(r['lib']+'/libjavascriptcoregtk-4.1.so.0','javascriptcore','int fixture_jsc(void){return 0;}','libjavascriptcoregtk-4.1.so.0')
   web=elf(r['lib']+'/libwebkit2gtk-4.1.so.0','webkit','extern int fixture_jsc(void); int fixture_web(void){return fixture_jsc();}','libwebkit2gtk-4.1.so.0',jsc)
@@ -40,6 +40,15 @@ class Boundary(unittest.TestCase):
  def check(self,m=None,r=None):return b.audit(self.stage,r or self.recipe,m or self.manifest,self.cache,self.commands,self.config)
  def test_real_elf_positive_is_explicitly_not_native_acceptance(self):
   result=self.check();self.assertEqual(len(result['elf']),8);self.assertIn('not-installed-or-native',result['status'])
+ def test_cmake_library_modes_are_exact_and_programs_remain_executable(self):
+  for row in self.rows:
+   if row['role']not in {'webkit','javascriptcore','injected-bundle','application'}:continue
+   p=self.stage/row['path'].lstrip('/');expected=b.role_mode(row['role'])
+   self.assertEqual(p.stat().st_mode&0o777,expected)
+   p.chmod(0o755 if expected==0o644 else 0o644)
+   try:
+    with self.assertRaisesRegex(AssertionError,'role mode'):self.check()
+   finally:p.chmod(expected)
  def test_manifest_and_scope_mutations_fail_closed(self):
   for label,mutate in [
    ('hash',lambda m:m['files'][0].update(sha256='f'*64)),
@@ -66,7 +75,7 @@ class Boundary(unittest.TestCase):
   p=self.stage/self.rows[0]['path'].lstrip('/');p.chmod(0o777)
   try:
    with self.assertRaisesRegex(AssertionError,'unsafe'):self.check()
-  finally:p.chmod(0o755)
+  finally:p.chmod(b.role_mode(self.rows[0]['role']))
  def test_real_elf_wrong_search_path_rejected_even_with_matching_hash(self):
   row=self.rows[0];p=self.stage/row['path'].lstrip('/');original=p.read_bytes()
   changed=original.replace(b'/opt/milkup',b'/tmp/milkup');self.assertNotEqual(original,changed);p.write_bytes(changed)

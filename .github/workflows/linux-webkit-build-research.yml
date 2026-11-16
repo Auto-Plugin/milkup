@@ -5,7 +5,7 @@ on:
       operation:
         description: Cheap header/cache preflight or one explicitly approved continuation
         type: choice
-        options: [preflight, resume, pagination-preflight, pagination-diagnostic, pagination-segment, stock-paper-control, current-source-preflight, current-source-restore, current-object-segment, current-engine-continuation, current-engine-normal]
+        options: [preflight, resume, pagination-preflight, pagination-diagnostic, pagination-segment, stock-paper-control, current-source-preflight, current-source-restore, current-object-segment, current-engine-continuation, current-engine-normal, current-runtime-intake]
         default: preflight
         required: true
       links_research:
@@ -53,7 +53,7 @@ concurrency:
   cancel-in-progress: false
 jobs:
   capability:
-    if: github.repository == 'Auto-Plugin/milkup' && inputs.operation != 'pagination-preflight' && inputs.operation != 'pagination-diagnostic' && inputs.operation != 'pagination-segment' && inputs.operation != 'stock-paper-control' && inputs.operation != 'current-source-preflight' && inputs.operation != 'current-source-restore' && inputs.operation != 'current-object-segment' && inputs.operation != 'current-engine-continuation' && inputs.operation != 'current-engine-normal'
+    if: github.repository == 'Auto-Plugin/milkup' && inputs.operation != 'pagination-preflight' && inputs.operation != 'pagination-diagnostic' && inputs.operation != 'pagination-segment' && inputs.operation != 'stock-paper-control' && inputs.operation != 'current-source-preflight' && inputs.operation != 'current-source-restore' && inputs.operation != 'current-object-segment' && inputs.operation != 'current-engine-continuation' && inputs.operation != 'current-engine-normal' && inputs.operation != 'current-runtime-intake'
     runs-on: ubuntu-26.04
     timeout-minutes: ${{ inputs.operation == 'preflight' && 30 || inputs.geometry_research && 55 || 355 }}
     env:
@@ -821,3 +821,57 @@ jobs:
             !${{ runner.temp }}/milkup-current-source-gate/evidence/normal-runtime/*.tar.gz
           if-no-files-found: error
           retention-days: 30
+
+  current-runtime-intake:
+    if: github.repository == 'Auto-Plugin/milkup' && inputs.operation == 'current-runtime-intake'
+    runs-on: ubuntu-26.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - name: Archive, exact role and transitive version contracts before remote consumption
+        run: |
+          PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s research/pdf-delivery-20261116 -p 'test_runtime*.py' -v
+          PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s research/pdf-delivery-20261116 -p 'test_package_boundary.py' -v
+          PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s research/pdf-delivery-20261116 -p 'test_install_gate.py' -v
+      - name: Receive exact completed runtime and provenance ZIPs without rebuilding
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir "$RUNNER_TEMP/final-runtime-inputs"
+          timeout --kill-after=5s 180s gh api repos/Auto-Plugin/milkup/actions/artifacts/14265020653/zip > "$RUNNER_TEMP/final-runtime-inputs/runtime-original.zip"
+          timeout --kill-after=5s 90s gh api repos/Auto-Plugin/milkup/actions/artifacts/14264011071/zip > "$RUNNER_TEMP/final-runtime-inputs/evidence-original.zip"
+          cd "$RUNNER_TEMP/final-runtime-inputs"
+          printf '%s\n' '34e4e12cda98933eef024ede2317b3fbf255631936376312d3e8e33d915aaf7c  runtime-original.zip' '68d61f216c3bab3b04f79c947b80d56a9b742a01aa923eb107057896561bed15  evidence-original.zip' > SHA256SUMS
+          sha256sum -c SHA256SUMS
+      - name: Authenticate CMake files, graph, generated ABI and final RPATH
+        run: timeout --signal=TERM --kill-after=5s 120s python3 research/pdf-delivery-20261116/runtime_intake.py "$RUNNER_TEMP/final-runtime-inputs/runtime-original.zip" "$RUNNER_TEMP/final-runtime-inputs/evidence-original.zip" "$RUNNER_TEMP/final-runtime-intake"
+      - name: Resolve official host ABI closure without executing or installing the private runtime
+        timeout-minutes: 12
+        run: |
+          timeout --signal=TERM --kill-after=10s 630s python3 research/pdf-delivery-20261116/runtime_host_sdk.py "$RUNNER_TEMP/final-runtime-sdk"
+          timeout --signal=TERM --kill-after=5s 70s python3 research/pdf-delivery-20261116/runtime_host_closure.py "$RUNNER_TEMP/final-runtime-intake" "$RUNNER_TEMP/final-runtime-intake/host-closure.json"
+      - name: Retain exact original build bytes separately from any later package
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: milkup-normal-runtime-original-retained-${{ github.run_id }}
+          path: ${{ runner.temp }}/final-runtime-inputs/
+          compression-level: 0
+          if-no-files-found: warn
+          retention-days: 90
+      - name: Preserve intake and ABI results including earliest failure
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: milkup-final-runtime-intake-evidence-${{ github.run_id }}
+          path: |
+            ${{ runner.temp }}/final-runtime-intake/*.json
+            ${{ runner.temp }}/final-runtime-intake/install_manifest.txt
+            ${{ runner.temp }}/final-runtime-intake/graph/CMakeCache.txt
+            ${{ runner.temp }}/final-runtime-intake/graph/cmakeconfig.h
+            ${{ runner.temp }}/final-runtime-sdk/*.json
+            ${{ runner.temp }}/final-runtime-sdk/*.log
+          if-no-files-found: warn
+          retention-days: 90

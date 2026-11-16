@@ -150,7 +150,7 @@ def package_entries(tar, manifest):
         total += member.size
         require(total <= 4 * 1024**3, 'Package unpacked budget')
         require(hashlib.file_digest(tar.extractfile(member), 'sha256').hexdigest() == row['sha256'], 'Package payload hash')
-        required_mode = 0o644 if row['role'] in {'resource', 'license', 'sbom'} else 0o755
+        required_mode = boundary.role_mode(row['role'])
         require(member.mode == required_mode, 'Exact package role mode')
         found.add(name)
     require(found == set(rows), 'Missing package payload')
@@ -208,7 +208,7 @@ def installed(manifest, recipe, package, receipt, application, driver):
     elf = {}
     for row in manifest['files']:
         p = Path(row['path']); s = p.stat()
-        expected_mode = 0o644 if row['role'] in {'resource', 'license', 'sbom'} else 0o755
+        expected_mode = boundary.role_mode(row['role'])
         require(s.st_gid == 0 and stat.S_IMODE(s.st_mode) == expected_mode, 'Installed role ownership/mode')
         require(stat.S_ISREG(s.st_mode) and s.st_nlink == 1 and s.st_size == row['bytes'] and digest(p) == row['sha256'], 'Installed payload identity')
         if row['role'] not in {'resource', 'license', 'sbom'}:

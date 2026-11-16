@@ -151,7 +151,7 @@ class InstallGate(unittest.TestCase):
         p = self.dest / self.entries[0].lstrip('/')
         p.chmod(0o777)
         with self.assertRaisesRegex(ValueError, 'mode'): self.stage_gate()
-        p.chmod(0o755)
+        p.chmod(g.boundary.role_mode(self.manifest['files'][0]['role']))
         with self.assertRaisesRegex(ValueError, 'alias'): g.bind_staging(self.stage, self.stage,
             self.recipe, self.manifest, self.list, fixture.Boundary.cache, fixture.Boundary.commands, fixture.Boundary.config)
 
@@ -162,7 +162,7 @@ class InstallGate(unittest.TestCase):
                 p = self.stage / row['path'].lstrip('/')
                 member = tarfile.TarInfo('.' + row['path'])
                 member.uid = member.gid = 0
-                member.mode = 0o644 if row['role'] in {'license', 'sbom', 'resource'} else 0o755
+                member.mode = g.boundary.role_mode(row['role'])
                 payload = p.read_bytes(); member.size = len(payload)
                 if mutate: payload = mutate(index, member, payload)
                 tar.addfile(member, io.BytesIO(payload) if member.isfile() else None)
