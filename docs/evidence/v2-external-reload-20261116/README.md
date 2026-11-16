@@ -24,6 +24,7 @@ read errors, large-document confirmation and normal reload behavior remain.
 ## Reproducible regression
 
 Node 24:
+
 ```
 node --test tests/native/external-reload-contract.test.mjs
 # equivalently, with the repository package manager:
@@ -52,3 +53,76 @@ The normal full desktop typecheck/build, browser and installed native regression
 were NOT run. This is not an installed/native pass or a release-readiness claim.
 No CI dispatch, runtime rebuild, package install, main merge, release, production,
 security or notification change is part of this fix. Run 43890194973 is untouched.
+
+## Integration validation (2026-11-16)
+
+Product parent is `491089e8e35d3e21327c8e39126e82127e42fd64`; product fix is
+`a09bc855167c7c21b66e8797ced818c33a1f620e`. Its `main.ts` is unchanged by this
+validation commit. Remote integration was still exactly the parent before promotion.
+A `/tmp` tmpfs now has usable space independently of the full `/workspace` overlay.
+An isolated exact checkout and matching locked existing dependencies were used;
+1253 tracked source/build inputs were verified against Git blob identities. Neither
+original worktree nor unique evidence was removed or replaced.
+
+Full desktop `tsc -p apps/desktop/tsconfig.json --noEmit` passed without altered flags.
+Desktop file service/transition/open/conflict/save/recovery: 75 tests; bridge
+session/close/save/watch: 42 tests; historical watcher conflict: 1 test; actual-function
+reload and test-only native transport gate contracts: 28 tests. All 146 passed.
+Prettier and syntax checks passed. See raw logs and `validation.json` for hashes.
+The first extra watcher invocation used the wrong package working directory and
+failed import resolution before running tests; the original error is preserved.
+The successful invocation used its existing workspace links/config in
+`tests/regressions`, without changing product or test semantics.
+
+Review confirms native document/path validation now occurs before any editor
+mutation. The normal path retains large-preview cleanup, open policy, session metadata
+(including CRLF/read-only), recent-file recording, file watching, view application,
+notice and focus, in their original relative order. Selection-only movement remains
+allowed. Real changes, pending close/save/navigation and superseded reads cannot
+replace current content. Large-document routing is unchanged.
+
+## Next same-package native gate (prepared; NOT executed)
+
+`tests/native/tauri-external-reload.mjs` is the executable installed-app entry,
+exposed as `test:native:external-reload`. Add it to the next already-planned ordinary
+Linux installed daily-use batch after the same package is installed and its native
+driver is ready, **not** to the current WebKit build or a separate new matrix:
+
+```sh
+timeout --signal=TERM --kill-after=5s 240s node tests/native/tauri-external-reload.mjs
+```
+
+Use the existing isolated ordinary-user display/profile and close helper. Required
+variables are `RUNNER_TEMP`, `DISPLAY`, `TAURI_APP_PATH`, `TAURI_DRIVER_URL`,
+`MILKUP_NATIVE_PROFILE_ROOT`, the five `XDG_*_HOME`/`XDG_RUNTIME_DIR` paths,
+`MILKUP_NATIVE_EXCLUSIVE_DISPLAY=1`, `MILKUP_NATIVE_EVIDENCE_DIR`,
+`MILKUP_NATIVE_PACKAGE_MANIFEST`, `MILKUP_NATIVE_EXTRACTED_APP`,
+`MILKUP_NATIVE_EXPECTED_BINARY_SHA256`, and `MILKUP_NATIVE_CLOSE_HELPER`.
+The manifest uses the existing `{sourceSha, installer:{name,bytes,sha256}}` shape;
+package bytes, installed/extracted executable bytes, process birth/executable/window
+ownership and production origin must match. The evidence subdirectory must not exist.
+No installation, driver startup, profile reuse, CI dispatch or cleanup-by-name is
+performed by this entry.
+
+Cases: normal clean external reload; real keyboard edit while a reload result waits;
+new document plus real keyboard edit while the old result waits. The original file
+is synthetic, and its independently written external bytes must survive every case.
+The actual native read must finish and its identity/timing must be recorded **before**
+input and delayed delivery. Only its unchanged Promise result delivery is held,
+not application editor/session state or native response contents. This is explicitly
+a deterministic fault-injected transport schedule, not a claim of natural read latency.
+The gate passes unrelated IPC through unchanged, has a 15-second bound (expiry fails
+the acceptance), and restores/releases on cleanup. Local gate tests cover real-result
+identity, forwarding, errors, early cleanup, repeat cleanup and the hard timeout.
+
+Each case must retain the expected full visible text/path/revision/dirty state and
+external disk bytes, then exit through the actual normal window-close protocol.
+Only the synthetic unsaved edits are explicitly discarded through the normal prompt;
+this is not recovery/save-as acceptance. Cleanup failure remains failure with evidence;
+no forced exit can satisfy the gate. The isolated runner remains responsible for its
+existing bounded supervisor/collection on a failed cleanup.
+
+Current host lacks DISPLAY, tauri-driver, WebKitWebDriver and xdotool. Therefore no
+installed result, normal-close proof, save/reopen race proof, Windows result, or
+new package is claimed. The existing native conflict/recovery evidence is not reused
+as proof for this new race. No CI was dispatched, and run `43890194973` was untouched.

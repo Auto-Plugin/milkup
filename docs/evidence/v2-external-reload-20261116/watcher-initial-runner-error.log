@@ -1,0 +1,25 @@
+
+ RUN  v3.2.6 /tmp/milkup-reload-validation-20261116
+
+
+⎯⎯⎯⎯⎯⎯ Failed Suites 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/regressions/v1/file-watcher-conflict.test.ts [ tests/regressions/v1/file-watcher-conflict.test.ts ]
+Error: Cannot find package '@milkup/core' imported from '/tmp/milkup-reload-validation-20261116/tests/regressions/v1/file-watcher-conflict.test.ts'
+ ❯ tests/regressions/v1/file-watcher-conflict.test.ts:1:1
+      1| import { ChangeSet, Selection } from '@milkup/core'
+       | ^
+      2| import {
+      3|   applyFileWatchEvent,
+
+Caused by: Error: Failed to load url @milkup/core (resolved id: @milkup/core) in /tmp/milkup-reload-validation-20261116/tests/regressions/v1/file-watcher-conflict.test.ts. Does the file exist?
+ ❯ loadAndTransform node_modules/.pnpm/vite@7.3.6_@types+node@24.13.2/node_modules/vite/dist/node/chunks/config.js:22739:33
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  no tests
+   Start at  15:17:58
+   Duration  466ms (transform 120ms, setup 0ms, collect 0ms, tests 0ms, environment 0ms, prepare 125ms)
+
