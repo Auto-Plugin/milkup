@@ -1,5 +1,9 @@
 # One combined native research gate
 
+Latest result: [43836771926 / cd3964b4](evidence/43836771926/README.md)
+passed all fifteen same-runtime native research cases. Product acceptance
+remains false; see the exact delivery and uncovered boundaries in that report.
+
 Base pagination evidence: 43821777111 / 0b886192, retained by 1fed9d71.
 No old pass is counted as a new combined pass. This directory initially prepares
 source and contracts; native completion must be recorded separately by exact SHA.

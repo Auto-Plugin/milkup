@@ -1,0 +1,2100 @@
+﻿2026-11-16T09:06:30.2026519Z Current runner version: '2.338.2'
+2026-11-16T09:06:30.2047675Z ##[group]Runner Image Provisioner
+2026-11-16T09:06:30.2048405Z Hosted Compute Agent
+2026-11-16T09:06:30.2048967Z Version: 20261103.629
+2026-11-16T09:06:30.2049500Z Commit: 15dbd9ccb5dbf34fae002b6ed1a2670f52df37bc
+2026-11-16T09:06:30.2050325Z Build Date: 2026-11-03T17:26:59Z
+2026-11-16T09:06:30.2050929Z Worker ID: {c149b786-d9c0-46f6-b9b6-da48e9f76565}
+2026-11-16T09:06:30.2051493Z Region: westus3
+2026-11-16T09:06:30.2051958Z Cloud: Azure
+2026-11-16T09:06:30.2052449Z ##[endgroup]
+2026-11-16T09:06:30.2053588Z ##[group]Operating System
+2026-11-16T09:06:30.2054137Z Ubuntu
+2026-11-16T09:06:30.2054737Z 26.04.1
+2026-11-16T09:06:30.2055163Z LTS
+2026-11-16T09:06:30.2055631Z ##[endgroup]
+2026-11-16T09:06:30.2056084Z ##[group]Runner Image
+2026-11-16T09:06:30.2056582Z Image: ubuntu-26.04
+2026-11-16T09:06:30.2057055Z Version: 20261111.196.1
+2026-11-16T09:06:30.2058157Z Included Software: https://github.com/actions/runner-images/blob/ubuntu26/20261111.196/images/ubuntu/Ubuntu2604-Readme.md
+2026-11-16T09:06:30.2059372Z Image Release: https://github.com/actions/runner-images/releases/tag/ubuntu26%2F20261111.196
+2026-11-16T09:06:30.2060425Z ##[endgroup]
+2026-11-16T09:06:30.2061445Z ##[group]GITHUB_TOKEN Permissions
+2026-11-16T09:06:30.2063370Z Actions: read
+2026-11-16T09:06:30.2063874Z Contents: read
+2026-11-16T09:06:30.2064331Z Metadata: read
+2026-11-16T09:06:30.2064826Z ##[endgroup]
+2026-11-16T09:06:30.2066545Z Secret source: Actions
+2026-11-16T09:06:30.2067412Z Cache mode: write
+2026-11-16T09:06:30.2067982Z Prepare workflow directory
+2026-11-16T09:06:30.2509721Z Prepare all required actions
+2026-11-16T09:06:30.2550498Z Getting action download info
+2026-11-16T09:06:30.5850035Z Download action repository 'actions/checkout@11d5960a326750d5838078e36cf38b85af677262' (SHA:11d5960a326750d5838078e36cf38b85af677262)
+2026-11-16T09:06:30.7072029Z Download action repository 'actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830' (SHA:0057852bfaa89a56745cba8c7296529d2fc39830)
+2026-11-16T09:06:30.8890306Z Download action repository 'actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02' (SHA:ea165f8d65b6e75b540449e92b4886f43607fa02)
+2026-11-16T09:06:31.0863357Z Complete job name: pagination-preflight
+2026-11-16T09:06:31.1551954Z ##[group]Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+2026-11-16T09:06:31.1552747Z with:
+2026-11-16T09:06:31.1553099Z   persist-credentials: false
+2026-11-16T09:06:31.1553518Z   repository: Auto-Plugin/milkup
+2026-11-16T09:06:31.1556978Z   token: ***
+2026-11-16T09:06:31.1557332Z   ssh-strict: true
+2026-11-16T09:06:31.1557691Z   ssh-user: git
+2026-11-16T09:06:31.1558023Z   clean: true
+2026-11-16T09:06:31.1558373Z   sparse-checkout-cone-mode: true
+2026-11-16T09:06:31.1558783Z   fetch-depth: 1
+2026-11-16T09:06:31.1559122Z   fetch-tags: false
+2026-11-16T09:06:31.1559480Z   show-progress: true
+2026-11-16T09:06:31.1560010Z   lfs: false
+2026-11-16T09:06:31.1560390Z   submodules: false
+2026-11-16T09:06:31.1560744Z   set-safe-directory: true
+2026-11-16T09:06:31.1561164Z   allow-unsafe-pr-checkout: false
+2026-11-16T09:06:31.1561781Z env:
+2026-11-16T09:06:31.1562123Z   CCACHE_COMPILERCHECK: content
+2026-11-16T09:06:31.1562554Z   PAGINATION_OPERATION: pagination-segment
+2026-11-16T09:06:31.1563041Z   PAGINATION_RESTORE_RUN: 43808221193
+2026-11-16T09:06:31.1563465Z   PAGINATION_BEHAVIOR: true
+2026-11-16T09:06:31.1563851Z   PAGINATION_TAIL: true
+2026-11-16T09:06:31.1564225Z   PAGINATION_ROOT_MARGIN: true
+2026-11-16T09:06:31.1564622Z   PAGINATION_COMBINED: true
+2026-11-16T09:06:31.1564997Z ##[endgroup]
+2026-11-16T09:06:31.3514114Z Syncing repository: Auto-Plugin/milkup
+2026-11-16T09:06:31.3608504Z ##[group]Getting Git version info
+2026-11-16T09:06:31.3609557Z Working directory is '/home/runner/work/milkup/milkup'
+2026-11-16T09:06:31.3611187Z [command]/usr/bin/git version
+2026-11-16T09:06:31.3611820Z git version 2.56.1
+2026-11-16T09:06:31.3613770Z ##[endgroup]
+2026-11-16T09:06:31.3619082Z Temporarily overriding HOME='/home/runner/work/_temp/1806356f-62c4-445a-845a-605ac48bb8d2' before making global git config changes
+2026-11-16T09:06:31.3621260Z Adding repository directory to the temporary git global config as a safe directory
+2026-11-16T09:06:31.3622628Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/milkup/milkup
+2026-11-16T09:06:31.3645856Z Deleting the contents of '/home/runner/work/milkup/milkup'
+2026-11-16T09:06:31.3650164Z ##[group]Initializing the repository
+2026-11-16T09:06:31.3653942Z [command]/usr/bin/git init /home/runner/work/milkup/milkup
+2026-11-16T09:06:31.3733775Z hint: Using 'master' as the name for the initial branch. This default branch name
+2026-11-16T09:06:31.3734736Z hint: will change to "main" in Git 3.0. To configure the initial branch name
+2026-11-16T09:06:31.3735579Z hint: to use in all of your new repositories, which will suppress this warning,
+2026-11-16T09:06:31.3736248Z hint: call:
+2026-11-16T09:06:31.3736652Z hint:
+2026-11-16T09:06:31.3737162Z hint: 	git config --global init.defaultBranch <name>
+2026-11-16T09:06:31.3737787Z hint:
+2026-11-16T09:06:31.3738332Z hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
+2026-11-16T09:06:31.3739473Z hint: 'development'. The just-created branch can be renamed via this command:
+2026-11-16T09:06:31.3740916Z hint:
+2026-11-16T09:06:31.3741551Z hint: 	git branch -m <name>
+2026-11-16T09:06:31.3742244Z hint:
+2026-11-16T09:06:31.3743141Z hint: Disable this message with "git config set advice.defaultBranchName false"
+2026-11-16T09:06:31.3752748Z Initialized empty Git repository in /home/runner/work/milkup/milkup/.git/
+2026-11-16T09:06:31.3810605Z [command]/usr/bin/git remote add origin https://github.com/Auto-Plugin/milkup
+2026-11-16T09:06:31.3812067Z ##[endgroup]
+2026-11-16T09:06:31.3812674Z ##[group]Disabling automatic garbage collection
+2026-11-16T09:06:31.3815148Z [command]/usr/bin/git config --local gc.auto 0
+2026-11-16T09:06:31.3846163Z ##[endgroup]
+2026-11-16T09:06:31.3847001Z ##[group]Setting up auth
+2026-11-16T09:06:31.3853206Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-11-16T09:06:31.3883356Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-11-16T09:06:31.4289461Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-11-16T09:06:31.4328002Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-11-16T09:06:31.4581376Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-11-16T09:06:31.4611956Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-11-16T09:06:31.4853563Z [command]/usr/bin/git config --local http.https://github.com/.extraheader AUTHORIZATION: basic ***
+2026-11-16T09:06:31.4980486Z ##[endgroup]
+2026-11-16T09:06:31.4981818Z ##[group]Fetching the repository
+2026-11-16T09:06:31.4990008Z [command]/usr/bin/git -c protocol.version=2 fetch --no-tags --prune --no-recurse-submodules --depth=1 origin +cd3964b4d4cfd59853d49b96d109c19aeb6af6e9:refs/remotes/origin/dot/linux-webkit-build-probe-20261114
+2026-11-16T09:06:47.0889059Z From https://github.com/Auto-Plugin/milkup
+2026-11-16T09:06:47.0891653Z  * [new ref]           cd3964b4d4cfd59853d49b96d109c19aeb6af6e9 -> origin/dot/linux-webkit-build-probe-20261114
+2026-11-16T09:06:47.0896631Z ##[endgroup]
+2026-11-16T09:06:47.0897678Z ##[group]Determining the checkout info
+2026-11-16T09:06:47.0898851Z ##[endgroup]
+2026-11-16T09:06:47.0900581Z [command]/usr/bin/git sparse-checkout disable
+2026-11-16T09:06:47.0946832Z [command]/usr/bin/git config --local --unset-all extensions.worktreeConfig
+2026-11-16T09:06:47.0975214Z ##[group]Checking out the ref
+2026-11-16T09:06:47.0977604Z [command]/usr/bin/git checkout --progress --force -B dot/linux-webkit-build-probe-20261114 refs/remotes/origin/dot/linux-webkit-build-probe-20261114
+2026-11-16T09:06:48.1470848Z Updating files:  30% (9622/31915)
+2026-11-16T09:06:48.1700198Z Updating files:  31% (9894/31915)
+2026-11-16T09:06:48.2347720Z Updating files:  32% (10213/31915)
+2026-11-16T09:06:48.2915590Z Updating files:  33% (10532/31915)
+2026-11-16T09:06:48.3527629Z Updating files:  34% (10852/31915)
+2026-11-16T09:06:48.4194811Z Updating files:  35% (11171/31915)
+2026-11-16T09:06:48.4874130Z Updating files:  36% (11490/31915)
+2026-11-16T09:06:48.5635755Z Updating files:  37% (11809/31915)
+2026-11-16T09:06:48.6284473Z Updating files:  38% (12128/31915)
+2026-11-16T09:06:48.6963803Z Updating files:  39% (12447/31915)
+2026-11-16T09:06:48.7674280Z Updating files:  40% (12766/31915)
+2026-11-16T09:06:48.7873627Z Updating files:  41% (13086/31915)
+2026-11-16T09:06:48.8115457Z Updating files:  42% (13405/31915)
+2026-11-16T09:06:48.8385673Z Updating files:  43% (13724/31915)
+2026-11-16T09:06:48.8640521Z Updating files:  44% (14043/31915)
+2026-11-16T09:06:48.8993770Z Updating files:  45% (14362/31915)
+2026-11-16T09:06:48.9198560Z Updating files:  46% (14681/31915)
+2026-11-16T09:06:48.9512434Z Updating files:  47% (15001/31915)
+2026-11-16T09:06:49.0017401Z Updating files:  48% (15320/31915)
+2026-11-16T09:06:49.0185063Z Updating files:  49% (15639/31915)
+2026-11-16T09:06:49.0451382Z Updating files:  50% (15958/31915)
+2026-11-16T09:06:49.0671563Z Updating files:  51% (16277/31915)
+2026-11-16T09:06:49.0835963Z Updating files:  52% (16596/31915)
+2026-11-16T09:06:49.1043140Z Updating files:  53% (16915/31915)
+2026-11-16T09:06:49.1235319Z Updating files:  54% (17235/31915)
+2026-11-16T09:06:49.1261540Z Updating files:  55% (17554/31915)
+2026-11-16T09:06:49.1712493Z Updating files:  55% (17587/31915)
+2026-11-16T09:06:49.1885871Z Updating files:  56% (17873/31915)
+2026-11-16T09:06:49.2177946Z Updating files:  57% (18192/31915)
+2026-11-16T09:06:49.2432852Z Updating files:  58% (18511/31915)
+2026-11-16T09:06:49.3041265Z Updating files:  59% (18830/31915)
+2026-11-16T09:06:49.3693441Z Updating files:  60% (19149/31915)
+2026-11-16T09:06:49.4295772Z Updating files:  61% (19469/31915)
+2026-11-16T09:06:49.5095755Z Updating files:  62% (19788/31915)
+2026-11-16T09:06:49.5442634Z Updating files:  63% (20107/31915)
+2026-11-16T09:06:49.5666631Z Updating files:  64% (20426/31915)
+2026-11-16T09:06:49.6458570Z Updating files:  65% (20745/31915)
+2026-11-16T09:06:49.7253477Z Updating files:  66% (21064/31915)
+2026-11-16T09:06:49.7811319Z Updating files:  67% (21384/31915)
+2026-11-16T09:06:49.8109232Z Updating files:  68% (21703/31915)
+2026-11-16T09:06:49.8318866Z Updating files:  69% (22022/31915)
+2026-11-16T09:06:49.8505335Z Updating files:  70% (22341/31915)
+2026-11-16T09:06:49.8868247Z Updating files:  71% (22660/31915)
+2026-11-16T09:06:49.9009320Z Updating files:  72% (22979/31915)
+2026-11-16T09:06:49.9208409Z Updating files:  73% (23298/31915)
+2026-11-16T09:06:49.9817806Z Updating files:  74% (23618/31915)
+2026-11-16T09:06:50.0228519Z Updating files:  75% (23937/31915)
+2026-11-16T09:06:50.0612819Z Updating files:  76% (24256/31915)
+2026-11-16T09:06:50.1245484Z Updating files:  77% (24575/31915)
+2026-11-16T09:06:50.1260249Z Updating files:  78% (24894/31915)
+2026-11-16T09:06:50.1491131Z Updating files:  78% (24919/31915)
+2026-11-16T09:06:50.1782932Z Updating files:  79% (25213/31915)
+2026-11-16T09:06:50.2046566Z Updating files:  80% (25532/31915)
+2026-11-16T09:06:50.2459636Z Updating files:  81% (25852/31915)
+2026-11-16T09:06:50.2689774Z Updating files:  82% (26171/31915)
+2026-11-16T09:06:50.4087778Z Updating files:  83% (26490/31915)
+2026-11-16T09:06:50.4433974Z Updating files:  84% (26809/31915)
+2026-11-16T09:06:50.4945137Z Updating files:  85% (27128/31915)
+2026-11-16T09:06:50.5130317Z Updating files:  86% (27447/31915)
+2026-11-16T09:06:50.5664461Z Updating files:  87% (27767/31915)
+2026-11-16T09:06:50.6423518Z Updating files:  88% (28086/31915)
+2026-11-16T09:06:50.7518317Z Updating files:  89% (28405/31915)
+2026-11-16T09:06:50.7867759Z Updating files:  90% (28724/31915)
+2026-11-16T09:06:50.8028184Z Updating files:  91% (29043/31915)
+2026-11-16T09:06:50.8262660Z Updating files:  92% (29362/31915)
+2026-11-16T09:06:50.8448648Z Updating files:  93% (29681/31915)
+2026-11-16T09:06:50.8742959Z Updating files:  94% (30001/31915)
+2026-11-16T09:06:50.9398316Z Updating files:  95% (30320/31915)
+2026-11-16T09:06:50.9568032Z Updating files:  96% (30639/31915)
+2026-11-16T09:06:51.0586150Z Updating files:  97% (30958/31915)
+2026-11-16T09:06:51.1281870Z Updating files:  98% (31277/31915)
+2026-11-16T09:06:51.1701313Z Updating files:  98% (31326/31915)
+2026-11-16T09:06:51.1905463Z Updating files:  99% (31596/31915)
+2026-11-16T09:06:51.1905741Z Updating files: 100% (31915/31915)
+2026-11-16T09:06:51.1905976Z Updating files: 100% (31915/31915), done.
+2026-11-16T09:06:51.2220282Z Switched to a new branch 'dot/linux-webkit-build-probe-20261114'
+2026-11-16T09:06:51.2224700Z branch 'dot/linux-webkit-build-probe-20261114' set up to track 'origin/dot/linux-webkit-build-probe-20261114'.
+2026-11-16T09:06:51.2403493Z ##[endgroup]
+2026-11-16T09:06:51.2449126Z [command]/usr/bin/git log -1 --format=%H
+2026-11-16T09:06:51.2473466Z cd3964b4d4cfd59853d49b96d109c19aeb6af6e9
+2026-11-16T09:06:51.2482819Z ##[group]Removing auth
+2026-11-16T09:06:51.2485765Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-11-16T09:06:51.2512134Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-11-16T09:06:51.2798054Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-11-16T09:06:51.2822515Z http.https://github.com/.extraheader
+2026-11-16T09:06:51.2830746Z [command]/usr/bin/git config --local --unset-all http.https://github.com/.extraheader
+2026-11-16T09:06:51.2858815Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-11-16T09:06:51.3140637Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-11-16T09:06:51.3172184Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-11-16T09:06:51.3456040Z ##[endgroup]
+2026-11-16T09:06:51.3640060Z ##[group]Run test "$(id -u)" != 0
+2026-11-16T09:06:51.3640366Z [36;1mtest "$(id -u)" != 0[0m
+2026-11-16T09:06:51.3640654Z [36;1mtest -z "${WEBKIT_DISABLE_SANDBOX_THIS_IS_DANGEROUS:-}"[0m
+2026-11-16T09:06:51.3641054Z [36;1mecho "CCACHE_DIR=$RUNNER_TEMP/milkup-webkit-ccache" >> "$GITHUB_ENV"[0m
+2026-11-16T09:06:51.3641427Z [36;1mecho "PAGINATION_START_EPOCH=$(date +%s)" >> "$GITHUB_ENV"[0m
+2026-11-16T09:06:51.3641804Z [36;1mpython3 scripts/ci/webkit-pagination-preflight-test.py[0m
+2026-11-16T09:06:51.3642155Z [36;1mpython3 scripts/ci/webkit-pagination-cache-test.py[0m
+2026-11-16T09:06:51.3642539Z [36;1mpython3 research/pdf-pagination-mechanism-20261116/native_test.py[0m
+2026-11-16T09:06:51.3642991Z [36;1mpython3 -m unittest discover -s research/pdf-pagination-mechanism-20261116 -p 'test_*.py'[0m
+2026-11-16T09:06:51.3643479Z [36;1mpython3 -m unittest discover -s research/pdf-pagination-behavior-20261116 -p 'test_*.py'[0m
+2026-11-16T09:06:51.3692660Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+2026-11-16T09:06:51.3692944Z env:
+2026-11-16T09:06:51.3693121Z   CCACHE_COMPILERCHECK: content
+2026-11-16T09:06:51.3693357Z   PAGINATION_OPERATION: pagination-segment
+2026-11-16T09:06:51.3693599Z   PAGINATION_RESTORE_RUN: 43808221193
+2026-11-16T09:06:51.3693821Z   PAGINATION_BEHAVIOR: true
+2026-11-16T09:06:51.3694017Z   PAGINATION_TAIL: true
+2026-11-16T09:06:51.3694208Z   PAGINATION_ROOT_MARGIN: true
+2026-11-16T09:06:51.3694414Z   PAGINATION_COMBINED: true
+2026-11-16T09:06:51.3694601Z ##[endgroup]
+2026-11-16T09:06:51.4353160Z test_actual_command_identity (inherited_contract.Gate.test_actual_command_identity) ... ok
+2026-11-16T09:06:51.4361027Z test_exact_official_name_generator (inherited_contract.Gate.test_exact_official_name_generator) ... ok
+2026-11-16T09:06:51.4361824Z test_exact_old_error_required (inherited_contract.Gate.test_exact_old_error_required) ... ok
+2026-11-16T09:06:51.4371007Z test_execution_matches_reviewed_graph (inherited_contract.Gate.test_execution_matches_reviewed_graph) ... ok
+2026-11-16T09:06:51.4371931Z test_generated_header_output_selection (inherited_contract.Gate.test_generated_header_output_selection) ... ok
+2026-11-16T09:06:51.4373693Z test_header_only_plan (inherited_contract.Gate.test_header_only_plan) ... ok
+2026-11-16T09:06:51.4374215Z test_incomplete_regeneration_plan_rejected (inherited_contract.Gate.test_incomplete_regeneration_plan_rejected) ... ok
+2026-11-16T09:06:51.4387503Z test_real_unified_relative_include_resolution (inherited_contract.Gate.test_real_unified_relative_include_resolution) ... ok
+2026-11-16T09:06:51.4488850Z test_exact_four_sources_and_inherited_guards (__main__.Pagination.test_exact_four_sources_and_inherited_guards) ... ok
+2026-11-16T09:06:51.4490221Z test_header_and_cache_identity_receipt (__main__.Pagination.test_header_and_cache_identity_receipt) ... ok
+2026-11-16T09:06:51.4545837Z test_no_full_build_or_install_continuation (__main__.Pagination.test_no_full_build_or_install_continuation) ... ok
+2026-11-16T09:06:51.4546953Z test_retained_native_failure_is_exact_missing_inline (__main__.Pagination.test_retained_native_failure_is_exact_missing_inline) ... ok
+2026-11-16T09:06:51.4547528Z 
+2026-11-16T09:06:51.4547705Z ----------------------------------------------------------------------
+2026-11-16T09:06:51.4548074Z Ran 12 tests in 0.020s
+2026-11-16T09:06:51.4548196Z 
+2026-11-16T09:06:51.4548264Z OK
+2026-11-16T09:06:51.7208900Z ..........
+2026-11-16T09:06:51.7209312Z ----------------------------------------------------------------------
+2026-11-16T09:06:51.7209999Z Ran 10 tests in 0.197s
+2026-11-16T09:06:51.7210181Z 
+2026-11-16T09:06:51.7210280Z OK
+2026-11-16T09:06:51.8177477Z test_fixed_patch_and_four_tu_success_gate_precede_build (__main__.NativeContracts.test_fixed_patch_and_four_tu_success_gate_precede_build) ... ok
+2026-11-16T09:06:51.8216663Z test_original_support_integrity_except_exact_reviewed_hooks (__main__.NativeContracts.test_original_support_integrity_except_exact_reviewed_hooks) ... ok
+2026-11-16T09:06:51.8221731Z test_pdf_coordinates_and_known_failure_remain_independent (__main__.NativeContracts.test_pdf_coordinates_and_known_failure_remain_independent) ... ok
+2026-11-16T09:06:51.8231127Z test_private_runtime_binding_rejects_system_wrong_bytes_and_mutation (__main__.NativeContracts.test_private_runtime_binding_rejects_system_wrong_bytes_and_mutation) ... ok
+2026-11-16T09:06:51.8232981Z test_uri_representation_delta_cannot_change_thresholds_or_original_receipt (__main__.NativeContracts.test_uri_representation_delta_cannot_change_thresholds_or_original_receipt) ... ok
+2026-11-16T09:06:51.8234369Z test_lineage_requires_stable_birth_image_uid_and_guardian (inherited_tests.Contracts.test_lineage_requires_stable_birth_image_uid_and_guardian) ... ok
+2026-11-16T09:06:51.8235542Z test_repeated_headers_required_on_each_data_page (inherited_tests.Contracts.test_repeated_headers_required_on_each_data_page) ... ok
+2026-11-16T09:06:51.8236608Z test_frames_are_bounded_and_partial_retained (inherited_tests.Contracts.test_frames_are_bounded_and_partial_retained) ... ok
+2026-11-16T09:06:51.8237791Z test_exact_reference_rejects_missing_or_wrong_page_coordinates (inherited_tests.Contracts.test_exact_reference_rejects_missing_or_wrong_page_coordinates) ... ok
+2026-11-16T09:06:51.8239159Z test_short_table_does_not_require_fragmentation_but_long_still_does (inherited_tests.Contracts.test_short_table_does_not_require_fragmentation_but_long_still_does) ... ok
+2026-11-16T09:06:51.8504345Z test_fd_transfer_and_stop_eof (inherited_tests.Contracts.test_fd_transfer_and_stop_eof) ... ok
+2026-11-16T09:06:51.8505264Z 
+2026-11-16T09:06:51.8505626Z ----------------------------------------------------------------------
+2026-11-16T09:06:51.8506124Z Ran 11 tests in 0.035s
+2026-11-16T09:06:51.8506314Z 
+2026-11-16T09:06:51.8506430Z OK
+2026-11-16T09:06:52.2362421Z ...............
+2026-11-16T09:06:52.2362852Z ----------------------------------------------------------------------
+2026-11-16T09:06:52.2363180Z Ran 15 tests in 0.303s
+2026-11-16T09:06:52.2363346Z 
+2026-11-16T09:06:52.2363414Z OK
+2026-11-16T09:06:54.8210204Z ....s......s.........s
+2026-11-16T09:06:54.8210624Z ----------------------------------------------------------------------
+2026-11-16T09:06:54.8211051Z Ran 22 tests in 2.493s
+2026-11-16T09:06:54.8211215Z 
+2026-11-16T09:06:54.8211315Z OK (skipped=3)
+2026-11-16T09:06:54.8415078Z ##[group]Run actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830
+2026-11-16T09:06:54.8415404Z with:
+2026-11-16T09:06:54.8415620Z   path: /home/runner/work/_temp/milkup-webkit-ccache
+2026-11-16T09:06:54.8416079Z   key: webkit-u2604-2526-edc7e59917fbad8635b3c87f62416989f35aec8ac8591b557de19ffcbd3ecd76-43672149274
+2026-11-16T09:06:54.8416484Z   fail-on-cache-miss: true
+2026-11-16T09:06:54.8416694Z   enableCrossOsArchive: false
+2026-11-16T09:06:54.8416893Z   lookup-only: false
+2026-11-16T09:06:54.8417073Z env:
+2026-11-16T09:06:54.8417245Z   CCACHE_COMPILERCHECK: content
+2026-11-16T09:06:54.8417468Z   PAGINATION_OPERATION: pagination-segment
+2026-11-16T09:06:54.8417705Z   PAGINATION_RESTORE_RUN: 43808221193
+2026-11-16T09:06:54.8417923Z   PAGINATION_BEHAVIOR: true
+2026-11-16T09:06:54.8418124Z   PAGINATION_TAIL: true
+2026-11-16T09:06:54.8418309Z   PAGINATION_ROOT_MARGIN: true
+2026-11-16T09:06:54.8418510Z   PAGINATION_COMBINED: true
+2026-11-16T09:06:54.8418780Z   CCACHE_DIR: /home/runner/work/_temp/milkup-webkit-ccache
+2026-11-16T09:06:54.8419048Z   PAGINATION_START_EPOCH: 1794820011
+2026-11-16T09:06:54.8419252Z ##[endgroup]
+2026-11-16T09:06:54.9280303Z (node:2344) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+2026-11-16T09:06:54.9280981Z (Use `node --trace-deprecation ...` to show where the warning was created)
+2026-11-16T09:06:55.1488981Z Cache hit for: webkit-u2604-2526-edc7e59917fbad8635b3c87f62416989f35aec8ac8591b557de19ffcbd3ecd76-43672149274
+2026-11-16T09:06:55.1566410Z (node:2344) [DEP0169] DeprecationWarning: `url.parse()` behavior is not standardized and prone to errors that have security implications. Use the WHATWG URL API instead. CVEs are not issued for `url.parse()` vulnerabilities.
+2026-11-16T09:06:56.3818484Z Received 37748736 of 439993725 (8.6%), 36.0 MBs/sec
+2026-11-16T09:06:57.3828939Z Received 197132288 of 439993725 (44.8%), 94.0 MBs/sec
+2026-11-16T09:06:58.3851203Z Received 381681664 of 439993725 (86.7%), 121.3 MBs/sec
+2026-11-16T09:06:58.7651617Z Received 439993725 of 439993725 (100.0%), 124.0 MBs/sec
+2026-11-16T09:06:58.7654039Z Cache Size: ~420 MB (439993725 B)
+2026-11-16T09:06:58.7748110Z [command]/usr/bin/tar -xf /home/runner/work/_temp/181c2dde-46ad-4c35-bad1-4fa6c4066e0d/cache.tzst -P -C /home/runner/work/milkup/milkup --use-compress-program unzstd
+2026-11-16T09:06:59.5026962Z Cache restored successfully
+2026-11-16T09:06:59.5374057Z Cache restored from key: webkit-u2604-2526-edc7e59917fbad8635b3c87f62416989f35aec8ac8591b557de19ffcbd3ecd76-43672149274
+2026-11-16T09:06:59.5552666Z ##[group]Run python3 scripts/ci/probe-webkit-distro-build.py
+2026-11-16T09:06:59.5553102Z [36;1mpython3 scripts/ci/probe-webkit-distro-build.py[0m
+2026-11-16T09:06:59.5600749Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+2026-11-16T09:06:59.5601042Z env:
+2026-11-16T09:06:59.5601235Z   CCACHE_COMPILERCHECK: content
+2026-11-16T09:06:59.5601498Z   PAGINATION_OPERATION: pagination-segment
+2026-11-16T09:06:59.5601743Z   PAGINATION_RESTORE_RUN: 43808221193
+2026-11-16T09:06:59.5601968Z   PAGINATION_BEHAVIOR: true
+2026-11-16T09:06:59.5602166Z   PAGINATION_TAIL: true
+2026-11-16T09:06:59.5602367Z   PAGINATION_ROOT_MARGIN: true
+2026-11-16T09:06:59.5602754Z   PAGINATION_COMBINED: true
+2026-11-16T09:06:59.5603001Z   CCACHE_DIR: /home/runner/work/_temp/milkup-webkit-ccache
+2026-11-16T09:06:59.5603278Z   PAGINATION_START_EPOCH: 1794820011
+2026-11-16T09:06:59.5603500Z ##[endgroup]
+2026-11-16T09:07:12.3288631Z {
+2026-11-16T09:07:12.3288885Z   "status": "probe-complete",
+2026-11-16T09:07:12.3289249Z   "stage": "official-build-deps-simulation",
+2026-11-16T09:07:12.3289501Z   "error": null,
+2026-11-16T09:07:12.3289722Z   "sourceVersionRequested": "2.52.6-0ubuntu0.26.04.1",
+2026-11-16T09:07:12.3290151Z   "availableSourceVersions": [
+2026-11-16T09:07:12.3290356Z     "2.52.0-1",
+2026-11-16T09:07:12.3290532Z     "2.52.6-0ubuntu0.26.04.1"
+2026-11-16T09:07:12.3290718Z   ],
+2026-11-16T09:07:12.3290896Z   "sourceExtractedBytes": 418378881,
+2026-11-16T09:07:12.3291129Z   "sourceFileCount": 34435,
+2026-11-16T09:07:12.3291356Z   "buildDependencySimulationSucceeded": true,
+2026-11-16T09:07:12.3291609Z   "wouldChangeWebKitPackages": []
+2026-11-16T09:07:12.3291810Z }
+2026-11-16T09:07:12.3415915Z ##[group]Run python3 scripts/ci/webkit-pagination-preflight.py
+2026-11-16T09:07:12.3416539Z [36;1mpython3 scripts/ci/webkit-pagination-preflight.py[0m
+2026-11-16T09:07:12.3461914Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+2026-11-16T09:07:12.3462211Z env:
+2026-11-16T09:07:12.3462387Z   CCACHE_COMPILERCHECK: content
+2026-11-16T09:07:12.3462643Z   PAGINATION_OPERATION: pagination-segment
+2026-11-16T09:07:12.3462887Z   PAGINATION_RESTORE_RUN: 43808221193
+2026-11-16T09:07:12.3463114Z   PAGINATION_BEHAVIOR: true
+2026-11-16T09:07:12.3463316Z   PAGINATION_TAIL: true
+2026-11-16T09:07:12.3463504Z   PAGINATION_ROOT_MARGIN: true
+2026-11-16T09:07:12.3463717Z   PAGINATION_COMBINED: true
+2026-11-16T09:07:12.3463966Z   CCACHE_DIR: /home/runner/work/_temp/milkup-webkit-ccache
+2026-11-16T09:07:12.3464241Z   PAGINATION_START_EPOCH: 1794820011
+2026-11-16T09:07:12.3464742Z   PAGINATION_CACHE_MATCHED_KEY: webkit-u2604-2526-edc7e59917fbad8635b3c87f62416989f35aec8ac8591b557de19ffcbd3ecd76-43672149274
+2026-11-16T09:07:12.3465206Z ##[endgroup]
+2026-11-16T09:07:12.3805119Z STAGE install-official-build-deps
+2026-11-16T09:07:50.5703937Z STAGE install-official-cache-tool
+2026-11-16T09:07:53.1405157Z STAGE configure-bounded-cache
+2026-11-16T09:07:53.1446398Z STAGE prepare-pagination-probe
+2026-11-16T09:07:53.2090658Z STAGE check-pagination-probe
+2026-11-16T09:07:53.2132574Z STAGE apply-pagination-probe
+2026-11-16T09:07:53.2878455Z dpkg-buildflags: warning: debian/changelog not found. Not setting ELF package metadata parameter.
+2026-11-16T09:07:53.3194494Z dpkg-buildflags: warning: debian/changelog not found. Not setting ELF package metadata parameter.
+2026-11-16T09:07:53.3507505Z dpkg-buildflags: warning: debian/changelog not found. Not setting ELF package metadata parameter.
+2026-11-16T09:07:53.3823601Z dpkg-buildflags: warning: debian/changelog not found. Not setting ELF package metadata parameter.
+2026-11-16T09:07:53.3857001Z STAGE configure-private-gtk3
+2026-11-16T09:08:27.6981710Z STAGE cache-first-invocation-proof
+2026-11-16T09:08:52.5132537Z STAGE four-actual-tu-gate
+2026-11-16T09:11:05.5668863Z {
+2026-11-16T09:11:05.5669218Z   "status": "passed-four-tu-only-not-native",
+2026-11-16T09:11:05.5669633Z   "harnessSha": "cd3964b4d4cfd59853d49b96d109c19aeb6af6e9",
+2026-11-16T09:11:05.5670304Z   "scope": "Four changed actual translation units only; no engine or PDF acceptance",
+2026-11-16T09:11:05.5670810Z   "steps": [
+2026-11-16T09:11:05.5671055Z     {
+2026-11-16T09:11:05.5671291Z       "name": "install-official-build-deps",
+2026-11-16T09:11:05.5671595Z       "exitCode": 0,
+2026-11-16T09:11:05.5671831Z       "seconds": 38.189,
+2026-11-16T09:11:05.5672065Z       "arguments": [
+2026-11-16T09:11:05.5672297Z         "sudo",
+2026-11-16T09:11:05.5672517Z         "apt-get",
+2026-11-16T09:11:05.5672728Z         "-c",
+2026-11-16T09:11:05.5673043Z         "/home/runner/work/_temp/milkup-webkit-research/apt.conf",
+2026-11-16T09:11:05.5673400Z         "-y",
+2026-11-16T09:11:05.5673666Z         "--no-install-recommends",
+2026-11-16T09:11:05.5674219Z         "--no-remove",
+2026-11-16T09:11:05.5674451Z         "build-dep",
+2026-11-16T09:11:05.5674726Z         "webkit2gtk=2.52.6-0ubuntu0.26.04.1"
+2026-11-16T09:11:05.5675046Z       ]
+2026-11-16T09:11:05.5675248Z     },
+2026-11-16T09:11:05.5675453Z     {
+2026-11-16T09:11:05.5675696Z       "name": "install-official-cache-tool",
+2026-11-16T09:11:05.5675917Z       "exitCode": 0,
+2026-11-16T09:11:05.5676087Z       "seconds": 2.569,
+2026-11-16T09:11:05.5676262Z       "arguments": [
+2026-11-16T09:11:05.5676437Z         "sudo",
+2026-11-16T09:11:05.5676609Z         "apt-get",
+2026-11-16T09:11:05.5676775Z         "-c",
+2026-11-16T09:11:05.5676998Z         "/home/runner/work/_temp/milkup-webkit-research/apt.conf",
+2026-11-16T09:11:05.5677264Z         "-y",
+2026-11-16T09:11:05.5677436Z         "--no-install-recommends",
+2026-11-16T09:11:05.5677696Z         "--no-remove",
+2026-11-16T09:11:05.5677871Z         "install",
+2026-11-16T09:11:05.5678036Z         "ccache"
+2026-11-16T09:11:05.5678385Z       ]
+2026-11-16T09:11:05.5678539Z     },
+2026-11-16T09:11:05.5678685Z     {
+2026-11-16T09:11:05.5678855Z       "name": "configure-bounded-cache",
+2026-11-16T09:11:05.5679082Z       "exitCode": 0,
+2026-11-16T09:11:05.5679258Z       "seconds": 0.004,
+2026-11-16T09:11:05.5679435Z       "arguments": [
+2026-11-16T09:11:05.5679599Z         "ccache",
+2026-11-16T09:11:05.5679772Z         "--max-size",
+2026-11-16T09:11:05.5680205Z         "2G"
+2026-11-16T09:11:05.5680372Z       ]
+2026-11-16T09:11:05.5680520Z     },
+2026-11-16T09:11:05.5680669Z     {
+2026-11-16T09:11:05.5680851Z       "name": "prepare-pagination-probe",
+2026-11-16T09:11:05.5681084Z       "exitCode": 0,
+2026-11-16T09:11:05.5681288Z       "seconds": 0.064,
+2026-11-16T09:11:05.5681466Z       "arguments": [
+2026-11-16T09:11:05.5681644Z         "python3",
+2026-11-16T09:11:05.5681978Z         "/home/runner/work/milkup/milkup/research/pdf-pagination-mechanism-20261116/prepare.py",
+2026-11-16T09:11:05.5682393Z         "/home/runner/work/_temp/milkup-webkit-research/source",
+2026-11-16T09:11:05.5682798Z         "/home/runner/work/_temp/milkup-webkit-research/evidence/pagination-observation.patch"
+2026-11-16T09:11:05.5683147Z       ]
+2026-11-16T09:11:05.5683298Z     },
+2026-11-16T09:11:05.5683441Z     {
+2026-11-16T09:11:05.5683604Z       "name": "check-pagination-probe",
+2026-11-16T09:11:05.5683826Z       "exitCode": 0,
+2026-11-16T09:11:05.5684003Z       "seconds": 0.004,
+2026-11-16T09:11:05.5684179Z       "arguments": [
+2026-11-16T09:11:05.5684350Z         "git",
+2026-11-16T09:11:05.5684509Z         "-C",
+2026-11-16T09:11:05.5684749Z         "/home/runner/work/_temp/milkup-webkit-research/source",
+2026-11-16T09:11:05.5685102Z         "apply",
+2026-11-16T09:11:05.5685267Z         "--check",
+2026-11-16T09:11:05.5685570Z         "/home/runner/work/_temp/milkup-webkit-research/evidence/pagination-observation.patch"
+2026-11-16T09:11:05.5685910Z       ]
+2026-11-16T09:11:05.5686064Z     },
+2026-11-16T09:11:05.5686212Z     {
+2026-11-16T09:11:05.5686389Z       "name": "apply-pagination-probe",
+2026-11-16T09:11:05.5686624Z       "exitCode": 0,
+2026-11-16T09:11:05.5686804Z       "seconds": 0.008,
+2026-11-16T09:11:05.5686983Z       "arguments": [
+2026-11-16T09:11:05.5687147Z         "git",
+2026-11-16T09:11:05.5687313Z         "-C",
+2026-11-16T09:11:05.5687524Z         "/home/runner/work/_temp/milkup-webkit-research/source",
+2026-11-16T09:11:05.5687782Z         "apply",
+2026-11-16T09:11:05.5688329Z         "/home/runner/work/_temp/milkup-webkit-research/evidence/pagination-observation.patch"
+2026-11-16T09:11:05.5688840Z       ]
+2026-11-16T09:11:05.5689054Z     },
+2026-11-16T09:11:05.5689260Z     {
+2026-11-16T09:11:05.5689513Z       "name": "configure-private-gtk3",
+2026-11-16T09:11:05.5689989Z       "exitCode": 0,
+2026-11-16T09:11:05.5690250Z       "seconds": 34.181,
+2026-11-16T09:11:05.5690520Z       "arguments": [
+2026-11-16T09:11:05.5690723Z         "cmake",
+2026-11-16T09:11:05.5690887Z         "-S",
+2026-11-16T09:11:05.5691118Z         "/home/runner/work/_temp/milkup-webkit-research/source",
+2026-11-16T09:11:05.5691537Z         "-B",
+2026-11-16T09:11:05.5691746Z         "/home/runner/work/_temp/milkup-webkit-research/build",
+2026-11-16T09:11:05.5692001Z         "-GNinja",
+2026-11-16T09:11:05.5692172Z         "-DPORT=GTK",
+2026-11-16T09:11:05.5692361Z         "-DUSE_GTK4=OFF",
+2026-11-16T09:11:05.5692561Z         "-DCMAKE_BUILD_TYPE=Release",
+2026-11-16T09:11:05.5692819Z         "-DCMAKE_C_COMPILER=clang",
+2026-11-16T09:11:05.5693039Z         "-DCMAKE_CXX_COMPILER=clang++",
+2026-11-16T09:11:05.5693277Z         "-DCMAKE_C_COMPILER_LAUNCHER=ccache",
+2026-11-16T09:11:05.5693523Z         "-DCMAKE_CXX_COMPILER_LAUNCHER=ccache",
+2026-11-16T09:11:05.5693753Z         "-DCMAKE_C_FLAGS_RELEASE=",
+2026-11-16T09:11:05.5693963Z         "-DCMAKE_CXX_FLAGS_RELEASE=",
+2026-11-16T09:11:05.5695176Z         "-DCMAKE_C_FLAGS=-g1 -O2 -Werror=implicit-function-declaration -fno-omit-frame-pointer -mno-omit-leaf-frame-pointer -ffile-prefix-map=/home/runner/work/milkup/milkup=. -fstack-protector-strong -fstack-clash-protection -Wformat -Werror=format-security -fcf-protection -Wdate-time -D_FORTIFY_SOURCE=3 -DNDEBUG -DG_DISABLE_CAST_CHECKS",
+2026-11-16T09:11:05.5696941Z         "-DCMAKE_CXX_FLAGS=-g1 -O2 -fno-omit-frame-pointer -mno-omit-leaf-frame-pointer -ffile-prefix-map=/home/runner/work/milkup/milkup=. -fstack-protector-strong -fstack-clash-protection -Wformat -Werror=format-security -fcf-protection -Wdate-time -D_FORTIFY_SOURCE=3 -DNDEBUG -DG_DISABLE_CAST_CHECKS",
+2026-11-16T09:11:05.5697996Z         "-DCMAKE_EXE_LINKER_FLAGS=-Wl,-Bsymbolic-functions -Wl,-z,relro -Wl,-z,now -Wl,--reduce-memory-overheads",
+2026-11-16T09:11:05.5698551Z         "-DCMAKE_SHARED_LINKER_FLAGS=-Wl,-Bsymbolic-functions -Wl,-z,relro -Wl,-z,now -Wl,--reduce-memory-overheads",
+2026-11-16T09:11:05.5699036Z         "-DCMAKE_INSTALL_PREFIX=/home/runner/work/_temp/milkup-webkit-research/prefix",
+2026-11-16T09:11:05.5699386Z         "-DCMAKE_INSTALL_LIBDIR=lib/x86_64-linux-gnu",
+2026-11-16T09:11:05.5699666Z         "-DCMAKE_INSTALL_LIBEXECDIR=lib/x86_64-linux-gnu",
+2026-11-16T09:11:05.5700350Z         "-DCMAKE_INSTALL_RPATH=/home/runner/work/_temp/milkup-webkit-research/prefix/lib/x86_64-linux-gnu",
+2026-11-16T09:11:05.5700739Z         "-DCMAKE_BUILD_WITH_INSTALL_RPATH=ON",
+2026-11-16T09:11:05.5700993Z         "-DUSE_LIBBACKTRACE=OFF",
+2026-11-16T09:11:05.5701214Z         "-DUSE_SYSPROF_CAPTURE=ON",
+2026-11-16T09:11:05.5701434Z         "-DENABLE_DOCUMENTATION=OFF",
+2026-11-16T09:11:05.5701657Z         "-DENABLE_BUBBLEWRAP_SANDBOX=ON",
+2026-11-16T09:11:05.5701884Z         "-DUSER_AGENT_BRANDING=Ubuntu",
+2026-11-16T09:11:05.5702106Z         "-DUSE_AVIF=OFF",
+2026-11-16T09:11:05.5702304Z         "-DENABLE_SPEECH_SYNTHESIS=OFF",
+2026-11-16T09:11:05.5702523Z         "-DENABLE_GAMEPAD=OFF",
+2026-11-16T09:11:05.5702725Z         "-DUSE_LD_LLD=OFF",
+2026-11-16T09:11:05.5702936Z         "-DCMAKE_EXPORT_COMPILE_COMMANDS=ON"
+2026-11-16T09:11:05.5703151Z       ]
+2026-11-16T09:11:05.5703302Z     },
+2026-11-16T09:11:05.5703449Z     {
+2026-11-16T09:11:05.5703652Z       "name": "cache-first-invocation-proof",
+2026-11-16T09:11:05.5703880Z       "exitCode": 0,
+2026-11-16T09:11:05.5704055Z       "seconds": 24.814,
+2026-11-16T09:11:05.5704240Z       "arguments": [
+2026-11-16T09:11:05.5704406Z         "python3",
+2026-11-16T09:11:05.5704682Z         "/home/runner/work/milkup/milkup/scripts/ci/webkit-cache-preflight.py",
+2026-11-16T09:11:05.5705004Z         "--build",
+2026-11-16T09:11:05.5705221Z         "/home/runner/work/_temp/milkup-webkit-research/build",
+2026-11-16T09:11:05.5705479Z         "--output",
+2026-11-16T09:11:05.5705783Z         "/home/runner/work/_temp/milkup-webkit-research/evidence/pagination-cache-preflight"
+2026-11-16T09:11:05.5706114Z       ]
+2026-11-16T09:11:05.5706263Z     },
+2026-11-16T09:11:05.5706410Z     {
+2026-11-16T09:11:05.5706579Z       "name": "four-actual-tu-gate",
+2026-11-16T09:11:05.5706788Z       "exitCode": 0,
+2026-11-16T09:11:05.5706961Z       "seconds": 133.043,
+2026-11-16T09:11:05.5707144Z       "arguments": [
+2026-11-16T09:11:05.5707456Z         "python3",
+2026-11-16T09:11:05.5707766Z         "/home/runner/work/milkup/milkup/scripts/ci/webkit-pagination-object-preflight.py",
+2026-11-16T09:11:05.5708101Z         "--source",
+2026-11-16T09:11:05.5708314Z         "/home/runner/work/_temp/milkup-webkit-research/source",
+2026-11-16T09:11:05.5708586Z         "--build",
+2026-11-16T09:11:05.5708851Z         "/home/runner/work/_temp/milkup-webkit-research/build",
+2026-11-16T09:11:05.5709120Z         "--output",
+2026-11-16T09:11:05.5709408Z         "/home/runner/work/_temp/milkup-webkit-research/evidence/pagination-object-gate",
+2026-11-16T09:11:05.5709733Z         "--inherit",
+2026-11-16T09:11:05.5710312Z         "/home/runner/work/milkup/milkup/research/pdf-pagination-mechanism-20261116/evidence/43789957637/original-artifact.zip"
+2026-11-16T09:11:05.5710765Z       ]
+2026-11-16T09:11:05.5710916Z     }
+2026-11-16T09:11:05.5711062Z   ],
+2026-11-16T09:11:05.5711238Z   "fullEngineBuildAttempted": false,
+2026-11-16T09:11:05.5711749Z   "nativeAttempted": false,
+2026-11-16T09:11:05.5711976Z   "cacheReceipt": {
+2026-11-16T09:11:05.5712179Z     "priorRun": 43672149274,
+2026-11-16T09:11:05.5712443Z     "priorHarnessSha": "ec539706012784ea05ec0636a9c01299bbfa2f3b",
+2026-11-16T09:11:05.5712724Z     "priorArtifactId": 14145366070,
+2026-11-16T09:11:05.5713089Z     "priorArtifactSha256": "c71c7a889c50210b68e8250f8c8ef1f147fcaacfab6270ff69b29f15f69afe80",
+2026-11-16T09:11:05.5713664Z     "cacheKey": "webkit-u2604-2526-edc7e59917fbad8635b3c87f62416989f35aec8ac8591b557de19ffcbd3ecd76-43672149274",
+2026-11-16T09:11:05.5714106Z     "sourceVersion": "2.52.6-0ubuntu0.26.04.1",
+2026-11-16T09:11:05.5714330Z     "archives": [
+2026-11-16T09:11:05.5714494Z       {
+2026-11-16T09:11:05.5714666Z         "name": "webkit2gtk_2.52.6.orig.tar.xz",
+2026-11-16T09:11:05.5714897Z         "bytes": 65746000,
+2026-11-16T09:11:05.5715194Z         "sha256": "179a2ea3f8f6edd4be7f31fdc55afc57bd0729f1fba648c61d4181539ac116fc"
+2026-11-16T09:11:05.5715504Z       },
+2026-11-16T09:11:05.5715669Z       {
+2026-11-16T09:11:05.5715847Z         "name": "webkit2gtk_2.52.6.orig.tar.xz.asc",
+2026-11-16T09:11:05.5716078Z         "bytes": 195,
+2026-11-16T09:11:05.5716346Z         "sha256": "6694b1f87b10c4b799f2aadf20da7a0b6725b9c3b41b598ecba8bc35d54e7090"
+2026-11-16T09:11:05.5716642Z       },
+2026-11-16T09:11:05.5716793Z       {
+2026-11-16T09:11:05.5717004Z         "name": "webkit2gtk_2.52.6-0ubuntu0.26.04.1.debian.tar.xz",
+2026-11-16T09:11:05.5717262Z         "bytes": 96728,
+2026-11-16T09:11:05.5717527Z         "sha256": "ea13e2ad9a7093351ac379770692544f984d83f4720587bc2669bdc14c8cb33d"
+2026-11-16T09:11:05.5717816Z       },
+2026-11-16T09:11:05.5717973Z       {
+2026-11-16T09:11:05.5718153Z         "name": "webkit2gtk_2.52.6-0ubuntu0.26.04.1.dsc",
+2026-11-16T09:11:05.5718384Z         "bytes": 4833,
+2026-11-16T09:11:05.5718646Z         "sha256": "5115636753fca7cff0fe72f56fe120b0f07090ecdb98ab9991deb85b0a6e4adc"
+2026-11-16T09:11:05.5718946Z       }
+2026-11-16T09:11:05.5719091Z     ],
+2026-11-16T09:11:05.5719256Z     "configureArgs": [
+2026-11-16T09:11:05.5719425Z       "cmake",
+2026-11-16T09:11:05.5719584Z       "-S",
+2026-11-16T09:11:05.5719800Z       "/home/runner/work/_temp/milkup-webkit-research/source",
+2026-11-16T09:11:05.5720264Z       "-B",
+2026-11-16T09:11:05.5720471Z       "/home/runner/work/_temp/milkup-webkit-research/build",
+2026-11-16T09:11:05.5720749Z       "-GNinja",
+2026-11-16T09:11:05.5720936Z       "-DPORT=GTK",
+2026-11-16T09:11:05.5721110Z       "-DUSE_GTK4=OFF",
+2026-11-16T09:11:05.5721308Z       "-DCMAKE_BUILD_TYPE=Release",
+2026-11-16T09:11:05.5721526Z       "-DCMAKE_C_COMPILER=clang",
+2026-11-16T09:11:05.5721740Z       "-DCMAKE_CXX_COMPILER=clang++",
+2026-11-16T09:11:05.5721963Z       "-DCMAKE_C_COMPILER_LAUNCHER=ccache",
+2026-11-16T09:11:05.5722200Z       "-DCMAKE_CXX_COMPILER_LAUNCHER=ccache",
+2026-11-16T09:11:05.5722434Z       "-DCMAKE_C_FLAGS_RELEASE=",
+2026-11-16T09:11:05.5722635Z       "-DCMAKE_CXX_FLAGS_RELEASE=",
+2026-11-16T09:11:05.5723650Z       "-DCMAKE_C_FLAGS=-g1 -O2 -Werror=implicit-function-declaration -fno-omit-frame-pointer -mno-omit-leaf-frame-pointer -ffile-prefix-map=/home/runner/work/milkup/milkup=. -fstack-protector-strong -fstack-clash-protection -Wformat -Werror=format-security -fcf-protection -Wdate-time -D_FORTIFY_SOURCE=3 -DNDEBUG -DG_DISABLE_CAST_CHECKS",
+2026-11-16T09:11:05.5726445Z       "-DCMAKE_CXX_FLAGS=-g1 -O2 -fno-omit-frame-pointer -mno-omit-leaf-frame-pointer -ffile-prefix-map=/home/runner/work/milkup/milkup=. -fstack-protector-strong -fstack-clash-protection -Wformat -Werror=format-security -fcf-protection -Wdate-time -D_FORTIFY_SOURCE=3 -DNDEBUG -DG_DISABLE_CAST_CHECKS",
+2026-11-16T09:11:05.5728049Z       "-DCMAKE_EXE_LINKER_FLAGS=-Wl,-Bsymbolic-functions -Wl,-z,relro -Wl,-z,now -Wl,--reduce-memory-overheads",
+2026-11-16T09:11:05.5728856Z       "-DCMAKE_SHARED_LINKER_FLAGS=-Wl,-Bsymbolic-functions -Wl,-z,relro -Wl,-z,now -Wl,--reduce-memory-overheads",
+2026-11-16T09:11:05.5729707Z       "-DCMAKE_INSTALL_PREFIX=/home/runner/work/_temp/milkup-webkit-research/prefix",
+2026-11-16T09:11:05.5730265Z       "-DCMAKE_INSTALL_LIBDIR=lib/x86_64-linux-gnu",
+2026-11-16T09:11:05.5730545Z       "-DCMAKE_INSTALL_LIBEXECDIR=lib/x86_64-linux-gnu",
+2026-11-16T09:11:05.5730947Z       "-DCMAKE_INSTALL_RPATH=/home/runner/work/_temp/milkup-webkit-research/prefix/lib/x86_64-linux-gnu",
+2026-11-16T09:11:05.5731337Z       "-DCMAKE_BUILD_WITH_INSTALL_RPATH=ON",
+2026-11-16T09:11:05.5731566Z       "-DUSE_LIBBACKTRACE=OFF",
+2026-11-16T09:11:05.5731775Z       "-DUSE_SYSPROF_CAPTURE=ON",
+2026-11-16T09:11:05.5731991Z       "-DENABLE_DOCUMENTATION=OFF",
+2026-11-16T09:11:05.5732215Z       "-DENABLE_BUBBLEWRAP_SANDBOX=ON",
+2026-11-16T09:11:05.5732437Z       "-DUSER_AGENT_BRANDING=Ubuntu",
+2026-11-16T09:11:05.5732648Z       "-DUSE_AVIF=OFF",
+2026-11-16T09:11:05.5732837Z       "-DENABLE_SPEECH_SYNTHESIS=OFF",
+2026-11-16T09:11:05.5733059Z       "-DENABLE_GAMEPAD=OFF",
+2026-11-16T09:11:05.5733253Z       "-DUSE_LD_LLD=OFF",
+2026-11-16T09:11:05.5733461Z       "-DCMAKE_EXPORT_COMPILE_COMMANDS=ON"
+2026-11-16T09:11:05.5733675Z     ],
+2026-11-16T09:11:05.5734189Z     "scope": "Unmodified 2.52.6 plus pagination observation only. Prior cache includes other research deltas; first hits prove selected unchanged objects only, never full engine reuse."
+2026-11-16T09:11:05.5734733Z   },
+2026-11-16T09:11:05.5734898Z   "initialDiskFreeBytes": 90285977600,
+2026-11-16T09:11:05.5735122Z   "systemLibrariesBefore": {},
+2026-11-16T09:11:05.5735341Z   "stage": "four-actual-tu-gate",
+2026-11-16T09:11:05.5735660Z   "patchSha256": "3a84a75ae9aad83e8f93940c4d55b886c6cf2cba069ca087893fa2efe2e443c8",
+2026-11-16T09:11:05.5735988Z   "configureArgs": [
+2026-11-16T09:11:05.5736161Z     "cmake",
+2026-11-16T09:11:05.5736322Z     "-S",
+2026-11-16T09:11:05.5736528Z     "/home/runner/work/_temp/milkup-webkit-research/source",
+2026-11-16T09:11:05.5736780Z     "-B",
+2026-11-16T09:11:05.5736977Z     "/home/runner/work/_temp/milkup-webkit-research/build",
+2026-11-16T09:11:05.5737224Z     "-GNinja",
+2026-11-16T09:11:05.5737397Z     "-DPORT=GTK",
+2026-11-16T09:11:05.5737570Z     "-DUSE_GTK4=OFF",
+2026-11-16T09:11:05.5737754Z     "-DCMAKE_BUILD_TYPE=Release",
+2026-11-16T09:11:05.5737957Z     "-DCMAKE_C_COMPILER=clang",
+2026-11-16T09:11:05.5738168Z     "-DCMAKE_CXX_COMPILER=clang++",
+2026-11-16T09:11:05.5738389Z     "-DCMAKE_C_COMPILER_LAUNCHER=ccache",
+2026-11-16T09:11:05.5738621Z     "-DCMAKE_CXX_COMPILER_LAUNCHER=ccache",
+2026-11-16T09:11:05.5738842Z     "-DCMAKE_C_FLAGS_RELEASE=",
+2026-11-16T09:11:05.5739046Z     "-DCMAKE_CXX_FLAGS_RELEASE=",
+2026-11-16T09:11:05.5740188Z     "-DCMAKE_C_FLAGS=-g1 -O2 -Werror=implicit-function-declaration -fno-omit-frame-pointer -mno-omit-leaf-frame-pointer -ffile-prefix-map=/home/runner/work/milkup/milkup=. -fstack-protector-strong -fstack-clash-protection -Wformat -Werror=format-security -fcf-protection -Wdate-time -D_FORTIFY_SOURCE=3 -DNDEBUG -DG_DISABLE_CAST_CHECKS",
+2026-11-16T09:11:05.5741890Z     "-DCMAKE_CXX_FLAGS=-g1 -O2 -fno-omit-frame-pointer -mno-omit-leaf-frame-pointer -ffile-prefix-map=/home/runner/work/milkup/milkup=. -fstack-protector-strong -fstack-clash-protection -Wformat -Werror=format-security -fcf-protection -Wdate-time -D_FORTIFY_SOURCE=3 -DNDEBUG -DG_DISABLE_CAST_CHECKS",
+2026-11-16T09:11:05.5743143Z     "-DCMAKE_EXE_LINKER_FLAGS=-Wl,-Bsymbolic-functions -Wl,-z,relro -Wl,-z,now -Wl,--reduce-memory-overheads",
+2026-11-16T09:11:05.5743690Z     "-DCMAKE_SHARED_LINKER_FLAGS=-Wl,-Bsymbolic-functions -Wl,-z,relro -Wl,-z,now -Wl,--reduce-memory-overheads",
+2026-11-16T09:11:05.5744169Z     "-DCMAKE_INSTALL_PREFIX=/home/runner/work/_temp/milkup-webkit-research/prefix",
+2026-11-16T09:11:05.5744517Z     "-DCMAKE_INSTALL_LIBDIR=lib/x86_64-linux-gnu",
+2026-11-16T09:11:05.5744803Z     "-DCMAKE_INSTALL_LIBEXECDIR=lib/x86_64-linux-gnu",
+2026-11-16T09:11:05.5745213Z     "-DCMAKE_INSTALL_RPATH=/home/runner/work/_temp/milkup-webkit-research/prefix/lib/x86_64-linux-gnu",
+2026-11-16T09:11:05.5745598Z     "-DCMAKE_BUILD_WITH_INSTALL_RPATH=ON",
+2026-11-16T09:11:05.5745833Z     "-DUSE_LIBBACKTRACE=OFF",
+2026-11-16T09:11:05.5746249Z     "-DUSE_SYSPROF_CAPTURE=ON",
+2026-11-16T09:11:05.5746550Z     "-DENABLE_DOCUMENTATION=OFF",
+2026-11-16T09:11:05.5746850Z     "-DENABLE_BUBBLEWRAP_SANDBOX=ON",
+2026-11-16T09:11:05.5747168Z     "-DUSER_AGENT_BRANDING=Ubuntu",
+2026-11-16T09:11:05.5747485Z     "-DUSE_AVIF=OFF",
+2026-11-16T09:11:05.5747759Z     "-DENABLE_SPEECH_SYNTHESIS=OFF",
+2026-11-16T09:11:05.5748064Z     "-DENABLE_GAMEPAD=OFF",
+2026-11-16T09:11:05.5748321Z     "-DUSE_LD_LLD=OFF",
+2026-11-16T09:11:05.5748529Z     "-DCMAKE_EXPORT_COMPILE_COMMANDS=ON"
+2026-11-16T09:11:05.5748743Z   ],
+2026-11-16T09:11:05.5748910Z   "compileCommands": 3263,
+2026-11-16T09:11:05.5749103Z   "toolchain": {
+2026-11-16T09:11:05.5749322Z     "clang++": "Ubuntu clang version 21.1.8 (6ubuntu1)",
+2026-11-16T09:11:05.5749584Z     "ccache": "ccache version 4.12.3",
+2026-11-16T09:11:05.5749990Z     "cmake": "cmake version 4.4.5",
+2026-11-16T09:11:05.5750213Z     "ninja": "1.13.2"
+2026-11-16T09:11:05.5750382Z   },
+2026-11-16T09:11:05.5750683Z   "compilerSha256": "78e9dd2ccc9e88859b3a29109a44bfab00e3d6cb70f00f3daae063eed3d05251",
+2026-11-16T09:11:05.5751044Z   "firstCacheInvocation": {
+2026-11-16T09:11:05.5751244Z     "status": "passed",
+2026-11-16T09:11:05.5751546Z     "scope": "Two first-invocation cached objects, not all objects or runtime acceptance",
+2026-11-16T09:11:05.5751882Z     "samples": [
+2026-11-16T09:11:05.5752046Z       {
+2026-11-16T09:11:05.5752298Z         "target": "Source/bmalloc/CMakeFiles/bmalloc.dir/bmalloc/Allocator.cpp.o",
+2026-11-16T09:11:05.5752610Z         "plannedCompiles": 1,
+2026-11-16T09:11:05.5752812Z         "seconds": 0.119,
+2026-11-16T09:11:05.5752996Z         "exitCode": 0,
+2026-11-16T09:11:05.5753177Z         "hitsBefore": 21863,
+2026-11-16T09:11:05.5753366Z         "hitsAfter": 21864,
+2026-11-16T09:11:05.5753562Z         "hitDelta": 1,
+2026-11-16T09:11:05.5753731Z         "missDelta": 0
+2026-11-16T09:11:05.5753895Z       },
+2026-11-16T09:11:05.5754044Z       {
+2026-11-16T09:11:05.5754282Z         "target": "Source/bmalloc/CMakeFiles/bmalloc.dir/bmalloc/Cache.cpp.o",
+2026-11-16T09:11:05.5754591Z         "plannedCompiles": 1,
+2026-11-16T09:11:05.5754788Z         "seconds": 0.02,
+2026-11-16T09:11:05.5754969Z         "exitCode": 0,
+2026-11-16T09:11:05.5755146Z         "hitsBefore": 21864,
+2026-11-16T09:11:05.5755343Z         "hitsAfter": 21865,
+2026-11-16T09:11:05.5755525Z         "hitDelta": 1,
+2026-11-16T09:11:05.5755699Z         "missDelta": 0
+2026-11-16T09:11:05.5755864Z       }
+2026-11-16T09:11:05.5756010Z     ]
+2026-11-16T09:11:05.5756172Z   },
+2026-11-16T09:11:05.5756331Z   "actualTranslationUnits": {
+2026-11-16T09:11:05.5756710Z     "Source/WebCore/page/PrintContext.cpp": "fa397a626a715109ad85f63d3cf526776bb5678371ad6ca68c1a2cf9828f45cb",
+2026-11-16T09:11:05.5757299Z     "Source/WebCore/rendering/RenderBlockFlow.cpp": "da97c09703886b8dcec047a1006e5b8845848d63a5175a879476fddf49d151cc",
+2026-11-16T09:11:05.5757929Z     "Source/WebCore/rendering/RenderBlock.cpp": "4eabcfd313b1519dcc26b0d3da5629f18a7e17778826dff9166be6acaad917c1",
+2026-11-16T09:11:05.5758965Z     "Source/WebCore/rendering/RenderTable.cpp": "84e45e56ee88fcdb472da245feeeb3e340424887d27822bc6bb9125b9a1b4374"
+2026-11-16T09:11:05.5759361Z   },
+2026-11-16T09:11:05.5759521Z   "seconds": 233.178,
+2026-11-16T09:11:05.5759710Z   "systemLibrariesAfter": {},
+2026-11-16T09:11:05.5760087Z   "finalDiskFreeBytes": 89456074752
+2026-11-16T09:11:05.5760298Z }
+2026-11-16T09:11:05.5797699Z ##[group]Run [[ "$PAGINATION_RESTORE_RUN" =~ ^[0-9]+$ ]]
+2026-11-16T09:11:05.5798048Z [36;1m[[ "$PAGINATION_RESTORE_RUN" =~ ^[0-9]+$ ]][0m
+2026-11-16T09:11:05.5798591Z [36;1mgh api "repos/Auto-Plugin/milkup/actions/runs/$PAGINATION_RESTORE_RUN" > "$RUNNER_TEMP/milkup-webkit-research/evidence/incoming-object-run.json"[0m
+2026-11-16T09:11:05.5799111Z [36;1mpython3 - <<'PYVERIFYRUN'[0m
+2026-11-16T09:11:05.5799337Z [36;1mimport json,os,pathlib[0m
+2026-11-16T09:11:05.5799722Z [36;1mp=pathlib.Path(os.environ['RUNNER_TEMP'])/'milkup-webkit-research/evidence/incoming-object-run.json'[0m
+2026-11-16T09:11:05.5800374Z [36;1mr=json.loads(p.read_text())[0m
+2026-11-16T09:11:05.5800748Z [36;1massert r['status']=='completed' and r['head_branch']=='dot/linux-webkit-build-probe-20261114'[0m
+2026-11-16T09:11:05.5801202Z [36;1massert r['path']=='.github/workflows/linux-webkit-build-research.yml'[0m
+2026-11-16T09:11:05.5801504Z [36;1mPYVERIFYRUN[0m
+2026-11-16T09:11:05.5802092Z [36;1mgh run download "$PAGINATION_RESTORE_RUN" --repo Auto-Plugin/milkup --name "milkup-pagination-objects-$PAGINATION_RESTORE_RUN" --dir "$RUNNER_TEMP/pagination-incoming-objects"[0m
+2026-11-16T09:11:05.5848104Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+2026-11-16T09:11:05.5848383Z env:
+2026-11-16T09:11:05.5848561Z   CCACHE_COMPILERCHECK: content
+2026-11-16T09:11:05.5848798Z   PAGINATION_OPERATION: pagination-segment
+2026-11-16T09:11:05.5849054Z   PAGINATION_RESTORE_RUN: 43808221193
+2026-11-16T09:11:05.5849273Z   PAGINATION_BEHAVIOR: true
+2026-11-16T09:11:05.5849473Z   PAGINATION_TAIL: true
+2026-11-16T09:11:05.5849670Z   PAGINATION_ROOT_MARGIN: true
+2026-11-16T09:11:05.5850030Z   PAGINATION_COMBINED: true
+2026-11-16T09:11:05.5850275Z   CCACHE_DIR: /home/runner/work/_temp/milkup-webkit-ccache
+2026-11-16T09:11:05.5850546Z   PAGINATION_START_EPOCH: 1794820011
+2026-11-16T09:11:05.5852858Z   GH_TOKEN: ***
+2026-11-16T09:11:05.5853043Z ##[endgroup]
+2026-11-16T09:11:20.0449479Z ##[group]Run python3 scripts/ci/webkit-pagination-cache-live-test.py "$RUNNER_TEMP/milkup-webkit-research/evidence/segment-synthetic-cache-transfer.json"
+2026-11-16T09:11:20.0450624Z [36;1mpython3 scripts/ci/webkit-pagination-cache-live-test.py "$RUNNER_TEMP/milkup-webkit-research/evidence/segment-synthetic-cache-transfer.json"[0m
+2026-11-16T09:11:20.0451221Z [36;1mpython3 scripts/ci/webkit-pagination-cache-roundtrip.py[0m
+2026-11-16T09:11:20.0496292Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+2026-11-16T09:11:20.0496570Z env:
+2026-11-16T09:11:20.0496758Z   CCACHE_COMPILERCHECK: content
+2026-11-16T09:11:20.0496993Z   PAGINATION_OPERATION: pagination-segment
+2026-11-16T09:11:20.0497251Z   PAGINATION_RESTORE_RUN: 43808221193
+2026-11-16T09:11:20.0497475Z   PAGINATION_BEHAVIOR: true
+2026-11-16T09:11:20.0497686Z   PAGINATION_TAIL: true
+2026-11-16T09:11:20.0497880Z   PAGINATION_ROOT_MARGIN: true
+2026-11-16T09:11:20.0498091Z   PAGINATION_COMBINED: true
+2026-11-16T09:11:20.0498384Z   CCACHE_DIR: /home/runner/work/_temp/milkup-webkit-ccache
+2026-11-16T09:11:20.0498667Z   PAGINATION_START_EPOCH: 1794820011
+2026-11-16T09:11:20.0498888Z ##[endgroup]
+2026-11-16T09:11:22.5195519Z {
+2026-11-16T09:11:22.5195954Z   "status": "passed",
+2026-11-16T09:11:22.5196448Z   "scope": "Synthetic C cache transfer, not WebKit or PDF acceptance",
+2026-11-16T09:11:22.5196927Z   "samples": [
+2026-11-16T09:11:22.5197177Z     {
+2026-11-16T09:11:22.5197509Z       "case": "restored-first-invocation",
+2026-11-16T09:11:22.5197894Z       "hits": 1,
+2026-11-16T09:11:22.5198175Z       "misses": 0,
+2026-11-16T09:11:22.5198585Z       "sameObject": true
+2026-11-16T09:11:22.5199207Z     },
+2026-11-16T09:11:22.5199432Z     {
+2026-11-16T09:11:22.5199722Z       "case": "behavior-restored-first-invocation",
+2026-11-16T09:11:22.5200244Z       "hits": 1,
+2026-11-16T09:11:22.5200481Z       "misses": 0,
+2026-11-16T09:11:22.5200794Z       "sameObject": true
+2026-11-16T09:11:22.5201060Z     },
+2026-11-16T09:11:22.5201311Z     {
+2026-11-16T09:11:22.5201563Z       "case": "changed-header",
+2026-11-16T09:11:22.5201851Z       "hits": 0,
+2026-11-16T09:11:22.5202086Z       "misses": 1
+2026-11-16T09:11:22.5202321Z     },
+2026-11-16T09:11:22.5202550Z     {
+2026-11-16T09:11:22.5202791Z       "case": "changed-flags",
+2026-11-16T09:11:22.5203069Z       "hits": 0,
+2026-11-16T09:11:22.5203445Z       "misses": 1
+2026-11-16T09:11:22.5203691Z     }
+2026-11-16T09:11:22.5203960Z   ],
+2026-11-16T09:11:22.5204224Z   "cacheVersion": "ccache version 4.12.3",
+2026-11-16T09:11:22.5204791Z   "compilerSha256": "864711037b900acdb7a449cf48d912cefa935b527fb60c767ccb956779e66136",
+2026-11-16T09:11:22.5205357Z   "archiveEntryBytes": 794,
+2026-11-16T09:11:22.5205691Z   "entryCount": 2
+2026-11-16T09:11:22.5206006Z }
+2026-11-16T09:11:24.0516401Z Set cache size limit to 2.0 GB
+2026-11-16T09:11:48.9417150Z {"status": "passed", "scope": "Two first-invocation cached objects, not all objects or runtime acceptance", "samples": [{"target": "Source/bmalloc/CMakeFiles/bmalloc.dir/bmalloc/Allocator.cpp.o", "plannedCompiles": 1, "seconds": 0.011, "exitCode": 0, "hitsBefore": 0, "hitsAfter": 1, "hitDelta": 1, "missDelta": 0}, {"target": "Source/bmalloc/CMakeFiles/bmalloc.dir/bmalloc/Cache.cpp.o", "plannedCompiles": 1, "seconds": 0.019, "exitCode": 0, "hitsBefore": 1, "hitsAfter": 2, "hitDelta": 1, "missDelta": 0}]}
+2026-11-16T09:11:49.7671098Z ##[group]Run if [ "$PAGINATION_COMBINED" = true ]; then
+2026-11-16T09:11:49.7671439Z [36;1mif [ "$PAGINATION_COMBINED" = true ]; then[0m
+2026-11-16T09:11:49.7672250Z [36;1m  sudo apt-get -c "$RUNNER_TEMP/milkup-webkit-research/apt.conf" -y --no-install-recommends --no-remove install fontconfig python3-pypdf python3-fonttools python3-fitz python3-pil poppler-utils fonts-noto-core fonts-noto-cjk fonts-dejavu-core[0m
+2026-11-16T09:11:49.7673135Z [36;1m  python3 research/pdf-pagination-behavior-20261116/uri_evidence_test.py[0m
+2026-11-16T09:11:49.7673571Z [36;1m  python3 -m unittest discover -s research/pdf-combined-20261116 -p 'test*.py'[0m
+2026-11-16T09:11:49.7674011Z [36;1m  python3 -m unittest discover -s research/linux-pdf-links-20261114 -p 'test*.py'[0m
+2026-11-16T09:11:49.7674612Z [36;1m  python3 research/linux-pdf-unicode-20261114/test_digit_probe.py "$RUNNER_TEMP/milkup-webkit-research/evidence/combined-digit-contract"[0m
+2026-11-16T09:11:49.7675402Z [36;1m  python3 research/linux-pdf-unicode-20261114/digit_fixture_preflight.py "$RUNNER_TEMP/milkup-webkit-research/evidence/combined-digit-fixture.json"[0m
+2026-11-16T09:11:49.7675903Z [36;1mfi[0m
+2026-11-16T09:11:49.7676175Z [36;1mpython3 research/pdf-pagination-behavior-20261116/compile_candidate.py[0m
+2026-11-16T09:11:49.7721435Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+2026-11-16T09:11:49.7721737Z env:
+2026-11-16T09:11:49.7721920Z   CCACHE_COMPILERCHECK: content
+2026-11-16T09:11:49.7722155Z   PAGINATION_OPERATION: pagination-segment
+2026-11-16T09:11:49.7722394Z   PAGINATION_RESTORE_RUN: 43808221193
+2026-11-16T09:11:49.7722610Z   PAGINATION_BEHAVIOR: true
+2026-11-16T09:11:49.7722809Z   PAGINATION_TAIL: true
+2026-11-16T09:11:49.7723009Z   PAGINATION_ROOT_MARGIN: true
+2026-11-16T09:11:49.7723216Z   PAGINATION_COMBINED: true
+2026-11-16T09:11:49.7723554Z   CCACHE_DIR: /home/runner/work/_temp/milkup-webkit-research/restored-compiler-cache
+2026-11-16T09:11:49.7723924Z   PAGINATION_START_EPOCH: 1794820011
+2026-11-16T09:11:49.7724144Z ##[endgroup]
+2026-11-16T09:11:49.7939785Z Reading package lists...
+2026-11-16T09:11:49.9623120Z Building dependency tree...
+2026-11-16T09:11:49.9630867Z Reading state information...
+2026-11-16T09:11:49.9971765Z fontconfig is already the newest version (2.17.1-3ubuntu1).
+2026-11-16T09:11:49.9972240Z fontconfig set to manually installed.
+2026-11-16T09:11:49.9973138Z fonts-dejavu-core is already the newest version (2.37-8build1).
+2026-11-16T09:11:49.9973543Z fonts-dejavu-core set to manually installed.
+2026-11-16T09:11:50.0527932Z Solving dependencies...
+2026-11-16T09:11:50.1344022Z The following additional packages will be installed:
+2026-11-16T09:11:50.1346423Z   fonts-noto-mono libgpgmepp7 libgumbo3 libjbig2dec0 libmujs3 libmupdf27.0
+2026-11-16T09:11:50.1352311Z   libpoppler156 libraqm0 libzopfli1 python3-brotli python3-lxml python3-lz4
+2026-11-16T09:11:50.1352877Z   python3-mpmath python3-munkres python3-mupdf python3-pymupdf python3-sympy
+2026-11-16T09:11:50.1353584Z   python3-ufolib2 python3-unicodedata2 python3-zopfli unicode-data
+2026-11-16T09:11:50.1360254Z Suggested packages:
+2026-11-16T09:11:50.1360701Z   fonts-noto-cjk-extra python-lxml-doc python-mpmath-doc python3-gmpy2
+2026-11-16T09:11:50.1361092Z   python3-matplotlib python-pil-doc texlive-fonts-extra dvipng
+2026-11-16T09:11:50.1361376Z   python-sympy-doc
+2026-11-16T09:11:50.1361579Z Recommended packages:
+2026-11-16T09:11:50.1361875Z   poppler-data python3-bs4 python3-cssselect python3-html5lib python3-olefile
+2026-11-16T09:11:50.1362235Z   python3-pycryptodome python3-numpy isympy-common
+2026-11-16T09:11:50.1608032Z The following NEW packages will be installed:
+2026-11-16T09:11:50.1609524Z   fonts-noto-cjk fonts-noto-core fonts-noto-mono libgpgmepp7 libgumbo3
+2026-11-16T09:11:50.1615214Z   libjbig2dec0 libmujs3 libmupdf27.0 libpoppler156 libraqm0 libzopfli1
+2026-11-16T09:11:50.1615802Z   poppler-utils python3-brotli python3-fitz python3-fonttools python3-lxml
+2026-11-16T09:11:50.1616887Z   python3-lz4 python3-mpmath python3-munkres python3-mupdf python3-pil
+2026-11-16T09:11:50.1617398Z   python3-pymupdf python3-pypdf python3-sympy python3-ufolib2
+2026-11-16T09:11:50.1617967Z   python3-unicodedata2 python3-zopfli unicode-data
+2026-11-16T09:11:50.2297613Z 0 upgraded, 28 newly installed, 0 to remove and 23 not upgraded.
+2026-11-16T09:11:50.2298067Z Need to get 132 MB of archives.
+2026-11-16T09:11:50.2298364Z After this operation, 338 MB of additional disk space will be used.
+2026-11-16T09:11:50.2298901Z Get:1 http://azure.archive.ubuntu.com/ubuntu resolute/main amd64v3 fonts-noto-cjk all 1:20240730+repack1-1build1 [61.2 MB]
+2026-11-16T09:11:51.4527396Z Get:2 http://azure.archive.ubuntu.com/ubuntu resolute/main amd64v3 fonts-noto-mono all 20201225-2build1 [434 kB]
+2026-11-16T09:11:51.4997611Z Get:3 http://azure.archive.ubuntu.com/ubuntu resolute/main amd64v3 fonts-noto-core all 20201225-2build1 [13.3 MB]
+2026-11-16T09:11:51.7375567Z Get:4 http://azure.archive.ubuntu.com/ubuntu resolute/main amd64v3 libgpgmepp7 amd64 2.0.0-2 [132 kB]
+2026-11-16T09:11:51.7832886Z Get:5 http://azure.archive.ubuntu.com/ubuntu resolute/universe amd64v3 libgumbo3 amd64 0.13.0+dfsg-2build1 [124 kB]
+2026-11-16T09:11:51.8296454Z Get:6 http://azure.archive.ubuntu.com/ubuntu resolute-updates/main amd64v3 libjbig2dec0 amd64 0.20-1ubuntu0.26.04.1 [64.0 kB]
+2026-11-16T09:11:51.8750167Z Get:7 http://azure.archive.ubuntu.com/ubuntu resolute/universe amd64v3 libmujs3 amd64 1.3.8-2 [134 kB]
+2026-11-16T09:11:51.9206426Z Get:8 http://azure.archive.ubuntu.com/ubuntu resolute/universe amd64v3 libmupdf27.0 amd64 1.27.0+ds1-3ubuntu2 [34.1 MB]
+2026-11-16T09:11:52.6275765Z Get:9 http://azure.archive.ubuntu.com/ubuntu resolute-updates/main amd64v3 libpoppler156 amd64 26.01.0-2ubuntu0.3 [1243 kB]
+2026-11-16T09:11:52.7253225Z Get:10 http://azure.archive.ubuntu.com/ubuntu resolute/main amd64v3 libraqm0 amd64 0.10.4-1 [15.6 kB]
+2026-11-16T09:11:52.8157468Z Get:11 http://azure.archive.ubuntu.com/ubuntu resolute/universe amd64v3 libzopfli1 amd64 1.0.3-3build1 [116 kB]
+2026-11-16T09:11:52.9716360Z Get:12 http://azure.archive.ubuntu.com/ubuntu resolute-updates/main amd64v3 poppler-utils amd64 26.01.0-2ubuntu0.3 [231 kB]
+2026-11-16T09:11:53.0823911Z Get:13 http://azure.archive.ubuntu.com/ubuntu resolute-updates/universe amd64v3 python3-brotli amd64 1.2.0-3ubuntu0.1 [358 kB]
+2026-11-16T09:11:53.1804751Z Get:14 http://azure.archive.ubuntu.com/ubuntu resolute/universe amd64v3 python3-mupdf amd64 1.27.0+ds1-3ubuntu2 [2296 kB]
+2026-11-16T09:11:53.3360607Z Get:15 http://azure.archive.ubuntu.com/ubuntu resolute/universe amd64v3 python3-pymupdf amd64 1.26.7+ds1-1build1 [297 kB]
+2026-11-16T09:11:53.3853275Z Get:16 http://azure.archive.ubuntu.com/ubuntu resolute/universe amd64v3 python3-fitz all 1.26.7+ds1-1build1 [14.6 kB]
+2026-11-16T09:11:53.4311207Z Get:17 http://azure.archive.ubuntu.com/ubuntu resolute-updates/main amd64v3 python3-lxml amd64 6.0.2-1ubuntu0.1 [1501 kB]
+2026-11-16T09:11:53.4949620Z Get:18 http://azure.archive.ubuntu.com/ubuntu resolute/universe amd64v3 python3-lz4 amd64 4.4.5+dfsg-1build1 [26.6 kB]
+2026-11-16T09:11:53.5411935Z Get:19 http://azure.archive.ubuntu.com/ubuntu resolute/universe amd64v3 python3-munkres all 1.1.4-3build1 [8470 B]
+2026-11-16T09:11:53.5869457Z Get:20 http://azure.archive.ubuntu.com/ubuntu resolute/universe amd64v3 python3-mpmath all 1.3.0-2 [423 kB]
+2026-11-16T09:11:53.6369737Z Get:21 http://azure.archive.ubuntu.com/ubuntu resolute/universe amd64v3 python3-sympy all 1.14.0-2 [4306 kB]
+2026-11-16T09:11:53.7484099Z Get:22 http://azure.archive.ubuntu.com/ubuntu resolute/universe amd64v3 python3-ufolib2 all 0.18.1+dfsg1-1 [33.7 kB]
+2026-11-16T09:11:53.7944853Z Get:23 http://azure.archive.ubuntu.com/ubuntu resolute/universe amd64v3 python3-unicodedata2 amd64 16.0.0+ds-1build2 [394 kB]
+2026-11-16T09:11:53.8419575Z Get:24 http://azure.archive.ubuntu.com/ubuntu resolute/universe amd64v3 python3-zopfli amd64 0.4.1-1 [11.3 kB]
+2026-11-16T09:11:53.8879261Z Get:25 http://azure.archive.ubuntu.com/ubuntu resolute/universe amd64v3 unicode-data all 16.0.0-1build1 [9543 kB]
+2026-11-16T09:11:54.0794809Z Get:26 http://azure.archive.ubuntu.com/ubuntu resolute/universe amd64v3 python3-fonttools amd64 4.61.1-3build1 [1496 kB]
+2026-11-16T09:11:54.1334324Z Get:27 http://azure.archive.ubuntu.com/ubuntu resolute-updates/main amd64v3 python3-pil amd64 12.1.1-2ubuntu1.5 [493 kB]
+2026-11-16T09:11:54.1839703Z Get:28 http://azure.archive.ubuntu.com/ubuntu resolute/universe amd64v3 python3-pypdf all 6.9.2-1 [246 kB]
+2026-11-16T09:11:54.4231160Z Fetched 132 MB in 4s (33.0 MB/s)
+2026-11-16T09:11:54.4422218Z Selecting previously unselected package fonts-noto-cjk.
+2026-11-16T09:11:54.4484485Z (Reading database ... 
+2026-11-16T09:11:54.4485409Z (Reading database ... 5%
+2026-11-16T09:11:54.4486137Z (Reading database ... 10%
+2026-11-16T09:11:54.4486778Z (Reading database ... 15%
+2026-11-16T09:11:54.4487388Z (Reading database ... 20%
+2026-11-16T09:11:54.4487998Z (Reading database ... 25%
+2026-11-16T09:11:54.4488645Z (Reading database ... 30%
+2026-11-16T09:11:54.4489303Z (Reading database ... 35%
+2026-11-16T09:11:54.4490129Z (Reading database ... 40%
+2026-11-16T09:11:54.4490742Z (Reading database ... 45%
+2026-11-16T09:11:54.4491372Z (Reading database ... 50%
+2026-11-16T09:11:54.4605672Z (Reading database ... 55%
+2026-11-16T09:11:54.4635148Z (Reading database ... 60%
+2026-11-16T09:11:54.4663242Z (Reading database ... 65%
+2026-11-16T09:11:54.4682429Z (Reading database ... 70%
+2026-11-16T09:11:54.4717844Z (Reading database ... 75%
+2026-11-16T09:11:54.4842242Z (Reading database ... 80%
+2026-11-16T09:11:54.4879431Z (Reading database ... 85%
+2026-11-16T09:11:54.5044307Z (Reading database ... 90%
+2026-11-16T09:11:54.5138047Z (Reading database ... 95%
+2026-11-16T09:11:54.5138370Z (Reading database ... 100%
+2026-11-16T09:11:54.5138802Z (Reading database ... 226569 files and directories currently installed.)
+2026-11-16T09:11:54.5177439Z Preparing to unpack .../00-fonts-noto-cjk_1%3a20240730+repack1-1build1_all.deb ...
+2026-11-16T09:11:54.5259237Z Unpacking fonts-noto-cjk (1:20240730+repack1-1build1) ...
+2026-11-16T09:11:55.1837107Z Selecting previously unselected package fonts-noto-mono.
+2026-11-16T09:11:55.1971518Z Preparing to unpack .../01-fonts-noto-mono_20201225-2build1_all.deb ...
+2026-11-16T09:11:55.2014695Z Unpacking fonts-noto-mono (20201225-2build1) ...
+2026-11-16T09:11:55.3136845Z Selecting previously unselected package fonts-noto-core.
+2026-11-16T09:11:55.3269758Z Preparing to unpack .../02-fonts-noto-core_20201225-2build1_all.deb ...
+2026-11-16T09:11:55.3383045Z Unpacking fonts-noto-core (20201225-2build1) ...
+2026-11-16T09:11:56.2187520Z Selecting previously unselected package libgpgmepp7:amd64.
+2026-11-16T09:11:56.2325279Z Preparing to unpack .../03-libgpgmepp7_2.0.0-2_amd64v3.deb ...
+2026-11-16T09:11:56.2641306Z Unpacking libgpgmepp7:amd64 (2.0.0-2) ...
+2026-11-16T09:11:56.3616246Z Selecting previously unselected package libgumbo3:amd64.
+2026-11-16T09:11:56.3748696Z Preparing to unpack .../04-libgumbo3_0.13.0+dfsg-2build1_amd64v3.deb ...
+2026-11-16T09:11:56.3873535Z Unpacking libgumbo3:amd64 (0.13.0+dfsg-2build1) ...
+2026-11-16T09:11:56.4916909Z Selecting previously unselected package libjbig2dec0:amd64.
+2026-11-16T09:11:56.5054914Z Preparing to unpack .../05-libjbig2dec0_0.20-1ubuntu0.26.04.1_amd64v3.deb ...
+2026-11-16T09:11:56.5373806Z Unpacking libjbig2dec0:amd64 (0.20-1ubuntu0.26.04.1) ...
+2026-11-16T09:11:56.6488467Z Selecting previously unselected package libmujs3:amd64.
+2026-11-16T09:11:56.6628451Z Preparing to unpack .../06-libmujs3_1.3.8-2_amd64v3.deb ...
+2026-11-16T09:11:56.6953783Z Unpacking libmujs3:amd64 (1.3.8-2) ...
+2026-11-16T09:11:56.8146867Z Selecting previously unselected package libmupdf27.0.
+2026-11-16T09:11:56.8282805Z Preparing to unpack .../07-libmupdf27.0_1.27.0+ds1-3ubuntu2_amd64v3.deb ...
+2026-11-16T09:11:56.8505255Z Unpacking libmupdf27.0 (1.27.0+ds1-3ubuntu2) ...
+2026-11-16T09:11:57.6066838Z Selecting previously unselected package libpoppler156:amd64.
+2026-11-16T09:11:57.6200982Z Preparing to unpack .../08-libpoppler156_26.01.0-2ubuntu0.3_amd64v3.deb ...
+2026-11-16T09:11:57.6293531Z Unpacking libpoppler156:amd64 (26.01.0-2ubuntu0.3) ...
+2026-11-16T09:11:57.7938941Z Selecting previously unselected package libraqm0:amd64.
+2026-11-16T09:11:57.8073518Z Preparing to unpack .../09-libraqm0_0.10.4-1_amd64v3.deb ...
+2026-11-16T09:11:57.8253413Z Unpacking libraqm0:amd64 (0.10.4-1) ...
+2026-11-16T09:11:57.9526401Z Selecting previously unselected package libzopfli1.
+2026-11-16T09:11:57.9661299Z Preparing to unpack .../10-libzopfli1_1.0.3-3build1_amd64v3.deb ...
+2026-11-16T09:11:58.0434021Z Unpacking libzopfli1 (1.0.3-3build1) ...
+2026-11-16T09:11:58.1756772Z Selecting previously unselected package poppler-utils.
+2026-11-16T09:11:58.1888321Z Preparing to unpack .../11-poppler-utils_26.01.0-2ubuntu0.3_amd64v3.deb ...
+2026-11-16T09:11:58.2115073Z Unpacking poppler-utils (26.01.0-2ubuntu0.3) ...
+2026-11-16T09:11:58.4287839Z Selecting previously unselected package python3-brotli.
+2026-11-16T09:11:58.4422070Z Preparing to unpack .../12-python3-brotli_1.2.0-3ubuntu0.1_amd64v3.deb ...
+2026-11-16T09:11:58.4493036Z Unpacking python3-brotli (1.2.0-3ubuntu0.1) ...
+2026-11-16T09:11:58.9177267Z Selecting previously unselected package python3-mupdf.
+2026-11-16T09:11:58.9312286Z Preparing to unpack .../13-python3-mupdf_1.27.0+ds1-3ubuntu2_amd64v3.deb ...
+2026-11-16T09:11:58.9403356Z Unpacking python3-mupdf (1.27.0+ds1-3ubuntu2) ...
+2026-11-16T09:11:59.0771148Z Selecting previously unselected package python3-pymupdf.
+2026-11-16T09:11:59.0903739Z Preparing to unpack .../14-python3-pymupdf_1.26.7+ds1-1build1_amd64v3.deb ...
+2026-11-16T09:11:59.0908734Z Unpacking python3-pymupdf (1.26.7+ds1-1build1) ...
+2026-11-16T09:11:59.1569427Z Selecting previously unselected package python3-fitz.
+2026-11-16T09:11:59.1698561Z Preparing to unpack .../15-python3-fitz_1.26.7+ds1-1build1_all.deb ...
+2026-11-16T09:11:59.1704363Z Unpacking python3-fitz (1.26.7+ds1-1build1) ...
+2026-11-16T09:11:59.1888498Z Selecting previously unselected package python3-lxml:amd64.
+2026-11-16T09:11:59.2014002Z Preparing to unpack .../16-python3-lxml_6.0.2-1ubuntu0.1_amd64v3.deb ...
+2026-11-16T09:11:59.2018824Z Unpacking python3-lxml:amd64 (6.0.2-1ubuntu0.1) ...
+2026-11-16T09:11:59.2698723Z Selecting previously unselected package python3-lz4.
+2026-11-16T09:11:59.2831644Z Preparing to unpack .../17-python3-lz4_4.4.5+dfsg-1build1_amd64v3.deb ...
+2026-11-16T09:11:59.2837169Z Unpacking python3-lz4 (4.4.5+dfsg-1build1) ...
+2026-11-16T09:11:59.3033415Z Selecting previously unselected package python3-munkres.
+2026-11-16T09:11:59.3163315Z Preparing to unpack .../18-python3-munkres_1.1.4-3build1_all.deb ...
+2026-11-16T09:11:59.3168670Z Unpacking python3-munkres (1.1.4-3build1) ...
+2026-11-16T09:11:59.3353640Z Selecting previously unselected package python3-mpmath.
+2026-11-16T09:11:59.3478661Z Preparing to unpack .../19-python3-mpmath_1.3.0-2_all.deb ...
+2026-11-16T09:11:59.3484287Z Unpacking python3-mpmath (1.3.0-2) ...
+2026-11-16T09:11:59.3972431Z Selecting previously unselected package python3-sympy.
+2026-11-16T09:11:59.4102314Z Preparing to unpack .../20-python3-sympy_1.14.0-2_all.deb ...
+2026-11-16T09:11:59.4107668Z Unpacking python3-sympy (1.14.0-2) ...
+2026-11-16T09:11:59.8665671Z Selecting previously unselected package python3-ufolib2.
+2026-11-16T09:11:59.8806825Z Preparing to unpack .../21-python3-ufolib2_0.18.1+dfsg1-1_all.deb ...
+2026-11-16T09:11:59.8813498Z Unpacking python3-ufolib2 (0.18.1+dfsg1-1) ...
+2026-11-16T09:11:59.9033982Z Selecting previously unselected package python3-unicodedata2.
+2026-11-16T09:11:59.9166895Z Preparing to unpack .../22-python3-unicodedata2_16.0.0+ds-1build2_amd64v3.deb ...
+2026-11-16T09:11:59.9172205Z Unpacking python3-unicodedata2 (16.0.0+ds-1build2) ...
+2026-11-16T09:11:59.9479603Z Selecting previously unselected package python3-zopfli.
+2026-11-16T09:11:59.9611420Z Preparing to unpack .../23-python3-zopfli_0.4.1-1_amd64v3.deb ...
+2026-11-16T09:11:59.9617574Z Unpacking python3-zopfli (0.4.1-1) ...
+2026-11-16T09:11:59.9810067Z Selecting previously unselected package unicode-data.
+2026-11-16T09:11:59.9939008Z Preparing to unpack .../24-unicode-data_16.0.0-1build1_all.deb ...
+2026-11-16T09:11:59.9944361Z Unpacking unicode-data (16.0.0-1build1) ...
+2026-11-16T09:12:00.2593144Z Selecting previously unselected package python3-fonttools.
+2026-11-16T09:12:00.2726196Z Preparing to unpack .../25-python3-fonttools_4.61.1-3build1_amd64v3.deb ...
+2026-11-16T09:12:00.2731035Z Unpacking python3-fonttools (4.61.1-3build1) ...
+2026-11-16T09:12:00.4120352Z Selecting previously unselected package python3-pil:amd64.
+2026-11-16T09:12:00.4254093Z Preparing to unpack .../26-python3-pil_12.1.1-2ubuntu1.5_amd64v3.deb ...
+2026-11-16T09:12:00.4258940Z Unpacking python3-pil:amd64 (12.1.1-2ubuntu1.5) ...
+2026-11-16T09:12:00.4771520Z Selecting previously unselected package python3-pypdf.
+2026-11-16T09:12:00.4904156Z Preparing to unpack .../27-python3-pypdf_6.9.2-1_all.deb ...
+2026-11-16T09:12:00.4908921Z Unpacking python3-pypdf (6.9.2-1) ...
+2026-11-16T09:12:00.5633119Z Setting up fonts-noto-mono (20201225-2build1) ...
+2026-11-16T09:12:00.5654889Z Setting up libmujs3:amd64 (1.3.8-2) ...
+2026-11-16T09:12:00.5669753Z Setting up python3-lz4 (4.4.5+dfsg-1build1) ...
+2026-11-16T09:12:00.6517435Z Setting up libgpgmepp7:amd64 (2.0.0-2) ...
+2026-11-16T09:12:00.6538114Z Setting up python3-unicodedata2 (16.0.0+ds-1build2) ...
+2026-11-16T09:12:00.6551632Z Setting up fonts-noto-cjk (1:20240730+repack1-1build1) ...
+2026-11-16T09:12:00.6621666Z Setting up unicode-data (16.0.0-1build1) ...
+2026-11-16T09:12:00.6636484Z Setting up libzopfli1 (1.0.3-3build1) ...
+2026-11-16T09:12:00.6650004Z Setting up libjbig2dec0:amd64 (0.20-1ubuntu0.26.04.1) ...
+2026-11-16T09:12:00.6663101Z Setting up libpoppler156:amd64 (26.01.0-2ubuntu0.3) ...
+2026-11-16T09:12:00.6676134Z Setting up python3-brotli (1.2.0-3ubuntu0.1) ...
+2026-11-16T09:12:00.7494198Z Setting up libraqm0:amd64 (0.10.4-1) ...
+2026-11-16T09:12:00.7508998Z Setting up libgumbo3:amd64 (0.13.0+dfsg-2build1) ...
+2026-11-16T09:12:00.7523153Z Setting up python3-pypdf (6.9.2-1) ...
+2026-11-16T09:12:01.0004575Z Setting up python3-lxml:amd64 (6.0.2-1ubuntu0.1) ...
+2026-11-16T09:12:01.1180401Z Setting up python3-munkres (1.1.4-3build1) ...
+2026-11-16T09:12:01.2059376Z Setting up libmupdf27.0 (1.27.0+ds1-3ubuntu2) ...
+2026-11-16T09:12:01.2073587Z Setting up poppler-utils (26.01.0-2ubuntu0.3) ...
+2026-11-16T09:12:01.2087365Z Setting up python3-mpmath (1.3.0-2) ...
+2026-11-16T09:12:01.5272114Z Setting up fonts-noto-core (20201225-2build1) ...
+2026-11-16T09:12:01.5292376Z Setting up python3-sympy (1.14.0-2) ...
+2026-11-16T09:12:05.1277252Z /usr/lib/python3/dist-packages/sympy/testing/runtests.py:283: SyntaxWarning: 'return' in a 'finally' block
+2026-11-16T09:12:05.1277999Z   return p.returncode
+2026-11-16T09:12:05.3079154Z Setting up python3-mupdf (1.27.0+ds1-3ubuntu2) ...
+2026-11-16T09:12:05.7017854Z Setting up python3-zopfli (0.4.1-1) ...
+2026-11-16T09:12:05.7882103Z Setting up python3-pymupdf (1.26.7+ds1-1build1) ...
+2026-11-16T09:12:06.0743193Z Setting up python3-pil:amd64 (12.1.1-2ubuntu1.5) ...
+2026-11-16T09:12:06.3149525Z Setting up python3-fitz (1.26.7+ds1-1build1) ...
+2026-11-16T09:12:06.4026354Z Setting up python3-fonttools (4.61.1-3build1) ...
+2026-11-16T09:12:07.0014263Z Setting up python3-ufolib2 (0.18.1+dfsg1-1) ...
+2026-11-16T09:12:07.1112117Z Processing triggers for fontconfig (2.17.1-3ubuntu1) ...
+2026-11-16T09:12:07.2064002Z Processing triggers for libc-bin (2.43-2ubuntu2.4) ...
+2026-11-16T09:12:07.2225745Z Processing triggers for man-db (2.13.1-1build1) ...
+2026-11-16T09:12:07.2240101Z Not building database; man-db/auto-update is not 'true'.
+2026-11-16T09:12:07.6748932Z 
+2026-11-16T09:12:07.6749434Z Running kernel seems to be up-to-date.
+2026-11-16T09:12:07.6749655Z 
+2026-11-16T09:12:07.6749734Z Restarting services...
+2026-11-16T09:12:07.6822006Z 
+2026-11-16T09:12:07.6822405Z Service restarts being deferred:
+2026-11-16T09:12:07.6822825Z  systemctl restart hosted-compute-agent.service
+2026-11-16T09:12:07.6823117Z 
+2026-11-16T09:12:07.6823722Z No containers need to be restarted.
+2026-11-16T09:12:07.6823925Z 
+2026-11-16T09:12:07.6824501Z No user sessions are running outdated binaries.
+2026-11-16T09:12:07.6824759Z 
+2026-11-16T09:12:07.6825007Z No VM guests are running outdated hypervisor (qemu) binaries on this host.
+2026-11-16T09:12:08.8768303Z W: Download is performed unsandboxed as root as file '/home/runner/work/_temp/milkup-webkit-research/cache/archives/partial/fonts-noto-cjk_1%3a20240730+repack1-1build1_all.deb' couldn't be accessed by user '_apt'. - pkgAcquire::Run (13: Permission denied)
+2026-11-16T09:12:11.0545478Z ...
+2026-11-16T09:12:11.0545884Z ----------------------------------------------------------------------
+2026-11-16T09:12:11.0546285Z Ran 3 tests in 2.084s
+2026-11-16T09:12:11.0546444Z 
+2026-11-16T09:12:11.0546529Z OK
+2026-11-16T09:12:11.0550607Z {"status": "passed-pagination-only", "errors": []}
+2026-11-16T09:12:13.3027377Z ..s.....
+2026-11-16T09:12:13.3027683Z ----------------------------------------------------------------------
+2026-11-16T09:12:13.3028000Z Ran 8 tests in 2.104s
+2026-11-16T09:12:13.3028131Z 
+2026-11-16T09:12:13.3028251Z OK (skipped=1)
+2026-11-16T09:12:13.8075754Z ....s...............
+2026-11-16T09:12:13.8076184Z ----------------------------------------------------------------------
+2026-11-16T09:12:13.8076495Z Ran 20 tests in 0.379s
+2026-11-16T09:12:13.8076626Z 
+2026-11-16T09:12:13.8076699Z OK (skipped=1)
+2026-11-16T09:12:15.2585034Z {
+2026-11-16T09:12:15.2585441Z   "status": "passed-local-metadata-only",
+2026-11-16T09:12:15.2585845Z   "samples": [
+2026-11-16T09:12:15.2586085Z     {
+2026-11-16T09:12:15.2586323Z       "name": "noto-en-digits",
+2026-11-16T09:12:15.2586817Z       "fontSha256": "b76b0433203017ca80401b2ee0dd69350349871c4b19d504c34dbdd80541690a",
+2026-11-16T09:12:15.2587515Z       "fontPath": "/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc",
+2026-11-16T09:12:15.2587964Z       "face": 2,
+2026-11-16T09:12:15.2588218Z       "text": "WRAP0123456789",
+2026-11-16T09:12:15.2588512Z       "language": "en",
+2026-11-16T09:12:15.2588783Z       "hbVersion": "12.3.2",
+2026-11-16T09:12:15.2589090Z       "direction": 4,
+2026-11-16T09:12:15.2589347Z       "glyphs": [
+2026-11-16T09:12:15.2589531Z         {
+2026-11-16T09:12:15.2589798Z           "glyph": 56,
+2026-11-16T09:12:15.2590193Z           "utf16Cluster": 0
+2026-11-16T09:12:15.2590468Z         },
+2026-11-16T09:12:15.2590688Z         {
+2026-11-16T09:12:15.2590910Z           "glyph": 51,
+2026-11-16T09:12:15.2591471Z           "utf16Cluster": 1
+2026-11-16T09:12:15.2591736Z         },
+2026-11-16T09:12:15.2591947Z         {
+2026-11-16T09:12:15.2592161Z           "glyph": 34,
+2026-11-16T09:12:15.2592412Z           "utf16Cluster": 2
+2026-11-16T09:12:15.2592674Z         },
+2026-11-16T09:12:15.2592884Z         {
+2026-11-16T09:12:15.2593100Z           "glyph": 49,
+2026-11-16T09:12:15.2593353Z           "utf16Cluster": 3
+2026-11-16T09:12:15.2593620Z         },
+2026-11-16T09:12:15.2593791Z         {
+2026-11-16T09:12:15.2593952Z           "glyph": 63153,
+2026-11-16T09:12:15.2594142Z           "utf16Cluster": 4
+2026-11-16T09:12:15.2594318Z         },
+2026-11-16T09:12:15.2594483Z         {
+2026-11-16T09:12:15.2594634Z           "glyph": 63154,
+2026-11-16T09:12:15.2594806Z           "utf16Cluster": 5
+2026-11-16T09:12:15.2594981Z         },
+2026-11-16T09:12:15.2595138Z         {
+2026-11-16T09:12:15.2595289Z           "glyph": 63155,
+2026-11-16T09:12:15.2595471Z           "utf16Cluster": 6
+2026-11-16T09:12:15.2595654Z         },
+2026-11-16T09:12:15.2595803Z         {
+2026-11-16T09:12:15.2596034Z           "glyph": 63156,
+2026-11-16T09:12:15.2596218Z           "utf16Cluster": 7
+2026-11-16T09:12:15.2596398Z         },
+2026-11-16T09:12:15.2596552Z         {
+2026-11-16T09:12:15.2596722Z           "glyph": 63157,
+2026-11-16T09:12:15.2596911Z           "utf16Cluster": 8
+2026-11-16T09:12:15.2597100Z         },
+2026-11-16T09:12:15.2597258Z         {
+2026-11-16T09:12:15.2597424Z           "glyph": 63158,
+2026-11-16T09:12:15.2597610Z           "utf16Cluster": 9
+2026-11-16T09:12:15.2597791Z         },
+2026-11-16T09:12:15.2597940Z         {
+2026-11-16T09:12:15.2598248Z           "glyph": 63159,
+2026-11-16T09:12:15.2598446Z           "utf16Cluster": 10
+2026-11-16T09:12:15.2598630Z         },
+2026-11-16T09:12:15.2598773Z         {
+2026-11-16T09:12:15.2598920Z           "glyph": 63160,
+2026-11-16T09:12:15.2599102Z           "utf16Cluster": 11
+2026-11-16T09:12:15.2599280Z         },
+2026-11-16T09:12:15.2599427Z         {
+2026-11-16T09:12:15.2599578Z           "glyph": 63161,
+2026-11-16T09:12:15.2599749Z           "utf16Cluster": 12
+2026-11-16T09:12:15.2600097Z         },
+2026-11-16T09:12:15.2600244Z         {
+2026-11-16T09:12:15.2600390Z           "glyph": 63162,
+2026-11-16T09:12:15.2600565Z           "utf16Cluster": 13
+2026-11-16T09:12:15.2600821Z         }
+2026-11-16T09:12:15.2601037Z       ],
+2026-11-16T09:12:15.2601262Z       "nominal": [
+2026-11-16T09:12:15.2601513Z         56,
+2026-11-16T09:12:15.2601740Z         51,
+2026-11-16T09:12:15.2601960Z         34,
+2026-11-16T09:12:15.2602181Z         49,
+2026-11-16T09:12:15.2602404Z         17,
+2026-11-16T09:12:15.2602615Z         18,
+2026-11-16T09:12:15.2602849Z         19,
+2026-11-16T09:12:15.2603062Z         20,
+2026-11-16T09:12:15.2603277Z         21,
+2026-11-16T09:12:15.2603492Z         22,
+2026-11-16T09:12:15.2603674Z         23,
+2026-11-16T09:12:15.2603874Z         24,
+2026-11-16T09:12:15.2604065Z         25,
+2026-11-16T09:12:15.2604252Z         26
+2026-11-16T09:12:15.2604453Z       ],
+2026-11-16T09:12:15.2604673Z       "oldAccept": false,
+2026-11-16T09:12:15.2604963Z       "candidateAccept": true
+2026-11-16T09:12:15.2605219Z     },
+2026-11-16T09:12:15.2605406Z     {
+2026-11-16T09:12:15.2605624Z       "name": "noto-zh-digits",
+2026-11-16T09:12:15.2606056Z       "fontSha256": "b76b0433203017ca80401b2ee0dd69350349871c4b19d504c34dbdd80541690a",
+2026-11-16T09:12:15.2606610Z       "fontPath": "/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc",
+2026-11-16T09:12:15.2607033Z       "face": 2,
+2026-11-16T09:12:15.2607282Z       "text": "WRAP0123456789",
+2026-11-16T09:12:15.2607592Z       "language": "zh-cn",
+2026-11-16T09:12:15.2607888Z       "hbVersion": "12.3.2",
+2026-11-16T09:12:15.2608170Z       "direction": 4,
+2026-11-16T09:12:15.2608426Z       "glyphs": [
+2026-11-16T09:12:15.2608654Z         {
+2026-11-16T09:12:15.2608889Z           "glyph": 56,
+2026-11-16T09:12:15.2609149Z           "utf16Cluster": 0
+2026-11-16T09:12:15.2609419Z         },
+2026-11-16T09:12:15.2609636Z         {
+2026-11-16T09:12:15.2610375Z           "glyph": 51,
+2026-11-16T09:12:15.2610552Z           "utf16Cluster": 1
+2026-11-16T09:12:15.2610724Z         },
+2026-11-16T09:12:15.2610868Z         {
+2026-11-16T09:12:15.2611017Z           "glyph": 34,
+2026-11-16T09:12:15.2611193Z           "utf16Cluster": 2
+2026-11-16T09:12:15.2611366Z         },
+2026-11-16T09:12:15.2611515Z         {
+2026-11-16T09:12:15.2611665Z           "glyph": 49,
+2026-11-16T09:12:15.2611840Z           "utf16Cluster": 3
+2026-11-16T09:12:15.2612009Z         },
+2026-11-16T09:12:15.2612159Z         {
+2026-11-16T09:12:15.2612307Z           "glyph": 17,
+2026-11-16T09:12:15.2612475Z           "utf16Cluster": 4
+2026-11-16T09:12:15.2612659Z         },
+2026-11-16T09:12:15.2612800Z         {
+2026-11-16T09:12:15.2612945Z           "glyph": 18,
+2026-11-16T09:12:15.2613114Z           "utf16Cluster": 5
+2026-11-16T09:12:15.2613292Z         },
+2026-11-16T09:12:15.2613434Z         {
+2026-11-16T09:12:15.2613583Z           "glyph": 19,
+2026-11-16T09:12:15.2613755Z           "utf16Cluster": 6
+2026-11-16T09:12:15.2613937Z         },
+2026-11-16T09:12:15.2614088Z         {
+2026-11-16T09:12:15.2614237Z           "glyph": 20,
+2026-11-16T09:12:15.2614407Z           "utf16Cluster": 7
+2026-11-16T09:12:15.2614579Z         },
+2026-11-16T09:12:15.2614736Z         {
+2026-11-16T09:12:15.2614881Z           "glyph": 21,
+2026-11-16T09:12:15.2615052Z           "utf16Cluster": 8
+2026-11-16T09:12:15.2615226Z         },
+2026-11-16T09:12:15.2615380Z         {
+2026-11-16T09:12:15.2615529Z           "glyph": 22,
+2026-11-16T09:12:15.2615696Z           "utf16Cluster": 9
+2026-11-16T09:12:15.2615868Z         },
+2026-11-16T09:12:15.2616038Z         {
+2026-11-16T09:12:15.2616338Z           "glyph": 23,
+2026-11-16T09:12:15.2616516Z           "utf16Cluster": 10
+2026-11-16T09:12:15.2616755Z         },
+2026-11-16T09:12:15.2616901Z         {
+2026-11-16T09:12:15.2617056Z           "glyph": 24,
+2026-11-16T09:12:15.2617226Z           "utf16Cluster": 11
+2026-11-16T09:12:15.2617405Z         },
+2026-11-16T09:12:15.2617556Z         {
+2026-11-16T09:12:15.2617704Z           "glyph": 25,
+2026-11-16T09:12:15.2617883Z           "utf16Cluster": 12
+2026-11-16T09:12:15.2618055Z         },
+2026-11-16T09:12:15.2618201Z         {
+2026-11-16T09:12:15.2618346Z           "glyph": 26,
+2026-11-16T09:12:15.2618520Z           "utf16Cluster": 13
+2026-11-16T09:12:15.2618698Z         }
+2026-11-16T09:12:15.2618906Z       ],
+2026-11-16T09:12:15.2619145Z       "nominal": [
+2026-11-16T09:12:15.2619514Z         56,
+2026-11-16T09:12:15.2619797Z         51,
+2026-11-16T09:12:15.2620305Z         34,
+2026-11-16T09:12:15.2632625Z         49,
+2026-11-16T09:12:15.2632819Z         17,
+2026-11-16T09:12:15.2633062Z         18,
+2026-11-16T09:12:15.2633269Z         19,
+2026-11-16T09:12:15.2633481Z         20,
+2026-11-16T09:12:15.2633699Z         21,
+2026-11-16T09:12:15.2633922Z         22,
+2026-11-16T09:12:15.2634139Z         23,
+2026-11-16T09:12:15.2634360Z         24,
+2026-11-16T09:12:15.2634573Z         25,
+2026-11-16T09:12:15.2634792Z         26
+2026-11-16T09:12:15.2635022Z       ],
+2026-11-16T09:12:15.2635267Z       "oldAccept": true,
+2026-11-16T09:12:15.2635582Z       "candidateAccept": true
+2026-11-16T09:12:15.2635884Z     },
+2026-11-16T09:12:15.2636127Z     {
+2026-11-16T09:12:15.2636383Z       "name": "source-radical-collision",
+2026-11-16T09:12:15.2636898Z       "fontSha256": "b76b0433203017ca80401b2ee0dd69350349871c4b19d504c34dbdd80541690a",
+2026-11-16T09:12:15.2637371Z       "fontPath": "/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc",
+2026-11-16T09:12:15.2637687Z       "face": 2,
+2026-11-16T09:12:15.2638141Z       "text": "文⽂风⻛又⼜月⽉",
+2026-11-16T09:12:15.2638336Z       "language": "zh-cn",
+2026-11-16T09:12:15.2638549Z       "hbVersion": "12.3.2",
+2026-11-16T09:12:15.2638760Z       "direction": 4,
+2026-11-16T09:12:15.2638943Z       "glyphs": [
+2026-11-16T09:12:15.2639113Z         {
+2026-11-16T09:12:15.2639270Z           "glyph": 20036,
+2026-11-16T09:12:15.2639464Z           "utf16Cluster": 0
+2026-11-16T09:12:15.2639655Z         },
+2026-11-16T09:12:15.2640517Z         {
+2026-11-16T09:12:15.2640669Z           "glyph": 20036,
+2026-11-16T09:12:15.2640854Z           "utf16Cluster": 1
+2026-11-16T09:12:15.2641038Z         },
+2026-11-16T09:12:15.2641181Z         {
+2026-11-16T09:12:15.2641330Z           "glyph": 44285,
+2026-11-16T09:12:15.2641507Z           "utf16Cluster": 2
+2026-11-16T09:12:15.2641677Z         },
+2026-11-16T09:12:15.2641823Z         {
+2026-11-16T09:12:15.2641966Z           "glyph": 44285,
+2026-11-16T09:12:15.2642140Z           "utf16Cluster": 3
+2026-11-16T09:12:15.2642310Z         },
+2026-11-16T09:12:15.2642473Z         {
+2026-11-16T09:12:15.2642618Z           "glyph": 11858,
+2026-11-16T09:12:15.2642800Z           "utf16Cluster": 4
+2026-11-16T09:12:15.2642975Z         },
+2026-11-16T09:12:15.2643117Z         {
+2026-11-16T09:12:15.2643269Z           "glyph": 11858,
+2026-11-16T09:12:15.2643443Z           "utf16Cluster": 5
+2026-11-16T09:12:15.2643616Z         },
+2026-11-16T09:12:15.2643756Z         {
+2026-11-16T09:12:15.2643905Z           "glyph": 20694,
+2026-11-16T09:12:15.2644078Z           "utf16Cluster": 6
+2026-11-16T09:12:15.2644246Z         },
+2026-11-16T09:12:15.2644402Z         {
+2026-11-16T09:12:15.2644549Z           "glyph": 20694,
+2026-11-16T09:12:15.2644718Z           "utf16Cluster": 7
+2026-11-16T09:12:15.2644882Z         }
+2026-11-16T09:12:15.2645043Z       ],
+2026-11-16T09:12:15.2645191Z       "nominal": [
+2026-11-16T09:12:15.2645357Z         20036,
+2026-11-16T09:12:15.2645520Z         20036,
+2026-11-16T09:12:15.2645668Z         44285,
+2026-11-16T09:12:15.2645822Z         44285,
+2026-11-16T09:12:15.2645967Z         11858,
+2026-11-16T09:12:15.2646112Z         11858,
+2026-11-16T09:12:15.2646399Z         20694,
+2026-11-16T09:12:15.2646584Z         20694
+2026-11-16T09:12:15.2646735Z       ],
+2026-11-16T09:12:15.2646892Z       "oldAccept": true,
+2026-11-16T09:12:15.2647091Z       "candidateAccept": true
+2026-11-16T09:12:15.2647276Z     },
+2026-11-16T09:12:15.2647430Z     {
+2026-11-16T09:12:15.2647633Z       "name": "same-uncoded-glyph-different-digits",
+2026-11-16T09:12:15.2648011Z       "fontSha256": "abc2db27dd79b379653fc34ec37c6adef941d6b53e3a690f47ee64c837339dd2",
+2026-11-16T09:12:15.2648543Z       "fontPath": "/home/runner/work/_temp/milkup-webkit-research/evidence/combined-digit-contract/collision.ttf",
+2026-11-16T09:12:15.2648954Z       "face": 0,
+2026-11-16T09:12:15.2649123Z       "text": "1212",
+2026-11-16T09:12:15.2649301Z       "language": "en",
+2026-11-16T09:12:15.2649486Z       "hbVersion": "12.3.2",
+2026-11-16T09:12:15.2649685Z       "direction": 4,
+2026-11-16T09:12:15.2650036Z       "glyphs": [
+2026-11-16T09:12:15.2650279Z         {
+2026-11-16T09:12:15.2650435Z           "glyph": 3,
+2026-11-16T09:12:15.2650613Z           "utf16Cluster": 0
+2026-11-16T09:12:15.2650800Z         },
+2026-11-16T09:12:15.2650943Z         {
+2026-11-16T09:12:15.2651092Z           "glyph": 3,
+2026-11-16T09:12:15.2651257Z           "utf16Cluster": 1
+2026-11-16T09:12:15.2651432Z         },
+2026-11-16T09:12:15.2651571Z         {
+2026-11-16T09:12:15.2651718Z           "glyph": 3,
+2026-11-16T09:12:15.2651877Z           "utf16Cluster": 2
+2026-11-16T09:12:15.2652047Z         },
+2026-11-16T09:12:15.2652199Z         {
+2026-11-16T09:12:15.2652342Z           "glyph": 3,
+2026-11-16T09:12:15.2652503Z           "utf16Cluster": 3
+2026-11-16T09:12:15.2652676Z         }
+2026-11-16T09:12:15.2652994Z       ],
+2026-11-16T09:12:15.2653148Z       "nominal": [
+2026-11-16T09:12:15.2653307Z         1,
+2026-11-16T09:12:15.2653448Z         2,
+2026-11-16T09:12:15.2653587Z         1,
+2026-11-16T09:12:15.2653736Z         2
+2026-11-16T09:12:15.2653878Z       ],
+2026-11-16T09:12:15.2654034Z       "oldAccept": false,
+2026-11-16T09:12:15.2654232Z       "candidateAccept": true
+2026-11-16T09:12:15.2654425Z     },
+2026-11-16T09:12:15.2654622Z     {
+2026-11-16T09:12:15.2654779Z       "name": "ligature",
+2026-11-16T09:12:15.2655075Z       "fontSha256": "abc2db27dd79b379653fc34ec37c6adef941d6b53e3a690f47ee64c837339dd2",
+2026-11-16T09:12:15.2655598Z       "fontPath": "/home/runner/work/_temp/milkup-webkit-research/evidence/combined-digit-contract/collision.ttf",
+2026-11-16T09:12:15.2656140Z       "face": 0,
+2026-11-16T09:12:15.2656300Z       "text": "fi",
+2026-11-16T09:12:15.2656462Z       "language": "en",
+2026-11-16T09:12:15.2656641Z       "hbVersion": "12.3.2",
+2026-11-16T09:12:15.2656834Z       "direction": 4,
+2026-11-16T09:12:15.2657006Z       "glyphs": [
+2026-11-16T09:12:15.2657161Z         {
+2026-11-16T09:12:15.2657310Z           "glyph": 6,
+2026-11-16T09:12:15.2657493Z           "utf16Cluster": 0
+2026-11-16T09:12:15.2657680Z         }
+2026-11-16T09:12:15.2657825Z       ],
+2026-11-16T09:12:15.2657969Z       "nominal": [
+2026-11-16T09:12:15.2658131Z         4
+2026-11-16T09:12:15.2658281Z       ],
+2026-11-16T09:12:15.2658430Z       "oldAccept": false,
+2026-11-16T09:12:15.2658616Z       "candidateAccept": false
+2026-11-16T09:12:15.2658797Z     },
+2026-11-16T09:12:15.2658946Z     {
+2026-11-16T09:12:15.2659110Z       "name": "combined-composition",
+2026-11-16T09:12:15.2659430Z       "fontSha256": "abc2db27dd79b379653fc34ec37c6adef941d6b53e3a690f47ee64c837339dd2",
+2026-11-16T09:12:15.2660135Z       "fontPath": "/home/runner/work/_temp/milkup-webkit-research/evidence/combined-digit-contract/collision.ttf",
+2026-11-16T09:12:15.2660532Z       "face": 0,
+2026-11-16T09:12:15.2661306Z       "text": "á",
+2026-11-16T09:12:15.2661519Z       "language": "en",
+2026-11-16T09:12:15.2661701Z       "hbVersion": "12.3.2",
+2026-11-16T09:12:15.2661888Z       "direction": 4,
+2026-11-16T09:12:15.2662069Z       "glyphs": [
+2026-11-16T09:12:15.2662226Z         {
+2026-11-16T09:12:15.2662367Z           "glyph": 9,
+2026-11-16T09:12:15.2662536Z           "utf16Cluster": 0
+2026-11-16T09:12:15.2662855Z         }
+2026-11-16T09:12:15.2663003Z       ],
+2026-11-16T09:12:15.2663148Z       "nominal": [
+2026-11-16T09:12:15.2663308Z         7
+2026-11-16T09:12:15.2663468Z       ],
+2026-11-16T09:12:15.2663628Z       "oldAccept": false,
+2026-11-16T09:12:15.2663815Z       "candidateAccept": false
+2026-11-16T09:12:15.2664006Z     },
+2026-11-16T09:12:15.2664163Z     {
+2026-11-16T09:12:15.2664332Z       "name": "combining-mark",
+2026-11-16T09:12:15.2664649Z       "fontSha256": "b4c632e3cdf9acc7f28758fb5a323c8524d7fc6660d46904d9b6cbe2809c419c",
+2026-11-16T09:12:15.2665039Z       "fontPath": "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
+2026-11-16T09:12:15.2665300Z       "face": 0,
+2026-11-16T09:12:15.2665528Z       "text": "x́",
+2026-11-16T09:12:15.2665701Z       "language": "en",
+2026-11-16T09:12:15.2665882Z       "hbVersion": "12.3.2",
+2026-11-16T09:12:15.2666063Z       "direction": 4,
+2026-11-16T09:12:15.2666230Z       "glyphs": [
+2026-11-16T09:12:15.2666393Z         {
+2026-11-16T09:12:15.2666549Z           "glyph": 91,
+2026-11-16T09:12:15.2666726Z           "utf16Cluster": 0
+2026-11-16T09:12:15.2666971Z         },
+2026-11-16T09:12:15.2667147Z         {
+2026-11-16T09:12:15.2667297Z           "glyph": 690,
+2026-11-16T09:12:15.2667470Z           "utf16Cluster": 0
+2026-11-16T09:12:15.2667645Z         }
+2026-11-16T09:12:15.2667783Z       ],
+2026-11-16T09:12:15.2667948Z       "nominal": [
+2026-11-16T09:12:15.2668107Z         91,
+2026-11-16T09:12:15.2668254Z         91
+2026-11-16T09:12:15.2668397Z       ],
+2026-11-16T09:12:15.2668552Z       "oldAccept": false,
+2026-11-16T09:12:15.2668739Z       "candidateAccept": false
+2026-11-16T09:12:15.2668926Z     },
+2026-11-16T09:12:15.2669067Z     {
+2026-11-16T09:12:15.2669215Z       "name": "arabic-rtl",
+2026-11-16T09:12:15.2669510Z       "fontSha256": "8c67eaa2f0086872628fc3f7f760386f83c8be5c5e9a1ba3a38891237b2ac7cb",
+2026-11-16T09:12:15.2670165Z       "fontPath": "/usr/share/fonts/truetype/noto/NotoNaskhArabic-Regular.ttf",
+2026-11-16T09:12:15.2670464Z       "face": 0,
+2026-11-16T09:12:15.2670689Z       "text": "سلام",
+2026-11-16T09:12:15.2670877Z       "language": "ar",
+2026-11-16T09:12:15.2671051Z       "hbVersion": "12.3.2",
+2026-11-16T09:12:15.2671231Z       "direction": 5,
+2026-11-16T09:12:15.2671408Z       "glyphs": [
+2026-11-16T09:12:15.2671562Z         {
+2026-11-16T09:12:15.2671711Z           "glyph": 482,
+2026-11-16T09:12:15.2672053Z           "utf16Cluster": 3
+2026-11-16T09:12:15.2672227Z         },
+2026-11-16T09:12:15.2672376Z         {
+2026-11-16T09:12:15.2672529Z           "glyph": 1565,
+2026-11-16T09:12:15.2672708Z           "utf16Cluster": 2
+2026-11-16T09:12:15.2672880Z         },
+2026-11-16T09:12:15.2673028Z         {
+2026-11-16T09:12:15.2673178Z           "glyph": 448,
+2026-11-16T09:12:15.2673347Z           "utf16Cluster": 1
+2026-11-16T09:12:15.2673513Z         },
+2026-11-16T09:12:15.2673658Z         {
+2026-11-16T09:12:15.2673813Z           "glyph": 250,
+2026-11-16T09:12:15.2673983Z           "utf16Cluster": 0
+2026-11-16T09:12:15.2674150Z         }
+2026-11-16T09:12:15.2674298Z       ],
+2026-11-16T09:12:15.2674469Z       "nominal": [
+2026-11-16T09:12:15.2674638Z         482,
+2026-11-16T09:12:15.2674796Z         3,
+2026-11-16T09:12:15.2674943Z         445,
+2026-11-16T09:12:15.2675092Z         247
+2026-11-16T09:12:15.2675247Z       ],
+2026-11-16T09:12:15.2675406Z       "oldAccept": false,
+2026-11-16T09:12:15.2675611Z       "candidateAccept": false
+2026-11-16T09:12:15.2675806Z     },
+2026-11-16T09:12:15.2675958Z     {
+2026-11-16T09:12:15.2676127Z       "name": "indic-reordering",
+2026-11-16T09:12:15.2676451Z       "fontSha256": "79a470365ccb210fa3c7d8d8ff2e005ef9d983cfd067f735a0caf7e15070ca9f",
+2026-11-16T09:12:15.2676913Z       "fontPath": "/usr/share/fonts/truetype/noto/NotoSansDevanagari-Regular.ttf",
+2026-11-16T09:12:15.2677228Z       "face": 0,
+2026-11-16T09:12:15.2677449Z       "text": "कि",
+2026-11-16T09:12:15.2677627Z       "language": "hi",
+2026-11-16T09:12:15.2677811Z       "hbVersion": "12.3.2",
+2026-11-16T09:12:15.2678003Z       "direction": 4,
+2026-11-16T09:12:15.2678307Z       "glyphs": [
+2026-11-16T09:12:15.2678478Z         {
+2026-11-16T09:12:15.2678631Z           "glyph": 607,
+2026-11-16T09:12:15.2678809Z           "utf16Cluster": 0
+2026-11-16T09:12:15.2679002Z         },
+2026-11-16T09:12:15.2679156Z         {
+2026-11-16T09:12:15.2679308Z           "glyph": 25,
+2026-11-16T09:12:15.2679492Z           "utf16Cluster": 0
+2026-11-16T09:12:15.2679660Z         }
+2026-11-16T09:12:15.2679963Z       ],
+2026-11-16T09:12:15.2680161Z       "nominal": [
+2026-11-16T09:12:15.2680330Z         25,
+2026-11-16T09:12:15.2680481Z         25
+2026-11-16T09:12:15.2680630Z       ],
+2026-11-16T09:12:15.2680791Z       "oldAccept": false,
+2026-11-16T09:12:15.2680987Z       "candidateAccept": false
+2026-11-16T09:12:15.2681176Z     }
+2026-11-16T09:12:15.2681320Z   ],
+2026-11-16T09:12:15.2681479Z   "oldContract": {
+2026-11-16T09:12:15.2681653Z     "status": "passed",
+2026-11-16T09:12:15.2681848Z     "fallbackPartitions": 128,
+2026-11-16T09:12:15.2682050Z     "rejectedInvalidCases": 16,
+2026-11-16T09:12:15.2682370Z     "scope": "compiled metadata algorithm only; not patched WebKit or PDF acceptance"
+2026-11-16T09:12:15.2682679Z   },
+2026-11-16T09:12:15.2682982Z   "unchangedHeaderSha256": "c5edf99dd74e48836671627ef045fdaa0dce30b6b29c684e5e14bc47809b95f3",
+2026-11-16T09:12:15.2683442Z   "helperSha256": "44b5f6d9b9784811acfcdf23214513b51a323f70672247b8fa2eb5bbc79a7d87",
+2026-11-16T09:12:15.2683965Z   "scope": "Actual HarfBuzz plus compiled metadata contract. No actual WebKit TU, PDF backend or native engine acceptance."
+2026-11-16T09:12:15.2684379Z }
+2026-11-16T09:12:15.4677336Z {"status": "passed-local-HarfBuzz-not-native-PDF", "fixture": {"fontSha256": "abc2db27dd79b379653fc34ec37c6adef941d6b53e3a690f47ee64c837339dd2", "htmlSha256": "0359c63f0fe67f306487ba98828f757a4aeeaf53c13a455a1daa52ad43b99efe"}, "fontSha256": "b76b0433203017ca80401b2ee0dd69350349871c4b19d504c34dbdd80541690a", "face": 2, "language": "en", "harfbuzz": "12.3.2", "source": "WRAP0123456789", "glyphs": [{"glyph": 56, "utf16Cluster": 0}, {"glyph": 51, "utf16Cluster": 1}, {"glyph": 34, "utf16Cluster": 2}, {"glyph": 49, "utf16Cluster": 3}, {"glyph": 63153, "utf16Cluster": 4}, {"glyph": 63154, "utf16Cluster": 5}, {"glyph": 63155, "utf16Cluster": 6}, {"glyph": 63156, "utf16Cluster": 7}, {"glyph": 63157, "utf16Cluster": 8}, {"glyph": 63158, "utf16Cluster": 9}, {"glyph": 63159, "utf16Cluster": 10}, {"glyph": 63160, "utf16Cluster": 11}, {"glyph": 63161, "utf16Cluster": 12}, {"glyph": 63162, "utf16Cluster": 13}], "plainDigitControl": [{"glyph": 17, "utf16Cluster": 0}, {"glyph": 18, "utf16Cluster": 1}, {"glyph": 19, "utf16Cluster": 2}, {"glyph": 20, "utf16Cluster": 3}, {"glyph": 21, "utf16Cluster": 4}, {"glyph": 22, "utf16Cluster": 5}, {"glyph": 23, "utf16Cluster": 6}, {"glyph": 24, "utf16Cluster": 7}, {"glyph": 25, "utf16Cluster": 8}, {"glyph": 26, "utf16Cluster": 9}], "contract": "Ten distinct substituted glyphs; complete ordered one-scalar clusters; pure digits retain nominal glyphs and are an unsuitable defect baseline"}
+2026-11-16T09:21:19.2997099Z ##[group]Run test "$(( $(date +%s) - PAGINATION_START_EPOCH ))" -lt 5400
+2026-11-16T09:21:19.2997498Z [36;1mtest "$(( $(date +%s) - PAGINATION_START_EPOCH ))" -lt 5400[0m
+2026-11-16T09:21:19.2997858Z [36;1mpython3 scripts/ci/webkit-pagination-continue.py[0m
+2026-11-16T09:21:19.3044265Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+2026-11-16T09:21:19.3044574Z env:
+2026-11-16T09:21:19.3044762Z   CCACHE_COMPILERCHECK: content
+2026-11-16T09:21:19.3045002Z   PAGINATION_OPERATION: pagination-segment
+2026-11-16T09:21:19.3045252Z   PAGINATION_RESTORE_RUN: 43808221193
+2026-11-16T09:21:19.3045474Z   PAGINATION_BEHAVIOR: true
+2026-11-16T09:21:19.3045680Z   PAGINATION_TAIL: true
+2026-11-16T09:21:19.3045870Z   PAGINATION_ROOT_MARGIN: true
+2026-11-16T09:21:19.3046074Z   PAGINATION_COMBINED: true
+2026-11-16T09:21:19.3046387Z   CCACHE_DIR: /home/runner/work/_temp/milkup-webkit-research/restored-compiler-cache
+2026-11-16T09:21:19.3046751Z   PAGINATION_START_EPOCH: 1794820011
+2026-11-16T09:21:19.3046988Z ##[endgroup]
+2026-11-16T09:21:19.7688170Z {"seconds": 0.003, "newMisses": 0, "newHits": 0, "freeBytes": 88046653440, "availableMemoryBytes": 15250010112}
+2026-11-16T09:21:24.7779137Z {"seconds": 5.012, "newMisses": 0, "newHits": 1333, "freeBytes": 87963066368, "availableMemoryBytes": 15160188928}
+2026-11-16T09:21:29.7981352Z {"seconds": 10.03, "newMisses": 0, "newHits": 1535, "freeBytes": 87934377984, "availableMemoryBytes": 15272472576}
+2026-11-16T09:21:34.8022869Z {"seconds": 15.036, "newMisses": 0, "newHits": 1536, "freeBytes": 87691964416, "availableMemoryBytes": 15146377216}
+2026-11-16T09:21:39.8266025Z {"seconds": 20.042, "newMisses": 0, "newHits": 1536, "freeBytes": 87686594560, "availableMemoryBytes": 15177617408}
+2026-11-16T09:21:44.8431144Z {"seconds": 25.077, "newMisses": 0, "newHits": 1537, "freeBytes": 87685935104, "availableMemoryBytes": 15479259136}
+2026-11-16T09:21:49.8591146Z {"seconds": 30.092, "newMisses": 0, "newHits": 1537, "freeBytes": 87685840896, "availableMemoryBytes": 15562719232}
+2026-11-16T09:21:54.8741110Z {"seconds": 35.107, "newMisses": 0, "newHits": 1537, "freeBytes": 87685775360, "availableMemoryBytes": 15571685376}
+2026-11-16T09:21:59.8891161Z {"seconds": 40.122, "newMisses": 0, "newHits": 1537, "freeBytes": 87685738496, "availableMemoryBytes": 15569670144}
+2026-11-16T09:22:04.9041013Z {"seconds": 45.138, "newMisses": 0, "newHits": 1537, "freeBytes": 87685705728, "availableMemoryBytes": 15562272768}
+2026-11-16T09:22:09.9191325Z {"seconds": 50.152, "newMisses": 0, "newHits": 1537, "freeBytes": 87685672960, "availableMemoryBytes": 15559585792}
+2026-11-16T09:22:14.9341341Z {"seconds": 55.167, "newMisses": 0, "newHits": 1537, "freeBytes": 87685619712, "availableMemoryBytes": 15564152832}
+2026-11-16T09:22:19.9385870Z {"seconds": 60.173, "newMisses": 0, "newHits": 1761, "freeBytes": 87320481792, "availableMemoryBytes": 15364628480}
+2026-11-16T09:22:24.9443088Z {"seconds": 65.178, "newMisses": 0, "newHits": 1761, "freeBytes": 87317381120, "availableMemoryBytes": 15404179456}
+2026-11-16T09:22:29.9500355Z {"seconds": 70.184, "newMisses": 0, "newHits": 1761, "freeBytes": 87316758528, "availableMemoryBytes": 15469260800}
+2026-11-16T09:22:34.9556109Z {"seconds": 75.19, "newMisses": 0, "newHits": 1761, "freeBytes": 87316385792, "availableMemoryBytes": 15511302144}
+2026-11-16T09:22:39.9613427Z {"seconds": 80.195, "newMisses": 0, "newHits": 1761, "freeBytes": 87316008960, "availableMemoryBytes": 15549644800}
+2026-11-16T09:22:44.9670730Z {"seconds": 85.201, "newMisses": 0, "newHits": 1761, "freeBytes": 87315632128, "availableMemoryBytes": 15571144704}
+2026-11-16T09:22:49.9727669Z {"seconds": 90.207, "newMisses": 0, "newHits": 1761, "freeBytes": 87315378176, "availableMemoryBytes": 15574102016}
+2026-11-16T09:22:54.9784610Z {"seconds": 95.213, "newMisses": 0, "newHits": 1761, "freeBytes": 87315124224, "availableMemoryBytes": 15574155264}
+2026-11-16T09:22:59.9840861Z {"seconds": 100.218, "newMisses": 0, "newHits": 1761, "freeBytes": 87312969728, "availableMemoryBytes": 15573807104}
+2026-11-16T09:23:05.0021111Z {"seconds": 105.234, "newMisses": 0, "newHits": 2287, "freeBytes": 87029923840, "availableMemoryBytes": 15177039872}
+2026-11-16T09:23:10.0171294Z {"seconds": 110.251, "newMisses": 0, "newHits": 2287, "freeBytes": 87029923840, "availableMemoryBytes": 14630076416}
+2026-11-16T09:23:15.0354826Z {"seconds": 115.269, "newMisses": 0, "newHits": 2287, "freeBytes": 87029923840, "availableMemoryBytes": 13615517696}
+2026-11-16T09:23:20.0531371Z {"seconds": 120.285, "newMisses": 0, "newHits": 2287, "freeBytes": 87029923840, "availableMemoryBytes": 12631908352}
+2026-11-16T09:23:25.0681296Z {"seconds": 125.301, "newMisses": 0, "newHits": 2287, "freeBytes": 87029923840, "availableMemoryBytes": 11726180352}
+2026-11-16T09:23:30.0811928Z {"seconds": 130.315, "newMisses": 0, "newHits": 2287, "freeBytes": 87029923840, "availableMemoryBytes": 10812833792}
+2026-11-16T09:23:35.0991344Z {"seconds": 135.331, "newMisses": 0, "newHits": 2287, "freeBytes": 87029923840, "availableMemoryBytes": 9890889728}
+2026-11-16T09:23:40.1111263Z {"seconds": 140.345, "newMisses": 0, "newHits": 2287, "freeBytes": 87029923840, "availableMemoryBytes": 8922357760}
+2026-11-16T09:23:45.1281294Z {"seconds": 145.361, "newMisses": 0, "newHits": 2287, "freeBytes": 87029923840, "availableMemoryBytes": 8157282304}
+2026-11-16T09:23:50.1458895Z {"seconds": 150.379, "newMisses": 0, "newHits": 2287, "freeBytes": 87029923840, "availableMemoryBytes": 7936774144}
+2026-11-16T09:23:55.1621305Z {"seconds": 155.395, "newMisses": 2, "newHits": 2379, "freeBytes": 86945542144, "availableMemoryBytes": 10975301632}
+2026-11-16T09:24:00.1784973Z {"seconds": 160.412, "newMisses": 2, "newHits": 2404, "freeBytes": 86929154048, "availableMemoryBytes": 10111721472}
+2026-11-16T09:24:05.1961192Z {"seconds": 165.429, "newMisses": 2, "newHits": 2404, "freeBytes": 86929149952, "availableMemoryBytes": 10181754880}
+2026-11-16T09:24:10.2121360Z {"seconds": 170.444, "newMisses": 2, "newHits": 2404, "freeBytes": 86929149952, "availableMemoryBytes": 9694289920}
+2026-11-16T09:24:15.2281363Z {"seconds": 175.461, "newMisses": 3, "newHits": 2422, "freeBytes": 86907293696, "availableMemoryBytes": 11612528640}
+2026-11-16T09:24:20.2441432Z {"seconds": 180.478, "newMisses": 3, "newHits": 2422, "freeBytes": 86907293696, "availableMemoryBytes": 11169193984}
+2026-11-16T09:24:25.2581251Z {"seconds": 185.492, "newMisses": 4, "newHits": 2461, "freeBytes": 86870392832, "availableMemoryBytes": 12033089536}
+2026-11-16T09:24:30.2740370Z {"seconds": 190.508, "newMisses": 4, "newHits": 2467, "freeBytes": 86865940480, "availableMemoryBytes": 11268075520}
+2026-11-16T09:24:35.2911255Z {"seconds": 195.525, "newMisses": 4, "newHits": 2467, "freeBytes": 86865940480, "availableMemoryBytes": 10302849024}
+2026-11-16T09:24:40.3064038Z {"seconds": 200.54, "newMisses": 4, "newHits": 2467, "freeBytes": 86865940480, "availableMemoryBytes": 9464586240}
+2026-11-16T09:24:45.3221354Z {"seconds": 205.555, "newMisses": 4, "newHits": 2467, "freeBytes": 86865940480, "availableMemoryBytes": 8624312320}
+2026-11-16T09:24:50.3375273Z {"seconds": 210.571, "newMisses": 4, "newHits": 2467, "freeBytes": 86865940480, "availableMemoryBytes": 7845445632}
+2026-11-16T09:24:55.3536872Z {"seconds": 215.587, "newMisses": 5, "newHits": 2469, "freeBytes": 86863687680, "availableMemoryBytes": 10781712384}
+2026-11-16T09:25:00.3721355Z {"seconds": 220.604, "newMisses": 7, "newHits": 2483, "freeBytes": 86845726720, "availableMemoryBytes": 13208981504}
+2026-11-16T09:25:05.3862936Z {"seconds": 225.62, "newMisses": 7, "newHits": 2483, "freeBytes": 86845718528, "availableMemoryBytes": 12501852160}
+2026-11-16T09:25:10.4020935Z {"seconds": 230.635, "newMisses": 7, "newHits": 2483, "freeBytes": 86845718528, "availableMemoryBytes": 11618795520}
+2026-11-16T09:25:15.4172226Z {"seconds": 235.651, "newMisses": 8, "newHits": 2489, "freeBytes": 86838042624, "availableMemoryBytes": 12576346112}
+2026-11-16T09:25:20.4267122Z {"seconds": 240.661, "newMisses": 8, "newHits": 2489, "freeBytes": 86838042624, "availableMemoryBytes": 11971256320}
+2026-11-16T09:25:25.4441633Z {"seconds": 245.676, "newMisses": 8, "newHits": 2489, "freeBytes": 86838038528, "availableMemoryBytes": 11076325376}
+2026-11-16T09:25:30.4595395Z {"seconds": 250.693, "newMisses": 8, "newHits": 2489, "freeBytes": 86838030336, "availableMemoryBytes": 10155978752}
+2026-11-16T09:25:35.4781147Z {"seconds": 255.71, "newMisses": 8, "newHits": 2489, "freeBytes": 86838030336, "availableMemoryBytes": 9333268480}
+2026-11-16T09:25:40.4951137Z {"seconds": 260.728, "newMisses": 9, "newHits": 2494, "freeBytes": 86832275456, "availableMemoryBytes": 10118664192}
+2026-11-16T09:25:45.5121446Z {"seconds": 265.744, "newMisses": 9, "newHits": 2494, "freeBytes": 86832275456, "availableMemoryBytes": 9585868800}
+2026-11-16T09:25:50.5271244Z {"seconds": 270.758, "newMisses": 10, "newHits": 2511, "freeBytes": 86820524032, "availableMemoryBytes": 10928521216}
+2026-11-16T09:25:55.5421041Z {"seconds": 275.775, "newMisses": 11, "newHits": 2618, "freeBytes": 86768676864, "availableMemoryBytes": 12373348352}
+2026-11-16T09:26:00.5591237Z {"seconds": 280.792, "newMisses": 11, "newHits": 2618, "freeBytes": 86768676864, "availableMemoryBytes": 11535613952}
+2026-11-16T09:26:05.5781222Z {"seconds": 285.812, "newMisses": 11, "newHits": 2618, "freeBytes": 86768676864, "availableMemoryBytes": 10620518400}
+2026-11-16T09:26:10.5961129Z {"seconds": 290.828, "newMisses": 11, "newHits": 2618, "freeBytes": 86768676864, "availableMemoryBytes": 9756348416}
+2026-11-16T09:26:15.6151140Z {"seconds": 295.848, "newMisses": 11, "newHits": 2618, "freeBytes": 86768672768, "availableMemoryBytes": 8922857472}
+2026-11-16T09:26:20.6311232Z {"seconds": 300.863, "newMisses": 11, "newHits": 2618, "freeBytes": 86768672768, "availableMemoryBytes": 8052228096}
+2026-11-16T09:26:25.6801196Z {"seconds": 305.889, "newMisses": 11, "newHits": 2618, "freeBytes": 86768672768, "availableMemoryBytes": 7231877120}
+2026-11-16T09:26:30.6971349Z {"seconds": 310.928, "newMisses": 11, "newHits": 2618, "freeBytes": 86768672768, "availableMemoryBytes": 6494310400}
+2026-11-16T09:26:35.7121463Z {"seconds": 315.943, "newMisses": 11, "newHits": 2618, "freeBytes": 86768672768, "availableMemoryBytes": 6406365184}
+2026-11-16T09:26:40.7290905Z {"seconds": 320.96, "newMisses": 13, "newHits": 2619, "freeBytes": 86764490752, "availableMemoryBytes": 10236768256}
+2026-11-16T09:26:45.7451134Z {"seconds": 325.976, "newMisses": 13, "newHits": 2620, "freeBytes": 86764756992, "availableMemoryBytes": 10724847616}
+2026-11-16T09:26:50.7615202Z {"seconds": 330.995, "newMisses": 15, "newHits": 2620, "freeBytes": 86760013824, "availableMemoryBytes": 13978431488}
+2026-11-16T09:26:55.7791143Z {"seconds": 336.012, "newMisses": 15, "newHits": 2620, "freeBytes": 86760013824, "availableMemoryBytes": 13415780352}
+2026-11-16T09:27:00.7971233Z {"seconds": 341.029, "newMisses": 15, "newHits": 2620, "freeBytes": 86760013824, "availableMemoryBytes": 12451155968}
+2026-11-16T09:27:05.8131359Z {"seconds": 346.046, "newMisses": 15, "newHits": 2620, "freeBytes": 86760013824, "availableMemoryBytes": 11446259712}
+2026-11-16T09:27:10.8301207Z {"seconds": 351.063, "newMisses": 15, "newHits": 2620, "freeBytes": 86760013824, "availableMemoryBytes": 10616221696}
+2026-11-16T09:27:15.8471178Z {"seconds": 356.079, "newMisses": 15, "newHits": 2620, "freeBytes": 86760013824, "availableMemoryBytes": 9757954048}
+2026-11-16T09:27:20.8571318Z {"seconds": 361.089, "newMisses": 16, "newHits": 2621, "freeBytes": 86758154240, "availableMemoryBytes": 10404073472}
+2026-11-16T09:27:25.8731293Z {"seconds": 366.106, "newMisses": 16, "newHits": 2621, "freeBytes": 86758146048, "availableMemoryBytes": 9988427776}
+2026-11-16T09:27:30.8911325Z {"seconds": 371.122, "newMisses": 16, "newHits": 2621, "freeBytes": 86758146048, "availableMemoryBytes": 9132191744}
+2026-11-16T09:27:35.9061326Z {"seconds": 376.138, "newMisses": 16, "newHits": 2621, "freeBytes": 86758141952, "availableMemoryBytes": 8333115392}
+2026-11-16T09:27:40.9251121Z {"seconds": 381.158, "newMisses": 16, "newHits": 2621, "freeBytes": 86758141952, "availableMemoryBytes": 7552585728}
+2026-11-16T09:27:45.9417376Z {"seconds": 386.175, "newMisses": 16, "newHits": 2621, "freeBytes": 86758141952, "availableMemoryBytes": 7686877184}
+2026-11-16T09:27:50.9591225Z {"seconds": 391.191, "newMisses": 16, "newHits": 2621, "freeBytes": 86758133760, "availableMemoryBytes": 7733338112}
+2026-11-16T09:27:55.9741193Z {"seconds": 396.207, "newMisses": 18, "newHits": 2623, "freeBytes": 86753386496, "availableMemoryBytes": 10784206848}
+2026-11-16T09:28:00.9884743Z {"seconds": 401.222, "newMisses": 18, "newHits": 2623, "freeBytes": 86753386496, "availableMemoryBytes": 10097741824}
+2026-11-16T09:28:06.0041387Z {"seconds": 406.237, "newMisses": 18, "newHits": 2623, "freeBytes": 86753386496, "availableMemoryBytes": 10037006336}
+2026-11-16T09:28:11.0207899Z {"seconds": 411.254, "newMisses": 18, "newHits": 2623, "freeBytes": 86753386496, "availableMemoryBytes": 9460727808}
+2026-11-16T09:28:16.0391149Z {"seconds": 416.272, "newMisses": 18, "newHits": 2623, "freeBytes": 86753386496, "availableMemoryBytes": 8879628288}
+2026-11-16T09:28:21.0550055Z {"seconds": 421.289, "newMisses": 18, "newHits": 2623, "freeBytes": 86753382400, "availableMemoryBytes": 8347758592}
+2026-11-16T09:28:26.0721320Z {"seconds": 426.305, "newMisses": 19, "newHits": 2623, "freeBytes": 86752518144, "availableMemoryBytes": 9536339968}
+2026-11-16T09:28:31.0881168Z {"seconds": 431.32, "newMisses": 19, "newHits": 2623, "freeBytes": 86752518144, "availableMemoryBytes": 9825308672}
+2026-11-16T09:28:36.1051190Z {"seconds": 436.338, "newMisses": 19, "newHits": 2623, "freeBytes": 86752518144, "availableMemoryBytes": 9337864192}
+2026-11-16T09:28:41.1206516Z {"seconds": 441.354, "newMisses": 19, "newHits": 2623, "freeBytes": 86752518144, "availableMemoryBytes": 8918220800}
+2026-11-16T09:28:46.1401139Z {"seconds": 446.372, "newMisses": 20, "newHits": 2623, "freeBytes": 86751617024, "availableMemoryBytes": 10938720256}
+2026-11-16T09:28:51.1561430Z {"seconds": 451.389, "newMisses": 22, "newHits": 2624, "freeBytes": 86748205056, "availableMemoryBytes": 13646852096}
+2026-11-16T09:28:56.1761365Z {"seconds": 456.409, "newMisses": 22, "newHits": 2624, "freeBytes": 86748205056, "availableMemoryBytes": 12675727360}
+2026-11-16T09:29:01.1931106Z {"seconds": 461.426, "newMisses": 22, "newHits": 2624, "freeBytes": 86748205056, "availableMemoryBytes": 11706241024}
+2026-11-16T09:29:06.2091074Z {"seconds": 466.442, "newMisses": 22, "newHits": 2624, "freeBytes": 86748205056, "availableMemoryBytes": 10816929792}
+2026-11-16T09:29:11.2291102Z {"seconds": 471.462, "newMisses": 22, "newHits": 2624, "freeBytes": 86748205056, "availableMemoryBytes": 9936269312}
+2026-11-16T09:29:16.2452950Z {"seconds": 476.478, "newMisses": 22, "newHits": 2624, "freeBytes": 86748205056, "availableMemoryBytes": 9078063104}
+2026-11-16T09:29:21.2621127Z {"seconds": 481.495, "newMisses": 22, "newHits": 2624, "freeBytes": 86748205056, "availableMemoryBytes": 8223809536}
+2026-11-16T09:29:26.2791242Z {"seconds": 486.512, "newMisses": 22, "newHits": 2624, "freeBytes": 86748205056, "availableMemoryBytes": 7597871104}
+2026-11-16T09:29:31.2991252Z {"seconds": 491.532, "newMisses": 24, "newHits": 2637, "freeBytes": 86737375232, "availableMemoryBytes": 11236130816}
+2026-11-16T09:29:36.3191159Z {"seconds": 496.551, "newMisses": 25, "newHits": 2637, "freeBytes": 86734548992, "availableMemoryBytes": 12381138944}
+2026-11-16T09:29:41.3351305Z {"seconds": 501.568, "newMisses": 25, "newHits": 2637, "freeBytes": 86734548992, "availableMemoryBytes": 11607166976}
+2026-11-16T09:29:46.3551347Z {"seconds": 506.588, "newMisses": 25, "newHits": 2637, "freeBytes": 86734536704, "availableMemoryBytes": 11639738368}
+2026-11-16T09:29:51.3661147Z {"seconds": 511.599, "newMisses": 26, "newHits": 2654, "freeBytes": 86717538304, "availableMemoryBytes": 12202061824}
+2026-11-16T09:29:56.3831125Z {"seconds": 516.616, "newMisses": 26, "newHits": 2709, "freeBytes": 86655352832, "availableMemoryBytes": 11617996800}
+2026-11-16T09:30:01.3903905Z {"seconds": 521.624, "newMisses": 26, "newHits": 2745, "freeBytes": 86629867520, "availableMemoryBytes": 11177336832}
+2026-11-16T09:30:06.4072145Z {"seconds": 526.64, "newMisses": 26, "newHits": 2745, "freeBytes": 86629863424, "availableMemoryBytes": 10471362560}
+2026-11-16T09:30:11.4148814Z {"seconds": 531.649, "newMisses": 27, "newHits": 2745, "freeBytes": 86628986880, "availableMemoryBytes": 11373240320}
+2026-11-16T09:30:16.4715554Z {"seconds": 536.658, "newMisses": 27, "newHits": 2745, "freeBytes": 86628986880, "availableMemoryBytes": 10836373504}
+2026-11-16T09:30:21.4789144Z {"seconds": 541.713, "newMisses": 27, "newHits": 2745, "freeBytes": 86628143104, "availableMemoryBytes": 11497889792}
+2026-11-16T09:30:26.4951382Z {"seconds": 546.726, "newMisses": 29, "newHits": 2745, "freeBytes": 86624210944, "availableMemoryBytes": 15173292032}
+2026-11-16T09:30:31.4988850Z {"seconds": 551.733, "newMisses": 29, "newHits": 3226, "freeBytes": 86372925440, "availableMemoryBytes": 15098933248}
+2026-11-16T09:30:36.5047564Z {"seconds": 556.739, "newMisses": 29, "newHits": 3226, "freeBytes": 86350094336, "availableMemoryBytes": 14489837568}
+2026-11-16T09:30:41.5107801Z {"seconds": 561.745, "newMisses": 29, "newHits": 3226, "freeBytes": 85885181952, "availableMemoryBytes": 14486888448}
+2026-11-16T09:30:48.0051677Z ##[group]Run python3 - <<'PYSTOPPED'
+2026-11-16T09:30:48.0051974Z [36;1mpython3 - <<'PYSTOPPED'[0m
+2026-11-16T09:30:48.0052194Z [36;1mimport json,os,pathlib[0m
+2026-11-16T09:30:48.0052611Z [36;1mp=pathlib.Path(os.environ['RUNNER_TEMP'])/'milkup-webkit-research/evidence/pagination-continuation.json'[0m
+2026-11-16T09:30:48.0053030Z [36;1mr=json.loads(p.read_text())[0m
+2026-11-16T09:30:48.0053261Z [36;1massert r['status']!='running'[0m
+2026-11-16T09:30:48.0053722Z [36;1massert not r['engineBuildAttempted'] or isinstance(r.get('compileExitCode'),int), 'Compiler termination uncertain; refuse snapshot'[0m
+2026-11-16T09:30:48.0054176Z [36;1mPYSTOPPED[0m
+2026-11-16T09:30:48.0054955Z [36;1mpython3 scripts/ci/webkit-pagination-cache.py snapshot --cache "$CCACHE_DIR" --bundle "$RUNNER_TEMP/pagination-object-bundle" --evidence "$RUNNER_TEMP/milkup-webkit-research/evidence" > "$RUNNER_TEMP/milkup-webkit-research/evidence/segment-cache-save.json"[0m
+2026-11-16T09:30:48.0127952Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+2026-11-16T09:30:48.0128244Z env:
+2026-11-16T09:30:48.0128420Z   CCACHE_COMPILERCHECK: content
+2026-11-16T09:30:48.0128656Z   PAGINATION_OPERATION: pagination-segment
+2026-11-16T09:30:48.0128910Z   PAGINATION_RESTORE_RUN: 43808221193
+2026-11-16T09:30:48.0129129Z   PAGINATION_BEHAVIOR: true
+2026-11-16T09:30:48.0129325Z   PAGINATION_TAIL: true
+2026-11-16T09:30:48.0129516Z   PAGINATION_ROOT_MARGIN: true
+2026-11-16T09:30:48.0129726Z   PAGINATION_COMBINED: true
+2026-11-16T09:30:48.0130153Z   CCACHE_DIR: /home/runner/work/_temp/milkup-webkit-research/restored-compiler-cache
+2026-11-16T09:30:48.0130500Z   PAGINATION_START_EPOCH: 1794820011
+2026-11-16T09:30:48.0130723Z ##[endgroup]
+2026-11-16T09:31:16.2314729Z ##[group]Run actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+2026-11-16T09:31:16.2315050Z with:
+2026-11-16T09:31:16.2315259Z   name: milkup-pagination-objects-43836771926
+2026-11-16T09:31:16.2315555Z   path: /home/runner/work/_temp/pagination-object-bundle/
+2026-11-16T09:31:16.2315828Z   retention-days: 7
+2026-11-16T09:31:16.2316013Z   if-no-files-found: error
+2026-11-16T09:31:16.2316208Z   compression-level: 6
+2026-11-16T09:31:16.2316403Z   overwrite: false
+2026-11-16T09:31:16.2316764Z   include-hidden-files: false
+2026-11-16T09:31:16.2316972Z env:
+2026-11-16T09:31:16.2317149Z   CCACHE_COMPILERCHECK: content
+2026-11-16T09:31:16.2317379Z   PAGINATION_OPERATION: pagination-segment
+2026-11-16T09:31:16.2317644Z   PAGINATION_RESTORE_RUN: 43808221193
+2026-11-16T09:31:16.2317877Z   PAGINATION_BEHAVIOR: true
+2026-11-16T09:31:16.2318089Z   PAGINATION_TAIL: true
+2026-11-16T09:31:16.2318280Z   PAGINATION_ROOT_MARGIN: true
+2026-11-16T09:31:16.2318527Z   PAGINATION_COMBINED: true
+2026-11-16T09:31:16.2318842Z   CCACHE_DIR: /home/runner/work/_temp/milkup-webkit-research/restored-compiler-cache
+2026-11-16T09:31:16.2319182Z   PAGINATION_START_EPOCH: 1794820011
+2026-11-16T09:31:16.2319393Z ##[endgroup]
+2026-11-16T09:31:16.4421339Z (node:42148) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+2026-11-16T09:31:16.4422272Z (Use `node --trace-deprecation ...` to show where the warning was created)
+2026-11-16T09:31:16.9953871Z With the provided path, there will be 6953 files uploaded
+2026-11-16T09:31:16.9990659Z Artifact name is valid!
+2026-11-16T09:31:16.9991013Z Root directory input is valid!
+2026-11-16T09:31:17.3825200Z Beginning upload of artifact content to blob storage
+2026-11-16T09:31:17.7211584Z (node:42148) [DEP0169] DeprecationWarning: `url.parse()` behavior is not standardized and prone to errors that have security implications. Use the WHATWG URL API instead. CVEs are not issued for `url.parse()` vulnerabilities.
+2026-11-16T09:31:18.4217447Z Uploaded bytes 8388608
+2026-11-16T09:31:18.6640413Z Uploaded bytes 16777216
+2026-11-16T09:31:18.7085832Z Uploaded bytes 25165824
+2026-11-16T09:31:18.9308553Z Uploaded bytes 33554432
+2026-11-16T09:31:18.9927244Z Uploaded bytes 41943040
+2026-11-16T09:31:19.1795195Z Uploaded bytes 50331648
+2026-11-16T09:31:19.4669480Z Uploaded bytes 58720256
+2026-11-16T09:31:19.7014862Z Uploaded bytes 67108864
+2026-11-16T09:31:20.0290070Z Uploaded bytes 75497472
+2026-11-16T09:31:20.3476593Z Uploaded bytes 83886080
+2026-11-16T09:31:20.6751101Z Uploaded bytes 92274688
+2026-11-16T09:31:21.1200939Z Uploaded bytes 100663296
+2026-11-16T09:31:21.4726012Z Uploaded bytes 109051904
+2026-11-16T09:31:21.5032786Z Uploaded bytes 117440512
+2026-11-16T09:31:22.1780835Z Uploaded bytes 125829120
+2026-11-16T09:31:22.3425460Z Uploaded bytes 134217728
+2026-11-16T09:31:22.6849084Z Uploaded bytes 142606336
+2026-11-16T09:31:22.9373260Z Uploaded bytes 150994944
+2026-11-16T09:31:23.3715252Z Uploaded bytes 159383552
+2026-11-16T09:31:23.5304554Z Uploaded bytes 167772160
+2026-11-16T09:31:23.9286485Z Uploaded bytes 176160768
+2026-11-16T09:31:23.9715503Z Uploaded bytes 184549376
+2026-11-16T09:31:24.4236995Z Uploaded bytes 192937984
+2026-11-16T09:31:24.5622773Z Uploaded bytes 201326592
+2026-11-16T09:31:24.7119525Z Uploaded bytes 209715200
+2026-11-16T09:31:25.0375368Z Uploaded bytes 218103808
+2026-11-16T09:31:25.1903345Z Uploaded bytes 226492416
+2026-11-16T09:31:25.4752412Z Uploaded bytes 234881024
+2026-11-16T09:31:25.7722740Z Uploaded bytes 243269632
+2026-11-16T09:31:25.9872333Z Uploaded bytes 251658240
+2026-11-16T09:31:26.3131658Z Uploaded bytes 260046848
+2026-11-16T09:31:26.6030875Z Uploaded bytes 268435456
+2026-11-16T09:31:27.1621684Z Uploaded bytes 276824064
+2026-11-16T09:31:27.2330051Z Uploaded bytes 285212672
+2026-11-16T09:31:27.9408569Z Uploaded bytes 293601280
+2026-11-16T09:31:27.9679422Z Uploaded bytes 301989888
+2026-11-16T09:31:28.4680981Z Uploaded bytes 310378496
+2026-11-16T09:31:28.6005826Z Uploaded bytes 318767104
+2026-11-16T09:31:28.9032237Z Uploaded bytes 327155712
+2026-11-16T09:31:29.0556610Z Uploaded bytes 335544320
+2026-11-16T09:31:29.2496874Z Uploaded bytes 343932928
+2026-11-16T09:31:29.7023097Z Uploaded bytes 352321536
+2026-11-16T09:31:29.7876777Z Uploaded bytes 360710144
+2026-11-16T09:31:29.9425333Z Uploaded bytes 369098752
+2026-11-16T09:31:30.2010444Z Uploaded bytes 377487360
+2026-11-16T09:31:30.4543805Z Uploaded bytes 385875968
+2026-11-16T09:31:30.7120893Z Uploaded bytes 394264576
+2026-11-16T09:31:31.0135035Z Uploaded bytes 402653184
+2026-11-16T09:31:31.3919570Z Uploaded bytes 411041792
+2026-11-16T09:31:31.4643335Z Uploaded bytes 419430400
+2026-11-16T09:31:31.9900845Z Uploaded bytes 427819008
+2026-11-16T09:31:32.1257092Z Uploaded bytes 436207616
+2026-11-16T09:31:32.4687774Z Uploaded bytes 444596224
+2026-11-16T09:31:32.5344172Z Uploaded bytes 452984832
+2026-11-16T09:31:32.7339112Z Uploaded bytes 461373440
+2026-11-16T09:31:33.0814824Z Uploaded bytes 469762048
+2026-11-16T09:31:33.5250554Z Uploaded bytes 478150656
+2026-11-16T09:31:33.7273908Z Uploaded bytes 486539264
+2026-11-16T09:31:34.1750804Z Uploaded bytes 494927872
+2026-11-16T09:31:34.3053673Z Uploaded bytes 503316480
+2026-11-16T09:31:34.4360631Z Uploaded bytes 511705088
+2026-11-16T09:31:34.5942791Z Uploaded bytes 520093696
+2026-11-16T09:31:35.2480327Z Uploaded bytes 528482304
+2026-11-16T09:31:35.2510132Z Uploaded bytes 536870912
+2026-11-16T09:31:35.3860574Z Uploaded bytes 545259520
+2026-11-16T09:31:35.4392315Z Uploaded bytes 553648128
+2026-11-16T09:31:35.6217955Z Uploaded bytes 558080447
+2026-11-16T09:31:35.6803454Z Finished uploading artifact content to blob storage!
+2026-11-16T09:31:35.6805693Z SHA256 digest of uploaded artifact zip is 81bee705f0794a884f3cc641e80b7a6887277acf44610ed5a97626ff3306025e
+2026-11-16T09:31:35.6807308Z Finalizing artifact upload
+2026-11-16T09:31:36.2738846Z Artifact milkup-pagination-objects-43836771926.zip successfully finalized. Artifact ID 14212039559
+2026-11-16T09:31:36.2742211Z Artifact milkup-pagination-objects-43836771926 has been successfully uploaded! Final size is 558080447 bytes. Artifact ID is 14212039559
+2026-11-16T09:31:36.2747206Z Artifact download URL: https://github.com/Auto-Plugin/milkup/actions/runs/43836771926/artifacts/14212039559
+2026-11-16T09:31:36.3130956Z ##[group]Run test -z "${WEBKIT_DISABLE_SANDBOX_THIS_IS_DANGEROUS:-}"
+2026-11-16T09:31:36.3131379Z [36;1mtest -z "${WEBKIT_DISABLE_SANDBOX_THIS_IS_DANGEROUS:-}"[0m
+2026-11-16T09:31:36.3131843Z [36;1mif dpkg-query --status milkup >/dev/null 2>&1; then echo 'Refusing existing installation'; exit 1; fi[0m
+2026-11-16T09:31:36.3132976Z [36;1msudo apt-get -c "$RUNNER_TEMP/milkup-webkit-research/apt.conf" -y --no-install-recommends --no-remove install libwebkit2gtk-4.1-0=2.52.6-0ubuntu0.26.04.1 libgtk-3-0t64 xvfb xauth xdotool x11-utils fonts-noto-cjk fonts-noto-color-emoji fonts-dejavu-core poppler-utils python3-lxml python3-pil python3-fitz[0m
+2026-11-16T09:31:36.3134138Z [36;1mgh api repos/Auto-Plugin/milkup/actions/artifacts/14149947936/zip > "$RUNNER_TEMP/pagination-original-package.zip"[0m
+2026-11-16T09:31:36.3134792Z [36;1mgh api repos/Auto-Plugin/milkup/actions/artifacts/14153980570/zip > "$RUNNER_TEMP/pagination-original-reference.zip"[0m
+2026-11-16T09:31:36.3135816Z [36;1mpython3 research/pdf-pagination-mechanism-20261116/native_probe.py assets --package "$RUNNER_TEMP/pagination-original-package.zip" --reference "$RUNNER_TEMP/pagination-original-reference.zip" --output "$RUNNER_TEMP/pagination-native"[0m
+2026-11-16T09:31:36.3136897Z [36;1mdpkg-query -W libwebkit2gtk-4.1-0 libjavascriptcoregtk-4.1-0 fonts-noto-cjk poppler-utils python3-fitz > "$RUNNER_TEMP/pagination-native/runtime-versions.txt"[0m
+2026-11-16T09:31:36.3182400Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+2026-11-16T09:31:36.3182685Z env:
+2026-11-16T09:31:36.3182862Z   CCACHE_COMPILERCHECK: content
+2026-11-16T09:31:36.3183102Z   PAGINATION_OPERATION: pagination-segment
+2026-11-16T09:31:36.3183353Z   PAGINATION_RESTORE_RUN: 43808221193
+2026-11-16T09:31:36.3183580Z   PAGINATION_BEHAVIOR: true
+2026-11-16T09:31:36.3183780Z   PAGINATION_TAIL: true
+2026-11-16T09:31:36.3183977Z   PAGINATION_ROOT_MARGIN: true
+2026-11-16T09:31:36.3184185Z   PAGINATION_COMBINED: true
+2026-11-16T09:31:36.3184518Z   CCACHE_DIR: /home/runner/work/_temp/milkup-webkit-research/restored-compiler-cache
+2026-11-16T09:31:36.3184878Z   PAGINATION_START_EPOCH: 1794820011
+2026-11-16T09:31:36.3188944Z   GH_TOKEN: ***
+2026-11-16T09:31:36.3189141Z ##[endgroup]
+2026-11-16T09:31:36.5337103Z Reading package lists...
+2026-11-16T09:31:36.6552852Z Building dependency tree...
+2026-11-16T09:31:36.6560695Z Reading state information...
+2026-11-16T09:31:36.6868732Z libgtk-3-0t64 is already the newest version (3.24.52-0ubuntu1).
+2026-11-16T09:31:36.6869114Z libgtk-3-0t64 set to manually installed.
+2026-11-16T09:31:36.6869396Z xvfb is already the newest version (2:21.1.22-1ubuntu1.3).
+2026-11-16T09:31:36.6869713Z xauth is already the newest version (1:1.1.2-1.1build1).
+2026-11-16T09:31:36.6870156Z xauth set to manually installed.
+2026-11-16T09:31:36.6870472Z fonts-noto-cjk is already the newest version (1:20240730+repack1-1build1).
+2026-11-16T09:31:36.6870864Z fonts-noto-color-emoji is already the newest version (2.051-1build1).
+2026-11-16T09:31:36.6871262Z fonts-dejavu-core is already the newest version (2.37-8build1).
+2026-11-16T09:31:36.6871630Z poppler-utils is already the newest version (26.01.0-2ubuntu0.3).
+2026-11-16T09:31:36.6871978Z python3-lxml is already the newest version (6.0.2-1ubuntu0.1).
+2026-11-16T09:31:36.6872286Z python3-lxml set to manually installed.
+2026-11-16T09:31:36.6872565Z python3-pil is already the newest version (12.1.1-2ubuntu1.5).
+2026-11-16T09:31:36.6872889Z python3-fitz is already the newest version (1.26.7+ds1-1build1).
+2026-11-16T09:31:36.7366629Z Solving dependencies...
+2026-11-16T09:31:36.8162580Z The following additional packages will be installed:
+2026-11-16T09:31:36.8163262Z   gstreamer1.0-plugins-base gstreamer1.0-plugins-good libaa1 libasyncns0
+2026-11-16T09:31:36.8164072Z   libavc1394-0 libcaca0 libcdparanoia0 libdv4t64 libflac14 libiec61883-0
+2026-11-16T09:31:36.8165001Z   libjavascriptcoregtk-4.1-0 libmp3lame0 libmpg123-0t64 libopus0 libpulse0
+2026-11-16T09:31:36.8169097Z   libraw1394-11 libshout3 libsndfile1 libspeex1 libtag2 libtheora1
+2026-11-16T09:31:36.8169791Z   libtheoradec2 libtheoraenc2 libtwolame0 libv4l-0t64 libv4lconvert0t64
+2026-11-16T09:31:36.8170634Z   libvisual-0.4-0 libvorbisenc2 libvpx12 libwavpack1 libxcb-shape0 libxdo3
+2026-11-16T09:31:36.8171738Z   libxv1 libxxf86dga1
+2026-11-16T09:31:36.8177010Z Suggested packages:
+2026-11-16T09:31:36.8177477Z   gvfs libglu1-mesa | libglu1 libglut3.12 libdv-bin oss-compat opus-tools
+2026-11-16T09:31:36.8178110Z   pulseaudio libraw1394-doc speex libvisual-0.4-plugins gstreamer1.0-libav
+2026-11-16T09:31:36.8178704Z   gstreamer1.0-plugins-bad gstreamer1.0-alsa mesa-utils
+2026-11-16T09:31:36.8179134Z Recommended packages:
+2026-11-16T09:31:36.8179489Z   gstreamer1.0-x gstreamer1.0-gl xdg-desktop-portal-gtk luit
+2026-11-16T09:31:36.8380153Z The following NEW packages will be installed:
+2026-11-16T09:31:36.8380758Z   gstreamer1.0-plugins-base gstreamer1.0-plugins-good libaa1 libasyncns0
+2026-11-16T09:31:36.8390569Z   libavc1394-0 libcaca0 libcdparanoia0 libdv4t64 libflac14 libiec61883-0
+2026-11-16T09:31:36.8410592Z   libjavascriptcoregtk-4.1-0 libmp3lame0 libmpg123-0t64 libopus0 libpulse0
+2026-11-16T09:31:36.8412442Z   libraw1394-11 libshout3 libsndfile1 libspeex1 libtag2 libtheora1
+2026-11-16T09:31:36.8413067Z   libtheoradec2 libtheoraenc2 libtwolame0 libv4l-0t64 libv4lconvert0t64
+2026-11-16T09:31:36.8413511Z   libvisual-0.4-0 libvorbisenc2 libvpx12 libwavpack1 libwebkit2gtk-4.1-0
+2026-11-16T09:31:36.8413918Z   libxcb-shape0 libxdo3 libxv1 libxxf86dga1 x11-utils xdotool
+2026-11-16T09:31:36.9299702Z 0 upgraded, 37 newly installed, 0 to remove and 23 not upgraded.
+2026-11-16T09:31:36.9300366Z Need to get 44.9 MB of archives.
+2026-11-16T09:31:36.9300768Z After this operation, 159 MB of additional disk space will be used.
+2026-11-16T09:31:36.9301567Z Get:1 http://azure.archive.ubuntu.com/ubuntu resolute/main amd64v3 libcdparanoia0 amd64 3.10.2+debian-14ubuntu2 [48.7 kB]
+2026-11-16T09:31:36.9754167Z Get:2 http://azure.archive.ubuntu.com/ubuntu resolute/main amd64v3 libopus0 amd64 1.6.1-1 [3557 kB]
+2026-11-16T09:31:37.0761108Z Get:3 http://azure.archive.ubuntu.com/ubuntu resolute/main amd64v3 libtheoradec2 amd64 1.2.0+dfsg-6 [56.5 kB]
+2026-11-16T09:31:37.1221661Z Get:4 http://azure.archive.ubuntu.com/ubuntu resolute/main amd64v3 libtheoraenc2 amd64 1.2.0+dfsg-6 [108 kB]
+2026-11-16T09:31:37.1680559Z Get:5 http://azure.archive.ubuntu.com/ubuntu resolute/main amd64v3 libvisual-0.4-0 amd64 0.4.2-4 [118 kB]
+2026-11-16T09:31:37.2138838Z Get:6 http://azure.archive.ubuntu.com/ubuntu resolute/main amd64v3 libvorbisenc2 amd64 1.3.7-3build2 [79.9 kB]
+2026-11-16T09:31:37.2595768Z Get:7 http://azure.archive.ubuntu.com/ubuntu resolute-updates/main amd64v3 gstreamer1.0-plugins-base amd64 1.28.2-1ubuntu0.2 [754 kB]
+2026-11-16T09:31:37.3095057Z Get:8 http://azure.archive.ubuntu.com/ubuntu resolute/main amd64v3 libaa1 amd64 1.4p5-51.1build1 [50.7 kB]
+2026-11-16T09:31:37.3549545Z Get:9 http://azure.archive.ubuntu.com/ubuntu resolute/main amd64v3 libraw1394-11 amd64 2.1.2-2build4 [26.3 kB]
+2026-11-16T09:31:37.4004312Z Get:10 http://azure.archive.ubuntu.com/ubuntu resolute/main amd64v3 libavc1394-0 amd64 0.5.4-5build4 [15.9 kB]
+2026-11-16T09:31:37.4458628Z Get:11 http://azure.archive.ubuntu.com/ubuntu resolute-updates/main amd64v3 libcaca0 amd64 0.99.beta20-6ubuntu2.1 [205 kB]
+2026-11-16T09:31:37.4920698Z Get:12 http://azure.archive.ubuntu.com/ubuntu resolute/main amd64v3 libdv4t64 amd64 1.0.0-17.1build2 [64.5 kB]
+2026-11-16T09:31:37.5377873Z Get:13 http://azure.archive.ubuntu.com/ubuntu resolute/main amd64v3 libflac14 amd64 1.5.0+ds-5 [172 kB]
+2026-11-16T09:31:37.5837671Z Get:14 http://azure.archive.ubuntu.com/ubuntu resolute/main amd64v3 libiec61883-0 amd64 1.2.0-8 [26.0 kB]
+2026-11-16T09:31:37.6308809Z Get:15 http://azure.archive.ubuntu.com/ubuntu resolute/main amd64v3 libmpg123-0t64 amd64 1.33.3-2 [180 kB]
+2026-11-16T09:31:37.6769185Z Get:16 http://azure.archive.ubuntu.com/ubuntu resolute-updates/main amd64v3 libmp3lame0 amd64 3.101~svn6525+dfsg-2ubuntu0.1 [123 kB]
+2026-11-16T09:31:37.7227409Z Get:17 http://azure.archive.ubuntu.com/ubuntu resolute/main amd64v3 libasyncns0 amd64 0.8-7 [12.5 kB]
+2026-11-16T09:31:37.7682001Z Get:18 http://azure.archive.ubuntu.com/ubuntu resolute/main amd64v3 libsndfile1 amd64 1.2.2-4 [229 kB]
+2026-11-16T09:31:37.8149558Z Get:19 http://azure.archive.ubuntu.com/ubuntu resolute/main amd64v3 libpulse0 amd64 1:17.0+dfsg1-2ubuntu4 [295 kB]
+2026-11-16T09:31:37.8624123Z Get:20 http://azure.archive.ubuntu.com/ubuntu resolute/main amd64v3 libspeex1 amd64 1.2.1-3build1 [65.0 kB]
+2026-11-16T09:31:37.9081179Z Get:21 http://azure.archive.ubuntu.com/ubuntu resolute/main amd64v3 libtheora1 amd64 1.2.0+dfsg-6 [142 kB]
+2026-11-16T09:31:37.9554141Z Get:22 http://azure.archive.ubuntu.com/ubuntu resolute/main amd64v3 libshout3 amd64 2.4.6-1build3 [51.2 kB]
+2026-11-16T09:31:38.0021980Z Get:23 http://azure.archive.ubuntu.com/ubuntu resolute/main amd64v3 libtag2 amd64 2.2.1-3 [427 kB]
+2026-11-16T09:31:38.0503623Z Get:24 http://azure.archive.ubuntu.com/ubuntu resolute/main amd64v3 libtwolame0 amd64 0.4.0-2build4 [53.3 kB]
+2026-11-16T09:31:38.0960331Z Get:25 http://azure.archive.ubuntu.com/ubuntu resolute/main amd64v3 libv4lconvert0t64 amd64 1.32.0-2ubuntu1 [90.8 kB]
+2026-11-16T09:31:38.1417535Z Get:26 http://azure.archive.ubuntu.com/ubuntu resolute/main amd64v3 libv4l-0t64 amd64 1.32.0-2ubuntu1 [159 kB]
+2026-11-16T09:31:38.1877076Z Get:27 http://azure.archive.ubuntu.com/ubuntu resolute/main amd64v3 libvpx12 amd64 1.16.0-3 [1257 kB]
+2026-11-16T09:31:38.2413867Z Get:28 http://azure.archive.ubuntu.com/ubuntu resolute/main amd64v3 libwavpack1 amd64 5.9.0-1 [94.2 kB]
+2026-11-16T09:31:38.2882798Z Get:29 http://azure.archive.ubuntu.com/ubuntu resolute-updates/main amd64v3 gstreamer1.0-plugins-good amd64 1.28.2-2ubuntu0.4 [2321 kB]
+2026-11-16T09:31:38.3794826Z Get:30 http://azure.archive.ubuntu.com/ubuntu resolute-updates/main amd64v3 libjavascriptcoregtk-4.1-0 amd64 2.52.6-0ubuntu0.26.04.1 [8127 kB]
+2026-11-16T09:31:38.5711233Z Get:31 http://azure.archive.ubuntu.com/ubuntu resolute-updates/main amd64v3 libwebkit2gtk-4.1-0 amd64 2.52.6-0ubuntu0.26.04.1 [25.7 MB]
+2026-11-16T09:31:39.3381862Z Get:32 http://azure.archive.ubuntu.com/ubuntu resolute/main amd64v3 libxcb-shape0 amd64 1.17.0-2ubuntu1 [6196 B]
+2026-11-16T09:31:39.4943763Z Get:33 http://azure.archive.ubuntu.com/ubuntu resolute/main amd64v3 libxv1 amd64 2:1.0.13-1 [11.0 kB]
+2026-11-16T09:31:39.5899029Z Get:34 http://azure.archive.ubuntu.com/ubuntu resolute/main amd64v3 libxxf86dga1 amd64 2:1.1.5-1build2 [12.0 kB]
+2026-11-16T09:31:39.7097898Z Get:35 http://azure.archive.ubuntu.com/ubuntu resolute/main amd64v3 x11-utils amd64 7.7+7build1 [192 kB]
+2026-11-16T09:31:39.7572954Z Get:36 http://azure.archive.ubuntu.com/ubuntu resolute/universe amd64v3 libxdo3 amd64 1:3.20160805.1-5.1build1 [22.6 kB]
+2026-11-16T09:31:39.8061598Z Get:37 http://azure.archive.ubuntu.com/ubuntu resolute/universe amd64v3 xdotool amd64 1:3.20160805.1-5.1build1 [43.1 kB]
+2026-11-16T09:31:40.1626997Z Fetched 44.9 MB in 3s (15.0 MB/s)
+2026-11-16T09:31:40.3549651Z Selecting previously unselected package libcdparanoia0:amd64.
+2026-11-16T09:31:40.3614309Z (Reading database ... 
+2026-11-16T09:31:40.3614669Z (Reading database ... 5%
+2026-11-16T09:31:40.3614976Z (Reading database ... 10%
+2026-11-16T09:31:40.3615268Z (Reading database ... 15%
+2026-11-16T09:31:40.3615597Z (Reading database ... 20%
+2026-11-16T09:31:40.3615867Z (Reading database ... 25%
+2026-11-16T09:31:40.3616156Z (Reading database ... 30%
+2026-11-16T09:31:40.3616431Z (Reading database ... 35%
+2026-11-16T09:31:40.3616700Z (Reading database ... 40%
+2026-11-16T09:31:40.3616987Z (Reading database ... 45%
+2026-11-16T09:31:40.3617260Z (Reading database ... 50%
+2026-11-16T09:31:40.3732448Z (Reading database ... 55%
+2026-11-16T09:31:40.3762892Z (Reading database ... 60%
+2026-11-16T09:31:40.3790032Z (Reading database ... 65%
+2026-11-16T09:31:40.3809240Z (Reading database ... 70%
+2026-11-16T09:31:40.3847726Z (Reading database ... 75%
+2026-11-16T09:31:40.3971418Z (Reading database ... 80%
+2026-11-16T09:31:40.4008775Z (Reading database ... 85%
+2026-11-16T09:31:40.4184289Z (Reading database ... 90%
+2026-11-16T09:31:40.4284641Z (Reading database ... 95%
+2026-11-16T09:31:40.4285149Z (Reading database ... 100%
+2026-11-16T09:31:40.4285894Z (Reading database ... 229719 files and directories currently installed.)
+2026-11-16T09:31:40.4329337Z Preparing to unpack .../00-libcdparanoia0_3.10.2+debian-14ubuntu2_amd64v3.deb ...
+2026-11-16T09:31:40.5018564Z Unpacking libcdparanoia0:amd64 (3.10.2+debian-14ubuntu2) ...
+2026-11-16T09:31:41.3833084Z Selecting previously unselected package libopus0:amd64.
+2026-11-16T09:31:41.3972284Z Preparing to unpack .../01-libopus0_1.6.1-1_amd64v3.deb ...
+2026-11-16T09:31:41.4358594Z Unpacking libopus0:amd64 (1.6.1-1) ...
+2026-11-16T09:31:42.2276194Z Selecting previously unselected package libtheoradec2:amd64.
+2026-11-16T09:31:42.2416041Z Preparing to unpack .../02-libtheoradec2_1.2.0+dfsg-6_amd64v3.deb ...
+2026-11-16T09:31:42.2548817Z Unpacking libtheoradec2:amd64 (1.2.0+dfsg-6) ...
+2026-11-16T09:31:42.8103846Z Selecting previously unselected package libtheoraenc2:amd64.
+2026-11-16T09:31:42.8240869Z Preparing to unpack .../03-libtheoraenc2_1.2.0+dfsg-6_amd64v3.deb ...
+2026-11-16T09:31:42.8328179Z Unpacking libtheoraenc2:amd64 (1.2.0+dfsg-6) ...
+2026-11-16T09:31:43.7782665Z Selecting previously unselected package libvisual-0.4-0:amd64.
+2026-11-16T09:31:43.7921560Z Preparing to unpack .../04-libvisual-0.4-0_0.4.2-4_amd64v3.deb ...
+2026-11-16T09:31:43.8058067Z Unpacking libvisual-0.4-0:amd64 (0.4.2-4) ...
+2026-11-16T09:31:44.4523810Z Selecting previously unselected package libvorbisenc2:amd64.
+2026-11-16T09:31:44.4711140Z Preparing to unpack .../05-libvorbisenc2_1.3.7-3build2_amd64v3.deb ...
+2026-11-16T09:31:44.6119639Z Unpacking libvorbisenc2:amd64 (1.3.7-3build2) ...
+2026-11-16T09:31:45.1484646Z Selecting previously unselected package gstreamer1.0-plugins-base:amd64.
+2026-11-16T09:31:45.1629692Z Preparing to unpack .../06-gstreamer1.0-plugins-base_1.28.2-1ubuntu0.2_amd64v3.deb ...
+2026-11-16T09:31:45.3099619Z Unpacking gstreamer1.0-plugins-base:amd64 (1.28.2-1ubuntu0.2) ...
+2026-11-16T09:31:46.5641554Z Selecting previously unselected package libaa1:amd64.
+2026-11-16T09:31:46.5772239Z Preparing to unpack .../07-libaa1_1.4p5-51.1build1_amd64v3.deb ...
+2026-11-16T09:31:46.6048360Z Unpacking libaa1:amd64 (1.4p5-51.1build1) ...
+2026-11-16T09:31:46.6614022Z Selecting previously unselected package libraw1394-11:amd64.
+2026-11-16T09:31:46.6745955Z Preparing to unpack .../08-libraw1394-11_2.1.2-2build4_amd64v3.deb ...
+2026-11-16T09:31:46.6751909Z Unpacking libraw1394-11:amd64 (2.1.2-2build4) ...
+2026-11-16T09:31:46.6943594Z Selecting previously unselected package libavc1394-0:amd64.
+2026-11-16T09:31:46.7071644Z Preparing to unpack .../09-libavc1394-0_0.5.4-5build4_amd64v3.deb ...
+2026-11-16T09:31:46.7077431Z Unpacking libavc1394-0:amd64 (0.5.4-5build4) ...
+2026-11-16T09:31:46.7265561Z Selecting previously unselected package libcaca0:amd64.
+2026-11-16T09:31:46.7389796Z Preparing to unpack .../10-libcaca0_0.99.beta20-6ubuntu2.1_amd64v3.deb ...
+2026-11-16T09:31:46.7395860Z Unpacking libcaca0:amd64 (0.99.beta20-6ubuntu2.1) ...
+2026-11-16T09:31:46.7642265Z Selecting previously unselected package libdv4t64:amd64.
+2026-11-16T09:31:46.7766229Z Preparing to unpack .../11-libdv4t64_1.0.0-17.1build2_amd64v3.deb ...
+2026-11-16T09:31:46.7772353Z Unpacking libdv4t64:amd64 (1.0.0-17.1build2) ...
+2026-11-16T09:31:46.8006747Z Selecting previously unselected package libflac14:amd64.
+2026-11-16T09:31:46.8130321Z Preparing to unpack .../12-libflac14_1.5.0+ds-5_amd64v3.deb ...
+2026-11-16T09:31:46.8136025Z Unpacking libflac14:amd64 (1.5.0+ds-5) ...
+2026-11-16T09:31:46.8345197Z Selecting previously unselected package libiec61883-0:amd64.
+2026-11-16T09:31:46.8474268Z Preparing to unpack .../13-libiec61883-0_1.2.0-8_amd64v3.deb ...
+2026-11-16T09:31:46.8480663Z Unpacking libiec61883-0:amd64 (1.2.0-8) ...
+2026-11-16T09:31:46.8672997Z Selecting previously unselected package libmpg123-0t64:amd64.
+2026-11-16T09:31:46.8795502Z Preparing to unpack .../14-libmpg123-0t64_1.33.3-2_amd64v3.deb ...
+2026-11-16T09:31:46.8940340Z Unpacking libmpg123-0t64:amd64 (1.33.3-2) ...
+2026-11-16T09:31:46.9152382Z Selecting previously unselected package libmp3lame0:amd64.
+2026-11-16T09:31:46.9278126Z Preparing to unpack .../15-libmp3lame0_3.101~svn6525+dfsg-2ubuntu0.1_amd64v3.deb ...
+2026-11-16T09:31:46.9284100Z Unpacking libmp3lame0:amd64 (3.101~svn6525+dfsg-2ubuntu0.1) ...
+2026-11-16T09:31:46.9485860Z Selecting previously unselected package libasyncns0:amd64.
+2026-11-16T09:31:46.9608970Z Preparing to unpack .../16-libasyncns0_0.8-7_amd64v3.deb ...
+2026-11-16T09:31:46.9614838Z Unpacking libasyncns0:amd64 (0.8-7) ...
+2026-11-16T09:31:46.9804875Z Selecting previously unselected package libsndfile1:amd64.
+2026-11-16T09:31:46.9927515Z Preparing to unpack .../17-libsndfile1_1.2.2-4_amd64v3.deb ...
+2026-11-16T09:31:46.9933281Z Unpacking libsndfile1:amd64 (1.2.2-4) ...
+2026-11-16T09:31:47.0164709Z Selecting previously unselected package libpulse0:amd64.
+2026-11-16T09:31:47.0287747Z Preparing to unpack .../18-libpulse0_1%3a17.0+dfsg1-2ubuntu4_amd64v3.deb ...
+2026-11-16T09:31:47.0293651Z Unpacking libpulse0:amd64 (1:17.0+dfsg1-2ubuntu4) ...
+2026-11-16T09:31:47.0532095Z Selecting previously unselected package libspeex1:amd64.
+2026-11-16T09:31:47.0655238Z Preparing to unpack .../19-libspeex1_1.2.1-3build1_amd64v3.deb ...
+2026-11-16T09:31:47.0661724Z Unpacking libspeex1:amd64 (1.2.1-3build1) ...
+2026-11-16T09:31:47.0852919Z Selecting previously unselected package libtheora1:amd64.
+2026-11-16T09:31:47.0975052Z Preparing to unpack .../20-libtheora1_1.2.0+dfsg-6_amd64v3.deb ...
+2026-11-16T09:31:47.0980882Z Unpacking libtheora1:amd64 (1.2.0+dfsg-6) ...
+2026-11-16T09:31:47.1182911Z Selecting previously unselected package libshout3:amd64.
+2026-11-16T09:31:47.1306264Z Preparing to unpack .../21-libshout3_2.4.6-1build3_amd64v3.deb ...
+2026-11-16T09:31:47.1311696Z Unpacking libshout3:amd64 (2.4.6-1build3) ...
+2026-11-16T09:31:47.1508307Z Selecting previously unselected package libtag2:amd64.
+2026-11-16T09:31:47.1630474Z Preparing to unpack .../22-libtag2_2.2.1-3_amd64v3.deb ...
+2026-11-16T09:31:47.1636103Z Unpacking libtag2:amd64 (2.2.1-3) ...
+2026-11-16T09:31:47.1951953Z Selecting previously unselected package libtwolame0:amd64.
+2026-11-16T09:31:47.2076317Z Preparing to unpack .../23-libtwolame0_0.4.0-2build4_amd64v3.deb ...
+2026-11-16T09:31:47.2083715Z Unpacking libtwolame0:amd64 (0.4.0-2build4) ...
+2026-11-16T09:31:47.2378128Z Selecting previously unselected package libv4lconvert0t64:amd64.
+2026-11-16T09:31:47.2501486Z Preparing to unpack .../24-libv4lconvert0t64_1.32.0-2ubuntu1_amd64v3.deb ...
+2026-11-16T09:31:47.2507757Z Unpacking libv4lconvert0t64:amd64 (1.32.0-2ubuntu1) ...
+2026-11-16T09:31:47.2713919Z Selecting previously unselected package libv4l-0t64:amd64.
+2026-11-16T09:31:47.2835428Z Preparing to unpack .../25-libv4l-0t64_1.32.0-2ubuntu1_amd64v3.deb ...
+2026-11-16T09:31:47.2841330Z Unpacking libv4l-0t64:amd64 (1.32.0-2ubuntu1) ...
+2026-11-16T09:31:47.4594521Z Selecting previously unselected package libvpx12:amd64.
+2026-11-16T09:31:47.4731211Z Preparing to unpack .../26-libvpx12_1.16.0-3_amd64v3.deb ...
+2026-11-16T09:31:47.6646361Z Unpacking libvpx12:amd64 (1.16.0-3) ...
+2026-11-16T09:31:47.7130552Z Selecting previously unselected package libwavpack1:amd64.
+2026-11-16T09:31:47.7265318Z Preparing to unpack .../27-libwavpack1_5.9.0-1_amd64v3.deb ...
+2026-11-16T09:31:47.7271134Z Unpacking libwavpack1:amd64 (5.9.0-1) ...
+2026-11-16T09:31:47.7468174Z Selecting previously unselected package gstreamer1.0-plugins-good:amd64.
+2026-11-16T09:31:47.7597916Z Preparing to unpack .../28-gstreamer1.0-plugins-good_1.28.2-2ubuntu0.4_amd64v3.deb ...
+2026-11-16T09:31:47.7641600Z Unpacking gstreamer1.0-plugins-good:amd64 (1.28.2-2ubuntu0.4) ...
+2026-11-16T09:31:47.8370616Z Selecting previously unselected package libjavascriptcoregtk-4.1-0:amd64.
+2026-11-16T09:31:47.8517511Z Preparing to unpack .../29-libjavascriptcoregtk-4.1-0_2.52.6-0ubuntu0.26.04.1_amd64v3.deb ...
+2026-11-16T09:31:47.8524478Z Unpacking libjavascriptcoregtk-4.1-0:amd64 (2.52.6-0ubuntu0.26.04.1) ...
+2026-11-16T09:31:48.1030397Z Selecting previously unselected package libwebkit2gtk-4.1-0:amd64.
+2026-11-16T09:31:48.1165109Z Preparing to unpack .../30-libwebkit2gtk-4.1-0_2.52.6-0ubuntu0.26.04.1_amd64v3.deb ...
+2026-11-16T09:31:48.1170234Z Unpacking libwebkit2gtk-4.1-0:amd64 (2.52.6-0ubuntu0.26.04.1) ...
+2026-11-16T09:31:49.1673746Z Selecting previously unselected package libxcb-shape0:amd64.
+2026-11-16T09:31:49.1807430Z Preparing to unpack .../31-libxcb-shape0_1.17.0-2ubuntu1_amd64v3.deb ...
+2026-11-16T09:31:49.1813605Z Unpacking libxcb-shape0:amd64 (1.17.0-2ubuntu1) ...
+2026-11-16T09:31:49.2007477Z Selecting previously unselected package libxv1:amd64.
+2026-11-16T09:31:49.2135425Z Preparing to unpack .../32-libxv1_2%3a1.0.13-1_amd64v3.deb ...
+2026-11-16T09:31:49.2141892Z Unpacking libxv1:amd64 (2:1.0.13-1) ...
+2026-11-16T09:31:49.2329972Z Selecting previously unselected package libxxf86dga1:amd64.
+2026-11-16T09:31:49.2450218Z Preparing to unpack .../33-libxxf86dga1_2%3a1.1.5-1build2_amd64v3.deb ...
+2026-11-16T09:31:49.2457077Z Unpacking libxxf86dga1:amd64 (2:1.1.5-1build2) ...
+2026-11-16T09:31:49.2636247Z Selecting previously unselected package x11-utils.
+2026-11-16T09:31:49.2758013Z Preparing to unpack .../34-x11-utils_7.7+7build1_amd64v3.deb ...
+2026-11-16T09:31:49.2764103Z Unpacking x11-utils (7.7+7build1) ...
+2026-11-16T09:31:49.3045170Z Selecting previously unselected package libxdo3:amd64.
+2026-11-16T09:31:49.3168722Z Preparing to unpack .../35-libxdo3_1%3a3.20160805.1-5.1build1_amd64v3.deb ...
+2026-11-16T09:31:49.3174289Z Unpacking libxdo3:amd64 (1:3.20160805.1-5.1build1) ...
+2026-11-16T09:31:49.3353635Z Selecting previously unselected package xdotool.
+2026-11-16T09:31:49.3474037Z Preparing to unpack .../36-xdotool_1%3a3.20160805.1-5.1build1_amd64v3.deb ...
+2026-11-16T09:31:49.3481063Z Unpacking xdotool (1:3.20160805.1-5.1build1) ...
+2026-11-16T09:31:49.4063456Z Setting up libcdparanoia0:amd64 (3.10.2+debian-14ubuntu2) ...
+2026-11-16T09:31:49.4133600Z Setting up libraw1394-11:amd64 (2.1.2-2build4) ...
+2026-11-16T09:31:49.4149201Z Setting up libspeex1:amd64 (1.2.1-3build1) ...
+2026-11-16T09:31:49.4164852Z Setting up libcaca0:amd64 (0.99.beta20-6ubuntu2.1) ...
+2026-11-16T09:31:49.4179062Z Setting up libv4lconvert0t64:amd64 (1.32.0-2ubuntu1) ...
+2026-11-16T09:31:49.4192669Z Setting up libtwolame0:amd64 (0.4.0-2build4) ...
+2026-11-16T09:31:49.4206542Z Setting up libvisual-0.4-0:amd64 (0.4.2-4) ...
+2026-11-16T09:31:49.4220540Z Setting up libtag2:amd64 (2.2.1-3) ...
+2026-11-16T09:31:49.4236063Z Setting up libxcb-shape0:amd64 (1.17.0-2ubuntu1) ...
+2026-11-16T09:31:49.4249995Z Setting up libxxf86dga1:amd64 (2:1.1.5-1build2) ...
+2026-11-16T09:31:49.4266418Z Setting up libmpg123-0t64:amd64 (1.33.3-2) ...
+2026-11-16T09:31:49.4281293Z Setting up libtheoraenc2:amd64 (1.2.0+dfsg-6) ...
+2026-11-16T09:31:49.4295553Z Setting up libxdo3:amd64 (1:3.20160805.1-5.1build1) ...
+2026-11-16T09:31:49.4309126Z Setting up libtheoradec2:amd64 (1.2.0+dfsg-6) ...
+2026-11-16T09:31:49.4323742Z Setting up libvpx12:amd64 (1.16.0-3) ...
+2026-11-16T09:31:49.4337527Z Setting up libjavascriptcoregtk-4.1-0:amd64 (2.52.6-0ubuntu0.26.04.1) ...
+2026-11-16T09:31:49.4352648Z Setting up libopus0:amd64 (1.6.1-1) ...
+2026-11-16T09:31:49.4367401Z Setting up libxv1:amd64 (2:1.0.13-1) ...
+2026-11-16T09:31:49.4382528Z Setting up libflac14:amd64 (1.5.0+ds-5) ...
+2026-11-16T09:31:49.4397446Z Setting up libdv4t64:amd64 (1.0.0-17.1build2) ...
+2026-11-16T09:31:49.4412185Z Setting up libv4l-0t64:amd64 (1.32.0-2ubuntu1) ...
+2026-11-16T09:31:49.4435855Z Setting up libtheora1:amd64 (1.2.0+dfsg-6) ...
+2026-11-16T09:31:49.4450992Z Setting up libasyncns0:amd64 (0.8-7) ...
+2026-11-16T09:31:49.4466158Z Setting up libwavpack1:amd64 (5.9.0-1) ...
+2026-11-16T09:31:49.4480241Z Setting up x11-utils (7.7+7build1) ...
+2026-11-16T09:31:49.4531839Z Setting up libmp3lame0:amd64 (3.101~svn6525+dfsg-2ubuntu0.1) ...
+2026-11-16T09:31:49.4547276Z Setting up libvorbisenc2:amd64 (1.3.7-3build2) ...
+2026-11-16T09:31:49.4561270Z Setting up libaa1:amd64 (1.4p5-51.1build1) ...
+2026-11-16T09:31:49.4614999Z Setting up libiec61883-0:amd64 (1.2.0-8) ...
+2026-11-16T09:31:49.4630802Z Setting up libavc1394-0:amd64 (0.5.4-5build4) ...
+2026-11-16T09:31:49.4645566Z Setting up xdotool (1:3.20160805.1-5.1build1) ...
+2026-11-16T09:31:49.4659746Z Setting up gstreamer1.0-plugins-base:amd64 (1.28.2-1ubuntu0.2) ...
+2026-11-16T09:31:49.4674000Z Setting up libshout3:amd64 (2.4.6-1build3) ...
+2026-11-16T09:31:49.4706591Z Setting up libsndfile1:amd64 (1.2.2-4) ...
+2026-11-16T09:31:49.4735709Z Setting up libpulse0:amd64 (1:17.0+dfsg1-2ubuntu4) ...
+2026-11-16T09:31:49.4756941Z Setting up gstreamer1.0-plugins-good:amd64 (1.28.2-2ubuntu0.4) ...
+2026-11-16T09:31:49.4774886Z Setting up libwebkit2gtk-4.1-0:amd64 (2.52.6-0ubuntu0.26.04.1) ...
+2026-11-16T09:31:49.4795744Z Processing triggers for man-db (2.13.1-1build1) ...
+2026-11-16T09:31:49.4811914Z Not building database; man-db/auto-update is not 'true'.
+2026-11-16T09:31:49.4821928Z Processing triggers for libc-bin (2.43-2ubuntu2.4) ...
+2026-11-16T09:31:50.0149211Z 
+2026-11-16T09:31:50.0151779Z Running kernel seems to be up-to-date.
+2026-11-16T09:31:50.0152093Z 
+2026-11-16T09:31:50.0152202Z Restarting services...
+2026-11-16T09:31:50.0225715Z 
+2026-11-16T09:31:50.0226129Z Service restarts being deferred:
+2026-11-16T09:31:50.0228034Z  systemctl restart hosted-compute-agent.service
+2026-11-16T09:31:50.0228326Z 
+2026-11-16T09:31:50.0229153Z No containers need to be restarted.
+2026-11-16T09:31:50.0229385Z 
+2026-11-16T09:31:50.0229610Z No user sessions are running outdated binaries.
+2026-11-16T09:31:50.0230074Z 
+2026-11-16T09:31:50.0230458Z No VM guests are running outdated hypervisor (qemu) binaries on this host.
+2026-11-16T09:31:51.0580230Z W: Download is performed unsandboxed as root as file '/home/runner/work/_temp/milkup-webkit-research/cache/archives/partial/libcdparanoia0_3.10.2+debian-14ubuntu2_amd64v3.deb' couldn't be accessed by user '_apt'. - pkgAcquire::Run (13: Permission denied)
+2026-11-16T09:31:54.2000823Z ##[group]Run package=("$RUNNER_TEMP"/pagination-native/package/*.deb)
+2026-11-16T09:31:54.2001239Z [36;1mpackage=("$RUNNER_TEMP"/pagination-native/package/*.deb)[0m
+2026-11-16T09:31:54.2001536Z [36;1mtest "${#package[@]}" = 1[0m
+2026-11-16T09:31:54.2001842Z [36;1mtouch "$RUNNER_TEMP/pagination-native/installation-owned-by-run"[0m
+2026-11-16T09:31:54.2002442Z [36;1msudo dpkg --install "${package[0]}" > "$RUNNER_TEMP/pagination-native/install.txt" 2>&1[0m
+2026-11-16T09:31:54.2002800Z [36;1mpython3 - <<'PYVERIFY'[0m
+2026-11-16T09:31:54.2003018Z [36;1mimport hashlib,pathlib[0m
+2026-11-16T09:31:54.2003667Z [36;1massert hashlib.sha256(pathlib.Path('/usr/bin/milkup-desktop').read_bytes()).hexdigest()=='42394c4bdcaeea078c7d553acbe6edc7a75f13b16ce5b70cba2d0a3a02176ed6'[0m
+2026-11-16T09:31:54.2004189Z [36;1mPYVERIFY[0m
+2026-11-16T09:31:54.2049200Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+2026-11-16T09:31:54.2049495Z env:
+2026-11-16T09:31:54.2049716Z   CCACHE_COMPILERCHECK: content
+2026-11-16T09:31:54.2050151Z   PAGINATION_OPERATION: pagination-segment
+2026-11-16T09:31:54.2050396Z   PAGINATION_RESTORE_RUN: 43808221193
+2026-11-16T09:31:54.2050628Z   PAGINATION_BEHAVIOR: true
+2026-11-16T09:31:54.2050831Z   PAGINATION_TAIL: true
+2026-11-16T09:31:54.2051031Z   PAGINATION_ROOT_MARGIN: true
+2026-11-16T09:31:54.2051245Z   PAGINATION_COMBINED: true
+2026-11-16T09:31:54.2051565Z   CCACHE_DIR: /home/runner/work/_temp/milkup-webkit-research/restored-compiler-cache
+2026-11-16T09:31:54.2051926Z   PAGINATION_START_EPOCH: 1794820011
+2026-11-16T09:31:54.2052145Z ##[endgroup]
+2026-11-16T09:31:55.7286453Z ##[group]Run set -euo pipefail
+2026-11-16T09:31:55.7286876Z [36;1mset -euo pipefail[0m
+2026-11-16T09:31:55.7287454Z [36;1mPAGINATION_NATIVE_ENTRY=research/pdf-pagination-mechanism-20261116/native_probe.py[0m
+2026-11-16T09:31:55.7288117Z [36;1mif [ "$PAGINATION_BEHAVIOR" = true ]; then[0m
+2026-11-16T09:31:55.7288796Z [36;1m  PAGINATION_NATIVE_ENTRY=research/pdf-pagination-behavior-20261116/native_probe.py[0m
+2026-11-16T09:31:55.7289397Z [36;1mfi[0m
+2026-11-16T09:31:55.7291426Z [36;1mtimeout --signal=TERM --kill-after=10s 550s xvfb-run -a -s '-screen 0 1400x1000x24' dbus-run-session -- python3 "$PAGINATION_NATIVE_ENTRY" run --output "$RUNNER_TEMP/pagination-native" --prefix "$RUNNER_TEMP/milkup-webkit-research/prefix" --manifest "$RUNNER_TEMP/milkup-webkit-research/evidence/pagination-continuation.json" 2>&1 | tee "$RUNNER_TEMP/pagination-native/harness.txt"[0m
+2026-11-16T09:31:55.7341262Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+2026-11-16T09:31:55.7341591Z env:
+2026-11-16T09:31:55.7341778Z   CCACHE_COMPILERCHECK: content
+2026-11-16T09:31:55.7342027Z   PAGINATION_OPERATION: pagination-segment
+2026-11-16T09:31:55.7342274Z   PAGINATION_RESTORE_RUN: 43808221193
+2026-11-16T09:31:55.7342499Z   PAGINATION_BEHAVIOR: true
+2026-11-16T09:31:55.7342704Z   PAGINATION_TAIL: true
+2026-11-16T09:31:55.7342900Z   PAGINATION_ROOT_MARGIN: true
+2026-11-16T09:31:55.7343118Z   PAGINATION_COMBINED: true
+2026-11-16T09:31:55.7343448Z   CCACHE_DIR: /home/runner/work/_temp/milkup-webkit-research/restored-compiler-cache
+2026-11-16T09:31:55.7343826Z   PAGINATION_START_EPOCH: 1794820011
+2026-11-16T09:31:55.7344056Z ##[endgroup]
+2026-11-16T09:32:22.5017052Z no word list
+2026-11-16T09:32:22.5259153Z no word list
+2026-11-16T09:32:22.5476739Z {"status": "passed-pagination-only", "errors": []}
+2026-11-16T09:32:22.5477220Z {"status": "passed-pagination-only", "errors": []}
+2026-11-16T09:32:22.5477507Z {"status": "passed-pagination-only", "errors": []}
+2026-11-16T09:32:22.5477798Z {"status": "passed-pagination-only", "errors": []}
+2026-11-16T09:32:22.5478079Z {"status": "passed-pagination-only", "errors": []}
+2026-11-16T09:32:22.5478366Z {"status": "passed-pagination-only", "errors": []}
+2026-11-16T09:32:22.5478664Z {"status": "passed-pagination-only", "errors": []}
+2026-11-16T09:32:22.5478970Z {"status": "failed", "errors": ["a4-portrait: page 5: blank page"]}
+2026-11-16T09:32:22.5479307Z {"status": "failed", "errors": ["a4-portrait: page 6: blank page"]}
+2026-11-16T09:32:22.5479584Z {
+2026-11-16T09:32:22.5480015Z   "status": "targeted-combined-passed-not-product-acceptance",
+2026-11-16T09:32:22.5480517Z   "scope": "Research behavior candidate on exact installed helper; targeted pagination, not release acceptance",
+2026-11-16T09:32:22.5481321Z   "harnessSha": "cd3964b4d4cfd59853d49b96d109c19aeb6af6e9",
+2026-11-16T09:32:22.5481608Z   "productAcceptancePassed": false,
+2026-11-16T09:32:22.5481962Z   "packageSha256": "9e71e2b6f6c5cd030f7307d35679ded1d4f5605127d77320db1d455d90c1ddde",
+2026-11-16T09:32:22.5482433Z   "binarySha256": "42394c4bdcaeea078c7d553acbe6edc7a75f13b16ce5b70cba2d0a3a02176ed6",
+2026-11-16T09:32:22.5482887Z   "guardSha256": "296131695cb15814252edd02e76e111fef293b7585c4e7597101d8ec05b852fa",
+2026-11-16T09:32:22.5483236Z   "installedBinary": "/usr/bin/milkup-desktop",
+2026-11-16T09:32:22.5483614Z   "runtimeManifestSha256": "8aff018a76267dd225597131b16f0e4c2310a7a8fae9f58edae536255d30a378",
+2026-11-16T09:32:22.5483981Z   "seconds": 25.589
+2026-11-16T09:32:22.5484157Z }
+2026-11-16T09:32:22.6172357Z ##[group]Run if test -f "$RUNNER_TEMP/pagination-native/installation-owned-by-run"; then
+2026-11-16T09:32:22.6173147Z [36;1mif test -f "$RUNNER_TEMP/pagination-native/installation-owned-by-run"; then[0m
+2026-11-16T09:32:22.6173876Z [36;1m  sudo dpkg --remove milkup > "$RUNNER_TEMP/pagination-native/uninstall.txt" 2>&1[0m
+2026-11-16T09:32:22.6174489Z [36;1m  test ! -e /usr/bin/milkup-desktop[0m
+2026-11-16T09:32:22.6174852Z [36;1mfi[0m
+2026-11-16T09:32:22.6220289Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+2026-11-16T09:32:22.6220596Z env:
+2026-11-16T09:32:22.6220780Z   CCACHE_COMPILERCHECK: content
+2026-11-16T09:32:22.6221027Z   PAGINATION_OPERATION: pagination-segment
+2026-11-16T09:32:22.6221294Z   PAGINATION_RESTORE_RUN: 43808221193
+2026-11-16T09:32:22.6221567Z   PAGINATION_BEHAVIOR: true
+2026-11-16T09:32:22.6221772Z   PAGINATION_TAIL: true
+2026-11-16T09:32:22.6221984Z   PAGINATION_ROOT_MARGIN: true
+2026-11-16T09:32:22.6222198Z   PAGINATION_COMBINED: true
+2026-11-16T09:32:22.6222549Z   CCACHE_DIR: /home/runner/work/_temp/milkup-webkit-research/restored-compiler-cache
+2026-11-16T09:32:22.6222925Z   PAGINATION_START_EPOCH: 1794820011
+2026-11-16T09:32:22.6223150Z ##[endgroup]
+2026-11-16T09:32:23.0381041Z ##[group]Run actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+2026-11-16T09:32:23.0381392Z with:
+2026-11-16T09:32:23.0381604Z   name: milkup-pagination-native-43836771926
+2026-11-16T09:32:23.0382146Z   path: /home/runner/work/_temp/pagination-native/
+!/home/runner/work/_temp/pagination-native/package/
+!/home/runner/work/_temp/pagination-native/xdg-*/
+
+2026-11-16T09:32:23.0382679Z   retention-days: 7
+2026-11-16T09:32:23.0382871Z   if-no-files-found: warn
+2026-11-16T09:32:23.0383075Z   compression-level: 6
+2026-11-16T09:32:23.0383274Z   overwrite: false
+2026-11-16T09:32:23.0383461Z   include-hidden-files: false
+2026-11-16T09:32:23.0383672Z env:
+2026-11-16T09:32:23.0383844Z   CCACHE_COMPILERCHECK: content
+2026-11-16T09:32:23.0384075Z   PAGINATION_OPERATION: pagination-segment
+2026-11-16T09:32:23.0384336Z   PAGINATION_RESTORE_RUN: 43808221193
+2026-11-16T09:32:23.0384570Z   PAGINATION_BEHAVIOR: true
+2026-11-16T09:32:23.0384776Z   PAGINATION_TAIL: true
+2026-11-16T09:32:23.0385012Z   PAGINATION_ROOT_MARGIN: true
+2026-11-16T09:32:23.0385232Z   PAGINATION_COMBINED: true
+2026-11-16T09:32:23.0385569Z   CCACHE_DIR: /home/runner/work/_temp/milkup-webkit-research/restored-compiler-cache
+2026-11-16T09:32:23.0385921Z   PAGINATION_START_EPOCH: 1794820011
+2026-11-16T09:32:23.0386143Z ##[endgroup]
+2026-11-16T09:32:23.1752673Z (node:44054) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+2026-11-16T09:32:23.1753669Z (Use `node --trace-deprecation ...` to show where the warning was created)
+2026-11-16T09:32:23.2565696Z With the provided path, there will be 643 files uploaded
+2026-11-16T09:32:23.2570253Z Artifact name is valid!
+2026-11-16T09:32:23.2570715Z Root directory input is valid!
+2026-11-16T09:32:23.6432019Z Beginning upload of artifact content to blob storage
+2026-11-16T09:32:24.0615840Z (node:44054) [DEP0169] DeprecationWarning: `url.parse()` behavior is not standardized and prone to errors that have security implications. Use the WHATWG URL API instead. CVEs are not issued for `url.parse()` vulnerabilities.
+2026-11-16T09:32:24.7427490Z Uploaded bytes 8388608
+2026-11-16T09:32:25.1090803Z Uploaded bytes 16777216
+2026-11-16T09:32:25.2197546Z Uploaded bytes 19011843
+2026-11-16T09:32:25.2769796Z Finished uploading artifact content to blob storage!
+2026-11-16T09:32:25.2772215Z SHA256 digest of uploaded artifact zip is c6c507c19c3f6fddf4d9bc5c02e2ce387f58bc113bb72a7232156abf591cb141
+2026-11-16T09:32:25.2773935Z Finalizing artifact upload
+2026-11-16T09:32:25.6764001Z Artifact milkup-pagination-native-43836771926.zip successfully finalized. Artifact ID 14212877165
+2026-11-16T09:32:25.6764938Z Artifact milkup-pagination-native-43836771926 has been successfully uploaded! Final size is 19011843 bytes. Artifact ID is 14212877165
+2026-11-16T09:32:25.6771025Z Artifact download URL: https://github.com/Auto-Plugin/milkup/actions/runs/43836771926/artifacts/14212877165
+2026-11-16T09:32:25.7038179Z ##[group]Run actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+2026-11-16T09:32:25.7038768Z with:
+2026-11-16T09:32:25.7039128Z   name: milkup-pagination-tu-preflight-43836771926
+2026-11-16T09:32:25.7039684Z   path: /home/runner/work/_temp/milkup-webkit-research/evidence/
+2026-11-16T09:32:25.7040353Z   retention-days: 7
+2026-11-16T09:32:25.7040655Z   if-no-files-found: warn
+2026-11-16T09:32:25.7040988Z   compression-level: 6
+2026-11-16T09:32:25.7041288Z   overwrite: false
+2026-11-16T09:32:25.7041587Z   include-hidden-files: false
+2026-11-16T09:32:25.7041904Z env:
+2026-11-16T09:32:25.7042176Z   CCACHE_COMPILERCHECK: content
+2026-11-16T09:32:25.7042548Z   PAGINATION_OPERATION: pagination-segment
+2026-11-16T09:32:25.7042966Z   PAGINATION_RESTORE_RUN: 43808221193
+2026-11-16T09:32:25.7043329Z   PAGINATION_BEHAVIOR: true
+2026-11-16T09:32:25.7043666Z   PAGINATION_TAIL: true
+2026-11-16T09:32:25.7043987Z   PAGINATION_ROOT_MARGIN: true
+2026-11-16T09:32:25.7044365Z   PAGINATION_COMBINED: true
+2026-11-16T09:32:25.7044882Z   CCACHE_DIR: /home/runner/work/_temp/milkup-webkit-research/restored-compiler-cache
+2026-11-16T09:32:25.7045470Z   PAGINATION_START_EPOCH: 1794820011
+2026-11-16T09:32:25.7045819Z ##[endgroup]
+2026-11-16T09:32:25.8386635Z (node:44069) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+2026-11-16T09:32:25.8387236Z (Use `node --trace-deprecation ...` to show where the warning was created)
+2026-11-16T09:32:25.8608868Z With the provided path, there will be 166 files uploaded
+2026-11-16T09:32:25.8613296Z Artifact name is valid!
+2026-11-16T09:32:25.8613621Z Root directory input is valid!
+2026-11-16T09:32:26.2034238Z Beginning upload of artifact content to blob storage
+2026-11-16T09:32:27.7674265Z (node:44069) [DEP0169] DeprecationWarning: `url.parse()` behavior is not standardized and prone to errors that have security implications. Use the WHATWG URL API instead. CVEs are not issued for `url.parse()` vulnerabilities.
+2026-11-16T09:32:28.4335025Z Uploaded bytes 7025050
+2026-11-16T09:32:28.4914317Z Finished uploading artifact content to blob storage!
+2026-11-16T09:32:28.4916702Z SHA256 digest of uploaded artifact zip is d93d2c7be044894bf2fac972786262f7542f33ba098e924b243764413b885df8
+2026-11-16T09:32:28.4918832Z Finalizing artifact upload
+2026-11-16T09:32:28.8700286Z Artifact milkup-pagination-tu-preflight-43836771926.zip successfully finalized. Artifact ID 14212966904
+2026-11-16T09:32:28.8701497Z Artifact milkup-pagination-tu-preflight-43836771926 has been successfully uploaded! Final size is 7025050 bytes. Artifact ID is 14212966904
+2026-11-16T09:32:28.8707534Z Artifact download URL: https://github.com/Auto-Plugin/milkup/actions/runs/43836771926/artifacts/14212966904
+2026-11-16T09:32:28.8980877Z Post job cleanup.
+2026-11-16T09:32:28.9750591Z [command]/usr/bin/git version
+2026-11-16T09:32:28.9789671Z git version 2.56.1
+2026-11-16T09:32:28.9818207Z Temporarily overriding HOME='/home/runner/work/_temp/ea6a454c-d042-455c-ac59-ba84839521cc' before making global git config changes
+2026-11-16T09:32:28.9819244Z Adding repository directory to the temporary git global config as a safe directory
+2026-11-16T09:32:28.9822768Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/milkup/milkup
+2026-11-16T09:32:28.9859315Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-11-16T09:32:28.9889635Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-11-16T09:32:29.0401759Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-11-16T09:32:29.0441341Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-11-16T09:32:29.0747206Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-11-16T09:32:29.0778473Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-11-16T09:32:29.1230366Z Cleaning up orphan processes
+2026-11-16T09:32:29.1696857Z ##[warning]Node.js 20 is deprecated. The following actions target Node.js 20 but are being forced to run on Node.js 24: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830, actions/checkout@11d5960a326750d5838078e36cf38b85af677262, actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/

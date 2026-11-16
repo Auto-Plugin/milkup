@@ -64,6 +64,13 @@ Loading should be proven with the actual installed application and child
 ancestry/maps, without a QA `LD_LIBRARY_PATH` or developer executable fallback.
 The exact loader design remains to be implemented and reviewed; this document
 does not claim RUNPATH alone solves transitive dependency/resource resolution.
+The current checkout's `apps/desktop/src-tauri/src/output_linux.rs` passes
+`std::env::current_exe()` into the output launch path, so selecting a different
+runtime for that application binary cannot be assumed to affect only PDF.
+An actual delivery candidate must also verify the normal Tauri editor WebView,
+plugin loading, editing/IME and normal exit under its selected runtime family.
+This is a boundary requirement for that future candidate, not a new CI matrix
+or a claim that the current PDF-helper run covers the editor.
 Any own-process environment handling must prevent incompatible injected-bundle
 selection while preserving supported application behavior, and be tested rather
 than changing global user/system settings. A writable or mixed runtime family,
