@@ -5,7 +5,7 @@ on:
       operation:
         description: Cheap header/cache preflight or one explicitly approved continuation
         type: choice
-        options: [preflight, resume, pagination-preflight, pagination-diagnostic, pagination-segment]
+        options: [preflight, resume, pagination-preflight, pagination-diagnostic, pagination-segment, stock-paper-control]
         default: preflight
         required: true
       links_research:
@@ -48,7 +48,7 @@ concurrency:
   cancel-in-progress: false
 jobs:
   capability:
-    if: github.repository == 'Auto-Plugin/milkup' && inputs.operation != 'pagination-preflight' && inputs.operation != 'pagination-diagnostic' && inputs.operation != 'pagination-segment'
+    if: github.repository == 'Auto-Plugin/milkup' && inputs.operation != 'pagination-preflight' && inputs.operation != 'pagination-diagnostic' && inputs.operation != 'pagination-segment' && inputs.operation != 'stock-paper-control'
     runs-on: ubuntu-26.04
     timeout-minutes: ${{ inputs.operation == 'preflight' && 30 || inputs.geometry_research && 55 || 355 }}
     env:
@@ -430,3 +430,66 @@ jobs:
           path: ${{ runner.temp }}/milkup-webkit-research/evidence/
           retention-days: 7
           if-no-files-found: warn
+
+  stock-paper-control:
+    if: github.repository == 'Auto-Plugin/milkup' && inputs.operation == 'stock-paper-control'
+    runs-on: ubuntu-26.04
+    timeout-minutes: 25
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - name: Stock capture and exact-input contracts before dependencies
+        timeout-minutes: 2
+        run: python3 -m unittest discover -s research/pdf-pagination-behavior-20261116 -p test_stock.py -v
+      - name: Exact official stock runtime without source download or engine build
+        timeout-minutes: 8
+        run: python3 research/pdf-pagination-behavior-20261116/prepare_stock.py
+      - name: Verify original package and reference bytes
+        timeout-minutes: 3
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          if dpkg-query --status milkup >/dev/null 2>&1; then echo 'Refusing existing installation'; exit 1; fi
+          gh api repos/Auto-Plugin/milkup/actions/artifacts/14149947936/zip > "$RUNNER_TEMP/pagination-original-package.zip"
+          gh api repos/Auto-Plugin/milkup/actions/artifacts/14153980570/zip > "$RUNNER_TEMP/pagination-original-reference.zip"
+          python3 research/pdf-pagination-mechanism-20261116/native_probe.py assets --package "$RUNNER_TEMP/pagination-original-package.zip" --reference "$RUNNER_TEMP/pagination-original-reference.zip" --output "$RUNNER_TEMP/pagination-stock"
+          dpkg-query -W libwebkit2gtk-4.1-0 libjavascriptcoregtk-4.1-0 fonts-noto-cjk fonts-noto-color-emoji fonts-dejavu-core poppler-utils python3-fitz > "$RUNNER_TEMP/pagination-stock/runtime-versions.txt"
+      - name: Install exact owned package for stock controls
+        timeout-minutes: 2
+        run: |
+          set -euo pipefail
+          package=("$RUNNER_TEMP"/pagination-stock/package/*.deb)
+          test "${#package[@]}" = 1
+          touch "$RUNNER_TEMP/pagination-stock/installation-owned-by-run"
+          sudo dpkg --install "${package[0]}" > "$RUNNER_TEMP/pagination-stock/install.txt" 2>&1
+      - name: Three independent original-output controls, retain all contract failures
+        timeout-minutes: 10
+        run: |
+          set -euo pipefail
+          timeout --signal=TERM --kill-after=10s 550s xvfb-run -a -s '-screen 0 1400x1000x24' dbus-run-session -- python3 research/pdf-pagination-behavior-20261116/stock_probe.py --output "$RUNNER_TEMP/pagination-stock" 2>&1 | tee "$RUNNER_TEMP/pagination-stock/harness.txt"
+      - name: Remove only owned test installation
+        if: always()
+        timeout-minutes: 2
+        run: |
+          if test -f "$RUNNER_TEMP/pagination-stock/installation-owned-by-run"; then
+            sudo dpkg --remove milkup > "$RUNNER_TEMP/pagination-stock/uninstall.txt" 2>&1
+            test ! -e /usr/bin/milkup-desktop
+          fi
+      - name: Preserve stock originals and failed contracts
+        if: always()
+        timeout-minutes: 3
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: milkup-stock-paper-control-${{ github.run_id }}
+          retention-days: 7
+          if-no-files-found: error
+          path: |
+            ${{ runner.temp }}/pagination-stock/
+            !${{ runner.temp }}/pagination-stock/package/
+            !${{ runner.temp }}/pagination-stock/xdg-*/
+            ${{ runner.temp }}/milkup-stock-paper-control/evidence/
