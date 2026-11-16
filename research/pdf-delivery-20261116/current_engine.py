@@ -1,15 +1,16 @@
 """One representative WebCore frontier, clean-job continuation, bounded normal build.
-No install, runtime execution, production package or native-PDF acceptance claim.
+Optional CMake DESTDIR retention only; no runtime execution, production package or native-PDF acceptance claim.
 """
 import argparse,copy,gzip,hashlib,json,os,pathlib,re,shlex,shutil,signal,subprocess,time,traceback
 import current_tu_gate as gate
 import current_segment as seg
 import frontier_checkpoint as checkpoint
+import normal_completion as completion
 HERE=gate.HERE
 LEGACY_MANIFEST=HERE/'evidence/43864252208/resume-checkpoint-manifest.json.gz'
 LEGACY_SHA='acd9c6c96cf12828654c1ab17be025dbcbd264ce6c3cc24a838595d8b43cf655'
 LEGACY_PRODUCER='817db1398ac62d5465fbc76f3684171e4ff335ed'
-HARNESS=['current_engine.py','frontier_checkpoint.py','current_segment.py','current_tu_gate.py','current_object_restore.py','current_source_archive.py','package_boundary.py']
+HARNESS=['current_engine.py','frontier_checkpoint.py','current_segment.py','current_tu_gate.py','current_object_restore.py','current_source_archive.py','package_boundary.py','normal_completion.py']
 
 def select_owned(table,known):
  # PID plus Linux process start ticks, including descendants that start their
@@ -63,6 +64,7 @@ class EngineGate(seg.Segment):
   self.full_entries={};self.generic_identity=None;self.frontier=[];self.helpers={};self.links={};self.snapshot_number=0
  def after_sdk(self):
   self.run('real-frontier-contracts',['python3','-m','unittest','discover','-s',str(HERE),'-p','test_frontier_checkpoint.py','-v'],180,gate.REPO,{**os.environ,'PYTHONDONTWRITEBYTECODE':'1'})
+  self.run('normal-all-prerequisite-contracts',['python3','-m','unittest','discover','-s',str(HERE),'-p','test_current_normal.py','-v'],180,gate.REPO,{**os.environ,'PYTHONDONTWRITEBYTECODE':'1'})
  def prepare_engine(self):
   gate.Gate.execute(self);seg.Segment.prepare_batch(self)
   plan=self.run('normal-all-command-graph',['ninja','-t','commands','all'],90,self.build)
@@ -117,7 +119,6 @@ class EngineGate(seg.Segment):
  def phase(self,name,targets,old,limit,require_new=True):
   plan=self.run(name+'-plan',['ninja','-t','commands',*targets],90,self.build);selected=checkpoint.compile_entries(json.loads((self.build/'compile_commands.json').read_text()),plan,self.build)
   assert all(self.full_entries[t]==e for t,e in selected.items())
-  if name=='normal-all-objects':assert not any('-shared'in shlex.split(line)for line in plan.splitlines()),'Shared links must remain in the single-job final phase'
   code,reason=self.monitored(name,['ninja','-v','-d','keepdepfile','-k','0','-j','2',*targets],limit)
   log=(self.out/(name+'.log')).read_text();actual=[]
   for args in seg.commands(log):
@@ -148,9 +149,21 @@ class EngineGate(seg.Segment):
   if os.environ.get('GITHUB_OUTPUT'):
    with open(os.environ['GITHUB_OUTPUT'],'a')as f:f.write('checkpoint_sha256='+receipt['archiveSha256']+'\n')
   return receipt
- def import_frontier(self):
+ def import_frontier(self,reviewed_predecessor=False):
   assert self.expected and re.fullmatch('[a-f0-9]{64}',self.expected)
-  staging=self.root/'incoming-frontier';m=checkpoint.load_archive(self.incoming,self.expected,self.generic_identity,staging)
+  prior=completion.pinned(HERE/'evidence/43890194973/checkpoint-manifest.json.gz')if reviewed_predecessor else None
+  if prior:assert self.expected==completion.PINNED_ARCHIVE_SHA
+  staging=self.root/'incoming-frontier';m=checkpoint.load_archive(self.incoming,self.expected,prior['identity']if prior else self.generic_identity,staging)
+  if prior:
+   assert m==prior,'Exact reviewed prior manifest required'
+   review=completion.reviewed_identity(m['identity'],self.generic_identity);self.report['predecessorReview']=review;self.persist()
+   if review['incompatibleCompiledIdentityFields']:
+    assert not any((self.build/t).exists()for t in self.full_entries),'Only clean generated-only build may skip cache'
+    self.report['optionalCacheSkippedBeforeBuildWrites']={'reason':'compiled identity differs','fields':review['incompatibleCompiledIdentityFields']};self.persist();return set()
+   try:checkpoint.validate_existing(m,self.build,self.source)
+   except AssertionError as error:
+    assert not any((self.build/t).exists()for t in self.full_entries),'No fallback after partial restoration'
+    self.report['optionalCacheSkippedBeforeBuildWrites']={'reason':str(error)};self.persist();return set()
   assert m['frontier']==self.frontier
   try:checkpoint.load_archive(self.incoming,'0'*64,self.generic_identity,self.root/'rejected-frontier-transport')
   except AssertionError as e:assert 'Damaged frontier archive'in str(e);self.report['frontierTransportMismatchRejectedBeforeWrite']=True
@@ -176,23 +189,22 @@ class EngineGate(seg.Segment):
   old=set(m['entries']);self.phase('restored-webcore-frontier-skip',self.frontier,old,300,False)
   for target,e in m['entries'].items():assert checkpoint.digest(self.build/target)==m['records'][target]['sha256'],'Old restored bytes changed'
   return old
+ def optional_snapshot(self,label):
+  try:return self.snapshot(label)
+  except Exception as error:
+   self.report.setdefault('optionalCheckpointErrors',[]).append({'label':label,'error':repr(error)})
+   self.persist();return None
  def complete_normal_build(self,old):
-  # Original object targets first; this keeps final shared links out of the
-  # parallel compiler phase. Only upstream small build-time helpers may link.
+  # One original Ninja all target in this same job. A shared JSC prerequisite
+  # feeds generated WebKit headers; an artificial object/link split is invalid.
   self.report['engineBuildAttempted']=True;self.persist()
-  remaining=self.deadline-time.time();budget=min(270*60,remaining-45*60)
-  assert budget>=30*60,'Insufficient full-object budget with final-link/archive reserve'
-  self.phase('normal-all-objects',list(self.full_entries),old,budget)
-  self.snapshot('all-objects')
-  plan=self.run('normal-final-link-plan',['ninja','-n','-v','all'],90,self.build)
-  # Actual normal execution validates whether a manifest refresh was pending;
-  # a dry-run alone is never link/compile evidence.
-  code,reason=self.monitored('normal-final-links',['ninja','-v','-d','keepdepfile','-k','0','-j','1','all'],35*60)
-  log=(self.out/'normal-final-links.log').read_text();compiled=[a for a in seg.commands(log)if a and pathlib.Path(a[0]).name=='ccache']
-  self.report['finalLink']={'exitCode':code,'stopReason':reason,'compilerCommands':len(compiled),'singleJob':True,'normalAllTarget':True};self.persist()
-  assert code==0 and not reason and not compiled,'Normal final link failed or unexpectedly compiled'
+  remaining=self.deadline-time.time();budget=min(285*60,remaining-30*60)
+  assert budget>=30*60,'Insufficient normal graph budget with staging/archive reserve'
+  assert completion.native_all_arguments()==['ninja','-v','-d','keepdepfile','-k','0','-j','2','all']
+  self.phase('normal-all-complete',['all'],old,budget)
   assert seg.graph_identity(self.build)==self.generic_identity['graph'],'Graph/configuration changed during normal build'
-  self.report['fullEngineBuilt']=True;self.persist();self.snapshot('linked')
+  self.report.update(fullEngineBuilt=True,fullSharedLink=True,finalLink={'normalAllTarget':True,'sameJob':True,'ninjaJobs':2,'upstreamLinkPoolUnchanged':True})
+  self.persist();self.optional_snapshot('linked')
   inventory=[]
   for root in [self.build/'lib',self.build/'bin']:
    for p in sorted(root.rglob('*')):
@@ -203,9 +215,24 @@ class EngineGate(seg.Segment):
     logname='elf-'+re.sub('[^A-Za-z0-9_-]','_',name)
     self.run(logname,['readelf','-h','-d','--version-info',str(p)],60,self.build)
   (self.out/'normal-elf-inventory.json').write_text(json.dumps(inventory,indent=2));assert any('libwebkit2gtk-4.1.so'in r['path']for r in inventory)
+  # Separate runtime retention, never part of a cross-job object checkpoint.
+  if self.deadline-time.time()<25*60 or shutil.disk_usage(self.root).free<20*1024**3:
+   self.report['normalRuntimeRetention']={'status':'not-run','reason':'25 minutes/20 GiB staging and retention reserve unavailable'};self.persist();return
+  recipe=json.loads((HERE/'qa-final-path-profile.json').read_text())
+  assert gate.boundary.cache_values(self.build/'CMakeCache.txt')['CMAKE_INSTALL_PREFIX']==recipe['prefix']
+  destdir=self.root/'normal-cmake-destdir';assert not destdir.exists();destdir.mkdir()
+  self.run('normal-cmake-install',['cmake','--install',str(self.build),'--config','Release'],600,self.build,{**os.environ,'DESTDIR':str(destdir)})
+  runtime=self.out/'normal-runtime'
+  self.run('normal-runtime-retention',['python3',str(HERE/'normal_completion.py'),str(destdir),recipe['prefix'],str(self.build/'install_manifest.txt'),str(runtime)],600,self.build)
+  receipt=json.loads((runtime/'receipt.json').read_text());self.report['normalRuntimeRetention']=receipt;self.persist()
+
  def execute(self):
   self.prepare_engine()
-  if self.engine_mode in ['frontier','normal']:
+  if self.engine_mode=='normal-resume':
+   old=self.import_frontier(reviewed_predecessor=True)
+   self.complete_normal_build(old)
+   self.report['status']='passed-normal-engine-build-not-package'
+  elif self.engine_mode in ['frontier','normal']:
    old=self.import_legacy();selected=self.phase('representative-webcore-frontier',self.frontier,old,40*60)
    assert sum(self.full_entries[t]['kind']=='pch'for t in selected)>=2 and sum('Source/WebCore/'in t and t.endswith('.o')for t in selected)>=10
    self.snapshot('frontier')
@@ -235,7 +262,7 @@ def pack(context,output):
 def main():
  p=argparse.ArgumentParser();sub=p.add_subparsers(dest='command',required=True)
  packer=sub.add_parser('pack');packer.add_argument('--context',type=pathlib.Path,required=True);packer.add_argument('--output',type=pathlib.Path,required=True)
- runner=sub.add_parser('run');runner.add_argument('--root',type=pathlib.Path,required=True);runner.add_argument('--started',type=float,required=True);runner.add_argument('--mode',choices=['frontier','resume','normal'],required=True);runner.add_argument('--incoming',type=pathlib.Path,required=True);runner.add_argument('--expected-sha');runner.add_argument('--attempt-complete',action='store_true')
+ runner=sub.add_parser('run');runner.add_argument('--root',type=pathlib.Path,required=True);runner.add_argument('--started',type=float,required=True);runner.add_argument('--mode',choices=['frontier','resume','normal','normal-resume'],required=True);runner.add_argument('--incoming',type=pathlib.Path,required=True);runner.add_argument('--expected-sha');runner.add_argument('--attempt-complete',action='store_true')
  a=p.parse_args()
  if a.command=='pack':pack(a.context,a.output);return 0
  g=EngineGate(a.root.resolve(),a.started,a.mode,a.incoming,a.expected_sha,a.attempt_complete)

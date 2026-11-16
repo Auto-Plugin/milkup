@@ -759,16 +759,16 @@ jobs:
           persist-credentials: false
       - name: Validate all current workflow and checkpoint contracts
         run: PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s research/pdf-delivery-20261116 -p 'test_current*.py' -v
-      - name: Receive the exact retained 28-object checkpoint
+      - name: Receive the verified 367-object checkpoint (never shared runtime bytes)
         uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
         with:
-          name: milkup-current-segment-resumed-checkpoint-43864252208
-          run-id: 43864252208
+          name: milkup-current-engine-checkpoint-43890194973
+          run-id: 43890194973
           github-token: ${{ github.token }}
           path: ${{ runner.temp }}/current-engine-predecessor
-      - name: Build representative frontier then normal engine in this same job
+      - name: Restore compatible objects then run the original normal all target in this same job
         timeout-minutes: 342
-        run: python3 research/pdf-delivery-20261116/current_engine.py run --root "$RUNNER_TEMP/milkup-current-source-gate" --started "$CURRENT_GATE_STARTED" --mode normal --incoming "$RUNNER_TEMP/current-engine-predecessor/checkpoint.tar.gz"
+        run: python3 research/pdf-delivery-20261116/current_engine.py run --root "$RUNNER_TEMP/milkup-current-source-gate" --started "$CURRENT_GATE_STARTED" --mode normal-resume --incoming "$RUNNER_TEMP/current-engine-predecessor/frontier.tar.gz" --expected-sha 779c8abe048660286e79828f54eec7d3d56f7350c042171230f97be9bd6a1f20
       - name: Choose the latest verified checkpoint without retrying work
         id: retained
         if: always()
@@ -785,6 +785,14 @@ jobs:
                       while block:=src.read(1024**2):h.update(block)
                   assert archive.stat().st_size==row['archiveBytes'] and h.hexdigest()==row['archiveSha256']
                   with open(os.environ['GITHUB_OUTPUT'],'a') as out:out.write('directory='+str(folder)+'\n')
+          runtime=root/'normal-runtime';receipt=runtime/'receipt.json'
+          if receipt.is_file():
+              row=json.loads(receipt.read_text());archive=runtime/'normal-cmake-install.tar.gz'
+              assert row['scope']=='normal-cmake-staged-runtime-not-application-package-or-native-accepted'
+              assert archive.stat().st_size==row['archive']['bytes']<=3*1024**3
+              with archive.open('rb') as src:actual=hashlib.file_digest(src,'sha256').hexdigest()
+              assert actual==row['archive']['sha256']
+              with open(os.environ['GITHUB_OUTPUT'],'a') as out:out.write('runtime_directory='+str(runtime)+'\n')
           PY
       - name: Preserve latest exact object and generated-input checkpoint
         if: always() && steps.retained.outputs.directory != ''
@@ -794,6 +802,14 @@ jobs:
           path: ${{ steps.retained.outputs.directory }}/
           if-no-files-found: error
           retention-days: 30
+      - name: Preserve separately staged normal runtime only after a complete install receipt
+        if: always() && steps.retained.outputs.runtime_directory != ''
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: milkup-normal-cmake-install-not-package-${{ github.run_id }}
+          path: ${{ steps.retained.outputs.runtime_directory }}/
+          if-no-files-found: warn
+          retention-days: 30
       - name: Preserve all stage receipts, maps, graph and resource evidence
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
@@ -802,5 +818,6 @@ jobs:
           path: |
             ${{ runner.temp }}/milkup-current-source-gate/evidence/
             !${{ runner.temp }}/milkup-current-source-gate/evidence/checkpoints/**/frontier.tar.gz
+            !${{ runner.temp }}/milkup-current-source-gate/evidence/normal-runtime/*.tar.gz
           if-no-files-found: error
           retention-days: 30

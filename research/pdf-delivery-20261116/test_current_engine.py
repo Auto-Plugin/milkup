@@ -16,8 +16,8 @@ class EngineContracts(unittest.TestCase):
   self.assertEqual(set(e.select_owned(table,known)),{11})
  def test_original_command_and_single_link_phase_are_explicit(self):
   s=(e.HERE/'current_engine.py').read_text();ast.parse(s)
-  self.assertIn("'-j','2'",s);self.assertIn("'-j','1','all'",s);self.assertIn("'-shared'in shlex.split",s)
-  self.assertIn('remaining-45*60',s);self.assertIn('270*60',s);self.assertIn('35*60',s)
+  self.assertIn("'-j','2'",s);self.assertIn("self.phase('normal-all-complete',['all'],old,budget)",s);self.assertNotIn('Shared links must remain',s)
+  self.assertIn('remaining-30*60',s);self.assertIn('285*60',s);self.assertIn('self.optional_snapshot',s)
   self.assertIn("g.snapshot('stopped-completed-objects')",s);self.assertNotIn('continue-on-error',s)
  def test_workflow_is_bounded_manual_same_run_and_no_paid_runner(self):
   s=(e.gate.REPO/'.github/workflows/linux-webkit-build-research.yml').read_text()
@@ -31,8 +31,8 @@ class EngineContracts(unittest.TestCase):
  def test_same_job_normal_mode_does_not_claim_fresh_checkpoint_restore(self):
   s=(e.gate.REPO/'.github/workflows/linux-webkit-build-research.yml').read_text()
   j=s.split('\n  current-engine-normal:\n')[1]
-  self.assertNotIn('needs:',j);self.assertIn('run-id: 43864252208',j)
-  self.assertIn('--mode normal',j);self.assertNotIn('--mode resume',j)
+  self.assertNotIn('needs:',j);self.assertIn('run-id: 43890194973',j)
+  self.assertIn('--mode normal-resume',j);self.assertNotIn('--mode resume',j)
   self.assertIn("inputs.operation != 'current-engine-normal'",s)
   source=(e.HERE/'current_engine.py').read_text()
   self.assertIn("if self.engine_mode=='normal':self.complete_normal_build(selected)",source)
