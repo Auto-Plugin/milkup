@@ -5,7 +5,7 @@ on:
       operation:
         description: Cheap header/cache preflight or one explicitly approved continuation
         type: choice
-        options: [preflight, resume, pagination-preflight, pagination-diagnostic, pagination-segment, stock-paper-control, current-source-preflight, current-source-restore, current-object-segment]
+        options: [preflight, resume, pagination-preflight, pagination-diagnostic, pagination-segment, stock-paper-control, current-source-preflight, current-source-restore, current-object-segment, current-engine-continuation]
         default: preflight
         required: true
       links_research:
@@ -53,7 +53,7 @@ concurrency:
   cancel-in-progress: false
 jobs:
   capability:
-    if: github.repository == 'Auto-Plugin/milkup' && inputs.operation != 'pagination-preflight' && inputs.operation != 'pagination-diagnostic' && inputs.operation != 'pagination-segment' && inputs.operation != 'stock-paper-control' && inputs.operation != 'current-source-preflight' && inputs.operation != 'current-source-restore' && inputs.operation != 'current-object-segment'
+    if: github.repository == 'Auto-Plugin/milkup' && inputs.operation != 'pagination-preflight' && inputs.operation != 'pagination-diagnostic' && inputs.operation != 'pagination-segment' && inputs.operation != 'stock-paper-control' && inputs.operation != 'current-source-preflight' && inputs.operation != 'current-source-restore' && inputs.operation != 'current-object-segment' && inputs.operation != 'current-engine-continuation'
     runs-on: ubuntu-26.04
     timeout-minutes: ${{ inputs.operation == 'preflight' && 30 || inputs.geometry_research && 55 || 355 }}
     env:
@@ -635,3 +635,114 @@ jobs:
             !${{ runner.temp }}/milkup-current-source-gate/evidence/checkpoint/
           if-no-files-found: error
           retention-days: 7
+
+
+  current-webcore-frontier:
+    if: github.repository == 'Auto-Plugin/milkup' && inputs.operation == 'current-engine-continuation'
+    runs-on: ubuntu-26.04
+    timeout-minutes: 60
+    outputs:
+      checkpoint_sha256: ${{ steps.frontier.outputs.checkpoint_sha256 }}
+    steps:
+      - name: Start bounded frontier clock with retention reserve
+        run: echo "CURRENT_GATE_STARTED=$(date +%s)" >> "$GITHUB_ENV"
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - name: Validate all current workflow and checkpoint contracts
+        run: PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s research/pdf-delivery-20261116 -p 'test_current*.py' -v
+      - name: Receive exact previously verified 28-object checkpoint
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          name: milkup-current-segment-resumed-checkpoint-43864252208
+          run-id: 43864252208
+          github-token: ${{ github.token }}
+          path: ${{ runner.temp }}/current-engine-predecessor
+      - name: Restore predecessor and build real generated-PCH-WebCore frontier
+        id: frontier
+        timeout-minutes: 56
+        run: python3 research/pdf-delivery-20261116/current_engine.py run --root "$RUNNER_TEMP/milkup-current-source-gate" --started "$CURRENT_GATE_STARTED" --mode frontier --incoming "$RUNNER_TEMP/current-engine-predecessor/checkpoint.tar.gz"
+      - name: Retain verified representative frontier for the clean successor
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: milkup-current-webcore-frontier-${{ github.run_id }}
+          path: ${{ runner.temp }}/milkup-current-source-gate/evidence/checkpoints/frontier/
+          if-no-files-found: error
+          retention-days: 30
+      - name: Retain stopped completed objects without declaring success
+        if: failure()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: milkup-current-webcore-frontier-stopped-${{ github.run_id }}
+          path: ${{ runner.temp }}/milkup-current-source-gate/evidence/checkpoints/stopped-completed-objects/
+          if-no-files-found: warn
+          retention-days: 30
+      - name: Retain full frontier evidence on every terminal path
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: milkup-current-webcore-frontier-evidence-${{ github.run_id }}
+          path: |
+            ${{ runner.temp }}/milkup-current-source-gate/evidence/
+            !${{ runner.temp }}/milkup-current-source-gate/evidence/checkpoints/**/frontier.tar.gz
+          if-no-files-found: error
+          retention-days: 30
+
+  current-engine-continuation:
+    if: github.repository == 'Auto-Plugin/milkup' && inputs.operation == 'current-engine-continuation'
+    needs: current-webcore-frontier
+    runs-on: ubuntu-26.04
+    timeout-minutes: 355
+    steps:
+      - name: Start existing long-run allowance with archive and link reserve
+        run: echo "CURRENT_GATE_STARTED=$(date +%s)" >> "$GITHUB_ENV"
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - name: Validate all current workflow and checkpoint contracts
+        run: PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s research/pdf-delivery-20261116 -p 'test_current*.py' -v
+      - name: Receive the exact successful same-run WebCore frontier
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          name: milkup-current-webcore-frontier-${{ github.run_id }}
+          path: ${{ runner.temp }}/current-engine-frontier
+      - name: Prove PCH regeneration and old-object reuse before normal engine progress
+        timeout-minutes: 342
+        env:
+          FRONTIER_SHA: ${{ needs.current-webcore-frontier.outputs.checkpoint_sha256 }}
+        run: python3 research/pdf-delivery-20261116/current_engine.py run --root "$RUNNER_TEMP/milkup-current-source-gate" --started "$CURRENT_GATE_STARTED" --mode resume --incoming "$RUNNER_TEMP/current-engine-frontier/frontier.tar.gz" --expected-sha "$FRONTIER_SHA" --attempt-complete
+      - name: Choose the latest verified checkpoint without retrying work
+        id: retained
+        if: always()
+        run: |
+          python3 - <<'PY'
+          import hashlib,json,os,pathlib
+          root=pathlib.Path(os.environ['RUNNER_TEMP'])/'milkup-current-source-gate/evidence'
+          if (root/'result.json').is_file():
+              rows=json.loads((root/'result.json').read_text()).get('checkpoints',[])
+              if rows:
+                  row=rows[-1];folder=root/'checkpoints'/row['label'];archive=folder/'frontier.tar.gz'
+                  h=hashlib.sha256()
+                  with archive.open('rb') as src:
+                      while block:=src.read(1024**2):h.update(block)
+                  assert archive.stat().st_size==row['archiveBytes'] and h.hexdigest()==row['archiveSha256']
+                  with open(os.environ['GITHUB_OUTPUT'],'a') as out:out.write('directory='+str(folder)+'\n')
+          PY
+      - name: Preserve latest exact object and generated-input checkpoint
+        if: always() && steps.retained.outputs.directory != ''
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: milkup-current-engine-checkpoint-${{ github.run_id }}
+          path: ${{ steps.retained.outputs.directory }}/
+          if-no-files-found: error
+          retention-days: 30
+      - name: Preserve all stage receipts, maps, graph and resource evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: milkup-current-engine-evidence-${{ github.run_id }}
+          path: |
+            ${{ runner.temp }}/milkup-current-source-gate/evidence/
+            !${{ runner.temp }}/milkup-current-source-gate/evidence/checkpoints/**/frontier.tar.gz
+          if-no-files-found: error
+          retention-days: 30

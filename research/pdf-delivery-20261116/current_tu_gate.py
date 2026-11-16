@@ -120,6 +120,7 @@ def retain_configuration_stream(stream,destination,expected_bytes,part_limit=32*
  return receipt
 class Gate:
  def before_compilation(self):pass
+ def after_sdk(self):pass
  def after_compilation(self):pass
  def __init__(self,root,start):
   assert 0<=time.time()-start<=180,'Workflow start clock must be recent'
@@ -193,6 +194,7 @@ class Gate:
    actual=pathlib.Path(shutil.which(name)or'');assert actual.is_file()
    self.report.setdefault('tools',{})[name]={'path':str(actual),'resolved':str(actual.resolve()),'sha256':digest(actual.resolve())};self.persist()
    self.run('tool-'+name.replace('+','p'),[str(actual),'-V'if name=='unifdef'else'--version'],15)
+  self.after_sdk()
   # Download/extraction runs in a timed child so network/decompression cannot
   # outlive the same process-group deadline.
   self.run('official-source',['python3',str(HERE/'current_source_archive.py'),str(self.root/'source.tar.xz'),str(self.source)],180)

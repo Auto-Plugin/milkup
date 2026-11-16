@@ -79,7 +79,7 @@ class RestoreContract(unittest.TestCase):
    self.assertEqual(edges(graph),edges(snapshot));self.assertNotIn(': RERUN_CMAKE ',snapshot)
  def test_restore_workflow_is_manual_bounded_and_not_engine_build(self):
   workflow=(restore.gate.REPO/'.github/workflows/linux-webkit-build-research.yml').read_text()
-  job=workflow.split('\n  current-source-restore:\n')[1]
+  job=workflow.split('\n  current-source-restore:\n')[1].split('\n  current-segment-build:\n',1)[0]
   self.assertIn("inputs.operation != 'current-source-restore'",workflow)
   for value in ['timeout-minutes: 30','timeout-minutes: 27','if: always()',"-p 'test_current*.py'",'current_object_restore.py']:
    self.assertIn(value,job)
