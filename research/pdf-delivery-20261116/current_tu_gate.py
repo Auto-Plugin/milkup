@@ -1,0 +1,197 @@
+"""One bounded official-current-source/configure/actual-TU gate, never an engine build.
+No old cache restore, runtime install, application launch, or native acceptance.
+"""
+import argparse,hashlib,importlib.util,json,os,pathlib,re,shlex,shutil,signal,subprocess,tarfile,time,traceback,urllib.request
+import package_boundary as boundary
+HERE=pathlib.Path(__file__).resolve().parent;REPO=HERE.parents[1]
+SOURCE_SHA=boundary.SOURCE_SHA;PATCH_SHA='855e58cc8ad531cc32e893b8274983a6264e6fdfc248c13e80c5ef0e01d7a4e5'
+SOURCE_URL='https://webkitgtk.org/releases/webkitgtk-2.54.2.tar.xz'
+def module(path):
+ spec=importlib.util.spec_from_file_location('strict_object_contract',path);m=importlib.util.module_from_spec(spec);spec.loader.exec_module(m);return m
+contract=module(REPO/'scripts/ci/webkit-pagination-object-preflight.py')
+def digest(p):return hashlib.sha256(p.read_bytes()).hexdigest()
+def official_sources(text,read):
+ rows=[]
+ for stanza in re.split(r'\n\s*\n',text.strip()):
+  fields={k:v.strip()for k,v in re.findall(r'^([A-Za-z-]+):\s*(.*)$',stanza,re.M)}
+  if not fields:continue
+  assert fields.get('Signed-By')=='/usr/share/keyrings/ubuntu-archive-keyring.gpg'
+  assert fields.get('Suites') and all(x in ['resolute','resolute-updates','resolute-security','resolute-backports']for x in fields['Suites'].split())
+  official=lambda u:bool(re.fullmatch(r'https?://(?:[a-z0-9-]+\.)?(?:archive|security)\.ubuntu\.com/ubuntu/?',u))
+  uris=[]
+  for uri in fields['URIs'].split():
+   if uri.startswith('mirror+file:'):
+    path=uri.removeprefix('mirror+file:');assert path in ['/etc/apt/apt-mirrors.txt','/etc/apt/apt-security-mirrors.txt']
+    values=[l.split()[0]for l in read(path).splitlines()if l.strip()and not l.lstrip().startswith('#')]
+    values=[u for u in values if official(u)];assert values;uri=values[0]
+   assert official(uri);uris.append(uri)
+  assert uris
+  stanza=re.sub(r'^Types:.*$','Types: deb deb-src',stanza,flags=re.M)
+  rows.append(re.sub(r'^URIs:.*$','URIs: '+' '.join(uris),stanza,flags=re.M))
+ assert rows;return '\n\n'.join(rows)+'\n'
+def validate_apt_plan(text):
+ assert not re.search(r'^Remv ',text,re.M),'Dependency removal forbidden'
+ installs=re.findall(r'^Inst (\S+)',text,re.M)
+ assert not any(re.search('webkit|javascriptcore',p,re.I)for p in installs),'System runtime changes forbidden'
+ return installs
+
+def validate_config(cache,config,log,recipe,provided):
+ values=boundary.cache_values(cache)
+ # Unused command-line settings may look correct in cache. Reject the warning,
+ # and independently inspect actual exposed generated definitions.
+ assert 'Manually-specified variables were not used by the project'not in log,'Unconsumed CMake option'
+ for key,value in provided.items():assert values.get(key)==value,('Configure mismatch',key,values.get(key))
+ definitions={}
+ for key,value in [('ENABLE_2022_GLIB_API','0'),('ENABLE_DEVELOPER_MODE','0'),('ENABLE_BUBBLEWRAP_SANDBOX','1'),('HAVE_GTK_UNIX_PRINTING','1')]:
+  found=re.findall(r'^#define '+key+r'\s+(\S+)\s*$',config.read_text(),re.M)
+  assert found==[value],('Generated option mismatch',key,found);definitions[key]=value
+ assert re.findall(r'^#define WEBKITGTK_API_VERSION\s+"([^"]+)"',config.read_text(),re.M)==['4.1']
+ return {'definitions':definitions,'api':'4.1','configSha256':digest(config),'cacheSha256':digest(cache),'finalPrefix':recipe['prefix']}
+def selected_entries(commands,sources,source):
+ selected={}
+ for rel in sources:
+  found=[e for e in commands if contract.unit_contains(e,(source/rel).resolve())]
+  assert len(found)==1,('Unique actual TU',rel,len(found));selected[rel]=found[0]
+ targets={ (e.get('arguments')or shlex.split(e['command']))[(e.get('arguments')or shlex.split(e['command'])).index('-o')+1]for e in selected.values()}
+ assert 1<=len(targets)<=len(sources)==10,'Changed-source/TU budget'
+ return selected
+class Gate:
+ def __init__(self,root,start):
+  assert 0<=time.time()-start<=180,'Workflow start clock must be recent'
+  self.root=root;root.mkdir(parents=True,exist_ok=False);self.out=root/'evidence';self.out.mkdir();self.source=root/'source';self.build=root/'build';self.deadline=start+1560;self.start=start
+  self.report={'status':'running','scope':'configure/generated headers/selected actual TUs only','harnessSha':os.environ.get('GITHUB_SHA'),'sourceVersion':'2.54.2','sourceArchiveSha256':SOURCE_SHA,'patchSha256':PATCH_SHA,'engineBuildAttempted':False,'runtimeInstalled':False,'oldCacheRestored':False,'jobLimitSeconds':1800,'workLimitSeconds':1560,'steps':[],'objects':[]}
+  self.persist()
+ def persist(self):(self.out/'result.json').write_text(json.dumps(self.report,indent=2)+'\n')
+ def resource(self,label):
+  mem={k:v.strip()for k,v in (l.split(':',1)for l in pathlib.Path('/proc/meminfo').read_text().splitlines())}
+  row={'label':label,'seconds':round(time.time()-self.start,3),'freeBytes':shutil.disk_usage(self.root).free,'cpuCount':os.cpu_count(),'meminfo':mem,'image':os.environ.get('ImageVersion')}
+  for p in ['/sys/fs/cgroup/memory.max','/sys/fs/cgroup/cpu.max']:
+   if pathlib.Path(p).exists():row[p]=pathlib.Path(p).read_text().strip()
+  self.report.setdefault('resources',[]).append(row);self.persist()
+  assert row['freeBytes']>=8*1024**3,'8 GiB disk reserve required'
+  assert int(mem['MemAvailable'].split()[0])*1024>=2*1024**3,'2 GiB available memory reserve required'
+ def run(self,name,args,limit=180,cwd=None,env=None):
+  remain=self.deadline-time.time();assert remain>10,'Work deadline; evidence reserve retained'
+  limit=min(limit,remain);self.report['stage']=name;self.persist()
+  (self.out/(name+'-command.json')).write_text(json.dumps({'arguments':args,'cwd':str(cwd or self.root),'timeoutSeconds':limit},indent=2))
+  at=time.monotonic();timed=False
+  with (self.out/(name+'.log')).open('w')as log:
+   proc=subprocess.Popen(args,cwd=cwd or self.root,env=env,stdout=log,stderr=subprocess.STDOUT,start_new_session=True)
+   try:code=proc.wait(timeout=limit)
+   except subprocess.TimeoutExpired:
+    timed=True;os.killpg(proc.pid,signal.SIGTERM)
+    try:proc.wait(timeout=5)
+    except subprocess.TimeoutExpired:os.killpg(proc.pid,signal.SIGKILL);proc.wait()
+    code=proc.returncode
+  self.report['steps'].append({'name':name,'seconds':round(time.monotonic()-at,3),'exitCode':code,'timedOut':timed});self.persist()
+  assert not timed and code==0,name+' failed; original log retained'
+  p=self.out/(name+'.log');assert p.stat().st_size<64*1024**2,'Log budget exceeded'
+  return p.read_text()
+ def execute(self):
+  assert os.getuid()!=0 and os.environ.get('GITHUB_ACTIONS')=='true'
+  for name in ['WEBKIT_DISABLE_SANDBOX_THIS_IS_DANGEROUS','WEBKIT_EXEC_PATH','WEBKIT_INJECTED_BUNDLE_PATH','LD_LIBRARY_PATH','LD_PRELOAD']:
+   assert not os.environ.get(name),'Forbidden override present: '+name
+  assert digest(HERE/'normal-path-2.54.2.patch')==PATCH_SHA
+  self.resource('initial')
+  sources=official_sources(pathlib.Path('/etc/apt/sources.list.d/ubuntu.sources').read_text(),lambda p:pathlib.Path(p).read_text())
+  (self.root/'official.sources').write_text(sources);(self.out/'official.sources').write_text(sources)
+  for p in ['lists/partial','cache/archives/partial']:(self.root/p).mkdir(parents=True)
+  conf=self.root/'apt.conf';conf.write_text(f'Dir::Etc::sourcelist "{self.root}/official.sources";\nDir::Etc::sourceparts "-";\nDir::State::lists "{self.root}/lists";\nDir::Cache "{self.root}/cache";\nAcquire::Languages "none";\n')
+  self.run('apt-update',['apt-get','-c',str(conf),'update'],150)
+  metadata=self.run('dependency-source-metadata',['apt-cache','-c',str(conf),'showsrc','webkit2gtk'],30)
+  versions=sorted(set(re.findall(r'^Version: ([0-9A-Za-z.+:~\-]+)$',metadata,re.M)));assert versions
+  version=versions[0]
+  for v in versions[1:]:
+   if subprocess.run(['dpkg','--compare-versions',v,'gt',version]).returncode==0:version=v
+  self.report['dependencySourceVersion']=version;self.persist()
+  extra=['clang','cmake','ninja-build','ccache','libgtk-3-dev','libsoup-3.0-dev','libavif-dev','libmanette-0.2-dev','flite1-dev','libbacktrace-dev','libsysprof-capture-4-dev']
+  plans=[['build-dep','webkit2gtk='+version],['install',*extra]]
+  for i,plan in enumerate(plans):
+   text=self.run('dependencies-plan-'+str(i),['apt-get','-c',str(conf),'--simulate','--no-install-recommends','--no-remove',*plan],60)
+   self.report.setdefault('dependencyPlans',[]).append({'operation':plan,'installs':validate_apt_plan(text)});self.persist()
+  for i,plan in enumerate(plans):self.run('dependencies-install-'+str(i),['sudo','apt-get','-c',str(conf),'-y','--no-install-recommends','--no-remove',*plan],300)
+  self.run('installed-package-inventory',['dpkg-query','-W','-f=${binary:Package}\t${Version}\t${Architecture}\n'],30)
+  # Download/extraction runs in a timed child so network/decompression cannot
+  # outlive the same process-group deadline.
+  self.run('official-source',['python3',str(HERE/'current_source_archive.py'),str(self.root/'source.tar.xz'),str(self.source)],180)
+  self.run('patch-check',['git','apply','--check',str(HERE/'normal-path-2.54.2.patch')],30,self.source)
+  self.run('patch-apply',['git','apply',str(HERE/'normal-path-2.54.2.patch')],30,self.source)
+  lock=json.loads((HERE/'normal-path-2.54.2.json').read_text())
+  for rel,h in lock['outputs'].items():assert digest(self.source/rel)==h,('Patched source identity',rel)
+  self.report['patchedSourceHashes']=lock['outputs'];self.resource('source-and-dependencies-ready')
+  recipe=json.loads((HERE/'qa-final-path-profile.json').read_text());assert recipe==boundary.profile(PATCH_SHA)
+  options={**recipe['cmake'],'CMAKE_C_COMPILER':'/usr/bin/clang','CMAKE_CXX_COMPILER':'/usr/bin/clang++','CMAKE_C_COMPILER_LAUNCHER':'ccache','CMAKE_CXX_COMPILER_LAUNCHER':'ccache','CMAKE_EXPORT_COMPILE_COMMANDS':'ON','ENABLE_DOCUMENTATION':'OFF'}
+  # Distro hardening remains enabled. Reduce debug detail only; no LTO for this
+  # exact TU recipe. Record flags; a future package must use the same profile.
+  flag_env={**os.environ,'DEB_BUILD_MAINT_OPTIONS':'hardening=+all optimize=-lto'}
+  def flags(kind):return re.sub(r'(?<!\S)-g(?!\S)','-g1',subprocess.check_output(['dpkg-buildflags','--get',kind],env=flag_env,text=True).strip())
+  options.update(CMAKE_C_FLAGS_RELEASE='',CMAKE_CXX_FLAGS_RELEASE='',CMAKE_C_FLAGS=flags('CFLAGS')+' '+flags('CPPFLAGS'),CMAKE_CXX_FLAGS=flags('CXXFLAGS')+' '+flags('CPPFLAGS'),CMAKE_EXE_LINKER_FLAGS=flags('LDFLAGS'),CMAKE_SHARED_LINKER_FLAGS=flags('LDFLAGS'))
+  self.report['configureOptions']=options;self.persist()
+  log=self.run('configure',['cmake','-S',str(self.source),'-B',str(self.build),'-GNinja',*[f'-D{k}={v}'for k,v in options.items()]],300)
+  cache=self.build/'CMakeCache.txt';config=self.build/'cmakeconfig.h'
+  self.report['configuration']=validate_config(cache,config,log,recipe,options)
+  for file in ['CMakeCache.txt','cmakeconfig.h','compile_commands.json','build.ninja','CMakeFiles/rules.ninja']:
+   p=self.build/file;dest=self.out/'graph'/file;dest.parent.mkdir(parents=True,exist_ok=True);shutil.copyfile(p,dest)
+  self.run('compiler-version',['/usr/bin/clang++','--version'],15)
+  self.run('pkgconfig-dependencies',['pkg-config','--modversion','gtk+-3.0','gtk+-unix-print-3.0','libsoup-3.0','glib-2.0','harfbuzz','icu-uc'],15)
+  self.report['compilerSha256']=digest(pathlib.Path('/usr/bin/clang++').resolve())
+  self.run('manifest-refresh',['ninja','build.ninja'],60,self.build)
+  for file in ['compile_commands.json','build.ninja','CMakeFiles/rules.ninja']:
+   shutil.copyfile(self.build/file,self.out/'graph'/file)
+  commands=json.loads((self.build/'compile_commands.json').read_text());sources=[r for r in lock['outputs']if r.endswith('.cpp')]
+  selected=selected_entries(commands,sources,self.source);self.report['selectedUnits']=selected;self.report['compileDatabaseSha256']=digest(self.build/'compile_commands.json');self.persist()
+  available=self.run('ninja-targets',['ninja','-t','targets','all'],30,self.build);targets=set(l.rsplit(': ',1)[0]for l in available.splitlines())
+  headers=contract.HEADER_TARGETS+(['ANGLE-webgl-headers']if 'ANGLE-webgl-headers'in targets else[])
+  assert set(headers)<=targets
+  plan=self.run('header-plan',['ninja','-t','commands',*headers],45,self.build);self.report['headerPlanLines']=contract.validate_header_plan(plan);self.persist()
+  actual=self.run('generate-headers',['ninja','-v','-j','4',*headers],240,self.build)
+  self.report['headerExecution']=contract.validate_header_execution(actual,plan,self.build)
+  for name,target in zip(contract.NAME_INPUTS,contract.generated_webcore_headers(targets,self.build)):
+   graph=self.run(name+'-header-graph',['ninja','-t','commands',target],30,self.build)
+   cwd,cmd=contract.name_generator_command(graph,name,self.source,self.build);self.run(name+'-header-generate',cmd,30,cwd)
+  generated={str(p.relative_to(self.build)):digest(p)for p in self.build.rglob('*.h')if p.is_file()and not p.is_symlink()}
+  assert 0<len(generated)<20000
+  (self.out/'generated-header-sha256.json').write_text(json.dumps(generated,indent=2)+'\n')
+  self.resource('headers-ready')
+  invoked=set();fresh_cache=self.root/'unused-fresh-ccache';assert not fresh_cache.exists();fresh_cache.mkdir()
+  for rel,entry in selected.items():
+   args=entry.get('arguments')or shlex.split(entry['command']);target=args[args.index('-o')+1]
+   if target in invoked:continue
+   graph=self.run(pathlib.Path(rel).stem+'-graph',['ninja','-t','commands',target],30,self.build)
+   exact,cmd=contract.original_command(entry,graph,self.build);assert exact==target
+   unit=pathlib.Path(entry['file']);saved=self.out/'actual-units'/unit.name;saved.parent.mkdir(exist_ok=True);saved.write_bytes(unit.read_bytes())
+   invoked.add(target);output=(self.build/target).resolve();assert not output.exists();output.parent.mkdir(parents=True,exist_ok=True)
+   self.report['currentObject']={'source':rel,'target':target};self.persist()
+   self.run('compile-'+pathlib.Path(rel).stem,cmd,180,self.build,{**os.environ,'CCACHE_DISABLE':'1','CCACHE_DIR':str(fresh_cache)})
+   assert output.is_file()and output.stat().st_size>0
+   self.report['objects'].append({'target':target,'source':rel,'unit':entry['file'],'unitSha256':digest(pathlib.Path(entry['file'])),'bytes':output.stat().st_size,'sha256':digest(output),'command':cmd});self.persist();self.resource('object-complete')
+  assert len(invoked)==len(self.report['objects'])
+  self.report['status']='passed-actual-selected-TUs-not-engine-or-package';self.persist()
+ def retain(self):
+  # Only our successfully compiled objects and depfiles. No runtime, cache,
+  # credentials, source tree or arbitrary filesystem paths enter this archive.
+  rows=[];total=0
+  for obj in self.report['objects']:
+   for target in [obj['target'],obj['target']+'.d']:
+    p=self.build/target
+    if not p.is_file():continue
+    assert not p.is_symlink()and p.resolve().is_relative_to(self.build.resolve());size=p.stat().st_size
+    assert size<=256*1024**2;total+=size;assert total<=512*1024**2
+    rows.append({'path':target,'bytes':size,'sha256':digest(p)})
+  if rows:
+   archive=self.out/'selected-objects.tar.gz'
+   with tarfile.open(archive,'w:gz')as tar:
+    for row in rows:tar.add(self.build/row['path'],arcname=row['path'],recursive=False)
+   self.report['objectRetention']={'files':rows,'bytes':archive.stat().st_size,'sha256':digest(archive),'crossJobRestoreProven':False,'identity':{'sourceArchive':SOURCE_SHA,'patch':PATCH_SHA,'compiler':self.report.get('compilerSha256'),'compileDatabase':self.report.get('compileDatabaseSha256'),'configuration':self.report.get('configuration')}}
+  else:self.report['objectRetention']={'files':[],'reason':'No completed actual objects'}
+  self.report['elapsedSeconds']=round(time.time()-self.start,3);self.persist()
+def main():
+ p=argparse.ArgumentParser();p.add_argument('--root',type=pathlib.Path,required=True);p.add_argument('--started',type=float,required=True);a=p.parse_args();g=Gate(a.root.resolve(),a.started)
+ try:g.execute()
+ except Exception as e:g.report.update(status='failed',error=str(e),traceback=traceback.format_exc(limit=12));g.persist()
+ finally:
+  try:g.retain()
+  except Exception as e:g.report.update(status='failed',retentionError=repr(e));g.persist()
+ print(json.dumps({k:g.report.get(k)for k in ['status','stage','error','elapsedSeconds']},indent=2))
+ return 0 if g.report['status']=='passed-actual-selected-TUs-not-engine-or-package'else 1
+if __name__=='__main__':raise SystemExit(main())
