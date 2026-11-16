@@ -1,0 +1,72 @@
+{
+  "scope": "Static file intersections only; neither combined compile nor runtime proof",
+  "patches": [
+    {
+      "path": "research/linux-pdf-unicode-20261114/0002-research-only-scalar-source-to-skia.patch",
+      "sha256": "796a5576da425b6889f455f7d6c5954998f720024ee4f937f91d57cafa5ba2f0",
+      "changedFiles": [
+        "Source/WebCore/platform/graphics/Font.h",
+        "Source/WebCore/platform/graphics/FontCascade.cpp",
+        "Source/WebCore/platform/graphics/FontCascade.h",
+        "Source/WebCore/platform/graphics/GraphicsContext.cpp",
+        "Source/WebCore/platform/graphics/GraphicsContext.h",
+        "Source/WebCore/platform/graphics/ScalarGlyphText.h",
+        "Source/WebCore/platform/graphics/displaylists/DisplayListItems.cpp",
+        "Source/WebCore/platform/graphics/displaylists/DisplayListItems.h",
+        "Source/WebCore/platform/graphics/displaylists/DisplayListRecorderImpl.cpp",
+        "Source/WebCore/platform/graphics/displaylists/DisplayListRecorderImpl.h",
+        "Source/WebCore/platform/graphics/skia/FontSkia.cpp",
+        "Source/WebCore/platform/graphics/skia/GraphicsContextSkia.cpp",
+        "Source/WebCore/platform/graphics/skia/GraphicsContextSkia.h"
+      ]
+    },
+    {
+      "path": "research/linux-pdf-unicode-20261114/0003-register-scalar-private-header.patch",
+      "sha256": "7bf86791372a16b3f3b8748b1895d83130bdd26d0ed2065cf69626c3f49fcd73",
+      "changedFiles": [
+        "Source/WebCore/Headers.cmake"
+      ]
+    },
+    {
+      "path": "research/linux-pdf-links-20261114/0001-research-skia-uri-annotations.patch",
+      "sha256": "2f8c2824833ebc8b0b89a6ccef1e2cc7227ab7a0d2e250486ff6f97854c9ec90",
+      "changedFiles": [
+        "Source/WebCore/platform/graphics/skia/GraphicsContextSkia.cpp",
+        "Source/WebCore/platform/graphics/skia/GraphicsContextSkia.h"
+      ]
+    },
+    {
+      "path": "research/linux-pdf-links-20261114/0002-research-fragment-uri-regions.patch",
+      "sha256": "a73c5a8417dc183e4c922645cab767554bd92bb290f61b5fe0c57c14c2dbc7ba",
+      "changedFiles": [
+        "Source/WebCore/rendering/OutlinePainter.cpp"
+      ]
+    },
+    {
+      "path": "research/pdf-pagination-behavior-20261116/candidate.patch",
+      "sha256": "660f13b8e61ed2e6af4a1bec7602e08755b4deb685e4af9d6c639053286f210f",
+      "changedFiles": [
+        "Source/WebCore/rendering/FragmentKeepPolicy.h",
+        "Source/WebCore/rendering/RenderBlockFlow.cpp",
+        "Source/WebCore/rendering/RenderTable.cpp",
+        "Source/WebCore/rendering/RenderTable.h",
+        "Source/WebCore/rendering/RenderTableSection.cpp"
+      ]
+    },
+    {
+      "path": "research/pdf-pagination-behavior-20261116/tail-observation.patch",
+      "sha256": "b8f8b952215bb0f7a626aeea9a9900c6bc43fd998b2770f6357119e2136d27f5",
+      "changedFiles": [
+        "Source/WebCore/page/PrintContext.cpp",
+        "Source/WebCore/rendering/MilkupTailResearch.h",
+        "Source/WebCore/rendering/RenderBlockFlow.cpp"
+      ]
+    }
+  ],
+  "directBehaviorOverlaps": {
+    "research/linux-pdf-unicode-20261114/0002-research-only-scalar-source-to-skia.patch": [],
+    "research/linux-pdf-unicode-20261114/0003-register-scalar-private-header.patch": [],
+    "research/linux-pdf-links-20261114/0001-research-skia-uri-annotations.patch": [],
+    "research/linux-pdf-links-20261114/0002-research-fragment-uri-regions.patch": []
+  }
+}
