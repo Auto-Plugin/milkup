@@ -107,3 +107,39 @@ not used in CI. An initial invocation without that fixture failed, and is not
 reported as a product/build failure. Local disk capacity remains a blocker to any
 engine build. No unique evidence was discarded; historical watch logs were briefly
 losslessly archived, then fully restored to their original paths.
+
+### Sole corrected run (not a build conclusion)
+
+Candidate `9dbb2062faa983185b993f8b8f7681ee769a70f6`, correct LarryZhu-dev author and
+committer. Both repository-wide running and queued lists were empty immediately
+before manual dispatch. The sole successor is
+https://github.com/Auto-Plugin/milkup/actions/runs/43890194973 .
+`current-engine-normal` job 133379004159 started 2026-11-16 14:51:39 UTC.
+Hard job deadline: **2026-11-16 20:46:39 UTC** (355 minutes); internal work ceiling
+340 minutes from the recorded initial clock, with per-stage link/archive reserves.
+The old separate frontier/continuation jobs are skipped for this operation.
+At the first status check, checkout was running; no native result existed yet.
+No second run or automatic retry was scheduled.
+
+The old duplicate `43856901779/original.zip` has now been fully restored from Git,
+byte-verified (11,169,620 bytes, SHA-256
+`40da8ac78420694aeee990ddf8395c7fb96ac9697c62fc6d2da6e40347f734c1`), and its
+skip-worktree flag cleared. The earlier conservative free-space check blocked
+restoration, but an actual write succeeded. Thus the temporary omission and
+memory fixture described above are no longer present in the working tree.
+Only reproducible SDK download/extraction from this task was removed; original
+historical watch logs are again present unchanged, with a verified lossless
+additional copy in `/tmp/milkup-historical-watch-logs-lossless-20261116.tar.gz`.
+No source, unique evidence or user data was deleted.
+
+#94 source review and explicit unexecuted ride-along row are documented in
+`issue-255/ISSUE-94-BOUNDARY.md`. Current v2 has no identified supported interface
+language control; the test must not manufacture a switch through storage/DOM.
+#255 still awaits native installed execution. Neither daily case is run by this
+engine-only job, and neither is counted toward native release acceptance.
+
+After restoring the real ZIP, all 37 current-workflow contracts were rerun without
+any fixture substitution: 34 passed, three local-Ninja cases explicitly skipped.
+The exact log is `evidence/43873062633/local-corrected-current-contracts.log.gz`.
+The new real-linker frontier tests had already passed before the temporary SDK
+was removed (six passed, one real-Clang-only skip).
