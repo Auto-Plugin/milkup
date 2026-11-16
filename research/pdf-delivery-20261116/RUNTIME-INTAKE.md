@@ -69,3 +69,20 @@ local /tmp copies are ephemeral. Do not claim persistent Library preservation.
 
 No production settings, main, notification settings, security policy or release
 were changed. The default original native PDF/print output contract remains.
+
+## Subsequent evidence preparation (same engine, no rebuild)
+
+The pinned official source was rehashed and 64 original LICENSE/COPYING/NOTICE
+files were retained losslessly (400,428 raw bytes). The notice archive and full
+per-file hashes are under `evidence/43921562333-intake`. This is a conservative
+source corpus, not a complete linked-code SBOM or a reviewed license conclusion.
+The actual compile DB also exposes nested ANGLE xxhash/zlib and Skia skcms, so
+listing only WebKit/JSC/Skia would be incomplete. There are 874 generated
+UnifiedSource entries whose expanded constituent/header provenance must be
+covered before the complete-build-derived SBOM claim is made.
+
+Unique native-host preflight: [43947952662](https://github.com/Auto-Plugin/milkup/actions/runs/43947952662),
+QA SHA `1f9d9ef67e82618d1c15dc5d4fd6b57eba91d78b`, job 133582501183,
+started 2026-11-16 20:15:54 UTC; hard deadline 20:35:54 UTC. Do not re-dispatch.
+At recording time archive intake is passed and official host closure is running.
+This note is not the final run result.
