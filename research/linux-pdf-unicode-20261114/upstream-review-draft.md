@@ -90,3 +90,19 @@ complex-text fidelity, physical printing or production delivery has passed.
 It must be followed by those relevant native candidate checks after a supported
 system runtime is available. It does not use the old deliberately-failing
 baseline assertion as an acceptance criterion.
+
+## Read-only reference check, 2026-11-16
+
+- [WebKit issue 302265](https://bugs.webkit.org/show_bug.cgi?id=302265)
+  is an existing NEW issue about missing clickable link annotations in GTK PDF
+  printing. It is a natural review target for the URI portion of this local
+  draft, separate from text mapping and pagination. No comment, attachment,
+  issue or PR was sent. Its existence/status is not proof of an accepted fix.
+- [Debian trixie libwebkit2gtk-4.1-0](https://packages.debian.org/trixie/libwebkit2gtk-4.1-0)
+  lists security version 2.54.0-1~deb13u3 for amd64 (other architectures may
+  differ). This is only a potential future stock-runtime comparison if an
+  already compatible isolated guest is available. No package was installed or
+  fetched for execution, no new job was dispatched, and Ubuntu support/output
+  targets remain unchanged. The version does not prove any of these PDF fixes
+  or native acceptance. These references do not change the active pagination
+  probe's source, budgets, thresholds or original failure controls.
