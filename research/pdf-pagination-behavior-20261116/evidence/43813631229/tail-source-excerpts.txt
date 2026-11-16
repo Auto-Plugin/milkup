@@ -1,26 +1,27 @@
+Line-numbered source excerpts; trailing whitespace removed for display. Original source-file hashes are retained below.
 FILE page/PrintContext.cpp sha256=938541c51de207aa15b45133d341c40cba36f4a912e1be48c38bca9418eb0d3e
 144: void PrintContext::computePageRectsWithPageSizeInternal(const FloatSize& pageSizeInPixels, bool allowInlineDirectionTiling)
 145: {
 146:     if (!frame())
 147:         return;
-148: 
+148:
 149:     auto& frame = *this->frame();
 150:     if (!frame.document() || !frame.view() || !frame.document()->renderView())
 151:         return;
-152: 
+152:
 153:     RenderView* view = frame.document()->renderView();
-154: 
+154:
 155:     IntRect docRect = view->documentRect();
-156: 
+156:
 157:     int pageWidth = pageSizeInPixels.width();
 158:     int pageHeight = pageSizeInPixels.height();
-159: 
+159:
 160:     bool isHorizontal = view->writingMode().isHorizontal();
-161: 
+161:
 162:     int docLogicalHeight = isHorizontal ? docRect.height() : docRect.width();
 163:     int pageLogicalHeight = isHorizontal ? pageHeight : pageWidth;
 164:     int pageLogicalWidth = isHorizontal ? pageWidth : pageHeight;
-165: 
+165:
 166:     int inlineDirectionStart;
 167:     int inlineDirectionEnd;
 168:     int blockDirectionStart;
@@ -46,11 +47,11 @@ FILE page/PrintContext.cpp sha256=938541c51de207aa15b45133d341c40cba36f4a912e1be
 188:         inlineDirectionStart = view->writingMode().isInlineTopToBottom() ? docRect.y() : docRect.maxY();
 189:         inlineDirectionEnd = view->writingMode().isInlineTopToBottom() ? docRect.maxY() : docRect.y();
 190:     }
-191: 
+191:
 192:     unsigned pageCount = ceilf((float)docLogicalHeight / pageLogicalHeight);
 193:     for (unsigned i = 0; i < pageCount; ++i) {
 194:         int pageLogicalTop = blockDirectionEnd > blockDirectionStart ?
-195:                                 blockDirectionStart + i * pageLogicalHeight : 
+195:                                 blockDirectionStart + i * pageLogicalHeight :
 196:                                 blockDirectionStart - (i + 1) * pageLogicalHeight;
 197:         if (allowInlineDirectionTiling) {
 198:             for (int currentInlinePosition = inlineDirectionStart;
@@ -70,7 +71,7 @@ FILE page/PrintContext.cpp sha256=938541c51de207aa15b45133d341c40cba36f4a912e1be
 212:             m_pageRects.append(pageRect);
 213:         }
 214:     }
-215: 
+215:
 216:     RELEASE_LOG(Printing, "Computed page rects with page size. Page rects count = %zu pageCount = %u", m_pageRects.size(), pageCount);
 FILE rendering/RenderView.cpp sha256=2c4a7f8581d4a4fe1db622a4674eb722ea649e10c5d1095b4ec9a86c7c47953b
 694: IntRect RenderView::unscaledDocumentRect() const
@@ -79,7 +80,7 @@ FILE rendering/RenderView.cpp sha256=2c4a7f8581d4a4fe1db622a4674eb722ea649e10c5d
 697:     flipForWritingMode(overflowRect);
 698:     return snappedIntRect(overflowRect);
 699: }
-700: 
+700:
 779: IntRect RenderView::documentRect() const
 780: {
 781:     FloatRect overflowRect(unscaledDocumentRect());
@@ -97,34 +98,34 @@ FILE rendering/RenderBlockFlow.cpp sha256=28145fb7d63158208582e341a0b023037ac16c
 1607:         logicalTop = std::min(logicalTop, nextPageLogicalTop(beforeCollapseLogicalTop));
 1608:         setLogicalHeight(logicalHeight() + (logicalTop - oldLogicalTop));
 1609:     }
-1610: 
+1610:
 1611:     return logicalTop;
 1612: }
 1810: LayoutUnit RenderBlockFlow::handleAfterSideOfBlock(MarginInfo& marginInfo, LayoutUnit contentBoxLogicalHeight)
 1811: {
 1812:     marginInfo.setAtAfterSideOfBlock(true);
-1813: 
+1813:
 1814:     // If our last child was a self-collapsing block with clearance then our logical height is flush with the
 1815:     // bottom edge of the float that the child clears. The correct vertical position for the margin-collapsing we want
 1816:     // to perform now is at the child's margin-top - so adjust our height to that position.
 1817:     auto borderBoxLogicalHeight = borderAndPaddingBefore() + contentBoxLogicalHeight;
 1818:     if (auto selfCollapsingMarginBeforeWithClear = this->selfCollapsingMarginBeforeWithClear(lastChild()))
 1819:         borderBoxLogicalHeight -= *selfCollapsingMarginBeforeWithClear;
-1820: 
+1820:
 1821:     // If we can't collapse with children then add in the bottom margin.
 1822:     if (!marginInfo.canCollapseWithMarginAfter() && !marginInfo.canCollapseWithMarginBefore()
 1823:         && (!document().inQuirksMode() || !marginInfo.quirkContainer() || !marginInfo.hasMarginAfterQuirk())) {
 1824:         borderBoxLogicalHeight += marginInfo.margin();
 1825:     }
-1826: 
+1826:
 1827:     // Now add in our bottom border/padding.
 1828:     borderBoxLogicalHeight += borderAndPaddingAfter() + scrollbarLogicalHeight();
-1829: 
+1829:
 1830:     // Negative margins can cause our height to shrink below our minimal height (border/padding).
 1831:     // If this happens, ensure that the computed height is increased to the minimal height.
 1832:     borderBoxLogicalHeight = std::max(borderBoxLogicalHeight, borderAndPaddingLogicalHeight() + scrollbarLogicalHeight());
-1833: 
+1833:
 1834:     // Update our bottom collapsed margin info.
 1835:     setCollapsedBottomMargin(marginInfo);
-1836: 
+1836:
 1837:     return borderBoxLogicalHeight;
