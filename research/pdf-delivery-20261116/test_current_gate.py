@@ -28,6 +28,14 @@ class CurrentGate(unittest.TestCase):
    build=pathlib.Path(next(iter(report['selectedUnits'].values()))['directory'])
    pch=gate.selected_pch_entries(commands,report['selectedUnits'],build)
    self.assertEqual(len(pch),2)
+   graph=z.read('graph/build.ninja').decode();rows=gate.pch_input_contract(graph,pch,build)
+   self.assertEqual(len(rows),2);self.assertTrue(all(not r['orderOnlyExecuted']for r in rows))
+   broken=graph.replace(' | Source/WebCore/CMakeFiles/WebCore.dir/cmake_pch.hxx ||',' | unexpected-generated.h ||')
+   with self.assertRaises(AssertionError):gate.pch_input_contract(broken,pch,build)
+   generated=json.loads(z.read('generated-header-sha256.json'))
+   for name in gate.PCH_GENERATED_HEADERS:self.assertIn('WebCore/DerivedSources/'+name,generated)
+   prefix=(HERE/'pch-audit/Source/WebCore/WebCorePrefix.h').read_text()
+   for name in gate.PCH_GENERATED_HEADERS:self.assertIn('#include \"'+name+'\"',prefix)
    self.assertEqual({pathlib.Path(e['file']).parent.name for e in pch},{'WebCore.dir','WebCoreStyle.dir'})
    webcore=next(e for e in pch if '/WebCore.dir/'in e['file'])
    target,args=gate.contract.original_command(webcore,z.read('FontCascade-graph.log').decode(),build)
@@ -54,6 +62,20 @@ class CurrentGate(unittest.TestCase):
    g=gate.Gate(root/'gate',time.time());g.build.mkdir();(g.build/'CMakeCache.txt').write_text('partial')
    g.report.update(status='failed',error='original compiler error');g.retain()
    self.assertEqual(g.report['status'],'failed');self.assertEqual(g.report['error'],'original compiler error');self.assertEqual(g.report['objectRetention']['files'],[])
+ def test_independent_compiler_errors_collect_but_signal_and_resource_failures_stop(self):
+  with tempfile.TemporaryDirectory()as t:
+   g=gate.Gate(pathlib.Path(t)/'gate',time.time());g.build.mkdir()
+   with mock.patch.object(g,'resource'):
+    self.assertFalse(g.compile_attempt('first',['/bin/sh','-c','printf "error: first translation unit\\n"; exit 1'],os.environ.copy()))
+    self.assertTrue(g.compile_attempt('second',['/bin/sh','-c','printf "independent success\\n"'],os.environ.copy()))
+    self.assertEqual(len(g.report['compileFailures']),1)
+    with self.assertRaisesRegex(AssertionError,'Nonordinary'):g.compile_attempt('abnormal',['/bin/sh','-c','exit 3'],os.environ.copy())
+   with mock.patch.object(g,'resource',side_effect=AssertionError('resource reserve')):
+    with self.assertRaisesRegex(AssertionError,'resource reserve'):g.compile_attempt('resource',['/bin/sh','-c','printf "error: ordinary\\n"; exit 1'],os.environ.copy())
+   with mock.patch.object(g,'run',side_effect=AssertionError('deadline')):
+    with self.assertRaisesRegex(AssertionError,'deadline'):g.compile_attempt('deadline',[],os.environ.copy())
+   g.report.update(status='failed',error='Selected compilations failed');g.retain()
+   self.assertEqual(g.report['status'],'failed');self.assertEqual(g.report['steps'][0]['exitCode'],1);self.assertEqual(g.report['steps'][1]['exitCode'],0)
  def test_official_sources_and_wrong_origin(self):
   text='Types: deb\nURIs: mirror+file:/etc/apt/apt-mirrors.txt\nSuites: resolute resolute-updates\nComponents: main universe\nSigned-By: /usr/share/keyrings/ubuntu-archive-keyring.gpg\n'
   good=gate.official_sources(text,lambda p:'https://untrusted.invalid/ubuntu\nhttp://archive.ubuntu.com/ubuntu/\n')

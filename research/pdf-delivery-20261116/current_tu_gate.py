@@ -84,6 +84,20 @@ def selected_pch_entries(commands,selected,build):
   assert '-emit-pch'in a and a[a.index('-x')+1]=='c++-header'and '-include-pch'not in a,'PCH must be a leaf header compilation'
   result.append(entry)
  return result
+def pch_input_contract(graph,entries,build):
+ rows=[]
+ for entry in entries:
+  a=entry.get('arguments')or shlex.split(entry['command']);target=a[a.index('-o')+1]
+  matches=[line for line in graph.splitlines()if line.startswith('build '+target+': ')]
+  assert len(matches)==1,'Unique PCH edge required'
+  edge=matches[0].split(': ',1)[1].split()
+  assert edge[0].startswith('CXX_COMPILER__')and edge.count('|')==edge.count('||')==1
+  explicit=edge[1:edge.index('|')];implicit=edge[edge.index('|')+1:edge.index('||')];order=edge[edge.index('||')+1:]
+  assert explicit==[entry['file']]and implicit==[target.removesuffix('.pch')]
+  assert len(order)==1 and order[0].startswith('cmake_object_order_depends_target_WebCore')
+  rows.append({'target':target,'explicit':explicit,'implicit':implicit,'orderOnly':order,'orderOnlyExecuted':False})
+ return rows
+PCH_GENERATED_HEADERS=['CSSPropertyNames.h','CSSValueKeywords.h','EventInterfaces.h','EventTargetInterfaces.h','FrameTreeSyncData.h','HTMLElementTypeHelpers.h','HTMLNames.h','HTTPHeaderNames.h','Settings.h','StyleComputedStyleProperties.h','WebKitFontFamilyNames.h']
 def retain_configuration_stream(stream,destination,expected_bytes,part_limit=32*1024**2,total_limit=128*1024**2):
  # Same 32 MiB per-part bound, lossless split for real larger Ninja/compile DB.
  # The manifest is reconstructible with exact order, sizes and SHA-256, not a
@@ -119,7 +133,7 @@ class Gate:
   self.report.setdefault('resources',[]).append(row);self.persist()
   assert row['freeBytes']>=8*1024**3,'8 GiB disk reserve required'
   assert int(mem['MemAvailable'].split()[0])*1024>=2*1024**3,'2 GiB available memory reserve required'
- def run(self,name,args,limit=180,cwd=None,env=None):
+ def run(self,name,args,limit=180,cwd=None,env=None,allow_nonzero=False):
   remain=self.deadline-time.time();assert remain>10,'Work deadline; evidence reserve retained'
   limit=min(limit,remain);self.report['stage']=name;self.persist()
   (self.out/(name+'-command.json')).write_text(json.dumps({'arguments':args,'cwd':str(cwd or self.root),'timeoutSeconds':limit},indent=2))
@@ -133,9 +147,18 @@ class Gate:
     except subprocess.TimeoutExpired:os.killpg(proc.pid,signal.SIGKILL);proc.wait()
     code=proc.returncode
   self.report['steps'].append({'name':name,'seconds':round(time.monotonic()-at,3),'exitCode':code,'timedOut':timed});self.persist()
-  assert not timed and code==0,name+' failed; original log retained'
+  assert not timed and (code==0 or allow_nonzero),name+' failed; original log retained'
   p=self.out/(name+'.log');assert p.stat().st_size<64*1024**2,'Log budget exceeded'
   return p.read_text()
+ def compile_attempt(self,name,cmd,env):
+  log=self.run(name,cmd,180,self.build,env,allow_nonzero=True);step=self.report['steps'][-1]
+  if step['exitCode']==0:return True
+  # Only an ordinary, diagnosed compiler exit can be collected and continued.
+  # Timeouts, killed processes, unknown exits and resource failures stop work.
+  clean=re.sub(r'\x1b\[[0-9;]*m','',log)
+  assert step['exitCode']==1 and 'error:'in clean,'Nonordinary compiler failure; stop'
+  self.report.setdefault('compileFailures',[]).append({'stage':name,'exitCode':step['exitCode'],'log':name+'.log'})
+  self.persist();self.resource('compiler-error-collected');return False
  def execute(self):
   assert os.getuid()!=0 and os.environ.get('GITHUB_ACTIONS')=='true'
   for name in ['WEBKIT_DISABLE_SANDBOX_THIS_IS_DANGEROUS','WEBKIT_EXEC_PATH','WEBKIT_INJECTED_BUNDLE_PATH','LD_LIBRARY_PATH','LD_PRELOAD']:
@@ -208,6 +231,14 @@ class Gate:
   self.resource('headers-ready')
   invoked=set();fresh_cache=self.root/'unused-fresh-ccache';assert not fresh_cache.exists();fresh_cache.mkdir()
   pch_entries=selected_pch_entries(commands,selected,self.build);self.report['selectedPchEntries']=pch_entries;self.report['precompiledHeaders']=[];self.persist()
+  self.report['pchInputs']=pch_input_contract((self.build/'build.ninja').read_text(),pch_entries,self.build)
+  pch_lock=json.loads((HERE/'pch-audit/source-lock.json').read_text())
+  for rel,h in pch_lock['files'].items():assert digest(self.source/rel)==h,('PCH source preimage',rel)
+  self.report['pchGeneratedInputs']={}
+  for name in PCH_GENERATED_HEADERS:
+   p=self.build/'WebCore/DerivedSources'/name;assert p.is_file(),('PCH generated input missing',name)
+   self.report['pchGeneratedInputs'][name]=digest(p)
+  self.persist();failed_pch=set()
   for index,entry in enumerate(pch_entries):
    args=entry.get('arguments')or shlex.split(entry['command']);target=args[args.index('-o')+1]
    graph=self.run(f'pch-{index}-graph',['ninja','-t','commands',target],30,self.build)
@@ -217,21 +248,25 @@ class Gate:
    for input_path in [pathlib.Path(entry['file']),output.with_suffix('')]:
     assert input_path.is_file()and input_path.stat().st_size<1024**2
     rel=input_path.relative_to(self.build);saved=self.out/'pch-inputs'/rel;saved.parent.mkdir(parents=True,exist_ok=True);shutil.copyfile(input_path,saved);inputs[str(rel)]=digest(input_path)
-   self.run(f'compile-pch-{index}',cmd,180,self.build,{**os.environ,'CCACHE_DISABLE':'1','CCACHE_DIR':str(fresh_cache)})
+   if not self.compile_attempt(f'compile-pch-{index}',cmd,{**os.environ,'CCACHE_DISABLE':'1','CCACHE_DIR':str(fresh_cache)}):
+    failed_pch.add(str(output));continue
    assert output.is_file()and output.stat().st_size>0
    self.report['precompiledHeaders'].append({'target':target,'bytes':output.stat().st_size,'sha256':digest(output),'command':cmd,'inputHashes':inputs,'binaryRetained':False});self.persist();self.resource('pch-complete')
   for rel,entry in selected.items():
    args=entry.get('arguments')or shlex.split(entry['command']);target=args[args.index('-o')+1]
    if target in invoked:continue
+   dependencies=[args[i+2]for i,value in enumerate(args)if value=='-include-pch']
+   if any(p in failed_pch for p in dependencies):
+    self.report.setdefault('skippedUnits',[]).append({'source':rel,'target':target,'reason':'Required PCH compilation failed'});self.persist();continue
    graph=self.run(pathlib.Path(rel).stem+'-graph',['ninja','-t','commands',target],30,self.build)
    exact,cmd=contract.original_command(entry,graph,self.build);assert exact==target
    unit=pathlib.Path(entry['file']);saved=self.out/'actual-units'/unit.name;saved.parent.mkdir(exist_ok=True);saved.write_bytes(unit.read_bytes())
    invoked.add(target);output=(self.build/target).resolve();assert not output.exists();output.parent.mkdir(parents=True,exist_ok=True)
    self.report['currentObject']={'source':rel,'target':target};self.persist()
-   self.run('compile-'+pathlib.Path(rel).stem,cmd,180,self.build,{**os.environ,'CCACHE_DISABLE':'1','CCACHE_DIR':str(fresh_cache)})
+   if not self.compile_attempt('compile-'+pathlib.Path(rel).stem,cmd,{**os.environ,'CCACHE_DISABLE':'1','CCACHE_DIR':str(fresh_cache)}):continue
    assert output.is_file()and output.stat().st_size>0
    self.report['objects'].append({'target':target,'source':rel,'unit':entry['file'],'unitSha256':digest(pathlib.Path(entry['file'])),'bytes':output.stat().st_size,'sha256':digest(output),'command':cmd});self.persist();self.resource('object-complete')
-  assert len(invoked)==len(self.report['objects'])
+  assert not self.report.get('compileFailures')and not self.report.get('skippedUnits')and len(invoked)==len(self.report['objects']),'Selected compilations failed; independent results retained'
   self.report['status']='passed-actual-selected-TUs-not-engine-or-package';self.persist()
  def retain(self):
   # Only our successfully compiled objects and depfiles. No runtime, cache,
