@@ -18,7 +18,18 @@ def canonical(v):return hashlib.sha256(json.dumps(v,sort_keys=True,separators=('
 def identity(evidence):
  p=json.loads((evidence/'pagination-build-result.json').read_text());g=json.loads((evidence/'pagination-object-gate/result.json').read_text())
  assert p['status']=='passed-four-tu-only-not-native'and g['status']=='passed'
- return {'sourceArchives':canonical(p['cacheReceipt']['archives']),'observationPatch':p['patchSha256'],'compiler':p['compilerSha256'],'configureArgs':canonical(p['configureArgs']),'compileDatabase':g['compileDatabaseSha256'],'generatedHeaders':digest(evidence/'pagination-object-gate/generated-header-sha256.json')}
+ return {'sourceArchives':canonical(p['cacheReceipt']['archives']),'observationPatch':p['patchSha256'],'compiler':p['compilerSha256'],'configureArgs':canonical(p['configureArgs']),'compileDatabase':g['compileDatabaseSha256'],'generatedHeaders':canonical(json.loads((evidence/'pagination-object-gate/generated-header-sha256.json').read_text()))}
+
+def incoming_identity(current,evidence,run):
+ if run!='43794564331':return current
+ # This one retained bundle used JSON byte order, not the header map's content.
+ # Preserve its exact key only after complete path/hash equality is established.
+ old=ROOT/'research/pdf-pagination-mechanism-20261116/evidence/43794564331/generated-header-sha256.json'
+ old_hash=digest(old);assert old_hash=='7d21511ce14465a4f88f16e1ee4a5c050a5a718d22839a526ead60cb719a9b4c'
+ actual=json.loads((evidence/'pagination-object-gate/generated-header-sha256.json').read_text())
+ assert actual==json.loads(old.read_text()),'Legacy header inventory differs'
+ assert canonical(actual)==current['generatedHeaders']
+ return {**current,'generatedHeaders':old_hash}
 
 def regular(p):
  assert not p.is_symlink()and p.is_file()and p.stat().st_nlink==1,'Only owned regular cache entries'

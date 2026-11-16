@@ -13,13 +13,15 @@ try:
   bundle=pathlib.Path(os.environ['RUNNER_TEMP'])/'pagination-incoming-objects'
   snapshot=json.loads((bundle/'receipt.json').read_text())
  else:snapshot=m.capture(pathlib.Path(os.environ['CCACHE_DIR']),bundle,i,budget=300)
- for field in i:
-  bad={**i,field:'0'*64}
+ restore_identity=m.incoming_identity(i,evidence,incoming)
+ for field in restore_identity:
+  bad={**restore_identity,field:'0'*64}
   try:m.restore(bundle,root/'must-not-restore',bad)
   except AssertionError:pass
   else:raise AssertionError('Changed identity accepted: '+field)
   assert not(root/'must-not-restore').exists()
- m.restore(bundle,restored,i)
+ m.restore(bundle,restored,restore_identity)
+ report.update(incomingRun=incoming or None,restoredIdentity=restore_identity,canonicalIdentity=i)
  report['snapshot']={k:v for k,v in snapshot.items()if k!='entries'}
  for name in ['Allocator','Cache']:
   (build/f'Source/bmalloc/CMakeFiles/bmalloc.dir/bmalloc/{name}.cpp.o').unlink()

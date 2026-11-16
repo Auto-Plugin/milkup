@@ -22,6 +22,16 @@ class Transfer(unittest.TestCase):
   for field in self.identity:
    with self.assertRaises(AssertionError):m.restore(self.bundle,self.restored,{**self.identity,field:'0'*64})
    self.assertFalse(self.restored.exists())
+ def test_legacy_inventory_bridge_requires_every_header_hash(self):
+  old=m.ROOT/'research/pdf-pagination-mechanism-20261116/evidence/43794564331/generated-header-sha256.json'
+  data=json.loads(old.read_text());evidence=self.root/'evidence';p=evidence/'pagination-object-gate/generated-header-sha256.json';p.parent.mkdir(parents=True)
+  p.write_text(json.dumps(dict(reversed(list(data.items())))))
+  current={**self.identity,'generatedHeaders':m.canonical(data)}
+  restored=m.incoming_identity(current,evidence,'43794564331')
+  self.assertEqual(restored['generatedHeaders'],m.digest(old))
+  self.assertNotEqual(m.digest(p),m.digest(old))
+  data[next(iter(data))]='0'*64;p.write_text(json.dumps(data))
+  with self.assertRaises(AssertionError):m.incoming_identity({**current,'generatedHeaders':m.canonical(data)},evidence,'43794564331')
  def test_truncated_entry_rejected(self):
   self.capture();(self.bundle/'a/b/knownR').write_bytes(b'truncated')
   with self.assertRaises(AssertionError):m.restore(self.bundle,self.restored,self.identity)

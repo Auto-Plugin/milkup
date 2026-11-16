@@ -10,6 +10,8 @@ segment=os.environ.get('PAGINATION_OPERATION')=='pagination-segment'
 if segment:
  elapsed=time.time()-int(os.environ['PAGINATION_START_EPOCH'])
  report.update(maxSeconds=min(5400,10800-elapsed-3600),maxNewCacheMisses=1024,acceptanceAndRetentionReserveSeconds=3600)
+ if os.environ.get('PAGINATION_RESTORE_RUN'):
+  report.update(maxSeconds=min(1200,report['maxSeconds']),maxNewCacheMisses=64,scope='One exact saved-object restoration, no cold rebuild fallback')
 def persist():(evidence/'pagination-continuation.json').write_text(json.dumps(report,indent=2)+'\n')
 def stop(proc):
  os.killpg(proc.pid,signal.SIGTERM)
@@ -25,7 +27,7 @@ try:
  assert pre['firstCacheInvocation']['status']=='passed'
  assert all(s['hitDelta']==1 and s['missDelta']==0 for s in pre['firstCacheInvocation']['samples'])
  if segment:
-  assert report['maxSeconds']>=1800,'Insufficient segment and retention reserve'
+  assert report['maxSeconds']>=(900 if os.environ.get('PAGINATION_RESTORE_RUN')else 1800),'Insufficient segment and retention reserve'
   transfer=json.loads((evidence/'pagination-cache-roundtrip.json').read_text())
   assert transfer['status']=='passed'and pathlib.Path(transfer['restoredCache'])==pathlib.Path(os.environ['CCACHE_DIR'])
   assert gate['inheritedFromRun']==43789957637 and gate['actualCompilesThisRun']==0
