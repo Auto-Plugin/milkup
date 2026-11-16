@@ -18,7 +18,15 @@ def canonical(v):return hashlib.sha256(json.dumps(v,sort_keys=True,separators=('
 def identity(evidence):
  p=json.loads((evidence/'pagination-build-result.json').read_text());g=json.loads((evidence/'pagination-object-gate/result.json').read_text())
  assert p['status']=='passed-four-tu-only-not-native'and g['status']=='passed'
- return {'sourceArchives':canonical(p['cacheReceipt']['archives']),'observationPatch':p['patchSha256'],'compiler':p['compilerSha256'],'configureArgs':canonical(p['configureArgs']),'compileDatabase':g['compileDatabaseSha256'],'generatedHeaders':canonical(json.loads((evidence/'pagination-object-gate/generated-header-sha256.json').read_text()))}
+ result={'sourceArchives':canonical(p['cacheReceipt']['archives']),'observationPatch':p['patchSha256'],'compiler':p['compilerSha256'],'configureArgs':canonical(p['configureArgs']),'compileDatabase':g['compileDatabaseSha256'],'generatedHeaders':canonical(json.loads((evidence/'pagination-object-gate/generated-header-sha256.json').read_text()))}
+
+ # An inherited base cache is restored before behavior mutation. New snapshots
+ # bind the extra patch, changed source and freshly generated header inventory.
+ behavior=evidence/'pagination-behavior-preflight.json'
+ if behavior.exists():
+  candidate=json.loads(behavior.read_text());assert candidate['status']=='passed'
+  result['behaviorInputs']=canonical({'patch':candidate['patchSha256'],'sources':candidate['modifiedSourceHashes'],'headers':json.loads((evidence/'pagination-behavior-object-gate/generated-header-sha256.json').read_text())})
+ return result
 
 def incoming_identity(current,evidence,run):
  if run!='43794564331':return current

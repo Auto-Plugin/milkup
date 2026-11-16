@@ -7,11 +7,15 @@ def cache_stats():return {k:int(v)for k,v in (line.split()for line in subprocess
 def libs():return {str(p):digest(p)for pat in ['libwebkit2gtk-4.1.so.*','libjavascriptcoregtk-4.1.so.*']for p in pathlib.Path('/usr/lib/x86_64-linux-gnu').glob(pat)if p.is_file()and not p.is_symlink()}
 report={'status':'running','harnessSha':os.environ['GITHUB_SHA'],'engineBuildAttempted':False,'nativeAttempted':False,'maxSeconds':1200,'maxNewCacheMisses':64,'samples':[]}
 segment=os.environ.get('PAGINATION_OPERATION')=='pagination-segment'
+behavior=os.environ.get('PAGINATION_BEHAVIOR')=='true'
 if segment:
  elapsed=time.time()-int(os.environ['PAGINATION_START_EPOCH'])
  report.update(maxSeconds=min(5400,10800-elapsed-3600),maxNewCacheMisses=1024,acceptanceAndRetentionReserveSeconds=3600)
  if os.environ.get('PAGINATION_RESTORE_RUN'):
   report.update(maxSeconds=min(1200,report['maxSeconds']),maxNewCacheMisses=64,scope='One exact saved-object restoration, no cold rebuild fallback')
+if behavior:
+ assert segment and os.environ.get('PAGINATION_RESTORE_RUN')=='43808221193'
+ report.update(maxSeconds=min(2400,10800-elapsed-3600),maxNewCacheMisses=160,scope='One source-bound behavior candidate, reuse exact observation objects; no cold fallback')
 def persist():(evidence/'pagination-continuation.json').write_text(json.dumps(report,indent=2)+'\n')
 def stop(proc):
  os.killpg(proc.pid,signal.SIGTERM)
@@ -35,6 +39,13 @@ try:
    shutil.copyfile(build/name,evidence/('segment-'+name))
   with(evidence/'segment-full-command-graph.txt').open('w')as log:
    subprocess.run(['ninja','-C',str(build),'-t','commands'],stdout=log,check=True,timeout=60)
+ if behavior:
+  candidate=json.loads((evidence/'pagination-behavior-preflight.json').read_text())
+  assert candidate['status']=='passed' and candidate['harnessSha']==report['harnessSha']
+  assert candidate['gate']['uniqueObjectCommands'] in (1,2,3)
+  assert candidate['patchSha256']==digest(pathlib.Path(os.environ['GITHUB_WORKSPACE'])/'research/pdf-pagination-behavior-20261116/candidate.patch')
+  for rel,h in candidate['modifiedSourceHashes'].items():assert digest(root/'source/Source/WebCore'/rel)==h
+  report['behaviorPatchSha256']=candidate['patchSha256']
  assert (os.cpu_count()or 0)>=4
  mem=lambda:{k:v.strip()for k,v in (line.split(':',1)for line in pathlib.Path('/proc/meminfo').read_text().splitlines())}
  assert int(mem()['MemTotal'].split()[0])*1024>=14*1024**3
@@ -72,7 +83,7 @@ try:
  assert any(p['path'].endswith('WebKitWebProcess')for p in report['runtimeFiles'])
  assert any('libwebkit2gtk-4.1.so.'in p['path']for p in report['runtimeFiles'])
  report['systemLibrariesAfter']=libs();assert report['systemLibrariesAfter']==before
- report['prefix']=str(prefix);report['status']='private-observation-runtime-built-not-accepted'
+ report['prefix']=str(prefix);report['status']='private-behavior-runtime-built-not-accepted' if behavior else 'private-observation-runtime-built-not-accepted'
 except Exception as error:report.update(status='failed',error=str(error))
 finally:
  if segment:
@@ -84,4 +95,4 @@ finally:
    report['uniqueCompletedObjects']=len(completed)
    (evidence/'segment-completed-objects.json').write_text(json.dumps(completed,indent=2)+'\n')
  persist()
-raise SystemExit(0 if report['status']=='private-observation-runtime-built-not-accepted'else 1)
+raise SystemExit(0 if report['status'] in ['private-observation-runtime-built-not-accepted','private-behavior-runtime-built-not-accepted']else 1)

@@ -32,6 +32,10 @@ on:
         description: Exact successful same-SHA preflight run required for resume
         type: string
         default: ''
+      pagination_behavior:
+        description: Research first-fragment/header candidate; requires exact 43808221193 object restore
+        type: boolean
+        default: false
       pagination_restore_run:
         description: Optional exact prior pagination-segment object artifact run; mismatches stop
         type: string
@@ -270,6 +274,7 @@ jobs:
       CCACHE_COMPILERCHECK: content
       PAGINATION_OPERATION: ${{ inputs.operation }}
       PAGINATION_RESTORE_RUN: ${{ inputs.pagination_restore_run }}
+      PAGINATION_BEHAVIOR: ${{ inputs.pagination_behavior }}
     defaults:
       run:
         shell: bash
@@ -287,6 +292,7 @@ jobs:
           python3 scripts/ci/webkit-pagination-cache-test.py
           python3 research/pdf-pagination-mechanism-20261116/native_test.py
           python3 -m unittest discover -s research/pdf-pagination-mechanism-20261116 -p 'test_*.py'
+          python3 -m unittest discover -s research/pdf-pagination-behavior-20261116 -p 'test_*.py'
       - name: Restore one exact existing compiler cache, never a runtime
         id: objects
         uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830
@@ -325,6 +331,10 @@ jobs:
         run: |
           python3 scripts/ci/webkit-pagination-cache-live-test.py "$RUNNER_TEMP/milkup-webkit-research/evidence/segment-synthetic-cache-transfer.json"
           python3 scripts/ci/webkit-pagination-cache-roundtrip.py
+      - name: Optional behavior candidate exact-source and actual-TU gate
+        if: inputs.pagination_behavior && inputs.operation == 'pagination-segment'
+        timeout-minutes: 25
+        run: python3 research/pdf-pagination-behavior-20261116/compile_candidate.py
       - name: Only after four TUs pass, bounded cached observation runtime
         id: pagination-engine
         if: (inputs.operation == 'pagination-diagnostic' || inputs.operation == 'pagination-segment')
@@ -386,7 +396,11 @@ jobs:
         timeout-minutes: 10
         run: |
           set -euo pipefail
-          timeout --signal=TERM --kill-after=10s 550s xvfb-run -a -s '-screen 0 1400x1000x24' dbus-run-session -- python3 research/pdf-pagination-mechanism-20261116/native_probe.py run --output "$RUNNER_TEMP/pagination-native" --prefix "$RUNNER_TEMP/milkup-webkit-research/prefix" --manifest "$RUNNER_TEMP/milkup-webkit-research/evidence/pagination-continuation.json" 2>&1 | tee "$RUNNER_TEMP/pagination-native/harness.txt"
+          PAGINATION_NATIVE_ENTRY=research/pdf-pagination-mechanism-20261116/native_probe.py
+          if [ "$PAGINATION_BEHAVIOR" = true ]; then
+            PAGINATION_NATIVE_ENTRY=research/pdf-pagination-behavior-20261116/native_probe.py
+          fi
+          timeout --signal=TERM --kill-after=10s 550s xvfb-run -a -s '-screen 0 1400x1000x24' dbus-run-session -- python3 "$PAGINATION_NATIVE_ENTRY" run --output "$RUNNER_TEMP/pagination-native" --prefix "$RUNNER_TEMP/milkup-webkit-research/prefix" --manifest "$RUNNER_TEMP/milkup-webkit-research/evidence/pagination-continuation.json" 2>&1 | tee "$RUNNER_TEMP/pagination-native/harness.txt"
       - name: Clean only this run's test installation
         if: always() && (inputs.operation == 'pagination-diagnostic' || inputs.operation == 'pagination-segment')
         timeout-minutes: 2

@@ -1,0 +1,238 @@
+--- a/Source/WebCore/rendering/RenderBlockFlow.cpp
++++ b/Source/WebCore/rendering/RenderBlockFlow.cpp
+@@ -70,6 +70,9 @@
+ #include "RenderMultiColumnSet.h"
+ #include "RenderObjectInlines.h"
+ #include "RenderTableCellInlines.h"
++#include "RenderTableSection.h"
++#include "RenderTableRow.h"
++#include "FragmentKeepPolicy.h"
+ #include "RenderText.h"
+ #include "RenderTreeBuilder.h"
+ #include "RenderView.h"
+@@ -2226,11 +2229,55 @@
+     return (endFragment && fragment != endFragment);
+ }
+ 
++// Only the minimum leading fragment participates in keep-with-next. Keeping
++// a complete multi-page table unbreakable cannot satisfy this constraint.
++static std::optional<LayoutUnit> leadingTableFragment(RenderBox& child)
++{
++    auto* wrapper = dynamicDowncast<RenderBlockFlow>(child);
++    if (!wrapper || wrapper->childrenInline() || wrapper->isTransformed() || wrapper->isFloatingOrOutOfFlowPositioned())
++        return std::nullopt;
++    auto* heading = dynamicDowncast<RenderBox>(wrapper->firstChild());
++    auto* table = heading ? dynamicDowncast<RenderTable>(heading->nextSibling()) : nullptr;
++    if (!heading || !table || heading->isFloatingOrOutOfFlowPositioned() || heading->isTransformed()
++        || table->isFloatingOrOutOfFlowPositioned() || table->isTransformed()
++        || !heading->writingMode().isHorizontal() || !table->writingMode().isHorizontal())
++        return std::nullopt;
++    auto after = heading->style().breakAfter();
++    if (after != BreakBetween::Avoid && after != BreakBetween::AvoidPage)
++        return std::nullopt;
++    auto* header = table->header();
++    auto* body = table->firstBody();
++    auto* firstRow = body ? body->firstRow() : nullptr;
++    if (!header || !firstRow || heading->needsLayout() || table->needsLayout()
++        || alwaysPageBreak(table->style().breakBefore()) || alwaysPageBreak(header->style().breakBefore())
++        || alwaysPageBreak(body->style().breakBefore()) || alwaysPageBreak(firstRow->style().breakBefore())
++        || alwaysPageBreak(header->style().breakAfter()))
++        return std::nullopt;
++    // This is the actual laid-out row bottom, including collapsed margins,
++    // table borders and header/body offsets. No guessed CSS or font metrics.
++    auto prefix = table->logicalTop() + body->logicalTop() + firstRow->logicalTop() + firstRow->logicalHeight();
++    if (prefix <= heading->logicalTop() + heading->logicalHeight())
++        return std::nullopt;
++    return prefix;
++}
++
+ LayoutUnit RenderBlockFlow::adjustForUnsplittableChild(RenderBox& child, LayoutUnit logicalOffset, LayoutUnit childBeforeMargin, LayoutUnit childAfterMargin)
+ {
+     // When flexboxes are embedded inside a block flow, they don't perform any adjustments for unsplittable
+     // children. We'll treat flexboxes themselves as unsplittable just to get them to paginate properly inside
+     // a block flow.
++    if (document().printing() && writingMode().isHorizontal() && !enclosingFragmentedFlow()) {
++        if (auto prefix = leadingTableFragment(child)) {
++            auto pageHeight = pageLogicalHeightForOffset(logicalOffset);
++            if (pageHeight) {
++                auto shift = PrintFragmentPolicy::firstFragmentShift(pageHeight,
++                    pageRemainingLogicalHeightForOffset(logicalOffset, ExcludePageBoundary),
++                    *prefix + childBeforeMargin, alwaysPageBreak(child.style().breakBefore()));
++                if (shift)
++                    return logicalOffset + shift;
++            }
++        }
++    }
+     bool isUnsplittable = childBoxIsUnsplittableForFragmentation(child);
+     if (!isUnsplittable) {
+         auto* flexibleBox = dynamicDowncast<RenderFlexibleBox>(child);
+--- a/Source/WebCore/rendering/RenderTable.cpp
++++ b/Source/WebCore/rendering/RenderTable.cpp
+@@ -493,6 +493,8 @@
+     if (simplifiedLayout())
+         return;
+ 
++    m_repeatedPrintHeaderHeight = 0_lu;
++    m_printHeaderOffsets.clear();
+     recalcSectionsIfNeeded();
+     // FIXME: We should do this recalc lazily in borderStart/borderEnd so that we don't have to make sure
+     // to call this before we call borderStart/borderEnd to avoid getting a stale value.
+@@ -591,8 +593,32 @@
+ 
+         distributeExtraLogicalHeight(computedLogicalHeight - totalSectionLogicalHeight);
+ 
+-        for (RenderTableSection* section = topSection(); section; section = sectionBelow(section))
++        for (RenderTableSection* section = topSection(); section; section = sectionBelow(section)) {
+             section->layoutRows();
++            if (section == header() && document().printing() && writingMode().isHorizontal()
++                && !enclosingFragmentedFlow() && !isTransformed() && !section->hasSelfPaintingLayer()) {
++                auto pageHeight = view().frameView().layoutContext().layoutState()->pageLogicalHeight();
++                auto headerHeight = section->logicalHeight();
++                bool safe = pageHeight > 0_lu && headerHeight > 0_lu && headerHeight < pageHeight;
++                // Do not inject repeated paint over a spanning/over-height cell.
++                // Such tables retain their original fragmentation until a full
++                // cell-fragment implementation is available.
++                for (auto* body = firstBody(); safe && body; body = sectionBelow(body)) {
++                    if (body == footer())
++                        break;
++                    for (auto* row = body->firstRow(); safe && row; row = row->nextRow()) {
++                        for (auto* cell = row->firstCell(); cell; cell = cell->nextCell()) {
++                            if (cell->rowSpan() != 1 || cell->logicalHeight() + headerHeight > pageHeight) {
++                                safe = false;
++                                break;
++                            }
++                        }
++                    }
++                }
++                if (safe)
++                    m_repeatedPrintHeaderHeight = headerHeight;
++            }
++        }
+ 
+         if (!topSection() && computedLogicalHeight > totalSectionLogicalHeight && !document().inQuirksMode()) {
+             // Completely empty tables (with no sections or anything) should at least honor their
+@@ -840,6 +866,10 @@
+         if (!box.hasSelfPaintingLayer() && (box.isRenderTableSection() || box.isRenderTableCaption())) {
+             LayoutPoint childPoint = flipForWritingModeForChild(box, paintOffset);
+             box.paint(info, childPoint);
++            if (&box == header() && document().printing()) {
++                for (auto offset : m_printHeaderOffsets)
++                    box.paint(info, childPoint + LayoutSize(0_lu, offset - box.logicalTop()));
++            }
+         }
+     }
+     
+@@ -854,6 +884,10 @@
+             for (RenderTableSection* section = bottomSection(); section; section = sectionAbove(section)) {
+                 LayoutPoint childPoint = flipForWritingModeForChild(*section, paintOffset);
+                 section->paint(info, childPoint);
++                if (section == header() && document().printing()) {
++                    for (auto offset : m_printHeaderOffsets)
++                        section->paint(info, childPoint + LayoutSize(0_lu, offset - section->logicalTop()));
++                }
+             }
+         }
+         m_currentBorder = 0;
+--- a/Source/WebCore/rendering/RenderTable.h
++++ b/Source/WebCore/rendering/RenderTable.h
+@@ -104,6 +104,13 @@
+         m_columnPos[index] = position;
+     }
+ 
++    // Print-only, rebuilt from row layout on every full table layout.
++    LayoutUnit repeatedPrintHeaderHeight() const { return m_repeatedPrintHeaderHeight; }
++    void recordPrintHeaderOffset(LayoutUnit offset)
++    {
++        if (!m_printHeaderOffsets.contains(offset))
++            m_printHeaderOffsets.append(offset);
++    }
+     RenderTableSection* header() const;
+     RenderTableSection* footer() const;
+     RenderTableSection* firstBody() const;
+@@ -275,6 +282,8 @@
+ 
+     mutable Vector<LayoutUnit> m_columnPos;
+     mutable Vector<ColumnStruct> m_columns;
++    LayoutUnit m_repeatedPrintHeaderHeight;
++    Vector<LayoutUnit> m_printHeaderOffsets;
+     mutable Vector<SingleThreadWeakPtr<RenderTableCaption>> m_captions;
+     mutable Vector<SingleThreadWeakPtr<RenderTableCol>> m_columnRenderers;
+ 
+--- a/Source/WebCore/rendering/RenderTableSection.cpp
++++ b/Source/WebCore/rendering/RenderTableSection.cpp
+@@ -26,6 +26,7 @@
+ 
+ #include "config.h"
+ #include "RenderTableSection.h"
++#include "FragmentKeepPolicy.h"
+ 
+ #include "BorderPainter.h"
+ #include "Document.h"
+@@ -590,6 +591,31 @@
+     LayoutStateMaintainer statePusher(*this, locationOffset(), isTransformed() || writingMode().isBlockFlipped());
+ 
+     for (size_t rowIndex = 0; rowIndex < numberOfRows; rowIndex++) {
++        if (auto headerHeight = table()->repeatedPrintHeaderHeight(); headerHeight > 0_lu && this != table()->header()) {
++            auto* state = view().frameView().layoutContext().layoutState();
++            auto pageHeight = state->pageLogicalHeight();
++            auto* row = m_grid[rowIndex].rowRenderer;
++            auto rowHeight = m_rowPos[rowIndex + 1] - m_rowPos[rowIndex] - vspacing;
++            if (pageHeight > 0_lu && row && rowHeight > 0_lu) {
++                auto absolute = state->pageLogicalOffset(this, m_rowPos[rowIndex]);
++                auto tableAbsolute = absolute - m_rowPos[rowIndex] - logicalTop();
++                auto phase = intMod(absolute, pageHeight);
++                bool continuation = absolute - phase > tableAbsolute;
++                bool forced = alwaysPageBreak(row->style().breakBefore())
++                    || (!rowIndex && alwaysPageBreak(style().breakBefore()))
++                    || (rowIndex && m_grid[rowIndex - 1].rowRenderer && alwaysPageBreak(m_grid[rowIndex - 1].rowRenderer->style().breakAfter()));
++                auto shift = PrintFragmentPolicy::rowShift(pageHeight, phase, rowHeight, headerHeight, continuation, forced);
++                if (shift) {
++                    for (size_t i = rowIndex; i <= numberOfRows; ++i)
++                        m_rowPos[i] += shift;
++                    absolute += shift;
++                    phase = intMod(absolute, pageHeight);
++                }
++                auto pageTop = absolute - phase;
++                if (pageTop > tableAbsolute && phase >= headerHeight)
++                    table()->recordPrintHeaderOffset(pageTop - tableAbsolute);
++            }
++        }
+         // Set the row's x/y position and width/height.
+         if (RenderTableRow* rowRenderer = m_grid[rowIndex].rowRenderer) {
+             // FIXME: the x() position of the row should be table()->hBorderSpacing() so that it can 
+--- /dev/null
++++ b/Source/WebCore/rendering/FragmentKeepPolicy.h
+@@ -0,0 +1,33 @@
++/* Research candidate for the existing WebCore print fragmenter. LGPL-2.1-or-later. */
++#pragma once
++
++namespace WebCore::PrintFragmentPolicy {
++// All units come from final layout. Never move an over-height first fragment,
++// override an explicit page break, or move from an already empty page.
++template<typename Unit>
++Unit firstFragmentShift(Unit pageHeight, Unit remaining, Unit prefixHeight, bool forcedBreak)
++{
++    if (forcedBreak || pageHeight <= Unit { } || remaining <= Unit { }
++        || remaining >= pageHeight || prefixHeight <= Unit { } || prefixHeight > pageHeight)
++        return { };
++    return prefixHeight > remaining ? remaining : Unit { };
++}
++
++// A repeated header needs space in layout, not a paint-time overlay. Oversized
++// rows keep the existing fragmentation path rather than looping or cropping.
++template<typename Unit>
++Unit rowShift(Unit pageHeight, Unit pageOffset, Unit rowHeight, Unit headerHeight, bool continuation, bool forcedBreak)
++{
++    if (pageHeight <= Unit { } || pageOffset < Unit { } || pageOffset >= pageHeight
++        || headerHeight <= Unit { } || rowHeight <= Unit { }
++        || headerHeight + rowHeight > pageHeight)
++        return { };
++    if (forcedBreak && pageOffset > Unit { })
++        return pageHeight - pageOffset + headerHeight;
++    if (continuation && pageOffset < headerHeight)
++        return headerHeight - pageOffset;
++    if (rowHeight > pageHeight - pageOffset)
++        return pageHeight - pageOffset + headerHeight;
++    return { };
++}
++}
