@@ -1,0 +1,106 @@
+{
+  "url": "https://archive.ubuntu.com/ubuntu/pool/main/w/webkit2gtk/webkit2gtk_2.52.6-0ubuntu0.26.04.1.dsc",
+  "dscSha256": "5115636753fca7cff0fe72f56fe120b0f07090ecdb98ab9991deb85b0a6e4adc",
+  "debianTarSha256": "ea13e2ad9a7093351ac379770692544f984d83f4720587bc2669bdc14c8cb33d",
+  "debianTarBytes": 96728,
+  "patches": [
+    {
+      "path": "debian/patches/arm64-64k-pages/Bump-JIT_MEDIUM_BITFIT_MIN_ALIGN_SHIFT-to-9-on-Linux-ARM6.patch",
+      "sha256": "b11f6f6ef245203eb78f119f2ae36ed7dd681f24a94fe6054b9dbef44377c7da"
+    },
+    {
+      "path": "debian/patches/arm64-64k-pages/Derive-PAS_MAX_OBJECTS_PER_PAGE-from-small-page-size.patch",
+      "sha256": "0d28239e13def06720000ef5df016cd3791bad97b4d49ed76271bae5974cd0b5"
+    },
+    {
+      "path": "debian/patches/arm64-64k-pages/Support-Linux-ARM64-64KB-page-size-without-disabling-JIT-.patch",
+      "sha256": "ee3dc55c4443840e5d6122e6ec6a34c1c600113149799b2adea936566374f3bc"
+    },
+    {
+      "path": "debian/patches/disable-nvidia-dmabuf.patch",
+      "sha256": "dfcea924af6946b3c52727e4b7d0080347a549c2ded9a604501278535b1ce772"
+    },
+    {
+      "path": "debian/patches/fix-ftbfs-riscv64.patch",
+      "sha256": "2a53d14785c23f8f2038bfcf0aebcc142b0fa12e15cd1d33de1367d41baa442d"
+    },
+    {
+      "path": "debian/patches/fix-ftbfs-sparc64.patch",
+      "sha256": "c5d9d0106c39e5ff988ad982cb073edd96bc39376b5df0f6899d21c5880edac7"
+    },
+    {
+      "path": "debian/patches/fix-ftbfs-x32.patch",
+      "sha256": "8111d6b6f1270579c423c5dc7f00409dd76b1d7aaca94afac9bc91acd5e4419c"
+    },
+    {
+      "path": "debian/patches/no-must-tail.patch",
+      "sha256": "d28a3696354e1daa2436b750ba530af9e5711b61e384332aaccaeb90003122a6"
+    },
+    {
+      "path": "debian/patches/series",
+      "sha256": "f597c094ba124eb1c212d344ce6588c3e9dac989999c7fda8fe71e75c0b78e08"
+    }
+  ],
+  "touchedSourceFiles": [
+    {
+      "patch": "debian/patches/arm64-64k-pages/Bump-JIT_MEDIUM_BITFIT_MIN_ALIGN_SHIFT-to-9-on-Linux-ARM6.patch",
+      "target": "b/Source/bmalloc/libpas/src/libpas/jit_heap_config.h"
+    },
+    {
+      "patch": "debian/patches/arm64-64k-pages/Derive-PAS_MAX_OBJECTS_PER_PAGE-from-small-page-size.patch",
+      "target": "b/Source/bmalloc/libpas/src/libpas/pas_internal_config.h"
+    },
+    {
+      "patch": "debian/patches/arm64-64k-pages/Support-Linux-ARM64-64KB-page-size-without-disabling-JIT-.patch",
+      "target": "b/Source/WTF/wtf/PageBlock.h"
+    },
+    {
+      "patch": "debian/patches/arm64-64k-pages/Support-Linux-ARM64-64KB-page-size-without-disabling-JIT-.patch",
+      "target": "b/Source/bmalloc/bmalloc/BPlatform.h"
+    },
+    {
+      "patch": "debian/patches/arm64-64k-pages/Support-Linux-ARM64-64KB-page-size-without-disabling-JIT-.patch",
+      "target": "b/Source/bmalloc/libpas/src/libpas/jit_heap_config.h"
+    },
+    {
+      "patch": "debian/patches/arm64-64k-pages/Support-Linux-ARM64-64KB-page-size-without-disabling-JIT-.patch",
+      "target": "b/Source/bmalloc/libpas/src/libpas/pas_expendable_memory.h"
+    },
+    {
+      "patch": "debian/patches/arm64-64k-pages/Support-Linux-ARM64-64KB-page-size-without-disabling-JIT-.patch",
+      "target": "b/Source/bmalloc/libpas/src/libpas/pas_internal_config.h"
+    },
+    {
+      "patch": "debian/patches/disable-nvidia-dmabuf.patch",
+      "target": "b/Source/WebKit/UIProcess/gtk/AcceleratedBackingStore.cpp"
+    },
+    {
+      "patch": "debian/patches/fix-ftbfs-riscv64.patch",
+      "target": "webkitgtk/Source/WTF/wtf/PlatformCPU.h"
+    },
+    {
+      "patch": "debian/patches/fix-ftbfs-riscv64.patch",
+      "target": "webkitgtk/Source/cmake/WebKitCommon.cmake"
+    },
+    {
+      "patch": "debian/patches/fix-ftbfs-sparc64.patch",
+      "target": "webkitgtk/Source/WTF/wtf/PlatformCPU.h"
+    },
+    {
+      "patch": "debian/patches/fix-ftbfs-x32.patch",
+      "target": "webkitgtk/Source/WTF/wtf/PlatformCPU.h"
+    },
+    {
+      "patch": "debian/patches/fix-ftbfs-x32.patch",
+      "target": "webkitgtk/Source/cmake/WebKitCommon.cmake"
+    },
+    {
+      "patch": "debian/patches/no-must-tail.patch",
+      "target": "webkitgtk/Source/ThirdParty/skia/modules/skcms/src/skcms_internals.h"
+    },
+    {
+      "patch": "debian/patches/no-must-tail.patch",
+      "target": "webkitgtk/Source/ThirdParty/skia/src/core/SkRasterPipeline.h"
+    }
+  ]
+}
