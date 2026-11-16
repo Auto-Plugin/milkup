@@ -36,3 +36,7 @@ Local full workflow: **48 passed**, including actual official Ruby/Ninja and rea
 Use existing manual `current-engine-normal`, one ordinary Ubuntu 26.04 hosted job, no extra paid resources. Hard job limit 355 minutes, internal clock 340 minutes, normal all at most 285 minutes with 30-minute archive/staging reserve. Existing low-memory/disk/stall conditions remain. CMake staging/shared linking remain in this same final job, separate runtime archive only if its space/time guard passes. An incomplete cache is explicitly skipped; no unproved new checkpoint is consumed.
 
 The scope is full engine completion and, if feasible, exact CMake DESTDIR retention. Same-package installation, ordinary-user process mappings, native PDF/print geometry/text/link contracts and daily use still await a real final runtime and the existing `a30cc640` entrance with product `546796b0`. No main merge, publication, production channel/key, notifications, host security or PDF output route changes.
+
+## Unique successor started
+
+[43921562333](https://github.com/Auto-Plugin/milkup/actions/runs/43921562333), job 133489925173, exact candidate `f084ae61eb3fc115c0368390d2ed87b1e8f7fb89` (code `2c8f5564`, followed only by evidence clarification). Started 2026-11-16 17:44:46 UTC; hard deadline 23:39:46 UTC. Repository queued/in-progress run lists were empty immediately before the sole manual dispatch. In progress at handoff; no new engine, staged runtime, package or native acceptance. See `successor-run.json`.
