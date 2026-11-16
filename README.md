@@ -7,6 +7,7 @@
   [![Node.js](https://img.shields.io/badge/node-%3E%3D20.17.0-brightgreen.svg)](https://nodejs.org/)
   [![GitHub release (latest by date)](https://img.shields.io/github/v/release/Auto-Plugin/milkup)](https://github.com/Auto-Plugin/milkup/releases)
   ![GitHub Repo stars](https://img.shields.io/github/stars/Auto-Plugin/milkup)
+  [![AtomGit](https://gitcode.com/Auto-Plugin/milkup/star/new_badge.svg)](https://gitcode.com/Auto-Plugin/milkup/star/new_badge.svg)
 </div>
 
 ## ✨ 特性
