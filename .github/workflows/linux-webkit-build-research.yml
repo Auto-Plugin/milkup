@@ -5,7 +5,7 @@ on:
       operation:
         description: Cheap header/cache preflight or one explicitly approved continuation
         type: choice
-        options: [preflight, resume]
+        options: [preflight, resume, pagination-preflight]
         default: preflight
         required: true
       links_research:
@@ -40,7 +40,7 @@ concurrency:
   cancel-in-progress: false
 jobs:
   capability:
-    if: github.repository == 'Auto-Plugin/milkup'
+    if: github.repository == 'Auto-Plugin/milkup' && inputs.operation != 'pagination-preflight'
     runs-on: ubuntu-26.04
     timeout-minutes: ${{ inputs.operation == 'preflight' && 30 || inputs.geometry_research && 55 || 355 }}
     env:
@@ -257,3 +257,47 @@ jobs:
         with:
           path: ${{ runner.temp }}/milkup-webkit-ccache
           key: webkit-u2604-2526-${{ hashFiles('scripts/ci/build-webkit-private.py', 'research/linux-pdf-unicode-20261114/*.patch', 'research/linux-pdf-links-20261114/*.patch') }}-${{ github.run_id }}
+
+  pagination-preflight:
+    if: github.repository == 'Auto-Plugin/milkup' && inputs.operation == 'pagination-preflight'
+    runs-on: ubuntu-26.04
+    timeout-minutes: 45
+    env:
+      CCACHE_COMPILERCHECK: content
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - name: Pin preflight scope before any restore or build
+        run: |
+          test "$(id -u)" != 0
+          test -z "${WEBKIT_DISABLE_SANDBOX_THIS_IS_DANGEROUS:-}"
+          echo "CCACHE_DIR=$RUNNER_TEMP/milkup-webkit-ccache" >> "$GITHUB_ENV"
+          python3 scripts/ci/webkit-pagination-preflight-test.py
+          python3 -m unittest discover -s research/pdf-pagination-mechanism-20261116 -p 'test_*.py'
+      - name: Restore one exact existing compiler cache, never a runtime
+        id: objects
+        uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830
+        with:
+          path: ${{ runner.temp }}/milkup-webkit-ccache
+          key: webkit-u2604-2526-edc7e59917fbad8635b3c87f62416989f35aec8ac8591b557de19ffcbd3ecd76-43672149274
+          fail-on-cache-miss: true
+      - name: Obtain authenticated matched source without an engine build
+        timeout-minutes: 12
+        run: python3 scripts/ci/probe-webkit-distro-build.py
+      - name: Actual headers, first cache hits and four changed translation units only
+        timeout-minutes: 31
+        env:
+          PAGINATION_CACHE_MATCHED_KEY: ${{ steps.objects.outputs.cache-matched-key }}
+        run: python3 scripts/ci/webkit-pagination-preflight.py
+      - name: Retain failure or successful preflight, never claim PDF acceptance
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: milkup-pagination-tu-preflight-${{ github.run_id }}
+          path: ${{ runner.temp }}/milkup-webkit-research/evidence/
+          retention-days: 7
+          if-no-files-found: warn
