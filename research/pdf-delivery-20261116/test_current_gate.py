@@ -1,10 +1,27 @@
 """Offline positive/negative contracts for the complete new non-engine path."""
-import ast,copy,hashlib,json,os,pathlib,shlex,subprocess,tarfile,tempfile,time,unittest
+import ast,copy,hashlib,json,os,pathlib,shlex,subprocess,tarfile,tempfile,time,unittest,zipfile
 from unittest import mock
 import current_tu_gate as gate
 import current_source_archive as archive
 HERE=pathlib.Path(__file__).resolve().parent
 class CurrentGate(unittest.TestCase):
+ def test_locked_dependency_audit_and_post_gtk_metadata(self):
+  base=HERE/'dependency-audit';lock=json.loads((base/'source-lock.json').read_text())
+  self.assertEqual(lock['archiveSha256'],gate.SOURCE_SHA)
+  self.assertEqual(gate.digest(base/'official-cmake-inputs.zip'),lock['selectedArchiveSha256'])
+  with zipfile.ZipFile(base/'official-cmake-inputs.zip')as z:
+   for name in z.namelist():self.assertEqual(hashlib.sha256(z.read(name)).hexdigest(),lock['scannedFiles'][name])
+   skia=z.read('Source/ThirdParty/skia/CMakeLists.txt').decode()
+   for requirement in ['Fontconfig 2.13.0 REQUIRED','WebP REQUIRED COMPONENTS mux','EXPAT REQUIRED']:self.assertIn(requirement,skia)
+  with tempfile.TemporaryDirectory()as t:
+   env={**os.environ,'PKG_CONFIG_PATH':'','PKG_CONFIG_LIBDIR':t,'PKG_CONFIG_SYSROOT_DIR':''}
+   command=['pkg-config','--print-errors','--exists',*gate.REQUIRED_POST_GTK_MODULES]
+   self.assertNotEqual(subprocess.run(command,env=env,capture_output=True).returncode,0)
+   for name in ['fontconfig','expat','libwebpmux','sysprof-capture-4']:
+    (pathlib.Path(t)/(name+'.pc')).write_text('Name: '+name+'\nDescription: isolated metadata contract\nVersion: 50.0\nLibs: -l'+name+'\n')
+   self.assertEqual(subprocess.run(command,env=env,capture_output=True).returncode,0)
+   (pathlib.Path(t)/'libwebpmux.pc').unlink()
+   self.assertNotEqual(subprocess.run(command,env=env,capture_output=True).returncode,0)
  def test_official_sources_and_wrong_origin(self):
   text='Types: deb\nURIs: mirror+file:/etc/apt/apt-mirrors.txt\nSuites: resolute resolute-updates\nComponents: main universe\nSigned-By: /usr/share/keyrings/ubuntu-archive-keyring.gpg\n'
   good=gate.official_sources(text,lambda p:'https://untrusted.invalid/ubuntu\nhttp://archive.ubuntu.com/ubuntu/\n')

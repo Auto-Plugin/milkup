@@ -8,6 +8,8 @@ SOURCE_SHA=boundary.SOURCE_SHA;PATCH_SHA='855e58cc8ad531cc32e893b8274983a6264e6f
 SOURCE_URL='https://webkitgtk.org/releases/webkitgtk-2.54.2.tar.xz'
 EXTRA_SDK_PACKAGES=['clang','cmake','ninja-build','ccache','libgtk-3-dev','libsoup-3.0-dev','libavif-dev','libmanette-0.2-dev','flite1-dev','libbacktrace-dev','libsysprof-capture-4-dev','libgstreamer-plugins-bad1.0-dev']
 REQUIRED_GST_MODULES=['gstreamer-1.0','gstreamer-app-1.0','gstreamer-pbutils-1.0','gstreamer-video-1.0','gstreamer-mpegts-1.0','gstreamer-tag-1.0','gstreamer-gl-1.0','gstreamer-audio-1.0','gstreamer-fft-1.0']
+# Required after OptionsGTK by Skia / Source, checked before configure as well.
+REQUIRED_POST_GTK_MODULES=['fontconfig >= 2.13.0','expat','libwebpmux','sysprof-capture-4']
 def module(path):
  spec=importlib.util.spec_from_file_location('strict_object_contract',path);m=importlib.util.module_from_spec(spec);spec.loader.exec_module(m);return m
 contract=module(REPO/'scripts/ci/webkit-pagination-object-preflight.py')
@@ -115,10 +117,12 @@ class Gate:
   self.run('installed-package-inventory',['dpkg-query','-W','-f=${binary:Package}\t${Version}\t${Architecture}\n'],30)
   self.run('required-gstreamer-sdk',['pkg-config','--print-errors','--exists',*[name+' >= 1.18.4'for name in REQUIRED_GST_MODULES]],30)
   self.run('required-gstreamer-versions',['pkg-config','--modversion',*REQUIRED_GST_MODULES],30)
-  for name in ['cmake','ninja','clang','clang++']:
+  self.run('required-post-gtk-sdk',['pkg-config','--print-errors','--exists',*REQUIRED_POST_GTK_MODULES],30)
+  self.run('required-post-gtk-versions',['pkg-config','--modversion','fontconfig','expat','libwebpmux','sysprof-capture-4'],30)
+  for name in ['cmake','ninja','clang','clang++','gperf','unifdef','bwrap','xdg-dbus-proxy']:
    actual=pathlib.Path(shutil.which(name)or'');assert actual.is_file()
    self.report.setdefault('tools',{})[name]={'path':str(actual),'resolved':str(actual.resolve()),'sha256':digest(actual.resolve())};self.persist()
-   self.run('tool-'+name.replace('+','p'),[str(actual),'--version'],15)
+   self.run('tool-'+name.replace('+','p'),[str(actual),'-V'if name=='unifdef'else'--version'],15)
   # Download/extraction runs in a timed child so network/decompression cannot
   # outlive the same process-group deadline.
   self.run('official-source',['python3',str(HERE/'current_source_archive.py'),str(self.root/'source.tar.xz'),str(self.source)],180)
