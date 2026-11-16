@@ -15,6 +15,17 @@ ENTRY=re.compile(r'(?:[0-9a-f]/){1,3}[0-9A-Za-z]+[MR]')
 
 def digest(p):return hashlib.sha256(p.read_bytes()).hexdigest()
 def canonical(v):return hashlib.sha256(json.dumps(v,sort_keys=True,separators=(',',':')).encode()).hexdigest()
+def cache_key(expected):
+ # Preserve the exact old six-field key for inherited observation caches.
+ # Behavior snapshots use a separate, fixed schema and key namespace. Do not
+ # drop the additional digest or accept arbitrary/environment fields.
+ if set(expected)==objects.IDENTITY_FIELDS:return objects.key(expected)
+ if set(expected)!=objects.IDENTITY_FIELDS|{'behaviorInputs'}:
+  raise ValueError('Exact observation or behavior cache input digests required')
+ objects.key({k:expected[k] for k in objects.IDENTITY_FIELDS})
+ if not isinstance(expected['behaviorInputs'],str)or not re.fullmatch('[0-9a-f]{64}',expected['behaviorInputs']):
+  raise ValueError('Exact behavior input digest required')
+ return 'pagination-behavior-objects-v1-'+canonical(expected)
 def identity(evidence):
  p=json.loads((evidence/'pagination-build-result.json').read_text());g=json.loads((evidence/'pagination-object-gate/result.json').read_text())
  assert p['status']=='passed-four-tu-only-not-native'and g['status']=='passed'
@@ -57,7 +68,7 @@ def inspect(entry):
 
 def capture(cache,destination,expected,budget=600):
  assert not destination.exists()and cache.resolve()!=destination.resolve()
- key=objects.key(expected);started=time.monotonic();rows=[];total=0
+ key=cache_key(expected);started=time.monotonic();rows=[];total=0
  destination.mkdir(parents=True)
  try:
   for p in sorted(cache.rglob('*')):
@@ -82,7 +93,7 @@ def restore(bundle,destination,expected):
  assert not destination.exists()and not bundle.is_symlink()
  assert not any(p.is_symlink()for p in bundle.rglob('*')),'Symlink in transferred cache'
  regular(bundle/'receipt.json');assert(bundle/'receipt.json').stat().st_size<8*1024**2
- receipt=json.loads((bundle/'receipt.json').read_text());assert receipt['identity']==expected and receipt['key']==objects.key(expected),'Wrong source/compiler/flags/path/patch cache identity'
+ receipt=json.loads((bundle/'receipt.json').read_text());assert receipt['identity']==expected and receipt['key']==cache_key(expected),'Wrong source/compiler/flags/path/patch cache identity'
  assert 0<len(receipt['entries'])<=20000 and receipt['bytes']<=LIMIT
  paths=set();total=0
  for row in receipt['entries']:

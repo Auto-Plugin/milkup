@@ -27,6 +27,16 @@ try:
   before=stats(env);subprocess.run(command,cwd=root,env=env,check=True,timeout=30);after=stats(env)
   row={'case':'restored-first-invocation','hits':hits(after)-hits(before),'misses':after['cache_miss']-before['cache_miss'],'sameObject':m.digest(out)==object_sha}
   report['samples'].append(row);assert row=={'case':'restored-first-invocation','hits':1,'misses':0,'sameObject':True}
+  # Exercise the exact extended schema that previously failed only after the
+  # expensive WebKit build. Same real ccache inspector and fresh-process hit.
+  behavior={**identity,'behaviorInputs':m.canonical({'patch':m.digest(header),'sources':m.digest(source)})}
+  behavior_bundle=root/'behavior-bundle';behavior_restored=root/'behavior-restored'
+  m.capture(restored,behavior_bundle,behavior,budget=60)
+  m.restore(behavior_bundle,behavior_restored,behavior)
+  env['CCACHE_DIR']=str(behavior_restored);out.unlink()
+  before=stats(env);subprocess.run(command,cwd=root,env=env,check=True,timeout=30);after=stats(env)
+  row={'case':'behavior-restored-first-invocation','hits':hits(after)-hits(before),'misses':after['cache_miss']-before['cache_miss'],'sameObject':m.digest(out)==object_sha}
+  report['samples'].append(row);assert row=={'case':'behavior-restored-first-invocation','hits':1,'misses':0,'sameObject':True}
   # The actual dependency/flags path must still invalidate normally.
   header.write_text('#define VALUE 43\n');time.sleep(1.1)
   for name,args in [('changed-header',command),('changed-flags',command+['-DEXTRA=1'])]:

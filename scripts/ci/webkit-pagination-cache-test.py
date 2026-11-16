@@ -22,6 +22,26 @@ class Transfer(unittest.TestCase):
   for field in self.identity:
    with self.assertRaises(AssertionError):m.restore(self.bundle,self.restored,{**self.identity,field:'0'*64})
    self.assertFalse(self.restored.exists())
+ def test_behavior_identity_roundtrip_and_no_legacy_downgrade(self):
+  original=dict(self.identity)
+  self.assertEqual(m.cache_key(original),m.objects.key(original))
+  self.identity['behaviorInputs']=m.canonical({'patch':'candidate','source':'exact','headers':'exact'})
+  # Reproduce the failed run's schema mismatch before checking the fix.
+  with self.assertRaises(ValueError):m.objects.key(self.identity)
+  receipt=self.capture()
+  self.assertTrue(receipt['key'].startswith('pagination-behavior-objects-v1-'))
+  for wrong in [original,{**self.identity,'behaviorInputs':'0'*64}]:
+   with self.assertRaises(AssertionError):m.restore(self.bundle,self.restored,wrong)
+   self.assertFalse(self.restored.exists())
+  m.restore(self.bundle,self.restored,self.identity)
+  self.assertEqual((self.restored/'a/b/knownR').read_bytes(),(self.cache/'a/b/knownR').read_bytes())
+ def test_behavior_key_rejects_unknown_missing_or_non_digest_fields(self):
+  good={**self.identity,'behaviorInputs':m.canonical('candidate')}
+  for wrong in [{**good,'token':'0'*64},{**good,'behaviorInputs':'/tmp/source'},
+                {k:v for k,v in good.items()if k!='compiler'}]:
+   with self.assertRaises(ValueError):m.cache_key(wrong)
+  for field in good:
+   self.assertNotEqual(m.cache_key(good),m.cache_key({**good,field:'0'*64}))
  def test_legacy_inventory_bridge_requires_every_header_hash(self):
   old=m.ROOT/'research/pdf-pagination-mechanism-20261116/evidence/43794564331/generated-header-sha256.json'
   data=json.loads(old.read_text());evidence=self.root/'evidence';p=evidence/'pagination-object-gate/generated-header-sha256.json';p.parent.mkdir(parents=True)
