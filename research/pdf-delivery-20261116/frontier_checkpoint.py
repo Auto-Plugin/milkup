@@ -4,7 +4,10 @@ PCHs and build-time helper executables must be rebuilt and byte-verified.
 """
 import hashlib,json,os,pathlib,re,shlex,shutil,stat,struct,tarfile
 import current_segment as seg
-SCHEMA='milkup-current2542-frontier-v3'
+SCHEMA='milkup-current2542-frontier-v4'
+LEGACY_SCHEMA='milkup-current2542-frontier-v3'
+MAX_MANIFEST_RAW=128*1024**2
+MAX_MANIFEST_STORED=32*1024**2
 MAX_TOTAL=8*1024**3
 MAX_MEMBER=256*1024**2
 HELPERS={'bin/LLIntSettingsExtractor','bin/LLIntOffsetsExtractor'}
@@ -94,7 +97,7 @@ def dependency_inputs(build,source,pairs):
  return names
 
 def check_identity(manifest,identity):
- assert manifest.get('schema')==SCHEMA and manifest['identity']==identity,'Frontier identity mismatch'
+ assert manifest.get('schema')in [SCHEMA,LEGACY_SCHEMA] and manifest['identity']==identity,'Frontier identity mismatch'
 
 def describe(p,build,source,kind=None):
  name=str(p.relative_to(build));row={'path':name}
@@ -117,7 +120,35 @@ def describe(p,build,source,kind=None):
 def compiler_inputs(build,source,targets):
  return dependency_inputs(build,source,[(t,build/(t+'.d'))for t in targets])
 
-def capture(build,source,entries,identity,frontier,helper_plan,links=None,evidence=None):
+def retain_native_stream(data,destination):
+ # Preserve all bytes and record counts, with finite per-part and total budgets.
+ import io
+ assert len(data)<=256*1024**2,'Native diagnostic total budget exceeded'
+ receipt=seg.gate.retain_configuration_stream(io.BytesIO(data),destination,len(data),8*1024**2,256*1024**2)
+ receipt['lineCount']=data.count(b'\n');receipt['trailingNewline']=data.endswith(b'\n')
+ destination.with_name(destination.name+'.parts.json').write_text(json.dumps(receipt,indent=2)+'\n')
+ return receipt
+
+def read_native_stream(destination):
+ import gzip
+ receipt=json.loads(destination.with_name(destination.name+'.parts.json').read_text())
+ assert receipt['encoding']=='ordered-gzip-parts'and 0<=receipt['rawBytes']<=256*1024**2
+ assert len(receipt['parts'])<=32
+ chunks=[]
+ for index,row in enumerate(receipt['parts']):
+  assert row['file']==destination.name+f'.part-{index:03d}.gz'
+  p=destination.with_name(row['file'])
+  assert p.is_file()and not p.is_symlink()and p.stat().st_size==row['storedBytes']<=9*1024**2
+  assert digest(p)==row['storedSha256'],'Native evidence stored hash mismatch'
+  with gzip.open(p,'rb')as stream:raw=stream.read(8*1024**2+1)
+  assert len(raw)==row['rawBytes']<=8*1024**2 and hashlib.sha256(raw).hexdigest()==row['rawSha256']
+  chunks.append(raw)
+ raw=b''.join(chunks)
+ assert len(raw)==receipt['rawBytes']and hashlib.sha256(raw).hexdigest()==receipt['rawSha256']
+ assert raw.count(b'\n')==receipt['lineCount']and raw.endswith(b'\n')==receipt['trailingNewline']
+ return raw
+
+def capture(build,source,entries,identity,frontier,helper_plan,links=None,evidence=None,generated_products=()):
  links=links or {}
  header,logs=native_rows(build)
  import subprocess
@@ -126,7 +157,7 @@ def capture(build,source,entries,identity,frontier,helper_plan,links=None,eviden
   import gzip
   evidence.mkdir(parents=True,exist_ok=True)
   for name,data in [('native-deps.txt',deps.encode()),('native-ninja-log.txt',(build/'.ninja_log').read_bytes())]:
-   assert len(data)<=64*1024**2;(evidence/(name+'.gz')).write_bytes(gzip.compress(data,mtime=0))
+   retain_native_stream(data,evidence/name)
  completed=re.findall(r'^(.+): #deps \d+, deps mtime (\d+) \((VALID|STALE)\)$',deps,re.M)
  assert completed and len(completed)<=4000
  targets=[];completed_links=[];absent_links=[]
@@ -159,6 +190,11 @@ def capture(build,source,entries,identity,frontier,helper_plan,links=None,eviden
   if p.is_relative_to(build)and str(p.relative_to(build))not in records:records[str(p.relative_to(build))]=describe(p,build,source)
  for name in HELPERS:
   if name in records and records[name]['kind']=='link':assert name in helper_plan
+ for name in generated_products:
+  p=safe_path(build,name);row=describe(p,build,source)
+  assert row['kind']=='generated','Producer output must be generated text, never runtime'
+  assert name not in records or records[name]==row,'Producer record disagreement'
+  records[name]=row
  payload={}
  for name,row in records.items():
   if row['kind']in ['object','generated','depfile']:
@@ -169,11 +205,34 @@ def capture(build,source,entries,identity,frontier,helper_plan,links=None,eviden
  manifest={'schema':SCHEMA,'identity':identity,'frontier':frontier,'entries':selected,'inputs':inputs,'records':records,'files':files,'logHeader':header,'logs':logs,'helpers':helper_plan,'links':links,'linkInputs':link_inputs,'absentUnrestoredLinks':absent_links,'producerSha':os.environ.get('GITHUB_SHA'),'compiledObjectCount':sum(e['kind']=='object'for e in selected.values()),'pchCount':sum(e['kind']=='pch'for e in selected.values()),'runtimeBytesArchived':False,'pchBytesArchived':False}
  return manifest,payload
 
+def encode_manifest(manifest):
+ import gzip
+ assert manifest['schema']==SCHEMA,'Only the explicit new schema can be written'
+ raw=json.dumps(manifest,sort_keys=True,separators=(',',':')).encode()
+ assert len(raw)<=MAX_MANIFEST_RAW,'Manifest raw budget exceeded'
+ data=gzip.compress(raw,compresslevel=1,mtime=0)
+ assert len(data)<=MAX_MANIFEST_STORED,'Manifest stored budget exceeded'
+ return data
+
+def decode_manifest(name,data):
+ import gzip,io
+ assert len(data)<=MAX_MANIFEST_STORED,'Manifest stored budget exceeded'
+ if name=='manifest.json':
+  value=json.loads(data);assert value['schema']==LEGACY_SCHEMA,'Legacy envelope cannot accept new schema'
+ else:
+  assert name=='manifest.json.gz','Unknown manifest encoding'
+  with gzip.GzipFile(fileobj=io.BytesIO(data))as stream:
+   raw=stream.read(MAX_MANIFEST_RAW+1)
+   assert len(raw)<=MAX_MANIFEST_RAW,'Manifest raw budget exceeded'
+   assert not stream.read(1),'Manifest trailing data beyond budget'
+  value=json.loads(raw);assert value['schema']==SCHEMA,'Compressed envelope requires new schema'
+ return value
+
 def write_archive(path,manifest,payload):
  import io
- data=json.dumps(manifest,sort_keys=True,separators=(',',':')).encode();assert len(data)<=32*1024**2
+ data=encode_manifest(manifest)
  with tarfile.open(path,'w:gz',compresslevel=1)as out:
-  info=tarfile.TarInfo('manifest.json');info.size=len(data);info.mode=0o600;out.addfile(info,io.BytesIO(data))
+  info=tarfile.TarInfo('manifest.json.gz');info.size=len(data);info.mode=0o600;out.addfile(info,io.BytesIO(data))
   for name,p in payload.items():
    assert p.is_file()and not p.is_symlink();row=manifest['files'][name];assert p.stat().st_size==row['bytes']and digest(p)==row['sha256']
    info=tarfile.TarInfo(name);info.size=row['bytes'];info.mode=0o600
@@ -183,12 +242,12 @@ def write_archive(path,manifest,payload):
 def load_archive(archive,expected,identity,staging):
  assert archive.stat().st_size<=2*1024**3 and digest(archive)==expected,'Damaged frontier archive'
  with tarfile.open(archive,'r:gz')as tar:
-  first=tar.next();assert first and first.name=='manifest.json'and first.isfile()and first.size<=32*1024**2
-  manifest=json.load(tar.extractfile(first));check_identity(manifest,identity)
+  first=tar.next();assert first and first.name in ['manifest.json','manifest.json.gz']and first.isfile()and first.size<=MAX_MANIFEST_STORED
+  manifest=decode_manifest(first.name,tar.extractfile(first).read());check_identity(manifest,identity)
   assert len(manifest['records'])<50000 and sum(x['bytes']for x in manifest['files'].values())<=MAX_TOTAL
   assert not staging.exists();staging.mkdir();seen=set()
   while member:=tar.next():
-   assert member.name!='manifest.json','Duplicate manifest'
+   assert member.name not in ['manifest.json','manifest.json.gz'],'Duplicate manifest'
    assert member.isfile()and member.name in manifest['files']and member.name not in seen
    row=manifest['files'][member.name];assert member.size==row['bytes']<=MAX_MEMBER
    p=safe_path(staging,member.name);p.parent.mkdir(parents=True,exist_ok=True)

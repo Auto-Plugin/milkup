@@ -14,11 +14,13 @@ PINNED_ARCHIVE_SHA = '779c8abe048660286e79828f54eec7d3d56f7350c042171230f97be9bd
 PINNED_PRODUCER = '9dbb2062faa983185b993f8b8f7681ee769a70f6'
 REPO_PREFIX = '/home/runner/work/milkup/milkup/'
 REVIEWED_HARNESS = {
+    'research/pdf-delivery-20261116/frontier_checkpoint.py': '4de2a9f6ef09cc38eb23d4ba42b28aabb725e98ecd00ffb3104e1d3077760653',
     'research/pdf-delivery-20261116/current_engine.py': '11d5eff965458f52cd3925c1742ac9ae0e28fbc4886ecd90b6131583bba0ad74',
     'research/pdf-delivery-20261116/package_boundary.py': '61670f6af6f5c8c2a9b3f14bb9e40c0b0a77b743fc2c827f973f28d85f05ad9c',
     '.github/workflows/linux-webkit-build-research.yml': 'a345c7d58e5b9281bccb67977b5dc117cc94a873234ae8eda67499aaad84c4c4',
 }
 NEW_HARNESS = REPO_PREFIX + 'research/pdf-delivery-20261116/normal_completion.py'
+NEW_HARNESSES = {NEW_HARNESS, REPO_PREFIX + 'research/pdf-delivery-20261116/generated_closure.py'}
 
 
 def sha(path):
@@ -42,7 +44,7 @@ def reviewed_identity(old, current):
     """
     assert old.keys() == current.keys(), 'Unexpected frontier identity schema'
     previous = old['harnessFiles']; actual = current['harnessFiles']
-    assert actual.keys() == previous.keys() | {NEW_HARNESS}, 'Unreviewed harness file set'
+    assert actual.keys() == previous.keys() | NEW_HARNESSES, 'Unreviewed harness file set'
     changes = {}
     for name, digest in previous.items():
         if digest == actual[name]:
@@ -51,7 +53,8 @@ def reviewed_identity(old, current):
         relative = name[len(REPO_PREFIX):]
         assert REVIEWED_HARNESS.get(relative) == digest, 'Unreviewed predecessor harness change'
         changes[name] = {'before': digest, 'after': actual[name]}
-    changes[NEW_HARNESS] = {'before': None, 'after': actual[NEW_HARNESS]}
+    for name in NEW_HARNESSES:
+        changes[name] = {'before': None, 'after': actual[name]}
     incompatible = [k for k in old if k != 'harnessFiles' and old[k] != current[k]]
     return {'reviewedHarnessChanges': changes, 'incompatibleCompiledIdentityFields': incompatible}
 

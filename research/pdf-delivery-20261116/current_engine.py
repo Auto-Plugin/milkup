@@ -6,11 +6,12 @@ import current_tu_gate as gate
 import current_segment as seg
 import frontier_checkpoint as checkpoint
 import normal_completion as completion
+import generated_closure as closure
 HERE=gate.HERE
 LEGACY_MANIFEST=HERE/'evidence/43864252208/resume-checkpoint-manifest.json.gz'
 LEGACY_SHA='acd9c6c96cf12828654c1ab17be025dbcbd264ce6c3cc24a838595d8b43cf655'
 LEGACY_PRODUCER='817db1398ac62d5465fbc76f3684171e4ff335ed'
-HARNESS=['current_engine.py','frontier_checkpoint.py','current_segment.py','current_tu_gate.py','current_object_restore.py','current_source_archive.py','package_boundary.py','normal_completion.py']
+HARNESS=['current_engine.py','frontier_checkpoint.py','current_segment.py','current_tu_gate.py','current_object_restore.py','current_source_archive.py','package_boundary.py','normal_completion.py','generated_closure.py']
 
 def select_owned(table,known):
  # PID plus Linux process start ticks, including descendants that start their
@@ -65,6 +66,8 @@ class EngineGate(seg.Segment):
  def after_sdk(self):
   self.run('real-frontier-contracts',['python3','-m','unittest','discover','-s',str(HERE),'-p','test_frontier_checkpoint.py','-v'],180,gate.REPO,{**os.environ,'PYTHONDONTWRITEBYTECODE':'1'})
   self.run('normal-all-prerequisite-contracts',['python3','-m','unittest','discover','-s',str(HERE),'-p','test_current_normal.py','-v'],180,gate.REPO,{**os.environ,'PYTHONDONTWRITEBYTECODE':'1'})
+  assert pathlib.Path('/usr/bin/ruby').is_file(),'Official SDK Ruby required for real producer contract'
+  self.run('generated-producer-contracts',['python3','-m','unittest','discover','-s',str(HERE),'-p','test_current_generated.py','-v'],180,gate.REPO,{**os.environ,'PYTHONDONTWRITEBYTECODE':'1'})
  def prepare_engine(self):
   gate.Gate.execute(self);seg.Segment.prepare_batch(self)
   plan=self.run('normal-all-command-graph',['ninja','-t','commands','all'],90,self.build)
@@ -78,6 +81,7 @@ class EngineGate(seg.Segment):
     path=pathlib.Path(arg)
     if not path.is_absolute()or path.is_relative_to(self.root):continue
     if path.is_file()and os.access(path,os.X_OK):generators[str(path)]={'resolved':str(path.resolve()),'sha256':checkpoint.digest(path.resolve())}
+  self.report['generatedProducerClosure']=closure.audit(self.source,self.build);self.persist()
   cache=gate.boundary.cache_values(self.build/'CMakeCache.txt')
   for key in ['CMAKE_LINKER','CMAKE_AR','CMAKE_RANLIB']:
    path=pathlib.Path(cache[key]);assert path.is_file();generators[str(path)]={'resolved':str(path.resolve()),'sha256':checkpoint.digest(path.resolve())}
@@ -157,6 +161,10 @@ class EngineGate(seg.Segment):
   if prior:
    assert m==prior,'Exact reviewed prior manifest required'
    review=completion.reviewed_identity(m['identity'],self.generic_identity);self.report['predecessorReview']=review;self.persist()
+   missing=closure.missing(m)
+   if missing:
+    assert not any((self.build/t).exists()for t in self.full_entries),'Producer closure must be checked before restoration'
+    self.report['optionalCacheSkippedBeforeBuildWrites']={'reason':'incomplete producer output closure','missing':missing,'source':'locked official Ruby producer; original Ninja all will generate full set'};self.persist();return set()
    if review['incompatibleCompiledIdentityFields']:
     assert not any((self.build/t).exists()for t in self.full_entries),'Only clean generated-only build may skip cache'
     self.report['optionalCacheSkippedBeforeBuildWrites']={'reason':'compiled identity differs','fields':review['incompatibleCompiledIdentityFields']};self.persist();return set()
@@ -253,7 +261,7 @@ class EngineGate(seg.Segment):
   self.report['objectRetention']={'format':checkpoint.SCHEMA,'checkpoints':self.report.get('checkpoints',[]),'duplicateObjectArchiveCreated':False};self.persist()
 
 def pack(context,output):
- data=json.loads(context.read_text());manifest,payload=checkpoint.capture(pathlib.Path(data['build']),pathlib.Path(data['source']),data['entries'],data['identity'],data['frontier'],data['helpers'],data['links'],output)
+ data=json.loads(context.read_text());manifest,payload=checkpoint.capture(pathlib.Path(data['build']),pathlib.Path(data['source']),data['entries'],data['identity'],data['frontier'],data['helpers'],data['links'],output,closure.completed(pathlib.Path(data['build']),closure.audit(pathlib.Path(data['source']),pathlib.Path(data['build']))['actualOutputs']))
  archive=output/'frontier.tar.gz';checkpoint.write_archive(archive,manifest,payload)
  (output/'manifest.json.gz').write_bytes(gzip.compress(json.dumps(manifest,sort_keys=True).encode(),mtime=0))
  receipt={'archiveSha256':checkpoint.digest(archive),'archiveBytes':archive.stat().st_size,'schema':checkpoint.SCHEMA,'identitySha256':seg.canonical(data['identity']),'compiledObjects':manifest['compiledObjectCount'],'pchRecords':manifest['pchCount'],'inputRecords':len(manifest['inputs']),'generatedInputsArchived':sum(r['kind']=='generated'for r in manifest['records'].values()),'runtimeBytesArchived':False,'pchBytesArchived':False}

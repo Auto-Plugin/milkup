@@ -96,8 +96,8 @@ class FrontierContracts(unittest.TestCase):
     evidence=root/'rejected-evidence'
     with self.assertRaisesRegex(AssertionError,'Unknown original dependency target'):
      f.capture(build,source,entries,identity,['consumer.o'],helpers,{},evidence)
-    self.assertIn('bin/LLIntSettingsExtractor: #deps',gzip.decompress((evidence/'native-deps.txt.gz').read_bytes()).decode())
-    self.assertEqual(gzip.decompress((evidence/'native-ninja-log.txt.gz').read_bytes()),(build/'.ninja_log').read_bytes())
+    self.assertIn('bin/LLIntSettingsExtractor: #deps',f.read_native_stream(evidence/'native-deps.txt').decode())
+    self.assertEqual(f.read_native_stream(evidence/'native-ninja-log.txt'),(build/'.ninja_log').read_bytes())
     links={'bin/LLIntSettingsExtractor':{'command':helpers['bin/LLIntSettingsExtractor'],'depfile':'helper-link.d'}}
     st=(build/'consumer.o').stat();os.utime(build/'consumer.o',ns=(st.st_atime_ns,st.st_mtime_ns+1000000000))
     with self.assertRaisesRegex(AssertionError,'Invalid dependency/log record'):

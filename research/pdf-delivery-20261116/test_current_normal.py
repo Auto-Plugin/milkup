@@ -35,7 +35,7 @@ class NormalCompletion(unittest.TestCase):
     def test_exact_manifest_and_narrow_harness_migration(self):
         prior = normal.pinned(HERE / 'evidence/43890194973/checkpoint-manifest.json.gz')
         old = prior['identity']; current = copy.deepcopy(old)
-        current['harnessFiles'][normal.NEW_HARNESS] = 'a' * 64
+        for name in normal.NEW_HARNESSES: current['harnessFiles'][name] = 'a' * 64
         for name in normal.REVIEWED_HARNESS:
             current['harnessFiles'][normal.REPO_PREFIX + name] = 'b' * 64
         review = normal.reviewed_identity(old, current)
@@ -44,7 +44,7 @@ class NormalCompletion(unittest.TestCase):
             changed = copy.deepcopy(current); changed[field] = {'changed': True}
             self.assertEqual(normal.reviewed_identity(old, changed)['incompatibleCompiledIdentityFields'], [field])
         changed = copy.deepcopy(current)
-        changed['harnessFiles'][normal.REPO_PREFIX + 'research/pdf-delivery-20261116/frontier_checkpoint.py'] = 'c' * 64
+        changed['harnessFiles'][normal.REPO_PREFIX + 'research/pdf-delivery-20261116/current_segment.py'] = 'c' * 64
         with self.assertRaisesRegex(AssertionError, 'Unreviewed'): normal.reviewed_identity(old, changed)
         changed = copy.deepcopy(current); changed['harnessFiles']['/unknown.py'] = 'c' * 64
         with self.assertRaisesRegex(AssertionError, 'Unreviewed'): normal.reviewed_identity(old, changed)

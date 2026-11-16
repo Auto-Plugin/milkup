@@ -1,0 +1,14 @@
+Traceback (most recent call last):
+  File "/home/runner/work/milkup/milkup/research/pdf-delivery-20261116/current_engine.py", line 279, in <module>
+    if __name__=='__main__':raise SystemExit(main())
+                                             ~~~~^^
+  File "/home/runner/work/milkup/milkup/research/pdf-delivery-20261116/current_engine.py", line 267, in main
+    if a.command=='pack':pack(a.context,a.output);return 0
+                         ~~~~^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/work/milkup/milkup/research/pdf-delivery-20261116/current_engine.py", line 256, in pack
+    data=json.loads(context.read_text());manifest,payload=checkpoint.capture(pathlib.Path(data['build']),pathlib.Path(data['source']),data['entries'],data['identity'],data['frontier'],data['helpers'],data['links'],output)
+                                                          ~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/work/milkup/milkup/research/pdf-delivery-20261116/frontier_checkpoint.py", line 129, in capture
+    assert len(data)<=64*1024**2;(evidence/(name+'.gz')).write_bytes(gzip.compress(data,mtime=0))
+           ^^^^^^^^^^^^^^^^^^^^^
+AssertionError
