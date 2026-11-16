@@ -6,6 +6,8 @@ import package_boundary as boundary
 HERE=pathlib.Path(__file__).resolve().parent;REPO=HERE.parents[1]
 SOURCE_SHA=boundary.SOURCE_SHA;PATCH_SHA='855e58cc8ad531cc32e893b8274983a6264e6fdfc248c13e80c5ef0e01d7a4e5'
 SOURCE_URL='https://webkitgtk.org/releases/webkitgtk-2.54.2.tar.xz'
+EXTRA_SDK_PACKAGES=['clang','cmake','ninja-build','ccache','libgtk-3-dev','libsoup-3.0-dev','libavif-dev','libmanette-0.2-dev','flite1-dev','libbacktrace-dev','libsysprof-capture-4-dev','libgstreamer-plugins-bad1.0-dev']
+REQUIRED_GST_MODULES=['gstreamer-1.0','gstreamer-app-1.0','gstreamer-pbutils-1.0','gstreamer-video-1.0','gstreamer-mpegts-1.0','gstreamer-tag-1.0','gstreamer-gl-1.0','gstreamer-audio-1.0','gstreamer-fft-1.0']
 def module(path):
  spec=importlib.util.spec_from_file_location('strict_object_contract',path);m=importlib.util.module_from_spec(spec);spec.loader.exec_module(m);return m
 contract=module(REPO/'scripts/ci/webkit-pagination-object-preflight.py')
@@ -104,13 +106,19 @@ class Gate:
   for v in versions[1:]:
    if subprocess.run(['dpkg','--compare-versions',v,'gt',version]).returncode==0:version=v
   self.report['dependencySourceVersion']=version;self.persist()
-  extra=['clang','cmake','ninja-build','ccache','libgtk-3-dev','libsoup-3.0-dev','libavif-dev','libmanette-0.2-dev','flite1-dev','libbacktrace-dev','libsysprof-capture-4-dev']
+  extra=EXTRA_SDK_PACKAGES
   plans=[['build-dep','webkit2gtk='+version],['install',*extra]]
   for i,plan in enumerate(plans):
    text=self.run('dependencies-plan-'+str(i),['apt-get','-c',str(conf),'--simulate','--no-install-recommends','--no-remove',*plan],60)
    self.report.setdefault('dependencyPlans',[]).append({'operation':plan,'installs':validate_apt_plan(text)});self.persist()
   for i,plan in enumerate(plans):self.run('dependencies-install-'+str(i),['sudo','apt-get','-c',str(conf),'-y','--no-install-recommends','--no-remove',*plan],300)
   self.run('installed-package-inventory',['dpkg-query','-W','-f=${binary:Package}\t${Version}\t${Architecture}\n'],30)
+  self.run('required-gstreamer-sdk',['pkg-config','--print-errors','--exists',*[name+' >= 1.18.4'for name in REQUIRED_GST_MODULES]],30)
+  self.run('required-gstreamer-versions',['pkg-config','--modversion',*REQUIRED_GST_MODULES],30)
+  for name in ['cmake','ninja','clang','clang++']:
+   actual=pathlib.Path(shutil.which(name)or'');assert actual.is_file()
+   self.report.setdefault('tools',{})[name]={'path':str(actual),'resolved':str(actual.resolve()),'sha256':digest(actual.resolve())};self.persist()
+   self.run('tool-'+name.replace('+','p'),[str(actual),'--version'],15)
   # Download/extraction runs in a timed child so network/decompression cannot
   # outlive the same process-group deadline.
   self.run('official-source',['python3',str(HERE/'current_source_archive.py'),str(self.root/'source.tar.xz'),str(self.source)],180)
@@ -170,6 +178,15 @@ class Gate:
  def retain(self):
   # Only our successfully compiled objects and depfiles. No runtime, cache,
   # credentials, source tree or arbitrary filesystem paths enter this archive.
+  # Retain incomplete configuration on failure too, rather than losing the
+  # cache/tool diagnostics before generated ABI checks can run.
+  configuration_files={}
+  for rel in ['CMakeCache.txt','cmakeconfig.h','compile_commands.json','build.ninja','CMakeFiles/rules.ninja','CMakeFiles/CMakeConfigureLog.yaml']:
+   p=self.build/rel
+   if not p.is_file():continue
+   assert p.stat().st_size<=32*1024**2,'Configuration evidence budget exceeded'
+   q=self.out/'graph'/rel;q.parent.mkdir(parents=True,exist_ok=True);shutil.copyfile(p,q);configuration_files[rel]=digest(p)
+  self.report['retainedConfigurationFiles']=configuration_files
   rows=[];total=0
   for obj in self.report['objects']:
    for target in [obj['target'],obj['target']+'.d']:

@@ -1,5 +1,5 @@
 """Offline positive/negative contracts for the complete new non-engine path."""
-import ast,copy,hashlib,json,pathlib,shlex,subprocess,tarfile,tempfile,time,unittest
+import ast,copy,hashlib,json,os,pathlib,shlex,subprocess,tarfile,tempfile,time,unittest
 from unittest import mock
 import current_tu_gate as gate
 import current_source_archive as archive
@@ -38,6 +38,30 @@ class CurrentGate(unittest.TestCase):
    with self.assertRaises(AssertionError):archive.validate_members(members,reader)
   b=copy.copy(a);b.name='webkitgtk-2.54.2/another.css'
   with self.assertRaises(AssertionError):archive.validate_members([b,b],lambda m:data)
+ def test_real_pkgconfig_reproduces_missing_module_and_reads_official_metadata(self):
+  self.assertIn('libgstreamer-plugins-bad1.0-dev',gate.EXTRA_SDK_PACKAGES)
+  self.assertIn('gstreamer-mpegts-1.0',gate.REQUIRED_GST_MODULES)
+  source=(HERE/'evidence/43847602183/GStreamerChecks.cmake').read_text()
+  self.assertIn('list(APPEND GSTREAMER_COMPONENTS video mpegts tag gl)',source)
+  with tempfile.TemporaryDirectory()as t:
+   root=pathlib.Path(t);env={**os.environ,'PKG_CONFIG_LIBDIR':str(root),'PKG_CONFIG_PATH':''}
+   def dependency(name,version='1.28.2'):
+    (root/(name+'.pc')).write_text('Name: '+name+'\nDescription: controlled metadata dependency only\nVersion: '+version+'\nLibs: -lfixture\n')
+   dependency('gstreamer-1.0');dependency('gstreamer-base-1.0')
+   command=['pkg-config','--print-errors','--exists','gstreamer-mpegts-1.0 >= 1.18.4']
+   missing=subprocess.run(command,env=env,text=True,capture_output=True);self.assertNotEqual(missing.returncode,0);self.assertIn('gstreamer-mpegts-1.0',missing.stderr)
+   official=(HERE/'evidence/43847602183/gstreamer-mpegts-1.0.pc.txt').read_text();(root/'gstreamer-mpegts-1.0.pc').write_text(official)
+   valid=subprocess.run(command,env=env,text=True,capture_output=True);self.assertEqual(valid.returncode,0,valid.stderr)
+   libs=subprocess.check_output(['pkg-config','--libs','gstreamer-mpegts-1.0'],env=env,text=True);self.assertIn('-lgstmpegts-1.0',libs)
+   dependency('gstreamer-base-1.0','1.27.0')
+   self.assertNotEqual(subprocess.run(command,env=env,capture_output=True).returncode,0)
+   (root/'gstreamer-base-1.0.pc').unlink()
+   self.assertNotEqual(subprocess.run(command,env=env,capture_output=True).returncode,0)
+ def test_failed_configure_retains_partial_cache_without_claiming_generated_success(self):
+  with tempfile.TemporaryDirectory()as t:
+   g=gate.Gate(pathlib.Path(t)/'gate',time.time());g.build.mkdir();cache=g.build/'CMakeCache.txt';cache.write_text('PARTIAL:STRING=failed-configure\n')
+   g.report['status']='failed';g.retain();result=json.loads((g.out/'result.json').read_text())
+   self.assertIn('CMakeCache.txt',result['retainedConfigurationFiles']);self.assertNotIn('cmakeconfig.h',result['retainedConfigurationFiles']);self.assertEqual(result['status'],'failed')
  def test_generated_config_and_unconsumed_settings(self):
   with tempfile.TemporaryDirectory()as t:
    root=pathlib.Path(t);cache=root/'CMakeCache.txt';config=root/'cmakeconfig.h';r=json.loads((HERE/'qa-final-path-profile.json').read_text())

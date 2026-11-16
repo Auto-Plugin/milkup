@@ -4,6 +4,8 @@
 
 Follow-up: [43846281602 current-source gate](evidence/43846281602/REPORT.md) stopped before source extraction on an identical duplicate tar member. The narrow parser correction passes the full official archive locally; no second run, configuration or TU acceptance yet. The report preserves the original failure.
 
+Latest: [43847602183](evidence/43847602183/REPORT.md) passed full extraction and patch identity, then failed CMake because the required MPEG-TS development package was missing. Dependency wiring is corrected with 27 local tests; no real TU or follow-up run yet.
+
 Base repository commit: `34216c7c59fbe25905f4be0edc2d5813cc36a6e1`.
 The previous [43836771926 research run](https://github.com/Auto-Plugin/milkup/actions/runs/43836771926) passed its 15-case contract using WebKitGTK 2.52.6 with observation code. It is preserved, not repeated and not inherited by this candidate.
 
