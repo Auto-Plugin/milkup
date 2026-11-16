@@ -5,7 +5,7 @@ on:
       operation:
         description: Cheap header/cache preflight or one explicitly approved continuation
         type: choice
-        options: [preflight, resume, pagination-preflight, pagination-diagnostic, pagination-segment, stock-paper-control, current-source-preflight, current-source-restore, current-object-segment, current-engine-continuation, current-engine-normal, current-runtime-intake]
+        options: [preflight, resume, pagination-preflight, pagination-diagnostic, pagination-segment, stock-paper-control, current-source-preflight, current-source-restore, current-object-segment, current-engine-continuation, current-engine-normal, current-runtime-intake, current-app-binding]
         default: preflight
         required: true
       links_research:
@@ -53,7 +53,7 @@ concurrency:
   cancel-in-progress: false
 jobs:
   capability:
-    if: github.repository == 'Auto-Plugin/milkup' && inputs.operation != 'pagination-preflight' && inputs.operation != 'pagination-diagnostic' && inputs.operation != 'pagination-segment' && inputs.operation != 'stock-paper-control' && inputs.operation != 'current-source-preflight' && inputs.operation != 'current-source-restore' && inputs.operation != 'current-object-segment' && inputs.operation != 'current-engine-continuation' && inputs.operation != 'current-engine-normal' && inputs.operation != 'current-runtime-intake'
+    if: github.repository == 'Auto-Plugin/milkup' && inputs.operation != 'pagination-preflight' && inputs.operation != 'pagination-diagnostic' && inputs.operation != 'pagination-segment' && inputs.operation != 'stock-paper-control' && inputs.operation != 'current-source-preflight' && inputs.operation != 'current-source-restore' && inputs.operation != 'current-object-segment' && inputs.operation != 'current-engine-continuation' && inputs.operation != 'current-engine-normal' && inputs.operation != 'current-runtime-intake' && inputs.operation != 'current-app-binding'
     runs-on: ubuntu-26.04
     timeout-minutes: ${{ inputs.operation == 'preflight' && 30 || inputs.geometry_research && 55 || 355 }}
     env:
@@ -875,3 +875,74 @@ jobs:
             ${{ runner.temp }}/final-runtime-sdk/*.log
           if-no-files-found: warn
           retention-days: 90
+
+  current-app-binding:
+    if: github.repository == 'Auto-Plugin/milkup' && inputs.operation == 'current-app-binding' && startsWith(github.ref, 'refs/heads/dot/')
+    runs-on: ubuntu-26.04
+    timeout-minutes: 85
+    defaults:
+      run:
+        shell: bash
+    env:
+      RUSTUP_TOOLCHAIN: '1.99.0'
+      PYTHONDONTWRITEBYTECODE: '1'
+      PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: '1'
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - name: Independent exact v2 application, no research behavior
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: 546796b005390642ee5cc655440b4b350a730717
+          path: application
+          persist-credentials: false
+      - name: Compile gate contracts before dependency work
+        run: |
+          cd research/pdf-delivery-20261116
+          python3 -m unittest test_app_compile_gate test_app_sdk_binding test_runtime_intake -v
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: 24.19.0
+      - name: Locked existing build tools
+        timeout-minutes: 6
+        run: |
+          timeout --kill-after=5s 150s npm install --global pnpm@11.7.0 --ignore-scripts
+          timeout --kill-after=5s 180s rustup toolchain install 1.99.0 --profile minimal
+      - name: Receive retained original staging, never recompile WebKit
+        timeout-minutes: 8
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          timeout --kill-after=5s 180s gh api repos/Auto-Plugin/milkup/actions/artifacts/14264654984/zip > "$RUNNER_TEMP/retained-original.zip"
+          timeout --kill-after=5s 90s python3 research/pdf-delivery-20261116/app_compile_gate.py receive "$RUNNER_TEMP/retained-original.zip" "$RUNNER_TEMP/app-runtime-inputs"
+          timeout --kill-after=5s 120s python3 research/pdf-delivery-20261116/runtime_intake.py "$RUNNER_TEMP/app-runtime-inputs/runtime-original.zip" "$RUNNER_TEMP/app-runtime-inputs/evidence-original.zip" "$RUNNER_TEMP/app-runtime-intake"
+      - name: Existing official host SDK and ABI preflight, no system runtime replacement
+        timeout-minutes: 12
+        run: |
+          timeout --signal=TERM --kill-after=10s 630s python3 research/pdf-delivery-20261116/runtime_host_sdk.py "$RUNNER_TEMP/app-host-sdk"
+          timeout --kill-after=5s 70s python3 research/pdf-delivery-20261116/runtime_host_closure.py "$RUNNER_TEMP/app-runtime-intake" "$RUNNER_TEMP/app-host-sdk/host-closure.json"
+      - name: Real Milkup and both embedded guards with exact final RPATH
+        timeout-minutes: 52
+        run: |
+          timeout --signal=TERM --kill-after=20s 3060s python3 research/pdf-delivery-20261116/app_compile_gate.py build "$GITHUB_WORKSPACE/application" "$RUNNER_TEMP/app-runtime-intake" "$RUNNER_TEMP/app-compile"
+      - name: Preserve bounded build evidence, never a source provenance report
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: milkup-app-guard-compile-evidence-${{ github.run_id }}
+          path: |
+            ${{ runner.temp }}/app-compile/evidence/
+            ${{ runner.temp }}/app-compile/guard-capture/
+            ${{ runner.temp }}/app-host-sdk/*.json
+            ${{ runner.temp }}/app-host-sdk/*.log
+          if-no-files-found: warn
+          retention-days: 30
+      - name: Preserve compiled application and embedded guards, not an installer
+        if: success()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: milkup-app-guard-binaries-not-package-${{ github.run_id }}
+          path: ${{ runner.temp }}/app-compile/compiled-not-package/
+          if-no-files-found: error
+          retention-days: 30
