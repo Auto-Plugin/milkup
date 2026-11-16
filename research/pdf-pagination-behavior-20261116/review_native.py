@@ -33,6 +33,9 @@ def review(root):
             capture = json.loads((folder / 'process-capture.json').read_text())
             assert capture['status'] == 'kernel-sender-bound'
             assert capture['threadsStopped']
+            native = json.loads((folder / 'native-result.json').read_text())
+            assert native['status'] == 'pdf-received'
+            assert native['guardianExit'] == 0 and native['privateRemoved']
             web = [p for p in capture['processes'].values()
                    if p['image'].endswith('/WebKitWebProcess')]
             assert len(web) == 1
@@ -49,6 +52,9 @@ def review(root):
                 'pid', 'birth', 'pidfdId', 'uid', 'noNewPrivs', 'seccomp',
                 'capEff', 'image', 'lineage', 'libraries')}
             row['kernelBoundRecords'] = len(lines)
+            row['normalExit'] = native['guardianExit'] == 0
+            row['privateRemoved'] = native['privateRemoved']
+            row['nativeElapsedMs'] = native['elapsedMs']
             row['collectorErrorsOutsideWindow'] = [e for e in capture['errors']
                                                    if e['phase'] != 'window']
         except Exception as error:
@@ -59,6 +65,8 @@ def review(root):
             row['papers'] = []
             for paper in audit['papers']:
                 pdf = folder / (paper['name'] + '.pdf')
+                native = json.loads((folder / 'native-result.json').read_text())
+                assert hashlib.sha256(pdf.read_bytes()).hexdigest() == native['pdfSha256']
                 headers = calibrate.header_contract(paper, pdf)
                 positions = {}
                 for page_number, page in enumerate(paper['pages'], 1):
