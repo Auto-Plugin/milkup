@@ -344,7 +344,8 @@ jobs:
         timeout-minutes: 25
         run: |
           if [ "$PAGINATION_COMBINED" = true ]; then
-            sudo apt-get -c "$RUNNER_TEMP/milkup-webkit-research/apt.conf" -y --no-install-recommends --no-remove install fontconfig python3-pypdf python3-fonttools fonts-noto-core fonts-noto-cjk fonts-dejavu-core
+            sudo apt-get -c "$RUNNER_TEMP/milkup-webkit-research/apt.conf" -y --no-install-recommends --no-remove install fontconfig python3-pypdf python3-fonttools python3-fitz python3-pil poppler-utils fonts-noto-core fonts-noto-cjk fonts-dejavu-core
+            python3 research/pdf-pagination-behavior-20261116/uri_evidence_test.py
             python3 -m unittest discover -s research/pdf-combined-20261116 -p 'test*.py'
             python3 -m unittest discover -s research/linux-pdf-links-20261114 -p 'test*.py'
             python3 research/linux-pdf-unicode-20261114/test_digit_probe.py "$RUNNER_TEMP/milkup-webkit-research/evidence/combined-digit-contract"

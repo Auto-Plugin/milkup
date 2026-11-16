@@ -94,6 +94,22 @@ def inspect(pages, expected, paper):
     return errors, occurrences, group_report
 
 
+def uri_annotation(link, page):
+    """Keep the full reader record; normalize only its typed rectangle."""
+    import fitz
+    assert isinstance(page, int) and page > 0
+    assert link.get('kind') == fitz.LINK_URI and isinstance(link.get('uri'), str) and link['uri']
+    assert isinstance(link.get('from'), fitz.Rect), 'URI rectangle must come from the PDF reader'
+    box = list(link['from'])
+    assert len(box) == 4 and all(math.isfinite(v) for v in box), 'Finite URI rectangle required'
+    assert box[0] < box[2] and box[1] < box[3], 'Nonempty URI rectangle required'
+    result = dict(link, page=page)
+    result['from'] = box
+    # Unknown typed fields must fail explicitly, never disappear or stringify.
+    json.dumps(result, allow_nan=False)
+    return result
+
+
 def audit(root):
     from PIL import Image
     import fitz
@@ -158,7 +174,7 @@ def audit(root):
                     if g['inkWidth'] < mw-2 or g['inkHeight'] < mh-2:
                         row['errors'].append(f'{style} page {g["page"]}: clipped/empty rendered guard {g}')
             row['renderedGuards'] = guards
-            row['uriAnnotations'] = [dict(link,page=i+1) for i,p in enumerate(glyph_document) for link in p.get_links() if link.get('uri')]
+            row['uriAnnotations'] = [uri_annotation(link, i+1) for i,p in enumerate(glyph_document) for link in p.get_links() if link.get('uri')]
             row['glyphReaderVersion'] = fitz.VersionBind
             row['rasterControl'] = 'same-literal per-style ink bounds at 144 dpi; does not prove every arbitrary glyph'
             # Keep first/last bands of each page for independent human boundary review.
