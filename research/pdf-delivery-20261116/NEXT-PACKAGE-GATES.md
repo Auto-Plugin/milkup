@@ -47,3 +47,5 @@ A maintained distribution backport is preferred when actually available and vali
 ## Current measured continuation inputs
 
 [43852458294](evidence/43852458294/REPORT.md) now supplies actual two-PCH/ten-TU success and identity-bound object retention. [Measurements](evidence/43852458294/measured-next-stage-inputs.json) explicitly do not extrapolate full-build duration; cross-job restore is unproved and PCH binaries require regeneration. [Configured static targets](configured-static-components.json) resolve ANGLE/GLESv2/xdgmime/Skia/PAL graph inputs but do not include every direct object, nested/header-only dependency, license or installed component. No additional build is scheduled by these records.
+
+The next clean-job proof is described in [CROSS-JOB-RESTORE.md](CROSS-JOB-RESTORE.md). The [actual graph inventory](full-build-graph-inventory.json) and [bounded continuation conditions](FULL-BUILD-SEGMENT-PLAN.md) separate restoration, compile progress, full linking and same-package acceptance. They do not schedule a full build or assert restored objects are usable before the native proof completes.
