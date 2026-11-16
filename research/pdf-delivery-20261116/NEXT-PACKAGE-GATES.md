@@ -53,3 +53,16 @@ The next clean-job proof is described in [CROSS-JOB-RESTORE.md](CROSS-JOB-RESTOR
 [43859140947](evidence/43859140947/REPORT.md) now proves clean-job selected-object restoration and expanded normal-graph reuse plus actual relocatable partial linking. It explicitly does not prove a finished engine, a general performance-saving checkpoint, installation or native PDF. Its original archive has independently hash-verified persistent Library retention. The earlier 43856901779 green reporter was limited by manifest-only planning and remains a preserved incomplete proof.
 
 [43864252208](evidence/43864252208/REPORT.md) additionally proves actual 24-object restoration without precompilation and four new objects on the original graph. This remains an object-only 28-target checkpoint, not runtime closure, a shared link, installed ABI compatibility, sandbox execution or package/PDF acceptance.
+
+## Issue #255 ride-along is now wired, not yet natively accepted
+
+The default-runtime branch of `scripts/ci/run-linux-installed-gui.sh` now executes
+`linux-installed-bracket-caret.mjs` with a 180-second bound before the existing
+installed GUI/PDF flow. It uses that flow's exact package/installed binary, isolated
+profile, ordinary user and native close helper; no new build or workflow dispatch
+is added. Research-runtime runs explicitly record this gate as not run. See
+[the reviewed evidence and local prerequisites](issue-255/README.md). The preserved
+58c78973 conflict/recovery passes and the old 2.5-second keyboard test do not satisfy
+this new 3.2-second native-keyboard/save/reopen contract. The next final-path package
+runner must preserve this gate and provide its exact package manifest/extracted
+application inputs; no older package result may be inherited.

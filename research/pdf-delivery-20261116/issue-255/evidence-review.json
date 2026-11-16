@@ -1,0 +1,75 @@
+{
+  "scope": "read-only native evidence and local capability review; no native case execution",
+  "reportsReviewed": [
+    {
+      "path": "/workspace/milkup-file-conflict-evidence/43686757658/raw/gui/conflict-result.json",
+      "sha256": "165edc1457bd8cf93f23068c66378f6e306bc09900df953a5d75d66bcb04d6a4",
+      "status": "passed",
+      "sourceSha": "58c78973101acb0a22ca0cb5d24ef24bd9edc199",
+      "steps": [
+        "open-exact-installed-production",
+        "local-unsaved-edit-and-checkpoint",
+        "real-external-write-observed-with-local-edit-retained",
+        "ordinary-save-refuses-external-overwrite",
+        "dirty-reload-refused",
+        "native-close-cancel-preserves-both-versions",
+        "save-as-cancel-preserves-both-versions",
+        "save-as-new-file-preserves-external-original",
+        "normal-close-after-rescue",
+        "reopen-external-original",
+        "clean-external-change-explicit-reload",
+        "normal-close-after-reload",
+        "reopen-rescue-local-version",
+        "final-normal-close"
+      ],
+      "coversRequestedBracketCase": false
+    },
+    {
+      "path": "/workspace/milkup-recovery-evidence/43687852420/raw/gui/recovery-result.json",
+      "sha256": "ec7a9442a73b65b1c4e702818a62781402fc3f78574c2cf4d3196585c34cf07e",
+      "status": "passed",
+      "sourceSha": "58c78973101acb0a22ca0cb5d24ef24bd9edc199",
+      "steps": [
+        "open-exact-installed-original",
+        "first-completed-checkpoint",
+        "latest-completed-checkpoint-with-previous-generation",
+        "pidfd-bound-abrupt-interruption",
+        "restart-offers-pending-checkpoint-alongside-original",
+        "defer-recovery-keeps-original-and-pending-snapshot",
+        "second-restart-still-offers-deferred-snapshot",
+        "restore-opens-independent-copy-with-exact-unsaved-bytes",
+        "third-restart-keeps-original-without-reoffering-restored-record",
+        "archived-history-still-retains-recovery-copy",
+        "reopen-independent-recovered-file-after-normal-restart"
+      ],
+      "coversRequestedBracketCase": false
+    }
+  ],
+  "legacyScript": "tests/native/tauri-block-keyboard.mjs",
+  "legacyCase": {
+    "fixture": "()tail",
+    "typed": "abc123",
+    "idleMs": 2500,
+    "marker": "X",
+    "difference": "less than 3000 ms; no requested line/document prefixes, focus/scroll history, or exact installed-package reopen proof"
+  },
+  "local": {
+    "uid": 1000,
+    "displayPresent": false,
+    "tools": {
+      "tauri-driver": null,
+      "WebKitWebDriver": null,
+      "Xvfb": null,
+      "xvfb-run": null,
+      "xdotool": null,
+      "xwininfo": "/usr/bin/xwininfo",
+      "dbus-run-session": "/usr/bin/dbus-run-session",
+      "node": "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node"
+    },
+    "installedApplicationExists": false,
+    "freeBytes": 196608
+  },
+  "nativeExecuted": false,
+  "ciDispatched": false,
+  "existingBuildPolled": false
+}

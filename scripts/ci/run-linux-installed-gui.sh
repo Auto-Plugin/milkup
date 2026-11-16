@@ -34,4 +34,10 @@ for attempt in $(seq 1 50); do
   if curl --fail --silent "$TAURI_DRIVER_URL/status" > /dev/null; then break; fi
   sleep 0.1
 done
+# Ride along the next installed daily-use run; no new build, dispatch or fixture mutation.
+if test -z "${MILKUP_RESEARCH_RUNTIME_PREFIX:-}"; then
+  timeout --signal=TERM --kill-after=5s 180s node scripts/ci/linux-installed-bracket-caret.mjs
+else
+  printf '%s\n' '#255 default-installed-runtime gate not run under research runtime' > "$MILKUP_NATIVE_EVIDENCE_DIR/issue-255-not-run.txt"
+fi
 node scripts/ci/linux-installed-gui.mjs
