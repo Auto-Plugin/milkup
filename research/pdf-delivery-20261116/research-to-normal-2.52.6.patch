@@ -1,0 +1,874 @@
+--- a/Source/WebCore/Headers.cmake
++++ b/Source/WebCore/Headers.cmake
+@@ -2148,7 +2148,6 @@
+     page/PopupOpeningObserver.h
+     page/PrewarmInformation.h
+     page/PrintContext.h
+-    page/MilkupPrintResearch.h
+     page/ProcessWarming.h
+     page/Quirks.h
+     page/QuirksData.h
+@@ -3118,6 +3117,9 @@
+     rendering/PositionedLayoutConstraints.h
+     rendering/RegionContext.h
+     rendering/RenderAttachment.h
++    rendering/FragmentKeepPolicy.h
++    rendering/RootTrailingMarginPolicy.h
++    rendering/PrintLinkAnnotationPolicy.h
+     rendering/RenderBlock.h
+     rendering/RenderBlockFlow.h
+     rendering/RenderBox.h
+--- a/Source/WebCore/page/MilkupPrintResearch.h
++++ /dev/null
+@@ -1,121 +0,0 @@
+-// RESEARCH ONLY: synthetic fixture, finite record/rectangle budgets, no product use.
+-#pragma once
+-#include "AffineTransform.h"
+-#include "Document.h"
+-#include "ElementInlines.h"
+-#include "GraphicsContext.h"
+-#include "LayoutRect.h"
+-#include "RenderElement.h"
+-#include "RenderElementInlines.h"
+-#include "RenderObjectDocument.h"
+-#include <wtf/text/CString.h>
+-#include <algorithm>
+-#include <cstdio>
+-#include <cstdlib>
+-#include <string>
+-
+-namespace WebCore::MilkupPrintResearch {
+-inline unsigned activePage = 0;
+-inline unsigned records = 0;
+-inline unsigned focusCalls = 0;
+-inline bool dedup = false;
+-
+-// Research-only A/B candidate. No state survives this one collection.
+-template<typename Rectangles> Rectangles uniquePerCall(const Rectangles& input)
+-{
+-    Rectangles result;
+-    for (const auto& rect : input) {
+-        if (std::find(result.begin(), result.end(), rect) == result.end())
+-            result.append(rect);
+-    }
+-    return result;
+-}
+-
+-
+-inline bool eligible(Document& document)
+-{
+-    return std::getenv("MILKUP_PAINT_PROBE") && document.printing() && document.title() == "MILKUP_PRINT_LAYOUT_V1"_s;
+-}
+-inline bool allowRecord()
+-{
+-    if (++records <= 512)
+-        return true;
+-    if (records == 513)
+-        std::fprintf(stderr, "MILKUP_PAINT {\"kind\":\"error\",\"reason\":\"budget\"}\n");
+-    return false;
+-}
+-inline std::string hex(const String& value)
+-{
+-    auto bytes = value.utf8();
+-    std::string result;
+-    if (bytes.length() > 128)
+-        return result;
+-    constexpr char digits[] = "0123456789abcdef";
+-    for (unsigned char byte : bytes.span()) {
+-        result.push_back(digits[byte >> 4]);
+-        result.push_back(digits[byte & 15]);
+-    }
+-    return result;
+-}
+-inline void matrix(const AffineTransform& m)
+-{
+-    std::fprintf(stderr, "[%.17g,%.17g,%.17g,%.17g,%.17g,%.17g]", m.a(), m.b(), m.c(), m.d(), m.e(), m.f());
+-}
+-inline void rectangle(const FloatRect& r)
+-{
+-    std::fprintf(stderr, "[%.17g,%.17g,%.17g,%.17g]", static_cast<double>(r.x()), static_cast<double>(r.y()), static_cast<double>(r.maxX()), static_cast<double>(r.maxY()));
+-}
+-inline void begin(Document& document, int page)
+-{
+-    if (!eligible(document))
+-        return;
+-    activePage = page + 1;
+-    dedup = std::getenv("MILKUP_PAINT_DEDUP") != nullptr;
+-    if (allowRecord())
+-        std::fprintf(stderr, "MILKUP_PAINT {\"kind\":\"begin\",\"page\":%u,\"dedup\":%s}\n", activePage, dedup ? "true" : "false");
+-}
+-inline void end()
+-{
+-    if (activePage && allowRecord())
+-        std::fprintf(stderr, "MILKUP_PAINT {\"kind\":\"end\",\"page\":%u}\n", activePage);
+-    activePage = 0;
+-    std::fflush(stderr);
+-}
+-inline Vector<LayoutRect> focus(const RenderElement& renderer, GraphicsContext& context, unsigned phase, const Vector<LayoutRect>& raw)
+-{
+-    if (!activePage || !eligible(renderer.document()) || !renderer.element())
+-        return raw;
+-    auto id = renderer.element()->getIdAttribute().string();
+-    if (!id.startsWith("probe-"_s))
+-        return raw;
+-    if (raw.size() > 64) {
+-        std::fprintf(stderr, "MILKUP_PAINT {\"kind\":\"error\",\"reason\":\"rectangles\"}\n");
+-        return raw;
+-    }
+-    auto emitted = dedup ? uniquePerCall(raw) : raw;
+-    if (!allowRecord())
+-        return raw;
+-    auto identity = hex(id);
+-    std::fprintf(stderr, "MILKUP_PAINT {\"kind\":\"focus\",\"page\":%u,\"call\":%u,\"phase\":%u,\"idHex\":\"%s\",\"block\":%s,\"inline\":%s,\"emitted\":%zu,\"ctm\":", activePage, ++focusCalls, phase, identity.c_str(), renderer.isRenderBlock() ? "true" : "false", renderer.isRenderInline() ? "true" : "false", emitted.size());
+-    matrix(context.getCTM());
+-    std::fprintf(stderr, ",\"raw\":[");
+-    bool comma = false;
+-    for (const auto& r : raw) {
+-        if (comma) std::fprintf(stderr, ",");
+-        rectangle(FloatRect(r));
+-        comma = true;
+-    }
+-    std::fprintf(stderr, "]}\n");
+-    return emitted;
+-}
+-inline void clip(const char* path, const RenderElement& renderer, GraphicsContext& context, unsigned phase, const LayoutRect& raw, const FloatRect& actual, float scale)
+-{
+-    if (!activePage || !eligible(renderer.document()) || !renderer.element() || renderer.element()->getIdAttribute() != "clip-parent"_s || !allowRecord())
+-        return;
+-    std::fprintf(stderr, "MILKUP_PAINT {\"kind\":\"clip\",\"page\":%u,\"path\":\"%s\",\"phase\":%u,\"scale\":%.17g,\"ctm\":", activePage, path, phase, static_cast<double>(scale));
+-    matrix(context.getCTM());
+-    std::fprintf(stderr, ",\"raw\":"); rectangle(FloatRect(raw));
+-    std::fprintf(stderr, ",\"actual\":"); rectangle(actual);
+-    std::fprintf(stderr, "}\n");
+-}
+-}
+--- a/Source/WebCore/page/PrintContext.cpp
++++ b/Source/WebCore/page/PrintContext.cpp
+@@ -19,9 +19,6 @@
+  */
+ 
+ #include "config.h"
+-#include "../rendering/MilkupPaginationResearch.h"
+-#include "../rendering/MilkupTailResearch.h"
+-#include "MilkupPrintResearch.h"
+ #include "PrintContext.h"
+ 
+ #include "AXIsolatedTree.h"
+@@ -39,14 +36,6 @@
+ #include "NodeDocument.h"
+ #include "RenderStyle+GettersInlines.h"
+ #include "RenderView.h"
+-#include "RenderBox.h"
+-#include "RenderObjectInlines.h"
+-#include "ElementInlines.h"
+-#include <wtf/text/CString.h>
+-#include "HTMLNames.h"
+-#include <cstdio>
+-#include <cstdlib>
+-#include <string>
+ #include "Settings.h"
+ #include "StyleResolver.h"
+ #include "StyleScope.h"
+@@ -265,101 +254,6 @@
+     return std::max(maxShrinkToFitScaleFactor, shrinkToFitScaleFactor);
+ }
+ 
+-// RESEARCH ONLY. Insert into PrintContext.cpp, never into a production runtime.
+-// Reads layout, not OutlinePainter, GraphicsContext::setURLForRect or PDF output.
+-static void milkupPrintLayoutProbe(Document& document, GraphicsContext& context, const IntRect& pageRect, int pageNumber, bool layoutReady)
+-{
+-    if (!std::getenv("MILKUP_PRINT_LAYOUT_PROBE"))
+-        return;
+-    // Only our synthetic local fixture is eligible; never log arbitrary documents.
+-    if (document.title() != "MILKUP_PRINT_LAYOUT_V1"_s)
+-        return;
+-    static unsigned pages = 0;
+-    if (++pages > 8) {
+-        std::fprintf(stderr, "MILKUP_LAYOUT {\"kind\":\"error\",\"reason\":\"page-budget\"}\n");
+-        return;
+-    }
+-    auto ctm = context.getCTM();
+-    bool complete = document.printing() && layoutReady && !ctm.b() && !ctm.c() && ctm.a() > 0 && ctm.d() > 0;
+-    std::fprintf(stderr, "MILKUP_LAYOUT {\"kind\":\"page\",\"page\":%d,\"printing\":%s,\"layoutReady\":%s,\"ctm\":[%.17g,%.17g,%.17g,%.17g,%.17g,%.17g],\"pageRect\":[%d,%d,%d,%d]}\n",
+-        pageNumber + 1, document.printing() ? "true" : "false", layoutReady ? "true" : "false", ctm.a(), ctm.b(), ctm.c(), ctm.d(), ctm.e(), ctm.f(), pageRect.x(), pageRect.y(), pageRect.maxX(), pageRect.maxY());
+-    auto hex = [](const String& value) {
+-        auto bytes = value.utf8();
+-        std::string result;
+-        if (bytes.length() > 2048)
+-            return result;
+-        constexpr char digits[] = "0123456789abcdef";
+-        for (unsigned char byte : bytes.span()) {
+-            result.push_back(digits[byte >> 4]);
+-            result.push_back(digits[byte & 15]);
+-        }
+-        return result;
+-    };
+-    unsigned elements = 0;
+-    for (RefPtr child = document.documentElement(); child; child = ElementTraversal::next(*child)) {
+-        // Fixture IDs cover anchors AND their exact no-link span controls.
+-        auto id = child->getIdAttribute().string();
+-        if (!id.startsWith("probe-"_s))
+-            continue;
+-        if (++elements > 32) { complete = false; break; }
+-        auto* renderer = child->renderer();
+-        if (!renderer) { complete = false; continue; }
+-        Vector<FloatQuad> quads;
+-        renderer->absoluteQuads(quads);
+-        if (quads.isEmpty() || quads.size() > 64) { complete = false; continue; }
+-        auto uri = child->getAttribute(HTMLNames::hrefAttr);
+-        auto idHex = hex(id);
+-        auto uriHex = hex(uri);
+-        if (idHex.empty() || (!uri.isEmpty() && uriHex.empty())) { complete = false; continue; }
+-        // The selected fixtures use only axis-aligned, rectangular overflow clips.
+-        // Record each ancestor clip independently; no annotation clip API is read.
+-        std::fprintf(stderr, "MILKUP_LAYOUT {\"kind\":\"element\",\"page\":%d,\"idHex\":\"%s\",\"uriHex\":\"%s\",\"fragments\":[", pageNumber + 1, idHex.c_str(), uriHex.c_str());
+-        bool comma = false;
+-        for (auto& quad : quads) {
+-            if (!quad.isRectilinear()) complete = false;
+-            auto rect = quad.boundingBox();
+-            std::fprintf(stderr, "%s[%.17g,%.17g,%.17g,%.17g]", comma ? "," : "", static_cast<double>(rect.x()), static_cast<double>(rect.y()), static_cast<double>(rect.maxX()), static_cast<double>(rect.maxY()));
+-            comma = true;
+-        }
+-        std::fprintf(stderr, "],\"clips\":[");
+-        comma = false;
+-        unsigned depth = 0;
+-        for (auto* ancestor = renderer->parent(); ancestor; ancestor = ancestor->parent()) {
+-            if (++depth > 32) { complete = false; break; }
+-            auto* box = dynamicDowncast<RenderBox>(*ancestor);
+-            if (!box || !box->hasNonVisibleOverflow()) continue;
+-            auto localClip = box->overflowClipRect(LayoutPoint());
+-            auto quad = box->localToAbsoluteQuad(FloatQuad(FloatRect(localClip)));
+-            if (!quad.isRectilinear()) complete = false;
+-            auto rect = quad.boundingBox();
+-            std::fprintf(stderr, "%s[%.17g,%.17g,%.17g,%.17g]", comma ? "," : "", static_cast<double>(rect.x()), static_cast<double>(rect.y()), static_cast<double>(rect.maxX()), static_cast<double>(rect.maxY()));
+-            comma = true;
+-        }
+-        std::fprintf(stderr, "]}\n");
+-    }
+-    std::fprintf(stderr, "MILKUP_LAYOUT {\"kind\":\"end\",\"page\":%d,\"elements\":%u,\"complete\":%s}\n", pageNumber + 1, elements, complete ? "true" : "false");
+-    std::fflush(stderr);
+-}
+-
+-// RESEARCH ONLY: same-process page boundaries for all controlled fixture kinds.
+-static void milkupCombinedPage(Document& document, int page, const char* phase, bool ready)
+-{
+-    if (!std::getenv("MILKUP_COMBINED_PROBE"))
+-        return;
+-    auto title = document.title();
+-    if (title != "MILKUP_PAGINATION_LAYOUT_V1"_s && title != "MILKUP_PRINT_LAYOUT_V1"_s
+-        && title != "MILKUP_DIGIT_RESEARCH"_s && title != "MILKUP_COMBINED_TEXT"_s)
+-        return;
+-    static unsigned records = 0;
+-    if (++records > 128 || page < 0 || page >= 64) {
+-        std::fprintf(stderr, "MILKUP_COMBINED {\"kind\":\"error\"}\n");
+-        return;
+-    }
+-    std::fprintf(stderr, "MILKUP_COMBINED {\"kind\":\"page\",\"phase\":\"%s\",\"page\":%d,\"printing\":%s,\"layoutReady\":%s}\n",
+-        phase, page + 1, document.printing() ? "true" : "false", ready ? "true" : "false");
+-    std::fflush(stderr);
+-}
+-
+ void PrintContext::spoolPage(GraphicsContext& ctx, int pageNumber, float width)
+ {
+     if (!frame())
+@@ -381,14 +275,7 @@
+     ctx.scale(scale);
+     ctx.translate(-pageRect.x(), -pageRect.y());
+     ctx.clip(pageRect);
+-    milkupCombinedPage(*frame.document(), pageNumber, "begin", !frame.view()->needsLayout());
+-    MilkupPaginationResearch::finalPage(*frame.document(), ctx, pageRect, pageNumber, !frame.view()->needsLayout());
+-    MilkupTailResearch::finalPage(*frame.document(), pageRect, pageNumber);
+-    milkupPrintLayoutProbe(*frame.document(), ctx, pageRect, pageNumber, !frame.view()->needsLayout());
+-    MilkupPrintResearch::begin(*frame.document(), pageNumber);
+     frame.view()->paintContents(ctx, pageRect);
+-    MilkupPrintResearch::end();
+-    milkupCombinedPage(*frame.document(), pageNumber, "end", !frame.view()->needsLayout());
+     outputLinkedDestinations(ctx, *frame.protectedDocument(), pageRect);
+     ctx.restore();
+ }
+--- a/Source/WebCore/platform/graphics/FontCascade.cpp
++++ b/Source/WebCore/platform/graphics/FontCascade.cpp
+@@ -22,8 +22,6 @@
+  */
+ 
+ #include "config.h"
+-#include <cstdio>
+-#include <cstdlib>
+ #include "FontCascade.h"
+ 
+ #include "ComplexTextController.h"
+@@ -1544,7 +1542,7 @@
+ }
+ 
+ #if USE(SKIA)
+-// Research only. Caller must retain LTR/horizontal TextRun and actual offset
++// Caller must retain LTR/horizontal TextRun and actual offset
+ // provenance guards. This does not infer source characters from glyph IDs.
+ static std::optional<ScalarGlyphText> makeIndependentAsciiDigitText(
+     std::u16string_view source, std::span<const uint32_t> offsets,
+@@ -1572,33 +1570,6 @@
+     // original text for Skia's existing extended-map/ActualText conflict path.
+     return makeScalarGlyphText(source, offsets, drawnGlyphs, acceptedGlyphs);
+ }
+-// Synthetic engine probe only: never enabled by the application.
+-static void milkupDigitTrace(std::u16string_view source, std::span<const uint32_t> offsets,
+-    std::span<const uint32_t> glyphs, std::span<const uint32_t> nominal, bool accepted)
+-{
+-    if (!std::getenv("MILKUP_DIGIT_PROBE"))
+-        return;
+-    bool changed = false;
+-    for (size_t i = 0; i < offsets.size(); ++i) {
+-        if (offsets[i] < source.size() && source[offsets[i]] >= u'0' && source[offsets[i]] <= u'9'
+-            && glyphs[i] != nominal[i])
+-            changed = true;
+-    }
+-    if (!changed)
+-        return;
+-    static unsigned records = 0;
+-    if (++records > 512 || source.size() > 256 || glyphs.size() > 256) {
+-        std::fprintf(stderr, "MILKUP_DIGIT_OVERFLOW\n");
+-        return;
+-    }
+-    std::fprintf(stderr, "MILKUP_DIGIT_V1 {\"accepted\":%s,\"source\":[", accepted ? "true" : "false");
+-    for (size_t i = 0; i < source.size(); ++i)
+-        std::fprintf(stderr, "%s%u", i ? "," : "", static_cast<unsigned>(source[i]));
+-    std::fprintf(stderr, "],\"glyphs\":[");
+-    for (size_t i = 0; i < glyphs.size(); ++i)
+-        std::fprintf(stderr, "%s[%u,%u,%u]", i ? "," : "", offsets[i], glyphs[i], nominal[i]);
+-    std::fprintf(stderr, "]}\n");
+-}
+ #endif
+ 
+ // This function assumes the GlyphBuffer's initial advance has already been incorporated into the start point.
+@@ -1607,7 +1578,7 @@
+     ASSERT(glyphBuffer.isFlattened());
+     std::optional<ScalarGlyphText> sourceText;
+ #if USE(SKIA)
+-    // Research subset: prove complete scalar coverage before font splitting.
++    // Prove complete scalar coverage before font splitting.
+     // No cmap reversal, text normalization, changed glyphs or changed advances.
+     if (sourceRun && sourceRun->ltr() && sourceFrom < sourceTo && sourceTo <= sourceRun->length()
+         && sourceTo - sourceFrom <= ScalarGlyphText::maxBytes / 4 && glyphBuffer.size() <= ScalarGlyphText::maxBytes / 4) {
+@@ -1636,12 +1607,10 @@
+             nominal.push_back(font.platformData().skFont().unicharToGlyph(scalar));
+         }
+         if (complete) {
+-            // Never infer a cluster end from a partial draw/selection span:
+-            // a clipped digit ligature could masquerade as a single scalar.
+-            sourceText = std::getenv("MILKUP_DIGIT_NOMINAL_ONLY") || sourceFrom || sourceTo != sourceRun->length()
++            // Never infer a cluster end from a partial draw/selection span.
++            sourceText = sourceFrom || sourceTo != sourceRun->length()
+                 ? makeScalarGlyphText(source, offsets, glyphs, nominal)
+                 : makeIndependentAsciiDigitText(source, offsets, glyphs, nominal);
+-            milkupDigitTrace(source, offsets, glyphs, nominal, sourceText.has_value());
+         }
+     }
+ #else
+--- a/Source/WebCore/platform/graphics/ScalarGlyphText.h
++++ b/Source/WebCore/platform/graphics/ScalarGlyphText.h
+@@ -1,4 +1,4 @@
+-// Research-only source metadata bridge; not an installed WebKit patch.
++// Bounded source metadata for unchanged glyphs.
+ // Copyright (C) 2026 LarryZhu-dev. SPDX-License-Identifier: BSD-2-Clause
+ #pragma once
+ #include <cstdint>
+--- a/Source/WebCore/platform/graphics/displaylists/DisplayListRecorderImpl.cpp
++++ b/Source/WebCore/platform/graphics/displaylists/DisplayListRecorderImpl.cpp
+@@ -217,7 +217,7 @@
+         return;
+     }
+     if (decomposeDrawGlyphsIfNeeded(font, glyphs, advances, localAnchor, smoothingMode))
+-        return; // Decomposed effects are not covered by this research subset.
++        return; // Decomposed effects are not covered by this source-metadata path.
+     appendStateChangeItemIfNecessary();
+ #if USE(SKIA)
+     if (drawGlyphsMode() == Recorder::DrawGlyphsMode::TextBlob) {
+--- a/Source/WebCore/rendering/FragmentKeepPolicy.h
++++ b/Source/WebCore/rendering/FragmentKeepPolicy.h
+@@ -1,4 +1,4 @@
+-/* Research candidate for the existing WebCore print fragmenter. LGPL-2.1-or-later. */
++/* WebCore print fragment policy. SPDX-License-Identifier: LGPL-2.1-or-later */
+ #pragma once
+ 
+ namespace WebCore::PrintFragmentPolicy {
+--- a/Source/WebCore/rendering/MilkupPaginationResearch.h
++++ /dev/null
+@@ -1,128 +0,0 @@
+-// RESEARCH ONLY: synthetic fixture, diagnostic reads, no layout mutation.
+-#pragma once
+-#include "Document.h"
+-#include "ContainerNodeInlines.h"
+-#include "ElementInlines.h"
+-#include "ElementTraversal.h"
+-#include "GraphicsContext.h"
+-#include "RenderBlock.h"
+-#include "RenderBox.h"
+-#include "RenderBoxInlines.h"
+-#include "RenderObjectInlines.h"
+-#include "RenderObjectDocument.h"
+-#include <chrono>
+-#include <cstdio>
+-#include <cstdlib>
+-
+-namespace WebCore::MilkupPaginationResearch {
+-inline unsigned sequence = 0;
+-inline unsigned nextCall = 0;
+-inline unsigned activeCall = 0;
+-inline unsigned nodeCount = 0;
+-inline const RenderBox* nodes[32] { };
+-inline const Document* ownerDocument = nullptr;
+-inline bool failed = false;
+-inline unsigned pageCount = 0;
+-
+-inline unsigned role(const RenderBox& box)
+-{
+-    if (!box.element()) return 0;
+-    auto id = box.element()->getIdAttribute();
+-    if (id == "mkp-heading"_s) return 1;
+-    if (id == "mkp-wrapper"_s) return 2;
+-    if (id == "mkp-table"_s) return 3;
+-    if (id == "mkp-header"_s) return 4;
+-    if (id == "mkp-header-row"_s) return 5;
+-    if (id == "mkp-first-row"_s) return 6;
+-    return 0;
+-}
+-inline bool eligible(Document& document)
+-{
+-    return std::getenv("MILKUP_PAGINATION_PROBE") && document.printing()
+-        && document.title() == "MILKUP_PAGINATION_LAYOUT_V1"_s;
+-}
+-inline void fail(const char* reason)
+-{
+-    if (!failed) std::fprintf(stderr, "MILKUP_PAGINATION {\"kind\":\"error\",\"reason\":\"%s\"}\n", reason);
+-    failed = true;
+-}
+-inline bool reserve(Document& document)
+-{
+-    if (!eligible(document) || failed) return false;
+-    if (ownerDocument && ownerDocument != &document) { fail("document-replaced"); return false; }
+-    ownerDocument = &document;
+-    if (sequence >= 4096) { fail("record-budget"); return false; }
+-    return true;
+-}
+-inline unsigned node(const RenderBox& box)
+-{
+-    for (unsigned i = 0; i < nodeCount; ++i) if (nodes[i] == &box) return i + 1;
+-    if (nodeCount == 32) { fail("node-budget"); return 0; }
+-    nodes[nodeCount++] = &box;
+-    return nodeCount;
+-}
+-inline long long tick()
+-{
+-    return std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::steady_clock::now().time_since_epoch()).count();
+-}
+-inline void record(const char* kind, const RenderBox& box, double value = 0, unsigned call = 0, unsigned parent = 0)
+-{
+-    auto r = role(box);
+-    if (!r || !reserve(box.document())) return;
+-    auto identity = node(box);
+-    if (failed) return;
+-    auto* block = dynamicDowncast<RenderBlock>(box);
+-    std::fprintf(stderr, "MILKUP_PAGINATION {\"kind\":\"%s\",\"seq\":%u,\"tick\":%lld,\"role\":%u,\"node\":%u,\"call\":%u,\"parent\":%u,\"value\":%.17g,\"top\":%.17g,\"height\":%.17g,\"width\":%.17g,\"marginBefore\":%.17g,\"marginAfter\":%.17g,\"block\":%s,\"strut\":%.17g,\"before\":%u,\"after\":%u,\"inside\":%u,\"dirty\":%s,\"horizontal\":%s}\n",
+-        kind, ++sequence, tick(), r, identity, call, parent, value,
+-        box.logicalTop().toDouble(), box.logicalHeight().toDouble(), box.logicalWidth().toDouble(),
+-        box.marginBefore().toDouble(), box.marginAfter().toDouble(), block ? "true" : "false",
+-        block ? block->paginationStrut().toDouble() : 0.0,
+-        static_cast<unsigned>(box.style().breakBefore()), static_cast<unsigned>(box.style().breakAfter()), static_cast<unsigned>(box.style().breakInside()),
+-        box.needsLayout() ? "true" : "false", box.writingMode().isHorizontal() ? "true" : "false");
+-}
+-struct Scope {
+-    const RenderBox& box;
+-    const char* label;
+-    unsigned call { 0 };
+-    unsigned parent { 0 };
+-    Scope(const RenderBox& b, const char* name, double value = 0) : box(b), label(name)
+-    {
+-        if (!role(b) || !reserve(b.document())) return;
+-        parent = activeCall;
+-        call = ++nextCall;
+-        activeCall = call;
+-        record(name, box, value, call, parent);
+-    }
+-    void point(const char* name, double value = 0) { if (call) record(name, box, value, call, parent); }
+-    LayoutUnit result(LayoutUnit value) { point("return", value.toDouble()); return value; }
+-    ~Scope() { if (call) { record("end", box, 0, call, parent); activeCall = parent; } }
+-};
+-inline void finalPage(Document& document, GraphicsContext& context, const IntRect& rect, int page, bool ready)
+-{
+-    if (!reserve(document)) return;
+-    if (++pageCount > 32 || activeCall || !ready) { fail("final-phase"); return; }
+-    auto m = context.getCTM();
+-    if (m.b() || m.c() || m.a() <= 0 || m.d() <= 0) { fail("unsupported-ctm"); return; }
+-    std::fprintf(stderr, "MILKUP_PAGINATION {\"kind\":\"page\",\"seq\":%u,\"tick\":%lld,\"page\":%d,\"rect\":[%d,%d,%d,%d],\"ctm\":[%.17g,%.17g,%.17g,%.17g,%.17g,%.17g]}\n", ++sequence, tick(), page + 1, rect.x(), rect.y(), rect.maxX(), rect.maxY(), m.a(), m.b(), m.c(), m.d(), m.e(), m.f());
+-    unsigned seen = 0;
+-    for (RefPtr element = document.documentElement(); element; element = ElementTraversal::next(*element)) {
+-        auto* box = dynamicDowncast<RenderBox>(element->renderer());
+-        if (!box || !role(*box)) continue;
+-        auto r = role(*box);
+-        if (seen & (1u << r) || box->needsLayout() || !box->writingMode().isHorizontal()) { fail("final-box"); return; }
+-        seen |= 1u << r;
+-        record("final", *box);
+-        Vector<FloatQuad> quads;
+-        box->absoluteQuads(quads, nullptr);
+-        if (quads.isEmpty() || quads.size() > 32) { fail("fragments"); return; }
+-        for (auto& quad : quads) {
+-            if (!quad.isRectilinear() || !reserve(document)) { fail("fragment-shape"); return; }
+-            auto q = quad.boundingBox();
+-            std::fprintf(stderr, "MILKUP_PAGINATION {\"kind\":\"quad\",\"seq\":%u,\"tick\":%lld,\"page\":%d,\"role\":%u,\"node\":%u,\"rect\":[%.17g,%.17g,%.17g,%.17g]}\n", ++sequence, tick(), page + 1, r, node(*box), static_cast<double>(q.x()), static_cast<double>(q.y()), static_cast<double>(q.maxX()), static_cast<double>(q.maxY()));
+-        }
+-    }
+-    if (seen != 126 || !reserve(document)) { fail("missing-roles"); return; }
+-    std::fprintf(stderr, "MILKUP_PAGINATION {\"kind\":\"page-end\",\"seq\":%u,\"tick\":%lld,\"page\":%d}\n", ++sequence, tick(), page + 1);
+-    std::fflush(stderr);
+-}
+-}
+--- a/Source/WebCore/rendering/MilkupTailResearch.h
++++ /dev/null
+@@ -1,54 +0,0 @@
+-// RESEARCH ONLY: original document, post-layout coordinates; no behavior mutation.
+-#pragma once
+-#include "MilkupPaginationResearch.h"
+-#include "RenderView.h"
+-#include "RenderObjectNode.h"
+-
+-namespace WebCore::MilkupTailResearch {
+-inline unsigned sequence = 0;
+-inline bool eligible(const RenderBox& box)
+-{
+-    return std::getenv("MILKUP_PAGINATION_TAIL") && MilkupPaginationResearch::eligible(box.document());
+-}
+-inline unsigned role(const RenderBox& box)
+-{
+-    if (box.isRenderView()) return 1;
+-    if (box.isDocumentElementRenderer()) return 2;
+-    if (box.isBody()) return 3;
+-    if (box.parent() && box.parent()->isBody() && !box.nextSibling()) return 4;
+-    return 0;
+-}
+-inline bool reserve(const RenderBox& box)
+-{
+-    if (!eligible(box) || !role(box)) return false;
+-    if (sequence >= 1024) { MilkupPaginationResearch::fail("tail-budget"); return false; }
+-    return true;
+-}
+-inline void margin(const RenderBox& box, const char* phase, LayoutUnit content, LayoutUnit result, LayoutUnit pending, bool collapseBefore, bool collapseAfter)
+-{
+-    if (!reserve(box)) return;
+-    std::fprintf(stderr, "MILKUP_TAIL {\"kind\":\"margin\",\"seq\":%u,\"tick\":%lld,\"role\":%u,\"node\":%u,\"phase\":\"%s\",\"content\":%.17g,\"result\":%.17g,\"pending\":%.17g,\"collapseBefore\":%s,\"collapseAfter\":%s,\"borderPaddingAfter\":%.17g,\"scrollbar\":%.17g,\"collapsedAfter\":%.17g}\n", ++sequence, MilkupPaginationResearch::tick(), role(box), MilkupPaginationResearch::node(box), phase, content.toDouble(), result.toDouble(), pending.toDouble(), collapseBefore ? "true" : "false", collapseAfter ? "true" : "false", box.borderAndPaddingAfter().toDouble(), static_cast<double>(box.scrollbarLogicalHeight()), box.collapsedMarginAfter().toDouble());
+-}
+-inline void finalBox(const RenderBox& box, int page)
+-{
+-    if (!reserve(box)) return;
+-    auto layout = box.layoutOverflowRect(); auto visual = box.visualOverflowRect();
+-    Vector<FloatQuad> quads; box.absoluteQuads(quads, nullptr);
+-    if (box.needsLayout() || !box.writingMode().isHorizontal() || quads.size() != 1 || !quads[0].isRectilinear()) { MilkupPaginationResearch::fail("tail-final-box"); return; }
+-    auto q = quads[0].boundingBox();
+-    std::fprintf(stderr, "MILKUP_TAIL {\"kind\":\"box\",\"seq\":%u,\"tick\":%lld,\"page\":%d,\"role\":%u,\"node\":%u,\"top\":%.17g,\"height\":%.17g,\"marginBefore\":%.17g,\"marginAfter\":%.17g,\"collapsedAfter\":%.17g,\"before\":%u,\"after\":%u,\"quad\":[%.17g,%.17g,%.17g,%.17g],\"layout\":[%.17g,%.17g,%.17g,%.17g],\"visual\":[%.17g,%.17g,%.17g,%.17g]}\n", ++sequence, MilkupPaginationResearch::tick(), page + 1, role(box), MilkupPaginationResearch::node(box), box.logicalTop().toDouble(), box.logicalHeight().toDouble(), box.marginBefore().toDouble(), box.marginAfter().toDouble(), box.collapsedMarginAfter().toDouble(), static_cast<unsigned>(box.style().breakBefore()), static_cast<unsigned>(box.style().breakAfter()), static_cast<double>(q.x()), static_cast<double>(q.y()), static_cast<double>(q.maxX()), static_cast<double>(q.maxY()), layout.x().toDouble(), layout.y().toDouble(), layout.maxX().toDouble(), layout.maxY().toDouble(), visual.x().toDouble(), visual.y().toDouble(), visual.maxX().toDouble(), visual.maxY().toDouble());
+-}
+-inline void finalPage(Document& document, const IntRect& pageRect, int page)
+-{
+-    auto* view = document.renderView();
+-    if (!view || !reserve(*view)) return;
+-    auto d = view->documentRect();
+-    std::fprintf(stderr, "MILKUP_TAIL {\"kind\":\"document\",\"seq\":%u,\"tick\":%lld,\"page\":%d,\"document\":[%d,%d,%d,%d],\"pageRect\":[%d,%d,%d,%d]}\n", ++sequence, MilkupPaginationResearch::tick(), page + 1, d.x(), d.y(), d.maxX(), d.maxY(), pageRect.x(), pageRect.y(), pageRect.maxX(), pageRect.maxY());
+-    finalBox(*view, page);
+-    for (RefPtr element = document.documentElement(); element; element = ElementTraversal::next(*element)) {
+-        auto* box = dynamicDowncast<RenderBox>(element->renderer());
+-        if (box && role(*box)) finalBox(*box, page);
+-    }
+-    std::fflush(stderr);
+-}
+-}
+--- a/Source/WebCore/rendering/OutlinePainter.cpp
++++ b/Source/WebCore/rendering/OutlinePainter.cpp
+@@ -24,7 +24,7 @@
+  */
+ 
+ #include "config.h"
+-#include "MilkupPrintResearch.h"
++#include "PrintLinkAnnotationPolicy.h"
+ #include "OutlinePainter.h"
+ 
+ #include "BorderEdge.h"
+@@ -704,11 +704,10 @@
+         }
+     }
+ #if USE(SKIA)
+-    // Research candidate: keep each clickable inline fragment separate. A union
++    // Keep each clickable inline fragment separate. A union
+     // across wrapped lines can cover unrelated links in the last-line gap.
+     auto url = element->protectedDocument()->completeURL(href);
+-    auto emittedRects = MilkupPrintResearch::focus(renderer, m_paintInfo.context(), static_cast<unsigned>(m_paintInfo.phase), focusRingRects);
+-    for (auto& rect : emittedRects) {
++    for (auto& rect : uniquePrintLinkFragments(focusRingRects)) {
+         if (!rect.isEmpty())
+             m_paintInfo.context().setURLForRect(url, rect);
+     }
+--- /dev/null
++++ b/Source/WebCore/rendering/PrintLinkAnnotationPolicy.h
+@@ -0,0 +1,24 @@
++/* Copyright (C) 2026 LarryZhu-dev. SPDX-License-Identifier: BSD-2-Clause */
++#pragma once
++#include <set>
++#include <tuple>
++
++namespace WebCore {
++// One element, one paint call, one current transform/clip/page. Never retain
++// URLs or rectangles across calls. Exact raw layout units preserve neighboring
++// and overlapping but nonidentical fragments; emission keeps source order.
++template<typename Rectangles>
++Rectangles uniquePrintLinkFragments(const Rectangles& input)
++{
++    std::set<std::tuple<int, int, int, int>> seen;
++    Rectangles result;
++    for (const auto& rect : input) {
++        if (rect.isEmpty())
++            continue;
++        auto key = std::tuple { rect.x().rawValue(), rect.y().rawValue(), rect.width().rawValue(), rect.height().rawValue() };
++        if (seen.insert(key).second)
++            result.append(rect);
++    }
++    return result;
++}
++}
+--- a/Source/WebCore/rendering/RenderBlock.cpp
++++ b/Source/WebCore/rendering/RenderBlock.cpp
+@@ -23,7 +23,6 @@
+  */
+ 
+ #include "config.h"
+-#include "MilkupPaginationResearch.h"
+ #include "RenderBlock.h"
+ 
+ #include "AXObjectCache.h"
+@@ -2657,7 +2656,6 @@
+ 
+ void RenderBlock::setPaginationStrut(LayoutUnit strut)
+ {
+-    MilkupPaginationResearch::record("strut-write", *this, strut.toDouble(), MilkupPaginationResearch::activeCall);
+     RenderBlockRareData* rareData = blockRareData();
+     if (!rareData) {
+         if (!strut)
+@@ -2665,7 +2663,6 @@
+         rareData = &ensureBlockRareData();
+     }
+     rareData->m_paginationStrut = strut;
+-    MilkupPaginationResearch::record("strut-written", *this, strut.toDouble(), MilkupPaginationResearch::activeCall);
+ }
+ 
+ void RenderBlock::setPageLogicalOffset(LayoutUnit logicalOffset)
+--- a/Source/WebCore/rendering/RenderBlockFlow.cpp
++++ b/Source/WebCore/rendering/RenderBlockFlow.cpp
+@@ -23,9 +23,6 @@
+  */
+ 
+ #include "config.h"
+-#include "MilkupPaginationResearch.h"
+-#include "MilkupTailResearch.h"
+-#include "RootTrailingMarginPolicy.h"
+ #include "RenderBlockFlow.h"
+ 
+ #include "AXObjectCache.h"
+@@ -76,6 +73,7 @@
+ #include "RenderTableSection.h"
+ #include "RenderTableRow.h"
+ #include "FragmentKeepPolicy.h"
++#include "RootTrailingMarginPolicy.h"
+ #include "RenderText.h"
+ #include "RenderTreeBuilder.h"
+ #include "RenderView.h"
+@@ -1824,7 +1822,6 @@
+     if (auto selfCollapsingMarginBeforeWithClear = this->selfCollapsingMarginBeforeWithClear(lastChild()))
+         borderBoxLogicalHeight -= *selfCollapsingMarginBeforeWithClear;
+ 
+-    MilkupTailResearch::margin(*this, "before", contentBoxLogicalHeight, borderBoxLogicalHeight, marginInfo.margin(), marginInfo.canCollapseWithMarginBefore(), marginInfo.canCollapseWithMarginAfter());
+     // If we can't collapse with children then add in the bottom margin.
+     if (!marginInfo.canCollapseWithMarginAfter() && !marginInfo.canCollapseWithMarginBefore()
+         && (!document().inQuirksMode() || !marginInfo.quirkContainer() || !marginInfo.hasMarginAfterQuirk())) {
+@@ -1851,7 +1848,6 @@
+     // Update our bottom collapsed margin info.
+     setCollapsedBottomMargin(marginInfo);
+ 
+-    MilkupTailResearch::margin(*this, "after", contentBoxLogicalHeight, borderBoxLogicalHeight, marginInfo.margin(), marginInfo.canCollapseWithMarginBefore(), marginInfo.canCollapseWithMarginAfter());
+     return borderBoxLogicalHeight;
+ }
+ 
+@@ -1894,15 +1890,12 @@
+ 
+ LayoutUnit RenderBlockFlow::applyBeforeBreak(RenderBox& child, LayoutUnit logicalOffset)
+ {
+-    MilkupPaginationResearch::Scope mkp(child, "before-break", logicalOffset.toDouble());
+     // FIXME: Add page break checking here when we support printing.
+     CheckedPtr fragmentedFlow = enclosingFragmentedFlow();
+     bool isInsideMulticolFlow = !!fragmentedFlow;
+     bool checkColumnBreaks = fragmentedFlow && fragmentedFlow->shouldCheckColumnBreaks() && (!shouldApplyLayoutContainment() || child.previousSibling());
+     bool checkPageBreaks = !checkColumnBreaks && view().frameView().layoutContext().layoutState()->pageLogicalHeight(); // FIXME: Once columns can print we have to check this.
+     bool checkFragmentBreaks = false;
+-    mkp.point("page-height", pageLogicalHeightForOffset(logicalOffset).toDouble());
+-    mkp.point("remaining-height", pageRemainingLogicalHeightForOffset(logicalOffset, ExcludePageBoundary).toDouble());
+     bool checkBeforeAlways = (checkColumnBreaks && child.style().breakBefore() == BreakBetween::Column)
+         || (checkPageBreaks && alwaysPageBreak(child.style().breakBefore()));
+     if (checkBeforeAlways && inNormalFlow(child) && hasNextPage(logicalOffset, IncludePageBoundary)) {
+@@ -1913,24 +1906,21 @@
+         if (checkFragmentBreaks) {
+             LayoutUnit offsetBreakAdjustment;
+             if (fragmentedFlow->addForcedFragmentBreak(this, offsetFromLogicalTopOfFirstPage() + logicalOffset, &child, true, &offsetBreakAdjustment))
+-                return mkp.result(logicalOffset + offsetBreakAdjustment);
+-        }
+-        return mkp.result(nextPageLogicalTop(logicalOffset, IncludePageBoundary));
+-    }
+-    return mkp.result(logicalOffset);
++                return logicalOffset + offsetBreakAdjustment;
++        }
++        return nextPageLogicalTop(logicalOffset, IncludePageBoundary);
++    }
++    return logicalOffset;
+ }
+ 
+ LayoutUnit RenderBlockFlow::applyAfterBreak(RenderBox& child, LayoutUnit logicalOffset, MarginInfo& marginInfo)
+ {
+-    MilkupPaginationResearch::Scope mkp(child, "after-break", logicalOffset.toDouble());
+     // FIXME: Add page break checking here when we support printing.
+     CheckedPtr fragmentedFlow = enclosingFragmentedFlow();
+     bool isInsideMulticolFlow = !!fragmentedFlow;
+     bool checkColumnBreaks = fragmentedFlow && fragmentedFlow->shouldCheckColumnBreaks();
+     bool checkPageBreaks = !checkColumnBreaks && view().frameView().layoutContext().layoutState()->pageLogicalHeight(); // FIXME: Once columns can print we have to check this.
+     bool checkFragmentBreaks = false;
+-    mkp.point("page-height", pageLogicalHeightForOffset(logicalOffset).toDouble());
+-    mkp.point("remaining-height", pageRemainingLogicalHeightForOffset(logicalOffset, ExcludePageBoundary).toDouble());
+     bool checkAfterAlways = (checkColumnBreaks && child.style().breakAfter() == BreakBetween::Column)
+         || (checkPageBreaks && alwaysPageBreak(child.style().breakAfter()));
+     if (checkAfterAlways && inNormalFlow(child) && hasNextPage(logicalOffset, IncludePageBoundary)) {
+@@ -1945,16 +1935,15 @@
+         if (checkFragmentBreaks) {
+             LayoutUnit offsetBreakAdjustment;
+             if (fragmentedFlow->addForcedFragmentBreak(this, offsetFromLogicalTopOfFirstPage() + logicalOffset, &child, false, &offsetBreakAdjustment))
+-                return mkp.result(logicalOffset + offsetBreakAdjustment);
+-        }
+-        return mkp.result(nextPageLogicalTop(logicalOffset, IncludePageBoundary));
+-    }
+-    return mkp.result(logicalOffset);
++                return logicalOffset + offsetBreakAdjustment;
++        }
++        return nextPageLogicalTop(logicalOffset, IncludePageBoundary);
++    }
++    return logicalOffset;
+ }
+ 
+ LayoutUnit RenderBlockFlow::adjustBlockChildForPagination(LayoutUnit logicalTopAfterClear, LayoutUnit estimateWithoutPagination, RenderBox& child, bool atBeforeSideOfBlock)
+ {
+-    MilkupPaginationResearch::Scope mkp(child, "adjust", logicalTopAfterClear.toDouble());
+     auto* childRenderBlock = dynamicDowncast<RenderBlock>(child);
+ 
+     if (estimateWithoutPagination != logicalTopAfterClear) {
+@@ -1976,9 +1965,7 @@
+         }
+ 
+         // Our guess was wrong. Make the child lay itself out again.
+-        mkp.point("child-relayout-enter");
+         child.layoutIfNeeded();
+-        mkp.point("child-relayout-exit");
+     }
+ 
+     LayoutUnit oldTop = logicalTopAfterClear;
+@@ -2002,7 +1989,6 @@
+     } else if (childRenderBlock && childRenderBlock->paginationStrut())
+         paginationStrut = childRenderBlock->paginationStrut();
+ 
+-    mkp.point("selected-strut", paginationStrut.toDouble());
+     if (paginationStrut) {
+         // We are willing to propagate out to our parent block as long as we were at the top of the block prior
+         // to collapsing our margins, and as long as we didn't clear or move as a result of other pagination.
+@@ -2010,14 +1996,11 @@
+             // FIXME: Should really check if we're exceeding the page height before propagating the strut, but we don't
+             // have all the information to do so (the strut only has the remaining amount to push). Gecko gets this wrong too
+             // and pushes to the next page anyway, so not too concerned about it.
+-            mkp.point("strut-propagate", (result + paginationStrut).toDouble());
+             setPaginationStrut(result + paginationStrut);
+             if (childRenderBlock)
+                 childRenderBlock->setPaginationStrut(0);
+-        } else {
+-            mkp.point("strut-consume", paginationStrut.toDouble());
++        } else
+             result += paginationStrut;
+-        }
+     }
+ 
+     if (!unsplittableAdjustmentDelta) {
+@@ -2045,7 +2028,7 @@
+     setLogicalHeight(logicalHeight() + (result - oldTop));
+     
+     // Return the final adjusted logical top.
+-    return mkp.result(result);
++    return result;
+ }
+ 
+ static inline LayoutUnit calculateMinimumPageHeight(const RenderStyle& renderStyle, const InlineIterator::LineBoxIterator& lastLine, LayoutUnit lineTop, LayoutUnit lineBottom)
+--- a/Source/WebCore/rendering/RenderBox.cpp
++++ b/Source/WebCore/rendering/RenderBox.cpp
+@@ -24,7 +24,6 @@
+  */
+ 
+ #include "config.h"
+-#include "MilkupPrintResearch.h"
+ #include "RenderBox.h"
+ 
+ #include "AnchorPositionEvaluator.h"
+@@ -2240,9 +2239,7 @@
+         paintInfo.phase = PaintPhase::ChildBlockBackgrounds;
+     }
+     float deviceScaleFactor = document().deviceScaleFactor();
+-    auto rawPrintClip = isControlClip ? controlClipRect(accumulatedOffset) : overflowClipRect(accumulatedOffset, OverlayScrollbarSizeRelevancy::IgnoreOverlayScrollbarSize, paintInfo.phase);
+-    FloatRect clipRect = snapRectToDevicePixels(rawPrintClip, deviceScaleFactor);
+-    MilkupPrintResearch::clip("box", *this, paintInfo.context(), static_cast<unsigned>(paintInfo.phase), rawPrintClip, clipRect, deviceScaleFactor);
++    FloatRect clipRect = snapRectToDevicePixels((isControlClip ? controlClipRect(accumulatedOffset) : overflowClipRect(accumulatedOffset, OverlayScrollbarSizeRelevancy::IgnoreOverlayScrollbarSize, paintInfo.phase)), deviceScaleFactor);
+     paintInfo.context().save();
+     if (style().hasBorderRadius())
+         clipToPaddingBoxShape(paintInfo.context(), accumulatedOffset, deviceScaleFactor);
+--- a/Source/WebCore/rendering/RenderLayer.cpp
++++ b/Source/WebCore/rendering/RenderLayer.cpp
+@@ -45,7 +45,6 @@
+  */
+ 
+ #include "config.h"
+-#include "MilkupPrintResearch.h"
+ #include "RenderLayer.h"
+ 
+ #include "AccessibilityRegionContext.h"
+@@ -3235,7 +3234,6 @@
+         LayoutRect adjustedClipRect = clipRect.rect();
+         adjustedClipRect.move(paintingInfo.subpixelOffset);
+         auto snappedClipRect = snapRectToDevicePixelsIfNeeded(adjustedClipRect, renderer());
+-        MilkupPrintResearch::clip("layer", renderer(), context, 0, adjustedClipRect, snappedClipRect, renderer().document().deviceScaleFactor());
+         context.clip(snappedClipRect);
+         regionContextStateSaver.pushClip(enclosingIntRect(snappedClipRect));
+     }
+--- a/Source/WebCore/rendering/RenderTable.cpp
++++ b/Source/WebCore/rendering/RenderTable.cpp
+@@ -25,7 +25,6 @@
+  */
+ 
+ #include "config.h"
+-#include "MilkupPaginationResearch.h"
+ #include "RenderTable.h"
+ 
+ #include "AutoTableLayout.h"
+@@ -488,7 +487,6 @@
+ 
+ void RenderTable::layout()
+ {
+-    MilkupPaginationResearch::Scope mkp(*this, "table-layout", 0);
+     StackStats::LayoutCheckPoint layoutCheckPoint;
+     ASSERT(needsLayout());
+ 
+@@ -694,10 +692,8 @@
+         // FIXME: Table layout should always stabilize even when section moves (see webkit.org/b/174412).
+         if (m_recursiveSectionMovedWithPaginationLevel < sectionCount) {
+             SetForScope recursiveSectionMovedWithPaginationLevel(m_recursiveSectionMovedWithPaginationLevel, m_recursiveSectionMovedWithPaginationLevel + 1);
+-            mkp.point("table-recursive-relayout", m_recursiveSectionMovedWithPaginationLevel);
+             markForPaginationRelayoutIfNeeded();
+             layoutIfNeeded();
+-            mkp.point("table-recursive-return");
+         } else
+             ASSERT_NOT_REACHED();
+     }

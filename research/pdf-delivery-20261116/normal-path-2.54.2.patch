@@ -1,0 +1,913 @@
+--- a/Source/WebCore/Headers.cmake
++++ b/Source/WebCore/Headers.cmake
+@@ -2669,6 +2669,7 @@
+     platform/graphics/RenderingResource.h
+     platform/graphics/RenderingResourceIdentifier.h
+     platform/graphics/RotationDirection.h
++    platform/graphics/ScalarGlyphText.h
+     platform/graphics/ScreenDataOverrides.h
+     platform/graphics/ShareableBitmap.h
+     platform/graphics/ShareableBitmapHandle.h
+@@ -3031,6 +3032,9 @@
+     rendering/RegionContext.h
+     rendering/RelayoutScopeForScrollbarChange.h
+     rendering/RenderAttachment.h
++    rendering/FragmentKeepPolicy.h
++    rendering/RootTrailingMarginPolicy.h
++    rendering/PrintLinkAnnotationPolicy.h
+     rendering/RenderBlock.h
+     rendering/RenderBlockFlow.h
+     rendering/RenderBox.h
+--- a/Source/WebCore/platform/graphics/Font.h
++++ b/Source/WebCore/platform/graphics/Font.h
+@@ -20,6 +20,7 @@
+  */
+ 
+ #pragma once
++#include "ScalarGlyphText.h"
+ 
+ #include <WebCore/FloatRect.h>
+ #include <WebCore/FontMetrics.h>
+@@ -234,7 +235,7 @@
+ #endif
+ 
+ #if USE(SKIA)
+-    sk_sp<SkTextBlob> buildTextBlob(std::span<const GlyphBufferGlyph>, std::span<const GlyphBufferAdvance>, FontSmoothingMode) const;
++    sk_sp<SkTextBlob> buildTextBlob(std::span<const GlyphBufferGlyph>, std::span<const GlyphBufferAdvance>, FontSmoothingMode, const ScalarGlyphText* = nullptr) const;
+     bool enableAntialiasing(FontSmoothingMode) const;
+ #endif
+ 
+--- a/Source/WebCore/platform/graphics/FontCascade.cpp
++++ b/Source/WebCore/platform/graphics/FontCascade.cpp
+@@ -33,6 +33,10 @@
+ #include "FontInlines.h"
+ #include "GlyphBuffer.h"
+ #include "GraphicsContext.h"
++#if USE(SKIA)
++#include "ScalarGlyphText.h"
++#include <skia/core/SkFont.h>
++#endif
+ #include "LayoutRect.h"
+ #include "TextRun.h"
+ #include "TextShapingResultAndDisplayList.h"
+@@ -197,7 +201,7 @@
+         return FloatSize();
+ 
+     FloatPoint startPoint = point + WebCore::size(glyphBuffer.initialAdvance());
+-    drawGlyphBuffer(context, glyphBuffer, startPoint, customFontNotReadyAction);
++    drawGlyphBuffer(context, glyphBuffer, startPoint, customFontNotReadyAction, &run, from, destination);
+     return startPoint - point;
+ }
+ 
+@@ -231,10 +235,10 @@
+     auto glyphBuffer = layoutText(codePathToUse, run, from, destination).glyphBuffer;
+     glyphBuffer.flatten();
+ 
+-    return displayListForGlyphBuffer(context, glyphBuffer, customFontNotReadyAction);
+-}
+-
+-RefPtr<const DisplayList::DisplayList> FontCascade::displayListForGlyphBuffer(GraphicsContext& context, const GlyphBuffer& glyphBuffer,  CustomFontNotReadyAction customFontNotReadyAction) const
++    return displayListForGlyphBuffer(context, glyphBuffer, customFontNotReadyAction, &run, from, destination);
++}
++
++RefPtr<const DisplayList::DisplayList> FontCascade::displayListForGlyphBuffer(GraphicsContext& context, const GlyphBuffer& glyphBuffer, CustomFontNotReadyAction customFontNotReadyAction, const TextRun* sourceRun, unsigned sourceFrom, unsigned sourceTo) const
+ {
+     ASSERT(!context.paintingDisabled());
+ 
+@@ -251,7 +255,7 @@
+         context.getCTM(GraphicsContext::DefinitelyIncludeDeviceScale), context.colorSpace(), drawGlyphsMode);
+ 
+     FloatPoint startPoint = toFloatPoint(WebCore::size(glyphBuffer.initialAdvance()));
+-    drawGlyphBuffer(recordingContext, glyphBuffer, startPoint, customFontNotReadyAction);
++    drawGlyphBuffer(recordingContext, glyphBuffer, startPoint, customFontNotReadyAction, sourceRun, sourceFrom, sourceTo);
+ 
+     return recordingContext.takeDisplayList();
+ }
+@@ -1556,10 +1560,90 @@
+     return !font.isInterstitial() || font.visibility() == Font::Visibility::Visible || customFontNotReadyAction == FontCascade::CustomFontNotReadyAction::UseFallbackIfFontNotReady;
+ }
+ 
++#if USE(SKIA)
++// Caller must retain LTR/horizontal TextRun and actual offset
++// provenance guards. This does not infer source characters from glyph IDs.
++static std::optional<ScalarGlyphText> makeIndependentAsciiDigitText(
++    std::u16string_view source, std::span<const uint32_t> offsets,
++    std::span<const uint32_t> drawnGlyphs, std::span<const uint32_t> nominalGlyphs)
++{
++    if (source.empty() || source.size() > ScalarGlyphText::maxBytes / 4
++        || offsets.size() != drawnGlyphs.size() || offsets.size() != nominalGlyphs.size())
++        return std::nullopt;
++    // acceptedGlyphs is deliberately NOT described as a font cmap. Unchanged
++    // glyphs retain the nominal requirement; only a valid ASCII digit source
++    // may supply a different actual shaped glyph. No output glyph is changed.
++    std::vector<uint32_t> acceptedGlyphs(nominalGlyphs.begin(), nominalGlyphs.end());
++    for (size_t i = 0; i < offsets.size(); ++i) {
++        if (drawnGlyphs[i] == nominalGlyphs[i])
++            continue;
++        if (offsets[i] >= source.size() || source[offsets[i]] < u'0' || source[offsets[i]] > u'9'
++            || !nominalGlyphs[i] || nominalGlyphs[i] >= 0xFFFF
++            || !drawnGlyphs[i] || drawnGlyphs[i] >= 0xFFFF)
++            return std::nullopt;
++        acceptedGlyphs[i] = drawnGlyphs[i];
++    }
++    // The unchanged helper proves complete one-scalar/one-glyph coverage of
++    // the WHOLE span: exact increasing UTF-16 offsets, no repeated/missing
++    // clusters, extra glyphs, ligatures or malformed surrogate pairs. Preserve
++    // original text for Skia's existing extended-map/ActualText conflict path.
++    return makeScalarGlyphText(source, offsets, drawnGlyphs, acceptedGlyphs);
++}
++#endif
++
+ // This function assumes the GlyphBuffer's initial advance has already been incorporated into the start point.
+-void FontCascade::drawGlyphBuffer(GraphicsContext& context, const GlyphBuffer& glyphBuffer, FloatPoint& point, CustomFontNotReadyAction customFontNotReadyAction) const
++void FontCascade::drawGlyphBuffer(GraphicsContext& context, const GlyphBuffer& glyphBuffer, FloatPoint& point, CustomFontNotReadyAction customFontNotReadyAction, const TextRun* sourceRun, unsigned sourceFrom, unsigned sourceTo) const
+ {
+     ASSERT(glyphBuffer.isFlattened());
++    std::optional<ScalarGlyphText> sourceText;
++#if USE(SKIA)
++    // Prove complete scalar coverage before font splitting.
++    // No cmap reversal, text normalization, changed glyphs or changed advances.
++    if (sourceRun && sourceRun->ltr() && sourceFrom < sourceTo && sourceTo <= sourceRun->length()
++        && sourceTo - sourceFrom <= ScalarGlyphText::maxBytes / 4 && glyphBuffer.size() <= ScalarGlyphText::maxBytes / 4) {
++        std::u16string source;
++        for (unsigned i = sourceFrom; i < sourceTo; ++i)
++            source.push_back((*sourceRun)[i]);
++        std::vector<uint32_t> offsets, glyphs, nominal;
++        bool complete = true;
++        for (size_t i = 0; i < glyphBuffer.size(); ++i) {
++            auto offset = glyphBuffer.checkedStringOffsetAt(i, sourceRun->length());
++            const auto& font = glyphBuffer.fontAt(i);
++            if (!offset || *offset < sourceFrom || *offset >= sourceTo || font.platformData().orientation() != FontOrientation::Horizontal) {
++                complete = false;
++                break;
++            }
++            uint32_t scalar = (*sourceRun)[*offset];
++            if (scalar >= 0xD800 && scalar <= 0xDBFF) {
++                if (*offset + 1 >= sourceTo || (*sourceRun)[*offset + 1] < 0xDC00 || (*sourceRun)[*offset + 1] > 0xDFFF) {
++                    complete = false;
++                    break;
++                }
++                scalar = 0x10000 + ((scalar - 0xD800) << 10) + (*sourceRun)[*offset + 1] - 0xDC00;
++            }
++            offsets.push_back(*offset - sourceFrom);
++            glyphs.push_back(glyphBuffer.glyphAt(i));
++            nominal.push_back(font.platformData().skFont().unicharToGlyph(scalar));
++        }
++        if (complete) {
++            // Never infer a cluster end from a partial draw/selection span.
++            sourceText = sourceFrom || sourceTo != sourceRun->length()
++                ? makeScalarGlyphText(source, offsets, glyphs, nominal)
++                : makeIndependentAsciiDigitText(source, offsets, glyphs, nominal);
++        }
++    }
++#else
++    UNUSED_PARAM(sourceRun);
++    UNUSED_PARAM(sourceFrom);
++    UNUSED_PARAM(sourceTo);
++#endif
++    const auto drawSpan = [&](const Font& font, size_t first, size_t count, const FloatPoint& origin) {
++        auto part = sourceText ? sourceText->slice(first, count) : std::nullopt;
++        if (part)
++            context.drawGlyphsWithSourceText(font, glyphBuffer.glyphs(first, count), glyphBuffer.advances(first, count), origin, m_fontDescription.usedFontSmoothing(), *part);
++        else
++            context.drawGlyphs(font, glyphBuffer.glyphs(first, count), glyphBuffer.advances(first, count), origin, m_fontDescription.usedFontSmoothing());
++    };
+     Ref fontData = glyphBuffer.fontAt(0);
+     FloatPoint startPoint = point;
+     float nextX = startPoint.x() + WebCore::width(glyphBuffer.advanceAt(0));
+@@ -1572,7 +1656,7 @@
+         if (nextFontData != fontData) {
+             if (shouldDrawIfLoading(fontData.get(), customFontNotReadyAction)) {
+                 size_t glyphCount = nextGlyph - lastFrom;
+-                context.drawGlyphs(fontData.get(), glyphBuffer.glyphs(lastFrom, glyphCount), glyphBuffer.advances(lastFrom, glyphCount), startPoint, m_fontDescription.usedFontSmoothing());
++                drawSpan(fontData.get(), lastFrom, glyphCount, startPoint);
+             }
+             lastFrom = nextGlyph;
+             fontData = WTF::move(nextFontData);
+@@ -1586,7 +1670,7 @@
+ 
+     if (shouldDrawIfLoading(fontData.get(), customFontNotReadyAction)) {
+         size_t glyphCount = nextGlyph - lastFrom;
+-        context.drawGlyphs(fontData.get(), glyphBuffer.glyphs(lastFrom, glyphCount), glyphBuffer.advances(lastFrom, glyphCount), startPoint, m_fontDescription.usedFontSmoothing());
++        drawSpan(fontData.get(), lastFrom, glyphCount, startPoint);
+     }
+     point.setX(nextX);
+ }
+--- a/Source/WebCore/platform/graphics/FontCascade.h
++++ b/Source/WebCore/platform/graphics/FontCascade.h
+@@ -202,12 +202,12 @@
+     static constexpr float syntheticObliqueAngle() { return 14; }
+ 
+     RefPtr<const DisplayList::DisplayList> displayListForTextRun(GraphicsContext&, const TextRun&, unsigned from = 0, std::optional<unsigned> to = { }, CustomFontNotReadyAction = CustomFontNotReadyAction::DoNotPaintIfFontNotReady) const;
+-    RefPtr<const DisplayList::DisplayList> displayListForGlyphBuffer(GraphicsContext&, const GlyphBuffer&, CustomFontNotReadyAction) const;
++    RefPtr<const DisplayList::DisplayList> displayListForGlyphBuffer(GraphicsContext&, const GlyphBuffer&, CustomFontNotReadyAction, const TextRun* = nullptr, unsigned sourceFrom = 0, unsigned sourceTo = 0) const;
+ 
+     unsigned generation() const { return m_generation; }
+ 
+     TextShapingResult layoutText(CodePath, const TextRun&, unsigned from, unsigned to, ForTextEmphasis = ForTextEmphasis::No) const;
+-    void drawGlyphBuffer(GraphicsContext&, const GlyphBuffer&, FloatPoint&, CustomFontNotReadyAction) const;
++    void drawGlyphBuffer(GraphicsContext&, const GlyphBuffer&, FloatPoint&, CustomFontNotReadyAction, const TextRun* = nullptr, unsigned sourceFrom = 0, unsigned sourceTo = 0) const;
+ 
+ private:
+ 
+--- a/Source/WebCore/platform/graphics/GraphicsContext.cpp
++++ b/Source/WebCore/platform/graphics/GraphicsContext.cpp
+@@ -178,6 +178,12 @@
+     FontCascade::drawGlyphs(*this, font, glyphs, advances, point, fontSmoothingMode);
+ }
+ 
++void GraphicsContext::drawGlyphsWithSourceText(const Font& font, std::span<const GlyphBufferGlyph> glyphs, std::span<const GlyphBufferAdvance> advances, const FloatPoint& point, FontSmoothingMode mode, const ScalarGlyphText&)
++{
++    // Unsupported contexts retain old behavior. This is NOT complete IPC coverage.
++    drawGlyphs(font, glyphs, advances, point, mode);
++}
++
+ void GraphicsContext::drawGlyphsImmediate(const Font& font, std::span<const GlyphBufferGlyph> glyphs, std::span<const GlyphBufferAdvance> advances, const FloatPoint& point, FontSmoothingMode fontSmoothingMode)
+ {
+     // Called by implementations that transform drawGlyphs into drawGlyphsImmediate, drawImageBuffer, etc calls.
+--- a/Source/WebCore/platform/graphics/GraphicsContext.h
++++ b/Source/WebCore/platform/graphics/GraphicsContext.h
+@@ -25,6 +25,7 @@
+  */
+ 
+ #pragma once
++#include "ScalarGlyphText.h"
+ 
+ #include <WebCore/ControlPart.h>
+ #include <WebCore/DashArray.h>
+@@ -308,6 +309,7 @@
+     WEBCORE_EXPORT virtual void drawBidiText(const FontCascade&, const TextRun&, const FloatPoint&, FontCascade::CustomFontNotReadyAction = FontCascade::CustomFontNotReadyAction::DoNotPaintIfFontNotReady);
+ 
+     WEBCORE_EXPORT virtual void drawGlyphs(const Font&, std::span<const GlyphBufferGlyph>, std::span<const GlyphBufferAdvance>, const FloatPoint&, FontSmoothingMode);
++    WEBCORE_EXPORT virtual void drawGlyphsWithSourceText(const Font&, std::span<const GlyphBufferGlyph>, std::span<const GlyphBufferAdvance>, const FloatPoint&, FontSmoothingMode, const ScalarGlyphText&);
+     WEBCORE_EXPORT void drawDisplayList(const DisplayList::DisplayList&);
+     WEBCORE_EXPORT virtual void drawDisplayList(const DisplayList::DisplayList&, ControlFactory&);
+     WEBCORE_EXPORT FloatRect computeUnderlineBoundsForText(const FloatRect&, bool printing);
+--- /dev/null
++++ b/Source/WebCore/platform/graphics/ScalarGlyphText.h
+@@ -0,0 +1,105 @@
++// Bounded source metadata for unchanged glyphs.
++// Copyright (C) 2026 LarryZhu-dev. SPDX-License-Identifier: BSD-2-Clause
++#pragma once
++#include <cstdint>
++#include <limits>
++#include <optional>
++#include <span>
++#include <string>
++#include <string_view>
++#include <vector>
++
++namespace WebCore {
++// Deliberately narrow: one LTR source scalar per unchanged nominal glyph.
++// Ligatures, reordered/repeated offsets, synthetic/missing glyphs and partial
++// surrogate pairs are rejected, never reverse-mapped or normalized.
++struct ScalarGlyphText {
++    static constexpr size_t maxBytes = 1024 * 1024;
++    std::string utf8;
++    std::vector<uint32_t> clusters;
++
++    bool validFor(size_t glyphCount) const
++    {
++        if (utf8.empty() || utf8.size() > maxBytes || clusters.size() != glyphCount || !glyphCount)
++            return false;
++        size_t byte = 0, glyph = 0;
++        while (byte < utf8.size()) {
++            if (glyph == glyphCount || clusters[glyph++] != byte)
++                return false;
++            uint8_t first = static_cast<uint8_t>(utf8[byte++]);
++            uint32_t scalar = first;
++            unsigned continuation = 0;
++            uint32_t minimum = 0;
++            if (first >= 0xC2 && first <= 0xDF) { scalar = first & 0x1F; continuation = 1; minimum = 0x80; }
++            else if (first >= 0xE0 && first <= 0xEF) { scalar = first & 0x0F; continuation = 2; minimum = 0x800; }
++            else if (first >= 0xF0 && first <= 0xF4) { scalar = first & 7; continuation = 3; minimum = 0x10000; }
++            else if (first >= 0x80) return false;
++            for (unsigned i = 0; i < continuation; ++i) {
++                if (byte >= utf8.size()) return false;
++                uint8_t next = static_cast<uint8_t>(utf8[byte++]);
++                if ((next & 0xC0) != 0x80) return false;
++                scalar = (scalar << 6) | (next & 0x3F);
++            }
++            if (scalar < minimum || scalar > 0x10FFFF || (scalar >= 0xD800 && scalar <= 0xDFFF))
++                return false;
++        }
++        return glyph == glyphCount;
++    }
++
++    std::optional<ScalarGlyphText> slice(size_t first, size_t count) const
++    {
++        if (!validFor(clusters.size()) || !count || first >= clusters.size() || count > clusters.size() - first)
++            return std::nullopt;
++        const size_t start = clusters[first];
++        const size_t end = first + count == clusters.size() ? utf8.size() : clusters[first + count];
++        ScalarGlyphText result;
++        result.utf8 = utf8.substr(start, end - start);
++        for (size_t i = first; i < first + count; ++i)
++            result.clusters.push_back(clusters[i] - start);
++        return result;
++    }
++};
++
++inline std::optional<ScalarGlyphText> makeScalarGlyphText(
++    std::u16string_view source, std::span<const uint32_t> offsets,
++    std::span<const uint32_t> drawnGlyphs, std::span<const uint32_t> nominalGlyphs)
++{
++    if (source.empty() || source.size() > ScalarGlyphText::maxBytes / 4
++        || offsets.size() != drawnGlyphs.size() || offsets.size() != nominalGlyphs.size())
++        return std::nullopt;
++    ScalarGlyphText result;
++    size_t index = 0;
++    for (size_t offset = 0; offset < source.size(); ++index) {
++        if (index >= offsets.size() || offsets[index] != offset
++            || !drawnGlyphs[index] || drawnGlyphs[index] == 0xFFFF
++            || drawnGlyphs[index] != nominalGlyphs[index])
++            return std::nullopt;
++        uint32_t scalar = source[offset++];
++        if (scalar >= 0xD800 && scalar <= 0xDBFF) {
++            if (offset == source.size()) return std::nullopt;
++            uint32_t low = source[offset++];
++            if (low < 0xDC00 || low > 0xDFFF) return std::nullopt;
++            scalar = 0x10000 + ((scalar - 0xD800) << 10) + low - 0xDC00;
++        } else if (scalar >= 0xDC00 && scalar <= 0xDFFF)
++            return std::nullopt;
++        result.clusters.push_back(static_cast<uint32_t>(result.utf8.size()));
++        if (scalar < 0x80) result.utf8.push_back(static_cast<char>(scalar));
++        else if (scalar < 0x800) {
++            result.utf8.push_back(static_cast<char>(0xC0 | (scalar >> 6)));
++            result.utf8.push_back(static_cast<char>(0x80 | (scalar & 0x3F)));
++        } else if (scalar < 0x10000) {
++            result.utf8.push_back(static_cast<char>(0xE0 | (scalar >> 12)));
++            result.utf8.push_back(static_cast<char>(0x80 | ((scalar >> 6) & 0x3F)));
++            result.utf8.push_back(static_cast<char>(0x80 | (scalar & 0x3F)));
++        } else {
++            result.utf8.push_back(static_cast<char>(0xF0 | (scalar >> 18)));
++            result.utf8.push_back(static_cast<char>(0x80 | ((scalar >> 12) & 0x3F)));
++            result.utf8.push_back(static_cast<char>(0x80 | ((scalar >> 6) & 0x3F)));
++            result.utf8.push_back(static_cast<char>(0x80 | (scalar & 0x3F)));
++        }
++    }
++    if (index != offsets.size() || !result.validFor(drawnGlyphs.size()))
++        return std::nullopt;
++    return result;
++}
++}
+--- a/Source/WebCore/platform/graphics/displaylists/DisplayListItems.cpp
++++ b/Source/WebCore/platform/graphics/displaylists/DisplayListItems.cpp
+@@ -280,7 +280,10 @@
+ 
+ void DrawGlyphs::apply(GraphicsContext& context) const
+ {
+-    context.drawGlyphs(m_font, m_glyphs.span(), m_advances.span(), m_localAnchor, m_fontSmoothingMode);
++    if (m_sourceText)
++        context.drawGlyphsWithSourceText(m_font, m_glyphs.span(), m_advances.span(), m_localAnchor, m_fontSmoothingMode, *m_sourceText);
++    else
++        context.drawGlyphs(m_font, m_glyphs.span(), m_advances.span(), m_localAnchor, m_fontSmoothingMode);
+ }
+ 
+ void DrawGlyphs::dump(TextStream& ts, OptionSet<AsTextFlag>) const
+--- a/Source/WebCore/platform/graphics/displaylists/DisplayListItems.h
++++ b/Source/WebCore/platform/graphics/displaylists/DisplayListItems.h
+@@ -24,6 +24,7 @@
+  */
+ 
+ #pragma once
++#include "ScalarGlyphText.h"
+ 
+ #include <WebCore/AlphaPremultiplication.h>
+ #include <WebCore/ControlPart.h>
+@@ -495,12 +496,13 @@
+ public:
+     static constexpr char name[] = "draw-glyphs";
+ 
+-    DrawGlyphs(Ref<const Font>&& font, Vector<GlyphBufferGlyph>&& glyphs, Vector<GlyphBufferAdvance>&& advances, const FloatPoint& localAnchor, FontSmoothingMode smoothingMode)
++    DrawGlyphs(Ref<const Font>&& font, Vector<GlyphBufferGlyph>&& glyphs, Vector<GlyphBufferAdvance>&& advances, const FloatPoint& localAnchor, FontSmoothingMode smoothingMode, const ScalarGlyphText* sourceText = nullptr)
+         : m_font(WTF::move(font))
+         , m_glyphs(WTF::move(glyphs))
+         , m_advances(WTF::move(advances))
+         , m_localAnchor(localAnchor)
+         , m_fontSmoothingMode(smoothingMode)
++        , m_sourceText(sourceText ? std::optional<ScalarGlyphText>(*sourceText) : std::nullopt)
+     {
+     }
+ 
+@@ -521,6 +523,7 @@
+     Vector<GlyphBufferAdvance> m_advances;
+     FloatPoint m_localAnchor;
+     FontSmoothingMode m_fontSmoothingMode;
++    std::optional<ScalarGlyphText> m_sourceText;
+ };
+ 
+ #if USE(SKIA)
+@@ -528,8 +531,8 @@
+ public:
+     static constexpr char name[] = "draw-text-blob";
+ 
+-    DrawTextBlob(Ref<const Font>&& font, Vector<GlyphBufferGlyph>&& glyphs, Vector<GlyphBufferAdvance>&& advances, const FloatPoint& localAnchor, FontSmoothingMode smoothingMode)
+-        : m_textBlob(font->buildTextBlob(glyphs, advances, smoothingMode))
++    DrawTextBlob(Ref<const Font>&& font, Vector<GlyphBufferGlyph>&& glyphs, Vector<GlyphBufferAdvance>&& advances, const FloatPoint& localAnchor, FontSmoothingMode smoothingMode, const ScalarGlyphText* sourceText = nullptr)
++        : m_textBlob(font->buildTextBlob(glyphs, advances, smoothingMode, sourceText))
+         , m_enableAntialiasing(font->enableAntialiasing(smoothingMode))
+         , m_isVertical(font->platformData().orientation() == FontOrientation::Vertical)
+         , m_localAnchor(localAnchor)
+--- a/Source/WebCore/platform/graphics/displaylists/DisplayListRecorderImpl.cpp
++++ b/Source/WebCore/platform/graphics/displaylists/DisplayListRecorderImpl.cpp
+@@ -210,6 +210,24 @@
+     drawGlyphsImmediate(font, glyphs, advances, localAnchor, smoothingMode);
+ }
+ 
++void RecorderImpl::drawGlyphsWithSourceText(const Font& font, std::span<const GlyphBufferGlyph> glyphs, std::span<const GlyphBufferAdvance> advances, const FloatPoint& localAnchor, FontSmoothingMode smoothingMode, const ScalarGlyphText& sourceText)
++{
++    if (!sourceText.validFor(glyphs.size())) {
++        drawGlyphs(font, glyphs, advances, localAnchor, smoothingMode);
++        return;
++    }
++    if (decomposeDrawGlyphsIfNeeded(font, glyphs, advances, localAnchor, smoothingMode))
++        return; // Decomposed effects are not covered by this source-metadata path.
++    appendStateChangeItemIfNecessary();
++#if USE(SKIA)
++    if (drawGlyphsMode() == Recorder::DrawGlyphsMode::TextBlob) {
++        m_items.append(DrawTextBlob(Ref { font }, Vector(glyphs), Vector(advances), localAnchor, smoothingMode, &sourceText));
++        return;
++    }
++#endif
++    m_items.append(DrawGlyphs(Ref { font }, Vector(glyphs), Vector(advances), localAnchor, smoothingMode, &sourceText));
++}
++
+ void RecorderImpl::drawGlyphsImmediate(const Font& font, std::span<const GlyphBufferGlyph> glyphs, std::span<const GlyphBufferAdvance> advances, const FloatPoint& localAnchor, FontSmoothingMode smoothingMode)
+ {
+     appendStateChangeItemIfNecessary();
+--- a/Source/WebCore/platform/graphics/displaylists/DisplayListRecorderImpl.h
++++ b/Source/WebCore/platform/graphics/displaylists/DisplayListRecorderImpl.h
+@@ -94,6 +94,7 @@
+     void fillRoundedRect(const FloatRoundedRect&, const Color&, BlendMode) final;
+     void fillRectWithRoundedHole(const FloatRect&, const FloatRoundedRect&, const Color&) final;
+     void drawGlyphs(const Font&, std::span<const GlyphBufferGlyph>, std::span<const GlyphBufferAdvance>, const FloatPoint& localAnchor, FontSmoothingMode) final;
++    void drawGlyphsWithSourceText(const Font&, std::span<const GlyphBufferGlyph>, std::span<const GlyphBufferAdvance>, const FloatPoint&, FontSmoothingMode, const ScalarGlyphText&) final;
+     void drawGlyphsImmediate(const Font&, std::span<const GlyphBufferGlyph>, std::span<const GlyphBufferAdvance>, const FloatPoint& localAnchor, FontSmoothingMode) final;
+     void drawDisplayList(const DisplayList&, ControlFactory&) final;
+ #if ENABLE(VIDEO)
+--- a/Source/WebCore/platform/graphics/skia/FontSkia.cpp
++++ b/Source/WebCore/platform/graphics/skia/FontSkia.cpp
+@@ -25,6 +25,7 @@
+ 
+ #include "config.h"
+ #include "Font.h"
++#include <algorithm>
+ 
+ #include "GlyphBuffer.h"
+ #include "NotImplemented.h"
+@@ -221,7 +222,7 @@
+     RELEASE_ASSERT_NOT_REACHED();
+ }
+ 
+-sk_sp<SkTextBlob> Font::buildTextBlob(std::span<const GlyphBufferGlyph> glyphs, std::span<const GlyphBufferAdvance> advances, FontSmoothingMode smoothingMode) const
++sk_sp<SkTextBlob> Font::buildTextBlob(std::span<const GlyphBufferGlyph> glyphs, std::span<const GlyphBufferAdvance> advances, FontSmoothingMode smoothingMode, const ScalarGlyphText* sourceText) const
+ {
+     if (!m_platformData.size() || !glyphs.size())
+         return nullptr;
+@@ -230,16 +231,29 @@
+     auto edging = allowsAntialiasing() ? edgingForFontSmoothingMode(font, smoothingMode) : SkFont::Edging::kAlias;
+     bool isVertical = m_platformData.orientation() == FontOrientation::Vertical;
+ 
++    if (sourceText && !sourceText->validFor(glyphs.size()))
++        sourceText = nullptr;
+     SkTextBlobBuilder builder;
++    const auto allocate = [&](const SkFont& runFont) -> const SkTextBlobBuilder::RunBuffer& {
++        if (sourceText) {
++            return isVertical ? builder.allocRunTextPos(runFont, glyphs.size(), sourceText->utf8.size())
++                : builder.allocRunTextPosH(runFont, glyphs.size(), 0, sourceText->utf8.size());
++        }
++        return isVertical ? builder.allocRunPos(runFont, glyphs.size()) : builder.allocRunPosH(runFont, glyphs.size(), 0);
++    };
+     const auto& buffer = [&]() {
+         if (font.getEdging() == edging)
+-            return isVertical ? builder.allocRunPos(font, glyphs.size()) : builder.allocRunPosH(font, glyphs.size(), 0);
++            return allocate(font);
+ 
+         SkFont copiedFont = font;
+         copiedFont.setEdging(edging);
+-        return isVertical ? builder.allocRunPos(copiedFont, glyphs.size()) : builder.allocRunPosH(copiedFont, glyphs.size(), 0);
++        return allocate(copiedFont);
+     }();
+ 
++    if (sourceText) {
++        std::copy(sourceText->utf8.begin(), sourceText->utf8.end(), buffer.utf8text);
++        std::copy(sourceText->clusters.begin(), sourceText->clusters.end(), buffer.clusters);
++    }
+     auto bufferGlyphs = unsafeMakeSpan<SkGlyphID>(buffer.glyphs, glyphs.size());
+     auto bufferPositions = unsafeMakeSpan<SkScalar>(buffer.pos, glyphs.size() * (isVertical ? 2 : 1));
+ 
+--- a/Source/WebCore/platform/graphics/skia/GraphicsContextSkia.cpp
++++ b/Source/WebCore/platform/graphics/skia/GraphicsContextSkia.cpp
+@@ -47,6 +47,8 @@
+ #include <cmath>
+ #include <ranges>
+ WTF_IGNORE_WARNINGS_IN_THIRD_PARTY_CODE_BEGIN
++#include <skia/core/SkAnnotation.h>
++#include <skia/core/SkData.h>
+ #include <skia/core/SkColorFilter.h>
+ #include <skia/core/SkImage.h>
+ #include <skia/core/SkPathBuilder.h>
+@@ -62,6 +64,8 @@
+ #include <skia/gpu/ganesh/SkSurfaceGanesh.h>
+ WTF_IGNORE_WARNINGS_IN_THIRD_PARTY_CODE_END
+ #include <wtf/MathExtras.h>
++#include <wtf/URL.h>
++#include <wtf/text/CString.h>
+ 
+ #if USE(THEME_ADWAITA)
+ #include "Adwaita.h"
+@@ -98,6 +102,15 @@
+ SkCanvas* GraphicsContextSkia::platformContext() const
+ {
+     return &m_canvas;
++}
++
++void GraphicsContextSkia::setURLForRect(const URL& url, const FloatRect& rect)
++{
++    if (paintingDisabled() || !url.isValid() || rect.isEmpty())
++        return;
++
++    auto data = SkData::MakeWithCString(url.string().utf8().data());
++    SkAnnotateRectWithURL(&m_canvas, rect, data.get());
+ }
+ 
+ const DestinationColorSpace& GraphicsContextSkia::colorSpace() const
+@@ -1270,6 +1283,13 @@
+     trackAcceleratedRenderingFenceIfNeeded(nativeImage->platformImage(), nativeImage->grContext());
+ }
+ 
++void GraphicsContextSkia::drawGlyphsWithSourceText(const Font& font, std::span<const GlyphBufferGlyph> glyphs, std::span<const GlyphBufferAdvance> advances, const FloatPoint& point, FontSmoothingMode mode, const ScalarGlyphText& sourceText)
++{
++    auto blob = font.buildTextBlob(glyphs, advances, mode, &sourceText);
++    if (blob)
++        drawSkiaText(blob, point.x(), point.y(), font.enableAntialiasing(mode), font.platformData().orientation() == FontOrientation::Vertical);
++}
++
+ void GraphicsContextSkia::drawSkiaText(const sk_sp<SkTextBlob>& blob, SkScalar x, SkScalar y, bool enableAntialias, bool isVertical)
+ {
+     if (isVertical) {
+--- a/Source/WebCore/platform/graphics/skia/GraphicsContextSkia.h
++++ b/Source/WebCore/platform/graphics/skia/GraphicsContextSkia.h
+@@ -55,6 +55,7 @@
+ 
+     bool hasPlatformContext() const final;
+     SkCanvas* platformContext() const final;
++    void setURLForRect(const URL&, const FloatRect&) final;
+ 
+     const DestinationColorSpace& colorSpace() const final;
+ 
+@@ -122,6 +123,7 @@
+     SkPaint createFillPaint() const;
+     SkPaint createStrokePaint() const;
+ 
++    void drawGlyphsWithSourceText(const Font&, std::span<const GlyphBufferGlyph>, std::span<const GlyphBufferAdvance>, const FloatPoint&, FontSmoothingMode, const ScalarGlyphText&) final;
+     void drawSkiaText(const sk_sp<SkTextBlob>&, SkScalar, SkScalar, bool, bool);
+ 
+ private:
+--- /dev/null
++++ b/Source/WebCore/rendering/FragmentKeepPolicy.h
+@@ -0,0 +1,33 @@
++/* WebCore print fragment policy. SPDX-License-Identifier: LGPL-2.1-or-later */
++#pragma once
++
++namespace WebCore::PrintFragmentPolicy {
++// All units come from final layout. Never move an over-height first fragment,
++// override an explicit page break, or move from an already empty page.
++template<typename Unit>
++Unit firstFragmentShift(Unit pageHeight, Unit remaining, Unit prefixHeight, bool forcedBreak)
++{
++    if (forcedBreak || pageHeight <= Unit { } || remaining <= Unit { }
++        || remaining >= pageHeight || prefixHeight <= Unit { } || prefixHeight > pageHeight)
++        return { };
++    return prefixHeight > remaining ? remaining : Unit { };
++}
++
++// A repeated header needs space in layout, not a paint-time overlay. Oversized
++// rows keep the existing fragmentation path rather than looping or cropping.
++template<typename Unit>
++Unit rowShift(Unit pageHeight, Unit pageOffset, Unit rowHeight, Unit headerHeight, bool continuation, bool forcedBreak)
++{
++    if (pageHeight <= Unit { } || pageOffset < Unit { } || pageOffset >= pageHeight
++        || headerHeight <= Unit { } || rowHeight <= Unit { }
++        || headerHeight + rowHeight > pageHeight)
++        return { };
++    if (forcedBreak && pageOffset > Unit { })
++        return pageHeight - pageOffset + headerHeight;
++    if (continuation && pageOffset < headerHeight)
++        return headerHeight - pageOffset;
++    if (rowHeight > pageHeight - pageOffset)
++        return pageHeight - pageOffset + headerHeight;
++    return { };
++}
++}
+--- a/Source/WebCore/rendering/OutlinePainter.cpp
++++ b/Source/WebCore/rendering/OutlinePainter.cpp
+@@ -24,6 +24,7 @@
+  */
+ 
+ #include "config.h"
++#include "PrintLinkAnnotationPolicy.h"
+ #include "OutlinePainter.h"
+ 
+ #include "BorderEdge.h"
+@@ -731,7 +732,17 @@
+             return;
+         }
+     }
++#if USE(SKIA)
++    // Keep each clickable inline fragment separate. A union
++    // across wrapped lines can cover unrelated links in the last-line gap.
++    auto url = protect(element->document())->encodingParseURL(href);
++    for (auto& rect : uniquePrintLinkFragments(focusRingRects)) {
++        if (!rect.isEmpty())
++            m_paintInfo.context().setURLForRect(url, rect);
++    }
++#else
+     m_paintInfo.context().setURLForRect(protect(element->document())->encodingParseURL(href), urlRect);
++#endif
+ }
+ 
+ } // namespace WebCore
+--- /dev/null
++++ b/Source/WebCore/rendering/PrintLinkAnnotationPolicy.h
+@@ -0,0 +1,24 @@
++/* Copyright (C) 2026 LarryZhu-dev. SPDX-License-Identifier: BSD-2-Clause */
++#pragma once
++#include <set>
++#include <tuple>
++
++namespace WebCore {
++// One element, one paint call, one current transform/clip/page. Never retain
++// URLs or rectangles across calls. Exact raw layout units preserve neighboring
++// and overlapping but nonidentical fragments; emission keeps source order.
++template<typename Rectangles>
++Rectangles uniquePrintLinkFragments(const Rectangles& input)
++{
++    std::set<std::tuple<int, int, int, int>> seen;
++    Rectangles result;
++    for (const auto& rect : input) {
++        if (rect.isEmpty())
++            continue;
++        auto key = std::tuple { rect.x().rawValue(), rect.y().rawValue(), rect.width().rawValue(), rect.height().rawValue() };
++        if (seen.insert(key).second)
++            result.append(rect);
++    }
++    return result;
++}
++}
+--- a/Source/WebCore/rendering/RenderBlockFlow.cpp
++++ b/Source/WebCore/rendering/RenderBlockFlow.cpp
+@@ -71,6 +71,10 @@
+ #include "RenderMultiColumnSet.h"
+ #include "RenderObjectInlines.h"
+ #include "RenderTableCellInlines.h"
++#include "RenderTableSection.h"
++#include "RenderTableRow.h"
++#include "FragmentKeepPolicy.h"
++#include "RootTrailingMarginPolicy.h"
+ #include "RenderText.h"
+ #include "RenderTreeBuilder.h"
+ #include "RenderView.h"
+@@ -1938,7 +1942,17 @@
+     // If we can't collapse with children then add in the bottom margin.
+     if (!marginInfo.canCollapseWithMarginAfter() && !marginInfo.canCollapseWithMarginBefore()
+         && (!document().inQuirksMode() || !marginInfo.quirkContainer() || !marginInfo.hasMarginAfterQuirk())) {
+-        borderBoxLogicalHeight += marginInfo.margin();
++        auto trailingMargin = marginInfo.margin();
++        auto* state = view().frameView().layoutContext().layoutState();
++        // Match the existing legacy before-margin page-edge restriction for the
++        // document element's trailing collapsed margin. Do not reduce content,
++        // explicit size, forced-break progress, border/padding or visual overflow.
++        if (isDocumentElementRenderer() && document().printing() && writingMode().isHorizontal()
++            && !enclosingFragmentedFlow() && state && state->isPaginated() && state->pageLogicalHeight()
++            && borderBoxLogicalHeight > 0_lu && !borderAndPaddingAfter() && !scrollbarLogicalHeight())
++            trailingMargin = PrintFragmentPolicy::rootTrailingMargin(trailingMargin,
++                pageRemainingLogicalHeightForOffset(borderBoxLogicalHeight, IncludePageBoundary));
++        borderBoxLogicalHeight += trailingMargin;
+     }
+ 
+     // Now add in our bottom border/padding.
+@@ -2343,11 +2357,55 @@
+     return (endFragment && fragment != endFragment);
+ }
+ 
++// Only the minimum leading fragment participates in keep-with-next. Keeping
++// a complete multi-page table unbreakable cannot satisfy this constraint.
++static std::optional<LayoutUnit> leadingTableFragment(RenderBox& child)
++{
++    auto* wrapper = dynamicDowncast<RenderBlockFlow>(child);
++    if (!wrapper || wrapper->childrenInline() || wrapper->isTransformed() || wrapper->isFloatingOrOutOfFlowPositioned())
++        return std::nullopt;
++    auto* heading = dynamicDowncast<RenderBox>(wrapper->firstChild());
++    auto* table = heading ? dynamicDowncast<RenderTable>(heading->nextSibling()) : nullptr;
++    if (!heading || !table || heading->isFloatingOrOutOfFlowPositioned() || heading->isTransformed()
++        || table->isFloatingOrOutOfFlowPositioned() || table->isTransformed()
++        || !heading->writingMode().isHorizontal() || !table->writingMode().isHorizontal())
++        return std::nullopt;
++    auto after = heading->style().breakAfter();
++    if (after != BreakBetween::Avoid && after != BreakBetween::AvoidPage)
++        return std::nullopt;
++    auto* header = table->header();
++    auto* body = table->firstBody();
++    auto* firstRow = body ? body->firstRow() : nullptr;
++    if (!header || !firstRow || heading->needsLayout() || table->needsLayout()
++        || alwaysPageBreak(table->style().breakBefore()) || alwaysPageBreak(header->style().breakBefore())
++        || alwaysPageBreak(body->style().breakBefore()) || alwaysPageBreak(firstRow->style().breakBefore())
++        || alwaysPageBreak(header->style().breakAfter()))
++        return std::nullopt;
++    // This is the actual laid-out row bottom, including collapsed margins,
++    // table borders and header/body offsets. No guessed CSS or font metrics.
++    auto prefix = table->logicalTop() + body->logicalTop() + firstRow->logicalTop() + firstRow->logicalHeight();
++    if (prefix <= heading->logicalTop() + heading->logicalHeight())
++        return std::nullopt;
++    return prefix;
++}
++
+ LayoutUnit RenderBlockFlow::adjustForUnsplittableChild(RenderBox& child, LayoutUnit logicalOffset, LayoutUnit childBeforeMargin, LayoutUnit childAfterMargin)
+ {
+     // When flexboxes are embedded inside a block flow, they don't perform any adjustments for unsplittable
+     // children. We'll treat flexboxes themselves as unsplittable just to get them to paginate properly inside
+     // a block flow.
++    if (document().printing() && writingMode().isHorizontal() && !enclosingFragmentedFlow()) {
++        if (auto prefix = leadingTableFragment(child)) {
++            auto pageHeight = pageLogicalHeightForOffset(logicalOffset);
++            if (pageHeight) {
++                auto shift = PrintFragmentPolicy::firstFragmentShift(pageHeight,
++                    pageRemainingLogicalHeightForOffset(logicalOffset, ExcludePageBoundary),
++                    *prefix + childBeforeMargin, alwaysPageBreak(child.style().breakBefore()));
++                if (shift)
++                    return logicalOffset + shift;
++            }
++        }
++    }
+     bool isUnsplittable = childBoxIsUnsplittableForFragmentation(child);
+     if (!isUnsplittable) {
+         auto* flexibleBox = dynamicDowncast<RenderFlexibleBox>(child);
+--- a/Source/WebCore/rendering/RenderTable.cpp
++++ b/Source/WebCore/rendering/RenderTable.cpp
+@@ -93,6 +93,10 @@
+ 
+ RenderTable::~RenderTable() = default;
+ 
++RenderTableSection* RenderTable::header() const { return m_head.get(); }
++RenderTableSection* RenderTable::footer() const { return m_foot.get(); }
++RenderTableSection* RenderTable::firstBody() const { return m_firstBody.get(); }
++
+ RenderTableSection* NODELETE RenderTable::topSection() const
+ {
+     ASSERT(!needsSectionRecalc());
+@@ -528,6 +532,8 @@
+     if (simplifiedLayout())
+         return;
+ 
++    m_repeatedPrintHeaderHeight = 0_lu;
++    m_printHeaderOffsets.clear();
+     recalcSectionsIfNeeded();
+     // FIXME: We should do this recalc lazily in borderStart/borderEnd so that we don't have to make sure
+     // to call this before we call borderStart/borderEnd to avoid getting a stale value.
+@@ -630,8 +636,32 @@
+ 
+         distributeExtraLogicalHeight(computedLogicalHeight - totalSectionLogicalHeight);
+ 
+-        for (RenderTableSection* section = topSection(); section; section = sectionBelow(section))
++        for (RenderTableSection* section = topSection(); section; section = sectionBelow(section)) {
+             section->layoutRows();
++            if (section == header() && document().printing() && writingMode().isHorizontal()
++                && !enclosingFragmentedFlow() && !isTransformed() && !section->hasSelfPaintingLayer()) {
++                auto pageHeight = view().frameView().layoutContext().layoutState()->pageLogicalHeight();
++                auto headerHeight = section->logicalHeight();
++                bool safe = pageHeight > 0_lu && headerHeight > 0_lu && headerHeight < pageHeight;
++                // Do not inject repeated paint over a spanning/over-height cell.
++                // Such tables retain their original fragmentation until a full
++                // cell-fragment implementation is available.
++                for (auto* body = firstBody(); safe && body; body = sectionBelow(body)) {
++                    if (body == footer())
++                        break;
++                    for (auto* row = body->firstRow(); safe && row; row = row->nextRow()) {
++                        for (auto* cell = row->firstCell(); cell; cell = cell->nextCell()) {
++                            if (cell->rowSpan() != 1 || cell->logicalHeight() + headerHeight > pageHeight) {
++                                safe = false;
++                                break;
++                            }
++                        }
++                    }
++                }
++                if (safe)
++                    m_repeatedPrintHeaderHeight = headerHeight;
++            }
++        }
+ 
+         if (!topSection() && computedLogicalHeight > totalSectionLogicalHeight && !document().inQuirksMode()) {
+             // Completely empty tables (with no sections or anything) should at least honor their
+@@ -883,6 +913,10 @@
+         if (!box.hasSelfPaintingLayer() && (box.isRenderTableSection() || box.isRenderTableCaption())) {
+             LayoutPoint childPoint = flipForWritingModeForChild(box, paintOffset);
+             box.paint(info, childPoint);
++            if (&box == header() && document().printing()) {
++                for (auto offset : m_printHeaderOffsets)
++                    box.paint(info, childPoint + LayoutSize(0_lu, offset - box.logicalTop()));
++            }
+         }
+     }
+     
+@@ -897,6 +931,10 @@
+             for (RenderTableSection* section = bottomSection(); section; section = sectionAbove(section)) {
+                 LayoutPoint childPoint = flipForWritingModeForChild(*section, paintOffset);
+                 section->paint(info, childPoint);
++                if (section == header() && document().printing()) {
++                    for (auto offset : m_printHeaderOffsets)
++                        section->paint(info, childPoint + LayoutSize(0_lu, offset - section->logicalTop()));
++                }
+             }
+         }
+         m_currentBorder = nullptr;
+--- a/Source/WebCore/rendering/RenderTable.h
++++ b/Source/WebCore/rendering/RenderTable.h
+@@ -103,6 +103,17 @@
+         m_columnPos[index] = position;
+     }
+ 
++    // Print-only, rebuilt from row layout on every full table layout.
++    LayoutUnit repeatedPrintHeaderHeight() const { return m_repeatedPrintHeaderHeight; }
++    void recordPrintHeaderOffset(LayoutUnit offset)
++    {
++        if (!m_printHeaderOffsets.contains(offset))
++            m_printHeaderOffsets.append(offset);
++    }
++    RenderTableSection* header() const;
++    RenderTableSection* footer() const;
++    RenderTableSection* firstBody() const;
++
+     // This function returns 0 if the table has no section.
+     RenderTableSection* NODELETE topSection() const;
+     RenderTableSection* bottomSection() const;
+@@ -265,6 +276,8 @@
+ 
+     mutable Vector<LayoutUnit> m_columnPos;
+     mutable Vector<ColumnStruct> m_columns;
++    LayoutUnit m_repeatedPrintHeaderHeight;
++    Vector<LayoutUnit> m_printHeaderOffsets;
+     mutable Vector<SingleThreadWeakPtr<RenderTableCaption>> m_captions;
+     mutable Vector<SingleThreadWeakPtr<RenderTableCol>> m_columnRenderers;
+ 
+--- a/Source/WebCore/rendering/RenderTableSection.cpp
++++ b/Source/WebCore/rendering/RenderTableSection.cpp
+@@ -26,6 +26,7 @@
+ 
+ #include "config.h"
+ #include "RenderTableSection.h"
++#include "FragmentKeepPolicy.h"
+ 
+ #include "BorderPainter.h"
+ #include "Document.h"
+@@ -619,6 +620,31 @@
+     LayoutStateMaintainer statePusher(*this, locationOffset(), isTransformed() || writingMode().isBlockFlipped());
+ 
+     for (size_t rowIndex = 0; rowIndex < numberOfRows; rowIndex++) {
++        if (auto headerHeight = table()->repeatedPrintHeaderHeight(); headerHeight > 0_lu && this != table()->header()) {
++            auto* state = view().frameView().layoutContext().layoutState();
++            auto pageHeight = state->pageLogicalHeight();
++            auto* row = m_grid[rowIndex].rowRenderer;
++            auto rowHeight = m_rowPos[rowIndex + 1] - m_rowPos[rowIndex] - vspacing;
++            if (pageHeight > 0_lu && row && rowHeight > 0_lu) {
++                auto absolute = state->pageLogicalOffset(this, m_rowPos[rowIndex]);
++                auto tableAbsolute = absolute - m_rowPos[rowIndex] - logicalTop();
++                auto phase = intMod(absolute, pageHeight);
++                bool continuation = absolute - phase > tableAbsolute;
++                bool forced = alwaysPageBreak(row->style().breakBefore())
++                    || (!rowIndex && alwaysPageBreak(style().breakBefore()))
++                    || (rowIndex && m_grid[rowIndex - 1].rowRenderer && alwaysPageBreak(m_grid[rowIndex - 1].rowRenderer->style().breakAfter()));
++                auto shift = PrintFragmentPolicy::rowShift(pageHeight, phase, rowHeight, headerHeight, continuation, forced);
++                if (shift) {
++                    for (size_t i = rowIndex; i <= numberOfRows; ++i)
++                        m_rowPos[i] += shift;
++                    absolute += shift;
++                    phase = intMod(absolute, pageHeight);
++                }
++                auto pageTop = absolute - phase;
++                if (pageTop > tableAbsolute && phase >= headerHeight)
++                    table()->recordPrintHeaderOffset(pageTop - tableAbsolute);
++            }
++        }
+ 
+         auto layoutCells = [&] {
+             LayoutUnit rowHeightIncreaseForPagination;
+--- /dev/null
++++ b/Source/WebCore/rendering/RootTrailingMarginPolicy.h
+@@ -0,0 +1,15 @@
++#pragma once
++#include <algorithm>
++
++namespace WebCore::PrintFragmentPolicy {
++// The caller restricts this to the printing document element's positive trailing
++// collapsed margin, without after border/padding/scrollbar. Existing content
++// height (including forced breaks and real overflow) is never reduced here.
++template<class Unit>
++constexpr Unit rootTrailingMargin(Unit margin, Unit remaining)
++{
++    if (margin <= Unit { } || remaining < Unit { })
++        return margin;
++    return std::min(margin, remaining);
++}
++}
