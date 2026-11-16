@@ -1,0 +1,324 @@
+--- a/Source/WebCore/rendering/RenderBlockFlow.cpp
++++ b/Source/WebCore/rendering/RenderBlockFlow.cpp
+@@ -23,6 +23,7 @@
+  */
+ 
+ #include "config.h"
++#include "MilkupPaginationResearch.h"
+ #include "RenderBlockFlow.h"
+ 
+ #include "AXObjectCache.h"
+@@ -1876,12 +1877,15 @@
+ 
+ LayoutUnit RenderBlockFlow::applyBeforeBreak(RenderBox& child, LayoutUnit logicalOffset)
+ {
++    MilkupPaginationResearch::Scope mkp(child, "before-break", logicalOffset.toDouble());
+     // FIXME: Add page break checking here when we support printing.
+     CheckedPtr fragmentedFlow = enclosingFragmentedFlow();
+     bool isInsideMulticolFlow = !!fragmentedFlow;
+     bool checkColumnBreaks = fragmentedFlow && fragmentedFlow->shouldCheckColumnBreaks() && (!shouldApplyLayoutContainment() || child.previousSibling());
+     bool checkPageBreaks = !checkColumnBreaks && view().frameView().layoutContext().layoutState()->pageLogicalHeight(); // FIXME: Once columns can print we have to check this.
+     bool checkFragmentBreaks = false;
++    mkp.point("page-height", pageLogicalHeightForOffset(logicalOffset).toDouble());
++    mkp.point("remaining-height", pageRemainingLogicalHeightForOffset(logicalOffset, ExcludePageBoundary).toDouble());
+     bool checkBeforeAlways = (checkColumnBreaks && child.style().breakBefore() == BreakBetween::Column)
+         || (checkPageBreaks && alwaysPageBreak(child.style().breakBefore()));
+     if (checkBeforeAlways && inNormalFlow(child) && hasNextPage(logicalOffset, IncludePageBoundary)) {
+@@ -1892,21 +1896,24 @@
+         if (checkFragmentBreaks) {
+             LayoutUnit offsetBreakAdjustment;
+             if (fragmentedFlow->addForcedFragmentBreak(this, offsetFromLogicalTopOfFirstPage() + logicalOffset, &child, true, &offsetBreakAdjustment))
+-                return logicalOffset + offsetBreakAdjustment;
+-        }
+-        return nextPageLogicalTop(logicalOffset, IncludePageBoundary);
+-    }
+-    return logicalOffset;
++                return mkp.result(logicalOffset + offsetBreakAdjustment);
++        }
++        return mkp.result(nextPageLogicalTop(logicalOffset, IncludePageBoundary));
++    }
++    return mkp.result(logicalOffset);
+ }
+ 
+ LayoutUnit RenderBlockFlow::applyAfterBreak(RenderBox& child, LayoutUnit logicalOffset, MarginInfo& marginInfo)
+ {
++    MilkupPaginationResearch::Scope mkp(child, "after-break", logicalOffset.toDouble());
+     // FIXME: Add page break checking here when we support printing.
+     CheckedPtr fragmentedFlow = enclosingFragmentedFlow();
+     bool isInsideMulticolFlow = !!fragmentedFlow;
+     bool checkColumnBreaks = fragmentedFlow && fragmentedFlow->shouldCheckColumnBreaks();
+     bool checkPageBreaks = !checkColumnBreaks && view().frameView().layoutContext().layoutState()->pageLogicalHeight(); // FIXME: Once columns can print we have to check this.
+     bool checkFragmentBreaks = false;
++    mkp.point("page-height", pageLogicalHeightForOffset(logicalOffset).toDouble());
++    mkp.point("remaining-height", pageRemainingLogicalHeightForOffset(logicalOffset, ExcludePageBoundary).toDouble());
+     bool checkAfterAlways = (checkColumnBreaks && child.style().breakAfter() == BreakBetween::Column)
+         || (checkPageBreaks && alwaysPageBreak(child.style().breakAfter()));
+     if (checkAfterAlways && inNormalFlow(child) && hasNextPage(logicalOffset, IncludePageBoundary)) {
+@@ -1921,15 +1928,16 @@
+         if (checkFragmentBreaks) {
+             LayoutUnit offsetBreakAdjustment;
+             if (fragmentedFlow->addForcedFragmentBreak(this, offsetFromLogicalTopOfFirstPage() + logicalOffset, &child, false, &offsetBreakAdjustment))
+-                return logicalOffset + offsetBreakAdjustment;
+-        }
+-        return nextPageLogicalTop(logicalOffset, IncludePageBoundary);
+-    }
+-    return logicalOffset;
++                return mkp.result(logicalOffset + offsetBreakAdjustment);
++        }
++        return mkp.result(nextPageLogicalTop(logicalOffset, IncludePageBoundary));
++    }
++    return mkp.result(logicalOffset);
+ }
+ 
+ LayoutUnit RenderBlockFlow::adjustBlockChildForPagination(LayoutUnit logicalTopAfterClear, LayoutUnit estimateWithoutPagination, RenderBox& child, bool atBeforeSideOfBlock)
+ {
++    MilkupPaginationResearch::Scope mkp(child, "adjust", logicalTopAfterClear.toDouble());
+     auto* childRenderBlock = dynamicDowncast<RenderBlock>(child);
+ 
+     if (estimateWithoutPagination != logicalTopAfterClear) {
+@@ -1951,7 +1959,9 @@
+         }
+ 
+         // Our guess was wrong. Make the child lay itself out again.
++        mkp.point("child-relayout-enter");
+         child.layoutIfNeeded();
++        mkp.point("child-relayout-exit");
+     }
+ 
+     LayoutUnit oldTop = logicalTopAfterClear;
+@@ -1975,6 +1985,7 @@
+     } else if (childRenderBlock && childRenderBlock->paginationStrut())
+         paginationStrut = childRenderBlock->paginationStrut();
+ 
++    mkp.point("selected-strut", paginationStrut.toDouble());
+     if (paginationStrut) {
+         // We are willing to propagate out to our parent block as long as we were at the top of the block prior
+         // to collapsing our margins, and as long as we didn't clear or move as a result of other pagination.
+@@ -1982,11 +1993,14 @@
+             // FIXME: Should really check if we're exceeding the page height before propagating the strut, but we don't
+             // have all the information to do so (the strut only has the remaining amount to push). Gecko gets this wrong too
+             // and pushes to the next page anyway, so not too concerned about it.
++            mkp.point("strut-propagate", (result + paginationStrut).toDouble());
+             setPaginationStrut(result + paginationStrut);
+             if (childRenderBlock)
+                 childRenderBlock->setPaginationStrut(0);
+-        } else
++        } else {
++            mkp.point("strut-consume", paginationStrut.toDouble());
+             result += paginationStrut;
++        }
+     }
+ 
+     if (!unsplittableAdjustmentDelta) {
+@@ -2014,7 +2028,7 @@
+     setLogicalHeight(logicalHeight() + (result - oldTop));
+     
+     // Return the final adjusted logical top.
+-    return result;
++    return mkp.result(result);
+ }
+ 
+ static inline LayoutUnit calculateMinimumPageHeight(const RenderStyle& renderStyle, const InlineIterator::LineBoxIterator& lastLine, LayoutUnit lineTop, LayoutUnit lineBottom)
+--- a/Source/WebCore/rendering/RenderBlock.cpp
++++ b/Source/WebCore/rendering/RenderBlock.cpp
+@@ -23,6 +23,7 @@
+  */
+ 
+ #include "config.h"
++#include "MilkupPaginationResearch.h"
+ #include "RenderBlock.h"
+ 
+ #include "AXObjectCache.h"
+@@ -2656,6 +2657,7 @@
+ 
+ void RenderBlock::setPaginationStrut(LayoutUnit strut)
+ {
++    MilkupPaginationResearch::record("strut-write", *this, strut.toDouble(), MilkupPaginationResearch::activeCall);
+     RenderBlockRareData* rareData = blockRareData();
+     if (!rareData) {
+         if (!strut)
+@@ -2663,6 +2665,7 @@
+         rareData = &ensureBlockRareData();
+     }
+     rareData->m_paginationStrut = strut;
++    MilkupPaginationResearch::record("strut-written", *this, strut.toDouble(), MilkupPaginationResearch::activeCall);
+ }
+ 
+ void RenderBlock::setPageLogicalOffset(LayoutUnit logicalOffset)
+--- a/Source/WebCore/rendering/RenderTable.cpp
++++ b/Source/WebCore/rendering/RenderTable.cpp
+@@ -25,6 +25,7 @@
+  */
+ 
+ #include "config.h"
++#include "MilkupPaginationResearch.h"
+ #include "RenderTable.h"
+ 
+ #include "AutoTableLayout.h"
+@@ -487,6 +488,7 @@
+ 
+ void RenderTable::layout()
+ {
++    MilkupPaginationResearch::Scope mkp(*this, "table-layout", 0);
+     StackStats::LayoutCheckPoint layoutCheckPoint;
+     ASSERT(needsLayout());
+ 
+@@ -666,8 +668,10 @@
+         // FIXME: Table layout should always stabilize even when section moves (see webkit.org/b/174412).
+         if (m_recursiveSectionMovedWithPaginationLevel < sectionCount) {
+             SetForScope recursiveSectionMovedWithPaginationLevel(m_recursiveSectionMovedWithPaginationLevel, m_recursiveSectionMovedWithPaginationLevel + 1);
++            mkp.point("table-recursive-relayout", m_recursiveSectionMovedWithPaginationLevel);
+             markForPaginationRelayoutIfNeeded();
+             layoutIfNeeded();
++            mkp.point("table-recursive-return");
+         } else
+             ASSERT_NOT_REACHED();
+     }
+--- a/Source/WebCore/page/PrintContext.cpp
++++ b/Source/WebCore/page/PrintContext.cpp
+@@ -19,6 +19,7 @@
+  */
+ 
+ #include "config.h"
++#include "../rendering/MilkupPaginationResearch.h"
+ #include "PrintContext.h"
+ 
+ #include "AXIsolatedTree.h"
+@@ -275,6 +276,7 @@
+     ctx.scale(scale);
+     ctx.translate(-pageRect.x(), -pageRect.y());
+     ctx.clip(pageRect);
++    MilkupPaginationResearch::finalPage(*frame.document(), ctx, pageRect, pageNumber, !frame.view()->needsLayout());
+     frame.view()->paintContents(ctx, pageRect);
+     outputLinkedDestinations(ctx, *frame.protectedDocument(), pageRect);
+     ctx.restore();
+--- /dev/null
++++ b/Source/WebCore/rendering/MilkupPaginationResearch.h
+@@ -0,0 +1,127 @@
++// RESEARCH ONLY: synthetic fixture, diagnostic reads, no layout mutation.
++#pragma once
++#include "Document.h"
++#include "ElementInlines.h"
++#include "ElementTraversal.h"
++#include "GraphicsContext.h"
++#include "RenderBlock.h"
++#include "RenderBox.h"
++#include "RenderBoxInlines.h"
++#include "RenderObjectInlines.h"
++#include "RenderObjectDocument.h"
++#include <chrono>
++#include <cstdio>
++#include <cstdlib>
++
++namespace WebCore::MilkupPaginationResearch {
++inline unsigned sequence = 0;
++inline unsigned nextCall = 0;
++inline unsigned activeCall = 0;
++inline unsigned nodeCount = 0;
++inline const RenderBox* nodes[32] { };
++inline const Document* ownerDocument = nullptr;
++inline bool failed = false;
++inline unsigned pageCount = 0;
++
++inline unsigned role(const RenderBox& box)
++{
++    if (!box.element()) return 0;
++    auto id = box.element()->getIdAttribute();
++    if (id == "mkp-heading"_s) return 1;
++    if (id == "mkp-wrapper"_s) return 2;
++    if (id == "mkp-table"_s) return 3;
++    if (id == "mkp-header"_s) return 4;
++    if (id == "mkp-header-row"_s) return 5;
++    if (id == "mkp-first-row"_s) return 6;
++    return 0;
++}
++inline bool eligible(Document& document)
++{
++    return std::getenv("MILKUP_PAGINATION_PROBE") && document.printing()
++        && document.title() == "MILKUP_PAGINATION_LAYOUT_V1"_s;
++}
++inline void fail(const char* reason)
++{
++    if (!failed) std::fprintf(stderr, "MILKUP_PAGINATION {\"kind\":\"error\",\"reason\":\"%s\"}\n", reason);
++    failed = true;
++}
++inline bool reserve(Document& document)
++{
++    if (!eligible(document) || failed) return false;
++    if (ownerDocument && ownerDocument != &document) { fail("document-replaced"); return false; }
++    ownerDocument = &document;
++    if (sequence >= 4096) { fail("record-budget"); return false; }
++    return true;
++}
++inline unsigned node(const RenderBox& box)
++{
++    for (unsigned i = 0; i < nodeCount; ++i) if (nodes[i] == &box) return i + 1;
++    if (nodeCount == 32) { fail("node-budget"); return 0; }
++    nodes[nodeCount++] = &box;
++    return nodeCount;
++}
++inline long long tick()
++{
++    return std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::steady_clock::now().time_since_epoch()).count();
++}
++inline void record(const char* kind, const RenderBox& box, double value = 0, unsigned call = 0, unsigned parent = 0)
++{
++    auto r = role(box);
++    if (!r || !reserve(box.document())) return;
++    auto identity = node(box);
++    if (failed) return;
++    auto* block = dynamicDowncast<RenderBlock>(box);
++    std::fprintf(stderr, "MILKUP_PAGINATION {\"kind\":\"%s\",\"seq\":%u,\"tick\":%lld,\"role\":%u,\"node\":%u,\"call\":%u,\"parent\":%u,\"value\":%.17g,\"top\":%.17g,\"height\":%.17g,\"width\":%.17g,\"marginBefore\":%.17g,\"marginAfter\":%.17g,\"block\":%s,\"strut\":%.17g,\"before\":%u,\"after\":%u,\"inside\":%u,\"dirty\":%s,\"horizontal\":%s}\n",
++        kind, ++sequence, tick(), r, identity, call, parent, value,
++        box.logicalTop().toDouble(), box.logicalHeight().toDouble(), box.logicalWidth().toDouble(),
++        box.marginBefore().toDouble(), box.marginAfter().toDouble(), block ? "true" : "false",
++        block ? block->paginationStrut().toDouble() : 0.0,
++        static_cast<unsigned>(box.style().breakBefore()), static_cast<unsigned>(box.style().breakAfter()), static_cast<unsigned>(box.style().breakInside()),
++        box.needsLayout() ? "true" : "false", box.writingMode().isHorizontal() ? "true" : "false");
++}
++struct Scope {
++    const RenderBox& box;
++    const char* label;
++    unsigned call { 0 };
++    unsigned parent { 0 };
++    Scope(const RenderBox& b, const char* name, double value = 0) : box(b), label(name)
++    {
++        if (!role(b) || !reserve(b.document())) return;
++        parent = activeCall;
++        call = ++nextCall;
++        activeCall = call;
++        record(name, box, value, call, parent);
++    }
++    void point(const char* name, double value = 0) { if (call) record(name, box, value, call, parent); }
++    LayoutUnit result(LayoutUnit value) { point("return", value.toDouble()); return value; }
++    ~Scope() { if (call) { record("end", box, 0, call, parent); activeCall = parent; } }
++};
++inline void finalPage(Document& document, GraphicsContext& context, const IntRect& rect, int page, bool ready)
++{
++    if (!reserve(document)) return;
++    if (++pageCount > 32 || activeCall || !ready) { fail("final-phase"); return; }
++    auto m = context.getCTM();
++    if (m.b() || m.c() || m.a() <= 0 || m.d() <= 0) { fail("unsupported-ctm"); return; }
++    std::fprintf(stderr, "MILKUP_PAGINATION {\"kind\":\"page\",\"seq\":%u,\"tick\":%lld,\"page\":%d,\"rect\":[%d,%d,%d,%d],\"ctm\":[%.17g,%.17g,%.17g,%.17g,%.17g,%.17g]}\n", ++sequence, tick(), page + 1, rect.x(), rect.y(), rect.maxX(), rect.maxY(), m.a(), m.b(), m.c(), m.d(), m.e(), m.f());
++    unsigned seen = 0;
++    for (RefPtr element = document.documentElement(); element; element = ElementTraversal::next(*element)) {
++        auto* box = dynamicDowncast<RenderBox>(element->renderer());
++        if (!box || !role(*box)) continue;
++        auto r = role(*box);
++        if (seen & (1u << r) || box->needsLayout() || !box->writingMode().isHorizontal()) { fail("final-box"); return; }
++        seen |= 1u << r;
++        record("final", *box);
++        Vector<FloatQuad> quads;
++        box->absoluteQuads(quads, nullptr);
++        if (quads.isEmpty() || quads.size() > 32) { fail("fragments"); return; }
++        for (auto& quad : quads) {
++            if (!quad.isRectilinear() || !reserve(document)) { fail("fragment-shape"); return; }
++            auto q = quad.boundingBox();
++            std::fprintf(stderr, "MILKUP_PAGINATION {\"kind\":\"quad\",\"seq\":%u,\"tick\":%lld,\"page\":%d,\"role\":%u,\"node\":%u,\"rect\":[%.17g,%.17g,%.17g,%.17g]}\n", ++sequence, tick(), page + 1, r, node(*box), static_cast<double>(q.x()), static_cast<double>(q.y()), static_cast<double>(q.maxX()), static_cast<double>(q.maxY()));
++        }
++    }
++    if (seen != 126 || !reserve(document)) { fail("missing-roles"); return; }
++    std::fprintf(stderr, "MILKUP_PAGINATION {\"kind\":\"page-end\",\"seq\":%u,\"tick\":%lld,\"page\":%d}\n", ++sequence, tick(), page + 1);
++    std::fflush(stderr);
++}
++}

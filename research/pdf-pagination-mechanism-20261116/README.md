@@ -70,3 +70,22 @@ python3 research/pdf-pagination-mechanism-20261116/contract.py owned-process.log
 本地源码API审阅修正了absoluteQuads缺少第二参数，并显式包含ElementTraversal/RenderBoxInlines；未修改布局行为。11项前置守卫测试和8项解析/夹具测试通过。最初新增静态禁止检查把只读`ninja -t targets all`误认为构建all，已用AST区分查询；运行时对实际编译/头命令的严格审核未改变。原2989的前置记录保存为prior-2989-preflight.json。
 
 只有远端四TU与缓存输入实证通过，才有资格评估原生诊断；本入口本身绝不隐式升级为完整构建。当前仍没有原生布局结论。
+
+## 唯一实跑 43788232168：前置失败后停止
+
+精确测试候选 `4738deb05d7134dc8a173e30f6a3dcb5176df7b9`，[运行](https://github.com/Auto-Plugin/milkup/actions/runs/43788232168)。源码四包哈希及配置参数严格匹配；恢复指定缓存后，Allocator/Cache 两个对象各首次 hitDelta=1、missDelta=0（0.168/0.067秒）。官方头生成32.340秒，实际执行5835条获审命令、一次glob检查；没有非选定对象的构建。
+
+| 真实TU | 结果 | 秒 |
+|---|---|---:|
+| PrintContext | 通过 | 36.149 |
+| RenderBlockFlow | 通过 | 45.263 |
+| RenderBlock | 通过 | 33.641 |
+| RenderTable | 失败 | 20.750 |
+
+唯一错误是观察头调用`element->renderer()`，但RenderTable所属Unified TU缺少`ContainerNodeInlines.h`的inline定义，严格`-Werror=undefined-inline`拒绝。前三个TU的其他间接include碰巧提供定义；这不能替代显式依赖。现已仅给观察头添加这一include，原错误日志及测试patch保留，12项前置/错误分类测试、8项解析合同和精确源码apply-check通过；**修正后未做真实编译**，没有追加派发。没有取消/降低编译警告，没有分页行为修正。
+
+前置实耗313.811秒，runner image20261111.196.1、4 CPU、MemTotal16365628kB、初始空闲90,456,547,328字节、结束89,587,560,448字节。现有runner能承担此窄前置，失败是研究头依赖，并非资源不足；本机仍不能硬构建。实际四TU未全部通过，故完整链接、私有库加载、原安装路径PDF与机制观察全部未执行。不能据三份对象或两个缓存命中跳过前置。
+
+原工件14191153889（1,626,235字节，SHA256 `d4fd51743a08a398e76c2a639b2896ae35cdc7c4dfcf976c33e0322c01588d63`）CRC及每条路径检查通过；保留在Actions至2026-11-23T01:52:24Z，本地完整副本`/workspace/milkup-pagination-tu-43788232168/original.zip`是工作区副本，不冒充长期存储。本目录43788232168子目录保留原始报告、精确失败编译输出、测试时patch及receipt，不依赖绿色状态推断结果。Artifact直链一次403后通过已授权GitHub连接器取得同一ZIP，未改变权限。
+
+遵守本轮失败即停条件；未来若重新授权接续，先对显式include修正重验受影响TU，才可评估20分钟受限链接及完整原生机制门禁，不自动继续，不更换出口、不跳过原失败控制。

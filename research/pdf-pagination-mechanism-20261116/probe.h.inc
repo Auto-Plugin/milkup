@@ -1,6 +1,7 @@
 // RESEARCH ONLY: synthetic fixture, diagnostic reads, no layout mutation.
 #pragma once
 #include "Document.h"
+#include "ContainerNodeInlines.h"
 #include "ElementInlines.h"
 #include "ElementTraversal.h"
 #include "GraphicsContext.h"

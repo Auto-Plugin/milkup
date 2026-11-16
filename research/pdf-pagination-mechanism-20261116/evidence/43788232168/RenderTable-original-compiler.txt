@@ -1,0 +1,51 @@
+In file included from /home/runner/work/_temp/milkup-webkit-research/build/WebCore/DerivedSources/unified-sources/UnifiedSource-043dd90b-15.cpp:1:
+In file included from /home/runner/work/_temp/milkup-webkit-research/source/Source/WebCore/rendering/RenderSelectionGeometry.cpp:27:
+In file included from /home/runner/work/_temp/milkup-webkit-research/source/Source/WebCore/rendering/RenderSelectionGeometry.h:28:
+In file included from /home/runner/work/_temp/milkup-webkit-research/build/WebCore/PrivateHeaders/WebCore/RenderBlock.h:27:
+In file included from /home/runner/work/_temp/milkup-webkit-research/build/WebCore/PrivateHeaders/WebCore/RenderBox.h:29:
+In file included from /home/runner/work/_temp/milkup-webkit-research/build/WebCore/PrivateHeaders/WebCore/LocalFrameView.h:29:
+In file included from /home/runner/work/_temp/milkup-webkit-research/build/WebCore/PrivateHeaders/WebCore/FrameView.h:28:
+In file included from /home/runner/work/_temp/milkup-webkit-research/build/WebCore/PrivateHeaders/WebCore/ScrollView.h:33:
+In file included from /home/runner/work/_temp/milkup-webkit-research/build/WebCore/PrivateHeaders/WebCore/ScrollableArea.h:31:
+In file included from /home/runner/work/_temp/milkup-webkit-research/build/WebCore/PrivateHeaders/WebCore/ScrollAnchoringController.h:28:
+In file included from /home/runner/work/_temp/milkup-webkit-research/build/WebCore/PrivateHeaders/WebCore/Document.h:30:
+In file included from /home/runner/work/_temp/milkup-webkit-research/build/WebCore/PrivateHeaders/WebCore/AsyncNodeDeletionQueue.h:31:
+[1m/home/runner/work/_temp/milkup-webkit-research/build/WebCore/PrivateHeaders/WebCore/ContainerNode.h:126:27: [0m[0;1;31merror: [0m[1minline function 'WebCore::ContainerNode::renderer' is not defined [-Werror,-Wundefined-inline][0m
+  126 |     [0;34minline[0m RenderElement* renderer() [0;34mconst[0m; [0;33m// Defined in ContainerNodeInlines.h.[0m
+      | [0;1;32m                          ^
+[0m[1m/home/runner/work/_temp/milkup-webkit-research/source/Source/WebCore/rendering/MilkupPaginationResearch.h:108:57: [0m[0;1;36mnote: [0mused here[0m
+  108 |         [0;34mauto[0m* box = dynamicDowncast<RenderBox>(element->renderer());[0m
+      | [0;1;32m                                                        ^
+[0m[1m/home/runner/work/_temp/milkup-webkit-research/source/Source/WebCore/rendering/MilkupPaginationResearch.h:45:18: [0m[0;1;35mwarning: [0m[1mfunction 'fprintf' is unsafe [-Wunsafe-buffer-usage-in-libc-call][0m
+   45 |     [0;34mif[0m (!failed) std::fprintf(stderr, [0;32m"MILKUP_PAGINATION {\"kind\":\"error\",\"reason\":\"%s\"}\n"[0m, reason);[0m
+      | [0;1;32m                 ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+[0m[1m/home/runner/work/_temp/milkup-webkit-research/source/Source/WebCore/rendering/MilkupPaginationResearch.h:45:101: [0m[0;1;36mnote: [0mstring argument is not guaranteed to be null-terminated[0m
+   45 |     [0;34mif[0m (!failed) std::fprintf(stderr, [0;32m"MILKUP_PAGINATION {\"kind\":\"error\",\"reason\":\"%s\"}\n"[0m, reason);[0m
+      | [0;1;32m                                                                                                    ^~~~~~
+[0m[1m/home/runner/work/_temp/milkup-webkit-research/source/Source/WebCore/rendering/MilkupPaginationResearch.h:58:50: [0m[0;1;35mwarning: [0m[1munsafe buffer access [-Wunsafe-buffer-usage][0m
+   58 |     [0;34mfor[0m ([0;34munsigned[0m i = [0;32m0[0m; i < nodeCount; ++i) [0;34mif[0m (nodes[i] == &box) [0;34mreturn[0m i + [0;32m1[0m;[0m
+      | [0;1;32m                                                 ^~~~~
+[0m[1m/home/runner/work/_temp/milkup-webkit-research/source/Source/WebCore/rendering/MilkupPaginationResearch.h:58:50: [0m[0;1;36mnote: [0mpass -fsafe-buffer-usage-suggestions to receive code hardening suggestions[0m
+[1m/home/runner/work/_temp/milkup-webkit-research/source/Source/WebCore/rendering/MilkupPaginationResearch.h:60:5: [0m[0;1;35mwarning: [0m[1munsafe buffer access [-Wunsafe-buffer-usage][0m
+   60 |     nodes[nodeCount++] = &box;[0m
+      | [0;1;32m    ^~~~~
+[0m[1m/home/runner/work/_temp/milkup-webkit-research/source/Source/WebCore/rendering/MilkupPaginationResearch.h:60:5: [0m[0;1;36mnote: [0mpass -fsafe-buffer-usage-suggestions to receive code hardening suggestions[0m
+[1m/home/runner/work/_temp/milkup-webkit-research/source/Source/WebCore/rendering/MilkupPaginationResearch.h:74:5: [0m[0;1;35mwarning: [0m[1mfunction 'fprintf' is unsafe [-Wunsafe-buffer-usage-in-libc-call][0m
+   74 |     std::fprintf(stderr, [0;32m"MILKUP_PAGINATION {\"kind\":\"%s\",\"seq\":%u,\"tick\":%lld,\"role\":%u,\"node\":%u,\"call\":%u,\"parent\":%u,\"value\":%.17g,\"top\":%.17g,\"height\":%.17g,\"width\":%.17g,\"marginBefore\":%.17g,\"marginAfter\":%.17g,\"block\":%s,\"strut\":%.17g,\"before\":%u,\"after\":%u,\"inside\":%u,\"dirty\":%s,\"horizontal\":%s}\n"[0m,[0m
+      | [0;1;32m    ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+[0m   75 |         kind, ++sequence, tick(), r, identity, call, parent, value,[0m
+      | [0;1;32m        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+[0m   76 |         box.logicalTop().toDouble(), box.logicalHeight().toDouble(), box.logicalWidth().toDouble(),[0m
+      | [0;1;32m        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+[0m   77 |         box.marginBefore().toDouble(), box.marginAfter().toDouble(), block ? [0;32m"true"[0m : [0;32m"false"[0m,[0m
+      | [0;1;32m        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+[0m   78 |         block ? block->paginationStrut().toDouble() : [0;32m0.0[0m,[0m
+      | [0;1;32m        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+[0m   79 |         [0;34mstatic_cast[0m<[0;34munsigned[0m>(box.style().breakBefore()), [0;34mstatic_cast[0m<[0;34munsigned[0m>(box.style().breakAfter()), [0;34mstatic_cast[0m<[0;34munsigned[0m>(box.style().breakInside()),[0m
+      | [0;1;32m        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+[0m   80 |         box.needsLayout() ? [0;32m"true"[0m : [0;32m"false"[0m, box.writingMode().isHorizontal() ? [0;32m"true"[0m : [0;32m"false"[0m);[0m
+      | [0;1;32m        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+[0m[1m/home/runner/work/_temp/milkup-webkit-research/source/Source/WebCore/rendering/MilkupPaginationResearch.h:75:9: [0m[0;1;36mnote: [0mstring argument is not guaranteed to be null-terminated[0m
+   75 |         kind, ++sequence, tick(), r, identity, call, parent, value,[0m
+      | [0;1;32m        ^~~~
+[0m4 warnings and 1 error generated.

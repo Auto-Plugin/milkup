@@ -30,10 +30,19 @@ class Pagination(unittest.TestCase):
   narrow=flow.split('\n  pagination-preflight:\n')[1]
   self.assertNotIn('build-webkit-private.py',narrow);self.assertNotIn('cache/save@',narrow)
   self.assertIn('timeout-minutes: 45',narrow);self.assertIn('fail-on-cache-miss: true',narrow)
+ def test_retained_native_failure_is_exact_missing_inline(self):
+  import re
+  raw=(ROOT/'research/pdf-pagination-mechanism-20261116/evidence/43788232168/RenderTable-original-compiler.txt').read_text()
+  plain=re.sub(r'\x1b\[[0-9;]*m','',raw)
+  errors=[line for line in plain.splitlines()if 'error:'in line]
+  self.assertEqual(len(errors),1)
+  self.assertIn("inline function 'WebCore::ContainerNode::renderer' is not defined",errors[0])
+  self.assertIn('undefined-inline',errors[0])
+  self.assertIn('element->renderer()',plain)
  def test_header_and_cache_identity_receipt(self):
   r=ROOT/'research/pdf-pagination-mechanism-20261116'
   h=(r/'probe.h.inc').read_text()
-  for required in ['#include "RenderObjectInlines.h"','#include "RenderBoxInlines.h"','#include "ElementTraversal.h"','box->absoluteQuads(quads, nullptr);']:
+  for required in ['#include "ContainerNodeInlines.h"','#include "RenderObjectInlines.h"','#include "RenderBoxInlines.h"','#include "ElementTraversal.h"','box->absoluteQuads(quads, nullptr);']:
    self.assertIn(required,h)
   receipt=json.loads((r/'cache-input-receipt.json').read_text())
   self.assertEqual(receipt['priorRun'],43672149274)

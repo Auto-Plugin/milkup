@@ -1,0 +1,108 @@
+{
+  "run": 43788232168,
+  "testedSha": "4738deb05d7134dc8a173e30f6a3dcb5176df7b9",
+  "result": "failed",
+  "artifact": {
+    "id": 14191153889,
+    "bytes": 1626235,
+    "sha256": "d4fd51743a08a398e76c2a639b2896ae35cdc7c4dfcf976c33e0322c01588d63",
+    "expiresAt": "2026-11-23T01:52:24Z"
+  },
+  "sourceArchives": [
+    {
+      "name": "webkit2gtk_2.52.6.orig.tar.xz",
+      "bytes": 65746000,
+      "sha256": "179a2ea3f8f6edd4be7f31fdc55afc57bd0729f1fba648c61d4181539ac116fc"
+    },
+    {
+      "name": "webkit2gtk_2.52.6.orig.tar.xz.asc",
+      "bytes": 195,
+      "sha256": "6694b1f87b10c4b799f2aadf20da7a0b6725b9c3b41b598ecba8bc35d54e7090"
+    },
+    {
+      "name": "webkit2gtk_2.52.6-0ubuntu0.26.04.1.debian.tar.xz",
+      "bytes": 96728,
+      "sha256": "ea13e2ad9a7093351ac379770692544f984d83f4720587bc2669bdc14c8cb33d"
+    },
+    {
+      "name": "webkit2gtk_2.52.6-0ubuntu0.26.04.1.dsc",
+      "bytes": 4833,
+      "sha256": "5115636753fca7cff0fe72f56fe120b0f07090ecdb98ab9991deb85b0a6e4adc"
+    }
+  ],
+  "sourceConfigFlagsMatched": true,
+  "cacheFirstInvocations": {
+    "status": "passed",
+    "scope": "Two first-invocation cached objects, not all objects or runtime acceptance",
+    "samples": [
+      {
+        "target": "Source/bmalloc/CMakeFiles/bmalloc.dir/bmalloc/Allocator.cpp.o",
+        "plannedCompiles": 1,
+        "seconds": 0.168,
+        "exitCode": 0,
+        "hitsBefore": 21863,
+        "hitsAfter": 21864,
+        "hitDelta": 1,
+        "missDelta": 0
+      },
+      {
+        "target": "Source/bmalloc/CMakeFiles/bmalloc.dir/bmalloc/Cache.cpp.o",
+        "plannedCompiles": 1,
+        "seconds": 0.067,
+        "exitCode": 0,
+        "hitsBefore": 21864,
+        "hitsAfter": 21865,
+        "hitDelta": 1,
+        "missDelta": 0
+      }
+    ]
+  },
+  "headers": {
+    "commands": 5835,
+    "globChecks": 1
+  },
+  "objects": [
+    {
+      "name": "fixed-PrintContext",
+      "exitCode": 0,
+      "seconds": 36.149,
+      "objectSha256": "c39eda34c3ef4ca763981a812342853a0e6d43dc1b54f374e2eb4aff6365c7f7",
+      "sourceHashAfter": "fa397a626a715109ad85f63d3cf526776bb5678371ad6ca68c1a2cf9828f45cb"
+    },
+    {
+      "name": "fixed-RenderBlockFlow",
+      "exitCode": 0,
+      "seconds": 45.263,
+      "objectSha256": "e64990ac7db80656afb1618dcc1702fe0f0c2fc4e0b8c6de34fdf817e2396a97",
+      "sourceHashAfter": "da97c09703886b8dcec047a1006e5b8845848d63a5175a879476fddf49d151cc"
+    },
+    {
+      "name": "fixed-RenderBlock",
+      "exitCode": 0,
+      "seconds": 33.641,
+      "objectSha256": "b1cab03a98bc7e5d38d5029c3d704ce6e318e201cf586ba2aa657087a35f8a8a",
+      "sourceHashAfter": "4eabcfd313b1519dcc26b0d3da5629f18a7e17778826dff9166be6acaad917c1"
+    },
+    {
+      "name": "fixed-RenderTable",
+      "exitCode": 1,
+      "seconds": 20.75
+    }
+  ],
+  "failure": "ContainerNode::renderer undefined-inline in RenderTable actual unified TU, observation header missing ContainerNodeInlines.h",
+  "researchOnlyCorrection": "Add explicit ContainerNodeInlines.h; local source/apply contract only, not compiled after correction",
+  "nativeAttempted": false,
+  "fullEngineBuildAttempted": false,
+  "rerunDispatched": false,
+  "preflightSeconds": 313.811,
+  "runner": {
+    "image": "20261111.196.1",
+    "cpuCount": 4,
+    "memTotal": "16365628 kB",
+    "initialFreeBytes": 90456547328,
+    "finalFreeBytes": 89587560448
+  },
+  "systemLibrariesBefore": {},
+  "systemLibrariesAfter": {},
+  "localRawArchive": "/workspace/milkup-pagination-tu-43788232168/original.zip"
+}
