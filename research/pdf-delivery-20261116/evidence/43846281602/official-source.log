@@ -1,0 +1,11 @@
+Traceback (most recent call last):
+  File "/home/runner/work/milkup/milkup/research/pdf-delivery-20261116/current_source_archive.py", line 34, in <module>
+    assert len(sys.argv)==3;fetch(pathlib.Path(sys.argv[1]),pathlib.Path(sys.argv[2]))
+                            ~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/work/milkup/milkup/research/pdf-delivery-20261116/current_source_archive.py", line 26, in fetch
+    members=tar.getmembers();report=validate_members(members)
+                                    ~~~~~~~~~~~~~~~~^^^^^^^^^
+  File "/home/runner/work/milkup/milkup/research/pdf-delivery-20261116/current_source_archive.py", line 11, in validate_members
+    assert m.name not in seen;seen.add(m.name)
+           ^^^^^^^^^^^^^^^^^^
+AssertionError

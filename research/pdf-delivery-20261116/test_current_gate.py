@@ -26,6 +26,18 @@ class CurrentGate(unittest.TestCase):
   with self.assertRaises(AssertionError):archive.validate_members([a,a])
   b=copy.copy(a);b.size=129*1024**2
   with self.assertRaises(AssertionError):archive.validate_members([b])
+ def test_exact_known_official_duplicate_is_not_general_overwrite_permission(self):
+  a=tarfile.TarInfo(archive.DUPLICATE_PATH);a.size=990;a.mode=0o664
+  # Use the retained authenticated original content, not a synthetic digest.
+  import zipfile
+  snapshot=HERE/'evidence/43846281602/gtk-theme-original.zip'
+  with zipfile.ZipFile(snapshot)as z:data=z.read('gtk-theme.css')
+  self.assertEqual(len(data),990);self.assertEqual(hashlib.sha256(data).hexdigest(),archive.DUPLICATE_SHA)
+  result=archive.validate_members([a,copy.copy(a)],lambda m:data);self.assertEqual(result['identicalDuplicateOccurrences'],2)
+  for members,reader in [([a,a,a],lambda m:data),([a,a],lambda m:b'x'*990),([a],lambda m:data)]:
+   with self.assertRaises(AssertionError):archive.validate_members(members,reader)
+  b=copy.copy(a);b.name='webkitgtk-2.54.2/another.css'
+  with self.assertRaises(AssertionError):archive.validate_members([b,b],lambda m:data)
  def test_generated_config_and_unconsumed_settings(self):
   with tempfile.TemporaryDirectory()as t:
    root=pathlib.Path(t);cache=root/'CMakeCache.txt';config=root/'cmakeconfig.h';r=json.loads((HERE/'qa-final-path-profile.json').read_text())
