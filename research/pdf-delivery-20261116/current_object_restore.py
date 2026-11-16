@@ -57,6 +57,24 @@ def plan_compiles(log,targets):
   command=line.split('] ',1)[1];a=shlex.split(command)
   if '-o'in a and a[a.index('-o')+1]in targets:planned.append(a[a.index('-o')+1])
  return planned
+def require_expanded_plan(log):
+ assert '--regenerate-during-build'not in log,'Pending manifest regeneration is not an expanded compilation plan'
+
+def settled_inspection_graph(graph):
+ # This snapshot is inspected only after the real manifest refresh and a
+ # byte-identical config/graph check. Every compilation/link/header edge stays
+ # verbatim. Exclude just the already-settled CMake manifest output edge, whose
+ # always-checked glob stamp makes Ninja dry-run stop before target expansion.
+ lines=graph.splitlines(keepends=True);indexes=[i for i,l in enumerate(lines)if l.startswith('build ')and ': RERUN_CMAKE 'in l]
+ assert len(indexes)==1,'One exact CMake manifest edge required';start=indexes[0];end=start+1
+ outputs=lines[start][6:].split(': ',1)[0].split();assert outputs[0]=='build.ninja'
+ assert all(pathlib.PurePosixPath(v).name=='cmake_install.cmake'for v in outputs[1:]),'Unexpected manifest output'
+ while end<len(lines)and lines[end].startswith((' ','\t')):
+  assert lines[end].strip()=='pool = console','Unexpected manifest edge property';end+=1
+ block=''.join(lines[start:end]);snapshot=''.join(lines[:start]+lines[end:])
+ assert graph==''.join(lines[:start])+block+''.join(lines[end:])
+ return snapshot,{'originalSha256':sha(graph.encode()),'snapshotSha256':sha(snapshot.encode()),'removedBlockSha256':sha(block.encode()),'removedBlock':block,'onlyManifestEdgeExcluded':True,'compilationAndLinkEdgesUnchanged':True}
+
 class RestoreGate(gate.Gate):
  def __init__(self,root,start):
   super().__init__(root,start)
@@ -125,8 +143,24 @@ class RestoreGate(gate.Gate):
   # Normal graph is inspected, never executed: unrelated order-only work may
   # remain, but no restored object/PCH may be scheduled for recompilation.
   log=self.run('restored-full-graph-dry-run',['ninja','-n','-v',*targets],60,self.build)
+  self.report['normalDryRunManifestPending']='--regenerate-during-build'in log;self.persist()
+  names=['build.ninja','CMakeFiles/rules.ninja','compile_commands.json','cmakeconfig.h','CMakeCache.txt']
+  before={n:gate.digest(self.build/n)for n in names}
+  refreshed=self.run('restore-refresh-manifest',['ninja','-v','build.ninja'],60,self.build)
+  allowed=[['cmake','-P',str(self.build/'CMakeFiles/VerifyGlobs.cmake')],['cmake','--regenerate-during-build','-S'+str(self.source),'-B'+str(self.build)]]
+  for line in refreshed.splitlines():
+   if not re.match(r'^\[\d+/\d+\] ',line):continue
+   args=shlex.split(line.split('] ',1)[1]);args[0]=pathlib.Path(args[0]).name
+   assert args in allowed,'Unexpected manifest refresh command'
+  assert before=={n:gate.digest(self.build/n)for n in names},'Graph/config changed during manifest refresh'
+  snapshot,proof=settled_inspection_graph((self.build/'build.ninja').read_text())
+  inspection=self.build/'restored-normal-inspection.ninja';inspection.write_text(snapshot)
+  (self.out/'normal-graph-snapshot-proof.json').write_text(json.dumps(proof,indent=2)+'\n')
+  log=self.run('restored-expanded-graph-dry-run',['ninja','-f',str(inspection),'-n','-v',*targets],60,self.build)
+  require_expanded_plan(log)
   dirty=plan_compiles(log,set(all_targets));self.report['normalGraphSelectedRecompiles']=dirty
-  self.report['normalGraphPlannedCommands']=len(re.findall(r'^\[\d+/\d+\] ',log,re.M));self.persist()
+  self.report['normalGraphPlannedCommands']=len(re.findall(r'^\[\d+/\d+\] ',log,re.M))
+  self.report['normalGraphInspection']={'actualManifestRefresh':True,'identityUnchanged':before,'snapshotSha256':proof['snapshotSha256'],'onlySettledManifestEdgeExcluded':True,'compilationAndLinkEdgesUnchanged':True,'expanded':True};self.persist()
   cache=gate.boundary.cache_values(self.build/'CMakeCache.txt');linker=pathlib.Path(cache['CMAKE_LINKER']);assert linker.is_file()
   self.report['partialLinker']={'path':str(linker),'sha256':gate.digest(linker.resolve())}
   partial=self.build/'restored-selected-partial.o'
@@ -151,6 +185,7 @@ class RestoreGate(gate.Gate):
    p=self.build/name;assert p.is_file()and p.stat().st_size<16*1024**2;shutil.copyfile(p,self.out/name.removeprefix('.'))
   self.report['incrementalMetadataRetained']=True;self.resource('restore-and-partial-link-complete');self.persist()
   assert not dirty,'Normal graph still schedules restored selected compilation; evidence retained'
+  self.report['normalGraphCompilationReadinessProven']=True;self.persist()
  def execute(self):
   super().execute();self.report['status']=PASS;self.persist()
  def retain(self):

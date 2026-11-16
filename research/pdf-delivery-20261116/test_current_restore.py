@@ -48,6 +48,35 @@ class RestoreContract(unittest.TestCase):
    run([ld,'-r','--fatal-warnings','-o','partial.o','a.o','b.o']);self.assertIn('REL (Relocatable file)',run(['readelf','-h','partial.o']))
    header.write_text('inline int value() { return 43; }\n')
    dirty=run([ninja,'-f',str(full),'-n','-v','a.o','b.o']);self.assertTrue(restore.plan_compiles(dirty,set(targets)))
+ def test_real_manifest_dry_run_is_not_compilation_proof(self):
+  ninja=os.environ.get('MILKUP_NINJA_TEST_BINARY')or shutil.which('ninja')
+  if not ninja:self.skipTest('No local Ninja')
+  with tempfile.TemporaryDirectory()as t:
+   b=pathlib.Path(t);(b/'input').write_text('first');(b/'verify').write_text('stamp')
+   graph=('rule verify\n  command = true\n  restat = 1\nrule RERUN_CMAKE\n  command = echo --regenerate-during-build && touch build.ninja\n  generator = 1\n'
+    'rule compile\n  command = cp input object\nbuild force: phony\nbuild verify: verify force\nbuild build.ninja: RERUN_CMAKE verify\n  pool = console\nbuild object: compile input\n')
+   (b/'build.ninja').write_text(graph)
+   def run(args):return subprocess.check_output([ninja,*args],cwd=b,text=True,stderr=subprocess.STDOUT,timeout=30)
+   run(['-v','object']);before=(b/'build.ninja').read_bytes();run(['-v','build.ninja']);self.assertEqual(before,(b/'build.ninja').read_bytes())
+   blocked=run(['-n','-v','object']);self.assertIn('--regenerate-during-build',blocked)
+   with self.assertRaises(AssertionError):restore.require_expanded_plan(blocked)
+   snapshot,proof=restore.settled_inspection_graph(graph);self.assertTrue(proof['compilationAndLinkEdgesUnchanged'])
+   (b/'inspection.ninja').write_text(snapshot);expanded=run(['-f','inspection.ninja','-n','-v','object']);restore.require_expanded_plan(expanded);self.assertIn('no work to do',expanded)
+   import time
+   time.sleep(0.02);(b/'input').write_text('changed')
+   changed=run(['-f','inspection.ninja','-n','-v','object']);self.assertIn('cp input object',changed)
+   with self.assertRaises(AssertionError):restore.settled_inspection_graph(graph.replace('build build.ninja:', 'build build.ninja stolen.o:'))
+ def test_actual_failed_receipt_and_exact_graph_snapshot(self):
+  import gzip
+  path=restore.HERE/'evidence/43856901779/original.zip'
+  with zipfile.ZipFile(path)as z:
+   with self.assertRaises(AssertionError):restore.require_expanded_plan(z.read('restored-full-graph-dry-run.log').decode())
+   r=json.loads(z.read('result.json'));meta=r['retainedConfigurationFiles']['build.ninja']
+   graph=(z.read('graph/build.ninja')if meta['encoding']=='raw'else b''.join(gzip.decompress(z.read('graph/'+v['file']))for v in meta['parts'])).decode()
+   snapshot,proof=restore.settled_inspection_graph(graph)
+   self.assertEqual(graph.replace(proof['removedBlock'],'',1),snapshot)
+   edges=lambda text:[l for l in text.splitlines()if l.startswith('build ')and ': RERUN_CMAKE 'not in l]
+   self.assertEqual(edges(graph),edges(snapshot));self.assertNotIn(': RERUN_CMAKE ',snapshot)
  def test_restore_workflow_is_manual_bounded_and_not_engine_build(self):
   workflow=(restore.gate.REPO/'.github/workflows/linux-webkit-build-research.yml').read_text()
   job=workflow.split('\n  current-source-restore:\n')[1]
