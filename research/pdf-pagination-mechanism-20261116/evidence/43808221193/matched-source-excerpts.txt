@@ -1,0 +1,176 @@
+rendering/RenderBlockFlow.cpp
+1877: LayoutUnit RenderBlockFlow::applyBeforeBreak(RenderBox& child, LayoutUnit logicalOffset)
+1878: {
+1879:     // FIXME: Add page break checking here when we support printing.
+1880:     CheckedPtr fragmentedFlow = enclosingFragmentedFlow();
+1881:     bool isInsideMulticolFlow = !!fragmentedFlow;
+1882:     bool checkColumnBreaks = fragmentedFlow && fragmentedFlow->shouldCheckColumnBreaks() && (!shouldApplyLayoutContainment() || child.previousSibling());
+1883:     bool checkPageBreaks = !checkColumnBreaks && view().frameView().layoutContext().layoutState()->pageLogicalHeight(); // FIXME: Once columns can print we have to check this.
+1884:     bool checkFragmentBreaks = false;
+1885:     bool checkBeforeAlways = (checkColumnBreaks && child.style().breakBefore() == BreakBetween::Column)
+1886:         || (checkPageBreaks && alwaysPageBreak(child.style().breakBefore()));
+1887:     if (checkBeforeAlways && inNormalFlow(child) && hasNextPage(logicalOffset, IncludePageBoundary)) {
+1888:         if (checkColumnBreaks) {
+1889:             if (isInsideMulticolFlow)
+1890:                 checkFragmentBreaks = true;
+1891:         }
+1892:         if (checkFragmentBreaks) {
+1893:             LayoutUnit offsetBreakAdjustment;
+1894:             if (fragmentedFlow->addForcedFragmentBreak(this, offsetFromLogicalTopOfFirstPage() + logicalOffset, &child, true, &offsetBreakAdjustment))
+1895:                 return logicalOffset + offsetBreakAdjustment;
+1896:         }
+1897:         return nextPageLogicalTop(logicalOffset, IncludePageBoundary);
+1898:     }
+1899:     return logicalOffset;
+1900: }
+1901: 
+1902: LayoutUnit RenderBlockFlow::applyAfterBreak(RenderBox& child, LayoutUnit logicalOffset, MarginInfo& marginInfo)
+1903: {
+1904:     // FIXME: Add page break checking here when we support printing.
+1905:     CheckedPtr fragmentedFlow = enclosingFragmentedFlow();
+1906:     bool isInsideMulticolFlow = !!fragmentedFlow;
+1907:     bool checkColumnBreaks = fragmentedFlow && fragmentedFlow->shouldCheckColumnBreaks();
+1908:     bool checkPageBreaks = !checkColumnBreaks && view().frameView().layoutContext().layoutState()->pageLogicalHeight(); // FIXME: Once columns can print we have to check this.
+1909:     bool checkFragmentBreaks = false;
+1910:     bool checkAfterAlways = (checkColumnBreaks && child.style().breakAfter() == BreakBetween::Column)
+1911:         || (checkPageBreaks && alwaysPageBreak(child.style().breakAfter()));
+1912:     if (checkAfterAlways && inNormalFlow(child) && hasNextPage(logicalOffset, IncludePageBoundary)) {
+1913: 
+1914:         // So our margin doesn't participate in the next collapsing steps.
+1915:         marginInfo.clearMargin();
+1916: 
+1917:         if (checkColumnBreaks) {
+1918:             if (isInsideMulticolFlow)
+1919:                 checkFragmentBreaks = true;
+1920:         }
+1921:         if (checkFragmentBreaks) {
+1922:             LayoutUnit offsetBreakAdjustment;
+1923:             if (fragmentedFlow->addForcedFragmentBreak(this, offsetFromLogicalTopOfFirstPage() + logicalOffset, &child, false, &offsetBreakAdjustment))
+1924:                 return logicalOffset + offsetBreakAdjustment;
+1925:         }
+1926:         return nextPageLogicalTop(logicalOffset, IncludePageBoundary);
+1927:     }
+1928:     return logicalOffset;
+1929: }
+1930: 
+1931: LayoutUnit RenderBlockFlow::adjustBlockChildForPagination(LayoutUnit logicalTopAfterClear, LayoutUnit estimateWithoutPagination, RenderBox& child, bool atBeforeSideOfBlock)
+1932: {
+1933:     auto* childRenderBlock = dynamicDowncast<RenderBlock>(child);
+1934: 
+1935:     if (estimateWithoutPagination != logicalTopAfterClear) {
+1936:         // Our guess prior to pagination movement was wrong. Before we attempt to paginate, let's try again at the new
+1937:         // position.
+1938:         setLogicalHeight(logicalTopAfterClear);
+
+rendering/RenderBlockFlow.cpp
+1961: 
+1962:     if (child.shouldApplySizeContainment())
+1963:         adjustSizeContainmentChildForPagination(child, result);
+1964: 
+1965:     // For replaced elements and scrolled elements, we want to shift them to the next page if they don't fit on the current one.
+1966:     LayoutUnit logicalTopBeforeUnsplittableAdjustment = result;
+1967:     LayoutUnit logicalTopAfterUnsplittableAdjustment = adjustForUnsplittableChild(child, result);
+1968:     
+1969:     LayoutUnit paginationStrut;
+1970:     LayoutUnit unsplittableAdjustmentDelta = logicalTopAfterUnsplittableAdjustment - logicalTopBeforeUnsplittableAdjustment;
+1971:     LayoutUnit childLogicalHeight = child.logicalHeight();
+1972:     if (unsplittableAdjustmentDelta) {
+1973:         setPageBreak(result, childLogicalHeight - unsplittableAdjustmentDelta);
+1974:         paginationStrut = unsplittableAdjustmentDelta;
+1975:     } else if (childRenderBlock && childRenderBlock->paginationStrut())
+1976:         paginationStrut = childRenderBlock->paginationStrut();
+1977: 
+1978:     if (paginationStrut) {
+1979:         // We are willing to propagate out to our parent block as long as we were at the top of the block prior
+1980:         // to collapsing our margins, and as long as we didn't clear or move as a result of other pagination.
+1981:         if (atBeforeSideOfBlock && oldTop == result && !isOutOfFlowPositioned() && !isRenderTableCell()) {
+1982:             // FIXME: Should really check if we're exceeding the page height before propagating the strut, but we don't
+1983:             // have all the information to do so (the strut only has the remaining amount to push). Gecko gets this wrong too
+1984:             // and pushes to the next page anyway, so not too concerned about it.
+1985:             setPaginationStrut(result + paginationStrut);
+1986:             if (childRenderBlock)
+1987:                 childRenderBlock->setPaginationStrut(0);
+1988:         } else
+1989:             result += paginationStrut;
+1990:     }
+1991: 
+1992:     if (!unsplittableAdjustmentDelta) {
+1993:         if (LayoutUnit pageLogicalHeight = pageLogicalHeightForOffset(result)) {
+1994:             LayoutUnit remainingLogicalHeight = pageRemainingLogicalHeightForOffset(result, ExcludePageBoundary);
+1995:             LayoutUnit spaceShortage = child.logicalHeight() - remainingLogicalHeight;
+1996:             if (spaceShortage > 0) {
+
+rendering/RenderBlockFlow.cpp
+2229: LayoutUnit RenderBlockFlow::adjustForUnsplittableChild(RenderBox& child, LayoutUnit logicalOffset, LayoutUnit childBeforeMargin, LayoutUnit childAfterMargin)
+2230: {
+2231:     // When flexboxes are embedded inside a block flow, they don't perform any adjustments for unsplittable
+2232:     // children. We'll treat flexboxes themselves as unsplittable just to get them to paginate properly inside
+2233:     // a block flow.
+2234:     bool isUnsplittable = childBoxIsUnsplittableForFragmentation(child);
+2235:     if (!isUnsplittable) {
+2236:         auto* flexibleBox = dynamicDowncast<RenderFlexibleBox>(child);
+2237:         if (!(flexibleBox && !flexibleBox->isFlexibleBoxImpl()))
+2238:         return logicalOffset;
+2239:     }
+2240:     
+2241:     CheckedPtr fragmentedFlow = enclosingFragmentedFlow();
+2242:     LayoutUnit childLogicalHeight = logicalHeightForChild(child) + childBeforeMargin + childAfterMargin;
+2243:     LayoutUnit pageLogicalHeight = pageLogicalHeightForOffset(logicalOffset);
+2244:     bool hasUniformPageLogicalHeight = !fragmentedFlow || fragmentedFlow->fragmentsHaveUniformLogicalHeight();
+2245:     if (isUnsplittable)
+2246:         updateMinimumPageHeight(logicalOffset, childLogicalHeight);
+2247:     if (!pageLogicalHeight || (hasUniformPageLogicalHeight && childLogicalHeight > pageLogicalHeight)
+2248:         || !hasNextPage(logicalOffset))
+2249:         return logicalOffset;
+2250:     LayoutUnit remainingLogicalHeight = pageRemainingLogicalHeightForOffset(logicalOffset, ExcludePageBoundary);
+2251:     if (remainingLogicalHeight < childLogicalHeight) {
+2252:         if (!hasUniformPageLogicalHeight && !pushToNextPageWithMinimumLogicalHeight(remainingLogicalHeight, logicalOffset, childLogicalHeight))
+2253:             return logicalOffset;
+2254:         auto result = logicalOffset + remainingLogicalHeight;
+2255:         bool isInitialLetter = child.isFloating() && child.style().pseudoElementType() == PseudoElementType::FirstLetter && child.style().initialLetter().drop() > 0;
+2256:         if (isInitialLetter) {
+2257:             // Increase our logical height to ensure that lines all get pushed along with the letter.
+2258:             setLogicalHeight(logicalOffset + remainingLogicalHeight);
+2259:         }
+2260:         return result;
+2261:     }
+2262: 
+2263:     return logicalOffset;
+2264: }
+2265: 
+2266: bool RenderBlockFlow::pushToNextPageWithMinimumLogicalHeight(LayoutUnit& adjustment, LayoutUnit logicalOffset, LayoutUnit minimumLogicalHeight) const
+2267: {
+
+rendering/RenderBlock.cpp
+2769: bool RenderBlock::childBoxIsUnsplittableForFragmentation(const RenderBox& child) const
+2770: {
+2771:     CheckedPtr fragmentedFlow = enclosingFragmentedFlow();
+2772:     bool checkColumnBreaks = fragmentedFlow && fragmentedFlow->shouldCheckColumnBreaks();
+2773:     bool checkPageBreaks = !checkColumnBreaks && view().frameView().layoutContext().layoutState()->pageLogicalHeight();
+2774:     return child.isUnsplittableForPagination() || child.style().breakInside() == BreakInside::Avoid
+2775:         || (checkColumnBreaks && child.style().breakInside() == BreakInside::AvoidColumn)
+2776:         || (checkPageBreaks && child.style().breakInside() == BreakInside::AvoidPage);
+2777: }
+
+rendering/style/RenderStyleConstants.h
+609: enum class BreakBetween : uint8_t {
+610:     Auto,
+611:     Avoid,
+612:     AvoidColumn,
+613:     AvoidPage,
+614:     Column,
+615:     Page,
+616:     LeftPage,
+617:     RightPage,
+618:     RectoPage,
+619:     VersoPage
+620: };
+621: bool alwaysPageBreak(BreakBetween);
+622:     
+623: enum class BreakInside : uint8_t {
+624:     Auto,
+625:     Avoid,
+626:     AvoidColumn,
+627:     AvoidPage
+628: };
+629: 
