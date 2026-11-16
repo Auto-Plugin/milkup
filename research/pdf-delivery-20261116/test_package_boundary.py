@@ -9,7 +9,7 @@ class Boundary(unittest.TestCase):
   cls.recipe=json.loads((HERE/'qa-final-path-profile.json').read_text());r=cls.recipe
   cls.cache=cls.root/'CMakeCache.txt';cls.cache.write_text(''.join(k+':STRING='+v+'\n'for k,v in r['cmake'].items()))
   cls.commands=cls.root/'compile_commands.json';cls.commands.write_text(json.dumps([{'file':'synthetic-only.c','command':'cc synthetic-only.c','directory':str(cls.root)}]))
-  cls.config=cls.root/'config.h';cls.config.write_text('/* synthetic checker fixture only */\n#define ENABLE_2022_GLIB_API 0\n#define ENABLE_DEVELOPER_MODE 0\n#define ENABLE_BUBBLEWRAP_SANDBOX 1\n')
+  cls.config=cls.root/'config.h';cls.config.write_text('/* synthetic checker fixture only */\n#define ENABLE_2022_GLIB_API 0\n#define ENABLE_DEVELOPER_MODE 0\n#define ENABLE_BUBBLEWRAP_SANDBOX 1\n#define HAVE_GTK_UNIX_PRINTING 1\n#define WEBKITGTK_API_VERSION "4.1"\n')
   cls.rows=[]
   def file(rel,role,data):
    p=cls.stage/rel.lstrip('/');p.parent.mkdir(parents=True,exist_ok=True);p.write_bytes(data);p.chmod(0o644);cls.rows.append({'path':rel,'role':role,'bytes':len(data),'sha256':b.sha(p)});return p
@@ -24,7 +24,7 @@ class Boundary(unittest.TestCase):
    cls.rows.append({'path':rel,'role':role,'bytes':p.stat().st_size,'sha256':b.sha(p)});return p
   jsc=elf(r['lib']+'/libjavascriptcoregtk-4.1.so.0','javascriptcore','int fixture_jsc(void){return 0;}','libjavascriptcoregtk-4.1.so.0')
   web=elf(r['lib']+'/libwebkit2gtk-4.1.so.0','webkit','extern int fixture_jsc(void); int fixture_web(void){return fixture_jsc();}','libwebkit2gtk-4.1.so.0',jsc)
-  for role,name in [('application',r['prefix']+'/bin/milkup-desktop'),('web-process',r['helper']+'/WebKitWebProcess'),('network-process',r['helper']+'/WebKitNetworkProcess'),('gpu-process',r['helper']+'/WebKitGPUProcess')]:
+  for role,name in [('application',r['prefix']+'/bin/milkup-desktop'),('qa-driver',r['prefix']+'/bin/WebKitWebDriver'),('web-process',r['helper']+'/WebKitWebProcess'),('network-process',r['helper']+'/WebKitNetworkProcess'),('gpu-process',r['helper']+'/WebKitGPUProcess')]:
    elf(name,role,'int main(void){return 0;}',dependency=web)
   elf(r['helper']+'/injected-bundle/libwebkit2gtkinjectedbundle.so','injected-bundle','int fixture_bundle(void){return 0;}','libwebkit2gtkinjectedbundle.so',web)
   file(r['prefix']+'/share/licenses/FIXTURE.txt','license',b'SYNTHETIC TEST ONLY, not real notices or a deliverable')
@@ -39,7 +39,7 @@ class Boundary(unittest.TestCase):
  def tearDownClass(cls):cls.tmp.cleanup()
  def check(self,m=None,r=None):return b.audit(self.stage,r or self.recipe,m or self.manifest,self.cache,self.commands,self.config)
  def test_real_elf_positive_is_explicitly_not_native_acceptance(self):
-  result=self.check();self.assertEqual(len(result['elf']),7);self.assertIn('not-installed-or-native',result['status'])
+  result=self.check();self.assertEqual(len(result['elf']),8);self.assertIn('not-installed-or-native',result['status'])
  def test_manifest_and_scope_mutations_fail_closed(self):
   for label,mutate in [
    ('hash',lambda m:m['files'][0].update(sha256='f'*64)),
@@ -87,6 +87,13 @@ class Boundary(unittest.TestCase):
   try:
    with self.assertRaisesRegex(AssertionError,'Generated option mismatch'):self.check(m)
   finally:self.config.write_text(original)
+ def test_generated_print_and_api_flags_rejected(self):
+  original=self.config.read_text()
+  for old,new in [('HAVE_GTK_UNIX_PRINTING 1','HAVE_GTK_UNIX_PRINTING 0'),('"4.1"','"6.0"')]:
+   self.config.write_text(original.replace(old,new));m=copy.deepcopy(self.manifest);m['generatedConfigSha256']=b.sha(self.config)
+   try:
+    with self.assertRaisesRegex(AssertionError,'Generated'):self.check(m)
+   finally:self.config.write_text(original)
  def test_developer_sandbox_and_prefix_config_rejected(self):
   original=self.cache.read_text()
   for key,value in [('DEVELOPER_MODE','ON'),('ENABLE_BUBBLEWRAP_SANDBOX','OFF'),('CMAKE_INSTALL_PREFIX','/tmp/research'),('CMAKE_INSTALL_RPATH','/tmp/research/lib')]:

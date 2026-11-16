@@ -40,8 +40,9 @@ def audit(stage,recipe,manifest,cache,compile_commands,generated_config):
  assert sha(compile_commands)==manifest['compileCommandsSha256'] and sha(generated_config)==manifest['generatedConfigSha256'],'Build evidence identity mismatch'
  commands=json.loads(compile_commands.read_text());assert isinstance(commands,list) and commands,'Compile graph required'
  config=generated_config.read_text()
- for name,value in [('ENABLE_2022_GLIB_API','0'),('ENABLE_DEVELOPER_MODE','0'),('ENABLE_BUBBLEWRAP_SANDBOX','1')]:
+ for name,value in [('ENABLE_2022_GLIB_API','0'),('ENABLE_DEVELOPER_MODE','0'),('ENABLE_BUBBLEWRAP_SANDBOX','1'),('HAVE_GTK_UNIX_PRINTING','1')]:
   assert re.findall(r'^#define '+name+r'\s+(\S+)\s*$',config,re.M)==[value],('Generated option mismatch',name)
+ assert re.findall(r'^#define WEBKITGTK_API_VERSION\s+"([^"]+)"',config,re.M)==['4.1'],'Generated GTK API mismatch'
  assert manifest['applicationSourceSha'] and re.fullmatch('[0-9a-f]{40}',manifest['applicationSourceSha'])
  # Every runtime and resource file is enumerated, never a broad copied prefix.
  rows=manifest['files'];assert 6<=len(rows)<=5000
@@ -62,7 +63,7 @@ def audit(stage,recipe,manifest,cache,compile_commands,generated_config):
   st=p.stat();assert stat.S_ISREG(st.st_mode) and not(st.st_mode&0o7022),'No set-id/sticky/group/world writable payload'
   assert st.st_nlink==1 and st.st_size==row['bytes'] and sha(p)==row['sha256'],'Payload identity/alias mismatch'
   role=row['role'];roles.setdefault(role,[]).append(row['path'])
-  assert role in {'application','webkit','javascriptcore','web-process','network-process','gpu-process','injected-bundle','resource','license','sbom'},role
+  assert role in {'application','webkit','javascriptcore','web-process','network-process','gpu-process','injected-bundle','qa-driver','resource','license','sbom'},role
   if role in {'resource','license','sbom'}:
    assert not(st.st_mode&0o111);continue
   assert st.st_mode&0o100
@@ -72,10 +73,10 @@ def audit(stage,recipe,manifest,cache,compile_commands,generated_config):
    # The SONAME is installed as a real file; no missing soname symlink fallback.
    assert rel.name==e['soname'],'Install the exact SONAME, not an unresolved version-name-only file'
   files[row['path']]=e
- for role in ['application','webkit','javascriptcore','web-process','network-process','gpu-process','injected-bundle','sbom']:
+ for role in ['application','webkit','javascriptcore','web-process','network-process','gpu-process','injected-bundle','qa-driver','sbom']:
   assert len(roles.get(role,[]))==1,('Required exact component',role)
  assert roles.get('license'),'Source notices required'
- expected={'application':recipe['prefix']+'/bin/milkup-desktop','webkit':recipe['lib']+'/libwebkit2gtk-4.1.so.0','javascriptcore':recipe['lib']+'/libjavascriptcoregtk-4.1.so.0','web-process':recipe['helper']+'/WebKitWebProcess','network-process':recipe['helper']+'/WebKitNetworkProcess','gpu-process':recipe['helper']+'/WebKitGPUProcess','injected-bundle':recipe['helper']+'/injected-bundle/libwebkit2gtkinjectedbundle.so'}
+ expected={'application':recipe['prefix']+'/bin/milkup-desktop','qa-driver':recipe['prefix']+'/bin/WebKitWebDriver','webkit':recipe['lib']+'/libwebkit2gtk-4.1.so.0','javascriptcore':recipe['lib']+'/libjavascriptcoregtk-4.1.so.0','web-process':recipe['helper']+'/WebKitWebProcess','network-process':recipe['helper']+'/WebKitNetworkProcess','gpu-process':recipe['helper']+'/WebKitGPUProcess','injected-bundle':recipe['helper']+'/injected-bundle/libwebkit2gtkinjectedbundle.so'}
  for role,name in expected.items():assert roles[role]==[name],('Final component path',role)
  for name,e in files.items():
   assert set(e['needed'])<=set(sonames)|set(host),('Unreviewed host dependency',name,set(e['needed'])-set(sonames)-set(host))
