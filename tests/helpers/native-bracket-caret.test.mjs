@@ -38,3 +38,9 @@ test('installed daily wrapper actually invokes bounded native case before existi
   for (const value of ['MILKUP_NATIVE_EXPECTED_BINARY_SHA256', 'manifest.installer.sha256', 'manifest.sourceSha', 'WM_DELETE_WINDOW', 'same owned process', "app.text(value)", 'delayedBracket']) assert(runner.includes(value))
   assert(!runner.includes('dispatchEvent')); assert(!runner.includes('localStorage.setItem'))
 })
+
+test('language-switch gap rides along without being counted as bracket/native success', () => {
+  const runner = readFileSync(new URL('../../scripts/ci/linux-installed-bracket-caret.mjs', import.meta.url), 'utf8')
+  assert(runner.includes("record.issue94 = { status: 'not-executed', nativePassed: false"))
+  for (const text of ['currentCandidateNeedsUiVerification: true', 'survives cancellation', 'normal reopen retains entire file']) assert(runner.includes(text))
+})

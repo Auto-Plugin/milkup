@@ -2,7 +2,7 @@ import copy,gzip,hashlib,io,json,os,pathlib,shlex,shutil,subprocess,tarfile,temp
 from unittest.mock import patch
 import frontier_checkpoint as f
 class FrontierContracts(unittest.TestCase):
- def fixture(self,root,pch=False):
+ def fixture(self,root,pch=False,link_deps=False):
   source=root/'source';build=root/'build';source.mkdir();build.mkdir();(build/'bin').mkdir()
   cc=shutil.which('clang++')if pch else shutil.which('cc');self.assertTrue(cc)
   ninja=os.environ.get('MILKUP_NINJA_TEST_BINARY')or shutil.which('ninja');self.assertTrue(ninja)
@@ -12,8 +12,8 @@ class FrontierContracts(unittest.TestCase):
   flags=' -x c++'if pch else'';extra=' -Xclang -include-pch -Xclang '+str(build/'header.pch')if pch else''
   graph='rule cc\n  command = '+cc+flags+' -I. -MD -MT $out -MF $out.d -c $in -o $out\n  depfile = $out.d\n  deps = gcc\n'
   graph+='rule consumer\n  command = '+cc+flags+extra+' -I. -MD -MT $out -MF $out.d -c $in -o $out\n  depfile = $out.d\n  deps = gcc\n'
-  link=cc+' helper.o -o bin/LLIntSettingsExtractor'
-  graph+='rule link\n  command = '+link+'\nrule generate\n  command = bin/LLIntSettingsExtractor > generated.h\n  restat = 1\nrule initialize\n  command = touch initialized\nbuild initialized: initialize\n'
+  link=cc+' helper.o -o bin/LLIntSettingsExtractor'+(' -Wl,--dependency-file=helper-link.d'if link_deps else'')
+  graph+='rule link\n  command = '+link+('\n  depfile = helper-link.d\n  deps = gcc'if link_deps else'')+'\nrule generate\n  command = bin/LLIntSettingsExtractor > generated.h\n  restat = 1\nrule initialize\n  command = touch initialized\nbuild initialized: initialize\n'
   graph+='build helper.o: cc '+str(source/'helper.c')+'\nbuild bin/LLIntSettingsExtractor: link helper.o\nbuild generated.h: generate bin/LLIntSettingsExtractor\n'
   entries={};pchcmd=None
   if pch:
@@ -32,12 +32,17 @@ class FrontierContracts(unittest.TestCase):
   def run(args):return subprocess.check_output([ninja,*args],cwd=build,text=True,stderr=subprocess.STDOUT,timeout=60)
   def restore_run(name,args,limit,cwd,env=None):return subprocess.check_output(args,cwd=cwd,text=True,stderr=subprocess.STDOUT,env=env,timeout=limit)
   return source,build,entries,identity,graph,run,restore_run,{'bin/LLIntSettingsExtractor':link},ninja
- def exercise(self,pch):
+ def exercise(self,pch,link_deps=False):
   with tempfile.TemporaryDirectory()as d:
-   root=pathlib.Path(d);source,build,entries,identity,graph,run,restore_run,helpers,ninja=self.fixture(root,pch)
+   root=pathlib.Path(d);source,build,entries,identity,graph,run,restore_run,helpers,ninja=self.fixture(root,pch,link_deps)
    with patch.dict(os.environ,{'PATH':str(pathlib.Path(ninja).parent)+os.pathsep+os.environ['PATH']}):
     run(['-v','-d','keepdepfile','initialized','consumer.o'])
-    m,payload=f.capture(build,source,entries,identity,['consumer.o'],helpers)
+    links={'bin/LLIntSettingsExtractor':{'command':helpers['bin/LLIntSettingsExtractor'],'depfile':'helper-link.d'}}if link_deps else{}
+    if link_deps:
+     old={};raw=gzip.decompress((f.seg.gate.HERE/'evidence/43873062633/old-frontier-checkpoint.py.gz').read_bytes());self.assertEqual(hashlib.sha256(raw).hexdigest(),'5fdaf2d601e25da5312491d7fe0ff5d716cd443a837b0526ff3b78282ec95e6a');exec(raw,old)
+     with self.assertRaises(AssertionError):old['capture'](build,source,entries,identity,['consumer.o'],helpers)
+     self.assertIn('bin/LLIntSettingsExtractor: #deps',run(['-t','deps']))
+    m,payload=f.capture(build,source,entries,identity,['consumer.o'],helpers,links)
     self.assertEqual(m['compiledObjectCount'],2);self.assertEqual(m['pchCount'],int(pch))
     self.assertNotIn('build/bin/LLIntSettingsExtractor',payload);self.assertNotIn('build/header.pch',payload)
     archive=root/'checkpoint.tar.gz';f.write_archive(archive,m,payload);h=f.digest(archive)
@@ -57,13 +62,14 @@ class FrontierContracts(unittest.TestCase):
     with self.assertRaisesRegex(AssertionError,'identity'):f.load_archive(archive,h,wrong,root/'wrong')
     with self.assertRaisesRegex(AssertionError,'Damaged'):f.load_archive(archive,'0'*64,identity,root/'damaged')
     old=(source/'consumer.c').read_bytes();(source/'consumer.c').write_bytes(old+b'\n/* altered */\n')
-    with self.assertRaisesRegex(AssertionError,'Changed compiler input'):f.restore(loaded,staging,build,source,restore_run,entries,helpers)
+    with self.assertRaisesRegex(AssertionError,'Changed compiler input'):f.restore(loaded,staging,build,source,restore_run,entries,helpers,links)
     self.assertFalse((build/'consumer.o').exists());self.assertFalse((build/'generated.h').exists());(source/'consumer.c').write_bytes(old)
-    proof=f.restore(loaded,staging,build,source,restore_run,entries,helpers)
+    proof=f.restore(loaded,staging,build,source,restore_run,entries,helpers,links)
     self.assertEqual(proof['restoredObjects'],2);self.assertEqual(proof['regeneratedHelpers'],['bin/LLIntSettingsExtractor'])
     self.assertEqual(len(proof['regeneratedPch']),int(pch));self.assertIn('no work to do',run(['-v','-d','keepdepfile','consumer.o']))
     log=run(['-v','-d','keepdepfile','later.o']);self.assertIn('-o later.o',log);self.assertNotIn('-o consumer.o',log)
     for t in ['helper.o','consumer.o']:self.assertEqual(f.digest(build/t),m['records'][t]['sha256'])
+ def test_real_linker_depfile_reproduces_old_failure_and_restores(self):self.exercise(False,True)
  def test_real_generated_input_and_regenerated_helper_skip_old_objects(self):self.exercise(False)
  @unittest.skipUnless(shutil.which('clang++'),'Real Clang PCH fixture runs in SDK-equipped CI; local compiler unavailable')
  def test_real_clang_pch_regeneration_and_native_graph_reuse(self):self.exercise(True)
@@ -73,6 +79,29 @@ class FrontierContracts(unittest.TestCase):
    plan=z.read('FontCascade-graph.log').decode();build=pathlib.Path(next(iter(r['selectedUnits'].values()))['directory']);entries=f.compile_entries(json.loads(raw),plan,build)
    self.assertGreater(len(entries),350);self.assertTrue(any(e['kind']=='pch'for e in entries.values()));self.assertTrue(any('Source/WebCore/'in t for t in entries));self.assertEqual(set(f.helper_commands(plan)),f.HELPERS)
    self.assertTrue(all('-fno-pch-timestamp'in e['command']for e in entries.values()if e['kind']=='pch'))
+ def test_actual_link_graph_and_dependency_parser_reject_unknown_rules(self):
+  commands=json.loads(gzip.decompress((f.seg.gate.HERE/'evidence/43873062633/actual-link-commands.json.gz').read_bytes()))
+  entries=f.link_entries('\n'.join(commands),pathlib.Path('/home/runner/work/_temp/milkup-current-source-gate/build'))
+  self.assertEqual(len(entries),10);self.assertTrue(f.HELPERS<=entries.keys())
+  with tempfile.TemporaryDirectory()as d:
+   b=pathlib.Path(d);p=b/'test.d';p.write_text('foo: a b\na:\nb:\n');self.assertEqual(f.dep_names(p,'foo',b),['a','b'])
+   for text in ['other: a\n','foo: a\nunknown:\n','foo: a\na: payload\n']:
+    p.write_text(text)
+    with self.assertRaises(AssertionError):f.dep_names(p,'foo',b)
+ def test_unknown_and_stale_dependencies_reject_but_raw_evidence_survives(self):
+  with tempfile.TemporaryDirectory()as d:
+   root=pathlib.Path(d);source,build,entries,identity,graph,run,restore_run,helpers,ninja=self.fixture(root,link_deps=True)
+   with patch.dict(os.environ,{'PATH':str(pathlib.Path(ninja).parent)+os.pathsep+os.environ['PATH']}):
+    run(['-v','-d','keepdepfile','initialized','consumer.o'])
+    evidence=root/'rejected-evidence'
+    with self.assertRaisesRegex(AssertionError,'Unknown original dependency target'):
+     f.capture(build,source,entries,identity,['consumer.o'],helpers,{},evidence)
+    self.assertIn('bin/LLIntSettingsExtractor: #deps',gzip.decompress((evidence/'native-deps.txt.gz').read_bytes()).decode())
+    self.assertEqual(gzip.decompress((evidence/'native-ninja-log.txt.gz').read_bytes()),(build/'.ninja_log').read_bytes())
+    links={'bin/LLIntSettingsExtractor':{'command':helpers['bin/LLIntSettingsExtractor'],'depfile':'helper-link.d'}}
+    st=(build/'consumer.o').stat();os.utime(build/'consumer.o',ns=(st.st_atime_ns,st.st_mtime_ns+1000000000))
+    with self.assertRaisesRegex(AssertionError,'Invalid dependency/log record'):
+     f.capture(build,source,entries,identity,['consumer.o'],helpers,links)
  def test_paths_and_checkpoint_identity_fail_closed(self):
   with tempfile.TemporaryDirectory()as d:
    b=pathlib.Path(d)

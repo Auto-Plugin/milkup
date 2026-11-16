@@ -4,7 +4,7 @@ PCHs and build-time helper executables must be rebuilt and byte-verified.
 """
 import hashlib,json,os,pathlib,re,shlex,shutil,stat,struct,tarfile
 import current_segment as seg
-SCHEMA='milkup-current2542-frontier-v2'
+SCHEMA='milkup-current2542-frontier-v3'
 MAX_TOTAL=8*1024**3
 MAX_MEMBER=256*1024**2
 HELPERS={'bin/LLIntSettingsExtractor','bin/LLIntOffsetsExtractor'}
@@ -60,6 +60,39 @@ def helper_commands(plan):
    assert target not in found or found[target]==line;found[target]=line
  return found
 
+def link_entries(plan,build):
+ found={}
+ for line in plan.splitlines():
+  a=shlex.split(line);deps=[v.split('--dependency-file=',1)[1]for v in a if v.startswith('--dependency-file=')]
+  if not deps or '/usr/bin/clang++'not in a:continue
+  assert '-c'not in a and len(deps)==1 and '-o'in a
+  target=seg.target_of(a);assert relative(target,build)==target
+  assert target.startswith(('bin/','lib/')) and '/usr/bin/clang++'in a
+  depfile=relative(deps[0],build);assert depfile.endswith('.d')
+  item={'command':line,'depfile':depfile};assert target not in found or found[target]==item;found[target]=item
+ return found
+
+def dep_names(file,target,build):
+ lines=[shlex.split(line)for line in file.read_text().replace('\\\n','').splitlines()if line.strip()]
+ assert lines and lines[0][0]in [target+':',str(build/target)+':'],'Exact depfile target required'
+ names=lines[0][1:]
+ # Linker depfiles can contain empty phony rules for their inputs.
+ for row in lines[1:]:assert len(row)==1 and row[0].endswith(':')and row[0][:-1]in names,'Unexpected extra dependency rule'
+ return names
+
+def dependency_inputs(build,source,pairs):
+ names={}
+ for target,file in pairs:
+  for name in dep_names(file,target,build):
+   p=pathlib.Path(name);p=p if p.is_absolute()else build/p;names[str(p.resolve())]=None
+ assert len(names)<=60000
+ for name in names:
+  p=pathlib.Path(name);owned=p.is_relative_to(build)or p.is_relative_to(source)
+  assert owned or p.is_relative_to('/usr')or p.is_relative_to('/lib')
+  assert p.is_file()and not p.is_symlink();st=p.stat()
+  names[name]={'sha256':digest(p),'bytes':st.st_size,'mtimeNs':st.st_mtime_ns,'owned':owned}
+ return names
+
 def check_identity(manifest,identity):
  assert manifest.get('schema')==SCHEMA and manifest['identity']==identity,'Frontier identity mismatch'
 
@@ -82,33 +115,30 @@ def describe(p,build,source,kind=None):
  return {**row,'kind':kind,'bytes':st.st_size,'sha256':digest(p),'mtimeNs':st.st_mtime_ns,'mode':stat.S_IMODE(st.st_mode)}
 
 def compiler_inputs(build,source,targets):
- names={};resolved={}
- for target in targets:
-  text=(build/(target+'.d')).read_text().replace('\\\n','')
-  fields=shlex.split(text)if '\\'in text or '"'in text or "'"in text else text.split()
-  assert fields and fields[0]==target+':'
-  for name in fields[1:]:
-   if name not in resolved:
-    p=pathlib.Path(name);p=p if p.is_absolute()else build/p;resolved[name]=str(p.resolve())
-   names[resolved[name]]=None
- assert len(names)<=60000
- for name in names:
-  p=pathlib.Path(name);owned=p.is_relative_to(build)or p.is_relative_to(source)
-  assert owned or p.is_relative_to('/usr')or p.is_relative_to('/lib')
-  assert p.is_file()and not p.is_symlink();st=p.stat()
-  names[name]={'sha256':digest(p),'bytes':st.st_size,'mtimeNs':st.st_mtime_ns,'owned':owned}
- return names
+ return dependency_inputs(build,source,[(t,build/(t+'.d'))for t in targets])
 
-def capture(build,source,entries,identity,frontier,helper_plan):
+def capture(build,source,entries,identity,frontier,helper_plan,links=None,evidence=None):
+ links=links or {}
  header,logs=native_rows(build)
  import subprocess
  deps=subprocess.check_output(['ninja','-t','deps'],cwd=build,text=True,timeout=60)
+ if evidence:
+  import gzip
+  evidence.mkdir(parents=True,exist_ok=True)
+  for name,data in [('native-deps.txt',deps.encode()),('native-ninja-log.txt',(build/'.ninja_log').read_bytes())]:
+   assert len(data)<=64*1024**2;(evidence/(name+'.gz')).write_bytes(gzip.compress(data,mtime=0))
  completed=re.findall(r'^(.+): #deps \d+, deps mtime (\d+) \((VALID|STALE)\)$',deps,re.M)
  assert completed and len(completed)<=4000
+ targets=[];completed_links=[];absent_links=[]
  for target,mtime,status in completed:
-  assert target in entries and target in logs and status=='VALID'
-  assert (build/target).is_file()and (build/target).stat().st_mtime_ns==int(mtime)
- targets=[t for t,_,_ in completed];selected={t:entries[t]for t in targets}
+  assert target in entries or target in links,('Unknown original dependency target',target,status)
+  if target in links and not(build/target).exists()and target not in logs:
+   assert status=='STALE';absent_links.append(target);continue
+  assert target in logs and status=='VALID',('Invalid dependency/log record',target,status)
+  assert (build/target).is_file()and (build/target).stat().st_mtime_ns==int(mtime),('Output mtime mismatch',target)
+  (targets if target in entries else completed_links).append(target)
+ selected={t:entries[t]for t in targets}
+ link_inputs={t:dependency_inputs(build,source,[(t,build/links[t]['depfile'])])for t in completed_links}
  inputs=compiler_inputs(build,source,targets)
  for t,e in selected.items():
   a=e['command']
@@ -122,7 +152,9 @@ def capture(build,source,entries,identity,frontier,helper_plan):
   records[name]=describe(p,build,source,kind)
  for t in targets:
   records[t]=describe(build/t,build,source,selected[t]['kind']);records[t+'.d']=describe(build/(t+'.d'),build,source,'depfile')
- for name,row in inputs.items():
+ for t in completed_links:records[links[t]['depfile']]=describe(build/links[t]['depfile'],build,source,'depfile')
+ all_inputs={**inputs,**{n:r for rows in link_inputs.values()for n,r in rows.items()}}
+ for name,row in all_inputs.items():
   p=pathlib.Path(name)
   if p.is_relative_to(build)and str(p.relative_to(build))not in records:records[str(p.relative_to(build))]=describe(p,build,source)
  for name in HELPERS:
@@ -134,7 +166,7 @@ def capture(build,source,entries,identity,frontier,helper_plan):
  payload['metadata/ninja_log']=build/'.ninja_log';payload['metadata/ninja_deps']=build/'.ninja_deps'
  files={k:{'bytes':p.stat().st_size,'sha256':digest(p)}for k,p in payload.items()}
  assert sum(x['bytes']for x in files.values())<=MAX_TOTAL and len(records)<50000
- manifest={'schema':SCHEMA,'identity':identity,'frontier':frontier,'entries':selected,'inputs':inputs,'records':records,'files':files,'logHeader':header,'logs':logs,'helpers':helper_plan,'producerSha':os.environ.get('GITHUB_SHA'),'compiledObjectCount':sum(e['kind']=='object'for e in selected.values()),'pchCount':sum(e['kind']=='pch'for e in selected.values()),'runtimeBytesArchived':False,'pchBytesArchived':False}
+ manifest={'schema':SCHEMA,'identity':identity,'frontier':frontier,'entries':selected,'inputs':inputs,'records':records,'files':files,'logHeader':header,'logs':logs,'helpers':helper_plan,'links':links,'linkInputs':link_inputs,'absentUnrestoredLinks':absent_links,'producerSha':os.environ.get('GITHUB_SHA'),'compiledObjectCount':sum(e['kind']=='object'for e in selected.values()),'pchCount':sum(e['kind']=='pch'for e in selected.values()),'runtimeBytesArchived':False,'pchBytesArchived':False}
  return manifest,payload
 
 def write_archive(path,manifest,payload):
@@ -167,7 +199,8 @@ def load_archive(archive,expected,identity,staging):
 
 def validate_existing(manifest,build,source):
  # All host/source and existing generated input checks happen before restoring.
- for name,row in manifest['inputs'].items():
+ all_inputs={**manifest['inputs'],**{n:r for rows in manifest.get('linkInputs',{}).values()for n,r in rows.items()}}
+ for name,row in all_inputs.items():
   p=pathlib.Path(name);assert p.is_absolute()and p.resolve()==p
   owned=p.is_relative_to(build)or p.is_relative_to(source);assert owned==row['owned']
   assert owned or p.is_relative_to('/usr')or p.is_relative_to('/lib')
@@ -186,7 +219,8 @@ def validate_existing(manifest,build,source):
    elif row['kind']=='link':assert not p.exists(),'No existing executable/runtime restored as input'
    else:assert p.is_file()and not p.is_symlink()and digest(p)==row['sha256'],'Existing generated file differs: '+name
 
-def restore(manifest,staging,build,source,run,entries,helpers):
+def restore(manifest,staging,build,source,run,entries,helpers,links=None):
+ assert manifest.get('links',{})==(links or {}),'Original dependency-tracked linker edges changed'
  validate_existing(manifest,build,source)
  assert not (build/'.ninja_deps').exists(),'Clean generated-only job required'
  for name,e in manifest['entries'].items():assert name in entries and e==entries[name],'Original compiler edge changed'
@@ -222,8 +256,11 @@ def restore(manifest,staging,build,source,run,entries,helpers):
  rebuilt=[]
  for name,line in helpers.items():
   if name not in manifest['records']:continue
+  if name in manifest.get('linkInputs',{}):seg.check_inputs(manifest['linkInputs'][name],build,source)
   p=build/name;run('regenerate-helper-'+pathlib.Path(name).name,['/bin/sh','-c',line],180,build)
   row=manifest['records'][name];assert p.stat().st_size==row['bytes']and digest(p)==row['sha256'],'Regenerated build helper differs';os.utime(p,ns=(row['mtimeNs'],row['mtimeNs']));rebuilt.append(name)
+  if name in manifest.get('links',{}):
+   dep=manifest['links'][name]['depfile'];assert digest(build/dep)==manifest['records'][dep]['sha256'],'Regenerated link dependencies differ'
  # Restore original owned input times after regenerating helpers/PCH depfiles.
  for name,row in manifest['inputs'].items():
   if row['owned']:os.utime(name,ns=(row['mtimeNs'],row['mtimeNs']))

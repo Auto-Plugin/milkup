@@ -60,13 +60,13 @@ class EngineGate(seg.Segment):
   super().__init__(root,start,'build');self.engine_mode=mode;self.incoming=incoming;self.expected=expected;self.attempt_complete=attempt_complete
   self.deadline=start+(54*60 if mode=='frontier'else 340*60)
   self.report.update(mode=mode,scope='original normal graph WebCore frontier and exact clean-job continuation',jobLimitSeconds=3600 if mode=='frontier'else 355*60,workLimitSeconds=54*60 if mode=='frontier'else 340*60,fullEngineBuilt=False,runtimeInstalled=False,nativePdfExecuted=False,attemptComplete=attempt_complete)
-  self.full_entries={};self.generic_identity=None;self.frontier=[];self.helpers={};self.snapshot_number=0
+  self.full_entries={};self.generic_identity=None;self.frontier=[];self.helpers={};self.links={};self.snapshot_number=0
  def after_sdk(self):
   self.run('real-frontier-contracts',['python3','-m','unittest','discover','-s',str(HERE),'-p','test_frontier_checkpoint.py','-v'],180,gate.REPO,{**os.environ,'PYTHONDONTWRITEBYTECODE':'1'})
  def prepare_engine(self):
   gate.Gate.execute(self);seg.Segment.prepare_batch(self)
   plan=self.run('normal-all-command-graph',['ninja','-t','commands','all'],90,self.build)
-  database=json.loads((self.build/'compile_commands.json').read_text());self.full_entries=checkpoint.compile_entries(database,plan,self.build);self.helpers=checkpoint.helper_commands(plan)
+  database=json.loads((self.build/'compile_commands.json').read_text());self.full_entries=checkpoint.compile_entries(database,plan,self.build);self.helpers=checkpoint.helper_commands(plan);self.links=checkpoint.link_entries(plan,self.build)
   assert self.helpers.keys()==checkpoint.HELPERS
   self.frontier=list(dict.fromkeys(seg.target_of(e.get('arguments')or shlex.split(e['command']))for e in self.report['selectedUnits'].values()))
   assert len(self.frontier)==10 and all(t in self.full_entries and 'Source/WebCore/'in t for t in self.frontier)
@@ -141,7 +141,7 @@ class EngineGate(seg.Segment):
  def snapshot(self,label):
   if not self.generic_identity:return
   self.snapshot_number+=1;context=self.out/('snapshot-context-'+str(self.snapshot_number)+'.json')
-  context.write_text(json.dumps({'build':str(self.build),'source':str(self.source),'entries':self.full_entries,'identity':self.generic_identity,'frontier':self.frontier,'helpers':self.helpers}))
+  context.write_text(json.dumps({'build':str(self.build),'source':str(self.source),'entries':self.full_entries,'identity':self.generic_identity,'frontier':self.frontier,'helpers':self.helpers,'links':self.links}))
   folder=self.out/'checkpoints'/label;folder.mkdir(parents=True,exist_ok=False)
   self.run('checkpoint-'+label,['python3',str(HERE/'current_engine.py'),'pack','--context',str(context),'--output',str(folder)],600,self.build)
   receipt=json.loads((folder/'receipt.json').read_text());self.report.setdefault('checkpoints',[]).append({'label':label,**receipt});self.persist();context.unlink()
@@ -172,7 +172,7 @@ class EngineGate(seg.Segment):
     assert cwd==self.build;code,reason=self.monitored(name,args,limit);assert code==0 and not reason,'Original PCH regeneration failed'
     return (self.out/(name+'.log')).read_text()
    return self.run(name,args,limit,cwd,env)
-  proof=checkpoint.restore(m,staging,self.build,self.source,regenerate,self.full_entries,self.helpers);self.report['frontierRestore']=proof;self.persist()
+  proof=checkpoint.restore(m,staging,self.build,self.source,regenerate,self.full_entries,self.helpers,self.links);self.report['frontierRestore']=proof;self.persist()
   old=set(m['entries']);self.phase('restored-webcore-frontier-skip',self.frontier,old,300,False)
   for target,e in m['entries'].items():assert checkpoint.digest(self.build/target)==m['records'][target]['sha256'],'Old restored bytes changed'
   return old
@@ -205,10 +205,12 @@ class EngineGate(seg.Segment):
   (self.out/'normal-elf-inventory.json').write_text(json.dumps(inventory,indent=2));assert any('libwebkit2gtk-4.1.so'in r['path']for r in inventory)
  def execute(self):
   self.prepare_engine()
-  if self.engine_mode=='frontier':
+  if self.engine_mode in ['frontier','normal']:
    old=self.import_legacy();selected=self.phase('representative-webcore-frontier',self.frontier,old,40*60)
    assert sum(self.full_entries[t]['kind']=='pch'for t in selected)>=2 and sum('Source/WebCore/'in t and t.endswith('.o')for t in selected)>=10
-   self.snapshot('frontier');self.report['status']='passed-representative-frontier-not-engine-or-package'
+   self.snapshot('frontier')
+   if self.engine_mode=='normal':self.complete_normal_build(selected)
+   self.report['status']='passed-normal-engine-build-not-package'if self.report['fullEngineBuilt']else'passed-representative-frontier-not-engine-or-package'
   else:
    old=self.import_frontier()
    # A distinct downstream WebCore batch first, reusing the accepted PCH(s).
@@ -224,7 +226,7 @@ class EngineGate(seg.Segment):
   self.report['objectRetention']={'format':checkpoint.SCHEMA,'checkpoints':self.report.get('checkpoints',[]),'duplicateObjectArchiveCreated':False};self.persist()
 
 def pack(context,output):
- data=json.loads(context.read_text());manifest,payload=checkpoint.capture(pathlib.Path(data['build']),pathlib.Path(data['source']),data['entries'],data['identity'],data['frontier'],data['helpers'])
+ data=json.loads(context.read_text());manifest,payload=checkpoint.capture(pathlib.Path(data['build']),pathlib.Path(data['source']),data['entries'],data['identity'],data['frontier'],data['helpers'],data['links'],output)
  archive=output/'frontier.tar.gz';checkpoint.write_archive(archive,manifest,payload)
  (output/'manifest.json.gz').write_bytes(gzip.compress(json.dumps(manifest,sort_keys=True).encode(),mtime=0))
  receipt={'archiveSha256':checkpoint.digest(archive),'archiveBytes':archive.stat().st_size,'schema':checkpoint.SCHEMA,'identitySha256':seg.canonical(data['identity']),'compiledObjects':manifest['compiledObjectCount'],'pchRecords':manifest['pchCount'],'inputRecords':len(manifest['inputs']),'generatedInputsArchived':sum(r['kind']=='generated'for r in manifest['records'].values()),'runtimeBytesArchived':False,'pchBytesArchived':False}
@@ -233,7 +235,7 @@ def pack(context,output):
 def main():
  p=argparse.ArgumentParser();sub=p.add_subparsers(dest='command',required=True)
  packer=sub.add_parser('pack');packer.add_argument('--context',type=pathlib.Path,required=True);packer.add_argument('--output',type=pathlib.Path,required=True)
- runner=sub.add_parser('run');runner.add_argument('--root',type=pathlib.Path,required=True);runner.add_argument('--started',type=float,required=True);runner.add_argument('--mode',choices=['frontier','resume'],required=True);runner.add_argument('--incoming',type=pathlib.Path,required=True);runner.add_argument('--expected-sha');runner.add_argument('--attempt-complete',action='store_true')
+ runner=sub.add_parser('run');runner.add_argument('--root',type=pathlib.Path,required=True);runner.add_argument('--started',type=float,required=True);runner.add_argument('--mode',choices=['frontier','resume','normal'],required=True);runner.add_argument('--incoming',type=pathlib.Path,required=True);runner.add_argument('--expected-sha');runner.add_argument('--attempt-complete',action='store_true')
  a=p.parse_args()
  if a.command=='pack':pack(a.context,a.output);return 0
  g=EngineGate(a.root.resolve(),a.started,a.mode,a.incoming,a.expected_sha,a.attempt_complete)

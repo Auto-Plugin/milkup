@@ -21,11 +21,19 @@ class EngineContracts(unittest.TestCase):
   self.assertIn("g.snapshot('stopped-completed-objects')",s);self.assertNotIn('continue-on-error',s)
  def test_workflow_is_bounded_manual_same_run_and_no_paid_runner(self):
   s=(e.gate.REPO/'.github/workflows/linux-webkit-build-research.yml').read_text()
-  for name,limit in [('current-webcore-frontier',60),('current-engine-continuation',355)]:
+  for name,limit in [('current-webcore-frontier',60),('current-engine-continuation',355),('current-engine-normal',355)]:
    j=s.split('\n  '+name+':\n')[1].split('\n  current-',1)[0]
    self.assertIn('runs-on: ubuntu-26.04',j);self.assertIn('timeout-minutes: '+str(limit),j);self.assertIn('if: always()',j);self.assertNotIn('continue-on-error',j)
   for script in re.findall(r'^        run: \|\n((?:          .*\n|\n)+)',s,re.M):
    subprocess.run(['bash','-n','-c','\n'.join(line[10:]for line in script.splitlines())],check=True)
   self.assertIn('run-id: 43864252208',s);self.assertIn('needs: current-webcore-frontier',s);self.assertIn('needs.current-webcore-frontier.outputs.checkpoint_sha256',s)
   self.assertIn("inputs.operation != 'current-engine-continuation'",s)
+ def test_same_job_normal_mode_does_not_claim_fresh_checkpoint_restore(self):
+  s=(e.gate.REPO/'.github/workflows/linux-webkit-build-research.yml').read_text()
+  j=s.split('\n  current-engine-normal:\n')[1]
+  self.assertNotIn('needs:',j);self.assertIn('run-id: 43864252208',j)
+  self.assertIn('--mode normal',j);self.assertNotIn('--mode resume',j)
+  self.assertIn("inputs.operation != 'current-engine-normal'",s)
+  source=(e.HERE/'current_engine.py').read_text()
+  self.assertIn("if self.engine_mode=='normal':self.complete_normal_build(selected)",source)
 if __name__=='__main__':unittest.main()

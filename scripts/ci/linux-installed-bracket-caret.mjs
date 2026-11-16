@@ -75,6 +75,7 @@ try {
   const binaryHash = sha(await readFile(application))
   assert.equal(binaryHash, process.env.MILKUP_NATIVE_EXPECTED_BINARY_SHA256)
   assert.equal(binaryHash, sha(await readFile(process.env.MILKUP_NATIVE_EXTRACTED_APP ?? path.join(process.env.RUNNER_TEMP, 'milkup-package-extracted/usr/bin/milkup-desktop'))))
+  record.issue94 = { status: 'not-executed', nativePassed: false, reason: 'No supported UI-language switch identified in reviewed v2 settings; never substitute DOM/storage mutation', reviewedSourceSha: '58c78973101acb0a22ca0cb5d24ef24bd9edc199', currentCandidateNeedsUiVerification: true, requiredWhenSupported: ['unsaved unique marker survives cancellation', 'save before actual UI-language switch', 'normal reopen retains entire file and current document identity'], nativeResultIndependentOfIssue255: true }
   record.sourceSha = manifest.sourceSha; record.package = { ...manifest.installer }; record.binarySha256 = binaryHash
   await writeFile(file, fixture.original, { flag: 'wx' }); record.originalSha256 = sha(fixture.original); record.expectedSha256 = sha(fixture.expected); await persist()
   await start()

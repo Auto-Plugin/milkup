@@ -42,3 +42,68 @@ Status checked 2026-11-16T13:21:44.440386+00:00 UTC: workflow and
 frontier job remain in progress at the original restore/build step. The current
 workflow-contract step passed; no current native phase receipt is available yet.
 The second job has not started. No duplicate run was dispatched.
+
+## Terminal review of 43873062633 and corrected successor
+
+Original artifact 14229498218: 13,966,510 bytes, SHA-256
+`a1ac47f2630c4447295d21f708827b445d764f3e7fa4e48e28a00ccd03a0d13f`.
+Downloaded into memory and checked before inspection. Compact original logs and
+losslessly encoded result fields are preserved under `evidence/43873062633`.
+The original ZIP remains the authoritative byte-for-byte source.
+
+The SDK real-Clang frontier contracts passed (17.252 s). Exact 28-object import
+and native no-op passed. The representative real graph completed 369 compiler
+targets, including two original PCHs and ten affected WebCore TUs: 341 new compiler
+executions, zero old recompiles, exit 0 in 495.144 s. Sampled peak process-tree RSS
+was 3,988,848 KiB, minimum free disk 88,098,312,192 bytes, and minimum available
+memory 12,257,222,656 bytes. These samples are not unsampled peaks.
+
+The first checkpoint failed in 1.418 s with `timedOut=false`; the stopped-object
+fallback failed at the same predicate. Overall 1306.796 s is not a timeout.
+The old capture predicate required every `ninja -t deps` entry to be a compile DB
+object. The retained actual CMake graph also gives the two generated-header helper
+link rules `depfile` plus `deps=gcc`. The retained normal plan has ten C++ linker
+commands with `--dependency-file`, plus five unrelated glib resource generator
+commands with the same option spelling. A real local Ninja/GNU linker fixture
+reproduces the exact frozen old capture assertion and succeeds with the revised
+compiler/link classification. The old packer did not save the raw dependency DB,
+so the exact first rejected target in that run cannot be named from the artifact.
+
+The 114-member evidence ZIP has no object/PCH bytes, checkpoint tarball, or raw
+`.ninja_deps`/`.ninja_log`. The newly compiled 341 targets are **not recoverable**
+from it; an upload step completing is not checkpoint retention. The original
+28-object predecessor remains the only reusable checkpoint for this successor.
+
+Schema v3 binds dependency-tracked links to original commands/depfiles, validates
+their actual input hashes and timestamps, accepts only the linker's empty phony
+input rules, and still rejects unknown or stale compiler records. Helper binaries
+are relinked and hash-checked; shared runtimes and PCH bytes are not archived.
+Raw dependency and Ninja log text are now gzip-preserved before classification,
+including a failed pack. The local real fixture proves old rejection, corrected
+archive/restore/no-op, new work, changed-input and damaged-member rejection.
+Cross-job v3 recovery of the real WebCore frontier remains untested.
+
+`current-engine-normal` is a new explicit manual operation: one existing
+ubuntu-26.04 job, 355-minute hard limit, 340-minute internal work limit. It restores
+the exact retained 28 objects, completes/checkpoints the real frontier, then
+continues the ordinary default graph in the same process/workspace. This avoids a
+second SDK/configuration and PCH regeneration just to reach full compilation.
+Compilation remains two jobs; final normal links one job, with 45 minutes reserved
+before the object phase and a 35-minute link ceiling. Original source, final QA
+prefix, flags, ABI, functionality and sandbox remain unchanged. Memory below 2 GiB,
+disk below 8 GiB, 30 minutes without a completed Ninja edge, or stage deadline stop
+the owned process tree and attempt bounded checkpoint retention. No cold fallback,
+automatic retry, installation or native PDF test is included. Full engine linking,
+final-path package closure and same-package native acceptance all remain pending.
+
+Local checks: seven frontier contracts ran (six pass, real Clang PCH skipped
+locally and mandatory after official SDK); eight #255/#94 orchestration/wiring
+contracts pass. 37 current-workflow contracts pass with three local-Ninja skips
+when the temporary SDK has been removed. For the full contract invocation, the
+exact old `43856901779/original.zip` was read from Git into memory and SHA-checked
+because its duplicate working copy is temporarily omitted under skip-worktree to
+provide space; test assertions were unchanged. This memory-only substitution is
+not used in CI. An initial invocation without that fixture failed, and is not
+reported as a product/build failure. Local disk capacity remains a blocker to any
+engine build. No unique evidence was discarded; historical watch logs were briefly
+losslessly archived, then fully restored to their original paths.
