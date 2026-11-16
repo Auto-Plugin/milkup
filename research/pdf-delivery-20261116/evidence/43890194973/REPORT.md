@@ -32,3 +32,7 @@ One manually dispatched `current-engine-normal` job only, Ubuntu 26.04 on the al
 Local full workflow contracts: **43 passed**. Frontier contracts: **6 passed, one real Clang PCH case skipped because this local environment lacks Clang**; CI checks the installed official SDK and runs it there. Actual Ninja/CC shared-prerequisite and object-only retention tests passed. Workflow YAML, all run-block shell syntax and five Python heredocs parsed; `git diff --check` passed. No product behavior patch, official source digest, configured functionality, sandbox or final prefix changed.
 
 Full engine linking, CMake staging, exact runtime mapping, package construction, same-package native PDF/printing and daily native cases remain unverified for this successor. Research behavior from WebKit 2.52.6 is not inherited. No main merge, release, external upstream message, production key/channel, notification or security setting was changed.
+
+## Sole successor started
+
+[43901289344](https://github.com/Auto-Plugin/milkup/actions/runs/43901289344), exact code `abc4bda0b644d581899092fd868f42ad03231cff`, job 133418288529. Started 2026-11-16 15:53:14 UTC; hard deadline 21:48:14 UTC. No repository runs queued/in progress at the final pre-dispatch check. Other research jobs skipped. Status at handoff: in progress; no new engine/package/native acceptance. See `successor-run.json`. This recording commit changes evidence only, not the running candidate.
