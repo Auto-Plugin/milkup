@@ -7,6 +7,8 @@ import hashlib,json,os,pathlib,re,select,socket,struct,subprocess,threading,time
 import calibrate
 
 PREFIX=b'MILKUP_PAGINATION '
+TAIL_PREFIX=b'MILKUP_TAIL '
+PREFIXES=(PREFIX,TAIL_PREFIX)
 SO_PASSPIDFD=76  # Linux uapi asm-generic/socket.h
 SCM_PIDFD=4     # Linux uapi SCM_PIDFD, not a sender-supplied numeric PID.
 
@@ -56,7 +58,7 @@ def mapped_files(maps):
  return result
 
 def bind_records(log,rows,processes):
- lines=[line for line in log.splitlines(keepends=True)if line.startswith(PREFIX)]
+ lines=[line for line in log.splitlines(keepends=True)if line.startswith(PREFIXES)]
  assert lines and len(lines)==len(rows),'Every native record needs a sender'
  identities=set()
  for line,row in zip(lines,rows):
@@ -134,7 +136,7 @@ class Observer:
   pending=self.buffers.get(identity,b'')+data;pieces=pending.split(b'\n');self.buffers[identity]=pieces.pop()
   assert len(self.buffers[identity])<=65536,'Unbounded partial record'
   for line in pieces:
-   if line.startswith(PREFIX):
+   if line.startswith(PREFIXES):
     assert len(self.records)<4096
     self.records.append({**credential,'sha256':hashlib.sha256(line+b'\n').hexdigest(),'receivedTick':time.monotonic_ns()})
  def _collect(self):
@@ -179,7 +181,7 @@ class Observer:
   result={'status':'captured-not-yet-bound','records':self.records,'processes':self.processes,'errors':self.errors,'bytes':self.total,'threadsStopped':not alive}
   try:
    assert not alive and not any(e['phase']=='collector-fatal'for e in self.errors),'Collector incomplete'
-   assert not any(v.startswith(PREFIX)for v in self.buffers.values()),'Partial native record'
+   assert not any(v.startswith(PREFIXES)for v in self.buffers.values()),'Partial native record'
    result['webProcessPidfdId']=bind_records((self.out/'native.log').read_bytes(),self.records,self.processes)
    result['status']='kernel-sender-bound'
   except Exception as error:result.update(status='failed',error=repr(error))

@@ -30,9 +30,16 @@ try:
  subprocess.run(['git','apply',str(HERE/'candidate.patch')],cwd=source,check=True,timeout=20)
  spec=importlib.util.spec_from_file_location('actual_tu',REPO/'scripts/ci/webkit-pagination-object-preflight.py');m=importlib.util.module_from_spec(spec);spec.loader.exec_module(m)
  m.SOURCES=['Source/WebCore/rendering/RenderBlockFlow.cpp','Source/WebCore/rendering/RenderTable.cpp','Source/WebCore/rendering/RenderTableSection.cpp']
+ tail_sources={}
+ if os.environ.get('PAGINATION_TAIL')=='true':
+  import prepare_tail
+  tail=prepare_tail.build(source,e/'pagination-tail.patch',write=True)
+  assert tail['patchSha256']==hashlib.sha256((HERE/'tail-observation.patch').read_bytes()).hexdigest()
+  report['tailObservation']=tail;tail_sources=tail['sources'];persist()
+  m.SOURCES.append('Source/WebCore/page/PrintContext.cpp')
  gate=m.run(source,build,e/'pagination-behavior-object-gate')
  assert gate['status']=='passed',gate
- report.update(status='passed',gate=gate,modifiedSourceHashes={rel:hashlib.sha256((source/'Source/WebCore'/rel).read_bytes()).hexdigest() for rel in receipt['modified']})
+ report.update(status='passed',gate=gate,modifiedSourceHashes={rel:hashlib.sha256((source/'Source/WebCore'/rel).read_bytes()).hexdigest() for rel in set(receipt['modified'])|set(tail_sources)})
 except Exception as error:report.update(status='failed',error=repr(error))
 finally:persist()
 raise SystemExit(0 if report['status']=='passed'else 1)

@@ -2,10 +2,10 @@
 The private probe still requires its unchanged kernel-sender-bound contract.
 """
 import json,os,pathlib
-from process_capture import Observer,PREFIX
+from process_capture import Observer,PREFIX,PREFIXES
 
 def bind_stock(log,records,processes):
- assert not records and PREFIX not in log, 'Unexpected research instrumentation in stock runtime'
+ assert not records and not any(p in log for p in PREFIXES), 'Unexpected research instrumentation in stock runtime'
  web=[(identity,row) for identity,row in processes.items() if pathlib.Path(row['image']).name=='WebKitWebProcess']
  assert len(web)==1, 'Exactly one live stock WebProcess required'
  identity,row=web[0]
@@ -26,7 +26,7 @@ class StockObserver(Observer):
   result={'status':'captured-not-yet-bound','records':self.records,'processes':self.processes,'errors':self.errors,'bytes':self.total,'threadsStopped':not alive}
   try:
    assert not alive and not any(e['phase']=='collector-fatal'for e in self.errors),'Collector incomplete'
-   assert not any(v.startswith(PREFIX)for v in self.buffers.values()),'Partial native record'
+   assert not any(v.startswith(PREFIXES)for v in self.buffers.values()),'Partial native record'
    result['webProcessPidfdId']=bind_stock((self.out/'native.log').read_bytes(),self.records,self.processes)
    result['status']='live-stock-webprocess-bound'
   except Exception as error:result.update(status='failed',error=repr(error))

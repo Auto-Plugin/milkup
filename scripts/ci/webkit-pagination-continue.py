@@ -46,6 +46,9 @@ try:
   assert candidate['patchSha256']==digest(pathlib.Path(os.environ['GITHUB_WORKSPACE'])/'research/pdf-pagination-behavior-20261116/candidate.patch')
   for rel,h in candidate['modifiedSourceHashes'].items():assert digest(root/'source/Source/WebCore'/rel)==h
   report['behaviorPatchSha256']=candidate['patchSha256']
+  if os.environ.get('PAGINATION_TAIL')=='true':
+   assert candidate['tailObservation']['patchSha256']==digest(pathlib.Path(os.environ['GITHUB_WORKSPACE'])/'research/pdf-pagination-behavior-20261116/tail-observation.patch')
+   report['tailObservation']=candidate['tailObservation']
  assert (os.cpu_count()or 0)>=4
  mem=lambda:{k:v.strip()for k,v in (line.split(':',1)for line in pathlib.Path('/proc/meminfo').read_text().splitlines())}
  assert int(mem()['MemTotal'].split()[0])*1024>=14*1024**3
