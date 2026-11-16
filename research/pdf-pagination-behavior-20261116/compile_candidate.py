@@ -37,6 +37,12 @@ try:
   assert tail['patchSha256']==hashlib.sha256((HERE/'tail-observation.patch').read_bytes()).hexdigest()
   report['tailObservation']=tail;tail_sources=tail['sources'];persist()
   m.SOURCES.append('Source/WebCore/page/PrintContext.cpp')
+ if os.environ.get('PAGINATION_ROOT_MARGIN')=='true':
+  assert os.environ.get('PAGINATION_TAIL')=='true'
+  import prepare_root_margin
+  correction=prepare_root_margin.build(source,e/'pagination-root-margin.patch',write=True)
+  assert correction['patchSha256']==hashlib.sha256((HERE/'root-margin.patch').read_bytes()).hexdigest()
+  report['rootMarginCorrection']=correction;tail_sources.update(correction['sources']);persist()
  gate=m.run(source,build,e/'pagination-behavior-object-gate')
  assert gate['status']=='passed',gate
  report.update(status='passed',gate=gate,modifiedSourceHashes={rel:hashlib.sha256((source/'Source/WebCore'/rel).read_bytes()).hexdigest() for rel in set(receipt['modified'])|set(tail_sources)})

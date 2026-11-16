@@ -37,9 +37,10 @@ on:
         type: boolean
         default: false
       pagination_tail:
-        description: Read-only root and final-margin diagnosis after exact behavior patch
-        type: boolean
-        default: false
+        description: Tail observation or explicit root-margin correction with negative controls
+        type: choice
+        options: ['false', 'true', root-margin]
+        default: 'false'
       pagination_restore_run:
         description: Optional exact prior pagination-segment object artifact run; mismatches stop
         type: string
@@ -279,7 +280,8 @@ jobs:
       PAGINATION_OPERATION: ${{ inputs.operation }}
       PAGINATION_RESTORE_RUN: ${{ inputs.pagination_restore_run }}
       PAGINATION_BEHAVIOR: ${{ inputs.pagination_behavior }}
-      PAGINATION_TAIL: ${{ inputs.pagination_tail }}
+      PAGINATION_TAIL: ${{ inputs.pagination_tail != 'false' }}
+      PAGINATION_ROOT_MARGIN: ${{ inputs.pagination_tail == 'root-margin' }}
     defaults:
       run:
         shell: bash

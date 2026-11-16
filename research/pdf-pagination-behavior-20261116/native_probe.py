@@ -49,6 +49,24 @@ def runtime_verifier(prefix,manifest):
  return verify,expected
 
 
+def validate_native(native,dest,verify,expected,prefix):
+ capture=json.loads((dest/'process-capture.json').read_text())
+ assert capture['status']=='kernel-sender-bound'
+ for process in native['processes']:
+  verify(process['libraries'])
+  for name,identity in process['mappedFiles'].items():
+   st=pathlib.Path(name).stat()
+   assert identity=={'device':st.st_dev,'inode':st.st_ino,'bytes':st.st_size,'mtimeNs':st.st_mtime_ns,'ctimeNs':st.st_ctime_ns},'Mapped file changed after capture'
+ web=[p for p in native['processes']if 'WebKitWebProcess'in p['image']]
+ assert web,'Actual WebProcess required'
+ assert any(p['pidfdId']==capture['webProcessPidfdId']for p in web),'Log sender must be the mapped WebProcess'
+ for process in web:
+  image=pathlib.Path(process['image']).resolve();assert str(image)in expected and image.is_relative_to(prefix.resolve())
+  assert sha(image)==expected[str(image)]['sha256']
+  st=image.stat();assert process['imageFile']=={'device':st.st_dev,'inode':st.st_ino,'bytes':st.st_size,'mtimeNs':st.st_mtime_ns,'ctimeNs':st.st_ctime_ns}
+  assert process['noNewPrivs']==1 and process['seccomp']==2,'Actual sandbox status required'
+
+
 def run(out,prefix,manifest_path):
  assert os.getuid()!=0 and not os.environ.get('WEBKIT_DISABLE_SANDBOX_THIS_IS_DANGEROUS')
  assert not os.environ.get('LD_LIBRARY_PATH')and not os.environ.get('LD_PRELOAD')
@@ -62,6 +80,7 @@ def run(out,prefix,manifest_path):
   guard=calibrate.extract_guard(binary.read_bytes());assert calibrate.sha(guard)==calibrate.GUARD_SHA
   manifest=json.loads(manifest_path.read_text());assert manifest['harnessSha']==os.environ['GITHUB_SHA']
   if os.environ.get('PAGINATION_TAIL')=='true':assert manifest['tailObservation']['patchSha256']==sha(HERE/'tail-observation.patch')
+  if os.environ.get('PAGINATION_ROOT_MARGIN')=='true':assert manifest['rootMarginPatchSha256']==sha(HERE/'root-margin.patch')
   verify,expected=runtime_verifier(prefix,manifest);calibrate.verify_private_libraries=verify
   original_proc=calibrate.proc
   def observed_proc(pid):
@@ -86,21 +105,7 @@ def run(out,prefix,manifest_path):
     assert time.monotonic()-started<480,'Native batch budget'
     dest=out/('observed-'+case);reference=out/'reference'/source_case
     native=paper_render.render(binary,guard,adapted_html((labelled/(source_case+'.html')).read_text(),paper),dest,env,paper)
-    capture=json.loads((dest/'process-capture.json').read_text())
-    assert capture['status']=='kernel-sender-bound'
-    for process in native['processes']:
-     verify(process['libraries'])
-     for name,identity in process['mappedFiles'].items():
-      st=pathlib.Path(name).stat()
-      assert identity=={'device':st.st_dev,'inode':st.st_ino,'bytes':st.st_size,'mtimeNs':st.st_mtime_ns,'ctimeNs':st.st_ctime_ns},'Mapped file changed after capture'
-    web=[p for p in native['processes']if 'WebKitWebProcess'in p['image']]
-    assert web,'Actual WebProcess required'
-    assert any(p['pidfdId']==capture['webProcessPidfdId']for p in web),'Log sender must be the mapped WebProcess'
-    for process in web:
-     image=pathlib.Path(process['image']).resolve();assert str(image)in expected and image.is_relative_to(prefix.resolve())
-     assert sha(image)==expected[str(image)]['sha256']
-     st=image.stat();assert process['imageFile']=={'device':st.st_dev,'inode':st.st_ino,'bytes':st.st_size,'mtimeNs':st.st_mtime_ns,'ctimeNs':st.st_ctime_ns}
-     assert process['noNewPrivs']==1 and process['seccomp']==2,'Actual sandbox status required'
+    validate_native(native,dest,verify,expected,prefix)
     for name in ['complex-pagination.md','expectations.json']:(dest/name).write_bytes((reference/name).read_bytes())
     expectation=json.loads((dest/'expectations.json').read_text());expectation['papers']=[paper]
     (dest/'expectations.json').write_text(json.dumps(expectation,indent=2)+'\n')
@@ -124,10 +129,16 @@ def run(out,prefix,manifest_path):
          'uriDiagnosticPassed':'https://example.invalid/pagination' in uri,
          'productAcceptancePassed':False}
     report['results'].append(row);persist()
-  report['status']='targeted-pagination-passed-not-product-acceptance' if batch_passed(report['results'],CASES) else 'failed-original-pagination-contract'
+   if os.environ.get('PAGINATION_ROOT_MARGIN')=='true':
+    import root_margin_controls
+    def save_controls(rows):report['rootMarginControls']=rows;persist()
+    root_margin_controls.run(out,labelled,binary,guard,env,lambda n,d:validate_native(n,d,verify,expected,prefix),save_controls)
+  controls=report.get('rootMarginControls',[])
+  controls_ok=os.environ.get('PAGINATION_ROOT_MARGIN')!='true' or (len(controls)==2 and all(r['passed']for r in controls))
+  report['status']='targeted-pagination-passed-not-product-acceptance' if batch_passed(report['results'],CASES) and controls_ok else 'failed-original-pagination-contract'
  except Exception as error:report.update(status='failed',error=repr(error))
  finally:report['seconds']=round(time.monotonic()-started,3);persist()
- print(json.dumps({k:v for k,v in report.items()if k!='results'},indent=2))
+ print(json.dumps({k:v for k,v in report.items()if k not in ['results','rootMarginControls']},indent=2))
  return report['status']=='targeted-pagination-passed-not-product-acceptance'
 
 if __name__=='__main__':

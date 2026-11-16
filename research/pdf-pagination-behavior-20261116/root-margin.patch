@@ -1,0 +1,47 @@
+--- a/Source/WebCore/rendering/RenderBlockFlow.cpp
++++ b/Source/WebCore/rendering/RenderBlockFlow.cpp
+@@ -25,6 +25,7 @@
+ #include "config.h"
+ #include "MilkupPaginationResearch.h"
+ #include "MilkupTailResearch.h"
++#include "RootTrailingMarginPolicy.h"
+ #include "RenderBlockFlow.h"
+ 
+ #include "AXObjectCache.h"
+@@ -1827,7 +1828,17 @@
+     // If we can't collapse with children then add in the bottom margin.
+     if (!marginInfo.canCollapseWithMarginAfter() && !marginInfo.canCollapseWithMarginBefore()
+         && (!document().inQuirksMode() || !marginInfo.quirkContainer() || !marginInfo.hasMarginAfterQuirk())) {
+-        borderBoxLogicalHeight += marginInfo.margin();
++        auto trailingMargin = marginInfo.margin();
++        auto* state = view().frameView().layoutContext().layoutState();
++        // Match the existing legacy before-margin page-edge restriction for the
++        // document element's trailing collapsed margin. Do not reduce content,
++        // explicit size, forced-break progress, border/padding or visual overflow.
++        if (isDocumentElementRenderer() && document().printing() && writingMode().isHorizontal()
++            && !enclosingFragmentedFlow() && state && state->isPaginated() && state->pageLogicalHeight()
++            && borderBoxLogicalHeight > 0_lu && !borderAndPaddingAfter() && !scrollbarLogicalHeight())
++            trailingMargin = PrintFragmentPolicy::rootTrailingMargin(trailingMargin,
++                pageRemainingLogicalHeightForOffset(borderBoxLogicalHeight, IncludePageBoundary));
++        borderBoxLogicalHeight += trailingMargin;
+     }
+ 
+     // Now add in our bottom border/padding.
+--- /dev/null
++++ b/Source/WebCore/rendering/RootTrailingMarginPolicy.h
+@@ -0,0 +1,15 @@
++#pragma once
++#include <algorithm>
++
++namespace WebCore::PrintFragmentPolicy {
++// The caller restricts this to the printing document element's positive trailing
++// collapsed margin, without after border/padding/scrollbar. Existing content
++// height (including forced breaks and real overflow) is never reduced here.
++template<class Unit>
++constexpr Unit rootTrailingMargin(Unit margin, Unit remaining)
++{
++    if (margin <= Unit { } || remaining < Unit { })
++        return margin;
++    return std::min(margin, remaining);
++}
++}
