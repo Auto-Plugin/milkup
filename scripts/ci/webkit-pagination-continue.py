@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """One explicitly selected cached continuation, reachable only after actual TU success."""
-import hashlib,json,os,pathlib,shutil,signal,subprocess,time
+import hashlib,importlib.util,json,os,pathlib,shutil,signal,subprocess,time,traceback
 root=pathlib.Path(os.environ['RUNNER_TEMP'])/'milkup-webkit-research';evidence=root/'evidence';build=root/'build';prefix=root/'prefix'
 def digest(p):return hashlib.sha256(p.read_bytes()).hexdigest()
 def cache_stats():return {k:int(v)for k,v in (line.split()for line in subprocess.check_output(['ccache','--print-stats'],text=True,timeout=10).splitlines())}
@@ -42,7 +42,9 @@ try:
  if behavior:
   candidate=json.loads((evidence/'pagination-behavior-preflight.json').read_text())
   assert candidate['status']=='passed' and candidate['harnessSha']==report['harnessSha']
-  assert candidate['gate']['uniqueObjectCommands'] in (1,2,3)
+  spec=importlib.util.spec_from_file_location('candidate_gate',pathlib.Path(os.environ['GITHUB_WORKSPACE'])/'research/pdf-pagination-behavior-20261116/candidate_gate.py')
+  candidate_gate=importlib.util.module_from_spec(spec);spec.loader.exec_module(candidate_gate)
+  report['candidateGate']=candidate_gate.validate(candidate,tail=os.environ.get('PAGINATION_TAIL')=='true',combined=os.environ.get('PAGINATION_COMBINED')=='true')
   assert candidate['patchSha256']==digest(pathlib.Path(os.environ['GITHUB_WORKSPACE'])/'research/pdf-pagination-behavior-20261116/candidate.patch')
   for rel,h in candidate['modifiedSourceHashes'].items():assert digest(root/'source/Source/WebCore'/rel)==h
   report['behaviorPatchSha256']=candidate['patchSha256']
@@ -95,7 +97,7 @@ try:
  assert any('libwebkit2gtk-4.1.so.'in p['path']for p in report['runtimeFiles'])
  report['systemLibrariesAfter']=libs();assert report['systemLibrariesAfter']==before
  report['prefix']=str(prefix);report['status']='private-behavior-runtime-built-not-accepted' if behavior else 'private-observation-runtime-built-not-accepted'
-except Exception as error:report.update(status='failed',error=str(error))
+except Exception as error:report.update(status='failed',error=repr(error),traceback=traceback.format_exc(limit=12))
 finally:
  if segment:
   import re

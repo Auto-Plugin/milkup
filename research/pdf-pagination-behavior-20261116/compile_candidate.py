@@ -3,7 +3,7 @@
 import hashlib,importlib.util,json,os,pathlib,subprocess,sys,time
 HERE=pathlib.Path(__file__).resolve().parent;REPO=HERE.parents[1]
 root=pathlib.Path(os.environ['RUNNER_TEMP'])/'milkup-webkit-research';e=root/'evidence';source=root/'source';build=root/'build'
-sys.path.insert(0,str(HERE));import prepare
+sys.path.insert(0,str(HERE));import prepare,candidate_gate
 report={'status':'running','harnessSha':os.environ['GITHUB_SHA'],'scope':'Behavior candidate actual TUs only, no runtime/PDF acceptance'}
 def persist():(e/'pagination-behavior-preflight.json').write_text(json.dumps(report,indent=2)+'\n')
 try:
@@ -29,14 +29,13 @@ try:
  subprocess.run(['git','apply','--check',str(HERE/'candidate.patch')],cwd=source,check=True,timeout=20)
  subprocess.run(['git','apply',str(HERE/'candidate.patch')],cwd=source,check=True,timeout=20)
  spec=importlib.util.spec_from_file_location('actual_tu',REPO/'scripts/ci/webkit-pagination-object-preflight.py');m=importlib.util.module_from_spec(spec);spec.loader.exec_module(m)
- m.SOURCES=['Source/WebCore/rendering/RenderBlockFlow.cpp','Source/WebCore/rendering/RenderTable.cpp','Source/WebCore/rendering/RenderTableSection.cpp']
+ m.SOURCES=candidate_gate.sources(tail=os.environ.get('PAGINATION_TAIL')=='true',combined=os.environ.get('PAGINATION_COMBINED')=='true')
  tail_sources={}
  if os.environ.get('PAGINATION_TAIL')=='true':
   import prepare_tail
   tail=prepare_tail.build(source,e/'pagination-tail.patch',write=True)
   assert tail['patchSha256']==hashlib.sha256((HERE/'tail-observation.patch').read_bytes()).hexdigest()
   report['tailObservation']=tail;tail_sources=tail['sources'];persist()
-  m.SOURCES.append('Source/WebCore/page/PrintContext.cpp')
  if os.environ.get('PAGINATION_ROOT_MARGIN')=='true':
   assert os.environ.get('PAGINATION_TAIL')=='true'
   import prepare_root_margin
@@ -52,7 +51,6 @@ try:
   assert receipt_combined['patchSha256']==hashlib.sha256((combined_dir/'combined.patch').read_bytes()).hexdigest()
   report['combined']=receipt_combined
   tail_sources.update({rel.removeprefix('Source/WebCore/'):h for rel,h in receipt_combined['outputs'].items()})
-  m.SOURCES.extend(['Source/WebCore/'+rel for rel in ['platform/graphics/FontCascade.cpp','platform/graphics/GraphicsContext.cpp','platform/graphics/skia/FontSkia.cpp','platform/graphics/skia/GraphicsContextSkia.cpp','platform/graphics/displaylists/DisplayListItems.cpp','platform/graphics/displaylists/DisplayListRecorderImpl.cpp','rendering/OutlinePainter.cpp','rendering/RenderBox.cpp','rendering/RenderLayer.cpp']])
   persist()
  gate=m.run(source,build,e/'pagination-behavior-object-gate',max_objects=13 if combined else 4)
  assert gate['status']=='passed',gate
@@ -60,6 +58,7 @@ try:
   cache=composer.module('combined_cache',combined_dir/'cache_gate.py')
   report['combinedCache']=cache.run(m,source,build,e/'combined-graphics-cache',gate)
  report.update(status='passed',gate=gate,modifiedSourceHashes={rel:hashlib.sha256((source/'Source/WebCore'/rel).read_bytes()).hexdigest() for rel in set(receipt['modified'])|set(tail_sources)})
+ report['continuationGate']=candidate_gate.validate(report,tail=os.environ.get('PAGINATION_TAIL')=='true',combined=combined)
 except Exception as error:report.update(status='failed',error=repr(error))
 finally:persist()
 raise SystemExit(0 if report['status']=='passed'else 1)
