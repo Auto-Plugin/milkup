@@ -29,7 +29,7 @@ class Pagination(unittest.TestCase):
   self.assertIn("inputs.operation != 'pagination-preflight'",flow)
   narrow=flow.split('\n  pagination-preflight:\n')[1]
   self.assertNotIn('build-webkit-private.py',narrow);self.assertNotIn('cache/save@',narrow)
-  self.assertIn('timeout-minutes: 75',narrow);self.assertIn('fail-on-cache-miss: true',narrow)
+  self.assertIn("inputs.operation == 'pagination-segment' && 180 || 75",narrow);self.assertIn('fail-on-cache-miss: true',narrow)
  def test_retained_native_failure_is_exact_missing_inline(self):
   import re
   raw=(ROOT/'research/pdf-pagination-mechanism-20261116/evidence/43788232168/RenderTable-original-compiler.txt').read_text()

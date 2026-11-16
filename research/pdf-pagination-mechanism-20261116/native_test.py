@@ -44,7 +44,10 @@ class NativeContracts(unittest.TestCase):
   self.assertLess(s.index("gate['status']=='passed'"),s.index("['cmake','--build'"))
   self.assertIn('3a84a75ae9aad83e8f93940c4d55b886c6cf2cba069ca087893fa2efe2e443c8',s)
   self.assertEqual(hashlib.sha256((HERE/'observation-only.patch').read_bytes()).hexdigest(),'3a84a75ae9aad83e8f93940c4d55b886c6cf2cba069ca087893fa2efe2e443c8')
-  self.assertIn("row['newMisses']>64",s);self.assertIn("row['seconds']>=1200",s)
+  self.assertIn("'maxSeconds':1200,'maxNewCacheMisses':64",s)
+  self.assertIn("row['newMisses']>report['maxNewCacheMisses']",s)
+  self.assertIn("row['seconds']>=report['maxSeconds']",s)
+  self.assertIn("acceptanceAndRetentionReserveSeconds=3600",s)
 if __name__=='__main__':
  names=['test_lineage_requires_stable_birth_image_uid_and_guardian','test_repeated_headers_required_on_each_data_page','test_frames_are_bounded_and_partial_retained','test_exact_reference_rejects_missing_or_wrong_page_coordinates','test_short_table_does_not_require_fragmentation_but_long_still_does','test_fd_transfer_and_stop_eof']
  suite=unittest.TestSuite([unittest.defaultTestLoader.loadTestsFromTestCase(NativeContracts),*(inherited_tests.Contracts(n)for n in names)])

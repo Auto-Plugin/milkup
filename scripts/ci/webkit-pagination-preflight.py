@@ -64,7 +64,13 @@ try:
  report['compilerSha256']=digest(pathlib.Path(shutil.which('clang++')).resolve())
  run('cache-first-invocation-proof',['python3',str(repo/'scripts/ci/webkit-cache-preflight.py'),'--build',str(build),'--output',str(evidence/'pagination-cache-preflight')],timeout=400)
  report['firstCacheInvocation']=json.loads((evidence/'pagination-cache-preflight/result.json').read_text());persist()
- run('four-actual-tu-gate',['python3',str(repo/'scripts/ci/webkit-pagination-object-preflight.py'),'--source',str(source),'--build',str(build),'--output',str(evidence/'pagination-object-gate')],timeout=1100)
+ inherited=[]
+ if os.environ.get('PAGINATION_OPERATION')=='pagination-segment':
+  old=json.loads((research/'evidence/43789957637/pagination-build-result.json').read_text())
+  for field in ['patchSha256','compilerSha256','configureArgs','toolchain']:
+   assert report[field]==old[field],'Inherited compiler/ABI mismatch: '+field
+  inherited=['--inherit',str(research/'evidence/43789957637/original-artifact.zip')]
+ run('four-actual-tu-gate',['python3',str(repo/'scripts/ci/webkit-pagination-object-preflight.py'),'--source',str(source),'--build',str(build),'--output',str(evidence/'pagination-object-gate'),*inherited],timeout=1100)
  gate=json.loads((evidence/'pagination-object-gate/result.json').read_text());assert gate['status']=='passed'
  report['actualTranslationUnits']=gate['sourceHashes']
  report['status']='passed-four-tu-only-not-native'

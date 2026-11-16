@@ -5,7 +5,7 @@ on:
       operation:
         description: Cheap header/cache preflight or one explicitly approved continuation
         type: choice
-        options: [preflight, resume, pagination-preflight, pagination-diagnostic]
+        options: [preflight, resume, pagination-preflight, pagination-diagnostic, pagination-segment]
         default: preflight
         required: true
       links_research:
@@ -32,6 +32,10 @@ on:
         description: Exact successful same-SHA preflight run required for resume
         type: string
         default: ''
+      pagination_restore_run:
+        description: Optional exact prior pagination-segment object artifact run; mismatches stop
+        type: string
+        default: ''
 permissions:
   contents: read
   actions: read
@@ -40,7 +44,7 @@ concurrency:
   cancel-in-progress: false
 jobs:
   capability:
-    if: github.repository == 'Auto-Plugin/milkup' && inputs.operation != 'pagination-preflight' && inputs.operation != 'pagination-diagnostic'
+    if: github.repository == 'Auto-Plugin/milkup' && inputs.operation != 'pagination-preflight' && inputs.operation != 'pagination-diagnostic' && inputs.operation != 'pagination-segment'
     runs-on: ubuntu-26.04
     timeout-minutes: ${{ inputs.operation == 'preflight' && 30 || inputs.geometry_research && 55 || 355 }}
     env:
@@ -259,11 +263,13 @@ jobs:
           key: webkit-u2604-2526-${{ hashFiles('scripts/ci/build-webkit-private.py', 'research/linux-pdf-unicode-20261114/*.patch', 'research/linux-pdf-links-20261114/*.patch') }}-${{ github.run_id }}
 
   pagination-preflight:
-    if: github.repository == 'Auto-Plugin/milkup' && (inputs.operation == 'pagination-preflight' || inputs.operation == 'pagination-diagnostic')
+    if: github.repository == 'Auto-Plugin/milkup' && (inputs.operation == 'pagination-preflight' || (inputs.operation == 'pagination-diagnostic' || inputs.operation == 'pagination-segment'))
     runs-on: ubuntu-26.04
-    timeout-minutes: 75
+    timeout-minutes: ${{ inputs.operation == 'pagination-segment' && 180 || 75 }}
     env:
       CCACHE_COMPILERCHECK: content
+      PAGINATION_OPERATION: ${{ inputs.operation }}
+      PAGINATION_RESTORE_RUN: ${{ inputs.pagination_restore_run }}
     defaults:
       run:
         shell: bash
@@ -278,6 +284,7 @@ jobs:
           echo "CCACHE_DIR=$RUNNER_TEMP/milkup-webkit-ccache" >> "$GITHUB_ENV"
           echo "PAGINATION_START_EPOCH=$(date +%s)" >> "$GITHUB_ENV"
           python3 scripts/ci/webkit-pagination-preflight-test.py
+          python3 scripts/ci/webkit-pagination-cache-test.py
           python3 research/pdf-pagination-mechanism-20261116/native_test.py
           python3 -m unittest discover -s research/pdf-pagination-mechanism-20261116 -p 'test_*.py'
       - name: Restore one exact existing compiler cache, never a runtime
@@ -295,17 +302,62 @@ jobs:
         env:
           PAGINATION_CACHE_MATCHED_KEY: ${{ steps.objects.outputs.cache-matched-key }}
         run: python3 scripts/ci/webkit-pagination-preflight.py
+      - name: Obtain only a deliberately selected prior object bundle
+        if: inputs.operation == 'pagination-segment' && inputs.pagination_restore_run != ''
+        timeout-minutes: 10
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          [[ "$PAGINATION_RESTORE_RUN" =~ ^[0-9]+$ ]]
+          gh api "repos/Auto-Plugin/milkup/actions/runs/$PAGINATION_RESTORE_RUN" > "$RUNNER_TEMP/milkup-webkit-research/evidence/incoming-object-run.json"
+          python3 - <<'PYVERIFYRUN'
+          import json,os,pathlib
+          p=pathlib.Path(os.environ['RUNNER_TEMP'])/'milkup-webkit-research/evidence/incoming-object-run.json'
+          r=json.loads(p.read_text())
+          assert r['status']=='completed' and r['head_branch']=='dot/linux-webkit-build-probe-20261114'
+          assert r['path']=='.github/workflows/linux-webkit-build-research.yml'
+          PYVERIFYRUN
+          gh run download "$PAGINATION_RESTORE_RUN" --repo Auto-Plugin/milkup --name "milkup-pagination-objects-$PAGINATION_RESTORE_RUN" --dir "$RUNNER_TEMP/pagination-incoming-objects"
+      - name: Prove content-bound transfer and cross-process first cache hits
+        id: cache-transfer
+        if: inputs.operation == 'pagination-segment'
+        timeout-minutes: 15
+        run: |
+          python3 scripts/ci/webkit-pagination-cache-live-test.py "$RUNNER_TEMP/milkup-webkit-research/evidence/segment-synthetic-cache-transfer.json"
+          python3 scripts/ci/webkit-pagination-cache-roundtrip.py
       - name: Only after four TUs pass, bounded cached observation runtime
         id: pagination-engine
-        if: inputs.operation == 'pagination-diagnostic'
-        timeout-minutes: 26
+        if: (inputs.operation == 'pagination-diagnostic' || inputs.operation == 'pagination-segment')
+        timeout-minutes: ${{ inputs.operation == 'pagination-segment' && 96 || 26 }}
         env:
           PAGINATION_OPERATION: ${{ inputs.operation }}
         run: |
-          test "$(( $(date +%s) - PAGINATION_START_EPOCH ))" -lt 1800
+          test "$(( $(date +%s) - PAGINATION_START_EPOCH ))" -lt 5400
           python3 scripts/ci/webkit-pagination-continue.py
+      - name: Preserve verified compiler objects after success or controlled stop
+        id: saved-objects
+        if: always() && inputs.operation == 'pagination-segment' && steps.cache-transfer.outcome == 'success'
+        timeout-minutes: 15
+        run: |
+          python3 - <<'PYSTOPPED'
+          import json,os,pathlib
+          p=pathlib.Path(os.environ['RUNNER_TEMP'])/'milkup-webkit-research/evidence/pagination-continuation.json'
+          r=json.loads(p.read_text())
+          assert r['status']!='running'
+          assert not r['engineBuildAttempted'] or isinstance(r.get('compileExitCode'),int), 'Compiler termination uncertain; refuse snapshot'
+          PYSTOPPED
+          python3 scripts/ci/webkit-pagination-cache.py snapshot --cache "$CCACHE_DIR" --bundle "$RUNNER_TEMP/pagination-object-bundle" --evidence "$RUNNER_TEMP/milkup-webkit-research/evidence" > "$RUNNER_TEMP/milkup-webkit-research/evidence/segment-cache-save.json"
+      - name: Retain content-bound objects only, no runtime or user data
+        if: always() && steps.saved-objects.outcome == 'success'
+        timeout-minutes: 10
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: milkup-pagination-objects-${{ github.run_id }}
+          path: ${{ runner.temp }}/pagination-object-bundle/
+          retention-days: 7
+          if-no-files-found: error
       - name: Official native probe prerequisites and exact retained assets
-        if: inputs.operation == 'pagination-diagnostic'
+        if: (inputs.operation == 'pagination-diagnostic' || inputs.operation == 'pagination-segment') && steps.pagination-engine.outcome == 'success'
         timeout-minutes: 5
         env:
           GH_TOKEN: ${{ github.token }}
@@ -318,7 +370,7 @@ jobs:
           python3 research/pdf-pagination-mechanism-20261116/native_probe.py assets --package "$RUNNER_TEMP/pagination-original-package.zip" --reference "$RUNNER_TEMP/pagination-original-reference.zip" --output "$RUNNER_TEMP/pagination-native"
           dpkg-query -W libwebkit2gtk-4.1-0 libjavascriptcoregtk-4.1-0 fonts-noto-cjk poppler-utils python3-fitz > "$RUNNER_TEMP/pagination-native/runtime-versions.txt"
       - name: Install only the exact previously tested package, bind original guard
-        if: inputs.operation == 'pagination-diagnostic'
+        if: (inputs.operation == 'pagination-diagnostic' || inputs.operation == 'pagination-segment') && steps.pagination-engine.outcome == 'success'
         timeout-minutes: 2
         run: |
           package=("$RUNNER_TEMP"/pagination-native/package/*.deb)
@@ -330,13 +382,13 @@ jobs:
           assert hashlib.sha256(pathlib.Path('/usr/bin/milkup-desktop').read_bytes()).hexdigest()=='42394c4bdcaeea078c7d553acbe6edc7a75f13b16ce5b70cba2d0a3a02176ed6'
           PYVERIFY
       - name: One original-boundary native diagnostic batch, preserve known failures
-        if: inputs.operation == 'pagination-diagnostic'
+        if: (inputs.operation == 'pagination-diagnostic' || inputs.operation == 'pagination-segment') && steps.pagination-engine.outcome == 'success'
         timeout-minutes: 10
         run: |
           set -euo pipefail
           timeout --signal=TERM --kill-after=10s 550s xvfb-run -a -s '-screen 0 1400x1000x24' dbus-run-session -- python3 research/pdf-pagination-mechanism-20261116/native_probe.py run --output "$RUNNER_TEMP/pagination-native" --prefix "$RUNNER_TEMP/milkup-webkit-research/prefix" --manifest "$RUNNER_TEMP/milkup-webkit-research/evidence/pagination-continuation.json" 2>&1 | tee "$RUNNER_TEMP/pagination-native/harness.txt"
       - name: Clean only this run's test installation
-        if: always() && inputs.operation == 'pagination-diagnostic'
+        if: always() && (inputs.operation == 'pagination-diagnostic' || inputs.operation == 'pagination-segment')
         timeout-minutes: 2
         run: |
           if test -f "$RUNNER_TEMP/pagination-native/installation-owned-by-run"; then
@@ -344,7 +396,8 @@ jobs:
             test ! -e /usr/bin/milkup-desktop
           fi
       - name: Retain raw original-boundary native diagnostic evidence
-        if: always() && inputs.operation == 'pagination-diagnostic'
+        timeout-minutes: 5
+        if: always() && (inputs.operation == 'pagination-diagnostic' || inputs.operation == 'pagination-segment')
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: milkup-pagination-native-${{ github.run_id }}
@@ -355,6 +408,7 @@ jobs:
           retention-days: 7
           if-no-files-found: warn
       - name: Retain failure or successful preflight, never claim PDF acceptance
+        timeout-minutes: 5
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:

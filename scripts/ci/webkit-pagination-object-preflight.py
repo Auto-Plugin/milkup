@@ -112,7 +112,7 @@ def expected_old_failure(code,log):
     errors=[line for line in clean.splitlines()if 'error:'in line]
     return code!=0 and len(errors)==1 and "inline function 'WebCore::RenderObject::localToAbsoluteQuad' is not defined"in errors[0] and 'undefined-inline'in errors[0]
 
-def run(source,build,out):
+def run(source,build,out,inherit=None):
     out.mkdir(parents=True,exist_ok=False)
     report={'status':'running','scope':'Generated headers and actual selected translation units; not runtime or PDF acceptance','samples':[]}
     def persist():(out/'result.json').write_text(json.dumps(report,indent=2)+'\n')
@@ -180,6 +180,22 @@ def run(source,build,out):
         assert generated and len(generated)<20000,'Generated header evidence required'
         (out/'generated-header-sha256.json').write_text(json.dumps(generated,indent=2)+'\n')
         report['generatedHeaders']=len(generated)
+        if inherit is not None:
+            import zipfile
+            # Reuse the completed real TU gate only for byte-identical inputs.
+            assert digest(inherit)=='246c49eeb79e581f8dc10242f8305b15f2306182348f1526e3e6a173cc242b84'
+            with zipfile.ZipFile(inherit)as z:
+                def member(suffix):
+                    names=[n for n in z.namelist()if n.endswith(suffix)];assert len(names)==1
+                    return z.read(names[0])
+                old=json.loads(member('pagination-object-gate/result.json'))
+                old_headers=json.loads(member('pagination-object-gate/generated-header-sha256.json'))
+            assert old['status']=='passed'and old['uniqueObjectCommands']==4
+            for field in ['compileDatabaseSha256','sourceHashes','selectedUnits','nameGeneratorSourceHashes']:
+                assert report[field]==old[field], 'Inherited TU input mismatch: '+field
+            assert generated==old_headers,'Generated headers differ from completed TU gate'
+            report.update(status='passed',uniqueObjectCommands=4,inheritedFromRun=43789957637,actualCompilesThisRun=0)
+            return report
         original=print_source.read_bytes();assert 'MilkupPaginationResearch.h' in original.decode()
         invoked=set()
         for relative,entry in selected.items():
@@ -208,5 +224,5 @@ def run(source,build,out):
     return report
 
 if __name__=='__main__':
-    p=argparse.ArgumentParser();p.add_argument('--source',type=pathlib.Path,required=True);p.add_argument('--build',type=pathlib.Path,required=True);p.add_argument('--output',type=pathlib.Path,required=True);a=p.parse_args()
-    r=run(a.source.resolve(),a.build.resolve(),a.output.resolve());print(json.dumps(r));raise SystemExit(0 if r['status']=='passed'else 1)
+    p=argparse.ArgumentParser();p.add_argument('--source',type=pathlib.Path,required=True);p.add_argument('--build',type=pathlib.Path,required=True);p.add_argument('--output',type=pathlib.Path,required=True);p.add_argument('--inherit',type=pathlib.Path);a=p.parse_args()
+    r=run(a.source.resolve(),a.build.resolve(),a.output.resolve(),a.inherit);print(json.dumps(r));raise SystemExit(0 if r['status']=='passed'else 1)
