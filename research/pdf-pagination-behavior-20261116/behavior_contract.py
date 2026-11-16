@@ -20,3 +20,18 @@ def verify_pdf(current,pdf):
  result=calibrate.header_contract(current['papers'][0],pdf)
  assert not result['errors'],('Repeated header contract failed',result['errors'])
  return result
+
+
+def assess_pdf(current,pdf):
+ """Retain independent header evidence even when content/blank-page fails.
+ A product contract failure is a result, never permission to mark the batch passed.
+ Identity and cleanup checks remain outside and must succeed before this function.
+ """
+ assert len(current['papers'])==1
+ headers=calibrate.header_contract(current['papers'][0],pdf)
+ errors=list(current['errors'])+list(headers['errors'])
+ return {'paginationPassed':not errors,'contentErrors':list(current['errors']),
+         'headerErrors':list(headers['errors']),'headers':headers}
+
+def batch_passed(results,expected_cases):
+ return len(results)==len(expected_cases) and [r['case']for r in results]==[c[0]for c in expected_cases] and all(r['paginationPassed']for r in results)

@@ -61,6 +61,7 @@ def run(out,prefix,manifest_path):
   binary=pathlib.Path('/usr/bin/milkup-desktop');assert sha(binary)==calibrate.BINARY_SHA
   guard=calibrate.extract_guard(binary.read_bytes());assert calibrate.sha(guard)==calibrate.GUARD_SHA
   manifest=json.loads(manifest_path.read_text());assert manifest['harnessSha']==os.environ['GITHUB_SHA']
+  if os.environ.get('PAGINATION_TAIL')=='true':assert manifest['tailObservation']['patchSha256']==sha(HERE/'tail-observation.patch')
   verify,expected=runtime_verifier(prefix,manifest);calibrate.verify_private_libraries=verify
   original_proc=calibrate.proc
   def observed_proc(pid):
@@ -74,8 +75,9 @@ def run(out,prefix,manifest_path):
   calibrate.proc=observed_proc;calibrate.prove_chain.__defaults__=(observed_proc,)
   report.update(packageSha256=calibrate.PACKAGE_SHA,binarySha256=calibrate.BINARY_SHA,guardSha256=calibrate.GUARD_SHA,installedBinary=str(binary),runtimeManifestSha256=sha(manifest_path));persist()
   labelled=out/'labelled';fixtures.generate(labelled)
-  from behavior_contract import CASES, adapted_html, verify_pdf
+  from behavior_contract import CASES, adapted_html, assess_pdf, batch_passed
   env=os.environ.copy();env['LD_LIBRARY_PATH']=str(prefix/'lib/x86_64-linux-gnu');env['MILKUP_PAGINATION_PROBE']='1'
+  if os.environ.get('PAGINATION_TAIL')=='true':env['MILKUP_PAGINATION_TAIL']='1'
   with tempfile.TemporaryDirectory(prefix='mkpagination-runtime-',dir='/tmp')as runtime:
    env['XDG_RUNTIME_DIR']=runtime
    for key in ['CONFIG','CACHE','DATA','STATE']:
@@ -105,19 +107,24 @@ def run(out,prefix,manifest_path):
     pagination_audit.audit(dest)
     current=json.loads((dest/'pagination-audit.json').read_text())
     parsed=contract.parse((dest/'native.log').read_text(),len(current['papers'][0]['pages']))
-    header=verify_pdf(current,dest/(paper['name']+'.pdf'))
+    tail=None
+    if os.environ.get('PAGINATION_TAIL')=='true':
+     import tail_contract
+     tail=tail_contract.parse((dest/'native.log').read_text(),parsed)
+     (dest/'tail-layout.json').write_text(json.dumps(tail,indent=2)+'\n')
+    assessment=assess_pdf(current,dest/(paper['name']+'.pdf'))
     # Known text/URI gaps remain explicit. They cannot be replaced by this target gate.
     import fitz
     pdf=fitz.open(dest/(paper['name']+'.pdf'))
     uri=[link.get('uri') for page in pdf for link in page.get_links() if link.get('uri')]
-    row={'case':case,'sourceCase':source_case,'paper':paper,'native':native,'paginationPassed':True,
-         'headers':header,'records':len(parsed['rows']),'observations':contract.observations(parsed),
+    row={'case':case,'sourceCase':source_case,'paper':paper,'native':native,**assessment,'tail':tail,
+         'records':len(parsed['rows']),'observations':contract.observations(parsed),
          'pdfSha256':sha(dest/(paper['name']+'.pdf')),'mappingDiagnostics':current['papers'][0]['mappingDiagnostics'],
          'uriTargets':uri,'expectedDiagnosticUri':'https://example.invalid/pagination',
          'uriDiagnosticPassed':'https://example.invalid/pagination' in uri,
          'productAcceptancePassed':False}
     report['results'].append(row);persist()
-  report['status']='targeted-pagination-passed-not-product-acceptance'
+  report['status']='targeted-pagination-passed-not-product-acceptance' if batch_passed(report['results'],CASES) else 'failed-original-pagination-contract'
  except Exception as error:report.update(status='failed',error=repr(error))
  finally:report['seconds']=round(time.monotonic()-started,3);persist()
  print(json.dumps({k:v for k,v in report.items()if k!='results'},indent=2))

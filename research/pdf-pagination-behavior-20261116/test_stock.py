@@ -1,8 +1,9 @@
 import copy,hashlib,os,pathlib,sys,unittest
+from unittest.mock import patch
 HERE=pathlib.Path(__file__).resolve().parent;BASE=HERE.parent/'pdf-pagination-mechanism-20261116'
 sys.path[:0]=[str(HERE),str(BASE),str(BASE/'support')]
 import stock_capture,stock_probe,fixtures
-from behavior_contract import PAPERS,adapted_html
+from behavior_contract import PAPERS,adapted_html,assess_pdf,batch_passed
 
 class StockTests(unittest.TestCase):
  def row(self):
@@ -33,6 +34,20 @@ class StockTests(unittest.TestCase):
   self.assertEqual(stock_probe.exact_coordinates([row],[row])['words'],693)
   bad=copy.deepcopy(row);bad['words'][0]['box'][0]+=.000001
   with self.assertRaises(AssertionError):stock_probe.exact_coordinates([bad],[row])
+ def test_content_failure_still_keeps_headers_and_later_case(self):
+  cases=[('a',),('b',),('c',)];results=[]
+  for name, in cases:
+   content=['page 9: blank page'] if name=='b' else []
+   with patch('calibrate.header_contract',return_value={'errors':[],'pages':[2,3]}):
+    result=assess_pdf({'papers':[{}],'errors':content},None)
+   results.append({'case':name,**result})
+  self.assertEqual([r['paginationPassed']for r in results],[True,False,True])
+  self.assertEqual(results[1]['headers']['pages'],[2,3])
+  self.assertFalse(batch_passed(results,cases));self.assertFalse(batch_passed(results[:1],cases))
+  results[1]['paginationPassed']=True;self.assertTrue(batch_passed(results,cases))
+  self.assertFalse(batch_passed(results[::-1],cases))
+  with patch('calibrate.header_contract',return_value={'errors':['missing header']}):
+   self.assertFalse(assess_pdf({'papers':[{}],'errors':[]},None)['paginationPassed'])
  def test_no_private_build_or_unbounded_retry(self):
   s=(HERE/'prepare_stock.py').read_text()
   self.assertNotIn("run('source-download'",s);self.assertNotIn('dpkg-source',s)
