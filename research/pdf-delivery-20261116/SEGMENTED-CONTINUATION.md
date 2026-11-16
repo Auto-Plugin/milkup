@@ -62,3 +62,7 @@ and all prerequisite outputs, preserve the same graph and record actual progress
 before estimating full engine completion. Final-prefix runtime closure, package
 install/upgrade/recovery, maintenance/SBOM and same-package native PDF remain
 separate mandatory gates; no research result substitutes for product acceptance.
+
+## Native result
+
+[43864252208](evidence/43864252208/REPORT.md) now proves the two-job 24+4 boundary: no fresh compilation before restoring 24 objects, zero old compiler invocations, four new objects and unchanged old bytes/mtimes. All rejection controls passed. Advanced 28-object checkpoint is preserved; a third restore and arbitrary frontier/PCH support remain unexecuted. No full engine/package/PDF result is claimed.
