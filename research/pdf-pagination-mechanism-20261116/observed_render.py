@@ -60,4 +60,3 @@ def render(binary,guard,html,out,env):
     assert any('WebKitWebProcess' in r['image'] for r in report['processes']),'actual web process identity required'
     assert any(re.search(r'Width:\s+1024\b',w['geometry']) and re.search(r'Height:\s+768\b',w['geometry']) for r in report['processes'] for w in r.get('windows',[])),'actual product output window allocation required'
     return report
-
