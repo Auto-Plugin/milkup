@@ -1,0 +1,63 @@
+{
+  "scope": "configured-static-archive-targets-not-complete-SBOM-or-built-payload",
+  "sourceRun": 43849878532,
+  "sourceSha": "68ed9169ec7cbd21a6fd9c627af423996ddfef7b",
+  "sourceArchiveSha256": "a76345b391bef6211fb5ab6cfab2e86b285d18cda17cbb9ade595f1252b86065",
+  "patchSha256": "855e58cc8ad531cc32e893b8274983a6264e6fdfc248c13e80c5ef0e01d7a4e5",
+  "buildNinjaSha256": "bd0054781d9ac8178b9ffee7142d05b3616faf90cff0b428dc576bccd1826181",
+  "targets": [
+    {
+      "archive": "lib/libANGLE.a",
+      "rule": "CXX_STATIC_LIBRARY_LINKER__ANGLE_Release",
+      "objectCount": 293,
+      "sourceFamilies": {
+        "ANGLE": 293
+      },
+      "compileDatabaseResolvedObjects": 293
+    },
+    {
+      "archive": "lib/libGLESv2.a",
+      "rule": "CXX_STATIC_LIBRARY_LINKER__GLESv2_Release",
+      "objectCount": 13,
+      "sourceFamilies": {
+        "ANGLE": 13
+      },
+      "compileDatabaseResolvedObjects": 13
+    },
+    {
+      "archive": "lib/libxdgmime.a",
+      "rule": "C_STATIC_LIBRARY_LINKER__xdgmime_Release",
+      "objectCount": 8,
+      "sourceFamilies": {
+        "xdgmime": 8
+      },
+      "compileDatabaseResolvedObjects": 8
+    },
+    {
+      "archive": "lib/libSkia.a",
+      "rule": "CXX_STATIC_LIBRARY_LINKER__Skia_Release",
+      "objectCount": 840,
+      "sourceFamilies": {
+        "skia": 840
+      },
+      "compileDatabaseResolvedObjects": 840
+    },
+    {
+      "archive": "lib/libPAL.a",
+      "rule": "CXX_STATIC_LIBRARY_LINKER__PAL_Release",
+      "objectCount": 10,
+      "sourceFamilies": {
+        "WebCore": 6,
+        "generated-or-other": 4
+      },
+      "compileDatabaseResolvedObjects": 10
+    }
+  ],
+  "limits": [
+    "No static archive was built by this gate",
+    "Object libraries linked directly into shared libraries are not enumerated by archive targets",
+    "Header-only and nested vendored dependencies require separate source/license inventory",
+    "Actual ELF needed/symbol versions/install manifest and installed mapping remain required",
+    "This inventory does not assign security maintenance ownership or raise supported-host minimum"
+  ]
+}

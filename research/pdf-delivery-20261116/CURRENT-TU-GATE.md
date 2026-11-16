@@ -17,3 +17,7 @@ Inputs remain the official 2.54.2 archive SHA `a76345b391bef6211fb5ab6cfab2e86b2
 A passing result will be `passed-actual-selected-TUs-not-engine-or-package`. Failure stops this run; there is no retry/automatic continuation. Even success requires a separate measured full-build plan and trusted actual component/resource inventory before packaging. Current generated-config support, host ABI and dependency availability are intentionally measured, not inferred from the old runtime.
 
 Subsequent delivery must retain the same non-developer configuration/flags or explicitly revalidate their changes. Actual app linkage and each WebProcess/NetworkProcess/injected bundle mapping must prove the final prefix; staged ELF checks alone do not. Installation, failed-update recovery, uninstall, editor/IME/plugins and all native PDF cases are not executed in this gate. Security maintenance ownership is still unassigned; no production endpoint/key or publication is configured.
+
+## Latest actual result
+
+43852458294 / ae1f50b4 passed both exact PCH producers and all ten actual selected TUs. See [original evidence and independent verification](evidence/43852458294/REPORT.md). 31 local checks preceded this run. The 43849878532 failure remains preserved. Full engine, package and native acceptance are still unexecuted; cross-job object restoration is not yet proved.

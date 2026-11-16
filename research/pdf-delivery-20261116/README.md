@@ -88,3 +88,5 @@ Keep the old known-good app/runtime pair during a tested upgrade; switch the who
 Default native PDF/printing entry/output and all original release gates remain. There is no claim of a release-ready Linux PDF, physical printing, full complex-script correctness, manual copy/click, or complete five-item release acceptance. No main merge, release, production endpoint/key, personal notification, system runtime or security-setting change occurred.
 
 Latest actual current-source gate: [43849878532 evidence](evidence/43849878532/REPORT.md). SDK, configuration and ordinary headers passed; first selected TU failed on the missing configured PCH, with no successful object. Narrow PCH prerequisite and lossless graph-retention corrections are locally tested only; no automatic rerun or package claim.
+
+Latest successful narrow gate: [43852458294](evidence/43852458294/REPORT.md), exact candidate ae1f50b4. Two PCHs and ten real TUs passed with original arguments; 20 object/depfiles and all configuration parts independently verified. This is not an engine build, package or native-output result.
