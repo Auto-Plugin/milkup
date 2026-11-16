@@ -3,15 +3,26 @@ import ast,hashlib,importlib.util,json,os,pathlib,tempfile,unittest
 from unittest.mock import patch
 import native_probe as native
 import inherited_tests
+import support_integrity
 HERE=pathlib.Path(__file__).resolve().parent
 class NativeContracts(unittest.TestCase):
- def test_original_support_integrity_except_exact_manifest_hook(self):
+ def test_original_support_integrity_except_exact_reviewed_hooks(self):
   receipt=json.loads((HERE/'support/source-receipt.json').read_text())
-  for name in ['launch_helper.py','pagination_audit.py']:
+  for name in ['launch_helper.py']:
    self.assertEqual(hashlib.sha256((HERE/'support'/name).read_bytes()).hexdigest(),receipt[name])
+  support_integrity.verify_audit((HERE/'support/pagination_audit.py').read_bytes(),receipt['pagination_audit.py'])
   s=(HERE/'support/calibrate.py').read_text();self.assertEqual(s.count('verify_private_libraries(libs)'),1)
   original=s.replace('verify_private_libraries(libs)',"assert all(x.startswith('/usr/lib/') for x in libs)")
   self.assertEqual(hashlib.sha256(original.encode()).hexdigest(),receipt['calibrate.py'])
+ def test_uri_representation_delta_cannot_change_thresholds_or_original_receipt(self):
+  original=(HERE/'support/pagination_audit.py').read_bytes()
+  receipt=json.loads((HERE/'support/source-receipt.json').read_text())['pagination_audit.py']
+  delta=(HERE.parent/'pdf-combined-20261116/support-uri-serialization.patch').read_bytes()
+  for changed in [original+b'\n',original.replace(b'mw-2',b'mw-20'),original.replace(b'len(pages) >= 3',b'len(pages) >= 1')]:
+   self.assertNotEqual(changed,original)
+   with self.assertRaises(AssertionError):support_integrity.verify_audit(changed,receipt)
+  with self.assertRaises(AssertionError):support_integrity.verify_audit(original,support_integrity.AFTER)
+  with self.assertRaises(AssertionError):support_integrity.verify_audit(original,receipt,delta+b'\n')
  def test_private_runtime_binding_rejects_system_wrong_bytes_and_mutation(self):
   with tempfile.TemporaryDirectory()as tmp:
    p=pathlib.Path(tmp);paths=[];rows=[]
