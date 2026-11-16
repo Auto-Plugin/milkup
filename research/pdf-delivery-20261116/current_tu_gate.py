@@ -240,7 +240,9 @@ class Gate:
   for name in PCH_GENERATED_HEADERS:
    p=self.build/'WebCore/DerivedSources'/name;assert p.is_file(),('PCH generated input missing',name)
    self.report['pchGeneratedInputs'][name]=digest(p)
-  self.persist();self.before_compilation();failed_pch=set()
+  self.persist()
+  if self.before_compilation() is False:return
+  failed_pch=set()
   for index,entry in enumerate(pch_entries):
    args=entry.get('arguments')or shlex.split(entry['command']);target=args[args.index('-o')+1]
    graph=self.run(f'pch-{index}-graph',['ninja','-t','commands',target],30,self.build)

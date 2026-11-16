@@ -5,7 +5,7 @@ on:
       operation:
         description: Cheap header/cache preflight or one explicitly approved continuation
         type: choice
-        options: [preflight, resume, pagination-preflight, pagination-diagnostic, pagination-segment, stock-paper-control, current-source-preflight, current-source-restore]
+        options: [preflight, resume, pagination-preflight, pagination-diagnostic, pagination-segment, stock-paper-control, current-source-preflight, current-source-restore, current-object-segment]
         default: preflight
         required: true
       links_research:
@@ -53,7 +53,7 @@ concurrency:
   cancel-in-progress: false
 jobs:
   capability:
-    if: github.repository == 'Auto-Plugin/milkup' && inputs.operation != 'pagination-preflight' && inputs.operation != 'pagination-diagnostic' && inputs.operation != 'pagination-segment' && inputs.operation != 'stock-paper-control' && inputs.operation != 'current-source-preflight' && inputs.operation != 'current-source-restore'
+    if: github.repository == 'Auto-Plugin/milkup' && inputs.operation != 'pagination-preflight' && inputs.operation != 'pagination-diagnostic' && inputs.operation != 'pagination-segment' && inputs.operation != 'stock-paper-control' && inputs.operation != 'current-source-preflight' && inputs.operation != 'current-source-restore' && inputs.operation != 'current-object-segment'
     runs-on: ubuntu-26.04
     timeout-minutes: ${{ inputs.operation == 'preflight' && 30 || inputs.geometry_research && 55 || 355 }}
     env:
@@ -556,5 +556,82 @@ jobs:
         with:
           name: milkup-current-source-restore-${{ github.run_id }}
           path: ${{ runner.temp }}/milkup-current-source-gate/evidence/
+          if-no-files-found: error
+          retention-days: 7
+
+  current-segment-build:
+    if: github.repository == 'Auto-Plugin/milkup' && inputs.operation == 'current-object-segment'
+    runs-on: ubuntu-26.04
+    timeout-minutes: 30
+    outputs:
+      checkpoint_sha256: ${{ steps.segment.outputs.checkpoint_sha256 }}
+    steps:
+      - name: Start shared work deadline and reserve evidence time
+        run: echo "CURRENT_GATE_STARTED=$(date +%s)" >> "$GITHUB_ENV"
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - name: Validate all current-source and real checkpoint contracts
+        run: PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s research/pdf-delivery-20261116 -p 'test_current*.py' -v
+      - name: Compile first real dependency batch and capture exact checkpoint
+        id: segment
+        timeout-minutes: 27
+        run: python3 research/pdf-delivery-20261116/current_segment.py --root "$RUNNER_TEMP/milkup-current-source-gate" --started "$CURRENT_GATE_STARTED" --mode build
+      - name: Transfer only identity-bound objects and Ninja metadata
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: milkup-current-segment-checkpoint-${{ github.run_id }}
+          path: ${{ runner.temp }}/milkup-current-source-gate/evidence/checkpoint/
+          if-no-files-found: error
+          retention-days: 7
+      - name: Retain first-job receipts or earliest failure and completed objects
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: milkup-current-segment-build-${{ github.run_id }}
+          path: |
+            ${{ runner.temp }}/milkup-current-source-gate/evidence/
+            !${{ runner.temp }}/milkup-current-source-gate/evidence/checkpoint/
+          if-no-files-found: error
+          retention-days: 7
+
+  current-segment-resume:
+    if: github.repository == 'Auto-Plugin/milkup' && inputs.operation == 'current-object-segment'
+    needs: current-segment-build
+    runs-on: ubuntu-26.04
+    timeout-minutes: 30
+    steps:
+      - name: Start a separate clean-job work deadline
+        run: echo "CURRENT_GATE_STARTED=$(date +%s)" >> "$GITHUB_ENV"
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - name: Validate all current-source and real checkpoint contracts
+        run: PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s research/pdf-delivery-20261116 -p 'test_current*.py' -v
+      - name: Receive only the successful same-run checkpoint
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          name: milkup-current-segment-checkpoint-${{ github.run_id }}
+          path: ${{ runner.temp }}/current-segment-incoming
+      - name: Reject mismatches then prove old batch skipped and new progress
+        timeout-minutes: 27
+        env:
+          CHECKPOINT_SHA: ${{ needs.current-segment-build.outputs.checkpoint_sha256 }}
+        run: python3 research/pdf-delivery-20261116/current_segment.py --root "$RUNNER_TEMP/milkup-current-source-gate" --started "$CURRENT_GATE_STARTED" --mode resume --incoming "$RUNNER_TEMP/current-segment-incoming/checkpoint.tar.gz" --expected-sha "$CHECKPOINT_SHA"
+      - name: Preserve advanced exact checkpoint
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: milkup-current-segment-resumed-checkpoint-${{ github.run_id }}
+          path: ${{ runner.temp }}/milkup-current-source-gate/evidence/checkpoint/
+          if-no-files-found: error
+          retention-days: 7
+      - name: Retain clean-job evidence including any rejected restore
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: milkup-current-segment-resume-${{ github.run_id }}
+          path: |
+            ${{ runner.temp }}/milkup-current-source-gate/evidence/
+            !${{ runner.temp }}/milkup-current-source-gate/evidence/checkpoint/
           if-no-files-found: error
           retention-days: 7
