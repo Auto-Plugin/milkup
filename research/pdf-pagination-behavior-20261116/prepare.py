@@ -12,7 +12,7 @@ def build(source,out):
  modified=dict(original)
  f=modified['rendering/RenderBlockFlow.cpp']
  f=once(f,'#include "RenderTableCellInlines.h"','#include "RenderTableCellInlines.h"\n#include "RenderTableSection.h"\n#include "RenderTableRow.h"\n#include "FragmentKeepPolicy.h"')
- f=once(f,'LayoutUnit RenderBlockFlow::adjustForUnsplittableChild(', (HERE/'keep.cpp.inc').read_text()+'LayoutUnit RenderBlockFlow::adjustForUnsplittableChild(')
+ f=once(f,'LayoutUnit RenderBlockFlow::adjustForUnsplittableChild(', (HERE/'keep.cpp.inc').read_text()+'\nLayoutUnit RenderBlockFlow::adjustForUnsplittableChild(')
  anchor='    bool isUnsplittable = childBoxIsUnsplittableForFragmentation(child);'
  f=once(f,anchor,'''    if (document().printing() && writingMode().isHorizontal() && !enclosingFragmentedFlow()) {
         if (auto prefix = leadingTableFragment(child)) {

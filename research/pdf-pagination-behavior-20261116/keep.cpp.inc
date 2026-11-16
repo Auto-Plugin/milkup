@@ -29,4 +29,3 @@ static std::optional<LayoutUnit> leadingTableFragment(RenderBox& child)
         return std::nullopt;
     return prefix;
 }
-
