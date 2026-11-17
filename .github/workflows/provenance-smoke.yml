@@ -1,0 +1,87 @@
+name: Isolated provenance receipt smoke (no build)
+on:
+  push:
+    branches: [dot/provenance-smoke-20261117]
+    paths:
+      - .github/workflows/provenance-smoke.yml
+      - research/build-capture-tools/**
+permissions:
+  contents: read
+concurrency:
+  group: isolated-provenance-smoke-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  durable-provenance:
+    if: github.repository == 'Auto-Plugin/milkup' && github.event_name == 'push' && github.ref == 'refs/heads/dot/provenance-smoke-20261117' && !github.event.deleted
+    runs-on: ubuntu-26.04
+    timeout-minutes: 10
+    outputs:
+      receipt_sha: ${{ steps.receipt.outputs.receipt_sha }}
+    env:
+      PYTHONDONTWRITEBYTECODE: '1'
+      PROBE_MODE: smoke
+    steps:
+      - name: Initialize bounded non-sensitive failure receipt before checkout
+        run: |
+          mkdir "$RUNNER_TEMP/provenance-private" "$RUNNER_TEMP/provenance-public"
+          printf '%s\n' '{"schema":1,"status":"incomplete","phase":"checkout","fullEngineBuilt":false,"completeSbom":false}' > "$RUNNER_TEMP/provenance-public/status.json"
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+          fetch-depth: 1
+          sparse-checkout: |
+            research/build-capture-tools
+            research/pdf-delivery-20261116
+            .github/workflows
+      - name: Contracts and same-product probe; raw evidence stays private
+        timeout-minutes: 8
+        run: |
+          set +e
+          timeout --signal=TERM --kill-after=10s 240s python3 -m unittest discover -s research/build-capture-tools -p 'test*.py' > "$RUNNER_TEMP/provenance-private/tests.log" 2>&1
+          tests_code=$?
+          timeout --signal=TERM --kill-after=10s 180s python3 research/build-capture-tools/durable_probe.py run --mode "$PROBE_MODE" --tests-code "$tests_code" --private "$RUNNER_TEMP/provenance-private" > "$RUNNER_TEMP/provenance-private/driver.log" 2>&1
+          exit $?
+      - name: Closed-schema compact receipt, never raw audit or evidence
+        id: receipt
+        if: always()
+        run: |
+          if test -f research/build-capture-tools/durable_probe.py; then
+            python3 research/build-capture-tools/durable_probe.py publish --private "$RUNNER_TEMP/provenance-private" --public "$RUNNER_TEMP/provenance-public"
+            python3 research/build-capture-tools/durable_probe.py validate --receipt "$RUNNER_TEMP/provenance-public/status.json"
+          else
+            test "$(wc -c < "$RUNNER_TEMP/provenance-public/status.json")" -lt 4096
+          fi
+          echo "receipt_sha=$(sha256sum "$RUNNER_TEMP/provenance-public/status.json" | cut -d' ' -f1)" >> "$GITHUB_OUTPUT"
+      - name: Retain only the reviewed compact status JSON
+        if: always() && steps.receipt.outcome == 'success'
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: milkup-provenance-status-${{ github.run_id }}
+          path: ${{ runner.temp }}/provenance-public/status.json
+          if-no-files-found: error
+          retention-days: 30
+
+  durable-receipt-check:
+    needs: durable-provenance
+    if: always() && needs.durable-provenance.outputs.receipt_sha != ''
+    runs-on: ubuntu-26.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+          fetch-depth: 1
+          sparse-checkout: |
+            research/build-capture-tools
+            research/pdf-delivery-20261116
+            .github/workflows
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          name: milkup-provenance-status-${{ github.run_id }}
+          path: ${{ runner.temp }}/provenance-received
+      - name: Verify immutable receipt in a clean job; incomplete stays failed
+        env:
+          EXPECTED_SHA: ${{ needs.durable-provenance.outputs.receipt_sha }}
+        run: |
+          printf '%s  %s\n' "$EXPECTED_SHA" "$RUNNER_TEMP/provenance-received/status.json" | sha256sum --check
+          python3 research/build-capture-tools/durable_probe.py check --receipt "$RUNNER_TEMP/provenance-received/status.json"
