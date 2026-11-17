@@ -1,0 +1,89 @@
+name: Isolated QuickJS reconstruction research
+on:
+  push:
+    branches: [dot/quickjs-repro-trial-20261117]
+    paths:
+      - .github/workflows/quickjs-repro-research.yml
+      - research/quickjs-repro-tools/**
+permissions:
+  contents: read
+concurrency:
+  group: isolated-quickjs-research-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  trial:
+    if: github.repository == 'Auto-Plugin/milkup' && github.event_name == 'push' && github.ref == 'refs/heads/dot/quickjs-repro-trial-20261117' && !github.event.deleted
+    runs-on: ubuntu-26.04
+    timeout-minutes: 30
+    outputs:
+      receipt_sha: ${{ steps.receipt.outputs.receipt_sha }}
+    env:
+      PYTHONDONTWRITEBYTECODE: '1'
+    steps:
+      - name: Initialize conservative compact receipt
+        run: |
+          mkdir "$RUNNER_TEMP/quickjs-private" "$RUNNER_TEMP/quickjs-public"
+          printf '%s\n' '{"schema":1,"status":"incomplete","phase":"checkout","errorCode":"interrupted","runs":[],"abiDisposition":"not-run","historicalCompilerProved":false,"licenseClosureComplete":false,"nativePdfTested":false,"packageBound":false,"publicationReady":false}' > "$RUNNER_TEMP/quickjs-public/status.json"
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+          fetch-depth: 1
+          sparse-checkout: |
+            research/quickjs-repro-tools
+            .github/workflows/quickjs-repro-research.yml
+          sparse-checkout-cone-mode: false
+      - name: Focused contracts and two isolated compiler trials
+        timeout-minutes: 27
+        run: |
+          set +e
+          timeout --signal=TERM --kill-after=10s 60s python3 -m unittest discover -s research/quickjs-repro-tools -p 'test*.py' > "$RUNNER_TEMP/quickjs-private/tests.log" 2>&1
+          tests_code=$?
+          timeout --signal=TERM --kill-after=20s 1560s python3 research/quickjs-repro-tools/probe.py run --tests-code "$tests_code" --private "$RUNNER_TEMP/quickjs-private" > "$RUNNER_TEMP/quickjs-private/driver.log" 2>&1
+          exit $?
+      - name: Remove only this run's owned research containers
+        if: always()
+        run: |
+          if test -f research/quickjs-repro-tools/probe.py; then
+            python3 research/quickjs-repro-tools/probe.py cleanup --private "$RUNNER_TEMP/quickjs-private" > "$RUNNER_TEMP/quickjs-private/cleanup.log" 2>&1
+          fi
+      - name: Validate only the closed compact result
+        id: receipt
+        if: always()
+        run: |
+          if test -f research/quickjs-repro-tools/probe.py; then
+            python3 research/quickjs-repro-tools/probe.py publish --private "$RUNNER_TEMP/quickjs-private" --public "$RUNNER_TEMP/quickjs-public"
+          else
+            test "$(wc -c < "$RUNNER_TEMP/quickjs-public/status.json")" -lt 4096
+          fi
+          echo "receipt_sha=$(sha256sum "$RUNNER_TEMP/quickjs-public/status.json" | cut -d' ' -f1)" >> "$GITHUB_OUTPUT"
+      - name: Retain only reviewed test outcomes and digests
+        if: always() && steps.receipt.outcome == 'success'
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: milkup-quickjs-status-${{ github.run_id }}
+          path: ${{ runner.temp }}/quickjs-public/status.json
+          if-no-files-found: error
+          retention-days: 30
+  receipt-check:
+    needs: trial
+    if: always() && needs.trial.outputs.receipt_sha != ''
+    runs-on: ubuntu-26.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+          fetch-depth: 1
+          sparse-checkout: |
+            research/quickjs-repro-tools
+          sparse-checkout-cone-mode: false
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          name: milkup-quickjs-status-${{ github.run_id }}
+          path: ${{ runner.temp }}/quickjs-received
+      - name: Verify compact receipt in clean job; no release claim
+        env:
+          EXPECTED_SHA: ${{ needs.trial.outputs.receipt_sha }}
+        run: |
+          printf '%s  %s\n' "$EXPECTED_SHA" "$RUNNER_TEMP/quickjs-received/status.json" | sha256sum --check
+          python3 research/quickjs-repro-tools/probe.py check --receipt "$RUNNER_TEMP/quickjs-received/status.json"
