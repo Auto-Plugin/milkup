@@ -1,0 +1,49 @@
+name: Isolated real WebKit configure admission (no engine build)
+on:
+  push:
+    branches: [dot/provenance-configure-20261117]
+    paths:
+      - .github/workflows/provenance-configure.yml
+      - research/build-capture-tools/hosted_admission.py
+      - research/build-capture-tools/hosted_verify.py
+      - research/build-capture-tools/test_hosted_admission.py
+permissions:
+  contents: read
+concurrency:
+  group: isolated-provenance-configure-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  real-configure-admission:
+    if: github.repository == 'Auto-Plugin/milkup' && github.event_name == 'push' && github.ref == 'refs/heads/dot/provenance-configure-20261117' && !github.event.deleted
+    runs-on: ubuntu-26.04
+    timeout-minutes: 55
+    env:
+      PYTHONDONTWRITEBYTECODE: '1'
+    steps:
+      - name: Prepare private run directory
+        run: mkdir "$RUNNER_TEMP/provenance-configure-private"
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+          fetch-depth: 1
+          sparse-checkout: |
+            research/build-capture-tools
+            research/pdf-delivery-20261116
+            scripts/ci
+            .github/workflows
+      - name: Real pinned configure, source sealing and separate verifier
+        timeout-minutes: 50
+        run: |
+          set +e
+          timeout --signal=TERM --kill-after=10s 240s python3 -m unittest discover -s research/build-capture-tools -p 'test*.py' > "$RUNNER_TEMP/provenance-configure-private/tests.log" 2>&1
+          tests_code=$?
+          timeout --signal=TERM --kill-after=10s 45m python3 research/build-capture-tools/hosted_admission.py run "$RUNNER_TEMP/provenance-configure-private" --tests-code "$tests_code" > "$RUNNER_TEMP/provenance-configure-private/driver.log" 2>&1
+          exit $?
+      - name: Print only closed-schema compact outcome, never raw evidence
+        if: always()
+        run: |
+          if test -f research/build-capture-tools/hosted_admission.py; then
+            python3 research/build-capture-tools/hosted_admission.py publish "$RUNNER_TEMP/provenance-configure-private"
+          else
+            printf '%s\n' '{"schema":1,"status":"incomplete","phase":"setup","errorCode":"missing-status","configured":false,"sourceSealed":false,"independentVerifierPassed":false,"fullBuildAdmitted":false,"fullEngineBuilt":false,"completeSbom":false,"mapCompared":false,"privateEvidenceDurable":false}'
+          fi
