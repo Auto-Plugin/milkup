@@ -16,9 +16,9 @@ jobs:
       github.ref == 'refs/heads/v2' &&
       github.event_name == 'push' &&
       github.event.deleted == false &&
-      github.event.before == '8f144679eb43aa97477c8107f66295ae6976aaf9' &&
+      github.event.before == '19ba976bd6994b7549958409890202f6f517c58b' &&
       github.run_attempt == 1 &&
-      contains(github.event.head_commit.message, '[webkit-ubuntu-827-once]')
+      contains(github.event.head_commit.message, '[webkit-ubuntu-832-isolated-once]')
     runs-on: ubuntu-26.04
     timeout-minutes: 60
     steps:
@@ -39,7 +39,7 @@ jobs:
               git -C "$repo" -c credential.helper= fetch --filter=blob:none --depth=2 --no-tags https://github.com/Auto-Plugin/milkup.git "$SOURCE_SHA"
               git -C "$repo" -c credential.helper= checkout --detach FETCH_HEAD
               test "$(git -C "$repo" rev-parse HEAD)" = "$SOURCE_SHA"
-              test "$(git -C "$repo" rev-parse HEAD^)" = "8f144679eb43aa97477c8107f66295ae6976aaf9"
+              test "$(git -C "$repo" rev-parse HEAD^)" = "19ba976bd6994b7549958409890202f6f517c58b"
               python3 "$repo/scripts/release/webkit-ubuntu-configure/check-inputs.py" "$repo"
             '
       - name: Authenticated SDK, actual Clang, GTK3 configure and bounded resource

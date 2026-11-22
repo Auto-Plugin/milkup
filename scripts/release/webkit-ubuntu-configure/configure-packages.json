@@ -19,7 +19,10 @@
     "bison",
     "flex",
     "libwoff-dev",
-    "libbacktrace-dev=0.1-4build1"
+    "libbacktrace-dev=0.1-4build1",
+    "gettext=0.23.2-1",
+    "dash=0.5.12-12ubuntu3",
+    "coreutils=9.5-1ubuntu2+0.0.0~ubuntu25"
   ],
   "packages": [
     {
@@ -100,6 +103,182 @@
       "index": "archive.ubuntu.com_ubuntu_dists_resolute-updates_main_binary-amd64_Packages"
     },
     {
+      "package": "libpcre2-8-0",
+      "version": "10.46-1ubuntu0.1",
+      "architecture": "amd64",
+      "url": "https://archive.ubuntu.com/ubuntu/pool/main/p/pcre2/libpcre2-8-0_10.46-1ubuntu0.1_amd64.deb",
+      "file": "libpcre2-8-0_10.46-1ubuntu0.1_amd64.deb",
+      "bytes": 257422,
+      "installedBytes": 726016,
+      "sha256": "44ebbeb6493eacffbc460ca71446959ba86a00b2e23515e4cfb1a5cc317d6672",
+      "index": "security.ubuntu.com_ubuntu_dists_resolute-security_main_binary-amd64_Packages"
+    },
+    {
+      "package": "libselinux1",
+      "version": "3.9-4build1",
+      "architecture": "amd64",
+      "url": "https://archive.ubuntu.com/ubuntu/pool/main/libs/libselinux/libselinux1_3.9-4build1_amd64.deb",
+      "file": "libselinux1_3.9-4build1_amd64.deb",
+      "bytes": 90316,
+      "installedBytes": 233472,
+      "sha256": "3ce3aea44b2ec00780c48b1b8e1f7e672166ec3ccac14b0eae8890e55983061e",
+      "index": "archive.ubuntu.com_ubuntu_dists_resolute_main_binary-amd64_Packages"
+    },
+    {
+      "package": "libsystemd0",
+      "version": "259.9-0ubuntu0.1",
+      "architecture": "amd64",
+      "url": "https://archive.ubuntu.com/ubuntu/pool/main/s/systemd/libsystemd0_259.9-0ubuntu0.1_amd64.deb",
+      "file": "libsystemd0_259.9-0ubuntu0.1_amd64.deb",
+      "bytes": 481432,
+      "installedBytes": 1238016,
+      "sha256": "b255521b18a289d40149e93aef1ee881fb8d25c16fa0993db97c4168f4f82bb1",
+      "index": "archive.ubuntu.com_ubuntu_dists_resolute-updates_main_binary-amd64_Packages"
+    },
+    {
+      "package": "rust-coreutils",
+      "version": "0.10.0-1ubuntu2~26.04.1",
+      "architecture": "amd64",
+      "url": "https://archive.ubuntu.com/ubuntu/pool/main/r/rust-coreutils/rust-coreutils_0.10.0-1ubuntu2%7e26.04.1_amd64.deb",
+      "file": "rust-coreutils_0.10.0-1ubuntu2~26.04.1_amd64.deb",
+      "bytes": 4515460,
+      "installedBytes": 16731136,
+      "sha256": "963dbc5efa92141e7056a9e9f3431ec7f352f2a7c762f2b3242443df39be9115",
+      "index": "security.ubuntu.com_ubuntu_dists_resolute-security_main_binary-amd64_Packages"
+    },
+    {
+      "package": "libacl1",
+      "version": "2.3.2-2",
+      "architecture": "amd64",
+      "url": "https://archive.ubuntu.com/ubuntu/pool/main/a/acl/libacl1_2.3.2-2_amd64.deb",
+      "file": "libacl1_2.3.2-2_amd64.deb",
+      "bytes": 16752,
+      "installedBytes": 75776,
+      "sha256": "77f8d49c031182bbd6c4fe4ec9ad49edb5d4607f2dac795fc6932dce0e8f541e",
+      "index": "archive.ubuntu.com_ubuntu_dists_resolute_main_binary-amd64_Packages"
+    },
+    {
+      "package": "libattr1",
+      "version": "1:2.5.2-4ubuntu0.1",
+      "architecture": "amd64",
+      "url": "https://archive.ubuntu.com/ubuntu/pool/main/a/attr/libattr1_2.5.2-4ubuntu0.1_amd64.deb",
+      "file": "libattr1_1%3a2.5.2-4ubuntu0.1_amd64.deb",
+      "bytes": 12030,
+      "installedBytes": 62464,
+      "sha256": "c10b6191e2c58c110af0d648cbbde2e55c5cfa30326c5c6051bdcf0a12ec2d21",
+      "index": "security.ubuntu.com_ubuntu_dists_resolute-security_main_binary-amd64_Packages"
+    },
+    {
+      "package": "libgmp10",
+      "version": "2:6.3.0+dfsg-5ubuntu2",
+      "architecture": "amd64",
+      "url": "https://archive.ubuntu.com/ubuntu/pool/main/g/gmp/libgmp10_6.3.0%2bdfsg-5ubuntu2_amd64.deb",
+      "file": "libgmp10_2%3a6.3.0+dfsg-5ubuntu2_amd64.deb",
+      "bytes": 256686,
+      "installedBytes": 565248,
+      "sha256": "a9bbe9d4a4bcd5875bbd0f53e67c379bc881d1c1a80522d51dfb4b107cc31819",
+      "index": "archive.ubuntu.com_ubuntu_dists_resolute_main_binary-amd64_Packages"
+    },
+    {
+      "package": "libzstd1",
+      "version": "1.5.7+dfsg-3",
+      "architecture": "amd64",
+      "url": "https://archive.ubuntu.com/ubuntu/pool/main/libz/libzstd/libzstd1_1.5.7%2bdfsg-3_amd64.deb",
+      "file": "libzstd1_1.5.7+dfsg-3_amd64.deb",
+      "bytes": 308174,
+      "installedBytes": 821248,
+      "sha256": "34365d611ccf1f717f90a92fbe52ed96ae1829ab9be363c68a83563322797f8f",
+      "index": "archive.ubuntu.com_ubuntu_dists_resolute_main_binary-amd64_Packages"
+    },
+    {
+      "package": "zlib1g",
+      "version": "1:1.3.dfsg+really1.3.1-1ubuntu3.2",
+      "architecture": "amd64",
+      "url": "https://archive.ubuntu.com/ubuntu/pool/main/z/zlib/zlib1g_1.3.dfsg%2breally1.3.1-1ubuntu3.2_amd64.deb",
+      "file": "zlib1g_1%3a1.3.dfsg+really1.3.1-1ubuntu3.2_amd64.deb",
+      "bytes": 61786,
+      "installedBytes": 173056,
+      "sha256": "10084666f747247550c3e82f9a12cbfd9184c19241a42eb34d8893ecb8e03b35",
+      "index": "security.ubuntu.com_ubuntu_dists_resolute-security_main_binary-amd64_Packages"
+    },
+    {
+      "package": "libssl3t64",
+      "version": "3.5.5-1ubuntu3.7",
+      "architecture": "amd64",
+      "url": "https://archive.ubuntu.com/ubuntu/pool/main/o/openssl/libssl3t64_3.5.5-1ubuntu3.7_amd64.deb",
+      "file": "libssl3t64_3.5.5-1ubuntu3.7_amd64.deb",
+      "bytes": 2368026,
+      "installedBytes": 8182784,
+      "sha256": "3ff73e121f6cd4f19e80ab4329dfd914108b3936c9db3708200203a9b245b34d",
+      "index": "security.ubuntu.com_ubuntu_dists_resolute-security_main_binary-amd64_Packages"
+    },
+    {
+      "package": "openssl-provider-legacy",
+      "version": "3.5.5-1ubuntu3.7",
+      "architecture": "amd64",
+      "url": "https://archive.ubuntu.com/ubuntu/pool/main/o/openssl/openssl-provider-legacy_3.5.5-1ubuntu3.7_amd64.deb",
+      "file": "openssl-provider-legacy_3.5.5-1ubuntu3.7_amd64.deb",
+      "bytes": 39682,
+      "installedBytes": 434176,
+      "sha256": "51cf418571059831096abd40e0bd5debaa1ae48a6f8d87d9e4e5f7f12aa4db52",
+      "index": "security.ubuntu.com_ubuntu_dists_resolute-security_main_binary-amd64_Packages"
+    },
+    {
+      "package": "gnu-coreutils",
+      "version": "9.7-3ubuntu2.1",
+      "architecture": "amd64",
+      "url": "https://archive.ubuntu.com/ubuntu/pool/main/c/coreutils/gnu-coreutils_9.7-3ubuntu2.1_amd64.deb",
+      "file": "gnu-coreutils_9.7-3ubuntu2.1_amd64.deb",
+      "bytes": 1338766,
+      "installedBytes": 7081984,
+      "sha256": "d9a6724f507759ac06d8b0214e4d31d67a4e6647be4d770a70a1d43041be5fa3",
+      "index": "security.ubuntu.com_ubuntu_dists_resolute-security_main_binary-amd64_Packages"
+    },
+    {
+      "package": "coreutils-from-uutils",
+      "version": "0.0.0~ubuntu25",
+      "architecture": "all",
+      "url": "https://archive.ubuntu.com/ubuntu/pool/main/c/coreutils-from/coreutils-from-uutils_0.0.0%7eubuntu25_all.deb",
+      "file": "coreutils-from-uutils_0.0.0~ubuntu25_all.deb",
+      "bytes": 7124,
+      "installedBytes": 242688,
+      "sha256": "fd89943a93fdb3e2746faff8fe1bb23106dbdd6c891df0f50fe2f8b42d6f089d",
+      "index": "archive.ubuntu.com_ubuntu_dists_resolute_main_binary-amd64_Packages"
+    },
+    {
+      "package": "coreutils",
+      "version": "9.5-1ubuntu2+0.0.0~ubuntu25",
+      "architecture": "all",
+      "url": "https://archive.ubuntu.com/ubuntu/pool/main/c/coreutils-from/coreutils_9.5-1ubuntu2%2b0.0.0%7eubuntu25_all.deb",
+      "file": "coreutils_9.5-1ubuntu2+0.0.0~ubuntu25_all.deb",
+      "bytes": 3060,
+      "installedBytes": 10240,
+      "sha256": "048eed9011f2dab8260beec1246994118e5406b740c81020e4d7f556ea32fcdf",
+      "index": "archive.ubuntu.com_ubuntu_dists_resolute_main_binary-amd64_Packages"
+    },
+    {
+      "package": "debianutils",
+      "version": "5.23.2build1",
+      "architecture": "amd64",
+      "url": "https://archive.ubuntu.com/ubuntu/pool/main/d/debianutils/debianutils_5.23.2build1_amd64.deb",
+      "file": "debianutils_5.23.2build1_amd64.deb",
+      "bytes": 93254,
+      "installedBytes": 234496,
+      "sha256": "eb155f0a9531b5f3b1c06e0e415c4cd7e01777e7714cf51ac094fa6afa01638f",
+      "index": "archive.ubuntu.com_ubuntu_dists_resolute_main_binary-amd64_Packages"
+    },
+    {
+      "package": "dash",
+      "version": "0.5.12-12ubuntu3",
+      "architecture": "amd64",
+      "url": "https://archive.ubuntu.com/ubuntu/pool/main/d/dash/dash_0.5.12-12ubuntu3_amd64.deb",
+      "file": "dash_0.5.12-12ubuntu3_amd64.deb",
+      "bytes": 96008,
+      "installedBytes": 204800,
+      "sha256": "563091a9b615a5a59951c2cc4478163d099df366a051113e8ce5bb2baab7f0c8",
+      "index": "archive.ubuntu.com_ubuntu_dists_resolute_main_binary-amd64_Packages"
+    },
+    {
       "package": "libbz2-1.0",
       "version": "1.0.8-6ubuntu0.1",
       "architecture": "amd64",
@@ -130,61 +309,6 @@
       "bytes": 27252,
       "installedBytes": 80896,
       "sha256": "da684bb562e167721ae38366586aaee0b4cc580b9ee6d0220128b15ef9c5be75",
-      "index": "archive.ubuntu.com_ubuntu_dists_resolute_main_binary-amd64_Packages"
-    },
-    {
-      "package": "libpcre2-8-0",
-      "version": "10.46-1ubuntu0.1",
-      "architecture": "amd64",
-      "url": "https://archive.ubuntu.com/ubuntu/pool/main/p/pcre2/libpcre2-8-0_10.46-1ubuntu0.1_amd64.deb",
-      "file": "libpcre2-8-0_10.46-1ubuntu0.1_amd64.deb",
-      "bytes": 257422,
-      "installedBytes": 726016,
-      "sha256": "44ebbeb6493eacffbc460ca71446959ba86a00b2e23515e4cfb1a5cc317d6672",
-      "index": "security.ubuntu.com_ubuntu_dists_resolute-security_main_binary-amd64_Packages"
-    },
-    {
-      "package": "libselinux1",
-      "version": "3.9-4build1",
-      "architecture": "amd64",
-      "url": "https://archive.ubuntu.com/ubuntu/pool/main/libs/libselinux/libselinux1_3.9-4build1_amd64.deb",
-      "file": "libselinux1_3.9-4build1_amd64.deb",
-      "bytes": 90316,
-      "installedBytes": 233472,
-      "sha256": "3ce3aea44b2ec00780c48b1b8e1f7e672166ec3ccac14b0eae8890e55983061e",
-      "index": "archive.ubuntu.com_ubuntu_dists_resolute_main_binary-amd64_Packages"
-    },
-    {
-      "package": "libzstd1",
-      "version": "1.5.7+dfsg-3",
-      "architecture": "amd64",
-      "url": "https://archive.ubuntu.com/ubuntu/pool/main/libz/libzstd/libzstd1_1.5.7%2bdfsg-3_amd64.deb",
-      "file": "libzstd1_1.5.7+dfsg-3_amd64.deb",
-      "bytes": 308174,
-      "installedBytes": 821248,
-      "sha256": "34365d611ccf1f717f90a92fbe52ed96ae1829ab9be363c68a83563322797f8f",
-      "index": "archive.ubuntu.com_ubuntu_dists_resolute_main_binary-amd64_Packages"
-    },
-    {
-      "package": "zlib1g",
-      "version": "1:1.3.dfsg+really1.3.1-1ubuntu3.2",
-      "architecture": "amd64",
-      "url": "https://archive.ubuntu.com/ubuntu/pool/main/z/zlib/zlib1g_1.3.dfsg%2breally1.3.1-1ubuntu3.2_amd64.deb",
-      "file": "zlib1g_1%3a1.3.dfsg+really1.3.1-1ubuntu3.2_amd64.deb",
-      "bytes": 61786,
-      "installedBytes": 173056,
-      "sha256": "10084666f747247550c3e82f9a12cbfd9184c19241a42eb34d8893ecb8e03b35",
-      "index": "security.ubuntu.com_ubuntu_dists_resolute-security_main_binary-amd64_Packages"
-    },
-    {
-      "package": "libacl1",
-      "version": "2.3.2-2",
-      "architecture": "amd64",
-      "url": "https://archive.ubuntu.com/ubuntu/pool/main/a/acl/libacl1_2.3.2-2_amd64.deb",
-      "file": "libacl1_2.3.2-2_amd64.deb",
-      "bytes": 16752,
-      "installedBytes": 75776,
-      "sha256": "77f8d49c031182bbd6c4fe4ec9ad49edb5d4607f2dac795fc6932dce0e8f541e",
       "index": "archive.ubuntu.com_ubuntu_dists_resolute_main_binary-amd64_Packages"
     },
     {
@@ -273,94 +397,6 @@
       "bytes": 37266,
       "installedBytes": 114688,
       "sha256": "2439c70d04fa6148b1bf3ae2b77d999d8c0906fbd540c60a2bc0463a43b7a9b3",
-      "index": "archive.ubuntu.com_ubuntu_dists_resolute_main_binary-amd64_Packages"
-    },
-    {
-      "package": "libsystemd0",
-      "version": "259.9-0ubuntu0.1",
-      "architecture": "amd64",
-      "url": "https://archive.ubuntu.com/ubuntu/pool/main/s/systemd/libsystemd0_259.9-0ubuntu0.1_amd64.deb",
-      "file": "libsystemd0_259.9-0ubuntu0.1_amd64.deb",
-      "bytes": 481432,
-      "installedBytes": 1238016,
-      "sha256": "b255521b18a289d40149e93aef1ee881fb8d25c16fa0993db97c4168f4f82bb1",
-      "index": "archive.ubuntu.com_ubuntu_dists_resolute-updates_main_binary-amd64_Packages"
-    },
-    {
-      "package": "rust-coreutils",
-      "version": "0.10.0-1ubuntu2~26.04.1",
-      "architecture": "amd64",
-      "url": "https://archive.ubuntu.com/ubuntu/pool/main/r/rust-coreutils/rust-coreutils_0.10.0-1ubuntu2%7e26.04.1_amd64.deb",
-      "file": "rust-coreutils_0.10.0-1ubuntu2~26.04.1_amd64.deb",
-      "bytes": 4515460,
-      "installedBytes": 16731136,
-      "sha256": "963dbc5efa92141e7056a9e9f3431ec7f352f2a7c762f2b3242443df39be9115",
-      "index": "security.ubuntu.com_ubuntu_dists_resolute-security_main_binary-amd64_Packages"
-    },
-    {
-      "package": "libattr1",
-      "version": "1:2.5.2-4ubuntu0.1",
-      "architecture": "amd64",
-      "url": "https://archive.ubuntu.com/ubuntu/pool/main/a/attr/libattr1_2.5.2-4ubuntu0.1_amd64.deb",
-      "file": "libattr1_1%3a2.5.2-4ubuntu0.1_amd64.deb",
-      "bytes": 12030,
-      "installedBytes": 62464,
-      "sha256": "c10b6191e2c58c110af0d648cbbde2e55c5cfa30326c5c6051bdcf0a12ec2d21",
-      "index": "security.ubuntu.com_ubuntu_dists_resolute-security_main_binary-amd64_Packages"
-    },
-    {
-      "package": "libgmp10",
-      "version": "2:6.3.0+dfsg-5ubuntu2",
-      "architecture": "amd64",
-      "url": "https://archive.ubuntu.com/ubuntu/pool/main/g/gmp/libgmp10_6.3.0%2bdfsg-5ubuntu2_amd64.deb",
-      "file": "libgmp10_2%3a6.3.0+dfsg-5ubuntu2_amd64.deb",
-      "bytes": 256686,
-      "installedBytes": 565248,
-      "sha256": "a9bbe9d4a4bcd5875bbd0f53e67c379bc881d1c1a80522d51dfb4b107cc31819",
-      "index": "archive.ubuntu.com_ubuntu_dists_resolute_main_binary-amd64_Packages"
-    },
-    {
-      "package": "openssl-provider-legacy",
-      "version": "3.5.5-1ubuntu3.7",
-      "architecture": "amd64",
-      "url": "https://archive.ubuntu.com/ubuntu/pool/main/o/openssl/openssl-provider-legacy_3.5.5-1ubuntu3.7_amd64.deb",
-      "file": "openssl-provider-legacy_3.5.5-1ubuntu3.7_amd64.deb",
-      "bytes": 39682,
-      "installedBytes": 434176,
-      "sha256": "51cf418571059831096abd40e0bd5debaa1ae48a6f8d87d9e4e5f7f12aa4db52",
-      "index": "security.ubuntu.com_ubuntu_dists_resolute-security_main_binary-amd64_Packages"
-    },
-    {
-      "package": "libssl3t64",
-      "version": "3.5.5-1ubuntu3.7",
-      "architecture": "amd64",
-      "url": "https://archive.ubuntu.com/ubuntu/pool/main/o/openssl/libssl3t64_3.5.5-1ubuntu3.7_amd64.deb",
-      "file": "libssl3t64_3.5.5-1ubuntu3.7_amd64.deb",
-      "bytes": 2368026,
-      "installedBytes": 8182784,
-      "sha256": "3ff73e121f6cd4f19e80ab4329dfd914108b3936c9db3708200203a9b245b34d",
-      "index": "security.ubuntu.com_ubuntu_dists_resolute-security_main_binary-amd64_Packages"
-    },
-    {
-      "package": "gnu-coreutils",
-      "version": "9.7-3ubuntu2.1",
-      "architecture": "amd64",
-      "url": "https://archive.ubuntu.com/ubuntu/pool/main/c/coreutils/gnu-coreutils_9.7-3ubuntu2.1_amd64.deb",
-      "file": "gnu-coreutils_9.7-3ubuntu2.1_amd64.deb",
-      "bytes": 1338766,
-      "installedBytes": 7081984,
-      "sha256": "d9a6724f507759ac06d8b0214e4d31d67a4e6647be4d770a70a1d43041be5fa3",
-      "index": "security.ubuntu.com_ubuntu_dists_resolute-security_main_binary-amd64_Packages"
-    },
-    {
-      "package": "coreutils-from-uutils",
-      "version": "0.0.0~ubuntu25",
-      "architecture": "all",
-      "url": "https://archive.ubuntu.com/ubuntu/pool/main/c/coreutils-from/coreutils-from-uutils_0.0.0%7eubuntu25_all.deb",
-      "file": "coreutils-from-uutils_0.0.0~ubuntu25_all.deb",
-      "bytes": 7124,
-      "installedBytes": 242688,
-      "sha256": "fd89943a93fdb3e2746faff8fe1bb23106dbdd6c891df0f50fe2f8b42d6f089d",
       "index": "archive.ubuntu.com_ubuntu_dists_resolute_main_binary-amd64_Packages"
     },
     {
@@ -1395,6 +1431,17 @@
       "bytes": 392778,
       "installedBytes": 4239360,
       "sha256": "a24f82b33020836444593a7ffbed959458852e28cfe16de2ff95bcbdcfbdb2d3",
+      "index": "archive.ubuntu.com_ubuntu_dists_resolute_main_binary-amd64_Packages"
+    },
+    {
+      "package": "gettext-base",
+      "version": "0.23.2-1",
+      "architecture": "amd64",
+      "url": "https://archive.ubuntu.com/ubuntu/pool/main/g/gettext/gettext-base_0.23.2-1_amd64.deb",
+      "file": "gettext-base_0.23.2-1_amd64.deb",
+      "bytes": 42256,
+      "installedBytes": 282624,
+      "sha256": "5a1a4cd407a868e766626f551646b00880fc1534db5e6d47208310a17252f306",
       "index": "archive.ubuntu.com_ubuntu_dists_resolute_main_binary-amd64_Packages"
     },
     {
@@ -3046,6 +3093,17 @@
       "installedBytes": 269312,
       "sha256": "8ea0cfaa6012a8a71d10a47a13480f407d979e3a595d01e1b5abad90372b7187",
       "index": "archive.ubuntu.com_ubuntu_dists_resolute_universe_binary-amd64_Packages"
+    },
+    {
+      "package": "gettext",
+      "version": "0.23.2-1",
+      "architecture": "amd64",
+      "url": "https://archive.ubuntu.com/ubuntu/pool/main/g/gettext/gettext_0.23.2-1_amd64.deb",
+      "file": "gettext_0.23.2-1_amd64.deb",
+      "bytes": 1018962,
+      "installedBytes": 3235840,
+      "sha256": "6fb2dd68379bf9578af5ead58203ab322e3b1cf3a6f9562a1e4d12c18e923bfc",
+      "index": "archive.ubuntu.com_ubuntu_dists_resolute_main_binary-amd64_Packages"
     },
     {
       "package": "python3-markupsafe",

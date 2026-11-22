@@ -36,11 +36,16 @@ class Gate(unittest.TestCase):
   self.assertRaises(AssertionError,m.table,'0'*64+' 2 ../bad')
  def test_real_manifest_and_preserved_base(self):
   self.assertEqual(m.sha(D/'configure-packages.json'),m.PLAN);self.assertEqual(m.sha(D/'frozen-sdk-plan.json'),m.FROZEN)
-  ps=json.loads((D/'configure-packages.json').read_text())['packages'];bs=json.loads((D/'frozen-sdk-plan.json').read_text())['packages'];self.assertEqual(len(ps),827)
+  ps=json.loads((D/'configure-packages.json').read_text())['packages'];bs=json.loads((D/'frozen-sdk-plan.json').read_text())['packages'];self.assertEqual(len(ps),832)
   backtrace={x['package']:x for x in ps if x['package'] in ('libbacktrace-dev','libbacktrace0')}
   self.assertEqual(set(backtrace),{'libbacktrace-dev','libbacktrace0'})
   self.assertTrue(all(x['version']=='0.1-4build1' for x in backtrace.values()))
   for b in bs:self.assertTrue(any(all(x[k]==b[k] for k in ('package','version','sha256','bytes')) for x in ps))
+  gettext={x['package']:x for x in ps if x['package'] in ('gettext','gettext-base')}
+  self.assertEqual(set(gettext),{'gettext','gettext-base'})
+  self.assertTrue(all(x['version']=='0.23.2-1' for x in gettext.values()))
+  essential={x['package']:x['version'] for x in ps if x['package'] in ('dash','debianutils','coreutils')}
+  self.assertEqual(essential,{'dash':'0.5.12-12ubuntu3','debianutils':'5.23.2build1','coreutils':'9.5-1ubuntu2+0.0.0~ubuntu25'})
  def test_future_and_expired_release(self):
   self.assertRaises(AssertionError,m.dates,{'Date':'Sun, 22 Nov 2099 02:09:05 UTC'})
   self.assertRaises(AssertionError,m.dates,{'Date':'Sun, 22 Nov 2020 02:09:05 UTC','Valid-Until':'Sun, 29 Nov 2020 02:09:05 UTC'})

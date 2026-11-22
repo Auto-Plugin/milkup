@@ -1,10 +1,10 @@
 """One owned Ubuntu SDK/configuration job. No installation, upload, or default build."""
 from pathlib import Path, PurePosixPath
 import concurrent.futures, datetime, email.utils, hashlib, json, lzma, os, re, shutil, signal, subprocess, sys, tarfile, time, urllib.parse, urllib.request, urllib.error
-BASE='8f144679eb43aa97477c8107f66295ae6976aaf9'
+BASE='19ba976bd6994b7549958409890202f6f517c58b'
 SOURCE='2779c1b46f88762e8400650271ba14452dc4e30b37059981552d8b562b7d0862'
 PATCH='855e58cc8ad531cc32e893b8274983a6264e6fdfc248c13e80c5ef0e01d7a4e5'
-PLAN='cbb137c65e5399b419e76e64e776d0cacb21fb02020504fa91317f9fb192cfc3'
+PLAN='c9a547dab648e07d4017c560f7e1fe509f6b62450eb11acf60fcdb66364703a6'
 FROZEN='a6c7e94a0633d1949a33e54327b8fc59742199b5c5a03b4486c6ff47f9f08481'
 DEBIAN={'04B54C3CDCA79751B16BC6B5225629DF75B188BD','B8B80B5B623EAB6AD8775C45B7C5D7D6350947F8'}
 UBUNTU={'F6ECB3762474EDA9D21B7022871920D1991BC93C'}
@@ -107,7 +107,7 @@ def verify_inputs():
  assert sha(D/'frozen-sdk-plan.json')==FROZEN and sha(D/'configure-packages.json')==PLAN
  assert sha(D/'normal-path-2.54.3.patch')==PATCH
  frozen=json.loads((D/'frozen-sdk-plan.json').read_text());plan=json.loads((D/'configure-packages.json').read_text());pkgs=plan['packages']
- assert len(pkgs)==827 and len({p['package'] for p in pkgs})==827
+ assert len(pkgs)==832 and len({p['package'] for p in pkgs})==832
  byname={p['package']:p for p in pkgs}
  for old in frozen['packages']:
   assert all(byname[old['package']][k]==old[k] for k in ('version','sha256','bytes','architecture'))
@@ -173,7 +173,7 @@ def main():
  for n in ('home','tmp','gnupg','packages','sdk','source'): (WORK/n).mkdir(mode=0o700)
  assert os.geteuid()!=0,'Ordinary job user required'
  osr=dict(l.strip().split('=',1) for l in Path('/etc/os-release').read_text().splitlines() if '=' in l)
- assert osr.get('ID','').strip('"')=='ubuntu' and osr.get('VERSION_ID','').strip('"')=='26.04'
+ assert osr.get('ID','').strip('"')=='ubuntu' and osr.get('VERSION_ID','').strip('"')=='26.04','Matching Ubuntu 26.04 host required; host ABI substitution forbidden'
  assert os.uname().machine=='x86_64';free=shutil.disk_usage(WORK).free;assert free>=24*1024**3
  mem=int(re.search(r'MemAvailable:\s+(\d+)',Path('/proc/meminfo').read_text()).group(1))*1024;assert mem>=8*1024**3
  emit(ubuntu=osr.get('VERSION'),diskFreeBytes=free,memoryAvailableBytes=mem,maxSeconds=3300,fullEngine=False,uploads=False)
@@ -202,38 +202,12 @@ def main():
  locks=json.loads((D/'patched-files.json').read_text())
  for path,h in locks.items():assert sha(source/path)==h,'Patched file identity mismatch: '+path
  emit(patchSha256=PATCH,lockedPatchedFiles=len(locks),sourceSha256=SOURCE)
- PHASE='actual-sdk-tools'
- # /lib is a packaged usr-merge alias. Normalize only its SDK-local lexical
- # ../../include spelling, after proving the official alias and target exist.
+ PHASE='sdk-isolated-entry'
  assert (sdk/'lib').is_symlink() and (sdk/'lib').resolve()==(sdk/'usr/lib').resolve()
  assert (sdk/'usr/include').is_dir() and not (sdk/'include').exists()
  (sdk/'include').symlink_to('usr/include')
- emit(sdkOnlyHeaderAlias='include -> usr/include',systemChanged=False)
- env=dict(ENV,PATH=str(sdk/'usr/bin')+':'+ENV['PATH'],LD_LIBRARY_PATH=str(sdk/'usr/lib/x86_64-linux-gnu')+':'+str(sdk/'usr/lib'),PKG_CONFIG_SYSROOT_DIR=str(sdk),PKG_CONFIG_LIBDIR=':'.join(str(sdk/p) for p in ['usr/lib/x86_64-linux-gnu/pkgconfig','usr/lib/pkgconfig','usr/share/pkgconfig']),PYTHONPATH=str(sdk/'usr/lib/python3/dist-packages'),BISON_PKGDATADIR=str(sdk/'usr/share/bison'))
- env['RUBYLIB']=':'.join(str(p) for g in ['usr/lib/ruby/[0-9]*','usr/lib/x86_64-linux-gnu/ruby/[0-9]*'] for p in sdk.glob(g) if p.is_dir())
- env['PERL5LIB']=':'.join([str(sdk/'usr/share/perl5')]+[str(p) for g in ['usr/share/perl/[0-9]*','usr/lib/x86_64-linux-gnu/perl/[0-9]*','usr/lib/x86_64-linux-gnu/perl5/[0-9]*'] for p in sdk.glob(g) if p.is_dir()])
- for tool,args in [('clang-19',['--version']),('clang++-19',['--version']),('cmake',['--version']),('ninja',['--version']),('ruby',['--version']),('perl',['-e','print $^V']),('python3',['--version']),('gperf',['--version']),('unifdef',['-V'])]:
-  exe=sdk/'usr/bin'/tool;assert exe.is_file() and exe.resolve().is_relative_to(sdk.resolve());version=run([exe,*args],tool,30,env)
-  emit(tool=tool,sha256=sha(exe),version=version[:180].strip())
- # Compilation tooling may use SDK shared libraries; no application/runtime is launched.
- compiler=sdk/'usr/bin/clang++-19';smoke=WORK/'smoke.cpp';smoke.write_text('#include <string>\nint main(){std::string s="sdk";return s.size()!=3;}\n')
- run([compiler,'--sysroot='+str(sdk),'--gcc-toolchain='+str(sdk/'usr'),smoke,'-o',WORK/'smoke'],'real-clang-compile-link',60,env)
- run([WORK/'smoke'],'real-clang-fixture',15,env);emit(compilerFixtureSha256=sha(WORK/'smoke'))
- PHASE='actual-webkit-configure';prefix='/opt/milkup/runtime-qa/webkitgtk-2.54.3-855e58cc8ad531cc';build=WORK/'build'
- common='--gcc-toolchain='+str(sdk/'usr')+' -g1 -O2 -ffile-prefix-map=/workspace=. -fstack-protector-strong -fstack-clash-protection -Wformat -Werror=format-security -fcf-protection -Wdate-time -D_FORTIFY_SOURCE=2'
- cmd=[sdk/'usr/bin/cmake','-G','Ninja','-S',source,'-B',build,'-DPORT=GTK','-DCMAKE_BUILD_TYPE=Release','-DDEVELOPER_MODE=OFF','-DENABLE_BUBBLEWRAP_SANDBOX=ON','-DUSE_GTK4=OFF','-DENABLE_MINIBROWSER=OFF','-DCMAKE_INSTALL_PREFIX='+prefix,'-DLIB_INSTALL_DIR='+prefix+'/lib/x86_64-linux-gnu','-DLIBEXEC_INSTALL_DIR='+prefix+'/lib/x86_64-linux-gnu/webkit2gtk-4.1','-DCMAKE_INSTALL_RPATH='+prefix+'/lib/x86_64-linux-gnu','-DCMAKE_INSTALL_RPATH_USE_LINK_PATH=OFF','-DCMAKE_SKIP_INSTALL_RPATH=OFF','-DCMAKE_EXPORT_COMPILE_COMMANDS=ON','-DCMAKE_C_COMPILER='+str(sdk/'usr/bin/clang-19'),'-DCMAKE_CXX_COMPILER='+str(compiler),'-DCMAKE_FIND_ROOT_PATH='+str(sdk),'-DCMAKE_FIND_ROOT_PATH_MODE_PROGRAM=NEVER','-DCMAKE_PREFIX_PATH='+str(sdk/'usr'),'-DCMAKE_SYSROOT='+str(sdk),'-DCMAKE_C_FLAGS_RELEASE=','-DCMAKE_CXX_FLAGS_RELEASE=','-DCMAKE_C_FLAGS='+common+' -Werror=implicit-function-declaration','-DCMAKE_CXX_FLAGS='+common,'-DCMAKE_EXE_LINKER_FLAGS=-Wl,-z,relro -Wl,-z,now','-DCMAKE_SHARED_LINKER_FLAGS=-Wl,-z,relro -Wl,-z,now']
- run(cmd,'webkit-cmake',900,env)
- cache=(build/'CMakeCache.txt').read_text();cfg=(build/'cmakeconfig.h').read_text()
- for token in ['#define USE_GTK4 0','#define ENABLE_BUBBLEWRAP_SANDBOX 1','#define HAVE_GTK_UNIX_PRINTING 1','#define WEBKITGTK_API_VERSION \"4.1\"','#define ENABLE_DEVELOPER_MODE 0']:assert token in cfg,'Missing generated feature: '+token
- assert 'DEVELOPER_MODE:BOOL=OFF' in cache and 'USE_GTK4:BOOL=OFF' in cache
- assert 'Manually-specified variables were not used' not in (WORK/'webkit-cmake.log').read_text()
- emit(cmakeCacheSha256=sha(build/'CMakeCache.txt'),generatedConfigSha256=sha(build/'cmakeconfig.h'),ninjaGraphSha256=sha(build/'build.ninja'),compileDbSha256=sha(build/'compile_commands.json'),api='GTK3/API4.1',sandboxEnabled=True)
- PHASE='bounded-generated-resource';commands=run([sdk/'usr/bin/ninja','-C',build,'-t','commands',TARGET],'resource-command-closure',30,env)
- lines=commands.splitlines();assert len(lines)==4 and any('make-css-file-arrays.pl' in l for l in lines),'Resource closure changed'
- assert not any(re.search(r'(^|[ /])(clang|clang\+\+|ld|ar)([- ]|$)',l) for l in lines),'Unexpected compile/link in resource milestone'
- run([sdk/'usr/bin/ninja','-C',build,'-j2','-v',TARGET],'generate-actual-resource',300,env)
- resource=build/TARGET;assert resource.is_file() and resource.stat().st_size>1000
- emit(status='passed-Ubuntu-SDK-Clang-WebKit-configure-and-resource-only',resourceBytes=resource.stat().st_size,resourceSha256=sha(resource),commandCount=len(lines),fullEngine=False,installed=False,nativeAcceptance=False,releaseReady=False)
+ from isolated_configure import run_pipeline
+ run_pipeline(sys.modules[__name__],sdk,source)
 if __name__=='__main__':
  try:main()
  except Exception as e:emit(status='failed',errorType=type(e).__name__,error=str(e)[:1500],fullEngine=False,installed=False,releaseReady=False);sys.exit(1)
