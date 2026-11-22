@@ -84,7 +84,7 @@ jobs:
           if [ "$GITHUB_EVENT_NAME" = push ]; then
             node -e "const fs=require('fs'),p=JSON.parse(fs.readFileSync('release/candidate-install-input.json'));if(!/^[0-9]+$/.test(p.buildRun)||!/^[a-f0-9]{40}$/.test(p.sourceSha))throw Error('Invalid package identity');fs.appendFileSync(process.env.GITHUB_ENV,'BUILD_RUN='+p.buildRun+'\nSOURCE_SHA='+p.sourceSha+'\n')"
           fi
-          node --test scripts/release/verify-candidate.test.mjs scripts/release/startup-comparison.test.mjs
+          node --test scripts/release/verify-candidate-build.test.mjs scripts/release/verify-candidate.test.mjs scripts/release/startup-comparison.test.mjs
       - name: Verify completed build identity and download original package
         env:
           GH_TOKEN: ${{ github.token }}
@@ -92,7 +92,7 @@ jobs:
           [[ "$BUILD_RUN" =~ ^[0-9]+$ ]]
           [[ "$SOURCE_SHA" =~ ^[a-f0-9]{40}$ ]]
           gh api "repos/Auto-Plugin/milkup/actions/runs/$BUILD_RUN" > "$RUNNER_TEMP/build-run.json"
-          node -e "const r=JSON.parse(require('fs').readFileSync(process.argv[1]));if(r.head_sha!==process.env.SOURCE_SHA||r.head_branch!=='dot/release-quality-integration-20261112'||r.status!=='completed'||r.conclusion!=='success'||r.path!=='.github/workflows/distribution-candidate.yml')throw Error('Exact completed build proof required')" "$RUNNER_TEMP/build-run.json"
+          node scripts/release/verify-candidate-build.mjs "$RUNNER_TEMP/build-run.json" "$BUILD_RUN" "$SOURCE_SHA"
           gh run download "$BUILD_RUN" --repo Auto-Plugin/milkup --name "milkup-$VARIANT-$SOURCE_SHA" --dir "$RUNNER_TEMP/candidate-input"
           node scripts/release/verify-candidate.mjs "$RUNNER_TEMP/candidate-input" "$SOURCE_SHA" "$VARIANT"
       - name: Reject wrong process instances and incidental native windows

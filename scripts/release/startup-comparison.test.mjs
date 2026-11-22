@@ -227,7 +227,11 @@ test('workflow and parent copy all bounded original trial evidence without chang
     new URL('./run-repair-health-standard.ps1', import.meta.url),
     'utf8',
   )
-  assert.match(workflow, /r\.head_sha!==process\.env\.SOURCE_SHA/)
+  assert.ok(
+    workflow.includes(
+      'node scripts/release/verify-candidate-build.mjs "$RUNNER_TEMP/build-run.json" "$BUILD_RUN" "$SOURCE_SHA"',
+    ),
+  )
   for (const suffix of [
     'spec.json',
     'observation.json',
