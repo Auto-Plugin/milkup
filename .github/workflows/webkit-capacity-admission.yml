@@ -1,0 +1,57 @@
+name: WebKit v2 one-time capacity admission
+run-name: WebKit 2.54.3 admission only at ${{ github.sha }}
+'on':
+  push:
+    branches: [v2]
+    paths: [release/webkit-admission-request.json]
+permissions:
+  contents: read
+concurrency:
+  group: milkup-webkit-v2-admission
+  cancel-in-progress: false
+jobs:
+  admission:
+    if: >-
+      github.repository == 'Auto-Plugin/milkup' &&
+      github.ref == 'refs/heads/v2' &&
+      github.event_name == 'push' &&
+      github.event.deleted == false &&
+      github.event.before == '209c3fcd3baab736dd8ad204e33cce739396b027' &&
+      github.run_attempt == 1 &&
+      contains(github.event.head_commit.message, '[webkit-capacity-admission]')
+    runs-on: ubuntu-26.04
+    timeout-minutes: 15
+    steps:
+      - name: Anonymous exact public source checkout
+        shell: bash
+        run: |
+          set -euo pipefail
+          env -i PATH=/usr/local/bin:/usr/bin:/bin LANG=C.UTF-8 \
+            HOME="$RUNNER_TEMP/milkup-admission-home" TMPDIR="$RUNNER_TEMP" \
+            GIT_TERMINAL_PROMPT=0 GIT_CONFIG_NOSYSTEM=1 GIT_CONFIG_GLOBAL=/dev/null \
+            SOURCE_SHA="$GITHUB_SHA" /bin/bash --noprofile --norc -eu -c '
+              [[ "$SOURCE_SHA" =~ ^[a-f0-9]{40}$ ]]
+              mkdir "$HOME"
+              repo="$TMPDIR/milkup-admission-source"
+              git init "$repo"
+              git -C "$repo" config core.sparseCheckout true
+              printf "%s\n" /scripts/release/webkit-build-admission.py /release/webkit-admission-request.json > "$repo/.git/info/sparse-checkout"
+              git -C "$repo" -c credential.helper= fetch --filter=blob:none --depth=3 --no-tags https://github.com/Auto-Plugin/milkup.git "$SOURCE_SHA"
+              git -C "$repo" -c credential.helper= checkout --detach FETCH_HEAD
+              test "$(git -C "$repo" rev-parse HEAD)" = "$SOURCE_SHA"
+            '
+      - name: Read-only sanitized capacity and stock namespace prerequisites
+        shell: bash
+        env:
+          MILKUP_PUSH_BEFORE: ${{ github.event.before }}
+        run: |
+          set -euo pipefail
+          env -i PATH=/usr/local/bin:/usr/bin:/bin LANG=C.UTF-8 \
+            HOME="$RUNNER_TEMP/milkup-admission-home" TMPDIR="$RUNNER_TEMP" \
+            GITHUB_REPOSITORY="$GITHUB_REPOSITORY" GITHUB_REF="$GITHUB_REF" \
+            GITHUB_EVENT_NAME="$GITHUB_EVENT_NAME" GITHUB_SHA="$GITHUB_SHA" \
+            MILKUP_PUSH_BEFORE="$MILKUP_PUSH_BEFORE" \
+            python3 "$RUNNER_TEMP/milkup-admission-source/scripts/release/webkit-build-admission.py" \
+            --repo "$RUNNER_TEMP/milkup-admission-source" --work "$RUNNER_TEMP" --native-preflight
+# No installs, engine, credentials in the probe environment, uploads or reruns.
+# Passing prerequisite measurements are not engine/native/release acceptance.
