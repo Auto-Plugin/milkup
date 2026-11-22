@@ -36,7 +36,7 @@ class Gate(unittest.TestCase):
   self.assertRaises(AssertionError,m.table,'0'*64+' 2 ../bad')
  def test_real_manifest_and_preserved_base(self):
   self.assertEqual(m.sha(D/'configure-packages.json'),m.PLAN);self.assertEqual(m.sha(D/'frozen-sdk-plan.json'),m.FROZEN)
-  ps=json.loads((D/'configure-packages.json').read_text())['packages'];bs=json.loads((D/'frozen-sdk-plan.json').read_text())['packages'];self.assertEqual(len(ps),832)
+  ps=json.loads((D/'configure-packages.json').read_text())['packages'];bs=json.loads((D/'frozen-sdk-plan.json').read_text())['packages'];self.assertEqual(len(ps),833)
   backtrace={x['package']:x for x in ps if x['package'] in ('libbacktrace-dev','libbacktrace0')}
   self.assertEqual(set(backtrace),{'libbacktrace-dev','libbacktrace0'})
   self.assertTrue(all(x['version']=='0.1-4build1' for x in backtrace.values()))
@@ -46,6 +46,11 @@ class Gate(unittest.TestCase):
   self.assertTrue(all(x['version']=='0.23.2-1' for x in gettext.values()))
   essential={x['package']:x['version'] for x in ps if x['package'] in ('dash','debianutils','coreutils')}
   self.assertEqual(essential,{'dash':'0.5.12-12ubuntu3','debianutils':'5.23.2build1','coreutils':'9.5-1ubuntu2+0.0.0~ubuntu25'})
+ def test_exact_locale_provider_and_matching_libc(self):
+  ps={x['package']:x for x in json.loads((D/'configure-packages.json').read_text())['packages']}
+  self.assertEqual(ps['libc-bin']['version'],'2.43-2ubuntu2.7');self.assertEqual(ps['libc6']['version'],'2.43-2ubuntu2.7')
+  self.assertEqual(ps['libc-bin']['sha256'],'c0393ea4fa3c45cefe0351db369d3a4a459edc8045856f2e3612ca17e77b2797')
+  self.assertEqual(ps['libc-bin']['bytes'],701250)
  def test_future_and_expired_release(self):
   self.assertRaises(AssertionError,m.dates,{'Date':'Sun, 22 Nov 2099 02:09:05 UTC'})
   self.assertRaises(AssertionError,m.dates,{'Date':'Sun, 22 Nov 2020 02:09:05 UTC','Valid-Until':'Sun, 29 Nov 2020 02:09:05 UTC'})

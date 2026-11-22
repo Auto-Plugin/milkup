@@ -3,7 +3,7 @@ The outer caller authenticates all packages/source and preserves 24/12 GiB gates
 No host /usr, /lib, /etc, PATH or LD_LIBRARY_PATH is exposed to child tools.
 """
 from pathlib import Path
-import hashlib,json,os,re,shlex,stat,subprocess
+import hashlib,json,os,re,shlex,stat,subprocess,time
 from toolgate import Gate,Rejected,digest
 PROGRAMS={'sh':['-c','printf sdk-shell-ready'],'uname':['-m'],'readlink':['--version'],'nproc':['--version'],'clang-19':['--version'],'clang++-19':['--version'],'cmake':['--version'],'ninja':['--version'],'ruby':['--version'],'perl':['-e','print $^V'],'python3':['--version'],'pkg-config':['--version'],'gperf':['--version'],'unifdef':['-V'],'bison':['--version'],'flex':['--version'],'glib-compile-resources':['--version'],'wayland-scanner':['--version'],'msgmerge':['--version'],'msgfmt':['--version'],'xgettext':['--version'],'g-ir-scanner':['--version'],'g-ir-compiler':['--version'],'gi-docgen':['--version'],'gdbus-codegen':['--help'],'bwrap':['--version'],'xdg-dbus-proxy':['--version']}
 TARGET='WebCore/DerivedSources/UserAgentStyleSheetsData.cpp'
@@ -47,18 +47,20 @@ assert not Path(sys.argv[1]).exists(), 'Host-only sentinel leaked into SDK root'
 assert Path('/etc/os-release').read_text().find('26.04')>=0
 libc=ctypes.CDLL(None);libc.gnu_get_libc_version.restype=ctypes.c_char_p
 assert libc.gnu_get_libc_version()==b'2.43'
+def file_sha(p):
+ with p.open('rb') as f:return hashlib.file_digest(f,'sha256').hexdigest()
 def mappings():
  paths=set()
  for l in Path('/proc/self/maps').read_text().splitlines():
   a=l.split(None,5)
   if len(a)==6 and a[5].startswith('/'):
    p=a[5];assert not p.endswith(' (deleted)');paths.add(p)
- return {p:hashlib.file_digest(open(p,'rb'),'sha256').hexdigest() for p in sorted(paths)}
+ return {p:file_sha(Path(p)) for p in sorted(paths)}
 child=subprocess.run(['/usr/bin/perl','-e','use Config; use Getopt::Long; print "$^V\n$Config{archname}\n"; for my $k (sort keys %INC) { print "MODULE\t$k\t$INC{$k}\n"; }'],check=True,capture_output=True,text=True,env=dict(os.environ))
 modules=[]
 for l in child.stdout.splitlines():
  if l.startswith('MODULE\t'):
-  _,name,p=l.split('\t');assert p.startswith('/usr/');modules.append({'name':name,'path':p,'sha256':hashlib.file_digest(open(p,'rb'),'sha256').hexdigest()})
+  _,name,p=l.split('\t');assert p.startswith('/usr/');modules.append({'name':name,'path':p,'sha256':file_sha(Path(p))})
 print(json.dumps({'uid':os.getuid(),'glibc':'2.43','python':sys.version.split()[0],'executable':os.readlink('/proc/self/exe'),'maps':mappings(),'perlModules':modules,'hostSentinelAbsent':True,'pid':os.getpid(),'startTicks':Path('/proc/self/stat').read_text().rsplit(')',1)[1].split()[19]}))
 '''
 class Namespace:
@@ -102,6 +104,8 @@ def run_pipeline(m,sdk,source):
  m.PHASE='actual-isolated-sdk-routing'
  receipt=json.loads(ns.call(['/usr/bin/python3','/work/probe.py',str(sentinel)],'namespace-routing',45));count=map_receipt(receipt,sdk,inv)
  m.emit(isolatedRouting=True,mappedInputs=count,hostFallback=False,uid=receipt['uid'],glibc=receipt['glibc'],python=receipt['python'],pid=receipt['pid'],startTicks=receipt['startTicks'],executable=receipt['executable'],actualMaps=receipt['maps'],perlModules=receipt['perlModules'])
+ from locale_gate import run_locale_pair
+ run_locale_pair(m,ns,sdk,inv)
  for name,args in PROGRAMS.items():
   out=ns.call(['/usr/bin/'+name,*args],'isolated-'+name,30)
   m.emit(tool=name,sha256=digest(Gate(sdk,inv).target('/usr/bin/'+name)),version=out[:180].strip())
@@ -111,40 +115,43 @@ def run_pipeline(m,sdk,source):
  m.emit(compilerFixtureSha256=digest(execution/'smoke'))
  m.PHASE='actual-isolated-webkit-configure'
  common='--gcc-toolchain=/usr -g1 -O2 -ffile-prefix-map=/workspace=. -fstack-protector-strong -fstack-clash-protection -Wformat -Werror=format-security -fcf-protection -Wdate-time -D_FORTIFY_SOURCE=2'
- cmd=['/usr/bin/cmake','-G','Ninja','-S','/source','-B','/work/build','--trace-expand','--trace-format=json-v1','--trace-redirect=/work/cmake-trace.jsonl','-DPORT=GTK','-DCMAKE_BUILD_TYPE=Release','-DDEVELOPER_MODE=OFF','-DENABLE_BUBBLEWRAP_SANDBOX=ON','-DUSE_GTK4=OFF','-DENABLE_MINIBROWSER=OFF','-DCMAKE_INSTALL_PREFIX='+PREFIX,'-DLIB_INSTALL_DIR='+PREFIX+'/lib/x86_64-linux-gnu','-DLIBEXEC_INSTALL_DIR='+PREFIX+'/lib/x86_64-linux-gnu/webkit2gtk-4.1','-DCMAKE_INSTALL_RPATH='+PREFIX+'/lib/x86_64-linux-gnu','-DCMAKE_INSTALL_RPATH_USE_LINK_PATH=OFF','-DCMAKE_SKIP_INSTALL_RPATH=OFF','-DCMAKE_EXPORT_COMPILE_COMMANDS=ON','-DCMAKE_C_COMPILER=/usr/bin/clang-19','-DCMAKE_CXX_COMPILER=/usr/bin/clang++-19','-DCMAKE_FIND_ROOT_PATH=/','-DCMAKE_FIND_ROOT_PATH_MODE_PROGRAM=ONLY','-DCMAKE_PREFIX_PATH=/usr','-DCMAKE_SYSROOT=/','-DCMAKE_C_FLAGS_RELEASE=','-DCMAKE_CXX_FLAGS_RELEASE=','-DCMAKE_C_FLAGS='+common+' -Werror=implicit-function-declaration','-DCMAKE_CXX_FLAGS='+common,'-DCMAKE_EXE_LINKER_FLAGS=-Wl,-z,relro -Wl,-z,now','-DCMAKE_SHARED_LINKER_FLAGS=-Wl,-z,relro -Wl,-z,now']
- old_room=m.room
- def guarded_room():
-  old_room();trace=execution/'cmake-trace.jsonl'
-  require(not trace.exists() or trace.stat().st_size<=64*1024**2,'CMake trace exceeded bounded evidence budget')
- m.room=guarded_room
- configure_ok=False
- try:
-  ns.call(cmd,'isolated-webkit-cmake',900);configure_ok=True
- finally:
-  m.room=old_room
-  trace=execution/'cmake-trace.jsonl'
-  if trace.exists():
-   from trace_obligations import classify
-   obligations=json.loads((Path(__file__).parent/'deferred-cmake-obligations.json').read_text())
-   try:
-    classified=classify(obligations,trace,source,sdk,configure_succeeded=configure_ok)
-    (m.WORK/'actual-cmake-obligation-results.json').write_text(json.dumps(classified,indent=2))
-    m.emit(actualCmakeObligations=classified)
-   except Exception as e:
-    (m.WORK/'actual-cmake-obligation-error.json').write_text(json.dumps({'error':str(e),'configureSucceeded':configure_ok}))
-    if configure_ok:raise
- build=execution/'build';cache=(build/'CMakeCache.txt').read_text();cfg=(build/'cmakeconfig.h').read_text()
- for token in ['#define USE_GTK4 0','#define ENABLE_BUBBLEWRAP_SANDBOX 1','#define HAVE_GTK_UNIX_PRINTING 1','#define WEBKITGTK_API_VERSION "4.1"','#define ENABLE_DEVELOPER_MODE 0']:require(token in cfg,'Missing generated feature: '+token)
- require('DEVELOPER_MODE:BOOL=OFF' in cache and 'USE_GTK4:BOOL=OFF' in cache,'Feature cache mismatch')
- require('Manually-specified variables were not used' not in (m.WORK/'isolated-webkit-cmake.log').read_text(),'Unused required CMake option')
- # Every include and child tool can only resolve within the mounted SDK/source/work.
- # Keep complete actual trace for conditional-path classification; no scan-based pass.
- trace=execution/'cmake-trace.jsonl';require(trace.is_file() and 0<trace.stat().st_size<=64*1024**2,'Actual configuration trace required')
- m.emit(cmakeCacheSha256=digest(build/'CMakeCache.txt'),generatedConfigSha256=digest(build/'cmakeconfig.h'),ninjaGraphSha256=digest(build/'build.ninja'),compileDbSha256=digest(build/'compile_commands.json'),traceSha256=digest(trace),api='GTK3/API4.1',sandboxEnabled=True)
+ cmd=['/usr/bin/cmake','-G','Ninja','-S','/source','-B','/work/build','--trace-expand','--trace-format=json-v1','--trace-redirect=/work/cmake-trace.fifo','-DPORT=GTK','-DCMAKE_BUILD_TYPE=Release','-DDEVELOPER_MODE=OFF','-DENABLE_BUBBLEWRAP_SANDBOX=ON','-DUSE_GTK4=OFF','-DENABLE_MINIBROWSER=OFF','-DCMAKE_INSTALL_PREFIX='+PREFIX,'-DLIB_INSTALL_DIR='+PREFIX+'/lib/x86_64-linux-gnu','-DLIBEXEC_INSTALL_DIR='+PREFIX+'/lib/x86_64-linux-gnu/webkit2gtk-4.1','-DCMAKE_INSTALL_RPATH='+PREFIX+'/lib/x86_64-linux-gnu','-DCMAKE_INSTALL_RPATH_USE_LINK_PATH=OFF','-DCMAKE_SKIP_INSTALL_RPATH=OFF','-DCMAKE_EXPORT_COMPILE_COMMANDS=ON','-DCMAKE_C_COMPILER=/usr/bin/clang-19','-DCMAKE_CXX_COMPILER=/usr/bin/clang++-19','-DCMAKE_FIND_ROOT_PATH=/','-DCMAKE_FIND_ROOT_PATH_MODE_PROGRAM=ONLY','-DCMAKE_PREFIX_PATH=/usr','-DCMAKE_SYSROOT=/','-DCMAKE_C_FLAGS_RELEASE=','-DCMAKE_CXX_FLAGS_RELEASE=','-DCMAKE_C_FLAGS='+common+' -Werror=implicit-function-declaration','-DCMAKE_CXX_FLAGS='+common,'-DCMAKE_EXE_LINKER_FLAGS=-Wl,-z,relro -Wl,-z,now','-DCMAKE_SHARED_LINKER_FLAGS=-Wl,-z,relro -Wl,-z,now']
+ from stream_trace import run_traced,require_complete
+ obligations=json.loads((Path(__file__).parent/'deferred-cmake-obligations.json').read_text())
+ summary=run_traced(ns.argv(cmd),fifo=execution/'cmake-trace.fifo',log=m.WORK/'isolated-webkit-cmake.log',obligations=obligations,mounts={'/source':source,'/usr':sdk/'usr','/work':execution},env={'PATH':'/usr/bin:/bin','LANG':'C.UTF-8'},cwd=execution,timeout=min(900,max(1,m.DEADLINE-time.monotonic())),room=m.room)
+ summary_bytes=json.dumps(summary,sort_keys=True).encode();require(len(summary_bytes)<=32*1024**2,'Summary serialization bound')
+ (m.WORK/'actual-cmake-stream-summary.json').write_bytes(summary_bytes)
+ m.emit(actualCmakeStream=summary)
+ require_complete(summary)
+ build=execution/'build'
+ certificate=verify_generated_configure(summary,build,m.WORK/'isolated-webkit-cmake.log')
+ m.emit(**certificate)
  m.PHASE='bounded-isolated-generated-resource'
  commands=ns.call(['/usr/bin/ninja','-C','/work/build','-t','commands',TARGET],'isolated-resource-command-closure',30)
- contract=exact_resource_commands(commands);m.emit(admittedResourceCommands=commands.splitlines());graph_hash=digest(build/'build.ninja')
+ contract=admit_resource(summary,certificate,build,commands);m.emit(admittedResourceCommands=commands.splitlines());graph_hash=digest(build/'build.ninja')
  ns.call(['/usr/bin/ninja','-C','/work/build','-j2','-v',TARGET],'isolated-generate-actual-resource',300)
  require(digest(build/'build.ninja')==graph_hash,'Graph changed during resource execution')
  resource=build/TARGET;require(resource.is_file() and resource.stat().st_size>1000,'Real generated resource required')
  m.emit(status='passed-isolated-Ubuntu-configure-and-four-resource-commands-only',resourceBytes=resource.stat().st_size,resourceSha256=digest(resource),commandCount=contract['commands'],commandSha256=contract['sha256'],fullEngine=False,installed=False,nativeAcceptance=False,releaseReady=False)
+
+
+def verify_generated_configure(summary,build,log):
+ from stream_trace import require_complete
+ require_complete(summary)
+ cache=(build/'CMakeCache.txt').read_text();cfg=(build/'cmakeconfig.h').read_text()
+ for token in ['#define USE_GTK4 0','#define ENABLE_BUBBLEWRAP_SANDBOX 1','#define HAVE_GTK_UNIX_PRINTING 1','#define WEBKITGTK_API_VERSION "4.1"','#define ENABLE_DEVELOPER_MODE 0']:
+  name=token.split()[1];definitions=[line for line in cfg.splitlines() if re.match(r'^#define\s+'+re.escape(name)+r'(?:\s|$)',line)]
+  require(definitions==[token],'Missing/ambiguous generated feature: '+token)
+ for token in ['DEVELOPER_MODE:BOOL=OFF','USE_GTK4:BOOL=OFF']:
+  name=token.split(':')[0];entries=[line for line in cache.splitlines() if line.startswith(name+':')];require(entries==[token],'Feature cache mismatch/ambiguity')
+ require('Manually-specified variables were not used' not in log.read_text(),'Unused required CMake option')
+ commands=json.loads((build/'compile_commands.json').read_text());require(isinstance(commands,list) and commands,'Actual compile database required')
+ graph=build/'build.ninja';require(graph.is_file() and graph.stat().st_size>0,'Generated Ninja graph required')
+ return {'configurationArtifactsVerified':True,'streamSha256':summary['rawSha256'],'cmakeCacheSha256':digest(build/'CMakeCache.txt'),'generatedConfigSha256':digest(build/'cmakeconfig.h'),'ninjaGraphSha256':digest(graph),'compileDbSha256':digest(build/'compile_commands.json'),'api':'GTK3/API4.1','sandboxEnabled':True}
+
+def admit_resource(summary,certificate,build,commands):
+ from stream_trace import require_complete
+ require_complete(summary)
+ require(certificate.get('configurationArtifactsVerified') is True and certificate['streamSha256']==summary['rawSha256'],'Independent configuration certificate required')
+ for key,name in [('cmakeCacheSha256','CMakeCache.txt'),('generatedConfigSha256','cmakeconfig.h'),('ninjaGraphSha256','build.ninja'),('compileDbSha256','compile_commands.json')]:require(digest(build/name)==certificate[key],'Generated evidence changed before resource admission')
+ return exact_resource_commands(commands)

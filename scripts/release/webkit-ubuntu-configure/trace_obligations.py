@@ -3,6 +3,9 @@ missing/partial trace into a successful configuration claim."""
 from pathlib import Path
 import json,hashlib
 
+def _digest(path):
+ with path.open('rb') as stream:return hashlib.file_digest(stream,'sha256').hexdigest()
+
 def classify(obligations,trace,source,sdk,*,configure_succeeded):
  assert trace.is_file() and 0<trace.stat().st_size<=64*1024**2,'Bounded actual trace required'
  sites={};version=False
@@ -20,7 +23,7 @@ def classify(obligations,trace,source,sdk,*,configure_succeeded):
  result=[]
  for item in obligations['items']:
   path=item['file'];f=source/path[len('/source/'):] if path.startswith('/source/') else sdk/path.lstrip('/')
-  assert f.is_file() and hashlib.file_digest(f.open('rb'),'sha256').hexdigest()==item['sourceSha256'],'Obligation source changed'
+  assert f.is_file() and _digest(f)==item['sourceSha256'],'Obligation source changed'
   args=sites.get((path,item['line'],item['command']),[])
   result.append(dict(item,actualExpandedArguments=args,newUbuntuStatus='executed-in-actual-trace' if args else ('not-executed-in-this-successful-configure' if configure_succeeded else 'unresolved-in-incomplete-configure')))
- return {'configureSucceeded':configure_succeeded,'traceSha256':hashlib.file_digest(trace.open('rb'),'sha256').hexdigest(),'items':result,'staticScanIsAcceptance':False}
+ return {'configureSucceeded':configure_succeeded,'traceSha256':_digest(trace),'items':result,'staticScanIsAcceptance':False}
