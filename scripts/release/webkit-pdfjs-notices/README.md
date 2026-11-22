@@ -39,3 +39,26 @@ alone does not meet this requirement. Corresponding-source availability,
 applicable redistribution obligations, other static dependencies, the generated
 wrapper's reproducible build inputs, and security maintenance remain separate
 gates. This is technical provenance/packaging work, not legal clearance.
+
+## Binding to a generated resource container
+
+`webkit-pdfjs-resource-binding.py` additionally extracts the five reviewed assets
+from a real GLib GResource container (or a resource-bearing ELF) and matches their
+exact decompressed bytes to the source and prepared notices. Supply the expected
+container SHA-256 explicitly. The container is never executed; extraction has
+byte/time bounds, rejects changed containers and symlink paths, and preserves
+all incomplete-SBOM and nonapproval flags.
+
+```sh
+python3 scripts/release/webkit-pdfjs-resource-binding.py \
+  /path/to/verified-webkit/Source/ThirdParty/pdfjs /new/notice-payload \
+  /path/to/exact/resource-container EXPECTED_SHA256
+```
+
+A standalone generated bundle proves only that bundle's byte correspondence.
+It does not prove membership in the final linked library or installation. Run
+again against the final resource-bearing runtime, bind its hash to the actual
+package inventory, and verify these notice files are present in that same
+package before claiming that limited packaging obligation is met. Other PDF.js
+assets, all static dependencies and corresponding-source obligations still need
+their own evidence; no complete license expression is inferred here.
