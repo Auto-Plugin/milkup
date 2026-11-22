@@ -1,10 +1,10 @@
 """One owned Ubuntu SDK/configuration job. No installation, upload, or default build."""
 from pathlib import Path, PurePosixPath
 import concurrent.futures, datetime, email.utils, hashlib, json, lzma, os, re, shutil, signal, subprocess, sys, tarfile, time, urllib.parse, urllib.request, urllib.error
-BASE='12357f53601886e891bf23c09041b2fc91c1e607'
+BASE='8f144679eb43aa97477c8107f66295ae6976aaf9'
 SOURCE='2779c1b46f88762e8400650271ba14452dc4e30b37059981552d8b562b7d0862'
 PATCH='855e58cc8ad531cc32e893b8274983a6264e6fdfc248c13e80c5ef0e01d7a4e5'
-PLAN='7025025355731c04bc02a6cff9026277e1e5574e66d9853e4fadd4897b395cb6'
+PLAN='cbb137c65e5399b419e76e64e776d0cacb21fb02020504fa91317f9fb192cfc3'
 FROZEN='a6c7e94a0633d1949a33e54327b8fc59742199b5c5a03b4486c6ff47f9f08481'
 DEBIAN={'04B54C3CDCA79751B16BC6B5225629DF75B188BD','B8B80B5B623EAB6AD8775C45B7C5D7D6350947F8'}
 UBUNTU={'F6ECB3762474EDA9D21B7022871920D1991BC93C'}
@@ -107,7 +107,7 @@ def verify_inputs():
  assert sha(D/'frozen-sdk-plan.json')==FROZEN and sha(D/'configure-packages.json')==PLAN
  assert sha(D/'normal-path-2.54.3.patch')==PATCH
  frozen=json.loads((D/'frozen-sdk-plan.json').read_text());plan=json.loads((D/'configure-packages.json').read_text());pkgs=plan['packages']
- assert len(pkgs)==825 and len({p['package'] for p in pkgs})==825
+ assert len(pkgs)==827 and len({p['package'] for p in pkgs})==827
  byname={p['package']:p for p in pkgs}
  for old in frozen['packages']:
   assert all(byname[old['package']][k]==old[k] for k in ('version','sha256','bytes','architecture'))

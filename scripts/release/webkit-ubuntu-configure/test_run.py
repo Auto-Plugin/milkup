@@ -36,7 +36,10 @@ class Gate(unittest.TestCase):
   self.assertRaises(AssertionError,m.table,'0'*64+' 2 ../bad')
  def test_real_manifest_and_preserved_base(self):
   self.assertEqual(m.sha(D/'configure-packages.json'),m.PLAN);self.assertEqual(m.sha(D/'frozen-sdk-plan.json'),m.FROZEN)
-  ps=json.loads((D/'configure-packages.json').read_text())['packages'];bs=json.loads((D/'frozen-sdk-plan.json').read_text())['packages'];self.assertEqual(len(ps),825)
+  ps=json.loads((D/'configure-packages.json').read_text())['packages'];bs=json.loads((D/'frozen-sdk-plan.json').read_text())['packages'];self.assertEqual(len(ps),827)
+  backtrace={x['package']:x for x in ps if x['package'] in ('libbacktrace-dev','libbacktrace0')}
+  self.assertEqual(set(backtrace),{'libbacktrace-dev','libbacktrace0'})
+  self.assertTrue(all(x['version']=='0.1-4build1' for x in backtrace.values()))
   for b in bs:self.assertTrue(any(all(x[k]==b[k] for k in ('package','version','sha256','bytes')) for x in ps))
  def test_future_and_expired_release(self):
   self.assertRaises(AssertionError,m.dates,{'Date':'Sun, 22 Nov 2099 02:09:05 UTC'})
